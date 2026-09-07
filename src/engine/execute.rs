@@ -68,7 +68,10 @@ impl Engine {
                             .is_some_and(|m| m.keys().all(|k| k == "offset")),
                     "unexpected read input"
                 );
-                let data = self.store.result(p.owner, id, result_ref).await?;
+                let mut data = self.store.result(p.owner, id, result_ref).await?;
+                if let Ok(sources) = self.catalog.sources().await {
+                    crate::sources::brand_result(&mut data, &sources);
+                }
                 let serialized = serde_json::to_string(&data)?;
                 let mut r = self.view(p, id, req.request_id, None).await?;
                 if serialized.len() <= MAX_INLINE {
@@ -81,7 +84,7 @@ impl Engine {
                     anyhow::ensure!(offset <= chars.len(), "invalid result offset");
                     let end = (offset + 8000).min(chars.len());
                     r.result = Some(
-                        json!({"result_ref":result_ref,"encoding":"json_text","text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
+                        json!({"result_ref":result_ref,"encoding":"json_text","source":data.get("source"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
                     );
                 }
                 return Ok(r);

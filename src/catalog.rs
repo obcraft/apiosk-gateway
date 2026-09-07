@@ -223,7 +223,19 @@ impl CatalogCache {
                 let value: Value = sqlx::query_scalar(include_str!("sources.sql"))
                     .fetch_one(&self.pool)
                     .await?;
-                Ok::<_, anyhow::Error>(Arc::new(serde_json::from_value(value)?))
+                let mut sources: Vec<crate::sources::Source> = serde_json::from_value(value)?;
+                // Reuse the public provider directory, exactly as the App does.
+                // Branding is optional and must never block catalog/result access.
+                let branding = async {
+                    let http = reqwest::Client::builder()
+                        .redirect(reqwest::redirect::Policy::none())
+                        .timeout(Duration::from_secs(3)).build()?;
+                    let response = http.get("https://gateway.apiosk.com/v1/providers")
+                        .send().await?.error_for_status()?;
+                    crate::parser::bounded_json(response, 1024 * 1024).await
+                }.await;
+                crate::sources::apply_branding(&mut sources, branding.as_ref().ok());
+                Ok::<_, anyhow::Error>(Arc::new(sources))
             })
             .await
             .map_err(|_| anyhow::anyhow!("source catalog unavailable"))

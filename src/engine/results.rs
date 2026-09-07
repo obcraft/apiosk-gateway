@@ -23,7 +23,7 @@ impl Engine {
                 || task.facts.len() + e.subjects.iter().map(|s| s.facts.len()).sum::<usize>() > 1000
                 || serde_json::to_vec(&data).is_ok_and(|b| b.len() > 512 * 1024)
         });
-        let mut document = json!({"data":data,"source":{"provider":step.service.api_slug,"url":step.service.source_url,"endpoint_id":step.service.endpoint_id,"contract_version":step.service.contract.version,"retrieved_at":Utc::now()},"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USDC","missing_fields":[],"coverage":"source_response"});
+        let mut document = json!({"data":data,"source":{"provider":step.service.api_slug,"name":step.service.name,"url":step.service.source_url,"endpoint_id":step.service.endpoint_id,"contract_version":step.service.contract.version,"retrieved_at":Utc::now()},"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USDC","missing_fields":[],"coverage":"source_response"});
         document["execution_id"] = json!(execution);
         document["receipt_ref"] = body.get("execution_id").cloned().unwrap_or(Value::Null);
         document["provider_cost_micro_usd"] =

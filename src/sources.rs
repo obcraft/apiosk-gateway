@@ -19,6 +19,29 @@ pub struct Source {
     pub sectors: Vec<String>,
     pub endpoint_count: i64,
 }
+pub fn safe_logo(value: &str) -> Option<String> {
+    let url = reqwest::Url::parse(value).ok()?;
+    (value.len() <= 2048 && url.scheme() == "https" && url.host_str().is_some()
+        && url.username().is_empty() && url.password().is_none()).then(|| url.to_string())
+}
+
+pub fn apply_branding(sources: &mut [Source], directory: Option<&Value>) {
+    for source in sources {
+        let provider = directory.and_then(|d| d["providers"].as_array()).and_then(|rows|
+            rows.iter().find(|p| source.provider_slug.as_deref().is_some_and(|slug| p["username"].as_str() == Some(slug))));
+        source.logo_url = provider.and_then(|p| p["avatar_url"].as_str()).and_then(safe_logo)
+            .or_else(|| source.logo_url.as_deref().and_then(safe_logo));
+    }
+}
+
+pub fn brand_result(result: &mut Value, sources: &[Source]) {
+    let Some(slug) = result["source"]["provider"].as_str() else { return; };
+    let Some(source) = sources.iter().find(|s| s.slug == slug) else { return; };
+    result["source"]["name"] = json!(source.name);
+    result["source"]["provider_slug"] = json!(source.provider_slug);
+    result["source"]["logo_url"] = json!(source.logo_url);
+}
+
 fn labels<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error> {
     let values = Vec::<Value>::deserialize(d)?;
     Ok(values
@@ -147,6 +170,25 @@ mod tests {
             {"slug":"one","name":"Company data","description":"Annual filings","category":"finance","tags":["registry",null,12],"sectors":["business"],"endpoint_count":2},
             {"slug":"two","name":"Weather","description":"Forecasts","category":"weather","tags":[],"sectors":[],"endpoint_count":1}
         ])).unwrap()
+    }
+    #[test]
+    fn branding_matches_provider_identity_and_enriches_old_results() {
+        let mut rows = rows();
+        rows[0].provider_slug = Some("registry".into());
+        rows[1].logo_url = Some("javascript:alert(1)".into());
+        apply_branding(&mut rows, Some(&json!({"providers":[
+            {"username":"other","avatar_url":"https://example.com/wrong.png"},
+            {"username":"registry","avatar_url":"https://example.com/registry.png"}
+        ]})));
+        assert_eq!(rows[0].logo_url.as_deref(), Some("https://example.com/registry.png"));
+        assert!(rows[1].logo_url.is_none());
+        let mut result = json!({"source":{"provider":"one","endpoint_id":"original"},"data":{"value":42}});
+        brand_result(&mut result, &rows);
+        assert_eq!(result["source"]["logo_url"], "https://example.com/registry.png");
+        assert_eq!(result["source"]["name"], "Company data");
+        assert_eq!(result["source"]["endpoint_id"], "original");
+        assert_eq!(result["data"]["value"], 42);
+        assert!(safe_logo("https://user:password@example.com/logo.png").is_none());
     }
     #[test]
     fn searches_metadata_filters_and_paginates_without_claiming_executability() {
