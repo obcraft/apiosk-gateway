@@ -81,6 +81,8 @@ pub struct Proposal {
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub approval_url: String,
     pub steps: Vec<String>,
+    #[serde(default)]
+    pub step_details: Vec<Value>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {

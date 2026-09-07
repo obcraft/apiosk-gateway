@@ -299,3 +299,47 @@ fn add(
     });
     Ok(())
 }
+
+/// Presentation only: dependencies come from the quoted contracts, never an LLM guess.
+pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Value> {
+    plan.steps.iter().enumerate().map(|(index, step)| {
+        let service = &step.service;
+        let source = sources.iter().find(|s| s.slug == service.api_slug);
+        let capability = service.contract.capability_slug.as_str();
+        let title = match capability {
+            "company.registry-search" | "company_registry.search" => "Find the company and its KVK number".to_owned(),
+            "company.financial-statements" => "Retrieve financial statements".to_owned(),
+            "company.registry-profile" => "Retrieve the company profile".to_owned(),
+            "company.registered-names" => "Retrieve registered company names".to_owned(),
+            "company.branch-profile" => "Retrieve the branch profile".to_owned(),
+            _ => capability.replace(['.', '_', '-'], " "),
+        };
+        let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !r.optional).filter_map(|required| {
+            plan.steps[..index].iter().enumerate().rev().find(|(_, previous)|
+                previous.entity_ref == step.entity_ref && previous.service.contract.output_map.produces.contains_key(&required.fact_type)
+            ).map(|(previous, _)| json!({"step":previous+1,"field":required.fact_type,
+                "label":if required.fact_type == "company_registry.kvknummer" {"KVK number".to_owned()} else {required.fact_type.replace(['.', '_', '-'], " ")}}))
+        }).collect();
+        json!({"number":index+1,"title":title,"capability":capability,
+            "source":{"name":service.name,"slug":service.api_slug,"logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url},
+            "dependencies":dependencies})
+    }).collect()
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+    #[test]
+    fn explains_only_dependencies_between_steps_for_the_same_entity() {
+        let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let entity = Uuid::new_v4();
+        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
+        let details = describe_steps(&plan, &[]);
+        assert_eq!(details[1]["dependencies"][0]["step"], 1);
+        assert_eq!(details[1]["dependencies"][0]["field"], "company.id");
+        assert_eq!(details[0]["source"]["slug"], "fixture");
+        plan.steps[1].entity_ref = Uuid::new_v4();
+        assert!(describe_steps(&plan, &[])[1]["dependencies"].as_array().unwrap().is_empty());
+        assert_eq!(plan.cap_atomic, 138);
+    }
+}

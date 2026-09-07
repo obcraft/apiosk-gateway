@@ -367,8 +367,11 @@ impl Engine {
         }
         if let Some(value) = task.proposal {
             let plan: Plan = serde_json::from_value(value)?;
+            let sources = self.catalog.sources().await.unwrap_or_default();
+            let step_details = crate::resolver::describe_steps(&plan, &sources);
             r.proposal = Some(Proposal {
-                label: "Haal de gevraagde gegevens op".into(),
+                label: "Your plan".into(),
+                step_details,
                 quote_ref: plan.quote_ref,
                 price_status: "capped".into(),
                 currency: "USDC".into(),
