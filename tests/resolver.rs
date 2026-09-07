@@ -133,3 +133,43 @@ fn unknown_latest_semantics_are_reported_not_invented() {
         .insert("filing_selection".into(), json!("latest_two"));
     assert!(matches!(resolve(&c, &t, &i), Resolution::Unsupported(_)));
 }
+
+#[test]
+fn related_services_need_fresh_unambiguous_inputs_and_exclude_repeats() {
+    use apiosk_gateway_v2::{followups::related_services, state::Entity};
+    let (catalog, mut task, _) = setup();
+    let entity = task.facts[0].entity_ref;
+    task.entities.push(Entity {
+        entity_ref: entity,
+        label: "Example".into(),
+        selected: true,
+    });
+    task.result_refs.push(Uuid::new_v4());
+    task.completed
+        .push(format!("{}:{}", catalog.services[0].id, entity));
+    assert!(
+        related_services(&catalog, &task).is_empty(),
+        "missing identifiers must not be guessed"
+    );
+    let mut id = task.facts[0].clone();
+    id.semantic_type = "company.id".into();
+    id.value = json!("123");
+    task.facts.push(id.clone());
+    assert_eq!(related_services(&catalog, &task).len(), 1);
+    task.facts.last_mut().unwrap().expires_at = Utc::now() - chrono::Duration::seconds(1);
+    assert!(related_services(&catalog, &task).is_empty());
+    task.facts.last_mut().unwrap().expires_at = id.expires_at;
+    id.value = json!("456");
+    task.facts.push(id);
+    assert!(
+        related_services(&catalog, &task).is_empty(),
+        "conflicting identifiers must not be chosen silently"
+    );
+    task.facts.pop();
+    task.completed
+        .push(format!("{}:{}", catalog.services[1].id, entity));
+    assert!(
+        related_services(&catalog, &task).is_empty(),
+        "completed endpoints are not resold"
+    );
+}

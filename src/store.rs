@@ -14,6 +14,12 @@ pub enum Claim {
     Conflict,
 }
 impl Store {
+    pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> {
+        // Summaries only, bounded and ordered through tasks_owner_recent.
+        Ok(sqlx::query_scalar(
+            "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM gateway_v2.tasks WHERE owner_id=$1 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
+        ).bind(owner).fetch_all(&self.pool).await?)
+    }
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))")

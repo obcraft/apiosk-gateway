@@ -8,7 +8,7 @@ import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.j
 const db=new PGlite();await db.waitReady;
 await db.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
 const migrations=(await fs.readdir(new URL('../supabase/migrations/',import.meta.url))).sort();
-for(const f of migrations) await db.exec(await fs.readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+for(const f of migrations.filter(f => !f.endsWith('_runtime_access.sql'))) await db.exec(await fs.readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
 await db.exec(`CREATE TABLE public.user_selected_apis(id uuid primary key,user_id uuid,connection_id uuid,prompt text,kind text,source text,name text,capability text,api_slug text,candidate_id uuid,method text,provider_price_micro_usd bigint,charged_micro_usd bigint,metadata jsonb);
 CREATE TABLE public.balance_charges(id uuid primary key,user_id uuid,idempotency_key text,status text,charged_micro_usd bigint,actual_provider_micro_usd bigint,provider_price_micro_usd bigint,fee_micro_usd bigint);
 CREATE TABLE public.user_balances(user_id uuid primary key,balance_micro_usd bigint);

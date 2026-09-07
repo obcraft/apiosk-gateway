@@ -54,3 +54,8 @@ npm test
 ```
 
 De bestaande proxytests: 103 geslaagd; de live betaalprobe is ignored. De v2 SQLx-/MCP-ketentest slaagt met fixtures. Deze controles bewijzen geen echte providerbetaling, treasuryliquiditeit of productie-settlement. Voor uitrol moet de bijgewerkte `supabase/runtime-role.sql` worden toegepast voor uitsluitend aanvullende leesrechten op saldo en kostenkolommen; daarnaast moeten de aangepaste App Edge Functions, v2-binary en clients samen worden uitgerold zoals in de [runbook](runbook.md).
+
+
+## Actieve aansluiting
+
+De aansluiting is geverifieerd op 7 september 2026: dezelfde Supabase-database, dedicated v2-login, canonieke server-role-key en treasury-key op de bestaande online x402-executor. Lokale v2-uitvoering staat aan met plan-/prijsgoedkeuring. Zie [verificatie](verification.md#aansluiting-van-serverrol-en-treasury) voor de exacte versies en controles. `scripts/connect-payment-secrets.py` valideert standaard alleen; `--apply` sluit uitsluitend de twee serverkeys aan. Secrets blijven buiten App/MCP/browser. Dit is configuratie- en preflightbewijs; een echte providerbetaling met ledger-/settlementcontrole moet nog afzonderlijk gebeuren.

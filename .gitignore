@@ -5,3 +5,6 @@
 /supabase/.temp/
 /supabase/.branches/
 /test-artifacts/
+/.local/
+
+__pycache__/

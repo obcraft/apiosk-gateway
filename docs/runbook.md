@@ -16,12 +16,12 @@ Gebruik voor een langlevende SQLx-server een directe of session-poolerverbinding
 
 ## Database en releasevolgorde
 
-De nieuwe migratie is via de Supabase CLI aangemaakt. De canonieke kopie staat onder `gateway-v2/supabase/migrations/`; `scripts/sync-migration.mjs` synchroniseert exact dezelfde SQL naar de bestaande App-migratiereeks. Pas de migratie niet onafhankelijk in beide histories toe. `--check` detecteert drift.
+De nieuwe migratie is via de Supabase CLI aangemaakt. De canonieke kopie staat onder `gateway-v2/supabase/migrations/`; `scripts/sync-migration.mjs` synchroniseert exact dezelfde SQL naar de bestaande App-migratiereeks. Pas de migratie niet onafhankelijk in beide histories toe. De bestandsversies zijn afgestemd op de daadwerkelijke gedeelde Supabase-historie: state `20260907094100`, runtime access `20260907095555`. Beide zijn op 7 september 2026 toegepast; de runtime access-migratie na expliciete toestemming. `--check` detecteert drift.
 
 Voer een eerste rollout uit in een gecontroleerde stagingomgeving:
 
 1. Synchroniseer contracten en migratie. Bekijk vanuit `app` met `npx supabase db push --linked --dry-run` welke migraties klaarstaan. Controleer het gekoppelde project en alle eerdere pending migraties. De v2-binary voert zelf nooit DDL uit.
-2. Pas via de bestaande App-migratieprocedure de nieuwe private state-migratie toe. Laat een DBA daarna `gateway-v2/supabase/runtime-role.sql` toepassen en de dedicated login aan `gateway_v2_runtime` koppelen. Dit bestand bevat geen wachtwoord. Bestaande applicatierollen krijgen geen nieuwe v2-rechten.
+2. Pas via de bestaande App-migratieprocedure de nieuwe private state-migratie toe. Laat een DBA daarna de runtime access-migratie (canonieke SQL ook in `gateway-v2/supabase/runtime-role.sql`) toepassen en de dedicated login aan `gateway_v2_runtime` koppelen. Dit bestand bevat geen wachtwoord. Bestaande applicatierollen krijgen geen nieuwe v2-rechten.
 3. Rol de kleine aanpassing in `gateway/src/v1_routes/do_job.rs` uit. Rol vervolgens de App Edge Functions uit die `_shared/request.ts` gebruiken: `use-selection` en `agent-gateway`. De nieuwe `deterministic`-flag moet overal worden doorgegeven voordat v2 aankopen toestaat. Alleen frontenddeploy is daarvoor onvoldoende.
 4. Start de v2-binary met uitvoeringen uitgeschakeld. Controleer startup/catalogus, authenticatie, een echte intentparse, prijsvoorstel en weigering zonder toestemming.
 5. Stel `APIOSK_GATEWAY_V2_URL` in op de MCP-server en `VITE_GATEWAY_V2_URL` op de App-build. Laat de bestaande MCP-OAuth/tokenafhandeling intact. De App-route `/gateway-v2?task=<uuid>` biedt toestemming voor een agenttaak. Voor remote clients is een bereikbaar HTTPS-adres nodig; hun localhost is niet deze ontwikkelmachine.

@@ -84,6 +84,22 @@ impl Intent {
         Ok(())
     }
 }
+/// App-only conversational routing; never an executable action or approval.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChatReply {
+    pub message: String,
+    pub discover: bool,
+}
+impl ChatReply {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self.message.trim().is_empty() && self.message.len() <= 3000,
+            "invalid chat reply"
+        );
+        Ok(())
+    }
+}
 pub struct Parser {
     http: reqwest::Client,
     url: String,
@@ -105,6 +121,31 @@ impl Parser {
                 .build(),
             calls: AtomicU64::new(0),
         }
+    }
+    pub async fn chat(
+        &self,
+        question: &str,
+        task: &Task,
+        catalog: &Catalog,
+    ) -> anyhow::Result<ChatReply> {
+        anyhow::ensure!(!self.key.is_empty(), "chat model not configured");
+        let response = self.http.post(&self.url).bearer_auth(&self.key)
+            .timeout(Duration::from_secs(25)).json(&json!({
+                "model": self.model, "temperature": 0.2, "max_tokens": 1000,
+                "response_format": {"type":"json_object"},
+                "messages": [
+                    {"role":"system","content":include_str!("../contracts/ask-chat-prompt.txt")},
+                    {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"]}).to_string()}
+                ]
+            })).send().await?.error_for_status()?;
+        let body = bounded_json(response, 32768).await?;
+        let raw = body
+            .pointer("/choices/0/message/content")
+            .and_then(Value::as_str)
+            .ok_or_else(|| anyhow::anyhow!("missing chat JSON"))?;
+        let reply: ChatReply = serde_json::from_str(raw)?;
+        reply.validate()?;
+        Ok(reply)
     }
     pub async fn parse(
         &self,
@@ -154,4 +195,33 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
         bytes.extend_from_slice(&chunk);
     }
     Ok(serde_json::from_slice(&bytes)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn chat_reply_is_bounded_and_cannot_authorize_or_fill_inputs() {
+        let reply: ChatReply = serde_json::from_value(
+            json!({"message":"Hallo! Hoe kan ik je helpen?","discover":false}),
+        )
+        .unwrap();
+        assert!(reply.validate().is_ok());
+        assert!(serde_json::from_value::<ChatReply>(
+            json!({"message":"Yes","discover":true,"approved":true})
+        )
+        .is_err());
+        assert!(ChatReply {
+            message: " ".into(),
+            discover: false
+        }
+        .validate()
+        .is_err());
+        assert!(ChatReply {
+            message: "x".repeat(3001),
+            discover: false
+        }
+        .validate()
+        .is_err());
+    }
 }

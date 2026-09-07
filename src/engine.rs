@@ -1,4 +1,5 @@
 mod execute;
+mod followups;
 mod results;
 use crate::{
     auth::Principal,
@@ -11,6 +12,7 @@ use crate::{
     store::{Claim, Store},
 };
 use chrono::Utc;
+pub use followups::FollowupRequest;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -72,13 +74,25 @@ impl Engine {
         {
             return Ok(r);
         }
-        let result = self.discover_inner(p, &req).await;
+        let result = self.discover_inner(p, &req, false).await;
+        Ok(self.complete(p, req.request_id, result).await)
+    }
+    pub async fn chat(&self, p: &Principal, req: DiscoverRequest) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.is_person(), "Ask chat requires a person in the App");
+        if let Some(r) = self
+            .request_claim(p, req.request_id, &digest(&("ask-chat", &req)))
+            .await?
+        {
+            return Ok(r);
+        }
+        let result = self.discover_inner(p, &req, true).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
     async fn discover_inner(
         &self,
         p: &Principal,
         req: &DiscoverRequest,
+        app_chat: bool,
     ) -> anyhow::Result<Response> {
         anyhow::ensure!(
             !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
@@ -133,6 +147,25 @@ impl Engine {
                 &f.semantic_type,
                 f.value.clone(),
             )?;
+        }
+        if app_chat {
+            let reply = self.parser.chat(&req.question, &task, &catalog).await?;
+            task.record_turn(&req.question, Some(reply.message));
+            if !reply.discover {
+                task.intent = None;
+                task.proposal = None;
+                task.actions.clear();
+                task.completed.clear();
+                task.pending_candidates.clear();
+                task.original_subject = None;
+                task.execution_error = None;
+                task.cancelled = false;
+                task.focus.goal_refs.clear();
+                self.store.save_intent(p.owner, id, revision, &task).await?;
+                return self
+                    .view(p, id, req.request_id, Some(Status::NeedsInput))
+                    .await;
+            }
         }
         let mut intent = self
             .parser
@@ -274,6 +307,8 @@ impl Engine {
             .any(|v| v["kind"] == "unsupported_reason")
         {
             Status::Unsupported
+        } else if task.intent.is_none() && !task.conversation.is_empty() {
+            Status::NeedsInput
         } else if !task.result_refs.is_empty() {
             Status::Succeeded
         } else {
@@ -282,11 +317,19 @@ impl Engine {
         let mut r = Response::new(request, forced.unwrap_or(inferred));
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
+        r.context_view["execution_enabled"] = json!(self.executor.enabled);
         r.context_view["execution_owner"] = json!(if connection.is_some() {
             "connected_agent"
         } else {
             "app"
         });
+        if p.is_person() && connection.is_none() && !task.result_refs.is_empty() {
+            // Recommendations are optional; catalog downtime must not hide a purchased result.
+            if let Ok(catalog) = self.catalog.get().await {
+                r.context_view["related_services"] =
+                    json!(crate::followups::related_services(&catalog, &task));
+            }
+        }
         if !task.pending_candidates.is_empty() {
             r.context_view["candidates"] = json!(task.pending_candidates)
         }

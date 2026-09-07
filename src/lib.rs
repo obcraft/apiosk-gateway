@@ -3,6 +3,7 @@ pub mod billing;
 pub mod catalog;
 pub mod engine;
 pub mod execution;
+pub mod followups;
 pub mod maintenance;
 pub mod parser;
 pub mod protocol;

@@ -92,8 +92,15 @@ pub struct Fact {
     pub expires_at: DateTime<Utc>,
     pub verification: String,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConversationTurn {
+    pub question: String,
+    pub reply: Option<String>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
+    #[serde(default)]
+    pub conversation: Vec<ConversationTurn>,
     pub entities: Vec<Entity>,
     pub facts: Vec<Fact>,
     pub focus: Focus,
@@ -109,11 +116,20 @@ pub struct Task {
     pub execution_error: Option<Value>,
 }
 impl Task {
+    pub fn record_turn(&mut self, question: &str, reply: Option<String>) {
+        self.conversation.push(ConversationTurn {
+            question: question.to_owned(),
+            reply,
+        });
+        let remove = self.conversation.len().saturating_sub(6);
+        self.conversation.drain(..remove);
+    }
     pub fn context_view(&self) -> Value {
-        serde_json::json!({"entities":self.entities.iter().filter(|e|self.focus.entity_refs.contains(&e.entity_ref)).collect::<Vec<_>>(),"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
+        serde_json::json!({"conversation":self.conversation,"entities":self.entities.iter().filter(|e|self.focus.entity_refs.contains(&e.entity_ref)).collect::<Vec<_>>(),"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
     }
     pub fn bounded(&self) -> bool {
-        self.entities.len() <= 100
+        self.conversation.len() <= 6
+            && self.entities.len() <= 100
             && self.facts.len() <= 1000
             && self.actions.len() <= 24
             && self.result_refs.len() <= 100
@@ -132,6 +148,21 @@ mod tests {
         assert!(s.verify(Uuid::new_v4(), &e, false).is_err());
         e.focus.entity_refs.push(Uuid::new_v4());
         assert!(s.verify(owner, &e, false).is_err());
+    }
+    #[test]
+    fn conversation_retains_six_recent_turns_and_reads_old_tasks() {
+        let mut task = Task::default();
+        for n in 0..10 {
+            task.record_turn(&n.to_string(), Some("reply".into()));
+        }
+        assert_eq!(task.conversation.len(), 6);
+        assert_eq!(task.conversation[0].question, "4");
+        let mut legacy = serde_json::to_value(Task::default()).unwrap();
+        legacy.as_object_mut().unwrap().remove("conversation");
+        assert!(serde_json::from_value::<Task>(legacy)
+            .unwrap()
+            .conversation
+            .is_empty());
     }
     #[test]
     fn context_is_bounded_by_focus_and_recent_results() {

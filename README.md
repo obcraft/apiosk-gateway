@@ -8,7 +8,7 @@ De gateway exposeert twee MCP-tools via de bestaande MCP-repository: `apiosk_dis
 
 De betaalroute is verder aangescherpt met afzonderlijke ledgerbetaalstatus, exacte kosten/feecontrole, saldotekortafhandeling en weergave van refunds. Zie [betalingen en grenzen van de oude route](docs/payments.md).
 
-De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De parser heeft nog een geconfigureerde model-API-key nodig voor een echte modeltest. Uitvoering staat standaard uit.
+De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De geconfigureerde Gemini 3.8 Flash-parser heeft een echte modeltest met uitsluitend synthetische invoer doorstaan. Uitvoering staat standaard uit.
 
 De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en gevalideerde uitvoeringscontracten; alle 133 doorstonden de lokale contractvalidatie. De catalogus bevat meer listings/capabilities dan daadwerkelijk ondersteunde uitvoeringscontracten. Een beschikbare listing telt daarom niet automatisch als uitvoerbare dienst.
 
@@ -23,7 +23,7 @@ De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en geva
 | `src/execution.rs`, `engine/` | Toestemming, cap, duurzame dispatch, herstel en bronresultaten |
 | `src/auth.rs`, `server.rs`, `main.rs` | Accountauthenticatie, HTTP, CORS, limieten en procesconfiguratie |
 
-Zie [architectuur en grenzen](docs/architecture.md), [lokale setup en uitrol](docs/runbook.md) en [hergebruik van bestaande code](docs/source-reuse.md).
+Zie [ChatGPT, Claude en browserkoppeling](docs/chatbot-setup.md), [architectuur en grenzen](docs/architecture.md), [lokale setup en uitrol](docs/runbook.md) en [hergebruik van bestaande code](docs/source-reuse.md).
 
 ## Controleren
 

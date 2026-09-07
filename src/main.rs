@@ -89,6 +89,12 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
+    let intent_model = env::var("INTENT_MODEL")
+        .ok()
+        .map(|v| v.trim().to_owned())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| "google/gemini-3.8-flash".into());
+    tracing::info!(model=%intent_model, "intent parser configured");
     let engine = Arc::new(Engine {
         store: store.clone(),
         catalog: CatalogCache::new(pool.clone()),
@@ -100,7 +106,7 @@ async fn main() -> anyhow::Result<()> {
                     .unwrap_or_else(|_| "https://openrouter.ai/api/v1/chat/completions".into()),
             )?,
             env::var("INTENT_API_KEY").unwrap_or_default(),
-            env::var("INTENT_MODEL").unwrap_or_else(|_| "google/gemini-2.5-flash".into()),
+            intent_model,
         ),
         signer: Signer::new(required("STATE_SIGNING_KEY")?.into_bytes())?,
         executor: Executor {

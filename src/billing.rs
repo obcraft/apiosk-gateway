@@ -155,7 +155,7 @@ impl Store {
             "released"
         };
         Ok(
-            json!({"scope":"quote","quote_ref":quote,"status":status,"funding_source":"apiosk_balance","currency":"USD","unit":"micro","pricing_rule":"provider_cost_plus_15_v1","cost_basis":"existing_gateway_provider_tariff","apiosk_fee_bps":1500,"provider_cost":if breakdown_known{Some(provider.to_string())}else{None},"apiosk_fee":if breakdown_known{Some(fee.to_string())}else{None},"total_charged":total.to_string(),"reserved":held.to_string(),"quote_cap":cap.to_string(),"max_authorized":authorized.unwrap_or(0).to_string(),"balance_available":balance.map(|n|n.to_string()),"executions":executions,"external_settlement":"managed_by_existing_gateway"}),
+            json!({"scope":"quote","quote_ref":quote,"status":status,"funding_source":"apiosk_balance","currency":"USD","unit":"micro","pricing_rule":"provider_cost_plus_15_v1","cost_basis":"existing_gateway_provider_tariff","apiosk_fee_bps":1500,"provider_cost":if breakdown_known{Some(provider.to_string())}else{None},"apiosk_fee":if breakdown_known{Some(fee.to_string())}else{None},"total_charged":total.to_string(),"reserved":held.to_string(),"quote_cap":cap.to_string(),"authorization_active":authorized.is_some(),"max_authorized":authorized.unwrap_or(0).to_string(),"balance_available":balance.map(|n|n.to_string()),"executions":executions,"external_settlement":"managed_by_existing_gateway"}),
         )
     }
 }

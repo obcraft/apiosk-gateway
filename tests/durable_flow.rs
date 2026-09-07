@@ -35,6 +35,11 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     c.parser.fetch_add(1, Ordering::Relaxed);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input["surface"] == "ask-chat" {
+        return Json(
+            json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":input["question"] != "Hallo"}).to_string()}}]}),
+        );
+    }
     let entity = input["context"]["entities"][0]["entity_ref"].clone();
     let label = if input["question"].as_str().unwrap().contains("Ambiguous") {
         "Ambiguous"
@@ -48,8 +53,17 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     } else {
         json!({"entity_ref":null,"label":label,"values":{"company.name":label}})
     };
+    let capability = if input["question"]
+        .as_str()
+        .unwrap()
+        .starts_with("Search only")
+    {
+        "company.search"
+    } else {
+        "company.accounts"
+    };
     Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
+        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
     )
 }
 async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
@@ -641,7 +655,7 @@ async fn durable_flow_and_authorization_boundary() {
     let api_server = tokio::spawn(async move { axum::serve(listener, api).await.unwrap() });
     let smoke = tokio::process::Command::new("node")
         .arg("tests/mcp-http-smoke.mjs")
-        .env("FIXTURE_GATEWAY_URL", api_url)
+        .env("FIXTURE_GATEWAY_URL", &api_url)
         .output()
         .await
         .unwrap();
@@ -652,6 +666,266 @@ async fn durable_flow_and_authorization_boundary() {
         String::from_utf8_lossy(&smoke.stderr)
     );
     println!("{}", String::from_utf8_lossy(&smoke.stdout));
+    let chats_before = counts.parser.load(Ordering::Relaxed);
+    assert!(engine
+        .chat(
+            &agent,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Hallo".into(),
+                state: None,
+                context_delta: Default::default()
+            }
+        )
+        .await
+        .is_err());
+    assert_eq!(
+        counts.parser.load(Ordering::Relaxed),
+        chats_before,
+        "MCP callers must not enter the App chat layer"
+    );
+    let before = counts.provider.load(Ordering::Relaxed);
+    let greeting = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Hallo".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(greeting.status, Status::NeedsInput);
+    assert!(greeting.errors.is_empty());
+    assert!(greeting.proposal.is_none());
+    assert!(greeting.next_actions.is_empty());
+    assert_eq!(
+        greeting.context_view["conversation"][0]["reply"],
+        "Hallo! Waar kan ik je mee helpen?"
+    );
+    let restored = engine
+        .view(
+            &person,
+            greeting.state.as_ref().unwrap().state_ref,
+            Uuid::new_v4(),
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(restored.status, Status::NeedsInput);
+    assert_eq!(
+        restored.context_view["conversation"],
+        greeting.context_view["conversation"]
+    );
+    let history = store.list_tasks(person.owner).await.unwrap();
+    let greeting_id = greeting.state.as_ref().unwrap().state_ref;
+    let summary = history
+        .iter()
+        .find(|row| row["id"] == greeting_id.to_string())
+        .unwrap();
+    assert_eq!(summary["title"], "Hallo");
+    assert_eq!(
+        summary.as_object().unwrap().len(),
+        3,
+        "history must contain summaries only"
+    );
+    assert!(store.list_tasks(Uuid::new_v4()).await.unwrap().is_empty());
+    let empty_id = store.create(person.owner, None).await.unwrap();
+    assert!(!store
+        .list_tasks(person.owner)
+        .await
+        .unwrap()
+        .iter()
+        .any(|row| row["id"] == empty_id.to_string()));
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()-interval '1 day' WHERE id=$1")
+        .bind(greeting_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(!store
+        .list_tasks(person.owner)
+        .await
+        .unwrap()
+        .iter()
+        .any(|row| row["id"] == greeting_id.to_string()));
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()+interval '1 day' WHERE id=$1")
+        .bind(greeting_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let client = reqwest::Client::new();
+    assert_eq!(
+        client
+            .get(format!("{api_url}/v2/tasks"))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        client
+            .get(format!("{api_url}/v2/tasks"))
+            .bearer_auth("apk_access_local_fixture")
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    let response = client
+        .get(format!("{api_url}/v2/tasks"))
+        .bearer_auth("fixture-human")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await.unwrap();
+    assert!(
+        !body["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["id"] == greeting_id.to_string()),
+        "a different authenticated person must not see this chat"
+    );
+    let planned = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Get accounts for Example".into(),
+                state: restored.state,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(planned.status, Status::Ready);
+    assert_eq!(planned.proposal.unwrap().max_total_atomic, "138");
+    let chatting = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Hallo".into(),
+                state: planned.state,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    assert!(chatting.proposal.is_none());
+    assert!(
+        chatting.next_actions.is_empty(),
+        "conversation must not retain a stale purchase action"
+    );
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before);
+    // Actual fixture purchase -> related service -> fresh approval -> second result.
+    let lookup = engine
+        .discover(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Search only Example".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    let lookup_plan = lookup.proposal.as_ref().unwrap();
+    engine
+        .executor
+        .approve(
+            &person,
+            lookup.state.as_ref().unwrap().state_ref,
+            lookup_plan.quote_ref,
+            &lookup_plan.max_total_atomic,
+        )
+        .await
+        .unwrap();
+    let found = engine
+        .execute(&person, "fixture", execution(&lookup))
+        .await
+        .unwrap();
+    assert_eq!(found.status, Status::Succeeded);
+    let suggestions = found.context_view["related_services"].as_array().unwrap();
+    assert_eq!(suggestions.len(), 1);
+    assert_eq!(suggestions[0]["title"], "accounts");
+    assert_eq!(suggestions[0]["total_atomic"], "115");
+    let followup_request = crate_followup_request(&found, &suggestions[0]);
+    let provider_before_preview = counts.provider.load(Ordering::Relaxed);
+    let parser_before_preview = counts.parser.load(Ordering::Relaxed);
+    let preview = engine.followup(&person, followup_request).await.unwrap();
+    assert_eq!(preview.status, Status::Ready);
+    assert_eq!(preview.proposal.as_ref().unwrap().steps.len(), 1);
+    assert_eq!(preview.proposal.as_ref().unwrap().max_total_atomic, "115");
+    assert_ne!(
+        preview.proposal.as_ref().unwrap().quote_ref,
+        lookup_plan.quote_ref
+    );
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        provider_before_preview
+    );
+    assert_eq!(counts.parser.load(Ordering::Relaxed), parser_before_preview);
+    let blocked = engine
+        .execute(&person, "fixture", execution(&preview))
+        .await
+        .unwrap();
+    assert_eq!(
+        blocked.status,
+        Status::RequiresApproval,
+        "earlier approval cannot authorize the follow-up"
+    );
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        provider_before_preview
+    );
+    let quote = preview.proposal.as_ref().unwrap();
+    engine
+        .executor
+        .approve(
+            &person,
+            preview.state.as_ref().unwrap().state_ref,
+            quote.quote_ref,
+            &quote.max_total_atomic,
+        )
+        .await
+        .unwrap();
+    let followup_done = engine
+        .execute(&person, "fixture", execution(&preview))
+        .await
+        .unwrap();
+    assert_eq!(followup_done.status, Status::Succeeded);
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        provider_before_preview + 1
+    );
+    assert!(
+        followup_done.context_view["related_services"]
+            .as_array()
+            .unwrap()
+            .is_empty(),
+        "do not sell the same endpoint again"
+    );
+    assert!(engine
+        .followup(&agent, crate_followup_request(&found, &suggestions[0]))
+        .await
+        .is_err());
+    let cross_account = engine
+        .followup(&other, crate_followup_request(&found, &suggestions[0]))
+        .await
+        .unwrap();
+    assert_eq!(cross_account.status, Status::Failed);
+    let stale = engine
+        .followup(&person, crate_followup_request(&found, &suggestions[0]))
+        .await
+        .unwrap();
+    assert_eq!(stale.status, Status::StateConflict);
     api_server.abort();
     println!(
         "fixture scenarios elapsed_ms={} parser_calls={} provider_calls={}; initial two-step cap/charge=138 atomic",
@@ -659,4 +933,16 @@ async fn durable_flow_and_authorization_boundary() {
     );
     server.abort();
     pool.close().await;
+}
+
+fn crate_followup_request(
+    response: &apiosk_gateway_v2::protocol::Response,
+    suggestion: &Value,
+) -> apiosk_gateway_v2::engine::FollowupRequest {
+    apiosk_gateway_v2::engine::FollowupRequest {
+        request_id: Uuid::new_v4(),
+        state: response.state.clone().unwrap(),
+        service_ref: suggestion["service_ref"].as_str().unwrap().parse().unwrap(),
+        entity_ref: suggestion["entity_ref"].as_str().unwrap().parse().unwrap(),
+    }
 }

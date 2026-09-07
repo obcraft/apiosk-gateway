@@ -39,7 +39,10 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
             get(|| async { Json(json!({"service":"apiosk-gateway-v2","protocol_version":"2"})) }),
         )
         .route("/v2/discover", post(discover))
+        .route("/v2/chat", post(chat))
+        .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
+        .route("/v2/tasks", get(tasks))
         .route("/v2/tasks/:id", get(task))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
@@ -109,6 +112,69 @@ async fn discover(
         }
     }
 }
+async fn chat(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Json(req): Json<DiscoverRequest>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(
+            StatusCode::TOO_MANY_REQUESTS,
+            "busy",
+            "Probeer het over enkele seconden opnieuw.",
+        );
+    };
+    let p = match caller(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if !p.is_person() {
+        return failure(
+            StatusCode::FORBIDDEN,
+            "app_only",
+            "Gebruik de discover-tool voor verbonden chatbots.",
+        );
+    }
+    match state.engine.chat(&p, req).await {
+        Ok(r) => Json(r).into_response(),
+        Err(e) => {
+            tracing::error!(error=%e, "chat persistence failure");
+            failure(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "unavailable",
+                "Het gesprek kon niet worden opgeslagen.",
+            )
+        }
+    }
+}
+async fn followup(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Json(req): Json<crate::engine::FollowupRequest>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    let p = match caller(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if !p.is_person() {
+        return failure(
+            StatusCode::FORBIDDEN,
+            "app_only",
+            "Related services are available in the App.",
+        );
+    }
+    match state.engine.followup(&p, req).await {
+        Ok(r) => Json(r).into_response(),
+        Err(_) => failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "unavailable",
+            "The follow-up plan could not be saved. Refresh the task.",
+        ),
+    }
+}
 async fn execute(
     State(state): State<ServerState>,
     headers: HeaderMap,
@@ -140,6 +206,30 @@ async fn execute(
             StatusCode::SERVICE_UNAVAILABLE,
             "execution_pending",
             "Controleer de taakstatus voordat je opnieuw uitvoert.",
+        ),
+    }
+}
+async fn tasks(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    let p = match caller(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if !p.is_person() {
+        return failure(
+            StatusCode::FORBIDDEN,
+            "app_only",
+            "Chat history is available in the App.",
+        );
+    }
+    match state.engine.store.list_tasks(p.owner).await {
+        Ok(tasks) => Json(json!({"tasks": tasks})).into_response(),
+        Err(_) => failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "history_unavailable",
+            "Chat history could not be loaded. Try again.",
         ),
     }
 }
