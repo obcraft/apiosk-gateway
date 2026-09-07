@@ -71,7 +71,7 @@ const source = sources[0];
 
 const endpoints = await read("api_endpoints", {
   select:
-    "id,path,method,active,description,query_params,response_body,tags,sectors,use_cases,endpoint_category,action_type",
+    "id,path,method,price,active,description,query_params,response_body,tags,sectors,use_cases,endpoint_category,action_type",
   api_id: `eq.${source.id}`,
   order: "path",
 });
@@ -157,7 +157,13 @@ const contractsByEndpoint = Map.groupBy(contracts, ({ endpoint_id }) => endpoint
 const capabilityBySlug = new Map(capabilities.map((capability) => [capability.slug, capability]));
 for (const endpoint of endpoints) {
   const label = endpoint.path;
+  const listAtomic = Math.ceil(Number(endpoint.price) * 1_000_000);
+  const buyerAtomic = listAtomic + Math.ceil((listAtomic * 1_500) / 10_000);
   expect(endpoint.active && endpoint.method === "GET", `${label}: endpoint is not an active GET`);
+  expect(
+    buyerAtomic >= 50_000 && buyerAtomic <= 100_000,
+    `${label}: buyer price is outside five to ten cents`,
+  );
   expect(typeof endpoint.description === "string" && endpoint.description.length >= 20, `${label}: description missing`);
   expect(object(endpoint.query_params) && endpoint.query_params.type === "object", `${label}: input schema missing`);
   expect(object(endpoint.query_params?.properties), `${label}: input properties missing`);
@@ -230,6 +236,20 @@ console.log(
           tags?.length && sectors?.length && use_cases?.length && endpoint_category && action_type,
       ).length,
       contracts: contracts.length,
+      buyerPriceUsd: {
+        minimum: Math.min(
+          ...endpoints.map(({ price }) => {
+            const atomic = Math.ceil(Number(price) * 1_000_000);
+            return (atomic + Math.ceil((atomic * 1_500) / 10_000)) / 1_000_000;
+          }),
+        ),
+        maximum: Math.max(
+          ...endpoints.map(({ price }) => {
+            const atomic = Math.ceil(Number(price) * 1_000_000);
+            return (atomic + Math.ceil((atomic * 1_500) / 10_000)) / 1_000_000;
+          }),
+        ),
+      },
       activeValidatedContracts: contracts.filter(
         ({ status, validated_at }) => status === "active" && validated_at,
       ).length,
