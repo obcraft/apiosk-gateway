@@ -352,7 +352,12 @@ impl ExecutionContract {
         }
         let mut kinds = std::collections::BTreeSet::new();
         let mut targets = std::collections::BTreeSet::new();
-        let mut paths = 0;
+        // A route template can have several NAMED path slots (`{lat}`, `{lon}`,
+        // `{radius}`), and each one remains unambiguous because the endpoint
+        // schema names its destination. `path_append` has no slot name in the
+        // route itself, so more than one append would make ordering implicit;
+        // keep that legacy form limited to one.
+        let mut path_appends = 0;
         for required in &self.requires {
             if required.subject_role != "subject" || !kinds.insert(&required.fact_type) {
                 return Err(ContractError::InvalidInputs {
@@ -375,14 +380,14 @@ impl ExecutionContract {
         for (kind, binding) in &self.input_map {
             let location = binding.location.as_deref().unwrap_or("query");
             let valid_location = matches!(location, "query" | "body" | "path" | "path_append");
-            if matches!(location, "path" | "path_append") {
-                paths += 1;
+            if location == "path_append" {
+                path_appends += 1;
             }
             if !kinds.contains(kind)
                 || !valid_location
                 || binding.name.trim().is_empty()
                 || !targets.insert((location, &binding.name))
-                || paths > 1
+                || path_appends > 1
                 || binding
                     .wrap
                     .as_deref()
@@ -969,6 +974,41 @@ mod tests {
         assert!(matches!(
             broken.check(&vocabulary()),
             Err(ContractError::UnboundRequirement { ref fact_type }) if fact_type == "company.name"
+        ));
+    }
+
+    #[test]
+    fn several_named_path_slots_are_valid_but_several_appends_are_not() {
+        let mut named = contract(ZOEKEN);
+        named.requires.push(Requirement {
+            fact_type: "company.profile".to_string(),
+            subject_role: "subject".to_string(),
+            optional: false,
+        });
+        named.input_map.insert(
+            "company.name".to_string(),
+            InputBinding {
+                location: Some("path".to_string()),
+                name: "lat".to_string(),
+                wrap: None,
+            },
+        );
+        named.input_map.insert(
+            "company.profile".to_string(),
+            InputBinding {
+                location: Some("path".to_string()),
+                name: "lon".to_string(),
+                wrap: None,
+            },
+        );
+        assert!(named.check(&vocabulary()).is_ok());
+
+        for binding in named.input_map.values_mut() {
+            binding.location = Some("path_append".to_string());
+        }
+        assert!(matches!(
+            named.check(&vocabulary()),
+            Err(ContractError::InvalidInputs { .. })
         ));
     }
 
