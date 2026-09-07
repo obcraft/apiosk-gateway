@@ -1,0 +1,13 @@
+**
+!Dockerfile
+!Cargo.toml
+!Cargo.lock
+!src/
+!src/**
+!contracts/
+!contracts/**
+!crates/
+!crates/**
+!deploy/
+!deploy/certs/
+!deploy/certs/supabase-prod-ca-2021.crt

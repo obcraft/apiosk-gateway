@@ -1,6 +1,12 @@
 # Production cutover: gateway v1 to v2
 
-Verified on 2026-09-07. Gateway v2 is running locally against the shared Supabase database. Fly currently hosts `apioskgateway` and `apiosk-mcp`; v2 has no Fly app, container image, or public URL yet.
+Verified on 2026-09-07. Gateway v2 is deployed at `https://apiosk-gateway-v2.fly.dev` in the `apiosk` Fly organization, using the same Supabase database and its dedicated limited runtime login with verified TLS. The production App at `https://app.apiosk.com` and MCP at `https://mcp.apiosk.com/mcp` now route Ask and chatbot tools to v2.
+
+The App's public production URLs are recorded in `app/netlify.toml`; MCP's v2 origin is recorded in `mcp/fly.toml`. Previously Netlify had no `VITE_GATEWAY_V2_URL`, which selected the legacy Ask interface even though the latest source was deployed. Netlify's environment API rejected the attempted setting mutation; repository configuration now persists these public URLs across builds. Runtime credentials remain only in Fly secrets, not repository or browser settings.
+
+Live checks verified authenticated source browsing (520 App directory entries), an OpenRouter chat response, saved history, and a KVK company-profile plan with registry-search and registry-profile steps and a maximum total of 0.097826 USDC. The initial test revealed that the parser lacked source identities; its catalog view now includes exact source slugs/names and their supported capabilities. Requests with unsupported explicit freshness requirements are still refused. The example no longer promises freshness the contract cannot guarantee.
+
+MCP initialization advertises `apiosk_sources`, `apiosk_discover`, and `apiosk_execute`. Unauthenticated calls return HTTP 401 with OAuth resource discovery. Eleven MCP protocol/transport tests and eleven Gateway library tests pass. Execution is enabled behind the existing per-purchase user approval. No live payment was submitted, and installed ChatGPT/Claude OAuth and paid-result acceptance remain unverified.
 
 ## Why replacing the existing Fly image is not enough
 
@@ -23,4 +29,4 @@ Preserve the previous MCP image, App deployment and v1 runtime. Unset the MCP v2
 
 ## Current validation
 
-Local tests cover account isolation, missing/ambiguous inputs, exact price approval, deterministic execution, request replay, saved-result reads, recovery and related-service previews with fresh approval. The complete follow-up purchase journey uses fixture providers. No live paid acceptance or production v2 cutover is claimed by this release.
+Local tests cover account isolation, missing/ambiguous inputs, exact price approval, deterministic execution, request replay, saved-result reads, recovery and related-service previews with fresh approval. The complete follow-up purchase journey uses fixture providers. Production App/MCP routing is switched to v2; live paid acceptance and installed-client acceptance remain separate checks.

@@ -1,0 +1,34 @@
+app = "apiosk-gateway-v2"
+primary_region = "ams"
+kill_signal = "SIGINT"
+kill_timeout = "120s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ORIGIN = "https://app.apiosk.com"
+  SUPABASE_URL = "https://api.apiosk.com"
+  BIND_ADDRESS = "0.0.0.0:8082"
+  INTENT_MODEL = "google/gemini-3.8-flash"
+  RUST_LOG = "info"
+  V2_EXECUTION_ENABLED = "1"
+
+[http_service]
+  internal_port = 8082
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

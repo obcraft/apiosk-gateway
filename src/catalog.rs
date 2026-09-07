@@ -175,7 +175,15 @@ impl Catalog {
         }
     }
     pub fn parser_view(&self) -> Value {
-        json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"input_types":self.services.iter().flat_map(|s|s.contract.requires.iter().map(|r|r.fact_type.clone())).collect::<std::collections::BTreeSet<_>>()})
+        let mut sources: BTreeMap<(&str, &str), std::collections::BTreeSet<&str>> = BTreeMap::new();
+        for service in &self.services {
+            sources.entry((&service.api_slug, &service.name)).or_default()
+                .insert(&service.contract.capability_slug);
+        }
+        let sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
+            json!({"slug":slug,"name":name,"capabilities":capabilities})
+        ).collect();
+        json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"sources":sources,"input_types":self.services.iter().flat_map(|s|s.contract.requires.iter().map(|r|r.fact_type.clone())).collect::<std::collections::BTreeSet<_>>()})
     }
 }
 pub struct CatalogCache {
@@ -219,5 +227,22 @@ impl CatalogCache {
             })
             .await
             .map_err(|_| anyhow::anyhow!("source catalog unavailable"))
+    }
+}
+
+#[cfg(test)]
+mod parser_catalog_tests {
+    use super::*;
+    #[test]
+    fn parser_receives_exact_source_identity_and_supported_capabilities() {
+        let snapshot: Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let catalog = Catalog::build(snapshot);
+        let view = catalog.parser_view();
+        for service in &catalog.services {
+            let source = view["sources"].as_array().unwrap().iter().find(|s|
+                s["slug"] == service.api_slug && s["name"] == service.name).unwrap();
+            assert!(source["capabilities"].as_array().unwrap().contains(&json!(service.contract.capability_slug)));
+            assert!(source.get("fixed_params").is_none());
+        }
     }
 }
