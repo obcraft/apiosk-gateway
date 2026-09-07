@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod billing;
 pub mod catalog;
+pub mod compat;
 pub mod engine;
 pub mod execution;
 pub mod followups;

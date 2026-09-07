@@ -1,0 +1,3 @@
+[submodule "legacy-executor"]
+	path = legacy-executor
+	url = https://github.com/obcraft/apiosk-1-rust-gatway.git

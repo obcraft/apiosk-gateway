@@ -1,6 +1,7 @@
 use apiosk_gateway_v2::{
     auth::Auth,
     catalog::CatalogCache,
+    compat::ExecutorCompat,
     engine::Engine,
     execution::Executor,
     parser::Parser,
@@ -128,6 +129,10 @@ async fn main() -> anyhow::Result<()> {
             engine,
             auth,
             permits: Arc::new(Semaphore::new(32)),
+            executor_compat: env::var("EMBEDDED_EXECUTOR_ORIGIN")
+                .ok()
+                .map(|origin| ExecutorCompat::new(reqwest::Client::new(), origin))
+                .transpose()?,
         },
         &app_url,
     )?;

@@ -1,10 +1,12 @@
 use crate::{
     auth::{Auth, Principal},
+    compat::ExecutorCompat,
     engine::Engine,
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
 };
 use axum::{
-    extract::{DefaultBodyLimit, Path, Query, State},
+    body::Bytes,
+    extract::{DefaultBodyLimit, OriginalUri, Path, Query, State},
     http::{HeaderMap, HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response as HttpResponse},
     routing::{get, post},
@@ -22,6 +24,7 @@ pub struct ServerState {
     pub engine: Arc<Engine>,
     pub auth: Arc<Auth>,
     pub permits: Arc<Semaphore>,
+    pub executor_compat: Option<ExecutorCompat>,
 }
 pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
     let origin: HeaderValue = app_origin.parse()?;
@@ -33,10 +36,33 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
             axum::http::header::CONTENT_TYPE,
         ])
         .max_age(Duration::from_secs(600));
-    Ok(Router::new()
+    let compat = state.executor_compat.clone();
+    let mut app = Router::new()
         .route(
             "/health",
-            get(|| async { Json(json!({"service":"apiosk-gateway-v2","protocol_version":"2"})) }),
+            get({
+                let compat = compat.clone();
+                move || async move {
+                    let executor = match compat {
+                        Some(proxy) if proxy.healthy().await => "ready",
+                        Some(_) => "unavailable",
+                        None => "external",
+                    };
+                    let status = if executor == "unavailable" {
+                        StatusCode::SERVICE_UNAVAILABLE
+                    } else {
+                        StatusCode::OK
+                    };
+                    (
+                        status,
+                        Json(json!({
+                            "service":"apiosk-gateway-v2",
+                            "protocol_version":"2",
+                            "payment_executor":executor
+                        })),
+                    )
+                }
+            }),
         )
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
@@ -47,8 +73,24 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:id", get(task))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
-        .layer(cors)
-        .with_state(state))
+        .layer(cors);
+    if compat.is_some() {
+        app = app.fallback(legacy_fallback);
+    }
+    Ok(app.with_state(state))
+}
+
+async fn legacy_fallback(
+    State(state): State<ServerState>,
+    OriginalUri(uri): OriginalUri,
+    method: Method,
+    headers: HeaderMap,
+    body: Bytes,
+) -> HttpResponse {
+    match state.executor_compat {
+        Some(proxy) => crate::compat::forward_request(proxy, uri, method, headers, body).await,
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
 }
 fn token(headers: &HeaderMap) -> anyhow::Result<&str> {
     headers
