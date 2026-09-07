@@ -1,5 +1,5 @@
 SELECT coalesce(jsonb_agg(jsonb_build_object(
- 'slug',a.slug,'provider_slug',p.username,'logo_url',a.listing_metadata->>'logo','name',left(a.name,160),'description',left(coalesce(a.description,''),600),
+ 'slug',a.slug,'provider_slug',p.username,'logo_url',coalesce(nullif(p.avatar_url,''),nullif(a.listing_metadata->>'logo','')),'name',left(a.name,160),'description',left(coalesce(a.description,''),600),
  'category',coalesce(a.category,''),
  'tags',CASE WHEN jsonb_typeof(a.listing_metadata->'tags')='array' THEN a.listing_metadata->'tags' ELSE '[]'::jsonb END,
  'sectors',CASE WHEN jsonb_typeof(a.listing_metadata->'sectors')='array' THEN a.listing_metadata->'sectors' ELSE '[]'::jsonb END,
