@@ -1,0 +1,57 @@
+{
+  "capability_slug": "company.financial-statements",
+  "version": 1,
+  "cardinality": "one",
+  "requires": [
+    {
+      "fact_type": "company.registration.nl.kvk",
+      "subject_role": "subject",
+      "optional": false
+    }
+  ],
+  "input_map": {
+    "company.registration.nl.kvk": {
+      "in": "path_append",
+      "name": "kvkNummer"
+    }
+  },
+  "output_map": {
+    "base": "$",
+    "produces": {
+      "company.financial_statements": {
+        "fields": {
+          "financial_year": {
+            "adapter": "tree.key-value",
+            "key": "FinancialYear",
+            "cast": "number"
+          },
+          "filed_on": {
+            "adapter": "tree.key-value",
+            "key": "DocumentAdoptionDate"
+          },
+          "total_assets": {
+            "adapter": "tree.key-value",
+            "key": "Assets",
+            "cast": "number"
+          },
+          "equity": {
+            "adapter": "tree.key-value",
+            "key": "Equity",
+            "cast": "number"
+          },
+          "revenue": {
+            "adapter": "tree.key-value",
+            "key": "Revenue",
+            "cast": "number"
+          },
+          "result_after_tax": {
+            "adapter": "tree.key-value",
+            "key": "ResultAfterTax",
+            "cast": "number"
+          }
+        }
+      }
+    }
+  },
+  "max_fan_out": 1
+}

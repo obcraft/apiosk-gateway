@@ -1,0 +1,100 @@
+{
+  "opendataFields": [
+    {
+      "key": "SbiBusinessCode",
+      "value": "64210"
+    },
+    {
+      "key": "DocumentAdoptionDate",
+      "value": "2026-04-26"
+    },
+    {
+      "key": "FinancialYear",
+      "value": "2025"
+    },
+    {
+      "key": "BalanceSheet",
+      "opendataFields": [
+        {
+          "key": "BalanceSheetBeforeAfterAppropriationResultsTitle",
+          "opendataFields": [
+            {
+              "key": "BalanceSheetBeforeAfterAppropriationResults",
+              "value": "Na"
+            }
+          ]
+        },
+        {
+          "key": "BalanceSheetTitle",
+          "opendataFields": [
+            {
+              "key": "AssetsTitle",
+              "opendataFields": [
+                {
+                  "key": "AssetsNoncurrentTitle",
+                  "opendataFields": [
+                    {
+                      "key": "AssetsNoncurrentOther",
+                      "value": "581377"
+                    },
+                    {
+                      "key": "AssetsNoncurrent",
+                      "value": "581377"
+                    }
+                  ]
+                },
+                {
+                  "key": "AssetsCurrentTitle",
+                  "opendataFields": [
+                    {
+                      "key": "AssetsCurrent",
+                      "value": "101610"
+                    },
+                    {
+                      "key": "AssetsCurrentOther",
+                      "value": "101610"
+                    }
+                  ]
+                },
+                {
+                  "key": "Assets",
+                  "value": "682987"
+                }
+              ]
+            },
+            {
+              "key": "EquityAndLiabilitiesTitle",
+              "opendataFields": [
+                {
+                  "key": "LiabilitiesTitle",
+                  "opendataFields": [
+                    {
+                      "key": "LiabilitiesMaturityExceedingOneYear",
+                      "value": "955105"
+                    },
+                    {
+                      "key": "LiabilitiesMaturityLessThanOneYear",
+                      "value": "101149"
+                    },
+                    {
+                      "key": "Liabilities",
+                      "value": "1056254"
+                    }
+                  ]
+                },
+                {
+                  "key": "EquityAndLiabilities",
+                  "value": "682987"
+                },
+                {
+                  "key": "Equity",
+                  "value": "-373267"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

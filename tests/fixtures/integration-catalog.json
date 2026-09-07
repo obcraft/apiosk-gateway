@@ -1,0 +1,118 @@
+{
+  "services": [
+    {
+      "id": "963fa799-db8f-4484-9288-21d760d7f322",
+      "endpoint_id": "7cd248cf-ac7a-4ec3-85dc-536dc3d39f21",
+      "api_slug": "fixture",
+      "name": "company.search",
+      "method": "GET",
+      "path": "/company.search",
+      "listing_type": "api",
+      "list_atomic": 20,
+      "contract": {
+        "capability_slug": "company.search",
+        "version": 1,
+        "cardinality": "many",
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "company.name"
+          }
+        },
+        "output_map": {
+          "base": "$.companies[*]",
+          "produces": {
+            "company.id": {
+              "path": "$.id"
+            }
+          }
+        },
+        "identifies": "company.id",
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "companies": [
+          {
+            "id": "123"
+          }
+        ]
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "b0ee73c0-be89-421e-b035-42887b7393c0",
+      "endpoint_id": "484a43fa-3de1-4c09-8c5f-21305829b805",
+      "api_slug": "fixture",
+      "name": "company.accounts",
+      "method": "GET",
+      "path": "/company.accounts",
+      "listing_type": "api",
+      "list_atomic": 100,
+      "contract": {
+        "capability_slug": "company.accounts",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.id": {
+            "name": "company.id"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.accounts": {
+              "path": "$.accounts"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "accounts": "2025"
+      },
+      "jurisdiction": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.id",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.accounts",
+      "value_schema": {
+        "type": "string"
+      }
+    }
+  ]
+}

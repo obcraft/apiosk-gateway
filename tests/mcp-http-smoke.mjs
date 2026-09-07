@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { createApioskMcpRuntime } from '../../mcp/src/runtime.mjs';
+const base=process.env.FIXTURE_GATEWAY_URL;
+assert.match(base,/^http:\/\/127\.0\.0\.1:\d+$/);
+const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CONNECT_TOKEN:'apk_access_local_fixture'}});
+assert.equal((await runtime.listTools()).length,2);
+async function tool(name,args){const r=await runtime.callTool(name,args);assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent;}
+let r=await tool('apiosk_discover',{question:'Get accounts for Example'});
+assert.equal(r.status,'ready');assert.equal(r.proposal.max_total_atomic,'138');
+const task=r.state.state_ref;
+const forged=await fetch(`${base}/v2/execute`,{method:'POST',headers:{authorization:'Bearer apk_access_local_fixture','content-type':'application/json'},body:JSON.stringify({state:r.state,approved:true})});
+assert.equal(forged.status,422);
+function action(v){return {action_id:v.next_actions.find(a=>a.kind==='execute_quoted_step').action_id,state:v.state,quote_ref:v.proposal.quote_ref};}
+r=await tool('apiosk_execute',action(r));assert.equal(r.status,'requires_approval');
+const authBody={quote_ref:r.proposal.quote_ref,max_total_atomic:r.proposal.max_total_atomic};
+let response=await fetch(`${base}/v2/tasks/${task}/authorize`,{method:'POST',headers:{authorization:'Bearer apk_access_local_fixture','content-type':'application/json'},body:JSON.stringify(authBody)});
+assert.equal(response.status,403);
+response=await fetch(`${base}/v2/tasks/${task}/authorize`,{method:'POST',headers:{authorization:'Bearer fixture-human','content-type':'application/json'},body:JSON.stringify(authBody)});
+assert.equal(response.status,200);
+const firstAction=action(r);
+r=await tool('apiosk_execute',firstAction);assert.equal(r.status,'ready');
+const replay=await tool('apiosk_execute',firstAction);assert.equal(replay.status,'state_conflict');
+r=await tool('apiosk_execute',action(r));assert.equal(r.status,'succeeded');
+const read=r.next_actions.find(a=>a.kind==='read_result');
+r=await tool('apiosk_execute',{action_id:read.action_id,state:r.state});
+assert.equal(r.result.data.accounts,'2025');assert.equal(r.result.charged_atomic,'115');
+const recovered=await tool('apiosk_execute',{recover_task_ref:task});
+assert.equal(recovered.state.state_ref,task);assert.equal(recovered.status,'succeeded');
+assert.equal((await fetch(`${base}/v2/tasks/${task}`)).status,401);
+console.log('MCP -> Rust HTTP/Auth -> SQLx -> provider fixture: consent, replay, result read and recovery passed.');

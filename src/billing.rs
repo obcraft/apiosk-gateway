@@ -1,0 +1,191 @@
+//! Read-only projection of the existing App ledger. Never a second balance.
+use crate::store::Store;
+use serde_json::{json, Value};
+use sqlx::Row;
+use uuid::Uuid;
+
+pub fn valid_capture(body: &Value) -> bool {
+    let (Some(p), Some(f), Some(t)) = (
+        body["provider_micro_usd"].as_i64(),
+        body["fee_micro_usd"].as_i64(),
+        body["charged_micro_usd"].as_i64(),
+    ) else {
+        return false;
+    };
+    if !(0..1_000_000_000_000).contains(&p) || f < 0 {
+        return false;
+    }
+    let q = catalog_core::fees::quote(p.into(), catalog_core::fees::ProviderClass::Federated);
+    q.buyer_markup_atomic == i128::from(f) && q.buyer_total_atomic == i128::from(t)
+}
+
+/// Only explicit refusals BEFORE reservation may finish without a ledger row.
+pub fn refused_before_reservation(body: &Value) -> bool {
+    body["ok"] == false
+        && body.get("execution_id").is_none_or(Value::is_null)
+        && matches!(
+            body["stage"].as_str(),
+            Some("validating" | "pricing" | "checking_balance")
+        )
+        && matches!(
+            body["error"].as_str(),
+            Some(
+                "invalid_input"
+                    | "unauthorized"
+                    | "selection_not_found"
+                    | "price_unverified"
+                    | "insufficient_funds"
+                    | "limit_exceeded"
+                    | "rate_limited"
+                    | "not_configured"
+            )
+        )
+}
+pub fn public_error(body: &Value) -> Value {
+    let (code, message) = match body["error"].as_str() {
+        Some("insufficient_funds") => (
+            "insufficient_balance",
+            "Je Apiosk-saldo is onvoldoende. Er is niets gekocht.",
+        ),
+        Some("limit_exceeded") => (
+            "spending_limit_exceeded",
+            "Deze aankoop past niet binnen je ingestelde bestedingslimiet.",
+        ),
+        Some("price_unverified") => (
+            "price_changed",
+            "De prijs is niet meer geldig. Vraag een nieuw voorstel.",
+        ),
+        Some("rate_limited") => (
+            "rate_limited",
+            "Wacht even voordat je een nieuw voorstel aanvraagt.",
+        ),
+        Some("refunded") => (
+            "refunded",
+            "De bestaande betaaladministratie heeft het bedrag inclusief fee teruggegeven.",
+        ),
+        _ => (
+            "execution_refused",
+            "De uitvoering is geweigerd. Bekijk de betaalstatus voordat je verdergaat.",
+        ),
+    };
+    json!({"code":code,"message":message})
+}
+impl Store {
+    pub async fn billing(
+        &self,
+        owner: Uuid,
+        task: Uuid,
+        quote: Option<Uuid>,
+        cap: i64,
+    ) -> anyhow::Result<Value> {
+        let rows=sqlx::query("SELECT e.id,e.status execution_status,e.reserved_atomic,e.response,c.id receipt_ref,c.status ledger_status,c.charged_micro_usd,c.actual_provider_micro_usd,c.provider_price_micro_usd,c.fee_micro_usd FROM gateway_v2.executions e JOIN gateway_v2.authorizations a ON a.id=e.authorization_id LEFT JOIN public.balance_charges c ON c.user_id=e.owner_id AND c.idempotency_key=e.id::text WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref=$3 ORDER BY e.created_at,e.id")
+            .bind(owner).bind(task).bind(quote).fetch_all(&self.pool).await?;
+        // The existing balance projection already deducts held reservations.
+        // Subtracting them again here would display an incorrect balance.
+        let balance: Option<i64> = sqlx::query_scalar(
+            "SELECT balance_micro_usd FROM public.user_balances WHERE user_id=$1",
+        )
+        .bind(owner)
+        .fetch_optional(&self.pool)
+        .await?;
+        let authorized:Option<i64>=sqlx::query_scalar("SELECT cap_atomic FROM gateway_v2.authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;
+        let mut executions = vec![];
+        let (mut total, mut provider, mut fee, mut held) = (0i64, 0i64, 0i64, 0i64);
+        let (mut pending, mut refunded, mut reserved, mut charged, mut breakdown_known) =
+            (false, false, false, false, true);
+        for row in rows {
+            let ledger = row.get::<Option<String>, _>("ledger_status");
+            let status = match ledger.as_deref() {
+                Some("charged") => "captured",
+                Some("refunded") => "refunded",
+                Some("reserved") => "reserved",
+                _ if row.get::<String, _>("execution_status") == "failed" && ledger.is_none() => {
+                    "released"
+                }
+                _ => "pending_reconciliation",
+            };
+            let amount = if status == "captured" {
+                row.get::<Option<i64>, _>("charged_micro_usd").unwrap_or(0)
+            } else {
+                0
+            };
+            let p = row
+                .get::<Option<i64>, _>("actual_provider_micro_usd")
+                .or(row.get::<Option<i64>, _>("provider_price_micro_usd"));
+            let f = row.get::<Option<i64>, _>("fee_micro_usd");
+            if status == "captured" {
+                total = total
+                    .checked_add(amount)
+                    .ok_or_else(|| anyhow::anyhow!("billing overflow"))?;
+                if let (Some(p), Some(f)) = (p, f) {
+                    if p >= 0 && f >= 0 && p.checked_add(f) == Some(amount) {
+                        provider += p;
+                        fee += f;
+                    } else {
+                        breakdown_known = false;
+                    }
+                } else {
+                    breakdown_known = false;
+                }
+                charged = true;
+            }
+            pending |= status == "pending_reconciliation";
+            reserved |= status == "reserved";
+            refunded |= status == "refunded";
+            let allocation = if matches!(status, "reserved" | "pending_reconciliation") {
+                row.get::<Option<i64>, _>("charged_micro_usd")
+                    .unwrap_or(row.get("reserved_atomic"))
+            } else {
+                0
+            };
+            held += allocation;
+            executions.push(json!({"execution_id":row.get::<Uuid,_>("id"),"status":status,"receipt_ref":row.get::<Option<Uuid>,_>("receipt_ref"),"total_charged":amount.to_string(),"reserved":allocation.to_string(),"max_authorized":row.get::<i64,_>("reserved_atomic").to_string(),"provider_cost":if status=="captured"{p.map(|n|n.to_string())}else{None},"apiosk_fee":if status=="captured"{f.map(|n|n.to_string())}else{None}}));
+        }
+        let status = if pending {
+            "pending_reconciliation"
+        } else if reserved {
+            "reserved"
+        } else if charged {
+            "captured"
+        } else if refunded {
+            "refunded"
+        } else if executions.is_empty() {
+            "not_started"
+        } else {
+            "released"
+        };
+        Ok(
+            json!({"scope":"quote","quote_ref":quote,"status":status,"funding_source":"apiosk_balance","currency":"USD","unit":"micro","pricing_rule":"provider_cost_plus_15_v1","cost_basis":"existing_gateway_provider_tariff","apiosk_fee_bps":1500,"provider_cost":if breakdown_known{Some(provider.to_string())}else{None},"apiosk_fee":if breakdown_known{Some(fee.to_string())}else{None},"total_charged":total.to_string(),"reserved":held.to_string(),"quote_cap":cap.to_string(),"max_authorized":authorized.unwrap_or(0).to_string(),"balance_available":balance.map(|n|n.to_string()),"executions":executions,"external_settlement":"managed_by_existing_gateway"}),
+        )
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_proven_pre_reservation_refusals_are_terminal() {
+        let mut v = json!({"ok":false,"error":"insufficient_funds","stage":"checking_balance"});
+        assert!(refused_before_reservation(&v));
+        v["execution_id"] = json!(Uuid::new_v4());
+        assert!(!refused_before_reservation(&v));
+        assert!(!refused_before_reservation(
+            &json!({"ok":false,"error":"timeout","stage":"executing"})
+        ));
+        assert!(!refused_before_reservation(
+            &json!({"ok":false,"error":"provider_error","stage":"paying"})
+        ));
+    }
+    #[test]
+    fn capture_uses_the_existing_fifteen_percent_rule() {
+        assert!(valid_capture(
+            &json!({"provider_micro_usd":200000,"fee_micro_usd":30000,"charged_micro_usd":230000})
+        ));
+        assert!(valid_capture(
+            &json!({"provider_micro_usd":3,"fee_micro_usd":1,"charged_micro_usd":4})
+        ));
+        assert!(!valid_capture(
+            &json!({"provider_micro_usd":200000,"fee_micro_usd":34500,"charged_micro_usd":234500})
+        ));
+        assert!(!valid_capture(&json!({"charged_micro_usd":230000})));
+    }
+}

@@ -1,0 +1,38 @@
+[workspace]
+members = ["crates/catalog-core"]
+resolver = "2"
+
+[package]
+name = "apiosk-gateway-v2"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+catalog-core = { path = "crates/catalog-core" }
+anyhow = "1"
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.4", features = ["util", "limit"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+moka = { version = "0.12", features = ["future"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+dotenvy = "0.15"
+thiserror = "1"
+bigdecimal = "0.4"
+url = "2"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+
