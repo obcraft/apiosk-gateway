@@ -131,6 +131,21 @@ expect(source.status === "active" && source.active, "source is not active");
 expect(source.is_verified && source.discoverable, "source is not verified and discoverable");
 expect(typeof source.category === "string" && source.category.length > 0, "source category missing");
 expect(Array.isArray(metadata.tags) && metadata.tags.length >= 10, "source discovery tags missing");
+for (const term of [
+  "kvk",
+  "company registry",
+  "rdw",
+  "kenteken",
+  "licence plate",
+  "license plate",
+  "car",
+  "bag",
+  "address",
+  "postcode",
+  "postal code",
+]) {
+  expect(metadata.tags?.includes(term), `source search term ${term} missing`);
+}
 expect(Array.isArray(metadata.sectors) && metadata.sectors.length >= 3, "source sectors missing");
 expect(Array.isArray(metadata.categories) && metadata.categories.length === 4, "source categories incomplete");
 expect(Array.isArray(metadata.service_groups) && metadata.service_groups.length === 3, "service groups incomplete");
