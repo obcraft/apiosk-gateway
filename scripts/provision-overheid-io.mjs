@@ -93,7 +93,7 @@ const adminHeaders = {
   "content-type": "application/json",
 };
 const sourceUrl =
-  `${supabaseUrl}/rest/v1/apis?select=id,listing_metadata,active,is_verified,discoverable` +
+  `${supabaseUrl}/rest/v1/apis?select=id,slug,status,listing_metadata,active,is_verified,discoverable` +
   `&slug=eq.${encodeURIComponent(SOURCE_SLUG)}`;
 const rows = await responseJson(
   await fetch(sourceUrl, { headers: adminHeaders, signal: AbortSignal.timeout(20_000) }),
@@ -121,14 +121,12 @@ metadata.auth_headers = [
   { name: "ovio-api-key", value: upstreamKey },
 ];
 
-const activated = await responseJson(
+const provisioned = await responseJson(
   await fetch(`${supabaseUrl}/rest/v1/apis?slug=eq.${encodeURIComponent(SOURCE_SLUG)}`, {
     method: "PATCH",
     headers: { ...adminHeaders, prefer: "return=representation" },
     body: JSON.stringify({
       listing_metadata: metadata,
-      status: "active",
-      active: true,
       is_verified: true,
       discoverable: true,
       suspended_at: null,
@@ -136,10 +134,20 @@ const activated = await responseJson(
     }),
     signal: AbortSignal.timeout(20_000),
   }),
-  "Activate overheid.io source",
+  "Provision overheid.io credential",
 );
-if (!Array.isArray(activated) || activated.length !== 1) {
-  throw new Error("Activation did not update exactly one overheid.io source");
+if (
+  !Array.isArray(provisioned) ||
+  provisioned.length !== 1 ||
+  provisioned[0].slug !== SOURCE_SLUG ||
+  provisioned[0].status !== "active" ||
+  provisioned[0].active !== true ||
+  provisioned[0].is_verified !== true ||
+  provisioned[0].discoverable !== true
+) {
+  throw new Error(
+    "Credential provisioned, but the source is still pending normal admin review; nothing bypassed the review gate",
+  );
 }
 
-console.log(`activated ${SOURCE_SLUG}; credential stored server-side (value not printed)`);
+console.log(`verified ${SOURCE_SLUG} is approved; credential stored server-side (value not printed)`);
