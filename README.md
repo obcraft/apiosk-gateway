@@ -2,7 +2,7 @@
 
 Nieuw zelfstandig Rust-project voor de chatbotflow: vraag → voorstel en totaalprijs → toestemming → deterministische uitvoering → bronresultaten → doorvragen met bewaarde context.
 
-De gateway exposeert twee MCP-tools via de bestaande MCP-repository: `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. De bestaande betaaladministratie en treasury-executor blijven verantwoordelijk voor betalingen. V2 heeft geen tweede saldo-administratie en geen antwoordmodel.
+De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sources`, `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. De bestaande betaaladministratie en treasury-executor blijven verantwoordelijk voor betalingen. V2 heeft geen tweede saldo-administratie en geen antwoordmodel.
 
 ## Status
 

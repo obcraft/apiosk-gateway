@@ -9,5 +9,6 @@ pub mod parser;
 pub mod protocol;
 pub mod resolver;
 pub mod server;
+pub mod sources;
 pub mod state;
 pub mod store;

@@ -3,8 +3,16 @@ import { createApioskMcpRuntime } from '../../mcp/src/runtime.mjs';
 const base=process.env.FIXTURE_GATEWAY_URL;
 assert.match(base,/^http:\/\/127\.0\.0\.1:\d+$/);
 const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CONNECT_TOKEN:'apk_access_local_fixture'}});
-assert.equal((await runtime.listTools()).length,2);
+assert.equal((await runtime.listTools()).length,3);
 async function tool(name,args){const r=await runtime.callTool(name,args);assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent;}
+const sources=await tool('apiosk_sources',{category:'finance',tag:'registry',limit:1});
+assert.equal(sources.sources.length,1);assert.equal(sources.sources[0].available_in_v2,true);
+assert.deepEqual(sources.sources[0].tags,['registry']);
+const capability = sources.sources[0].capabilities[0];
+assert.ok((await tool('apiosk_sources',{capability})).sources.every(s=>s.capabilities.includes(capability)));
+assert.ok((await tool('apiosk_sources',{search:capability})).total>0);
+assert.equal((await fetch(`${base}/v2/sources`)).status,401);
+assert.equal((await tool('apiosk_sources',{search:'missing source'})).total,0);
 let r=await tool('apiosk_discover',{question:'Get accounts for Example'});
 assert.equal(r.status,'ready');assert.equal(r.proposal.max_total_atomic,'138');
 const task=r.state.state_ref;

@@ -4,7 +4,7 @@ use crate::{
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
 };
 use axum::{
-    extract::{DefaultBodyLimit, Path, State},
+    extract::{DefaultBodyLimit, Path, Query, State},
     http::{HeaderMap, HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response as HttpResponse},
     routing::{get, post},
@@ -40,6 +40,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         )
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
+        .route("/v2/sources", get(sources))
         .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
         .route("/v2/tasks", get(tasks))
@@ -55,6 +56,35 @@ fn token(headers: &HeaderMap) -> anyhow::Result<&str> {
         .and_then(|h| h.to_str().ok())
         .and_then(|h| h.strip_prefix("Bearer "))
         .ok_or_else(|| anyhow::anyhow!("authentication required"))
+}
+async fn sources(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Query(query): Query<crate::sources::SourceQuery>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    if let Err(r) = caller(&state, &headers).await {
+        return r;
+    }
+    if !query.valid() {
+        return failure(
+            StatusCode::BAD_REQUEST,
+            "invalid_query",
+            "Use up to 200 characters per filter and a limit from 1 to 50.",
+        );
+    }
+    match tokio::try_join!(state.engine.catalog.sources(), state.engine.catalog.get()) {
+        Ok((sources, catalog)) => {
+            Json(crate::sources::browse(&sources, &catalog, &query)).into_response()
+        }
+        Err(_) => failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "catalog_unavailable",
+            "Sources are temporarily unavailable. Try again shortly.",
+        ),
+    }
 }
 fn failure(status: StatusCode, code: &str, message: &str) -> HttpResponse {
     (

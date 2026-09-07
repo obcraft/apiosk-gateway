@@ -181,11 +181,16 @@ impl Catalog {
 pub struct CatalogCache {
     pool: PgPool,
     cache: moka::future::Cache<u8, Arc<Catalog>>,
+    sources: moka::future::Cache<u8, Arc<Vec<crate::sources::Source>>>,
 }
 impl CatalogCache {
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
+            sources: moka::future::Cache::builder()
+                .max_capacity(1)
+                .time_to_live(Duration::from_secs(60))
+                .build(),
             cache: moka::future::Cache::builder()
                 .max_capacity(1)
                 .time_to_live(Duration::from_secs(60))
@@ -203,5 +208,16 @@ impl CatalogCache {
             .fetch_one(&self.pool)
             .await?;
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
+    }
+    pub async fn sources(&self) -> anyhow::Result<Arc<Vec<crate::sources::Source>>> {
+        self.sources
+            .try_get_with(0, async {
+                let value: Value = sqlx::query_scalar(include_str!("sources.sql"))
+                    .fetch_one(&self.pool)
+                    .await?;
+                Ok::<_, anyhow::Error>(Arc::new(serde_json::from_value(value)?))
+            })
+            .await
+            .map_err(|_| anyhow::anyhow!("source catalog unavailable"))
     }
 }
