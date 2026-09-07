@@ -7,8 +7,11 @@ import { createHash } from 'node:crypto';
 import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
 const db=new PGlite();await db.waitReady;
 await db.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
-const migrations=(await fs.readdir(new URL('../supabase/migrations/',import.meta.url))).sort();
-for(const f of migrations.filter(f => !f.endsWith('_runtime_access.sql') && !f.endsWith('_source_catalog.sql') && !f.endsWith('_source_identity.sql'))) await db.exec(await fs.readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+// The durable-flow fixture needs only the v2 runtime schema. Provider-onboarding
+// migrations target the complete production catalogue and deliberately assert
+// that production-owned provider rows already exist; replaying those into this
+// minimal database would make an unrelated new source break the core flow test.
+await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907094100_gateway_v2_state.sql',import.meta.url),'utf8'));
 await db.exec(`CREATE TABLE public.user_selected_apis(id uuid primary key,user_id uuid,connection_id uuid,prompt text,kind text,source text,name text,capability text,api_slug text,candidate_id uuid,method text,provider_price_micro_usd bigint,charged_micro_usd bigint,metadata jsonb);
 CREATE TABLE public.balance_charges(id uuid primary key,user_id uuid,idempotency_key text,status text,charged_micro_usd bigint,actual_provider_micro_usd bigint,provider_price_micro_usd bigint,fee_micro_usd bigint);
 CREATE TABLE public.user_balances(user_id uuid primary key,balance_micro_usd bigint);
