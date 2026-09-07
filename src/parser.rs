@@ -84,6 +84,24 @@ impl Intent {
         Ok(())
     }
 }
+
+fn decode_intent(raw: &str) -> anyhow::Result<Intent> {
+    let mut value: Value = serde_json::from_str(raw)?;
+    let one_subject = value
+        .get("subjects")
+        .and_then(Value::as_array)
+        .is_some_and(|subjects| subjects.len() == 1);
+    if one_subject {
+        if let Some(goals) = value.get_mut("goals").and_then(Value::as_array_mut) {
+            for goal in goals {
+                if goal.get("subject").is_some_and(Value::is_null) {
+                    goal["subject"] = json!(0);
+                }
+            }
+        }
+    }
+    Ok(serde_json::from_value(value)?)
+}
 /// App-only conversational routing; never an executable action or approval.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -175,7 +193,7 @@ impl Parser {
             })).send().await?.error_for_status()?;
             let body=bounded_json(response,65536).await?;
             let raw=body.pointer("/choices/0/message/content").and_then(Value::as_str).ok_or_else(||anyhow::anyhow!("missing intent JSON"))?;
-            let intent:Intent=serde_json::from_str(raw)?; intent.validate(question,task,catalog)?;
+            let intent=decode_intent(raw)?; intent.validate(question,task,catalog)?;
             tracing::info!(parser_ms=started.elapsed().as_millis() as u64,"intent parsed");
             Ok::<_,anyhow::Error>(Arc::new(intent))
         }).await.map_err(|e|anyhow::anyhow!("intent invalid or unavailable: {e}"))?;
@@ -223,5 +241,23 @@ mod tests {
         }
         .validate()
         .is_err());
+    }
+
+    #[test]
+    fn a_null_subject_is_repaired_only_when_there_is_one_unambiguous_subject() {
+        let repaired = decode_intent(
+            r#"{
+            "subjects":[{"entity_ref":null,"label":"Acme","values":{}}],
+            "goals":[{"capability":"company.search","subject":null,"constraints":{}}],
+            "answer_operations":[],"unresolved_references":[]
+        }"#,
+        )
+        .unwrap();
+        assert_eq!(repaired.goals[0].subject, 0);
+        assert!(decode_intent(r#"{
+            "subjects":[{"entity_ref":null,"label":"Acme","values":{}},{"entity_ref":null,"label":"Beta","values":{}}],
+            "goals":[{"capability":"company.search","subject":null,"constraints":{}}],
+            "answer_operations":[],"unresolved_references":[]
+        }"#).is_err());
     }
 }

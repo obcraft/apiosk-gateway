@@ -112,9 +112,29 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         .unwrap_or_default()
         .to_lowercase()
         .replace(['.', '_'], " ");
-    let matches: Vec<_> = sources
+    let ignored = [
+        "a",
+        "an",
+        "and",
+        "for",
+        "in",
+        "information",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "with",
+    ];
+    let terms: Vec<_> = search
+        .split_whitespace()
+        .filter(|term| term.len() > 1 && !ignored.contains(term))
+        .collect();
+    let mut matches: Vec<_> = sources
         .iter()
+        .enumerate()
         .filter(|s| {
+            let s = s.1;
             let haystack = format!(
                 "{} {} {} {} {} {} {}",
                 s.name,
@@ -130,18 +150,31 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
                     .replace(['.', '_'], " ")
             )
             .to_lowercase();
-            search
-                .split_whitespace()
-                .all(|term| haystack.contains(term))
+            (terms.is_empty() || terms.iter().any(|term| haystack.contains(term)))
                 && selected(&query.category, [&s.category])
                 && selected(&query.tag, &s.tags)
                 && selected(&query.sector, &s.sectors)
                 && selected(&query.capability, capabilities_for(&s.slug))
         })
+        .map(|(index, source)| {
+            let haystack = format!(
+                "{} {} {} {} {} {} {}",
+                source.name, source.slug, source.description, source.category,
+                source.tags.join(" "), source.sectors.join(" "),
+                capabilities_for(&source.slug).into_iter().collect::<Vec<_>>().join(" ").replace(['.', '_'], " ")
+            )
+            .to_lowercase();
+            let score = terms
+                .iter()
+                .filter(|term| haystack.contains(**term))
+                .count();
+            (score, index, source)
+        })
         .collect();
+    matches.sort_by_key(|(score, index, _)| (std::cmp::Reverse(*score), *index));
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(20).clamp(1, 50);
-    let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|s| {
+    let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|(_, _, s)| {
         let services: Vec<_> = catalog.services.iter().filter(|service| service.api_slug == s.slug).collect();
         let capabilities: BTreeSet<_> = services.iter().map(|s| &s.contract.capability_slug).collect();
         let inputs: BTreeSet<_> = services.iter().flat_map(|s| s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type)).collect();
@@ -177,8 +210,8 @@ mod tests {
         rows[0].provider_slug = Some("registry".into());
         rows[1].logo_url = Some("javascript:alert(1)".into());
         apply_branding(&mut rows, Some(&json!({"providers":[
-            {"username":"other","avatar_url":"https://example.com/wrong.png"},
-            {"username":"registry","avatar_url":"https://example.com/registry.png"}
+                {"username":"other","avatar_url":"https://example.com/wrong.png"},
+                {"username":"registry","avatar_url":"https://example.com/registry.png"}
         ]})));
         assert_eq!(rows[0].logo_url.as_deref(), Some("https://example.com/registry.png"));
         assert!(rows[1].logo_url.is_none());
@@ -228,6 +261,16 @@ mod tests {
         assert_eq!(filtered["total"], 1);
         assert_eq!(filtered["catalog_total"], 2);
         assert_eq!(filtered["categories"], json!(["finance", "weather"]));
+        let natural = browse(
+            &rows,
+            &c,
+            &SourceQuery {
+                search: Some("weather forecasts and annual information".into()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(natural["total"], 2);
+        assert_eq!(natural["sources"][0]["name"], "Weather");
         let empty = browse(
             &rows,
             &c,
