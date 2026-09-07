@@ -1,6 +1,17 @@
 use super::*;
 
 impl Engine {
+    pub(super) async fn result_page(&self, owner: Uuid, task: Uuid, result_ref: Uuid, offset: usize) -> anyhow::Result<Value> {
+        let mut data = self.store.result(owner, task, result_ref).await?;
+        if let Ok(sources) = self.catalog.sources().await { crate::sources::brand_result(&mut data, &sources); }
+        let serialized = serde_json::to_string(&data)?;
+        if serialized.len() <= MAX_INLINE { return Ok(data); }
+        let chars: Vec<char> = serialized.chars().collect();
+        anyhow::ensure!(offset <= chars.len(), "invalid result offset");
+        let end = (offset + 8000).min(chars.len());
+        Ok(json!({"result_ref":result_ref,"encoding":"json_text","source":data.get("source"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn ingest(
         &self,
@@ -64,6 +75,11 @@ impl Engine {
             task.result_refs.push(result_ref)
         }
         task.completed.push(step.key());
+        if single_call_mode() {
+            task.actions.clear();
+            task.pending_candidates.clear();
+            return Ok(());
+        }
         let extraction = match extraction {
             Ok(e)
                 if body["result_truncated"] != true && missing.is_empty() && !capacity_exceeded =>

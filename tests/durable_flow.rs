@@ -175,6 +175,27 @@ async fn durable_flow_and_authorization_boundary() {
     };
     let loaded = engine.catalog.get().await.unwrap();
     assert_eq!(loaded.services.len(), 2, "rejected: {:?}", loaded.rejected);
+    if apiosk_gateway_v2::engine::single_call_mode() {
+        let multi = engine.discover(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
+        assert_eq!(multi.status, Status::Unsupported);
+        assert!(multi.proposal.is_none());
+        assert_eq!(counts.provider.load(Ordering::Relaxed), 0);
+        let search = engine.discover(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Search only Ambiguous".into(), state: None, context_delta: Default::default() }).await.unwrap();
+        assert_eq!(search.proposal.as_ref().unwrap().steps.len(), 1);
+        let quote = search.proposal.as_ref().unwrap();
+        engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+        let result = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+        assert_eq!(result.status, Status::Succeeded, "{result:?}");
+        assert_eq!(result.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
+        assert!(!result.next_actions.iter().any(|a|a.kind == "select_entity" || a.kind == "execute_quoted_step"));
+        assert_eq!(result.proposal.as_ref().unwrap().step_details[0]["status"], "completed");
+        assert_eq!(counts.provider.load(Ordering::Relaxed), 1);
+        let recovered = engine.view(&person, result.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
+        assert_eq!(recovered.result.as_ref().unwrap()["data"], result.result.as_ref().unwrap()["data"]);
+        println!("Single-call mode: multi-step blocked, ambiguous search returns raw JSON, completed status and recovery passed.");
+        server.abort();
+        return;
+    }
     let request = DiscoverRequest {
         request_id: Uuid::new_v4(),
         question: "Get accounts for Example".into(),

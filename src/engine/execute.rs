@@ -58,6 +58,9 @@ impl Engine {
                 .find(|a| a.id() == req.action_id)
                 .ok_or_else(|| anyhow::anyhow!("unknown or stale action"))?
         };
+        if single_call_mode() && matches!(action, Action::Run {..} | Action::Choose {..} | Action::Supply {..}) {
+            anyhow::ensure!(!task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1), "Multi-step research is paused. Read the existing result or start a single-call question.");
+        }
         match action {
             Action::Read { result_ref, .. } => {
                 anyhow::ensure!(
@@ -68,25 +71,8 @@ impl Engine {
                             .is_some_and(|m| m.keys().all(|k| k == "offset")),
                     "unexpected read input"
                 );
-                let mut data = self.store.result(p.owner, id, result_ref).await?;
-                if let Ok(sources) = self.catalog.sources().await {
-                    crate::sources::brand_result(&mut data, &sources);
-                }
-                let serialized = serde_json::to_string(&data)?;
                 let mut r = self.view(p, id, req.request_id, None).await?;
-                if serialized.len() <= MAX_INLINE {
-                    r.result = Some(data)
-                } else {
-                    // Character boundaries are explicit so multi-byte UTF-8
-                    // cannot be split and no arbitrary URLs are followed.
-                    let chars: Vec<char> = serialized.chars().collect();
-                    let offset = req.input["offset"].as_u64().unwrap_or(0) as usize;
-                    anyhow::ensure!(offset <= chars.len(), "invalid result offset");
-                    let end = (offset + 8000).min(chars.len());
-                    r.result = Some(
-                        json!({"result_ref":result_ref,"encoding":"json_text","source":data.get("source"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
-                    );
-                }
+                r.result = Some(self.result_page(p.owner, id, result_ref, req.input["offset"].as_u64().unwrap_or(0) as usize).await?);
                 return Ok(r);
             }
             Action::Cancel { .. } => {

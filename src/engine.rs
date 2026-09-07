@@ -24,6 +24,8 @@ pub struct Engine {
     pub executor: Executor,
     pub app_url: String,
 }
+pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
+
 impl Engine {
     async fn request_claim(
         &self,
@@ -242,6 +244,10 @@ impl Engine {
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
             Resolution::Plan(plan) => {
+                if single_call_mode() && plan.steps.len() > 1 {
+                    task.actions.push(json!({"kind":"unsupported_reason","message":"Multi-step research is paused. Ask for one direct API call, such as a company search. To retrieve a profile or filing directly, provide its required identifier."}));
+                    return Ok(Status::Unsupported);
+                }
                 task.proposal = Some(serde_json::to_value(&plan)?);
                 if !plan.steps.is_empty() {
                     task.actions.push(serde_json::to_value(Action::Run {
@@ -284,15 +290,20 @@ impl Engine {
             p.is_person() || connection == p.connection,
             "task belongs to another connection"
         );
-        let actions: Vec<Action> = task
+        let mut actions: Vec<Action> = task
             .actions
             .iter()
             .filter_map(|v| serde_json::from_value(v.clone()).ok())
             .collect();
+        let single = single_call_mode();
+        let paused_plan = single && task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1);
+        if paused_plan { actions.retain(|a| !matches!(a, Action::Run {..} | Action::Choose {..} | Action::Supply {..})); }
         let inferred = if task.execution_error.is_some() && task.result_refs.is_empty() {
             Status::Failed
         } else if task.cancelled {
             Status::Partial
+        } else if paused_plan {
+            if task.result_refs.is_empty() { Status::Unsupported } else { Status::Partial }
         } else if !task.pending_candidates.is_empty() {
             Status::NeedsSelection
         } else if actions.iter().any(|a| matches!(a, Action::Supply { .. })) {
@@ -317,20 +328,22 @@ impl Engine {
         let mut r = Response::new(request, forced.unwrap_or(inferred));
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
+        r.context_view["single_call_mode"] = json!(single);
+        r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
         r.context_view["execution_owner"] = json!(if connection.is_some() {
             "connected_agent"
         } else {
             "app"
         });
-        if p.is_person() && connection.is_none() && !task.result_refs.is_empty() {
+        if !single && p.is_person() && connection.is_none() && !task.result_refs.is_empty() {
             // Recommendations are optional; catalog downtime must not hide a purchased result.
             if let Ok(catalog) = self.catalog.get().await {
                 r.context_view["related_services"] =
                     json!(crate::followups::related_services(&catalog, &task));
             }
         }
-        if !task.pending_candidates.is_empty() {
+        if !paused_plan && !task.pending_candidates.is_empty() {
             r.context_view["candidates"] = json!(task.pending_candidates)
         }
         r.next_actions = actions.iter().map(Action::public).collect();
@@ -362,13 +375,20 @@ impl Engine {
                 )
                 .await?,
         );
-        if let Some(error) = task.execution_error {
-            r.errors.push(error);
+        if let Some(error) = &task.execution_error {
+            r.errors.push(error.clone());
         }
         if let Some(value) = task.proposal {
             let plan: Plan = serde_json::from_value(value)?;
             let sources = self.catalog.sources().await.unwrap_or_default();
-            let step_details = crate::resolver::describe_steps(&plan, &sources);
+            let mut step_details = crate::resolver::describe_steps(&plan, &sources);
+            let current = plan.steps.iter().position(|s| !task.completed.contains(&s.key()));
+            for (i, detail) in step_details.iter_mut().enumerate() {
+                detail["status"] = json!(if task.completed.contains(&plan.steps[i].key()) { "completed" }
+                    else if current == Some(i) && task.execution_error.is_some() { "failed" }
+                    else if current == Some(i) && actions.iter().any(|a|matches!(a, Action::Poll {..})) { "running" }
+                    else if task.cancelled { "cancelled" } else if paused_plan { "paused" } else { "pending" });
+            }
             r.proposal = Some(Proposal {
                 label: "Your plan".into(),
                 step_details,
@@ -393,6 +413,9 @@ impl Engine {
         }
         if r.status == Status::Running {
             r.retry_after_ms = Some(2000)
+        }
+        if let Some(result_ref) = task.result_refs.last() {
+            r.result = Some(self.result_page(p.owner, id, *result_ref, 0).await?);
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
         Ok(r)

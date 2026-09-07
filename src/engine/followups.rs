@@ -17,6 +17,7 @@ pub struct FollowupRequest {
 
 impl Engine {
     pub async fn followup(&self, p: &Principal, req: FollowupRequest) -> anyhow::Result<Response> {
+        anyhow::ensure!(!single_call_mode(), "Automatic follow-up research is paused. Start a new single-call question.");
         anyhow::ensure!(
             p.is_person(),
             "Related services require a person in the App"
