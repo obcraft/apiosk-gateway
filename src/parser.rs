@@ -75,11 +75,9 @@ impl Intent {
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
-            anyhow::ensure!(
-                catalog.by_capability.contains_key(&g.capability),
-                "unsupported capability: {}",
-                g.capability
-            );
+            if !catalog.by_capability.contains_key(&g.capability) {
+                return Err(ModelFailure::Unsupported.into());
+            }
         }
         Ok(())
     }
@@ -118,6 +116,16 @@ impl ChatReply {
         Ok(())
     }
 }
+/// Only these public classifications leave the model boundary. Provider
+/// envelopes, JSON errors and model internals stay out of client responses.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum ModelFailure {
+    #[error("The question could not be processed just now. Please try again.")]
+    Unavailable,
+    #[error("Apiosk does not currently have a supported data source for this question. Try a different question or explore the available sources.")]
+    Unsupported,
+}
+
 pub struct Parser {
     http: reqwest::Client,
     url: String,
@@ -146,24 +154,88 @@ impl Parser {
         task: &Task,
         catalog: &Catalog,
     ) -> anyhow::Result<ChatReply> {
-        anyhow::ensure!(!self.key.is_empty(), "chat model not configured");
-        let response = self.http.post(&self.url).bearer_auth(&self.key)
-            .timeout(Duration::from_secs(25)).json(&json!({
-                "model": self.model, "temperature": 0.2, "max_tokens": 1000,
-                "response_format": {"type":"json_object"},
-                "messages": [
-                    {"role":"system","content":include_str!("../contracts/ask-chat-prompt.txt")},
-                    {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"]}).to_string()}
-                ]
-            })).send().await?.error_for_status()?;
-        let body = bounded_json(response, 32768).await?;
-        let raw = body
-            .pointer("/choices/0/message/content")
-            .and_then(Value::as_str)
-            .ok_or_else(|| anyhow::anyhow!("missing chat JSON"))?;
-        let reply: ChatReply = serde_json::from_str(raw)?;
-        reply.validate()?;
-        Ok(reply)
+        let payload = json!({
+            "model": self.model, "temperature": 0, "max_tokens": 4096,
+            "reasoning": {"effort":"minimal", "exclude":true},
+            "provider": {"require_parameters":true},
+            "response_format": {"type":"json_schema", "json_schema": {
+                "name":"ask_chat_reply", "strict":true, "schema": {
+                    "type":"object", "additionalProperties":false,
+                    "required":["message","discover"],
+                    "properties":{"message":{"type":"string"},"discover":{"type":"boolean"}}
+                }
+            }},
+            "messages": [
+                {"role":"system","content":include_str!("../contracts/ask-chat-prompt.txt")},
+                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"]}).to_string()}
+            ]
+        });
+        self.completion("chat", &payload, |raw| {
+            let reply: ChatReply = serde_json::from_str(raw)?;
+            reply.validate()?;
+            Ok(reply)
+        }).await
+    }
+
+    /// Retrying interpretation is safe: this boundary cannot call a data
+    /// provider, authorize a quote or execute a purchase. Both attempts share
+    /// the original 25-second stage deadline.
+    async fn completion<T>(
+        &self,
+        surface: &'static str,
+        payload: &Value,
+        decode: impl Fn(&str) -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
+        if self.key.is_empty() { return Err(ModelFailure::Unavailable.into()); }
+        let work = async {
+            for attempt in 1..=2 {
+                let response = self.http.post(&self.url).bearer_auth(&self.key)
+                    .timeout(Duration::from_secs(12)).json(payload).send().await;
+                let outcome: Result<(), &str> = match response {
+                    Ok(response) if response.status().is_success() => {
+                        match bounded_json(response, 65536).await {
+                            Ok(body) => {
+                                let choice = body.pointer("/choices/0");
+                                let finish = choice.and_then(|c| c["finish_reason"].as_str());
+                                let refused = choice.is_some_and(|c| c["message"]["refusal"].as_str().is_some_and(|v| !v.is_empty()))
+                                    || finish == Some("content_filter");
+                                if refused { return Err(ModelFailure::Unavailable.into()); }
+                                let raw = body.pointer("/choices/0/message/content").and_then(Value::as_str)
+                                    .filter(|text| !text.trim().is_empty());
+                                if !body["error"].is_null() || finish == Some("length") {
+                                    Err("incomplete_response")
+                                } else if let Some(raw) = raw {
+                                    match decode(raw) {
+                                        Ok(value) => return Ok(value),
+                                        Err(error) if matches!(error.downcast_ref::<ModelFailure>(), Some(ModelFailure::Unsupported)) => {
+                                            return Err(ModelFailure::Unsupported.into());
+                                        }
+                                        Err(_) => Err("invalid_output"),
+                                    }
+                                } else { Err("empty_output") }
+                            }
+                            Err(_) => Err("invalid_envelope"),
+                        }
+                    }
+                    Ok(response) => {
+                        let status = response.status().as_u16();
+                        tracing::warn!(surface, attempt, status, "model HTTP failure");
+                        if status != 408 && status != 429 && status < 500 {
+                            return Err(ModelFailure::Unavailable.into());
+                        }
+                        Err("upstream_unavailable")
+                    }
+                    Err(_) => Err("transport_failure"),
+                };
+                if let Err(reason) = outcome {
+                    // No prompt, answer, reasoning or credentials in diagnostics.
+                    tracing::warn!(surface, attempt, reason, "model response unavailable");
+                }
+            }
+            Err(ModelFailure::Unavailable.into())
+        };
+        tokio::time::timeout(Duration::from_secs(25), work).await
+            .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()))
     }
     pub async fn parse(
         &self,
@@ -179,24 +251,27 @@ impl Parser {
             &context,
             &catalog.version,
             &self.model,
-            "parser-v2.1",
+            "parser-v2.2",
         ));
         let intent=self.cache.try_get_with(key,async {
-            anyhow::ensure!(!self.key.is_empty(),"intent parser not configured");
             self.calls.fetch_add(1,Ordering::Relaxed);
             let started=std::time::Instant::now();
             let system=include_str!("../contracts/parser-prompt.txt");
-            let response=self.http.post(&self.url).bearer_auth(&self.key).timeout(Duration::from_secs(25)).json(&json!({
-                "model":self.model,"temperature":0,"max_tokens":2200,
+            let payload=json!({
+                "model":self.model,"temperature":0,"max_tokens":4096,
+                "reasoning":{"effort":"minimal","exclude":true},
+                "provider":{"require_parameters":true},
                 "response_format":{"type":"json_object"},
                 "messages":[{"role":"system","content":system},{"role":"user","content":json!({"question":question,"context":context,"catalog":catalog.parser_view()}).to_string()}]
-            })).send().await?.error_for_status()?;
-            let body=bounded_json(response,65536).await?;
-            let raw=body.pointer("/choices/0/message/content").and_then(Value::as_str).ok_or_else(||anyhow::anyhow!("missing intent JSON"))?;
-            let intent=decode_intent(raw)?; intent.validate(question,task,catalog)?;
+            });
+            let intent=self.completion("intent", &payload, |raw| {
+                let intent=decode_intent(raw)?;
+                intent.validate(question,task,catalog)?;
+                Ok(intent)
+            }).await?;
             tracing::info!(parser_ms=started.elapsed().as_millis() as u64,"intent parsed");
             Ok::<_,anyhow::Error>(Arc::new(intent))
-        }).await.map_err(|e|anyhow::anyhow!("intent invalid or unavailable: {e}"))?;
+        }).await.map_err(|e| anyhow::Error::new(e.downcast_ref::<ModelFailure>().cloned().unwrap_or(ModelFailure::Unavailable)))?;
         Ok((*intent).clone())
     }
 }
@@ -218,6 +293,71 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+    async fn model_fixture(responses: Vec<(u16, Value)>) -> (Parser, Arc<AtomicU64>, tokio::task::JoinHandle<()>) {
+        use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
+        use std::{collections::VecDeque, sync::Mutex};
+        let calls = Arc::new(AtomicU64::new(0));
+        let state = (Arc::new(Mutex::new(VecDeque::from(responses))), calls.clone());
+        let app = Router::new().route("/", post(|State((queue, calls)): State<(Arc<Mutex<VecDeque<(u16, Value)>>>, Arc<AtomicU64>)>| async move {
+            calls.fetch_add(1, Ordering::Relaxed);
+            let (status, body) = queue.lock().unwrap().pop_front().expect("unexpected extra model request");
+            (StatusCode::from_u16(status).unwrap(), Json(body))
+        })).with_state(state);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        (Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into()), calls, server)
+    }
+
+    fn decode_chat(raw: &str) -> anyhow::Result<ChatReply> {
+        let reply: ChatReply = serde_json::from_str(raw)?;
+        reply.validate()?;
+        Ok(reply)
+    }
+
+    #[tokio::test]
+    async fn empty_truncated_and_invalid_model_output_recovers_once() {
+        let valid = json!({"error":null,"choices":[{"finish_reason":"stop","message":{"content":r#"{"message":"Which period do you mean?","discover":false}"#}}]});
+        for failure in [
+            json!({"choices":[{"message":{"content":null,"reasoning":r#"{"message":"not the answer","discover":true}"#}}]}),
+            json!({"choices":[{"finish_reason":"length","message":{"content":r#"{"message":"truncated","discover":true}"#}}]}),
+            json!({"choices":[{"message":{"content":"not JSON"}}]}),
+            json!({"choices":[{"message":{"content":r#"{"message":"bad types","discover":"yes"}"#}}]}),
+            json!({"error":{"code":503,"message":"private upstream detail"}}),
+        ] {
+            let (parser, calls, server) = model_fixture(vec![(200, failure), (200, valid.clone())]).await;
+            let reply = parser.completion("chat", &json!({}), decode_chat).await.unwrap();
+            assert_eq!(reply.message, "Which period do you mean?");
+            assert!(!reply.discover);
+            assert_eq!(calls.load(Ordering::Relaxed), 2);
+            server.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn repeated_empty_output_is_bounded_and_has_a_safe_error() {
+        let empty = json!({"choices":[{"message":{"content":null}}]});
+        let (parser, calls, server) = model_fixture(vec![(200, empty.clone()), (200, empty)]).await;
+        let error = parser.completion("chat", &json!({}), decode_chat).await.unwrap_err();
+        assert!(matches!(error.downcast_ref::<ModelFailure>(), Some(ModelFailure::Unavailable)));
+        assert!(!error.to_string().contains("JSON"));
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn refusals_and_permanent_http_errors_are_not_retried() {
+        for response in [
+            (200, json!({"choices":[{"finish_reason":"content_filter","message":{"content":null}}]})),
+            (401, json!({"error":{"message":"secret upstream configuration"}})),
+        ] {
+            let (parser, calls, server) = model_fixture(vec![response]).await;
+            assert!(parser.completion("chat", &json!({}), decode_chat).await.is_err());
+            assert_eq!(calls.load(Ordering::Relaxed), 1);
+            server.abort();
+        }
+    }
+
     #[test]
     fn chat_reply_is_bounded_and_cannot_authorize_or_fill_inputs() {
         let reply: ChatReply = serde_json::from_value(

@@ -7,7 +7,12 @@ SELECT jsonb_build_object(
   'list_atomic',ceil(e.price*1000000)::bigint,
   'fixed_params',c.fixed_params,'preconditions',c.preconditions,'pagination',c.pagination,
   'freshness_seconds',c.freshness_seconds,'sample_payload',c.sample_payload,
-  'jurisdiction',ft.jurisdiction,
+  'jurisdiction',coalesce(ft.jurisdiction,(
+    SELECT CASE WHEN count(DISTINCT required_fact.jurisdiction)=1 THEN min(required_fact.jurisdiction) END
+    FROM jsonb_array_elements(c.requires) requirement
+    JOIN public.fact_types required_fact ON required_fact.slug=requirement->>'fact_type' AND required_fact.status='active'
+    WHERE coalesce((requirement->>'optional')::boolean,false)=false
+  )),
   'contract',jsonb_build_object('capability_slug',c.capability_slug,'version',c.version,
     'cardinality',c.cardinality,'requires',c.requires,'input_map',c.input_map,
     'output_map',c.output_map,'identifies',c.identifies,'max_fan_out',c.max_fan_out)) obj

@@ -3,7 +3,8 @@ import { createApioskMcpRuntime } from '../../mcp/src/runtime.mjs';
 const base=process.env.FIXTURE_GATEWAY_URL;
 assert.match(base,/^http:\/\/127\.0\.0\.1:\d+$/);
 const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CONNECT_TOKEN:'apk_access_local_fixture'}});
-assert.equal((await runtime.listTools()).length,3);
+assert.deepEqual((await runtime.listTools()).map(t=>t.name).sort(),
+  ['apiosk_approve','apiosk_discover','apiosk_execute','apiosk_sources','apiosk_status']);
 async function tool(name,args){const r=await runtime.callTool(name,args);assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent;}
 const sources=await tool('apiosk_sources',{category:'finance',tag:'registry',limit:1});
 assert.equal(sources.sources.length,1);
@@ -25,8 +26,15 @@ r=await tool('apiosk_execute',action(r));assert.equal(r.status,'requires_approva
 const authBody={quote_ref:r.proposal.quote_ref,max_total_atomic:r.proposal.max_total_atomic};
 let response=await fetch(`${base}/v2/tasks/${task}/authorize`,{method:'POST',headers:{authorization:'Bearer apk_access_local_fixture','content-type':'application/json'},body:JSON.stringify(authBody)});
 assert.equal(response.status,403);
-response=await fetch(`${base}/v2/tasks/${task}/authorize`,{method:'POST',headers:{authorization:'Bearer fixture-human','content-type':'application/json'},body:JSON.stringify(authBody)});
-assert.equal(response.status,200);
+assert.equal(r.context_view.approval_mode,'chatbot');
+assert.equal((await fetch(`${base}/v2/approve`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...authBody,request_id:crypto.randomUUID(),state:r.state})})).status,401);
+const wrong=await runtime.callTool('apiosk_approve',{state:r.state,...authBody,max_total_atomic:'139'});assert.equal(wrong.isError,true);
+const tampered={...r.state,revision:r.state.revision+1};
+assert.equal((await runtime.callTool('apiosk_approve',{state:tampered,...authBody})).isError,true);
+r=await tool('apiosk_approve',{state:r.state,...authBody});
+assert.equal(r.billing.authorization_active,true);
+const repeated=await tool('apiosk_approve',{state:r.state,...authBody});
+assert.equal(repeated.billing.authorization_active,true);
 const firstAction=action(r);
 r=await tool('apiosk_execute',firstAction);assert.equal(r.status,'ready');
 const replay=await tool('apiosk_execute',firstAction);assert.equal(replay.status,'state_conflict');

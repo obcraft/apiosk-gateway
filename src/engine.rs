@@ -57,6 +57,13 @@ impl Engine {
     ) -> Response {
         let r = result.unwrap_or_else(|e| {
             tracing::warn!(error=%e,"v2 operation failed");
+            if let Some(model) = e.downcast_ref::<crate::parser::ModelFailure>() {
+                let (status, code) = match model {
+                    crate::parser::ModelFailure::Unsupported => (Status::Unsupported, "unsupported_request"),
+                    crate::parser::ModelFailure::Unavailable => (Status::Failed, "question_unavailable"),
+                };
+                return Response::error(id, status, code, &model.to_string());
+            }
             let message=if e.downcast_ref::<sqlx::Error>().is_some(){"De taakopslag is tijdelijk niet beschikbaar. Herstel de taak voordat je verdergaat.".to_string()}else{e.to_string()};
             Response::error(id, Status::Failed, "operation_failed", &message)
         });
@@ -331,6 +338,9 @@ impl Engine {
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
+        r.context_view["approval_mode"] = json!(if self.executor.connection_can_approve(p).await.unwrap_or(false) {
+            "chatbot"
+        } else { "app" });
         r.context_view["execution_owner"] = json!(if connection.is_some() {
             "connected_agent"
         } else {

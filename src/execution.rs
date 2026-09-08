@@ -2,7 +2,7 @@ use crate::{
     auth::Principal,
     parser::bounded_json,
     resolver::{Plan, Step},
-    state::digest,
+    state::{digest, Task},
     store::Store,
 };
 use chrono::Utc;
@@ -23,6 +23,49 @@ pub enum Dispatch {
     Pending { execution_id: Uuid },
 }
 impl Executor {
+    pub async fn connection_can_approve(&self, p: &Principal) -> anyhow::Result<bool> {
+        let Some(connection) = p.connection else { return Ok(false) };
+        Ok(sqlx::query("SELECT 1 FROM gateway_v2.connection_budget($1,$2)")
+            .bind(p.owner).bind(connection).fetch_optional(&self.store.pool).await?.is_some())
+    }
+
+    /// The caller's existing connection mandate is the authority. A host's
+    /// app-only button is not proof of human presence and must not widen it.
+    pub async fn approve_connection(
+        &self, p: &Principal, task_id: Uuid, revision: i64, quote: Uuid, cap: &str,
+    ) -> anyhow::Result<Uuid> {
+        anyhow::ensure!(self.enabled, "purchases unavailable");
+        let connection = p.connection.ok_or_else(|| anyhow::anyhow!("connected account required"))?;
+        let mut tx = self.store.pool.begin().await?;
+        let row = sqlx::query("SELECT revision,connection_id,document FROM gateway_v2.tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
+            .bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+        anyhow::ensure!(row.get::<Option<Uuid>,_>("connection_id")==Some(connection), "task belongs to another connection");
+        anyhow::ensure!(row.get::<i64,_>("revision")==revision, "state changed; check status before approving");
+        let task: Task = serde_json::from_value(row.get("document"))?;
+        anyhow::ensure!(!task.cancelled, "task cancelled");
+        let plan: Plan = serde_json::from_value(task.proposal.ok_or_else(|| anyhow::anyhow!("no proposal"))?)?;
+        anyhow::ensure!(plan.quote_ref==quote && plan.expires_at>Utc::now(), "quote changed or expired");
+        anyhow::ensure!(cap==plan.cap_atomic.to_string(), "approval amount must match displayed cap");
+        let budget = sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)")
+            .bind(p.owner).bind(connection).fetch_optional(&mut *tx).await?
+            .ok_or_else(|| anyhow::anyhow!("set a positive per-request and daily limit in Connections, then reconnect if needed"))?;
+        // A repeated click reads the same authorization, never renews a revoked
+        // authorization or creates another reservation/payment identity.
+        if let Some(existing) = sqlx::query("SELECT id,revoked_at FROM gateway_v2.authorizations WHERE task_id=$1 AND quote_ref=$2")
+            .bind(task_id).bind(quote).fetch_optional(&mut *tx).await? {
+            anyhow::ensure!(existing.get::<Option<chrono::DateTime<Utc>>,_>("revoked_at").is_none(), "authorization revoked");
+            return Ok(existing.get("id"));
+        }
+        anyhow::ensure!(plan.cap_atomic>=0 && plan.cap_atomic<=budget.get::<i64,_>("per_call_atomic"), "plan exceeds this connection's per-request limit");
+        anyhow::ensure!(plan.cap_atomic<=budget.get::<i64,_>("daily_remaining_atomic"), "plan exceeds this connection's remaining daily limit");
+        anyhow::ensure!(plan.cap_atomic<=budget.get::<i64,_>("balance_atomic"), "insufficient Apiosk balance for this plan");
+        let id = Uuid::new_v4();
+        sqlx::query("INSERT INTO gateway_v2.authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
+            .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(id)
+    }
+
     pub async fn approve(
         &self,
         p: &Principal,

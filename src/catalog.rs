@@ -62,8 +62,7 @@ impl Service {
                     .input_map
                     .get(&r.fact_type)
                     .ok_or_else(|| anyhow::anyhow!("unmapped input"))?;
-                anyhow::ensure!(binding.wrap.is_none(), "unsupported wrapped binding");
-                inputs.insert(binding.name.clone(), value);
+                crate::input_binding::insert(&mut inputs, binding, value)?;
             } else {
                 anyhow::ensure!(r.optional, "missing input: {}", r.fact_type);
             }
@@ -122,14 +121,14 @@ impl Catalog {
                         .all(|r| r.subject_role == "subject"),
                     "unsupported multi-role contract"
                 );
-                anyhow::ensure!(
-                    service
-                        .contract
-                        .input_map
-                        .values()
-                        .all(|b| b.wrap.is_none()),
-                    "unsupported wrap mapping"
-                );
+                let mut template = service
+                    .fixed_params
+                    .as_object()
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("fixed parameters must be an object"))?;
+                for binding in service.contract.input_map.values() {
+                    crate::input_binding::insert(&mut template, binding, Value::Null)?;
+                }
                 anyhow::ensure!(
                     service
                         .preconditions
@@ -177,13 +176,29 @@ impl Catalog {
     pub fn parser_view(&self) -> Value {
         let mut sources: BTreeMap<(&str, &str), std::collections::BTreeSet<&str>> = BTreeMap::new();
         for service in &self.services {
-            sources.entry((&service.api_slug, &service.name)).or_default()
+            sources
+                .entry((&service.api_slug, &service.name))
+                .or_default()
                 .insert(&service.contract.capability_slug);
         }
         let sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
             json!({"slug":slug,"name":name,"capabilities":capabilities})
         ).collect();
-        json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"sources":sources,"input_types":self.services.iter().flat_map(|s|s.contract.requires.iter().map(|r|r.fact_type.clone())).collect::<std::collections::BTreeSet<_>>()})
+        let inputs: std::collections::BTreeSet<_> = self
+            .services
+            .iter()
+            .flat_map(|s| s.contract.requires.iter().map(|r| r.fact_type.clone()))
+            .collect();
+        let definitions: Vec<_> = inputs
+            .iter()
+            .filter_map(|slug| self.vocabulary.get(slug))
+            .map(|f| json!({"type":f.slug,"schema":f.value_schema}))
+            .collect();
+        let bindings: Vec<_> = self.services.iter().map(|s| json!({
+            "source":s.api_slug,"capability":s.contract.capability_slug,"inputs":s.contract.requires
+        })).collect();
+        json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"sources":sources,
+            "input_types":inputs,"input_definitions":definitions,"service_inputs":bindings})
     }
 }
 pub struct CatalogCache {
@@ -240,13 +255,22 @@ mod parser_catalog_tests {
     use super::*;
     #[test]
     fn parser_receives_exact_source_identity_and_supported_capabilities() {
-        let snapshot: Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let snapshot: Snapshot =
+            serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json"))
+                .unwrap();
         let catalog = Catalog::build(snapshot);
         let view = catalog.parser_view();
         for service in &catalog.services {
-            let source = view["sources"].as_array().unwrap().iter().find(|s|
-                s["slug"] == service.api_slug && s["name"] == service.name).unwrap();
-            assert!(source["capabilities"].as_array().unwrap().contains(&json!(service.contract.capability_slug)));
+            let source = view["sources"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|s| s["slug"] == service.api_slug && s["name"] == service.name)
+                .unwrap();
+            assert!(source["capabilities"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(service.contract.capability_slug)));
             assert!(source.get("fixed_params").is_none());
         }
     }

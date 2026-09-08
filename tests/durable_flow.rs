@@ -30,14 +30,20 @@ use uuid::Uuid;
 struct Counters {
     parser: AtomicU64,
     provider: AtomicU64,
+    transient_chat: AtomicU64,
 }
 async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
     c.parser.fetch_add(1, Ordering::Relaxed);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input["surface"] == "ask-chat" {
+        if input["question"] == "Unavailable first question"
+            || (input["question"] == "Transient first question" && c.transient_chat.fetch_add(1, Ordering::Relaxed) == 0) {
+            return Json(json!({"choices":[{"finish_reason":"length","message":{"content":null}}]}));
+        }
+        let greeting = input["question"] == "Hallo" || input["question"] == "Transient first question";
         return Json(
-            json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":input["question"] != "Hallo"}).to_string()}}]}),
+            json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":!greeting}).to_string()}}]}),
         );
     }
     let entity = input["context"]["entities"][0]["entity_ref"].clone();
@@ -53,7 +59,7 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     } else {
         json!({"entity_ref":null,"label":label,"values":{"company.name":label}})
     };
-    let capability = if input["question"]
+    let capability = if input["question"] == "Unsupported Example" { "unsupported.fixture" } else if input["question"]
         .as_str()
         .unwrap()
         .starts_with("Search only")
@@ -175,6 +181,16 @@ async fn durable_flow_and_authorization_boundary() {
     };
     let loaded = engine.catalog.get().await.unwrap();
     assert_eq!(loaded.services.len(), 2, "rejected: {:?}", loaded.rejected);
+    // An accounts service identifies no new company, but its mandatory
+    // national registry identifier still constrains the jurisdiction.
+    sqlx::query("UPDATE public.fact_types SET jurisdiction='NL' WHERE slug='company.id'")
+        .execute(&pool).await.unwrap();
+    let national = engine.catalog.fresh().await.unwrap();
+    assert_eq!(national.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap().jurisdiction.as_deref(), Some("NL"));
+    sqlx::query("UPDATE public.fact_types SET jurisdiction=NULL WHERE slug='company.id'")
+        .execute(&pool).await.unwrap();
+    let unclassified = engine.catalog.fresh().await.unwrap();
+    assert!(unclassified.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap().jurisdiction.is_none());
     if apiosk_gateway_v2::engine::single_call_mode() {
         let multi = engine.discover(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
         assert_eq!(multi.status, Status::Unsupported);
@@ -706,6 +722,34 @@ async fn durable_flow_and_authorization_boundary() {
         chats_before,
         "MCP callers must not enter the App chat layer"
     );
+    let providers_before_failure = counts.provider.load(Ordering::Relaxed);
+    let transient = engine.chat(&person, DiscoverRequest {
+        request_id:Uuid::new_v4(), question:"Transient first question".into(), state:None, context_delta:Default::default(),
+    }).await.unwrap();
+    assert_eq!(transient.status, Status::NeedsInput);
+    assert!(transient.errors.is_empty());
+    assert_eq!(counts.transient_chat.load(Ordering::Relaxed), 2);
+    let failed_request = DiscoverRequest {
+        request_id:Uuid::new_v4(), question:"Unavailable first question".into(), state:None, context_delta:Default::default(),
+    };
+    let failed = engine.chat(&person, failed_request.clone()).await.unwrap();
+    assert_eq!(failed.status, Status::Failed);
+    assert_eq!(failed.errors[0]["code"], "question_unavailable");
+    assert!(!failed.errors[0]["message"].as_str().unwrap().contains("JSON"));
+    assert!(failed.state.is_none());
+    assert!(failed.proposal.is_none());
+    assert!(failed.next_actions.is_empty());
+    let model_calls_after_failure = counts.parser.load(Ordering::Relaxed);
+    let replayed = engine.chat(&person, failed_request).await.unwrap();
+    assert_eq!(replayed.errors, failed.errors);
+    assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls_after_failure);
+    let unsupported = engine.chat(&person, DiscoverRequest {
+        request_id:Uuid::new_v4(), question:"Unsupported Example".into(), state:None, context_delta:Default::default(),
+    }).await.unwrap();
+    assert_eq!(unsupported.status, Status::Unsupported);
+    assert_eq!(unsupported.errors[0]["code"], "unsupported_request");
+    assert!(unsupported.proposal.is_none());
+    assert_eq!(counts.provider.load(Ordering::Relaxed), providers_before_failure, "interpretation retries and failures cannot purchase data");
     let before = counts.provider.load(Ordering::Relaxed);
     let greeting = engine
         .chat(
@@ -960,6 +1004,62 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(listed.status, Status::Succeeded);
     assert!(!listed.next_actions.iter().any(|a| a.kind == "select_entity"));
     assert_eq!(listed.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
+
+    // Exact in-chat approval under an existing finite connection mandate.
+    let connected = Principal { owner: Uuid::new_v4(), connection: Some(Uuid::new_v4()) };
+    let connection = connected.connection.unwrap();
+    sqlx::query("INSERT INTO public.agent_connections VALUES($1,$2,NULL,1000,2000)")
+        .bind(connection).bind(connected.owner).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.user_balances VALUES($1,1000)")
+        .bind(connected.owner).execute(&pool).await.unwrap();
+    let ready = engine.discover(&connected, DiscoverRequest { request_id: Uuid::new_v4(),
+        question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
+    assert_eq!(ready.context_view["approval_mode"], "chatbot");
+    let state = ready.state.as_ref().unwrap();
+    let quote = ready.proposal.as_ref().unwrap();
+    let baseline = counts.provider.load(Ordering::Relaxed);
+    let approve = |p: Principal, revision, quote_ref, cap: &'static str| {
+        let engine = engine.clone();let task = state.state_ref;
+        async move { engine.executor.approve_connection(&p,task,revision,quote_ref,cap).await }
+    };
+    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"139").await.is_err());
+    assert!(approve(connected.clone(),state.revision+1,quote.quote_ref,"138").await.is_err());
+    assert!(approve(connected.clone(),state.revision,Uuid::new_v4(),"138").await.is_err());
+    assert!(approve(Principal {owner: connected.owner,connection:Some(Uuid::new_v4())},state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(approve(Principal {owner: Uuid::new_v4(),connection:Some(connection)},state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(approve(Principal {owner: connected.owner,connection:None},state.revision,quote.quote_ref,"138").await.is_err());
+    for update in ["per_call_limit_micro_usd=NULL", "per_call_limit_micro_usd=0", "per_call_limit_micro_usd=137", "per_call_limit_micro_usd=1000,daily_limit_micro_usd=137", "daily_limit_micro_usd=2000,revoked_at=now()"] {
+        sqlx::query(&format!("UPDATE public.agent_connections SET {update} WHERE id=$1")).bind(connection).execute(&pool).await.unwrap();
+        assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err(),"{update}");
+    }
+    sqlx::query("UPDATE public.agent_connections SET revoked_at=NULL WHERE id=$1").bind(connection).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=137 WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
+    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=1000 WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
+    // Reserved calls and open job holds count; refunds do not count twice.
+    sqlx::query("INSERT INTO public.balance_charges(id,user_id,status,charged_micro_usd,metadata) VALUES($1,$2,'reserved',1863,$3)")
+        .bind(Uuid::new_v4()).bind(connected.owner).bind(json!({"connection_id":connection})).execute(&pool).await.unwrap();
+    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    sqlx::query("UPDATE public.balance_charges SET status='refunded' WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.job_budget_reservations VALUES($1,$2,0,1863,now()-interval '2 days','open')")
+        .bind(connected.owner).bind(connection).execute(&pool).await.unwrap();
+    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    sqlx::query("UPDATE public.job_budget_reservations SET reserved_micro_usd=0,status='closed' WHERE user_id=$1")
+        .bind(connected.owner).execute(&pool).await.unwrap();
+    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
+    let approved_id = approve(connected.clone(),state.revision,quote.quote_ref,"138").await.unwrap();
+    assert_eq!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.unwrap(),approved_id);
+    let audit = sqlx::query("SELECT approved_via,approved_connection_id FROM gateway_v2.authorizations WHERE id=$1")
+        .bind(approved_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(audit.get::<String,_>("approved_via"),"connection_budget");
+    assert_eq!(audit.get::<Uuid,_>("approved_connection_id"),connection);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline,"approval alone never buys data");
+    sqlx::query("UPDATE gateway_v2.authorizations SET revoked_at=now() WHERE id=$1").bind(approved_id).execute(&pool).await.unwrap();
+    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
+    sqlx::query("SET ROLE anon").execute(&pool).await.unwrap();
+    assert!(sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)").bind(connected.owner).bind(connection).fetch_all(&pool).await.is_err());
+    sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     api_server.abort();
     println!(

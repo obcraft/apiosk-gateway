@@ -69,6 +69,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/sources", get(sources))
         .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
+        .route("/v2/approve", post(approve_connection))
         .route("/v2/tasks", get(tasks))
         .route("/v2/tasks/:id", get(task))
         .route("/v2/tasks/:id/authorize", post(authorize))
@@ -328,6 +329,33 @@ async fn task(
 struct Approval {
     quote_ref: Uuid,
     max_total_atomic: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConnectionApproval {
+    request_id: Uuid,
+    state: crate::state::Envelope,
+    quote_ref: Uuid,
+    max_total_atomic: String,
+}
+async fn approve_connection(
+    State(state): State<ServerState>, headers: HeaderMap, Json(req): Json<ConnectionApproval>,
+) -> HttpResponse {
+    let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
+    let result = async {
+        state.engine.signer.verify(p.owner, &req.state, false)?;
+        state.engine.executor.approve_connection(&p, req.state.state_ref, req.state.revision,
+            req.quote_ref, &req.max_total_atomic).await?;
+        state.engine.view(&p, req.state.state_ref, req.request_id, None).await
+    }.await;
+    match result {
+        Ok(response) => Json(response).into_response(),
+        Err(error) => {
+            tracing::warn!(error=%error,"connection approval refused");
+            failure(StatusCode::FORBIDDEN, "approval_refused",
+                "Approval could not be saved. Check the current plan, balance and connection spending limits, then try again. No new purchase was made by this approval request.")
+        }
+    }
 }
 async fn authorize(
     State(state): State<ServerState>,

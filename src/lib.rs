@@ -5,6 +5,7 @@ pub mod compat;
 pub mod engine;
 pub mod execution;
 pub mod followups;
+pub mod input_binding;
 pub mod maintenance;
 pub mod parser;
 pub mod protocol;

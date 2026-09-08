@@ -29,8 +29,8 @@ pub fn apply_branding(sources: &mut [Source], directory: Option<&Value>) {
     for source in sources {
         let provider = directory.and_then(|d| d["providers"].as_array()).and_then(|rows|
             rows.iter().find(|p| source.provider_slug.as_deref().is_some_and(|slug| p["username"].as_str() == Some(slug))));
-        source.logo_url = provider.and_then(|p| p["avatar_url"].as_str()).and_then(safe_logo)
-            .or_else(|| source.logo_url.as_deref().and_then(safe_logo));
+        source.logo_url = source.logo_url.as_deref().and_then(safe_logo)
+            .or_else(|| provider.and_then(|p| p["avatar_url"].as_str()).and_then(safe_logo));
     }
 }
 
@@ -205,9 +205,9 @@ mod tests {
         ])).unwrap()
     }
     #[test]
-    fn source_query_prefers_the_provider_avatar() {
+    fn source_query_prefers_the_listings_own_logo() {
         let sql = include_str!("sources.sql");
-        assert!(sql.contains("coalesce(nullif(p.avatar_url,'')"));
+        assert!(sql.contains("coalesce(nullif(a.listing_metadata->>'logo',''),nullif(p.avatar_url,''))"));
     }
     #[test]
     fn branding_matches_provider_identity_and_enriches_old_results() {
@@ -227,6 +227,9 @@ mod tests {
         assert_eq!(result["source"]["endpoint_id"], "original");
         assert_eq!(result["data"]["value"], 42);
         assert!(safe_logo("https://user:password@example.com/logo.png").is_none());
+        rows[0].logo_url = Some("https://example.com/kvk.png".into());
+        apply_branding(&mut rows, Some(&json!({"providers":[{"username":"registry","avatar_url":"https://example.com/apiosk.png"}]})));
+        assert_eq!(rows[0].logo_url.as_deref(), Some("https://example.com/kvk.png"));
     }
     #[test]
     fn searches_metadata_filters_and_paginates_without_claiming_executability() {
