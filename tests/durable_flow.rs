@@ -1061,6 +1061,32 @@ async fn durable_flow_and_authorization_boundary() {
     assert!(sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)").bind(connected.owner).bind(connection).fetch_all(&pool).await.is_err());
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
+    // Reports reuse an existing saved result and never invoke the paid provider.
+    let saved = sqlx::query("SELECT id,owner_id,task_id,document FROM gateway_v2.results LIMIT 1").fetch_one(&pool).await.unwrap();
+    let report_id: Uuid=saved.get("id"); let report_owner: Uuid=saved.get("owner_id"); let report_task: Uuid=saved.get("task_id");
+    let original: Value=saved.get("document");
+    let filing: Value=serde_json::from_str(include_str!("../crates/catalog-core/fixtures/contracts/payloads/kvk-jaarrekening-86717162.json")).unwrap();
+    let report_doc=json!({"source":{"provider":"kvk-dutch-business-register","path":apiosk_gateway_v2::annual_report::ENDPOINT},"data":filing});
+    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(report_doc).bind(report_id).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()+interval '1 day' WHERE id=$1").bind(report_task).execute(&pool).await.unwrap();
+    let expires=chrono::Utc::now().timestamp()+60;
+    let signature=engine.signer.report_signature(report_owner,report_task,report_id,expires);
+    let report_url=format!("{api_url}/v2/tasks/{report_task}/results/{report_id}/report.pdf?owner={report_owner}&expires={expires}&signature={signature}");
+    let baseline=counts.provider.load(Ordering::Relaxed);
+    for _ in 0..2 {
+        let response=client.get(&report_url).send().await.unwrap();
+        assert_eq!(response.status(),StatusCode::OK);
+        assert_eq!(response.headers()["content-type"],"application/pdf");
+        assert_eq!(response.headers()["cache-control"],"private, no-store");
+        assert!(response.bytes().await.unwrap().starts_with(b"%PDF-"));
+    }
+    let bad=report_url.replace(&report_owner.to_string(),&Uuid::new_v4().to_string());
+    assert_eq!(client.get(bad).send().await.unwrap().status(),StatusCode::FORBIDDEN);
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()-interval '1 day' WHERE id=$1").bind(report_task).execute(&pool).await.unwrap();
+    assert_eq!(client.get(&report_url).send().await.unwrap().status(),StatusCode::NOT_FOUND);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
+    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(original).bind(report_id).execute(&pool).await.unwrap();
+
     api_server.abort();
     println!(
         "fixture scenarios elapsed_ms={} parser_calls={} provider_calls={}; initial two-step cap/charge=138 atomic",

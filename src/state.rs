@@ -28,6 +28,17 @@ pub struct Envelope {
 }
 pub struct Signer(Vec<u8>);
 impl Signer {
+    pub fn report_signature(&self, owner: Uuid, task: Uuid, result: Uuid, expires: i64) -> String {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("annual-report-v1", owner, task, result, expires)).unwrap());
+        hex::encode(mac.finalize().into_bytes())
+    }
+    pub fn verify_report(&self, owner: Uuid, task: Uuid, result: Uuid, expires: i64, signature: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(expires > Utc::now().timestamp(), "report link expired");
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("annual-report-v1", owner, task, result, expires)).unwrap());
+        mac.verify_slice(&hex::decode(signature)?).map_err(|_| anyhow::anyhow!("invalid report signature"))
+    }
     pub fn new(key: Vec<u8>) -> anyhow::Result<Self> {
         anyhow::ensure!(
             key.len() >= 32,

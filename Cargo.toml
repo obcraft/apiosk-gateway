@@ -30,6 +30,7 @@ dotenvy = "0.15"
 thiserror = "1"
 bigdecimal = "0.4"
 url = "2"
+genpdf = "0.2.0"
 
 [profile.release]
 strip = true

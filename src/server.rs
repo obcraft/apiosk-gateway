@@ -72,6 +72,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/approve", post(approve_connection))
         .route("/v2/tasks", get(tasks))
         .route("/v2/tasks/:id", get(task))
+        .route("/v2/tasks/:task/results/:result/report.pdf", get(annual_report))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
         .layer(cors);
@@ -79,6 +80,40 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         app = app.fallback(legacy_fallback);
     }
     Ok(app.with_state(state))
+}
+
+#[derive(Deserialize)]
+struct ReportDownload { owner: Uuid, expires: i64, signature: String }
+async fn annual_report(
+    State(state): State<ServerState>,
+    Path((task, result)): Path<(Uuid, Uuid)>,
+    Query(query): Query<ReportDownload>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.clone().try_acquire_owned() else {
+        return StatusCode::TOO_MANY_REQUESTS.into_response();
+    };
+    if state.engine.signer.verify_report(query.owner, task, result, query.expires, &query.signature).is_err() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    // A scoped, expiring capability permits browser downloads without exposing
+    // account credentials. Store lookup still enforces owner and task retention.
+    let Ok(document) = state.engine.store.result(query.owner, task, result).await else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    if !crate::annual_report::eligible(&document) { return StatusCode::NOT_FOUND.into_response(); }
+    match tokio::task::spawn_blocking(move || {
+        let _permit = _permit;
+        crate::annual_report::render(&document)
+    }).await {
+        Ok(Ok(pdf)) => (
+            [("content-type", "application/pdf".to_owned()),
+             ("content-disposition", format!("attachment; filename=\"jaarrekening-{result}.pdf\"")),
+             ("cache-control", "private, no-store".to_owned()),
+             ("referrer-policy", "no-referrer".to_owned()),
+             ("x-content-type-options", "nosniff".to_owned())], pdf
+        ).into_response(),
+        _ => failure(StatusCode::INTERNAL_SERVER_ERROR, "report_unavailable", "PDF generation failed. Your saved source data is still available; no new purchase is needed."),
+    }
 }
 
 async fn legacy_fallback(
