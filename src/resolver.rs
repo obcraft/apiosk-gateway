@@ -73,7 +73,7 @@ impl Action {
         let (kind, label, paid, input) = match self {
             Self::Run { .. } => (
                 "execute_quoted_step",
-                "Voer de volgende stap uit".into(),
+                "Run the next step".into(),
                 true,
                 json!({"type":"null"}),
             ),
@@ -83,31 +83,31 @@ impl Action {
                 ..
             } => (
                 "supply_input",
-                format!("Vul {semantic_type} aan"),
+                format!("Provide {semantic_type}"),
                 false,
                 json!({"type":"object","properties":{"value":schema},"required":["value"],"additionalProperties":false}),
             ),
             Self::Choose { candidates, .. } => (
                 "select_entity",
-                "Selecteer de juiste entiteit".into(),
+                "Choose the right match".into(),
                 false,
                 json!({"type":"object","properties":{"entity_ref":{"type":"string","enum":candidates}},"required":["entity_ref"],"additionalProperties":false}),
             ),
             Self::Read { .. } => (
                 "read_result",
-                "Lees het opgeslagen resultaat".into(),
+                "View saved result".into(),
                 false,
                 json!({"type":"object","properties":{"offset":{"type":"integer","minimum":0}},"additionalProperties":false}),
             ),
             Self::Poll { .. } => (
                 "poll",
-                "Controleer de bestaande uitvoering".into(),
+                "Check status".into(),
                 false,
                 json!({"type":"null"}),
             ),
             Self::Cancel { .. } => (
                 "cancel",
-                "Stop nieuwe uitvoeringen".into(),
+                "Stop remaining steps".into(),
                 false,
                 json!({"type":"null"}),
             ),
@@ -195,7 +195,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
                     }
                     Some(e) => Resolution::Unsupported(e),
                     None => Resolution::Unsupported(format!(
-                        "Geen gevalideerde dienst voldoet aan {} en alle bron-/tijdseisen",
+                        "No validated service satisfies {} and all source and period requirements",
                         goal.capability
                     )),
                 }

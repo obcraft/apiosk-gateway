@@ -45,7 +45,7 @@ pub fn public_error(body: &Value) -> Value {
     let (code, message) = match body["error"].as_str() {
         Some("insufficient_funds") => (
             "insufficient_balance",
-            "Je Apiosk-saldo is onvoldoende. Er is niets gekocht.",
+            "Your Apiosk balance is insufficient. Nothing was purchased.",
         ),
         Some("limit_exceeded") => (
             "spending_limit_exceeded",
@@ -53,19 +53,19 @@ pub fn public_error(body: &Value) -> Value {
         ),
         Some("price_unverified") => (
             "price_changed",
-            "De prijs is niet meer geldig. Vraag een nieuw voorstel.",
+            "This price has expired. Request a new quote.",
         ),
         Some("rate_limited") => (
             "rate_limited",
-            "Wacht even voordat je een nieuw voorstel aanvraagt.",
+            "Please wait before requesting another quote.",
         ),
         Some("refunded") => (
             "refunded",
-            "De bestaande betaaladministratie heeft het bedrag inclusief fee teruggegeven.",
+            "The payment ledger confirms that the amount, including the fee, was refunded.",
         ),
         _ => (
             "execution_refused",
-            "De uitvoering is geweigerd. Bekijk de betaalstatus voordat je verdergaat.",
+            "Execution was refused. Check the payment status before continuing.",
         ),
     };
     json!({"code":code,"message":message})

@@ -153,7 +153,7 @@ async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, H
         failure(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
-            "De verbinding is ongeldig of verlopen.",
+            "The connection is invalid or expired.",
         )
     })
 }
@@ -180,7 +180,7 @@ async fn discover(
             failure(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "unavailable",
-                "De taak kon niet worden opgeslagen.",
+                "The task could not be saved.",
             )
         }
     }
@@ -215,7 +215,7 @@ async fn chat(
             failure(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "unavailable",
-                "Het gesprek kon niet worden opgeslagen.",
+                "The conversation could not be saved.",
             )
         }
     }
@@ -278,7 +278,7 @@ async fn execute(
         _ => failure(
             StatusCode::SERVICE_UNAVAILABLE,
             "execution_pending",
-            "Controleer de taakstatus voordat je opnieuw uitvoert.",
+            "Check the task status before retrying execution.",
         ),
     }
 }
@@ -380,7 +380,7 @@ async fn authorize(
         Err(_) => failure(
             StatusCode::FORBIDDEN,
             "approval_refused",
-            "Open het actuele voorstel in de app en keur het daar goed.",
+            "Open the current request in Apiosk and approve it there.",
         ),
     }
 }

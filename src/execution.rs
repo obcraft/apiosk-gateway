@@ -228,7 +228,7 @@ impl Executor {
             if c.get::<String, _>("status") == "refunded" {
                 sqlx::query("UPDATE gateway_v2.executions SET status='failed',actual_atomic=0,updated_at=now() WHERE id=$1").bind(id).execute(&self.store.pool).await?;
                 return Ok(Some(
-                    json!({"ok":false,"charged_micro_usd":0,"error":"refunded","message":"De bestaande betaaladministratie heeft deze uitvoering terugbetaald."}),
+                    json!({"ok":false,"charged_micro_usd":0,"error":"refunded","message":"The payment ledger confirms this execution was refunded."}),
                 ));
             }
         }

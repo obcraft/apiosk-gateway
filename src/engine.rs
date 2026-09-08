@@ -40,7 +40,7 @@ impl Engine {
                 id,
                 Status::Failed,
                 "request_conflict",
-                "De request-ID hoort al bij andere invoer.",
+                "This request ID is already associated with different input.",
             )),
             Claim::Busy => {
                 let mut r=Response::error(id,Status::Running,"request_pending","Deze request is al gestart; herhaal dezelfde request-ID of herstel de taak. Een onderbroken parserrequest wordt niet opnieuw geparseerd.");
@@ -64,7 +64,7 @@ impl Engine {
                 };
                 return Response::error(id, status, code, &model.to_string());
             }
-            let message=if e.downcast_ref::<sqlx::Error>().is_some(){"De taakopslag is tijdelijk niet beschikbaar. Herstel de taak voordat je verdergaat.".to_string()}else{e.to_string()};
+            let message=if e.downcast_ref::<sqlx::Error>().is_some(){"Task storage is temporarily unavailable. Recover the task before continuing.".to_string()}else{e.to_string()};
             Response::error(id, Status::Failed, "operation_failed", &message)
         });
         if self.store.finish(p.owner, &r).await.is_err() {
@@ -400,11 +400,11 @@ impl Engine {
                     else if task.cancelled { "cancelled" } else if paused_plan { "paused" } else { "pending" });
             }
             r.proposal = Some(Proposal {
-                label: "Your plan".into(),
+                label: "Data request".into(),
                 step_details,
                 quote_ref: plan.quote_ref,
                 price_status: "capped".into(),
-                currency: "USDC".into(),
+                currency: "USD".into(),
                 max_total_atomic: plan.cap_atomic.to_string(),
                 expires_at: plan.expires_at,
                 approval_url: format!("{}/gateway-v2?task={}", self.app_url, id),
