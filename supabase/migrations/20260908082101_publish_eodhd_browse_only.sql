@@ -54,6 +54,8 @@ begin
       active = true,
       is_verified = true,
       discoverable = true,
+      settlement_mode = 'apiosk_revenue',
+      requires_payout_wallet = false,
       approved_at = coalesce(approved_at, now()),
       suspended_at = null,
       long_description = 'EODHD by Unicorn Data Services provides 60 documented financial-data operations. Browse the available market, fundamentals, corporate events, options, fixed income, news, sentiment and macro endpoints. Calls remain unavailable until Apiosk has the required commercial rights, credentials and validated execution contracts.',
@@ -75,6 +77,7 @@ declare
   source_visible boolean;
   execution_enabled boolean;
   catalog_state text;
+  settlement_mode_value text;
 begin
   select count(*), count(*) filter (where active)
     into endpoint_total, endpoint_active
@@ -87,8 +90,9 @@ begin
       and discoverable
       and suspended_at is null,
     coalesce((listing_metadata->>'execution_enabled')::boolean, true),
-    listing_metadata->>'catalog_state'
-    into source_visible, execution_enabled, catalog_state
+    listing_metadata->>'catalog_state',
+    settlement_mode
+    into source_visible, execution_enabled, catalog_state, settlement_mode_value
   from public.apis
   where id = 'b268fe55-41d2-5b7a-b147-31af1f1c1d0f'::uuid;
 
@@ -103,9 +107,10 @@ begin
      or not coalesce(source_visible, false)
      or execution_enabled
      or catalog_state is distinct from 'browse_only'
+     or settlement_mode_value is distinct from 'apiosk_revenue'
      or active_contract_total <> 0 then
-    raise exception 'EODHD browse invariant failed: endpoints=%, active_endpoints=%, visible=%, execution_enabled=%, catalog_state=%, active_contracts=%',
-      endpoint_total, endpoint_active, source_visible, execution_enabled, catalog_state, active_contract_total;
+    raise exception 'EODHD browse invariant failed: endpoints=%, active_endpoints=%, visible=%, execution_enabled=%, catalog_state=%, settlement_mode=%, active_contracts=%',
+      endpoint_total, endpoint_active, source_visible, execution_enabled, catalog_state, settlement_mode_value, active_contract_total;
   end if;
 end;
 $postconditions$;
