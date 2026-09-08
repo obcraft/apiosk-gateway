@@ -18,7 +18,7 @@ CREATE TABLE public.user_balances(user_id uuid primary key,balance_micro_usd big
 CREATE TABLE public.call_runs(id uuid primary key,charge_id uuid,user_id uuid,status text,output jsonb,output_truncated boolean,started_at timestamptz default now());
 CREATE TABLE public.fact_types(slug text primary key,status text,value_schema jsonb,jurisdiction text);
 CREATE TABLE public.capabilities(slug text primary key,status text);
-CREATE TABLE public.provider_profiles(id uuid primary key, username text);
+CREATE TABLE public.provider_profiles(id uuid primary key, username text, avatar_url text);
 CREATE TABLE public.apis(id uuid primary key,owner_id uuid,slug text,name text,listing_type text,status text,active boolean,is_verified boolean,discoverable boolean,suspended_at timestamptz,docs_url text,website_url text,description text DEFAULT 'Company filings',category text DEFAULT 'finance',listing_metadata jsonb DEFAULT '{"tags":["registry"]}');
 CREATE TABLE public.api_endpoints(id uuid primary key,api_id uuid,method text,path text,price numeric,active boolean);
 CREATE TABLE public.capability_execution_contracts(id uuid primary key,endpoint_id uuid,capability_slug text,version int,status text,requires jsonb,input_map jsonb,output_map jsonb,identifies text,cardinality text,max_fan_out int,fixed_params jsonb,preconditions jsonb,pagination jsonb,freshness_seconds int,sample_payload jsonb,validated_at timestamptz,effect text,price_model text);`);

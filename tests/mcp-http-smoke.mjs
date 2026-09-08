@@ -6,7 +6,9 @@ const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CON
 assert.equal((await runtime.listTools()).length,3);
 async function tool(name,args){const r=await runtime.callTool(name,args);assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent;}
 const sources=await tool('apiosk_sources',{category:'finance',tag:'registry',limit:1});
-assert.equal(sources.sources.length,1);assert.equal(sources.sources[0].available_in_v2,true);
+assert.equal(sources.sources.length,1);
+assert.ok(sources.sources[0].capabilities.length > 0);
+assert.equal(Object.hasOwn(sources.sources[0], 'available_in_v2'), false);
 assert.deepEqual(sources.sources[0].tags,['registry']);
 const capability = sources.sources[0].capabilities[0];
 assert.ok((await tool('apiosk_sources',{capability})).sources.every(s=>s.capabilities.includes(capability)));

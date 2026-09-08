@@ -948,6 +948,19 @@ async fn durable_flow_and_authorization_boundary() {
         .await
         .unwrap();
     assert_eq!(stale.status, Status::StateConflict);
+    // Searching a list needs no choice, while dependent account lookups below do.
+    let search = engine.discover(&person, DiscoverRequest {
+        request_id: Uuid::new_v4(), question: "Search only Ambiguous".into(),
+        state: None, context_delta: Default::default(),
+    }).await.unwrap();
+    let quote = search.proposal.as_ref().unwrap();
+    engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref,
+        quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+    let listed = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+    assert_eq!(listed.status, Status::Succeeded);
+    assert!(!listed.next_actions.iter().any(|a| a.kind == "select_entity"));
+    assert_eq!(listed.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
+
     api_server.abort();
     println!(
         "fixture scenarios elapsed_ms={} parser_calls={} provider_calls={}; initial two-step cap/charge=138 atomic",

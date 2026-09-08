@@ -98,6 +98,10 @@ impl Engine {
             return Ok(());
         }
         let ambiguous = extraction.is_ambiguous();
+        // A completed search is a result in its own right. Only a remaining
+        // dependency needs the user to disambiguate before spending again.
+        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
+        let needs_choice = ambiguous && plan.steps.iter().any(|s| s.entity_ref == step.entity_ref && !task.completed.contains(&s.key()));
         let mut candidate_ids = vec![];
         for subject in &extraction.subjects {
             let entity = if ambiguous {
@@ -106,24 +110,24 @@ impl Engine {
                 step.entity_ref
             };
             if ambiguous {
-                let label = subject
-                    .identity
-                    .as_ref()
-                    .map(Value::to_string)
+                let label = subject.facts.iter()
+                    .find(|f| f.fact_type == "company.name")
+                    .and_then(|f| f.value.as_str()).map(str::to_owned)
+                    .or_else(|| subject.identity.as_ref().map(|v| v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string())))
                     .unwrap_or_else(|| format!("Kandidaat {}", subject.index + 1));
                 task.entities.push(Entity {
                     entity_ref: entity,
                     label: label.clone(),
                     selected: false,
                 });
-                task.pending_candidates.push(json!({"entity_ref":entity,"label":label,"facts":subject.facts.iter().map(|f|json!({"type":f.fact_type,"value":f.value})).collect::<Vec<_>>() }));
+                if needs_choice { task.pending_candidates.push(json!({"entity_ref":entity,"label":label,"facts":subject.facts.iter().map(|f|json!({"type":f.fact_type,"value":f.value})).collect::<Vec<_>>() })); }
                 candidate_ids.push(entity);
             }
             for f in &subject.facts {
                 task.facts.push(Fact{entity_ref:entity,semantic_type:f.fact_type.clone(),value:f.value.clone(),provenance:json!({"kind":"provider_response","result_ref":result_ref,"source_pointer":f.extraction_base,"contract_id":step.service.id}),observed_at:Utc::now(),expires_at:Utc::now()+chrono::Duration::seconds(step.service.freshness_seconds.unwrap_or(3600).clamp(0,86400)),verification:"source_observed".into()});
             }
         }
-        if ambiguous {
+        if needs_choice {
             task.original_subject = Some(step.entity_ref);
             task.actions = vec![serde_json::to_value(Action::Choose {
                 action_id: Uuid::new_v4(),
