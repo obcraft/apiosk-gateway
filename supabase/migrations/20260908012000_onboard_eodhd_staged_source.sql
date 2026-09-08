@@ -12459,7 +12459,10 @@ begin
   from public.api_endpoints
   where api_id = 'b268fe55-41d2-5b7a-b147-31af1f1c1d0f'::uuid;
 
-  select status = 'active' or active or discoverable or is_verified
+  -- `status` is catalogue lifecycle metadata and may be normalized to
+  -- `active` by the existing API trigger even for a hidden listing. Runtime
+  -- visibility is controlled by these three independent review flags.
+  select active or discoverable or is_verified
     into source_visible
   from public.apis
   where id = 'b268fe55-41d2-5b7a-b147-31af1f1c1d0f'::uuid;
