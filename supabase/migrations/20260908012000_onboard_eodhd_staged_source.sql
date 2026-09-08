@@ -12459,10 +12459,10 @@ begin
   from public.api_endpoints
   where api_id = 'b268fe55-41d2-5b7a-b147-31af1f1c1d0f'::uuid;
 
-  -- `status` is catalogue lifecycle metadata and may be normalized to
-  -- `active` by the existing API trigger even for a hidden listing. Runtime
-  -- visibility is controlled by these three independent review flags.
-  select active or discoverable or is_verified
+  -- The existing owner-verification trigger may set is_verified=true even
+  -- for a staged platform-owned source. The Gateway exposes a source only when
+  -- the complete catalogue predicate is true, so assert that exact predicate.
+  select status = 'active' and active and is_verified and discoverable
     into source_visible
   from public.apis
   where id = 'b268fe55-41d2-5b7a-b147-31af1f1c1d0f'::uuid;
