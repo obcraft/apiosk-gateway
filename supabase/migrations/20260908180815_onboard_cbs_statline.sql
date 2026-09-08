@@ -461,20 +461,37 @@ on conflict (id) do update set
 do $verify$
 declare
   source_id constant uuid := 'c5939334-ac41-40d0-80d5-ced0101a7ad6';
+  -- Preserve endpoints registered before this migration. Verify the exact
+  -- curated set below, rather than assuming the source was empty.
+  curated_endpoint_ids constant uuid[] := array[
+    'e9165ca8-bdd4-4736-8315-e070c2d34b11'::uuid,
+    'fa6659b4-98f8-4b2a-b493-d5b24879afc3'::uuid,
+    '57ec7089-7d33-4ce9-b1d8-f792a7384a44'::uuid,
+    '51091134-df8d-47fc-a990-8d604b25689b'::uuid,
+    '5e8cd995-1b19-47a8-b539-721873e169b6'::uuid,
+    'c991b7c9-eca8-4e5e-a1eb-bdc091d80a17'::uuid,
+    'bf661549-16ad-4457-be2c-867a55877ab0'::uuid,
+    'abc42f88-a57d-440c-9887-2fcf55724ecc'::uuid,
+    '32313c27-c87b-4e17-b301-f0037357b40e'::uuid,
+    '2f884bdc-79d7-45ac-9aeb-c52c88e6a0f2'::uuid,
+    '0c385117-f160-404b-8aa4-75e108cf8264'::uuid,
+    '6c04264c-9f07-4b84-9de9-aa7be8a36822'::uuid,
+    'f0c6460b-90f7-4a44-ba4d-572f91e1c44c'::uuid
+  ];
   endpoint_total integer;
   priced_total integer;
   contract_total integer;
   visible_total integer;
 begin
   select count(*) into endpoint_total
-  from public.api_endpoints where api_id = source_id;
+  from public.api_endpoints where api_id = source_id and id = any(curated_endpoint_ids);
   if endpoint_total <> 13 then
-    raise exception 'CBS onboarding expects exactly 13 endpoints, found %', endpoint_total;
+    raise exception 'CBS onboarding expects all 13 curated endpoints, found %', endpoint_total;
   end if;
 
   select count(*) into priced_total
   from public.api_endpoints
-  where api_id = source_id and price = 0.047259 and active and cache_ttl_seconds = 86400;
+  where api_id = source_id and id = any(curated_endpoint_ids) and price = 0.047259 and active and cache_ttl_seconds = 86400;
   if priced_total <> 13 then
     raise exception 'CBS onboarding expects 13 endpoints at list 0.047259, active, cached a day; found %', priced_total;
   end if;
