@@ -18,6 +18,7 @@ pub struct Executor {
     pub enabled: bool,
 }
 pub enum Dispatch {
+    Waiting { until: chrono::DateTime<Utc> },
     Failed { body: Value },
     Done { execution_id: Uuid, body: Value },
     Pending { execution_id: Uuid },
@@ -144,6 +145,18 @@ impl Executor {
             "budget exhausted"
         );
         let selection = Uuid::new_v4();
+        if step.service.path == crate::annual_report::ENDPOINT {
+            // Serialize admission across tasks/workers sharing the upstream
+            // IP. The transaction ends before network I/O. Existing durable
+            // executions are the clock; no timer or client can bypass this.
+            sqlx::query("SELECT pg_advisory_xact_lock(724010602)").execute(&mut *tx).await?;
+            let until: Option<chrono::DateTime<Utc>> = sqlx::query_scalar(
+                "SELECT max(CASE WHEN e.status IN ('dispatching','unresolved') THEN now()+interval '2 seconds' ELSE e.updated_at+interval '60 seconds' END) FROM gateway_v2.executions e JOIN public.user_selected_apis s ON s.id=e.selection_id WHERE s.candidate_id=$1 AND (e.status IN ('dispatching','unresolved') OR e.updated_at>now()-interval '60 seconds')"
+            ).bind(step.service.endpoint_id).fetch_one(&mut *tx).await?;
+            if let Some(until) = until.filter(|until| *until > Utc::now()) {
+                return Ok(Dispatch::Waiting { until });
+            }
+        }
         // The existing App ledger will reserve/debit this selection. This table
         // records only an authorized pick and never modifies a user balance.
         sqlx::query("INSERT INTO public.user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$3,$4,'reviewed','apiosk',$5,$6,$7,$8,$9,$10,$11,$12)")

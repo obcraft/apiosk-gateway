@@ -90,6 +90,9 @@ impl Engine {
             expires_at: Utc::now() + chrono::Duration::minutes(10),
         };
         self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+        task.active_results.clear();
+        task.analysis = None;
+        task.failed_steps.clear();
         task.intent = Some(serde_json::to_value(intent)?);
         task.proposal = Some(serde_json::to_value(plan)?);
         task.focus.entity_refs = vec![req.entity_ref];

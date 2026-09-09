@@ -167,6 +167,9 @@ impl Engine {
                 task.proposal = None;
                 task.actions.clear();
                 task.completed.clear();
+                task.failed_steps.clear();
+                task.active_results.clear();
+                task.analysis = None;
                 task.pending_candidates.clear();
                 task.original_subject = None;
                 task.execution_error = None;
@@ -182,6 +185,10 @@ impl Engine {
             .parser
             .parse(p.owner, &req.question, &task, &catalog)
             .await?;
+        if !app_chat {
+            self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+            task.record_turn(&req.question, None);
+        }
         for subject in &mut intent.subjects {
             let entity = subject.entity_ref.unwrap_or_else(Uuid::new_v4);
             if subject.entity_ref.is_none() {
@@ -204,6 +211,9 @@ impl Engine {
         task.focus.goal_refs = vec![Uuid::new_v4()];
         task.intent = Some(serde_json::to_value(&intent)?);
         task.completed.clear();
+        task.failed_steps.clear();
+        task.active_results.clear();
+        task.analysis = None;
         task.pending_candidates.clear();
         task.original_subject = None;
         task.cancelled = false;
@@ -353,7 +363,7 @@ impl Engine {
         } else if actions.iter().any(|a| matches!(a, Action::Supply { .. }))
             || task.actions.iter().any(|v| v["kind"] == "planning_clarification") {
             Status::NeedsInput
-        } else if actions.iter().any(|a| matches!(a, Action::Poll { .. })) {
+        } else if actions.iter().any(|a| matches!(a, Action::Poll { .. } | Action::Wait { .. } | Action::Analyze { .. })) {
             Status::Running
         } else if actions.iter().any(|a| matches!(a, Action::Run { .. })) {
             Status::Ready
@@ -365,6 +375,10 @@ impl Engine {
             Status::Unsupported
         } else if task.intent.is_none() && !task.conversation.is_empty() {
             Status::NeedsInput
+        } else if !task.failed_steps.is_empty() {
+            if task.active_results.is_empty() { Status::Failed } else { Status::Partial }
+        } else if task.analysis.as_ref().is_some_and(|a| a["status"] != "completed") {
+            Status::Partial
         } else if !task.result_refs.is_empty() {
             Status::Succeeded
         } else {
@@ -380,7 +394,15 @@ impl Engine {
                 r.context_view["conversation"][index]["output"]["result"] =
                     self.result_page(p.owner, id, result_ref, 0).await?;
             }
+            if let Some(output) = &turn.output {
+                let mut results = Vec::new();
+                for result in &output.result_refs { results.push(self.result_page(p.owner, id, *result, 0).await?); }
+                r.context_view["conversation"][index]["output"]["results"] = json!(results);
+            }
         }
+        let mut results = Vec::new();
+        for result in &task.active_results { results.push(self.result_page(p.owner, id, *result, 0).await?); }
+        r.context_view["results"] = json!(results);
         r.context_view["result_is_historical"] = json!(
             !task.result_refs.is_empty() && task.active_result_ref().is_none()
         );
@@ -437,14 +459,18 @@ impl Engine {
         if let Some(error) = &task.execution_error {
             r.errors.push(error.clone());
         }
-        if let Some(value) = task.proposal {
-            let plan: Plan = serde_json::from_value(value)?;
+        if actions.is_empty() { r.errors.extend(task.failed_steps.values().cloned()); }
+        if let Some(value) = &task.proposal {
+            let plan: Plan = serde_json::from_value(value.clone())?;
             let sources = self.catalog.sources().await.unwrap_or_default();
             let mut step_details = crate::resolver::describe_steps(&plan, &sources);
-            let current = plan.steps.iter().position(|s| !task.completed.contains(&s.key()));
+            let current = plan.steps.iter().position(|s| !task.step_finished(&s.key()));
             for (i, detail) in step_details.iter_mut().enumerate() {
-                detail["status"] = json!(if task.completed.contains(&plan.steps[i].key()) { "completed" }
-                    else if current == Some(i) && task.execution_error.is_some() { "failed" }
+                detail["subject"] = json!(task.entities.iter().find(|e| e.entity_ref == plan.steps[i].entity_ref).map(|e| &e.label));
+                detail["entity_ref"] = json!(plan.steps[i].entity_ref);
+                if let Some(error) = task.failed_steps.get(&plan.steps[i].key()) { detail["error"] = error.clone(); }
+                detail["status"] = json!(if task.failed_steps.contains_key(&plan.steps[i].key()) || (current == Some(i) && task.execution_error.is_some()) { "failed" }
+                    else if task.completed.contains(&plan.steps[i].key()) { "completed" }
                     else if current == Some(i) && actions.iter().any(|a|matches!(a, Action::Poll {..})) { "running" }
                     else if task.cancelled { "cancelled" } else if paused_plan { "paused" } else { "pending" });
             }
@@ -473,6 +499,11 @@ impl Engine {
         if r.status == Status::Running {
             r.retry_after_ms = Some(2000)
         }
+        if let Some(Action::Wait { until, .. }) = actions.iter().find(|a| matches!(a, Action::Wait { .. })) {
+            r.context_view["cooldown"] = json!({"until":until,"message":"KVK allows one annual-accounts request per minute. The next report will start automatically."});
+            r.retry_after_ms = Some((*until - Utc::now()).num_milliseconds().max(350) as u64);
+        }
+        r.context_view["analyzing"] = json!(actions.iter().any(|a| matches!(a, Action::Analyze { .. })));
         if let Some(result_ref) = task.result_refs.last() {
             r.result = Some(self.result_page(p.owner, id, *result_ref, 0).await?);
         }

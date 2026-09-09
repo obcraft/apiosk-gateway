@@ -169,7 +169,73 @@ pub struct Parser {
     cache: moka::future::Cache<String, Arc<Intent>>,
     pub calls: AtomicU64,
 }
+
+fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
+    let value: Value = serde_json::from_str(raw)?;
+    let observations = value["observations"].as_array().ok_or_else(|| anyhow::anyhow!("missing observations"))?;
+    let limitations = value["limitations"].as_array().ok_or_else(|| anyhow::anyhow!("missing limitations"))?;
+    anyhow::ensure!(observations.len() <= 8 && limitations.len() <= 6, "analysis too large");
+    let prose = |v: &Value| -> anyhow::Result<String> {
+        let text = v.as_str().ok_or_else(|| anyhow::anyhow!("invalid narrative"))?;
+        anyhow::ensure!(!text.trim().is_empty() && text.len() <= 2000 && !text.chars().any(|c| c.is_numeric()) && !text.contains("://"), "numbers and links must come from source evidence");
+        Ok(text.to_owned())
+    };
+    let mut checked = Vec::new();
+    for observation in observations {
+        let text = prose(&observation["text"])?;
+        let refs = observation["evidence"].as_array().ok_or_else(|| anyhow::anyhow!("missing evidence"))?;
+        anyhow::ensure!(!refs.is_empty() && refs.len() <= 4, "invalid evidence count");
+        let mut evidence = Vec::new();
+        for reference in refs {
+            let source = sources.iter().find(|s| s["result_ref"] == reference["result_ref"]).ok_or_else(|| anyhow::anyhow!("invented source"))?;
+            let pointer = reference["pointer"].as_str().filter(|s| s.starts_with("/data/")).ok_or_else(|| anyhow::anyhow!("invalid source pointer"))?;
+            let field = source["document"].pointer(pointer).filter(|v| v.is_string() || v.is_number() || v.is_boolean()).ok_or_else(|| anyhow::anyhow!("missing source field"))?;
+            evidence.push(json!({"result_ref":reference["result_ref"],"pointer":pointer,"value":field,
+                "field":pointer.rsplit_once('/').and_then(|(parent, _)| source["document"].pointer(parent)).and_then(|parent|parent["key"].as_str()).unwrap_or(pointer),
+                "subject":source["document"]["subject"],"source":source["document"]["source"]}));
+        }
+        checked.push(json!({"text":text,"evidence":evidence}));
+    }
+    let mut caveats = limitations.iter().map(prose).collect::<anyhow::Result<Vec<_>>>()?;
+    if partial { caveats.push("Some requested source calls did not return usable data. This analysis is incomplete.".into()); }
+    anyhow::ensure!(!checked.is_empty() || !caveats.is_empty(), "empty analysis");
+    Ok(json!({"status":if partial {"partial"} else {"completed"},"observations":checked,"limitations":caveats}))
+}
+
+#[cfg(test)]
+mod analysis_tests {
+    use super::*;
+    #[test]
+    fn evidence_is_resolved_from_saved_data_and_invented_values_are_rejected() {
+        let sources = vec![json!({"result_ref":"saved","document":{"subject":{"label":"HEMA"},"data":{"year":2025,"assets":123456}}})];
+        let mut answer = json!({"observations":[{"text":"The source reports assets.","evidence":[{"result_ref":"saved","pointer":"/data/assets","value":999999}]}],"limitations":[]});
+        let checked = validate_analysis(&answer.to_string(), &sources, true).unwrap();
+        assert_eq!(checked["observations"][0]["evidence"][0]["value"], 123456);
+        assert_eq!(checked["status"], "partial");
+        answer["observations"][0]["text"] = json!("Assets are 999999.");
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+        answer["observations"][0]["text"] = json!("Reported assets.");
+        answer["observations"][0]["evidence"][0]["pointer"] = json!("/data/profit");
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+        answer["observations"][0]["evidence"][0]["pointer"] = json!("/data/year");
+        answer["observations"][0]["evidence"][0]["result_ref"] = json!("invented");
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+    }
+}
 impl Parser {
+    pub async fn analyze(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
+        let input = json!({"answer_operations":operations,"sources":sources,"unavailable_steps":failures});
+        anyhow::ensure!(serde_json::to_vec(&input)?.len() <= 256 * 1024, "analysis input too large");
+        if sources.is_empty() {
+            return Ok(json!({"status":"partial","observations":[],"limitations":["No source result is available to support an analysis."]}));
+        }
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":4096,
+            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_object"},"messages":[
+                {"role":"system","content":include_str!("../contracts/analysis-prompt.txt")},
+                {"role":"user","content":input.to_string()}]});
+        self.completion("analysis", &payload, |raw| validate_analysis(raw, sources, !failures.is_empty())).await
+    }
     pub fn new(http: reqwest::Client, url: String, key: String, model: String) -> Self {
         Self {
             http,

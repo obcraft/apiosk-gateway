@@ -84,6 +84,26 @@ fn missing_identifier_is_resolved_before_accounts_and_priced_once() {
     assert_eq!(p.steps.len(), 2);
     assert_eq!(p.cap_atomic, 138);
 }
+
+#[test]
+fn two_companies_search_first_and_reuse_only_their_own_identifiers() {
+    let (catalog, mut task, mut intent) = setup();
+    let second = Uuid::new_v4();
+    let mut name = task.facts[0].clone();
+    name.entity_ref = second; name.value = json!("Other"); task.facts.push(name.clone());
+    intent.subjects.push(Subject { entity_ref: Some(second), label: "Other".into(), values: BTreeMap::new() });
+    intent.goals.push(Goal { subject: 1, ..intent.goals[0].clone() });
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!() };
+    assert_eq!(plan.cap_atomic, 276);
+    assert_eq!(plan.steps.iter().map(|s| s.service.contract.capability_slug.as_str()).collect::<Vec<_>>(), vec!["company.search","company.search","company.accounts","company.accounts"]);
+    assert_eq!(plan.steps[0].entity_ref, plan.steps[2].entity_ref);
+    assert_eq!(plan.steps[1].entity_ref, plan.steps[3].entity_ref);
+    name.semantic_type = "company.id".into(); name.value = json!("second-id"); task.facts.push(name);
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!() };
+    assert_eq!(plan.steps.len(), 3);
+    assert_eq!(plan.steps.iter().filter(|s| s.service.contract.capability_slug == "company.search").count(), 1);
+    assert_eq!(plan.steps.iter().find(|s| s.entity_ref == second).unwrap().service.inputs(&task, second, &catalog.vocabulary).unwrap()["company.id"], "second-id");
+}
 #[test]
 fn followup_uses_existing_identifier() {
     let (c, mut t, i) = setup();

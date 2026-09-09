@@ -36,6 +36,16 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     c.parser.fetch_add(1, Ordering::Relaxed);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input.get("answer_operations").is_some() {
+        let reports: Vec<_> = input["sources"].as_array().unwrap().iter().filter(|s| s["document"]["data"]["accounts"].is_string()).collect();
+        return Json(json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."]}).to_string()}}]}));
+    }
+    if input["question"] == "Compare FirstCo and SecondCo" {
+        return Json(json!({"choices":[{"message":{"content":json!({"subjects":[
+            {"entity_ref":null,"label":"FirstCo","values":{"company.name":"FirstCo"}},
+            {"entity_ref":null,"label":"SecondCo","values":{"company.name":"SecondCo"}}],
+            "goals":[{"capability":"company.accounts","subject":0,"constraints":{}},{"capability":"company.accounts","subject":1,"constraints":{}}],"answer_operations":["Compare the reports"],"unresolved_references":[]}).to_string()}}]}));
+    }
     if input["surface"] == "planning-review" {
         assert!(input["available"]["requested_services"].as_array().unwrap().iter()
             .any(|s| s["capability"] == "company.accounts" && s["input_map"].is_object()));
@@ -106,11 +116,15 @@ async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Js
             json!({"companies":[{"id":"123"},{"id":"456"}]})
         } else if body["inputs"]["company.name"] == "Partial" {
             json!({"companies":[{"id":"partial"}]})
+        } else if body["inputs"]["company.name"] == "SecondCo" {
+            json!({"companies":[{"id":"456"}]})
         } else {
             json!({"companies":[{"id":"123"}]})
         }
     } else if body["inputs"]["company.id"] == "partial" {
         json!({"available":false})
+    } else if body["inputs"]["company.id"] == "456" {
+        json!({"accounts":"2024"})
     } else {
         json!({"accounts":"2025"})
     };
@@ -435,6 +449,9 @@ async fn durable_flow_and_authorization_boundary() {
         }
     }
     timeout_state.result_refs.clear();
+    timeout_state.active_results.clear();
+    timeout_state.conversation.clear();
+    timeout_state.last_archived_result_ref = None;
     store
         .save(person.owner, timeout_task, 0, &timeout_state)
         .await
@@ -695,8 +712,8 @@ async fn durable_flow_and_authorization_boundary() {
             engine: engine.clone(),
             auth: Arc::new(Auth {
                 pool: pool.clone(),
-                http,
-                supabase_url: base,
+                http: http.clone(),
+                supabase_url: base.clone(),
                 publishable_key: "fixture".into(),
             }),
             permits: Arc::new(tokio::sync::Semaphore::new(4)),
@@ -1159,6 +1176,84 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(client.get(&report_url).send().await.unwrap().status(),StatusCode::NOT_FOUND);
     assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
     sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(original).bind(report_id).execute(&pool).await.unwrap();
+
+    // Independent company branches, one approval, durable source pacing and
+    // backend analysis. Only local fixtures; never purchases production data.
+    let old_endpoint: Uuid = sqlx::query_scalar("SELECT endpoint_id FROM public.capability_execution_contracts WHERE capability_slug='company.accounts'").fetch_one(&pool).await.unwrap();
+    let annual_endpoint = Uuid::new_v4();
+    sqlx::query("UPDATE public.api_endpoints SET id=$1,path=$2 WHERE id=$3").bind(annual_endpoint).bind(apiosk_gateway_v2::annual_report::ENDPOINT).bind(old_endpoint).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE public.capability_execution_contracts SET endpoint_id=$1 WHERE endpoint_id=$2").bind(annual_endpoint).bind(old_endpoint).execute(&pool).await.unwrap();
+    let multi = Engine { store:store.clone(), catalog:CatalogCache::new(pool.clone()), parser:Parser::new(http.clone(),format!("{base}/chat"),"fixture".into(),"fixture".into()), signer:Signer::new(vec![3;32]).unwrap(), executor:Executor{store:store.clone(),http:http.clone(),supabase_url:base.clone(),enabled:true}, app_url:base.clone() };
+    let user = Principal {owner:Uuid::new_v4(),connection:None};
+    let mut state = multi.discover(&user, DiscoverRequest {request_id:Uuid::new_v4(),question:"Compare FirstCo and SecondCo".into(),state:None,context_delta:Default::default()}).await.unwrap();
+    assert_eq!(state.proposal.as_ref().unwrap().steps, vec!["company.search","company.search","company.accounts","company.accounts"]);
+    assert_eq!(state.proposal.as_ref().unwrap().max_total_atomic,"276");
+    let task_id = state.state.as_ref().unwrap().state_ref;
+    let quote = state.proposal.as_ref().unwrap();
+    multi.executor.approve(&user,task_id,quote.quote_ref,&quote.max_total_atomic).await.unwrap();
+    let before = counts.provider.load(Ordering::Relaxed);
+    for _ in 0..3 { state = multi.execute(&user,"fixture",execution(&state)).await.unwrap(); assert_eq!(state.status,Status::Ready,"{state:?}"); }
+    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
+    assert_eq!(state.status,Status::Running,"{state:?}");
+    assert!(state.retry_after_ms.unwrap() > 59000);
+    assert!(state.context_view["cooldown"]["until"].is_string());
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+3);
+    let poll_request = |state: &Response| { let a=state.next_actions.iter().find(|a|a.kind=="poll").unwrap(); ExecuteRequest {request_id:Uuid::new_v4(),action_id:a.action_id,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:a.action_id,input:Value::Null} };
+    let early = multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
+    assert_eq!(early.state.as_ref().unwrap().revision,state.state.as_ref().unwrap().revision);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+3);
+    let restored = multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
+    assert_eq!(restored.context_view["cooldown"],state.context_view["cooldown"]);
+    let (revision, mut saved, _) = store.load(user.owner,task_id).await.unwrap();
+    assert_eq!(saved.facts.iter().filter(|f|f.semantic_type=="company.id").map(|f|f.value.clone()).collect::<Vec<_>>(),vec![json!("123"),json!("456")]);
+    // Advance the fixture clock; no sleep and no production clock override.
+    saved.actions[0]["until"]=json!(chrono::Utc::now()-chrono::Duration::seconds(1));
+    store.save(user.owner,task_id,revision,&saved).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '61 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
+    state=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
+    state=multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
+    state=multi.execute(&user,"fixture",execution(&state)).await.unwrap();
+    assert_eq!(state.context_view["analyzing"],true);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
+    state=multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
+    assert_eq!(state.status,Status::Succeeded,"{state:?}");
+    assert_eq!(state.context_view["results"].as_array().unwrap().len(),4);
+    assert_eq!(state.context_view["analysis"]["status"],"completed");
+    let evidence=&state.context_view["analysis"]["observations"][0]["evidence"];
+    assert_eq!(evidence[0]["subject"]["label"],"FirstCo"); assert_eq!(evidence[0]["value"],"2025");
+    assert_eq!(evidence[1]["subject"]["label"],"SecondCo"); assert_eq!(evidence[1]["value"],"2024");
+    let model_calls=counts.parser.load(Ordering::Relaxed);
+    let readback=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
+    assert_eq!(readback.context_view["analysis"],state.context_view["analysis"]);
+    assert_eq!(counts.parser.load(Ordering::Relaxed),model_calls);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
+    let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations WHERE task_id=$1").bind(task_id).fetch_one(&pool).await.unwrap(); assert_eq!(approvals,1);
+
+    // A refunded first report must not discard the other company or reuse its
+    // identifier. Resume only after the ledger establishes a terminal outcome.
+    let (_, mut failure_task, _)=store.load(user.owner,task_id).await.unwrap();
+    let plan:apiosk_gateway_v2::resolver::Plan=serde_json::from_value(failure_task.proposal.clone().unwrap()).unwrap();
+    failure_task.completed=plan.steps[..2].iter().map(|s|s.key()).collect();
+    failure_task.active_results.clear(); failure_task.result_refs.clear(); failure_task.conversation.clear(); failure_task.analysis=None;
+    failure_task.actions=vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":2})];
+    for fact in &mut failure_task.facts { if fact.entity_ref==plan.steps[2].entity_ref && fact.semantic_type=="company.id" {fact.value=json!("timeout");} }
+    let failed_id=store.create(user.owner,None).await.unwrap(); store.save(user.owner,failed_id,0,&failure_task).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '61 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
+    let initial=multi.view(&user,failed_id,Uuid::new_v4(),None).await.unwrap();
+    multi.executor.approve(&user,failed_id,plan.quote_ref,&plan.cap_atomic.to_string()).await.unwrap();
+    let request=execution(&initial); let execution_id=request.idempotency_key;
+    let pending=multi.execute(&user,"fixture",request).await.unwrap(); assert_eq!(pending.status,Status::Running);
+    sqlx::query("INSERT INTO public.balance_charges(id,user_id,idempotency_key,status,charged_micro_usd) VALUES($1,$2,$3,'refunded',0)").bind(Uuid::new_v4()).bind(user.owner).bind(execution_id.to_string()).execute(&pool).await.unwrap();
+    let resumed=multi.execute(&user,"fixture",poll_request(&pending)).await.unwrap();
+    assert_eq!(resumed.status,Status::Ready,"{resumed:?}");
+    assert_eq!(resumed.proposal.as_ref().unwrap().step_details[2]["status"],"failed");
+    assert_eq!(resumed.proposal.as_ref().unwrap().step_details[3]["subject"],"SecondCo");
+    let baseline=counts.provider.load(Ordering::Relaxed);
+    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
+    let waiting=multi.execute(&user,"fixture",execution(&resumed)).await.unwrap();
+    assert!(waiting.context_view["cooldown"]["until"].is_string(),"{waiting:?}");
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
+    sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     api_server.abort();
     println!(

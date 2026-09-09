@@ -54,6 +54,8 @@ pub enum Action {
         action_id: Uuid,
         execution_id: Uuid,
     },
+    Wait { action_id: Uuid, until: DateTime<Utc> },
+    Analyze { action_id: Uuid },
     Cancel {
         action_id: Uuid,
     },
@@ -66,6 +68,8 @@ impl Action {
             | Self::Choose { action_id, .. }
             | Self::Read { action_id, .. }
             | Self::Poll { action_id, .. }
+            | Self::Wait { action_id, .. }
+            | Self::Analyze { action_id }
             | Self::Cancel { action_id } => *action_id,
         }
     }
@@ -99,7 +103,7 @@ impl Action {
                 false,
                 json!({"type":"object","properties":{"offset":{"type":"integer","minimum":0}},"additionalProperties":false}),
             ),
-            Self::Poll { .. } => (
+            Self::Poll { .. } | Self::Wait { .. } | Self::Analyze { .. } => (
                 "poll",
                 "Check status".into(),
                 false,
@@ -144,8 +148,10 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         return Resolution::Unsupported(intent.unresolved_references.join("; "));
     }
     let mut steps = Vec::new();
-    let mut expansions = 0;
     for (goal_index, goal) in intent.goals.iter().enumerate() {
+        // Each requested goal gets the same bounded search budget. Exploring
+        // alternatives for one company must not starve the next company.
+        let mut expansions = 0;
         let Some(entity) = intent.subjects.get(goal.subject).and_then(|s| s.entity_ref) else {
             return Resolution::Unsupported("unresolved subject".into());
         };
@@ -205,6 +211,19 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     if steps.len() > MAX_STEPS {
         return Resolution::Unsupported("dependency step limit".into());
     }
+    // Stable dependency layers: resolve every independent company first,
+    // then retrieve its dependent report. Never bind across company refs.
+    let mut depths = Vec::new();
+    for (index, step) in steps.iter().enumerate() {
+        let depth = steps[..index].iter().enumerate().filter(|(_, previous)| {
+            previous.entity_ref == step.entity_ref && step.service.contract.requires.iter()
+                .any(|r| !r.optional && previous.service.contract.output_map.produces.contains_key(&r.fact_type))
+        }).map(|(i, _)| depths[i] + 1).max().unwrap_or(0usize);
+        depths.push(depth);
+    }
+    let mut layered: Vec<_> = steps.into_iter().zip(depths).collect();
+    layered.sort_by_key(|(_, depth)| *depth);
+    let steps: Vec<_> = layered.into_iter().map(|(step, _)| step).collect();
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);
     Resolution::Plan(Plan {

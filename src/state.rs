@@ -116,6 +116,10 @@ pub struct ConversationTurn {
 pub struct TurnOutput {
     pub proposal: Option<Value>,
     pub result_ref: Option<Uuid>,
+    #[serde(default)]
+    pub result_refs: Vec<Uuid>,
+    #[serde(default)]
+    pub analysis: Option<Value>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
@@ -138,8 +142,17 @@ pub struct Task {
     pub cancelled: bool,
     #[serde(default)]
     pub execution_error: Option<Value>,
+    #[serde(default)]
+    pub active_results: Vec<Uuid>,
+    #[serde(default)]
+    pub failed_steps: std::collections::BTreeMap<String, Value>,
+    #[serde(default)]
+    pub analysis: Option<Value>,
 }
 impl Task {
+    pub fn step_finished(&self, key: &str) -> bool {
+        self.completed.iter().any(|done| done == key) || self.failed_steps.contains_key(key)
+    }
     pub fn record_turn(&mut self, question: &str, reply: Option<String>) {
         self.conversation_timeline_version = 1;
         self.conversation.push(ConversationTurn {
@@ -164,7 +177,7 @@ impl Task {
         // Older /discover tasks can have a result without conversational text.
         if self.conversation.is_empty() { self.record_turn("", None); }
         if let Some(turn) = self.conversation.last_mut() {
-            turn.output = Some(TurnOutput { proposal, result_ref });
+            turn.output = Some(TurnOutput { proposal, result_ref, result_refs: std::mem::take(&mut self.active_results), analysis: self.analysis.take() });
         }
     }
     pub fn restore_legacy_output(&mut self, snapshot: &Value, result_ref: Uuid) {
@@ -178,11 +191,15 @@ impl Task {
         self.conversation[previous.len() - 1].output = Some(TurnOutput {
             proposal: snapshot.get("proposal").filter(|p| !p.is_null()).cloned(),
             result_ref: Some(result_ref),
+            result_refs: vec![result_ref],
+            analysis: None,
         });
         self.last_archived_result_ref = Some(result_ref);
     }
     pub fn context_view(&self) -> Value {
-        serde_json::json!({"conversation":self.conversation,"entities":self.entities.iter().filter(|e|self.focus.entity_refs.contains(&e.entity_ref)).collect::<Vec<_>>(),"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
+        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,
+            "known_facts":self.facts.iter().filter(|f| f.expires_at > Utc::now() && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer" | "company.name")).collect::<Vec<_>>(),
+            "analysis":self.analysis,"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
     }
     pub fn bounded(&self) -> bool {
         self.conversation.len() <= 6

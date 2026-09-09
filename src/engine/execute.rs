@@ -62,6 +62,32 @@ impl Engine {
             anyhow::ensure!(!task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1), "Multi-step research is paused. Read the existing result or start a single-call question.");
         }
         match action {
+            Action::Wait { until, .. } => {
+                anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid wait input");
+                if until > Utc::now() { return self.view(p, id, req.request_id, None).await; }
+                self.advance(&mut task)?;
+            }
+            Action::Analyze { .. } => {
+                anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid analysis input");
+                let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
+                let intent: Intent = serde_json::from_value(task.intent.clone().ok_or_else(|| anyhow::anyhow!("missing intent"))?)?;
+                let mut sources = Vec::new();
+                for result in &task.active_results {
+                    let document = self.store.result(p.owner, id, *result).await?;
+                    if plan.steps.iter().any(|step| document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
+                        && document["subject"]["entity_ref"] == json!(step.entity_ref)
+                        && intent.goals.iter().any(|goal| goal.capability == step.service.contract.capability_slug
+                            && intent.subjects.get(goal.subject).is_some_and(|s| s.entity_ref == Some(step.entity_ref)))) {
+                        sources.push(json!({"result_ref":result,"document":document}));
+                    }
+                }
+                let operations = task.intent.as_ref().map(|v| v["answer_operations"].clone()).unwrap_or(json!([]));
+                task.analysis = Some(match self.parser.analyze(&operations, &sources, &task.failed_steps).await {
+                    Ok(analysis) => analysis,
+                    Err(_) => json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]}),
+                });
+                task.actions.clear();
+            }
             Action::Read { result_ref, .. } => {
                 anyhow::ensure!(
                     req.input.is_null()
@@ -195,10 +221,11 @@ impl Engine {
                     )
                     .await?
                 {
+                    Dispatch::Waiting { until } => {
+                        task.actions = vec![serde_json::to_value(Action::Wait { action_id: Uuid::new_v4(), until })?];
+                    }
                     Dispatch::Failed { body } => {
-                        task.cancelled = true;
-                        task.actions.clear();
-                        task.execution_error = Some(crate::billing::public_error(&body));
+                        self.fail_step(&mut task, selected, crate::billing::public_error(&body))?;
                     }
                     Dispatch::Done { execution_id, body } => {
                         self.ingest(p, id, &mut task, selected, execution_id, body, &fresh)
@@ -224,16 +251,16 @@ impl Engine {
                         let step = plan
                             .steps
                             .iter()
-                            .find(|s| !task.completed.contains(&s.key()))
+                            .find(|s| !task.step_finished(&s.key()))
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?
                             .clone();
                         let catalog = self.catalog.get().await?;
                         self.ingest(p, id, &mut task, &step, execution_id, body, &catalog)
                             .await?;
                     } else {
-                        task.cancelled = true;
-                        task.execution_error = Some(crate::billing::public_error(&body));
-                        task.actions.clear();
+                        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing quote"))?)?;
+                        let step = plan.steps.iter().find(|s| !task.step_finished(&s.key())).ok_or_else(|| anyhow::anyhow!("missing step"))?;
+                        self.fail_step(&mut task, step, crate::billing::public_error(&body))?;
                     }
                 }
             }
@@ -253,14 +280,32 @@ impl Engine {
                 .steps
                 .iter()
                 .enumerate()
-                .find(|(_, s)| !task.completed.contains(&s.key()))
+                .find(|(_, s)| !task.step_finished(&s.key()))
             {
                 task.actions.push(serde_json::to_value(Action::Run {
                     action_id: Uuid::new_v4(),
                     step,
                 })?);
+            } else if task.analysis.is_none() && task.intent.as_ref().is_some_and(|v| v["answer_operations"].as_array().is_some_and(|a| !a.is_empty())) {
+                task.actions.push(serde_json::to_value(Action::Analyze { action_id: Uuid::new_v4() })?);
             }
         }
         Ok(())
+    }
+
+    pub(super) fn fail_step(&self, task: &mut Task, failed: &resolver::Step, error: Value) -> anyhow::Result<()> {
+        task.failed_steps.insert(failed.key(), error);
+        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
+        // Skip only descendants of this failure. Independent companies and
+        // goals remain executable under the original approved cap.
+        for step in &plan.steps {
+            if task.step_finished(&step.key()) { continue; }
+            if plan.steps.iter().any(|parent| parent.entity_ref == step.entity_ref
+                && task.failed_steps.contains_key(&parent.key())
+                && step.service.contract.requires.iter().any(|r| !r.optional && parent.service.contract.output_map.produces.contains_key(&r.fact_type))) {
+                task.failed_steps.insert(step.key(), json!({"code":"dependency_failed","message":"Not requested because the company could not be resolved."}));
+            }
+        }
+        self.advance(task)
     }
 }

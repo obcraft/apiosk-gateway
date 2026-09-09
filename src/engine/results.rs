@@ -3,6 +3,7 @@ use super::*;
 impl Engine {
     pub(super) async fn result_page(&self, owner: Uuid, task: Uuid, result_ref: Uuid, offset: usize) -> anyhow::Result<Value> {
         let mut data = self.store.result(owner, task, result_ref).await?;
+        data["result_ref"] = json!(result_ref);
         if crate::annual_report::eligible(&data) {
             let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
             let signature = self.signer.report_signature(owner, task, result_ref, expires);
@@ -15,7 +16,7 @@ impl Engine {
         let chars: Vec<char> = serialized.chars().collect();
         anyhow::ensure!(offset <= chars.len(), "invalid result offset");
         let end = (offset + 8000).min(chars.len());
-        Ok(json!({"result_ref":result_ref,"encoding":"json_text","source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
+        Ok(json!({"result_ref":result_ref,"encoding":"json_text","subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -42,11 +43,12 @@ impl Engine {
         });
         let mut document = json!({"data":data,"source":{"provider":step.service.api_slug,"name":step.service.name,"url":step.service.source_url,"endpoint_id":step.service.endpoint_id,"contract_version":step.service.contract.version,"retrieved_at":Utc::now()},"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USD","missing_fields":[],"coverage":"source_response"});
         document["execution_id"] = json!(execution);
+        document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
         if step.service.path == crate::annual_report::ENDPOINT {
             document["report_subject"] = json!({
                 "name": task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label),
-                "identifiers": task.facts.iter().filter(|f| f.entity_ref == step.entity_ref && f.semantic_type == "company.registration.nl.kvk").map(|f| &f.value).collect::<Vec<_>>()
+                "identifiers": task.facts.iter().filter(|f| f.entity_ref == step.entity_ref && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer")).map(|f| &f.value).collect::<Vec<_>>()
             });
         }
         document["receipt_ref"] = body.get("execution_id").cloned().unwrap_or(Value::Null);
@@ -87,6 +89,7 @@ impl Engine {
         if !task.result_refs.contains(&result_ref) {
             task.result_refs.push(result_ref)
         }
+        if !task.active_results.contains(&result_ref) { task.active_results.push(result_ref); }
         task.completed.push(step.key());
         if single_call_mode() {
             task.actions.clear();
@@ -100,14 +103,12 @@ impl Engine {
                 e
             }
             _ => {
-                task.cancelled = true;
-                task.actions.clear();
+                self.fail_step(task, step, json!({"code":"incomplete_source","message":"The source response is incomplete; dependent calls were not made."}))?;
                 return Ok(());
             }
         };
         if extraction.picked_out_of.is_some() {
-            task.cancelled = true;
-            task.actions.clear();
+            self.fail_step(task, step, json!({"code":"incomplete_selection","message":"The source did not return all candidates; dependent calls were not made."}))?;
             return Ok(());
         }
         let ambiguous = extraction.is_ambiguous();
