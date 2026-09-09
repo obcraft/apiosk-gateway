@@ -86,6 +86,14 @@ pub fn fact_value(facts: &[Fact], entity: Uuid, kind: &str) -> anyhow::Result<Op
 pub struct Snapshot {
     pub services: Vec<Service>,
     pub vocabulary: Vec<FactType>,
+    #[serde(default)]
+    pub known_sources: Vec<KnownSource>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KnownSource {
+    pub slug: String,
+    pub name: String,
+    pub block_reason: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct Catalog {
@@ -95,6 +103,7 @@ pub struct Catalog {
     pub rejected: Vec<(Uuid, String)>,
     pub by_capability: BTreeMap<String, Vec<usize>>,
     pub by_output: BTreeMap<String, Vec<usize>>,
+    pub known_sources: Vec<KnownSource>,
 }
 impl Catalog {
     pub fn build(snapshot: Snapshot) -> Self {
@@ -108,6 +117,7 @@ impl Catalog {
         let mut rejected = vec![];
         for service in snapshot.services {
             let validation = (|| -> anyhow::Result<()> {
+                anyhow::ensure!(!snapshot.known_sources.iter().any(|s| s.slug == service.api_slug && s.block_reason.is_some()), "source blocked for execution");
                 anyhow::ensure!(
                     service.list_atomic >= 0 && service.list_atomic < 1_000_000_000_000,
                     "invalid price"
@@ -171,6 +181,7 @@ impl Catalog {
             rejected,
             by_capability,
             by_output,
+            known_sources: snapshot.known_sources,
         }
     }
     pub fn parser_view(&self) -> Value {
@@ -181,9 +192,15 @@ impl Catalog {
                 .or_default()
                 .insert(&service.contract.capability_slug);
         }
-        let sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
-            json!({"slug":slug,"name":name,"capabilities":capabilities})
+        let mut sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
+            json!({"slug":slug,"name":name,"capabilities":capabilities,"available":true})
         ).collect();
+        for source in &self.known_sources {
+            if !sources.iter().any(|s| s["slug"] == source.slug) {
+                sources.push(json!({"slug":source.slug,"name":source.name,"capabilities":[],"available":false,
+                    "reason":source.block_reason.as_deref().unwrap_or("No validated execution contract is available for this source.")}));
+            }
+        }
         let inputs: std::collections::BTreeSet<_> = self
             .services
             .iter()

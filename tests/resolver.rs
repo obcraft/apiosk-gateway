@@ -39,6 +39,7 @@ fn setup() -> (Catalog, Task, Intent) {
         100,
     );
     let catalog = Catalog::build(Snapshot {
+        known_sources: vec![],
         services: vec![search, accounts],
         vocabulary: ["company.name", "company.id", "company.accounts"]
             .iter()

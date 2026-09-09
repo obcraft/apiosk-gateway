@@ -1,0 +1,2656 @@
+{
+  "vocabulary": [
+    {
+      "slug": "cbs.input.odata_skip",
+      "value_schema": {
+        "type": "integer",
+        "description": "Rows to skip, for paging."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_filter",
+      "value_schema": {
+        "type": "string",
+        "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_orderby",
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. Modified desc."
+      }
+    },
+    {
+      "slug": "cbs.dataset_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.input.tableid",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{5}[A-Za-z]{3}$",
+        "description": "CBS table identifier from the Datasets catalogue, e.g. 82244NED. Case sensitive: 81156ned is lower case."
+      }
+    },
+    {
+      "slug": "cbs.dimensions",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.branch_codes",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.measure_codes",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81156ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81589ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81837ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_82244ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_83149ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_86414ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "donl.input.q",
+      "value_schema": {
+        "type": "string",
+        "description": "Free-text or Solr query, e.g. jaarrekening, or organization:kamer_van_koophandel. Defaults to everything."
+      }
+    },
+    {
+      "slug": "donl.input.fq",
+      "value_schema": {
+        "type": "string",
+        "description": "Solr filter query for structured narrowing, e.g. res_format:JSON or license_id:cc-zero."
+      }
+    },
+    {
+      "slug": "donl.input.sort",
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. metadata_modified desc or score desc."
+      }
+    },
+    {
+      "slug": "donl.input.start",
+      "value_schema": {
+        "type": "integer",
+        "description": "Offset into the result set, for paging."
+      }
+    },
+    {
+      "slug": "donl.input.id",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "donl.search_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "title"
+        ],
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.dataset_metadata",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "object"
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.publishers",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "eurostat.input.q",
+      "value_schema": {
+        "type": "string",
+        "description": "What the caller is looking for, in plain language: inflation, unemployment rate, greenhouse gas emissions, government debt, population by age and sex. English gives the best hits, because the Eurostat titles it searches are English."
+      }
+    },
+    {
+      "slug": "eurostat.input.page",
+      "value_schema": {
+        "type": "integer",
+        "description": "Zero-based page of results, for looking past the first set."
+      }
+    },
+    {
+      "slug": "eurostat.input.dataset",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$"
+      }
+    },
+    {
+      "slug": "eurostat.search_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "identifier",
+          "title"
+        ],
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    },
+    {
+      "slug": "eurostat.input.age",
+      "value_schema": {
+        "type": "string",
+        "description": "Age class code, e.g. TOTAL, Y15-64, Y_LT15, Y_GE65. ONLY for datasets with an age dimension, such as demo_pjan. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.geo",
+      "value_schema": {
+        "type": "string",
+        "description": "Country or region code, e.g. NL, DE, EU27_2020, EA20, or a NUTS code such as NL33. Repeatable upstream; mutually exclusive with geoLevel."
+      }
+    },
+    {
+      "slug": "eurostat.input.sex",
+      "value_schema": {
+        "enum": [
+          "T",
+          "M",
+          "F"
+        ],
+        "type": "string",
+        "description": "Sex breakdown: T total, M males, F females. ONLY for the demographic and labour datasets that carry a sex dimension, such as demo_pjan or une_rt_a. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.freq",
+      "value_schema": {
+        "enum": [
+          "A",
+          "S",
+          "Q",
+          "M",
+          "W",
+          "D"
+        ],
+        "type": "string",
+        "description": "Time frequency of the series: A annual, S half-yearly, Q quarterly, M monthly, W weekly, D daily. Safe on every dataset. A frequency the dataset does not publish returns an empty result rather than an error."
+      }
+    },
+    {
+      "slug": "eurostat.input.time",
+      "value_schema": {
+        "type": "string",
+        "description": "A single period, e.g. 2023 for annual data, 2025-Q2 for quarterly, 2025-10 for monthly."
+      }
+    },
+    {
+      "slug": "eurostat.input.unit",
+      "value_schema": {
+        "type": "string",
+        "description": "Unit of measure code, e.g. CP_MEUR (current prices, million euro), CLV10_MEUR (chain linked volumes), PC (percent), PC_GDP, NR (number), THS_PER (thousand persons), RCH_A (annual rate of change). Present on most datasets but not all - a dataset without a unit dimension refuses this parameter with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.coicop",
+      "value_schema": {
+        "type": "string",
+        "description": "COICOP consumption purpose code, e.g. CP00 (all-items HICP), CP01 (food and non-alcoholic beverages). ONLY for the price datasets (prc_hicp_*). Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.na_item",
+      "value_schema": {
+        "type": "string",
+        "description": "National accounts indicator, e.g. B1GQ (gross domestic product at market prices), P3 (final consumption expenditure), P6 (exports). ONLY for the national accounts datasets (nama_*, namq_*). Any other dataset refuses it with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.nace_r2",
+      "value_schema": {
+        "type": "string",
+        "description": "NACE Rev. 2 economic activity code, e.g. TOTAL, C (manufacturing), G-I. ONLY for the business and labour datasets that carry a nace_r2 dimension. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.lasttimeperiod",
+      "value_schema": {
+        "type": "integer",
+        "description": "Return only the last N periods, counting back from the most recent one published, e.g. 5.",
+        "minimum": 1,
+        "maximum": 120
+      }
+    },
+    {
+      "slug": "eurostat.input.sincetimeperiod",
+      "value_schema": {
+        "type": "string",
+        "description": "Start of a period window, inclusive. Combine with untilTimePeriod."
+      }
+    },
+    {
+      "slug": "eurostat.input.untiltimeperiod",
+      "value_schema": {
+        "type": "string",
+        "description": "End of a period window, inclusive."
+      }
+    },
+    {
+      "slug": "eurostat.dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "class",
+          "id",
+          "size",
+          "dimension",
+          "value"
+        ],
+        "properties": {
+          "class": {
+            "type": "string",
+            "enum": [
+              "dataset"
+            ]
+          },
+          "id": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "dimension": {
+            "type": "object"
+          }
+        },
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    }
+  ],
+  "new_words": [
+    {
+      "slug": "cbs.input.odata_skip",
+      "name": "cbs input odata skip",
+      "description": "Rows to skip, for paging.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "integer",
+        "description": "Rows to skip, for paging."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_filter",
+      "name": "cbs input odata filter",
+      "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_orderby",
+      "name": "cbs input odata orderby",
+      "description": "Sort expression, e.g. Modified desc.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. Modified desc."
+      }
+    },
+    {
+      "slug": "cbs.dataset_page",
+      "name": "cbs dataset page",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.input.tableid",
+      "name": "cbs input tableid",
+      "description": "CBS table identifier from the Datasets catalogue, e.g. 82244NED. Case sensitive: 81156ned is lower case.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{5}[A-Za-z]{3}$",
+        "description": "CBS table identifier from the Datasets catalogue, e.g. 82244NED. Case sensitive: 81156ned is lower case."
+      }
+    },
+    {
+      "slug": "cbs.dimensions",
+      "name": "cbs dimensions",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.branch_codes",
+      "name": "cbs branch codes",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.measure_codes",
+      "name": "cbs measure codes",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81156ned",
+      "name": "cbs observations 81156ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81589ned",
+      "name": "cbs observations 81589ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81837ned",
+      "name": "cbs observations 81837ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_82244ned",
+      "name": "cbs observations 82244ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_83149ned",
+      "name": "cbs observations 83149ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_86414ned",
+      "name": "cbs observations 86414ned",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "donl.input.q",
+      "name": "donl input q",
+      "description": "Free-text or Solr query, e.g. jaarrekening, or organization:kamer_van_koophandel. Defaults to everything.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Free-text or Solr query, e.g. jaarrekening, or organization:kamer_van_koophandel. Defaults to everything."
+      }
+    },
+    {
+      "slug": "donl.input.fq",
+      "name": "donl input fq",
+      "description": "Solr filter query for structured narrowing, e.g. res_format:JSON or license_id:cc-zero.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Solr filter query for structured narrowing, e.g. res_format:JSON or license_id:cc-zero."
+      }
+    },
+    {
+      "slug": "donl.input.sort",
+      "name": "donl input sort",
+      "description": "Sort expression, e.g. metadata_modified desc or score desc.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. metadata_modified desc or score desc."
+      }
+    },
+    {
+      "slug": "donl.input.start",
+      "name": "donl input start",
+      "description": "Offset into the result set, for paging.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "integer",
+        "description": "Offset into the result set, for paging."
+      }
+    },
+    {
+      "slug": "donl.input.id",
+      "name": "donl input id",
+      "description": "donl.input.id",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "donl.search_page",
+      "name": "donl search page",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "title"
+        ],
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.dataset_metadata",
+      "name": "donl dataset metadata",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "object"
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.publishers",
+      "name": "donl publishers",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "eurostat.input.q",
+      "name": "eurostat input q",
+      "description": "What the caller is looking for, in plain language: inflation, unemployment rate, greenhouse gas emissions, government debt, population by age and sex. English gives the best hits, because the Eurostat titles it searches are English.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "What the caller is looking for, in plain language: inflation, unemployment rate, greenhouse gas emissions, government debt, population by age and sex. English gives the best hits, because the Eurostat titles it searches are English."
+      }
+    },
+    {
+      "slug": "eurostat.input.page",
+      "name": "eurostat input page",
+      "description": "Zero-based page of results, for looking past the first set.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "integer",
+        "description": "Zero-based page of results, for looking past the first set."
+      }
+    },
+    {
+      "slug": "eurostat.input.dataset",
+      "name": "eurostat input dataset",
+      "description": "eurostat.input.dataset",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$"
+      }
+    },
+    {
+      "slug": "eurostat.search_page",
+      "name": "eurostat search page",
+      "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "identifier",
+          "title"
+        ],
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    },
+    {
+      "slug": "eurostat.input.age",
+      "name": "eurostat input age",
+      "description": "Age class code, e.g. TOTAL, Y15-64, Y_LT15, Y_GE65. ONLY for datasets with an age dimension, such as demo_pjan. Refused with 400 elsewhere.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Age class code, e.g. TOTAL, Y15-64, Y_LT15, Y_GE65. ONLY for datasets with an age dimension, such as demo_pjan. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.geo",
+      "name": "eurostat input geo",
+      "description": "Country or region code, e.g. NL, DE, EU27_2020, EA20, or a NUTS code such as NL33. Repeatable upstream; mutually exclusive with geoLevel.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Country or region code, e.g. NL, DE, EU27_2020, EA20, or a NUTS code such as NL33. Repeatable upstream; mutually exclusive with geoLevel."
+      }
+    },
+    {
+      "slug": "eurostat.input.sex",
+      "name": "eurostat input sex",
+      "description": "Sex breakdown: T total, M males, F females. ONLY for the demographic and labour datasets that carry a sex dimension, such as demo_pjan or une_rt_a. Refused with 400 elsewhere.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "enum": [
+          "T",
+          "M",
+          "F"
+        ],
+        "type": "string",
+        "description": "Sex breakdown: T total, M males, F females. ONLY for the demographic and labour datasets that carry a sex dimension, such as demo_pjan or une_rt_a. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.freq",
+      "name": "eurostat input freq",
+      "description": "Time frequency of the series: A annual, S half-yearly, Q quarterly, M monthly, W weekly, D daily. Safe on every dataset. A frequency the dataset does not publish returns an empty result rather than an error.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "enum": [
+          "A",
+          "S",
+          "Q",
+          "M",
+          "W",
+          "D"
+        ],
+        "type": "string",
+        "description": "Time frequency of the series: A annual, S half-yearly, Q quarterly, M monthly, W weekly, D daily. Safe on every dataset. A frequency the dataset does not publish returns an empty result rather than an error."
+      }
+    },
+    {
+      "slug": "eurostat.input.time",
+      "name": "eurostat input time",
+      "description": "A single period, e.g. 2023 for annual data, 2025-Q2 for quarterly, 2025-10 for monthly.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "A single period, e.g. 2023 for annual data, 2025-Q2 for quarterly, 2025-10 for monthly."
+      }
+    },
+    {
+      "slug": "eurostat.input.unit",
+      "name": "eurostat input unit",
+      "description": "Unit of measure code, e.g. CP_MEUR (current prices, million euro), CLV10_MEUR (chain linked volumes), PC (percent), PC_GDP, NR (number), THS_PER (thousand persons), RCH_A (annual rate of change). Present on most datasets but not all - a dataset without a unit dimension refuses this parameter with 400.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Unit of measure code, e.g. CP_MEUR (current prices, million euro), CLV10_MEUR (chain linked volumes), PC (percent), PC_GDP, NR (number), THS_PER (thousand persons), RCH_A (annual rate of change). Present on most datasets but not all - a dataset without a unit dimension refuses this parameter with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.coicop",
+      "name": "eurostat input coicop",
+      "description": "COICOP consumption purpose code, e.g. CP00 (all-items HICP), CP01 (food and non-alcoholic beverages). ONLY for the price datasets (prc_hicp_*). Refused with 400 elsewhere.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "COICOP consumption purpose code, e.g. CP00 (all-items HICP), CP01 (food and non-alcoholic beverages). ONLY for the price datasets (prc_hicp_*). Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.na_item",
+      "name": "eurostat input na item",
+      "description": "National accounts indicator, e.g. B1GQ (gross domestic product at market prices), P3 (final consumption expenditure), P6 (exports). ONLY for the national accounts datasets (nama_*, namq_*). Any other dataset refuses it with 400.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "National accounts indicator, e.g. B1GQ (gross domestic product at market prices), P3 (final consumption expenditure), P6 (exports). ONLY for the national accounts datasets (nama_*, namq_*). Any other dataset refuses it with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.nace_r2",
+      "name": "eurostat input nace r2",
+      "description": "NACE Rev. 2 economic activity code, e.g. TOTAL, C (manufacturing), G-I. ONLY for the business and labour datasets that carry a nace_r2 dimension. Refused with 400 elsewhere.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "NACE Rev. 2 economic activity code, e.g. TOTAL, C (manufacturing), G-I. ONLY for the business and labour datasets that carry a nace_r2 dimension. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.lasttimeperiod",
+      "name": "eurostat input lasttimeperiod",
+      "description": "Return only the last N periods, counting back from the most recent one published, e.g. 5.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "integer",
+        "description": "Return only the last N periods, counting back from the most recent one published, e.g. 5.",
+        "minimum": 1,
+        "maximum": 120
+      }
+    },
+    {
+      "slug": "eurostat.input.sincetimeperiod",
+      "name": "eurostat input sincetimeperiod",
+      "description": "Start of a period window, inclusive. Combine with untilTimePeriod.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "Start of a period window, inclusive. Combine with untilTimePeriod."
+      }
+    },
+    {
+      "slug": "eurostat.input.untiltimeperiod",
+      "name": "eurostat input untiltimeperiod",
+      "description": "End of a period window, inclusive.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "description": "End of a period window, inclusive."
+      }
+    },
+    {
+      "slug": "eurostat.dataset",
+      "name": "eurostat dataset",
+      "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata.",
+      "subject_kind": "dataset",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "class",
+          "id",
+          "size",
+          "dimension",
+          "value"
+        ],
+        "properties": {
+          "class": {
+            "type": "string",
+            "enum": [
+              "dataset"
+            ]
+          },
+          "id": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "dimension": {
+            "type": "object"
+          }
+        },
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "statistics.cbs-datasets",
+      "name": "statistics cbs datasets",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-dimensions",
+      "name": "statistics cbs dimensions",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-branch-codes",
+      "name": "statistics cbs branch codes",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-measure-codes",
+      "name": "statistics cbs measure codes",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-sector-income",
+      "name": "statistics cbs sector income",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-company-counts",
+      "name": "statistics cbs company counts",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-sector-balance",
+      "name": "statistics cbs sector balance",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-bankruptcies",
+      "name": "statistics cbs bankruptcies",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-business-closures",
+      "name": "statistics cbs business closures",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.cbs-turnover-trend",
+      "name": "statistics cbs turnover trend",
+      "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "data.catalog-search",
+      "name": "data catalog search",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "data.dataset-metadata",
+      "name": "data dataset metadata",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "data.catalog-publishers",
+      "name": "data catalog publishers",
+      "description": "Dataset catalogue metadata only; resources can be documentation rather than data.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.eurostat-dataset-search",
+      "name": "statistics eurostat dataset search",
+      "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "statistics.eurostat-data",
+      "name": "statistics eurostat data",
+      "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata.",
+      "input_contract": {
+        "type": "object"
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    }
+  ],
+  "new_endpoints": [],
+  "endpoint_updates": [],
+  "services": [
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000001",
+      "endpoint_id": "e9165ca8-bdd4-4736-8315-e070c2d34b11",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/Datasets",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-datasets",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.dataset_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Title": "Faillissementen; kerncijfers",
+            "Status": "Regulier",
+            "Identifier": "82242NED",
+            "ObservationCount": 3096
+          },
+          {
+            "Title": "Faillissementen; natuurlijke personen, regio",
+            "Status": "Regulier",
+            "Identifier": "82243NED",
+            "ObservationCount": 53640
+          },
+          {
+            "Title": "Faillissementen; bedrijven en instellingen, SBI 2008",
+            "Status": "Regulier",
+            "Identifier": "82244NED",
+            "ObservationCount": 332568
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/$metadata#Datasets(Identifier,Title,Status,ObservationCount)"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000002",
+      "endpoint_id": "c21f7904-73fc-4a08-a3bc-acc656765045",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/Dimensions",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-dimensions",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.tableid",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "cbs.input.tableid": {
+            "in": "path",
+            "name": "tableId"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.dimensions": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Kind": "Dimension",
+            "Title": "Bedrijfstakken/branches (SBI 2008)",
+            "Identifier": "BedrijfstakkenBranchesSBI2008"
+          },
+          {
+            "Kind": "Dimension",
+            "Title": "Type gefailleerde",
+            "Identifier": "TypeGefailleerde"
+          },
+          {
+            "Kind": "TimeDimension",
+            "Title": "Perioden",
+            "Identifier": "Perioden"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#Dimensions"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000003",
+      "endpoint_id": "8037d0eb-4769-44d6-9843-ba5a5034118b",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/BedrijfstakkenBranchesSBI2008Codes",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-branch-codes",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.tableid",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.tableid": {
+            "in": "path",
+            "name": "tableId"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.branch_codes": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Title": "642 Financiële holdings",
+            "Identifier": "397200"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#BedrijfstakkenBranchesSBI2008Codes(Identifier,Title)"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000004",
+      "endpoint_id": "050799b8-d913-42ff-864b-5b524d7fe664",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/MeasureCodes",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-measure-codes",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.tableid",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.tableid": {
+            "in": "path",
+            "name": "tableId"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.measure_codes": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Unit": "Aantal",
+            "Title": "Uitgesproken faillissementen",
+            "Identifier": "M001327"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#MeasureCodes(Identifier,Title,Unit)"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000005",
+      "endpoint_id": "32313c27-c87b-4e17-b301-f0037357b40e",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/81156ned/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-sector-income",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_81156ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 139559,
+            "Value": 263.3,
+            "Measure": "2021320_1",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 139563,
+            "Value": 71307,
+            "Measure": "M001588_2",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 139564,
+            "Value": 66339,
+            "Measure": "M002061",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 139566,
+            "Value": 65013,
+            "Measure": "M002063_2",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/81156ned/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000006",
+      "endpoint_id": "0c385117-f160-404b-8aa4-75e108cf8264",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/81589NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-company-counts",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_81589ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 1026286,
+            "Value": 93060,
+            "Measure": "M000201",
+            "Perioden": "2026KW03",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 1026287,
+            "Value": 80120,
+            "Measure": "WP19079",
+            "Perioden": "2026KW03",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/81589NED/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000007",
+      "endpoint_id": "abc42f88-a57d-440c-9887-2fcf55724ecc",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/81837NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-sector-balance",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_81837ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 35416,
+            "Value": 37538,
+            "Measure": "M002394",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 35417,
+            "Value": 182545.3,
+            "Measure": "M000360",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 35428,
+            "Value": 107136,
+            "Measure": "M000268",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/81837NED/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000008",
+      "endpoint_id": "2f884bdc-79d7-45ac-9aeb-c52c88e6a0f2",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/82244NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-bankruptcies",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_82244ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 76261,
+            "Value": 336,
+            "Measure": "M001327",
+            "Perioden": "2024JJ00",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "TypeGefailleerde": "A047596",
+            "BedrijfstakkenBranchesSBI2008": "397200"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000009",
+      "endpoint_id": "6c04264c-9f07-4b84-9de9-aa7be8a36822",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/83149NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-business-closures",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_83149ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 260920,
+            "Value": 1395,
+            "Measure": "M002855",
+            "Perioden": "2026KW02",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 260921,
+            "Value": 1305,
+            "Measure": "WP19117",
+            "Perioden": "2026KW02",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/83149NED/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000010",
+      "endpoint_id": "f0c6460b-90f7-4a44-ba4d-572f91e1c44c",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/86414NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "statistics.cbs-turnover-trend",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "cbs.input.odata_orderby",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          },
+          "cbs.input.odata_orderby": {
+            "in": "query",
+            "name": "$orderby"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_86414ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "$top": 100,
+        "$count": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "value": [
+          {
+            "Id": 500416,
+            "Value": 40,
+            "Measure": "D002756",
+            "Perioden": "2026KW02",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "Bedrijfsgrootte": "WP19077",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          },
+          {
+            "Id": 500417,
+            "Value": 13,
+            "Measure": "D002838",
+            "Perioden": "2026KW02",
+            "StringValue": null,
+            "ValueAttribute": "None",
+            "Bedrijfsgrootte": "WP19077",
+            "BedrijfstakkenBranchesSBI2008": "395000"
+          }
+        ],
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/86414NED/$metadata#Observations"
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000011",
+      "endpoint_id": "f635dc84-9e80-451b-b714-e9facc2d079a",
+      "api_slug": "data-overheid-nl",
+      "name": "Dutch Open Data Register",
+      "source_url": "https://data.overheid.nl/ondersteuning/data-publiceren/api",
+      "method": "GET",
+      "path": "/data/api/3/action/package_search",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "data.catalog-search",
+        "version": 1,
+        "cardinality": "many",
+        "requires": [
+          {
+            "fact_type": "donl.input.q",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "donl.input.fq",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "donl.input.sort",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "donl.input.start",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "donl.input.q": {
+            "in": "query",
+            "name": "q"
+          },
+          "donl.input.fq": {
+            "in": "query",
+            "name": "fq"
+          },
+          "donl.input.sort": {
+            "in": "query",
+            "name": "sort"
+          },
+          "donl.input.start": {
+            "in": "query",
+            "name": "start"
+          }
+        },
+        "output_map": {
+          "base": "$.result.results[*]",
+          "produces": {
+            "donl.search_page": {
+              "path": "$"
+            },
+            "donl.input.id": {
+              "path": "$.id"
+            }
+          }
+        },
+        "identifies": "donl.input.id",
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "rows": 20
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "result": {
+          "count": 111,
+          "results": [
+            {
+              "id": "975c8f7d-84fe-4f3c-bd59-4f703752b30a",
+              "name": "kvk-handelsregister-open-dataset-jaarrekeningen",
+              "title": "KVK Handelsregister Open Dataset Jaarrekeningen",
+              "license_id": "http://creativecommons.org/licenses/by/4.0/deed.nl",
+              "num_resources": 4
+            }
+          ]
+        },
+        "success": true
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000012",
+      "endpoint_id": "56171f82-d820-40a0-8d44-a55377bbf893",
+      "api_slug": "data-overheid-nl",
+      "name": "Dutch Open Data Register",
+      "source_url": "https://data.overheid.nl/ondersteuning/data-publiceren/api",
+      "method": "GET",
+      "path": "/data/api/3/action/package_show",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "data.dataset-metadata",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "donl.input.id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "donl.input.id": {
+            "in": "query",
+            "name": "id"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "donl.dataset_metadata": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "result": {
+          "id": "975c8f7d-84fe-4f3c-bd59-4f703752b30a",
+          "name": "kvk-handelsregister-open-dataset-jaarrekeningen",
+          "title": "KVK Handelsregister Open Dataset Jaarrekeningen",
+          "resources": [
+            {
+              "url": "https://www.kvk.nl/producten-bestellen/kvk-jaarrekeningen-open-data-set/",
+              "name": "KVK Handelsregister Open Dataset Jaarrekeningen",
+              "format": "http://publications.europa.eu/resource/authority/file-type/XML",
+              "distribution_type": "https://data.overheid.nl/distributiontype/download"
+            },
+            {
+              "url": "https://developers.kvk.nl/nl/documentation/open-dataset-jaarrekeningen-api",
+              "name": "KVK Handelsregister Open Dataset Jaarrekeningen- API",
+              "format": "http://publications.europa.eu/resource/authority/file-type/JSON",
+              "distribution_type": "https://data.overheid.nl/distributiontype/documentation"
+            },
+            {
+              "url": "https://opendata.kvk.nl/api/v1/hvds/jaarrekeningen/kvknummer",
+              "name": "KVK Handelsregister Open Dataset Jaarrekeningen- API",
+              "format": "http://publications.europa.eu/resource/authority/file-type/JSON",
+              "distribution_type": "https://data.overheid.nl/distributiontype/webservice"
+            }
+          ],
+          "license_id": "http://creativecommons.org/licenses/by/4.0/deed.nl",
+          "num_resources": 4
+        },
+        "success": true
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000013",
+      "endpoint_id": "b90f85d7-4f9a-409b-b817-64282acf43e8",
+      "api_slug": "data-overheid-nl",
+      "name": "Dutch Open Data Register",
+      "source_url": "https://data.overheid.nl/ondersteuning/data-publiceren/api",
+      "method": "GET",
+      "path": "/data/api/3/action/organization_list",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "contract": {
+        "capability_slug": "data.catalog-publishers",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "donl.publishers": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "result": [
+          "centraal-bureau-voor-de-statistiek-derden",
+          "cbs-microdata",
+          "centraal-bureau-voor-de-statistiek",
+          "de-nederlandsche-bank",
+          "data-overheid-nl",
+          "dienst-uitvoering-onderwijs",
+          "dataplatform",
+          "gemeente-amsterdam",
+          "gemeente-arnhem",
+          "gemeente-assen"
+        ],
+        "success": true
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000014",
+      "endpoint_id": "aaa18eec-a50d-4bda-abb8-deaa31769cdc",
+      "api_slug": "eurostat",
+      "name": "Eurostat",
+      "source_url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access",
+      "method": "GET",
+      "path": "/api/hub/search/search",
+      "listing_type": "api",
+      "list_atomic": 9452,
+      "contract": {
+        "capability_slug": "statistics.eurostat-dataset-search",
+        "version": 1,
+        "cardinality": "many",
+        "requires": [
+          {
+            "fact_type": "eurostat.input.q",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "eurostat.input.page",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "eurostat.input.q": {
+            "in": "query",
+            "name": "q"
+          },
+          "eurostat.input.page": {
+            "in": "query",
+            "name": "page"
+          }
+        },
+        "output_map": {
+          "base": "$.result.results[*]",
+          "produces": {
+            "eurostat.search_page": {
+              "path": "$"
+            },
+            "eurostat.input.dataset": {
+              "path": "$.identifier[0]"
+            }
+          }
+        },
+        "identifies": "eurostat.input.dataset",
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "filter": "dataset",
+        "facets": "{\"catalog\":[\"estat\"]}",
+        "includes": "identifier,title.en",
+        "aggregation": "false",
+        "limit": 5
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "result": {
+          "count": 52,
+          "results": [
+            {
+              "index": "dataset",
+              "title": {
+                "en": "HICP - inflation rate"
+              },
+              "identifier": [
+                "tec00118"
+              ]
+            },
+            {
+              "index": "dataset",
+              "title": {
+                "en": "HICP - contributions to euro area annual inflation"
+              },
+              "identifier": [
+                "prc_hicp_ctrb"
+              ]
+            }
+          ]
+        }
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000015",
+      "endpoint_id": "dd77c4c0-6cbc-48f9-affd-505fceeda929",
+      "api_slug": "eurostat",
+      "name": "Eurostat",
+      "source_url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access",
+      "method": "GET",
+      "path": "/statistics/1.0/data",
+      "listing_type": "api",
+      "list_atomic": 18903,
+      "contract": {
+        "capability_slug": "statistics.eurostat-data",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "eurostat.input.age",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.geo",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "eurostat.input.sex",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.freq",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.time",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.unit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.coicop",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.dataset",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "eurostat.input.na_item",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.nace_r2",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.lasttimeperiod",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.sincetimeperiod",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "eurostat.input.untiltimeperiod",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "eurostat.input.age": {
+            "in": "query",
+            "name": "age"
+          },
+          "eurostat.input.geo": {
+            "in": "query",
+            "name": "geo"
+          },
+          "eurostat.input.sex": {
+            "in": "query",
+            "name": "sex"
+          },
+          "eurostat.input.freq": {
+            "in": "query",
+            "name": "freq"
+          },
+          "eurostat.input.time": {
+            "in": "query",
+            "name": "time"
+          },
+          "eurostat.input.unit": {
+            "in": "query",
+            "name": "unit"
+          },
+          "eurostat.input.coicop": {
+            "in": "query",
+            "name": "coicop"
+          },
+          "eurostat.input.dataset": {
+            "in": "path",
+            "name": "dataset"
+          },
+          "eurostat.input.na_item": {
+            "in": "query",
+            "name": "na_item"
+          },
+          "eurostat.input.nace_r2": {
+            "in": "query",
+            "name": "nace_r2"
+          },
+          "eurostat.input.lasttimeperiod": {
+            "in": "query",
+            "name": "lastTimePeriod"
+          },
+          "eurostat.input.sincetimeperiod": {
+            "in": "query",
+            "name": "sinceTimePeriod"
+          },
+          "eurostat.input.untiltimeperiod": {
+            "in": "query",
+            "name": "untilTimePeriod"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "eurostat.dataset": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "format": "JSON",
+        "lang": "EN"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "id": [
+          "freq",
+          "unit",
+          "na_item",
+          "geo",
+          "time"
+        ],
+        "size": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "class": "dataset",
+        "label": "Gross domestic product (GDP) and main components (output, expenditure and income) - annual data",
+        "value": {
+          "0": 1050133
+        },
+        "source": "ESTAT",
+        "updated": "2026-09-03T23:00:00+0200",
+        "version": "2.0",
+        "dimension": {
+          "geo": {
+            "label": "Geopolitical entity (reporting)",
+            "category": {
+              "index": {
+                "NL": 0
+              },
+              "label": {
+                "NL": "Netherlands"
+              }
+            }
+          },
+          "time": {
+            "label": "Time",
+            "category": {
+              "index": {
+                "2023": 0
+              },
+              "label": {
+                "2023": "2023"
+              }
+            }
+          },
+          "unit": {
+            "label": "Unit of measure",
+            "category": {
+              "index": {
+                "CP_MEUR": 0
+              },
+              "label": {
+                "CP_MEUR": "Current prices, million euro"
+              }
+            }
+          },
+          "na_item": {
+            "label": "National accounts indicator (ESA 2010)",
+            "category": {
+              "index": {
+                "B1GQ": 0
+              },
+              "label": {
+                "B1GQ": "Gross domestic product at market prices"
+              }
+            }
+          }
+        }
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    }
+  ]
+}

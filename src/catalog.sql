@@ -1,4 +1,5 @@
 SELECT jsonb_build_object(
+ 'known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason') ORDER BY slug),'[]') FROM public.apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL),
  'vocabulary',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'value_schema',value_schema) ORDER BY slug),'[]') FROM public.fact_types WHERE status='active'),
  'services',(SELECT coalesce(jsonb_agg(s.obj ORDER BY s.id),'[]') FROM (
  SELECT c.id,jsonb_build_object(

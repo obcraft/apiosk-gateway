@@ -268,7 +268,7 @@ impl Parser {
             }},
             "messages": [
                 {"role":"system","content":include_str!("../contracts/ask-chat-prompt.txt")},
-                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"]}).to_string()}
+                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"],"sources":catalog.parser_view()["sources"]}).to_string()}
             ]
         });
         self.completion("chat", &payload, |raw| {
