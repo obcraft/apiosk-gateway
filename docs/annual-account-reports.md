@@ -4,6 +4,8 @@ The active Gateway v2 App and MCP flows expose a PDF download for each successfu
 
 The report groups every returned field into general information, balance sheet, cash flow and income statement sections. Source hierarchy, years, consolidation markers, units and source keys remain visible. Missing sections and partial source responses are explicit. No figures or currency are inferred. A 20,000-row guard returns an explicit error rather than silently truncating a report.
 
+Financial-section amounts use Dutch number formatting: `18539000` becomes `18.539.000` and `1234567.50` becomes `1.234.567,50`. Formatting preserves the sign and source decimal precision without floating-point conversion. Years, codes, identifiers and raw stored data are unchanged. The PDF's wider amount column keeps ordinary large values on one line.
+
 The result carries report.download_path; App resolves the gateway origin and MCP adds report.url. Paginated results retain the descriptor. Downloads use a domain-separated HMAC bound to owner, task, result and a 24-hour expiry. Database reads also enforce owner and task retention. Reading the saved task creates a fresh link. Anyone receiving the signed link can download that one report until expiry. No account token is placed in the URL. Responses use private/no-store and no-referrer.
 
 Embedded Liberation Sans fonts and their license live under assets/fonts and are included in Docker. Generate the example with `cargo run --offline --example annual_report`.

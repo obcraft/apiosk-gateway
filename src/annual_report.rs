@@ -46,8 +46,33 @@ fn collect(value: &Value, context: &str, group: usize, rows: &mut Vec<Row>) {
 fn scalar(v: &Value) -> String {
     match v { Value::String(s) => s.clone(), Value::Null => "Niet aangeleverd (null)".into(), _ => v.to_string() }
 }
-// Long source identifiers must wrap too. This only adds layout whitespace;
-// decimal signs, negative signs and source values are never reformatted.
+/// Format financial-section values without a float conversion or rounding.
+/// General metadata, years, codes and already formatted strings stay literal.
+fn display_value(row: &Row) -> String {
+    let key = row.key.to_ascii_lowercase();
+    if row.section == 0 || matches!(key.as_str(), "financialyear" | "year" | "fiscalyear" | "bookyear"
+        | "sbibusinesscode" | "documentadoptiondate" | "kvknummer" | "unit" | "currency" | "decimals" | "scale")
+        || key.ends_with("code") || key.ends_with("identifier") || key.ends_with("date") {
+        return row.value.clone();
+    }
+    let (sign, digits) = if row.value.starts_with(['-', '+']) {
+        row.value.split_at(1)
+    } else { ("", row.value.as_str()) };
+    let (integer, fraction) = digits.split_once('.').map_or((digits, None), |(i, f)| (i, Some(f)));
+    if integer.is_empty() || !integer.bytes().all(|b| b.is_ascii_digit())
+        || (integer.len() > 1 && integer.starts_with('0'))
+        || fraction.is_some_and(|f| f.is_empty() || !f.bytes().all(|b| b.is_ascii_digit())) {
+        return row.value.clone();
+    }
+    let mut formatted = sign.to_owned();
+    for (i, digit) in integer.chars().enumerate() {
+        if i > 0 && (integer.len() - i).is_multiple_of(3) { formatted.push('.'); }
+        formatted.push(digit);
+    }
+    if let Some(fraction) = fraction { formatted.push(','); formatted.push_str(fraction); }
+    formatted
+}
+// Long source identifiers must wrap too. This only adds layout whitespace.
 fn wrap(text: &str) -> String { wrap_at(text, 50) }
 fn wrap_at(text: &str, width: usize) -> String {
     let mut out = String::new(); let mut run = 0;
@@ -109,7 +134,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         if let Some(value) = value.as_str() { doc.push(Paragraph::new(wrap(&format!("{label}: {value}"))).styled(Style::new().with_font_size(8))); }
     }
     doc.push(Break::new(1));
-    doc.push(Paragraph::new("Bronwaarden zijn letterlijk overgenomen. Eenheid, valuta, periode en consolidatiestatus gelden alleen wanneer de bron die vermeldt. Een ontbrekend onderdeel betekent niet dat de waarde nul is. Dit rapport is een weergave van de ontvangen gegevens, geen accountantsverklaring."));
+    doc.push(Paragraph::new("Bronwaarden zijn ongewijzigd; bedragen zijn leesbaar opgemaakt met punten voor duizendtallen en een komma voor decimalen, zonder afronding. Eenheid, valuta, periode en consolidatiestatus gelden alleen wanneer de bron die vermeldt. Een ontbrekend onderdeel betekent niet dat de waarde nul is. Dit rapport is een weergave van de ontvangen gegevens, geen accountantsverklaring."));
     if document["coverage"] == "partial" {
         doc.push(Paragraph::new("LET OP: de opgeslagen bronrespons is onvolledig. Raadpleeg ook de ontbrekende velden hieronder.").styled(Style::new().bold()));
         doc.push(Paragraph::new(wrap(&scalar(&document["missing_fields"]))));
@@ -118,14 +143,14 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         doc.push(Break::new(1)); heading(&mut doc, title, 16);
         let section_rows: Vec<_> = rows.iter().filter(|r| r.section == index).collect();
         if section_rows.is_empty() { doc.push(Paragraph::new("Niet aangeleverd in deze bronrespons.")); }
-        let mut table = TableLayout::new(vec![4, 1]);
+        let mut table = TableLayout::new(vec![3, 1]);
         for row in section_rows {
             let mut label = LinearLayout::vertical();
             label.push(Paragraph::new(wrap(field_label(&row.key))).styled(Style::new().bold()));
             label.push(Paragraph::new(wrap(&format!("{} / {}", row.context, row.key))).styled(Style::new().with_font_size(7).with_color(Color::Rgb(90, 100, 110))));
             table.row()
                 .element(label.padded(genpdf::Margins::trbl(1, 4, 2, 0)))
-                .element(Paragraph::new(wrap_at(&row.value, 12)).aligned(genpdf::Alignment::Right).padded(genpdf::Margins::trbl(1, 0, 2, 0)))
+                .element(Paragraph::new(wrap_at(&display_value(row), 20)).aligned(genpdf::Alignment::Right).padded(genpdf::Margins::trbl(1, 0, 2, 0)))
                 .push()?;
         }
         doc.push(table);
@@ -137,6 +162,26 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn amounts_use_dutch_separators_without_changing_precision_or_metadata() {
+        let mut row = Row { section: 1, context: String::new(), key: "Assets".into(), value: String::new() };
+        for (raw, expected) in [("-159000", "-159.000"), ("18539000", "18.539.000"),
+            ("1234567.50", "1.234.567,50"), ("0", "0"), ("-0.0050", "-0,0050"),
+            ("9007199254740993.01", "9.007.199.254.740.993,01"),
+            ("01234567", "01234567"), ("not available", "not available"), ("1,234.50", "1,234.50")] {
+            row.value = raw.into();
+            assert_eq!(display_value(&row), expected);
+            assert_eq!(row.value, raw);
+        }
+        for key in ["FinancialYear", "SbiBusinessCode", "DocumentAdoptionDate", "kvkNummer"] {
+            row.key = key.into(); row.value = "2024".into();
+            assert_eq!(display_value(&row), "2024");
+        }
+        row.key = "LiabilitiesMaturityExceedingOneYear".into(); row.value = "955105".into();
+        assert_eq!(display_value(&row), "955.105");
+        row.section = 0; row.key = "OtherMetadata".into(); row.value = "12345678".into();
+        assert_eq!(display_value(&row), "12345678");
+    }
     #[test]
     fn all_fields_preserve_zero_negative_values_and_sections() {
         let data = json!({"opendataFields":[{"key":"FinancialYear","value":"2025"},{"key":"ConsolidatedBalanceSheet","opendataFields":[{"key":"Equity","value":"-373267"}]},{"key":"CashFlowStatement","opendataFields":[{"key":"Total","value":0}]},{"key":"IncomeStatement","opendataFields":[{"key":"Revenue","value":"123.45"}]}]});
