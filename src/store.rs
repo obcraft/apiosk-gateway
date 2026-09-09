@@ -120,4 +120,10 @@ impl Store {
         Ok(sqlx::query_scalar("SELECT r.document FROM gateway_v2.results r JOIN gateway_v2.tasks t ON t.id=r.task_id WHERE r.id=$1 AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
             .bind(id).bind(owner).bind(task).fetch_one(&self.pool).await?)
     }
+    /// Compatibility lookup for pre-timeline tasks. Uses requests_owner_time
+    /// and the task's creation bound; returns only presentation metadata.
+    pub async fn original_result_turn(&self, owner: Uuid, task: Uuid, result: Uuid) -> anyhow::Result<Option<Value>> {
+        Ok(sqlx::query_scalar("SELECT jsonb_build_object('conversation',r.response->'context_view'->'conversation','proposal',r.response->'proposal') FROM gateway_v2.requests r WHERE r.owner_id=$1 AND r.created_at >= (SELECT created_at FROM gateway_v2.tasks WHERE id=$2 AND owner_id=$1 AND expires_at>now()) AND r.response->'state'->>'state_ref'=$2::text AND (r.response->'context_view'->'result_refs') ? $3 ORDER BY r.created_at LIMIT 1")
+            .bind(owner).bind(task).bind(result.to_string()).fetch_optional(&self.pool).await?)
+    }
 }

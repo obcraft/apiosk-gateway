@@ -938,7 +938,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(counts.provider.load(Ordering::Relaxed), before);
     // Actual fixture purchase -> related service -> fresh approval -> second result.
     let lookup = engine
-        .discover(
+        .chat(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -960,11 +960,30 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
-    let found = engine
+    let mut found = engine
         .execute(&person, "fixture", execution(&lookup))
         .await
         .unwrap();
     assert_eq!(found.status, Status::Succeeded);
+    // Reproduce an old chat that appended another question above a saved
+    // result, before turn outputs existed. A read must recover the original
+    // placement from its response history, without another provider request.
+    let task_id = found.state.as_ref().unwrap().state_ref;
+    let (revision, mut legacy_task, _) = engine.store.load(person.owner, task_id).await.unwrap();
+    legacy_task.record_turn("Now the 2022 report", Some("Which filing?".into()));
+    legacy_task.conversation_timeline_version = 0;
+    legacy_task.proposal = None;
+    legacy_task.intent = None;
+    legacy_task.actions.clear();
+    engine.store.save_intent(person.owner, task_id, revision, &legacy_task).await.unwrap();
+    let before_legacy_read = counts.provider.load(Ordering::Relaxed);
+    let legacy_view = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(legacy_view.context_view["result_is_historical"], true);
+    assert_eq!(legacy_view.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
+    assert!(legacy_view.context_view["conversation"][1]["output"].is_null());
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before_legacy_read);
+    assert!(engine.store.original_result_turn(Uuid::new_v4(), task_id, legacy_task.result_refs[0]).await.unwrap().is_none());
+    found = legacy_view;
     let suggestions = found.context_view["related_services"].as_array().unwrap();
     assert_eq!(suggestions.len(), 1);
     assert_eq!(suggestions[0]["title"], "accounts");
@@ -973,6 +992,11 @@ async fn durable_flow_and_authorization_boundary() {
     let provider_before_preview = counts.provider.load(Ordering::Relaxed);
     let parser_before_preview = counts.parser.load(Ordering::Relaxed);
     let preview = engine.followup(&person, followup_request).await.unwrap();
+    assert_eq!(preview.context_view["result_is_historical"], true);
+    assert_eq!(preview.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
+    assert_eq!(preview.context_view["conversation"][0]["output"]["proposal"]["quote_ref"], lookup_plan.quote_ref.to_string());
+    let reopened = engine.view(&person, preview.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(reopened.context_view["conversation"], preview.context_view["conversation"]);
     assert_eq!(preview.status, Status::Ready);
     assert_eq!(preview.proposal.as_ref().unwrap().steps.len(), 1);
     assert_eq!(preview.proposal.as_ref().unwrap().max_total_atomic, "115");
@@ -1013,6 +1037,8 @@ async fn durable_flow_and_authorization_boundary() {
         .execute(&person, "fixture", execution(&preview))
         .await
         .unwrap();
+    assert_eq!(followup_done.context_view["result_is_historical"], false);
+    assert_eq!(followup_done.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
     assert_eq!(followup_done.status, Status::Succeeded);
     assert_eq!(
         counts.provider.load(Ordering::Relaxed),

@@ -107,11 +107,24 @@ pub struct Fact {
 pub struct ConversationTurn {
     pub question: String,
     pub reply: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output: Option<TurnOutput>,
+}
+/// Read-only presentation of the plan that preceded the next message. Store a
+/// result reference, not a duplicate payload or an expiring download URL.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnOutput {
+    pub proposal: Option<Value>,
+    pub result_ref: Option<Uuid>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
     #[serde(default)]
     pub conversation: Vec<ConversationTurn>,
+    #[serde(default)]
+    pub last_archived_result_ref: Option<Uuid>,
+    #[serde(default)]
+    pub conversation_timeline_version: u8,
     pub entities: Vec<Entity>,
     pub facts: Vec<Fact>,
     pub focus: Focus,
@@ -128,12 +141,45 @@ pub struct Task {
 }
 impl Task {
     pub fn record_turn(&mut self, question: &str, reply: Option<String>) {
+        self.conversation_timeline_version = 1;
         self.conversation.push(ConversationTurn {
             question: question.to_owned(),
             reply,
+            output: None,
         });
         let remove = self.conversation.len().saturating_sub(6);
         self.conversation.drain(..remove);
+    }
+    pub fn active_result_ref(&self) -> Option<Uuid> {
+        self.result_refs.last().copied().filter(|result| {
+            self.last_archived_result_ref != Some(*result) && !self.conversation.iter().any(|turn| {
+                turn.output.as_ref().and_then(|output| output.result_ref) == Some(*result)
+            })
+        })
+    }
+    pub fn archive_output(&mut self, proposal: Option<Value>) {
+        let result_ref = self.active_result_ref();
+        if proposal.is_none() && result_ref.is_none() { return; }
+        if result_ref.is_some() { self.last_archived_result_ref = result_ref; }
+        // Older /discover tasks can have a result without conversational text.
+        if self.conversation.is_empty() { self.record_turn("", None); }
+        if let Some(turn) = self.conversation.last_mut() {
+            turn.output = Some(TurnOutput { proposal, result_ref });
+        }
+    }
+    pub fn restore_legacy_output(&mut self, snapshot: &Value, result_ref: Uuid) {
+        let Some(previous) = snapshot["conversation"].as_array() else { return; };
+        // Only move a result when a saved response proves the exact preceding
+        // conversation. Never guess from company names or an alleged year.
+        if previous.is_empty() || previous.len() >= self.conversation.len() { return; }
+        if !previous.iter().zip(&self.conversation).all(|(a, b)| {
+            a["question"] == b.question && a["reply"] == serde_json::json!(b.reply)
+        }) { return; }
+        self.conversation[previous.len() - 1].output = Some(TurnOutput {
+            proposal: snapshot.get("proposal").filter(|p| !p.is_null()).cloned(),
+            result_ref: Some(result_ref),
+        });
+        self.last_archived_result_ref = Some(result_ref);
     }
     pub fn context_view(&self) -> Value {
         serde_json::json!({"conversation":self.conversation,"entities":self.entities.iter().filter(|e|self.focus.entity_refs.contains(&e.entity_ref)).collect::<Vec<_>>(),"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
@@ -150,6 +196,39 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legacy_order_requires_an_exact_saved_conversation_prefix() {
+        let mut task = Task::default();
+        task.record_turn("Mollie accounts", Some("Fetching".into()));
+        task.record_turn("Now 2022", Some("Which report?".into()));
+        let result = Uuid::new_v4();
+        let wrong = serde_json::json!({"conversation":[{"question":"Other company","reply":"Fetching"}],"proposal":null});
+        task.restore_legacy_output(&wrong, result);
+        assert!(task.conversation[0].output.is_none());
+        let correct = serde_json::json!({"conversation":[{"question":"Mollie accounts","reply":"Fetching"}],"proposal":{"steps":["accounts"]}});
+        task.restore_legacy_output(&correct, result);
+        assert_eq!(task.conversation[0].output.as_ref().unwrap().result_ref, Some(result));
+        assert!(task.conversation[1].output.is_none());
+    }
+    #[test]
+    fn archives_results_once_and_does_not_reactivate_them_after_history_truncation() {
+        let mut task = Task::default();
+        task.record_turn("Mollie accounts", None);
+        let first = Uuid::new_v4();
+        task.result_refs.push(first);
+        assert_eq!(task.active_result_ref(), Some(first));
+        task.archive_output(Some(serde_json::json!({"steps":["accounts"]})));
+        task.record_turn("The next report", None);
+        assert_eq!(task.active_result_ref(), None);
+        let restored: Task = serde_json::from_value(serde_json::to_value(&task).unwrap()).unwrap();
+        assert_eq!(restored.conversation[0].output.as_ref().unwrap().result_ref, Some(first));
+        assert!(restored.conversation[1].output.is_none());
+        for _ in 0..6 { task.record_turn("More", None); }
+        assert_eq!(task.active_result_ref(), None);
+        let second = Uuid::new_v4();
+        task.result_refs.push(second);
+        assert_eq!(task.active_result_ref(), Some(second));
+    }
     #[test]
     fn signed_state_is_account_and_focus_bound() {
         let s = Signer::new(vec![9; 32]).unwrap();

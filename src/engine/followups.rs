@@ -48,6 +48,7 @@ impl Engine {
                 .view(p, id, req.request_id, Some(Status::StateConflict))
                 .await;
         }
+        self.prepare_conversation(p.owner, id, &mut task).await?;
         let catalog = self.catalog.fresh().await?;
         let selected = related_services(&catalog, &task)
             .into_iter()
@@ -88,6 +89,7 @@ impl Engine {
             steps,
             expires_at: Utc::now() + chrono::Duration::minutes(10),
         };
+        self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
         task.intent = Some(serde_json::to_value(intent)?);
         task.proposal = Some(serde_json::to_value(plan)?);
         task.focus.entity_refs = vec![req.entity_ref];

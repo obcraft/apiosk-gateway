@@ -138,6 +138,7 @@ impl Engine {
             !in_flight,
             "existing execution must finish or reconcile before a new question"
         );
+        self.prepare_conversation(p.owner, id, &mut task).await?;
         for focus in &req.context_delta.requested_focus_refs {
             anyhow::ensure!(
                 task.entities.iter().any(|e| e.entity_ref == *focus),
@@ -159,6 +160,7 @@ impl Engine {
         }
         if app_chat {
             let reply = self.parser.chat(&req.question, &task, &catalog).await?;
+            self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, Some(reply.message));
             if !reply.discover {
                 task.intent = None;
@@ -301,6 +303,24 @@ impl Engine {
             }
         }
     }
+    async fn prepare_conversation(&self, owner: Uuid, id: Uuid, task: &mut Task) -> anyhow::Result<()> {
+        if task.conversation_timeline_version != 0 { return Ok(()); }
+        if let Some(result_ref) = task.result_refs.last().copied() {
+            if let Some(snapshot) = self.store.original_result_turn(owner, id, result_ref).await? {
+                task.restore_legacy_output(&snapshot, result_ref);
+            }
+        }
+        task.conversation_timeline_version = 1;
+        Ok(())
+    }
+
+    async fn archive_conversation_output(&self, p: &Principal, id: Uuid, request: Uuid, task: &mut Task) -> anyhow::Result<()> {
+        if task.proposal.is_none() && task.active_result_ref().is_none() { return Ok(()); }
+        let previous = self.view(p, id, request, None).await?;
+        task.archive_output(previous.proposal.map(serde_json::to_value).transpose()?);
+        Ok(())
+    }
+
     pub async fn view(
         &self,
         p: &Principal,
@@ -308,11 +328,12 @@ impl Engine {
         request: Uuid,
         forced: Option<Status>,
     ) -> anyhow::Result<Response> {
-        let (revision, task, connection) = self.store.load(p.owner, id).await?;
+        let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
         anyhow::ensure!(
             p.is_person() || connection == p.connection,
             "task belongs to another connection"
         );
+        self.prepare_conversation(p.owner, id, &mut task).await?;
         let mut actions: Vec<Action> = task
             .actions
             .iter()
@@ -352,6 +373,17 @@ impl Engine {
         let mut r = Response::new(request, forced.unwrap_or(inferred));
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
+        // Hydrate saved turn results through the same owner-scoped reader as
+        // the current result, including freshly signed report download links.
+        for (index, turn) in task.conversation.iter().enumerate() {
+            if let Some(result_ref) = turn.output.as_ref().and_then(|output| output.result_ref) {
+                r.context_view["conversation"][index]["output"]["result"] =
+                    self.result_page(p.owner, id, result_ref, 0).await?;
+            }
+        }
+        r.context_view["result_is_historical"] = json!(
+            !task.result_refs.is_empty() && task.active_result_ref().is_none()
+        );
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
