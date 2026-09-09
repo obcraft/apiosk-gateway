@@ -2,6 +2,11 @@
 // Run: node --env-file=.env scripts/test-direct-usecases.mjs
 import fs from 'node:fs/promises';
 import path from 'node:path';
+const secondSet=process.argv.includes('--second-set');
+// The second authored question explicitly names KVK 30204462; a name alone is ambiguous.
+const companies=secondSet?[['mollie','Mollie B.V.','30204462'],['volve','Volve Capital B.V.'],['hema','HEMA B.V.']]:[['hema','HEMA B.V.'],['afas','AFAS Software B.V.'],['coolblue','Coolblue B.V.']];
+const family=secondSet?['unilever','UNILEVER PLC']:['asml','ASML Holding N.V.'];
+const bank=secondSet?['starling','STARLING BANK LIMITED']:['monzo','MONZO BANK LIMITED'];
 const slugs=['kvk-dutch-business-register','gleif','opensanctions','companies-house','tenderned','cbs-statline','eurostat','data-overheid-nl','pdok','overheid-io'];
 const sb=process.env.SUPABASE_URL, key=process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!sb||!key) throw Error('Configured database credentials required');
@@ -41,25 +46,25 @@ async function call(id,slug,route,{query={},params={},append='',body,actualPath}
 function normalized(s){return String(s).toLowerCase().replace(/[^a-z0-9]/g,'');}
 function exact(rows,name,label,id){const matches=rows.filter(x=>normalized(label(x))===normalized(name));const ids=[...new Set(matches.map(id))];if(ids.length!==1)return null;return matches.find(x=>id(x)===ids[0]);}
 async function kvk(){
- const found={};for(const [short,name] of [['hema','HEMA B.V.'],['afas','AFAS Software B.V.'],['coolblue','Coolblue B.V.']]){
+ const found={};for(const [short,name,explicitKvk] of companies){
    const r=await call(short+'-search','kvk-dutch-business-register','/api/v2/zoeken',{query:{naam:name}});
-   const rows=r.data?.resultaten??[];found[short]=exact(rows,name,x=>x.naam,x=>x.kvkNummer);
+   const rows=r.data?.resultaten??[];found[short]=exact(explicitKvk?rows.filter(x=>x.kvkNummer===explicitKvk):rows,name,x=>x.naam,x=>x.kvkNummer);
    console.log(JSON.stringify({selection:short,selected:found[short]?.kvkNummer??null,candidates:rows.map(x=>({name:x.naam,kvk:x.kvkNummer,type:x.type})).slice(0,10)}));
  }
- if(found.coolblue)await call('coolblue-profile','kvk-dutch-business-register','/api/v1/basisprofielen',{append:found.coolblue.kvkNummer});
- for(const short of ['hema','afas'])if(found[short])await call(short+'-accounts','kvk-dutch-business-register','/api/v1/hvds/jaarrekeningen/kvknummer',{append:found[short].kvkNummer});
+ const profile=companies[2][0];if(found[profile])await call(profile+'-profile','kvk-dutch-business-register','/api/v1/basisprofielen',{append:found[profile].kvkNummer});
+ for(const [short] of companies.slice(0,2))if(found[short])await call(short+'-accounts','kvk-dutch-business-register','/api/v1/hvds/jaarrekeningen/kvknummer',{append:found[short].kvkNummer});
 }
-async function gleif(){const r=await call('asml-search','gleif','/lei-records',{query:{'filter[entity.legalName]':'ASML Holding N.V.','page[size]':10}});const s=exact(r.data?.data??[],'ASML Holding N.V.',x=>x.attributes?.entity?.legalName?.name,x=>x.id);console.log(JSON.stringify({selection:'asml',selected:s?.id??null,candidates:(r.data?.data??[]).map(x=>({id:x.id,name:x.attributes?.entity?.legalName?.name}))}));if(s)await call('asml-children','gleif','/lei-records/{lei}/direct-children',{params:{lei:s.id}});}
-async function uk(){const r=await call('monzo-search','companies-house','/search/companies',{query:{q:'MONZO BANK LIMITED',items_per_page:10}});const s=exact(r.data?.items??[],'MONZO BANK LIMITED',x=>x.title,x=>x.company_number);console.log(JSON.stringify({selection:'monzo',selected:s?.company_number??null}));if(s){await call('monzo-profile','companies-house','/company',{append:s.company_number});for(const route of ['officers','persons-with-significant-control'])await call('monzo-'+route,'companies-house','/company/{company_number}/'+route,{params:{company_number:s.company_number},query:{items_per_page:100}});}}
+async function gleif(){const [short,name]=family;const r=await call(short+'-search','gleif','/lei-records',{query:{'filter[entity.legalName]':name,'page[size]':10}});const s=exact(r.data?.data??[],name,x=>x.attributes?.entity?.legalName?.name,x=>x.id);console.log(JSON.stringify({selection:short,selected:s?.id??null,candidates:(r.data?.data??[]).map(x=>({id:x.id,name:x.attributes?.entity?.legalName?.name}))}));if(s)await call(short+'-children','gleif','/lei-records/{lei}/direct-children',{params:{lei:s.id}});}
+async function uk(){const [short,name]=bank;const r=await call(short+'-search','companies-house','/search/companies',{query:{q:name,items_per_page:10}});const s=exact(r.data?.items??[],name,x=>x.title,x=>x.company_number);console.log(JSON.stringify({selection:short,selected:s?.company_number??null}));if(s){await call(short+'-profile','companies-house','/company',{append:s.company_number});for(const route of ['officers','persons-with-significant-control'])await call(short+'-'+route,'companies-house','/company/{company_number}/'+route,{params:{company_number:s.company_number},query:{items_per_page:100}});}}
 const jobs=[kvk,gleif,uk,
- ()=>call('coolblue-sanctions','opensanctions','/match',{append:'default',query:{limit:10},body:{queries:{q1:{schema:'Company',properties:{name:['Coolblue B.V.']}}}}}),
- ()=>call('tenders','tenderned','/v2/publicaties',{query:{search:'laadpalen'}}),
- ()=>call('cbs-bankruptcies','cbs-statline','/odata/v1/CBS/82244NED/Observations',{query:{$top:100,$count:true,$orderby:'Perioden desc'}}),
+ ()=>call(companies[2][0]+'-sanctions','opensanctions','/match',{append:'default',query:{limit:10},body:{queries:{q1:{schema:'Company',properties:{name:[companies[2][1]]}}}}}),
+ ()=>call('tenders','tenderned','/v2/publicaties',{query:{search:secondSet?'school':'laadpalen'}}),
+ ()=>call('cbs-bankruptcies','cbs-statline','/odata/v1/CBS/82244NED/Observations',{query:{$top:100,$count:true,$orderby:'Perioden desc',...(secondSet?{$filter:"startswith(Perioden,'2025')"}:{})}}),
  async()=>{for(const [name,code,select] of [['measures','MeasureCodes','Identifier,Title,Unit'],['sectors','BedrijfstakkenBranchesSBI2008Codes','Identifier,Title'],['entity-types','TypeGefailleerdeCodes','Identifier,Title']])await call('cbs-'+name,'cbs-statline','/odata/v1/CBS/{tableId}/'+code,{params:{tableId:'82244NED'},query:{$select:select}});},
- async()=>{for(const geo of ['NL','DE'])await call('gdp-'+geo,'eurostat','/statistics/1.0/data',{append:'nama_10_gdp',query:{geo,time:'2023',unit:'CP_MEUR',na_item:'B1GQ',format:'JSON',lang:'EN'}});},
- ()=>call('waterquality','data-overheid-nl','/data/api/3/action/package_search',{query:{q:'waterkwaliteit',rows:20}}),
- ()=>call('dam-address','pdok','/bzk/locatieserver/search/v3_1/free',{query:{q:'Dam 1 Amsterdam'}}),
- ()=>call('postcode-addresses','overheid-io','/bag',{query:{'filters[postcode]':'1012JS'}})
+ async()=>{for(const geo of ['NL','DE'])await call('gdp-'+geo,'eurostat','/statistics/1.0/data',{append:'nama_10_gdp',query:{geo,time:secondSet?'2024':'2023',unit:'CP_MEUR',na_item:'B1GQ',format:'JSON',lang:'EN'}});},
+ ()=>call(secondSet?'soilquality':'waterquality','data-overheid-nl','/data/api/3/action/package_search',{query:{q:secondSet?'bodemkwaliteit':'waterkwaliteit',rows:20}}),
+ ()=>call(secondSet?'coolsingel-address':'dam-address','pdok','/bzk/locatieserver/search/v3_1/free',{query:{q:secondSet?'Coolsingel 40 Rotterdam':'Dam 1 Amsterdam'}}),
+ ()=>call('postcode-addresses','overheid-io','/bag',{query:{'filters[postcode]':secondSet?'3011AD':'1012JS'}})
 ];
 let next=0;await Promise.all(Array.from({length:3},async()=>{while(next<jobs.length){const job=jobs[next++];try{await job();}catch(e){console.log('JOB_ERROR '+scrub(e.message));}}}));
 await fs.writeFile(path.join(out,'manifest.json'),JSON.stringify({started:new Date().toISOString(),scope:'Direct configured upstreams; no Apiosk billing or connector. Provider subscription usage may apply.',calls:results.map(({data,request_body,...r})=>r)},null,2));

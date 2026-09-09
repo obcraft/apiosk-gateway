@@ -6,5 +6,6 @@
 /supabase/.branches/
 /test-artifacts/
 /.local/
+/output/
 
 __pycache__/
