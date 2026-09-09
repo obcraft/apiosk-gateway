@@ -36,6 +36,18 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     c.parser.fetch_add(1, Ordering::Relaxed);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input["surface"] == "planning-review" {
+        assert!(input["available"]["requested_services"].as_array().unwrap().iter()
+            .any(|s| s["capability"] == "company.accounts" && s["input_map"].is_object()));
+        let mut corrected = input["intent"].clone();
+        let alias = input["question"] == "Alias Example";
+        corrected["goals"][0]["constraints"]["source"] = json!("fixture");
+        return Json(json!({"choices":[{"message":{"content":json!({
+            "message":if alias { "Ik zoek het bedrijfsnummer op en haal daarna de jaarrekening op." }
+                else { "Deze bron laat geen afzonderlijk boekjaar kiezen. Wil je de beschikbare jaarrekening laten ophalen?" },
+            "intent":if alias { corrected } else { Value::Null }
+        }).to_string()}}]}));
+    }
     if input["surface"] == "ask-chat" {
         if input["question"] == "Unavailable first question"
             || (input["question"] == "Transient first question" && c.transient_chat.fetch_add(1, Ordering::Relaxed) == 0) {
@@ -68,8 +80,13 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     } else {
         "company.accounts"
     };
+    let constraints = match input["question"].as_str() {
+        Some("Period Example 2024 en 2025") => json!({"period":"2024 en 2025"}),
+        Some("Alias Example") => json!({"source":"Fixture registry"}),
+        _ => json!({}),
+    };
     Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
+        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
     )
 }
 async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
@@ -750,6 +767,36 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(unsupported.errors[0]["code"], "unsupported_request");
     assert!(unsupported.proposal.is_none());
     assert_eq!(counts.provider.load(Ordering::Relaxed), providers_before_failure, "interpretation retries and failures cannot purchase data");
+    // Both App and connected clients get a saved AI clarification rather
+    // than the compiler's unsupported error. Reloading does not replan.
+    for app_chat in [true, false] {
+        let request = DiscoverRequest { request_id:Uuid::new_v4(),
+            question:"Period Example 2024 en 2025".into(), state:None, context_delta:Default::default() };
+        let clarification = if app_chat { engine.chat(&person, request).await.unwrap() }
+            else { engine.discover(&person, request).await.unwrap() };
+        assert_eq!(clarification.status, Status::NeedsInput, "{clarification:?}");
+        assert!(clarification.errors.is_empty());
+        assert!(clarification.proposal.is_none());
+        assert!(clarification.next_actions.is_empty());
+        assert!(clarification.context_view["conversation"][0]["reply"].as_str().unwrap().contains("boekjaar"));
+        let task_id = clarification.state.as_ref().unwrap().state_ref;
+        let (_, saved, _) = store.load(person.owner, task_id).await.unwrap();
+        assert_eq!(saved.intent.unwrap()["goals"][0]["constraints"]["period"], "2024 en 2025");
+        let model_calls = counts.parser.load(Ordering::Relaxed);
+        let recovered = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+        assert_eq!(recovered.status, Status::NeedsInput);
+        assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls);
+        let continued = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),
+            question:"Haal de beschikbare jaarrekening op".into(), state:recovered.state, context_delta:Default::default() }).await.unwrap();
+        assert_eq!(continued.status, Status::Ready);
+        assert_eq!(continued.proposal.as_ref().unwrap().steps.len(), 2);
+    }
+    let corrected = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),
+        question:"Alias Example".into(), state:None, context_delta:Default::default() }).await.unwrap();
+    assert_eq!(corrected.status, Status::Ready, "{corrected:?}");
+    assert_eq!(corrected.proposal.as_ref().unwrap().max_total_atomic, "138");
+    assert_eq!(corrected.proposal.as_ref().unwrap().steps.len(), 2);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), providers_before_failure, "planning cannot purchase data");
     let before = counts.provider.load(Ordering::Relaxed);
     let greeting = engine
         .chat(

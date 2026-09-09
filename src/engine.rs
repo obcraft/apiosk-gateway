@@ -206,7 +206,23 @@ impl Engine {
         task.original_subject = None;
         task.cancelled = false;
         task.execution_error = None;
-        let status = self.plan(&mut task, &catalog, &intent)?;
+        let mut status = self.plan(&mut task, &catalog, &intent)?;
+        if let Resolution::Unsupported(reason) = resolver::resolve(&catalog, &task, &intent) {
+            let review = self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await?;
+            if let Some(revised) = review.intent {
+                task.intent = Some(serde_json::to_value(&revised)?);
+                status = self.plan(&mut task, &catalog, &revised)?;
+            } else {
+                task.proposal = None;
+                task.actions = vec![json!({"kind":"planning_clarification","message":review.message})];
+                status = Status::NeedsInput;
+            }
+            if let Some(turn) = task.conversation.last_mut().filter(|turn| turn.question == req.question) {
+                turn.reply = Some(review.message);
+            } else {
+                task.record_turn(&req.question, Some(review.message));
+            }
+        }
         self.store.save_intent(p.owner, id, revision, &task).await?;
         self.view(p, id, req.request_id, Some(status)).await
     }
@@ -313,7 +329,8 @@ impl Engine {
             if task.result_refs.is_empty() { Status::Unsupported } else { Status::Partial }
         } else if !task.pending_candidates.is_empty() {
             Status::NeedsSelection
-        } else if actions.iter().any(|a| matches!(a, Action::Supply { .. })) {
+        } else if actions.iter().any(|a| matches!(a, Action::Supply { .. }))
+            || task.actions.iter().any(|v| v["kind"] == "planning_clarification") {
             Status::NeedsInput
         } else if actions.iter().any(|a| matches!(a, Action::Poll { .. })) {
             Status::Running

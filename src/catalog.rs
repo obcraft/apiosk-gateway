@@ -200,6 +200,21 @@ impl Catalog {
         json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"sources":sources,
             "input_types":inputs,"input_definitions":definitions,"service_inputs":bindings})
     }
+
+    /// Reviewed API contracts for semantic planning. No credentials, payloads
+    /// or fixed parameters belong in the model's context.
+    pub fn planning_view(&self, intent: &crate::parser::Intent) -> Value {
+        let capabilities: std::collections::BTreeSet<_> = intent.goals.iter()
+            .map(|goal| goal.capability.as_str()).collect();
+        let services: Vec<_> = self.services.iter()
+            .filter(|s| capabilities.contains(s.contract.capability_slug.as_str()))
+            .map(|s| json!({"source":s.api_slug,"name":s.name,
+                "capability":s.contract.capability_slug,"method":s.method,"path":s.path,
+                "jurisdiction":s.jurisdiction,"requires":s.contract.requires,
+                "input_map":s.contract.input_map,"outputs":s.contract.output_map,
+                "pagination":s.pagination})).collect();
+        json!({"catalog":self.parser_view(),"requested_services":services})
+    }
 }
 pub struct CatalogCache {
     pool: PgPool,

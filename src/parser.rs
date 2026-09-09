@@ -36,6 +36,41 @@ pub struct Intent {
     pub answer_operations: Vec<String>,
     pub unresolved_references: Vec<String>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlanningReview {
+    pub message: String,
+    pub intent: Option<Intent>,
+}
+
+impl PlanningReview {
+    fn validate(&self, original: &Intent, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<()> {
+        anyhow::ensure!(!self.message.trim().is_empty() && self.message.len() <= 3000, "invalid planning message");
+        let Some(revised) = &self.intent else { return Ok(()) };
+        revised.validate(question, task, catalog)?;
+        anyhow::ensure!(serde_json::to_value(&revised.subjects)? == serde_json::to_value(&original.subjects)?
+            && revised.goals.len() == original.goals.len()
+            && revised.answer_operations == original.answer_operations
+            && revised.unresolved_references == original.unresolved_references, "planner changed the request");
+        for (before, after) in original.goals.iter().zip(&revised.goals) {
+            anyhow::ensure!(before.capability == after.capability && before.subject == after.subject
+                && before.constraints.len() == after.constraints.len(), "planner changed a goal");
+            for (key, value) in &before.constraints {
+                if after.constraints.get(key) == Some(value) { continue }
+                // Semantic source alias matching is an AI decision; an already
+                // canonical source is an exact choice and cannot be replaced.
+                anyhow::ensure!(key == "source"
+                    && !catalog.services.iter().any(|s| value.as_str() == Some(s.api_slug.as_str()))
+                    && catalog.services.iter().any(|s| after.constraints.get(key).and_then(Value::as_str) == Some(s.api_slug.as_str())
+                        && s.contract.capability_slug == after.capability), "planner relaxed a requirement");
+            }
+        }
+        anyhow::ensure!(!matches!(crate::resolver::resolve(catalog, task, revised), crate::resolver::Resolution::Unsupported(_)),
+            "corrected plan is still unsupported; ask a clarification instead");
+        Ok(())
+    }
+}
 impl Intent {
     pub fn validate(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<()> {
         anyhow::ensure!(
@@ -177,6 +212,22 @@ impl Parser {
         }).await
     }
 
+    pub async fn review_plan(&self, question: &str, task: &Task, catalog: &Catalog, intent: &Intent, reason: &str) -> anyhow::Result<PlanningReview> {
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":4096,
+            "reasoning":{"effort":"minimal","exclude":true},
+            "provider":{"require_parameters":true},"response_format":{"type":"json_object"},
+            "messages":[
+                {"role":"system","content":include_str!("../contracts/planning-prompt.txt")},
+                {"role":"user","content":json!({"surface":"planning-review","question":question,
+                    "context":task.context_view(),"intent":intent,"compiler_feedback":reason,
+                    "available":catalog.planning_view(intent)}).to_string()}]});
+        self.completion("planning", &payload, |raw| {
+            let review: PlanningReview = serde_json::from_str(raw)?;
+            review.validate(intent, question, task, catalog)?;
+            Ok(review)
+        }).await
+    }
+
     /// Retrying interpretation is safe: this boundary cannot call a data
     /// provider, authorize a quote or execute a purchase. Both attempts share
     /// the original 25-second stage deadline.
@@ -293,6 +344,29 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn planning_cannot_drop_periods_goals_or_change_an_explicit_source() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let task = Task::default();
+        let original: Intent = serde_json::from_value(json!({
+            "subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],
+            "goals":[{"subject":0,"capability":"company.accounts","constraints":{"source":"fixture","period":"2024 en 2025"}}],
+            "answer_operations":["compare"],"unresolved_references":[]
+        })).unwrap();
+        for mutate in ["drop_period", "drop_goal", "change_source", "unsupported_plan"] {
+            let mut revised = original.clone();
+            match mutate {
+                "drop_period" => { revised.goals[0].constraints.remove("period"); },
+                "drop_goal" => revised.goals.clear(),
+                "change_source" => { revised.goals[0].constraints.insert("source".into(), json!("other")); },
+                _ => (),
+            }
+            assert!(PlanningReview { message:"Plan".into(), intent:Some(revised) }
+                .validate(&original, "Example 2024 en 2025", &task, &catalog).is_err(), "{mutate}");
+        }
+        assert!(PlanningReview { message:"Wil je de beschikbare jaarrekening ophalen?".into(), intent:None }
+            .validate(&original, "Example 2024 en 2025", &task, &catalog).is_ok());
+    }
     async fn model_fixture(responses: Vec<(u16, Value)>) -> (Parser, Arc<AtomicU64>, tokio::task::JoinHandle<()>) {
         use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
         use std::{collections::VecDeque, sync::Mutex};
