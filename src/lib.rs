@@ -13,5 +13,6 @@ pub mod protocol;
 pub mod resolver;
 pub mod server;
 pub mod sources;
+pub mod source_preview;
 pub mod state;
 pub mod store;

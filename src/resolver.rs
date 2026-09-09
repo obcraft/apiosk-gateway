@@ -56,6 +56,7 @@ pub enum Action {
     },
     Wait { action_id: Uuid, until: DateTime<Utc> },
     Analyze { action_id: Uuid },
+    RetryAnalysis { action_id: Uuid },
     Cancel {
         action_id: Uuid,
     },
@@ -70,6 +71,7 @@ impl Action {
             | Self::Poll { action_id, .. }
             | Self::Wait { action_id, .. }
             | Self::Analyze { action_id }
+            | Self::RetryAnalysis { action_id }
             | Self::Cancel { action_id } => *action_id,
         }
     }
@@ -106,6 +108,12 @@ impl Action {
             Self::Poll { .. } | Self::Wait { .. } | Self::Analyze { .. } => (
                 "poll",
                 "Check status".into(),
+                false,
+                json!({"type":"null"}),
+            ),
+            Self::RetryAnalysis { .. } => (
+                "retry_analysis",
+                "Retry analysis of saved results".into(),
                 false,
                 json!({"type":"null"}),
             ),
@@ -331,6 +339,12 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "company.registry-profile" => "Retrieve the company profile".to_owned(),
             "company.registered-names" => "Retrieve registered company names".to_owned(),
             "company.branch-profile" => "Retrieve the branch profile".to_owned(),
+            "statistics.eurostat-gdp-netherlands" => "Retrieve Dutch GDP for the requested year".to_owned(),
+            "statistics.eurostat-gdp-germany" => "Retrieve German GDP for the requested year".to_owned(),
+            "statistics.cbs-bankruptcies" => "Retrieve the newest bankruptcy observations".to_owned(),
+            "statistics.cbs-bankruptcy-measures" => "Read the CBS measures and units".to_owned(),
+            "statistics.cbs-bankruptcy-sectors" => "Read the CBS sector definitions".to_owned(),
+            "statistics.cbs-bankruptcy-entity-types" => "Read the CBS business-type definitions".to_owned(),
             _ => capability.replace(['.', '_', '-'], " "),
         };
         let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !r.optional).filter_map(|required| {
@@ -348,6 +362,13 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
+    #[test]
+    fn saved_analysis_retry_is_manual_and_never_authorizes_a_purchase() {
+        let action=Action::RetryAnalysis{action_id:Uuid::new_v4()}.public();
+        assert_eq!(action.kind,"retry_analysis");
+        assert!(!action.requires_authorization);
+        assert_eq!(action.input_schema,json!({"type":"null"}));
+    }
     #[test]
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();

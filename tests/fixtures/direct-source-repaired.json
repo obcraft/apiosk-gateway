@@ -1,0 +1,3468 @@
+{
+  "vocabulary": [
+    {
+      "slug": "legal_compliance.omschrijving",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "cbs.input.odata_filter",
+      "value_schema": {
+        "type": "string",
+        "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_orderby",
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. Modified desc."
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{8}$"
+      }
+    },
+    {
+      "slug": "geo.weergavenaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "cbs.input.odata_skip",
+      "value_schema": {
+        "type": "integer",
+        "description": "Rows to skip, for paging."
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "legal_name"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "sbi_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trade_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "employee_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "slug": "geo.numfound",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "geo.bron",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.huisnlt",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.postcode",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.wijkcode",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.buurtcode",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.buurtnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.straatnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.gemeentecode",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.gemeentenaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.woonplaatsnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.start",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company_intel.size",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company_intel.number",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company_intel.title",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.europees",
+      "value_schema": {
+        "type": "boolean"
+      }
+    },
+    {
+      "slug": "company_intel.omschrijving",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.publicatieid",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.publicatiedatum",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.aanbestedingnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.opdrachtgevernaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.totalpages",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company_intel.totalelements",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "legal_compliance.size",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "legal_compliance.number",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "legal_compliance.title",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.europees",
+      "value_schema": {
+        "type": "boolean"
+      }
+    },
+    {
+      "slug": "legal_compliance.publicatieid",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.publicatiedatum",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.aanbestedingnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.opdrachtgevernaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.totalpages",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "legal_compliance.totalelements",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "geo_environment.input.lat",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "geo_environment.input.lon",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "geo.input.q",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "geo.input.fq",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.cpvcodes",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.procedure",
+      "value_schema": {
+        "enum": [
+          "OPE",
+          "NOP",
+          "CCD",
+          "OMB",
+          "OZB",
+          "OHP",
+          "OH",
+          "INP",
+          "CA",
+          "APM",
+          "APE",
+          "VUB"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.typeopdracht",
+      "value_schema": {
+        "enum": [
+          "W",
+          "L",
+          "D"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumpreset",
+      "value_schema": {
+        "enum": [
+          "AF7",
+          "AF30"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.search",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.cpvcodes",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.procedure",
+      "value_schema": {
+        "enum": [
+          "OPE",
+          "NOP",
+          "CCD",
+          "OMB",
+          "OZB",
+          "OHP",
+          "OH",
+          "INP",
+          "CA",
+          "APM",
+          "APE",
+          "VUB"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.typeopdracht",
+      "value_schema": {
+        "enum": [
+          "W",
+          "L",
+          "D"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.sluitingsdatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.publicatiedatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.sluitingsdatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.publicatiedatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "legal_compliance.input.publicatiedatumpreset",
+      "value_schema": {
+        "enum": [
+          "AF7",
+          "AF30"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "cbs.observations_82244ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "slug": "pdok.search_page",
+      "subject_kind": "geo",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "response"
+        ],
+        "properties": {
+          "response": {
+            "type": "object",
+            "required": [
+              "docs",
+              "numFound"
+            ],
+            "properties": {
+              "docs": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "numFound": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "dbc23529-ae3f-423a-873f-b7dbcb1fdcb2",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "api_slug": "tenderned",
+      "name": "TenderNed",
+      "method": "GET",
+      "path": "/v2/publicaties",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "content": [
+          {
+            "publicatieId": "330128",
+            "publicatieDatum": "2024-03-23",
+            "typePublicatie": {
+              "code": "VAK",
+              "omschrijving": "Vooraankondiging"
+            },
+            "aanbestedingNaam": "Marktconsultatie Laadpalen gemeente Nijmegen",
+            "opdrachtgeverNaam": "gemeente Nijmegen",
+            "procedure": {
+              "code": "NA"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell",
+            "tsenderLink": "https://s2c.mercell.com/today/80221",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF04",
+              "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Gemeente Nijmegen heeft circa 430 laadpalen in de openbare ruimte staan middels verschillende concessies. Daarnaast hebben we 42 semi publieke laadpalen op eigen terreinen staan. Deze laadpalen hebben we in eigen beheer. Voor vervanging en uitbreiding van de laadpalen op eigen terreinen (parkeergarages, P&R en deelvoertuigen in de openbare ruimte) gaan wij op zoek naar een aanbieder. Wij zoeken hierbij een aanbieder die de laadpalen levert, 2elijns onderhoud doet aan de laadpalen en de benodigde software kan leveren. Wij willen hierbij niet afhankelijk zijn van een CPO, zodat we zelf de controle hebben.",
+            "isEformsWijziging": false,
+            "score": 27.810678,
+            "kenmerk": 458244,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/330128",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "376218",
+            "publicatieDatum": "2025-04-24",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "Laadpalen",
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "aantalDagenTotSluitingsDatum": -566,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "digitaal": true,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isEformsWijziging": false,
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/376218",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "361435",
+            "publicatieDatum": "2024-12-18",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Laadpalen",
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "aantalDagenTotSluitingsDatum": -566,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "digitaal": true,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isEformsWijziging": false,
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/361435",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "307391",
+            "publicatieDatum": "2023-08-15",
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            },
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "aantalDagenTotSluitingsDatum": -1076,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF14",
+              "omschrijving": "Kennisgeving van aanvullende informatie, informatie over een onvolledige procedure of rectificatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte. \nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isEformsWijziging": true,
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307391",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "307240",
+            "publicatieDatum": "2023-08-13",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "aantalDagenTotSluitingsDatum": -1076,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte. \nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isEformsWijziging": false,
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307240",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "296385",
+            "publicatieDatum": "2023-04-27",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Openbaar bod publieke EV laadpalen",
+            "opdrachtgeverNaam": "Alliander N.V.",
+            "procedure": {
+              "code": "NA"
+            },
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/36835",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF07",
+              "omschrijving": "Erkenningsregeling - speciale sectoren"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Middels een openbaar bod Publieke EV laadpalen (open house) kunnen Inschrijvers zich aanmelden om het werkpakket Publieke EV laadpalen in het verzorgingsgebied van Alliander N.V. uit te voeren.",
+            "isEformsWijziging": false,
+            "score": 25.64547,
+            "kenmerk": 410073,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/296385",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "326177",
+            "publicatieDatum": "2024-02-16",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "opdrachtgeverNaam": "Politie",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell",
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 452537,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/326177",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "301746",
+            "publicatieDatum": "2023-06-24",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "opdrachtgeverNaam": "Politie",
+            "sluitingsDatum": "2023-10-05T12:00:00",
+            "aantalDagenTotSluitingsDatum": -1070,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 417912,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/301746",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "278739",
+            "publicatieDatum": "2022-11-10",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "EV Laadpalen",
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "aantalDagenTotSluitingsDatum": -1675,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Negometrix3",
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF06",
+              "omschrijving": "Aankondiging van een gegunde opdracht - speciale sectoren"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Doel van de aanbesteding: de Opdracht\nAangezien Schiphol CO2 reductie doelstellingen wil verwezenlijken de komende jaren, waarbij electrification een centraal thema is, verwachten we de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens hiervoor middels een aanbesteding tot een tweetal raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen. \nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de  Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/278739",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "248112",
+            "publicatieDatum": "2021-12-25",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "EV Laadpalen",
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "aantalDagenTotSluitingsDatum": -1675,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Negometrix3",
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Aangezien Schiphol CO2 reductie doelstellingen wil verwezenlijken de komende jaren, waarbij electrification een centraal thema is, verwachten we de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens hiervoor middels een aanbesteding tot een tweetal raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen. \nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de  Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden\n ",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/248112",
+              "title": "self"
+            }
+          }
+        ],
+        "first": true,
+        "last": false,
+        "totalElements": 221,
+        "totalPages": 23,
+        "size": 10,
+        "numberOfElements": 10,
+        "number": 0
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "company_intel.search",
+        "version": 3,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_intel.input.search",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.cpvcodes",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.procedure",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.publicatieid",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.typeopdracht",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.sluitingsdatumtot",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.publicatiedatumtot",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.sluitingsdatumvanaf",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.publicatiedatumvanaf",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "company_intel.input.publicatiedatumpreset",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_intel.input.search": {
+            "in": "query",
+            "name": "search"
+          },
+          "company_intel.publicatieid": {
+            "in": "path_append",
+            "name": "publicatieId"
+          },
+          "company_intel.input.cpvcodes": {
+            "in": "query",
+            "name": "cpvCodes"
+          },
+          "company_intel.input.procedure": {
+            "in": "query",
+            "name": "procedure"
+          },
+          "company_intel.input.typeopdracht": {
+            "in": "query",
+            "name": "typeOpdracht"
+          },
+          "company_intel.input.sluitingsdatumtot": {
+            "in": "query",
+            "name": "sluitingsDatumTot"
+          },
+          "company_intel.input.publicatiedatumtot": {
+            "in": "query",
+            "name": "publicatieDatumTot"
+          },
+          "company_intel.input.sluitingsdatumvanaf": {
+            "in": "query",
+            "name": "sluitingsDatumVanaf"
+          },
+          "company_intel.input.publicatiedatumvanaf": {
+            "in": "query",
+            "name": "publicatieDatumVanaf"
+          },
+          "company_intel.input.publicatiedatumpreset": {
+            "in": "query",
+            "name": "publicatieDatumPreset"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "tenderned.publication_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "64c537d4-6539-47df-bd1b-11a2a0044465",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "api_slug": "tenderned",
+      "name": "TenderNed",
+      "method": "GET",
+      "path": "/v2/publicaties",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "content": [
+          {
+            "publicatieId": "330128",
+            "publicatieDatum": "2024-03-23",
+            "typePublicatie": {
+              "code": "VAK",
+              "omschrijving": "Vooraankondiging"
+            },
+            "aanbestedingNaam": "Marktconsultatie Laadpalen gemeente Nijmegen",
+            "opdrachtgeverNaam": "gemeente Nijmegen",
+            "procedure": {
+              "code": "NA"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell",
+            "tsenderLink": "https://s2c.mercell.com/today/80221",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF04",
+              "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Gemeente Nijmegen heeft circa 430 laadpalen in de openbare ruimte staan middels verschillende concessies. Daarnaast hebben we 42 semi publieke laadpalen op eigen terreinen staan. Deze laadpalen hebben we in eigen beheer. Voor vervanging en uitbreiding van de laadpalen op eigen terreinen (parkeergarages, P&R en deelvoertuigen in de openbare ruimte) gaan wij op zoek naar een aanbieder. Wij zoeken hierbij een aanbieder die de laadpalen levert, 2elijns onderhoud doet aan de laadpalen en de benodigde software kan leveren. Wij willen hierbij niet afhankelijk zijn van een CPO, zodat we zelf de controle hebben.",
+            "isEformsWijziging": false,
+            "score": 27.810678,
+            "kenmerk": 458244,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/330128",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "376218",
+            "publicatieDatum": "2025-04-24",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "Laadpalen",
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "aantalDagenTotSluitingsDatum": -566,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "digitaal": true,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isEformsWijziging": false,
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/376218",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "361435",
+            "publicatieDatum": "2024-12-18",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Laadpalen",
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "aantalDagenTotSluitingsDatum": -566,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "digitaal": true,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isEformsWijziging": false,
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/361435",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "307391",
+            "publicatieDatum": "2023-08-15",
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            },
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "aantalDagenTotSluitingsDatum": -1076,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF14",
+              "omschrijving": "Kennisgeving van aanvullende informatie, informatie over een onvolledige procedure of rectificatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte. \nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isEformsWijziging": true,
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307391",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "307240",
+            "publicatieDatum": "2023-08-13",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "aantalDagenTotSluitingsDatum": -1076,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte. \nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isEformsWijziging": false,
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307240",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "296385",
+            "publicatieDatum": "2023-04-27",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Openbaar bod publieke EV laadpalen",
+            "opdrachtgeverNaam": "Alliander N.V.",
+            "procedure": {
+              "code": "NA"
+            },
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/36835",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF07",
+              "omschrijving": "Erkenningsregeling - speciale sectoren"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Middels een openbaar bod Publieke EV laadpalen (open house) kunnen Inschrijvers zich aanmelden om het werkpakket Publieke EV laadpalen in het verzorgingsgebied van Alliander N.V. uit te voeren.",
+            "isEformsWijziging": false,
+            "score": 25.64547,
+            "kenmerk": 410073,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/296385",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "326177",
+            "publicatieDatum": "2024-02-16",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "opdrachtgeverNaam": "Politie",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell",
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 452537,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/326177",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "301746",
+            "publicatieDatum": "2023-06-24",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "opdrachtgeverNaam": "Politie",
+            "sluitingsDatum": "2023-10-05T12:00:00",
+            "aantalDagenTotSluitingsDatum": -1070,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 417912,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/301746",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "278739",
+            "publicatieDatum": "2022-11-10",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "aanbestedingNaam": "EV Laadpalen",
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "aantalDagenTotSluitingsDatum": -1675,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Negometrix3",
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF06",
+              "omschrijving": "Aankondiging van een gegunde opdracht - speciale sectoren"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Doel van de aanbesteding: de Opdracht\nAangezien Schiphol CO2 reductie doelstellingen wil verwezenlijken de komende jaren, waarbij electrification een centraal thema is, verwachten we de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens hiervoor middels een aanbesteding tot een tweetal raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen. \nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de  Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/278739",
+              "title": "self"
+            }
+          },
+          {
+            "publicatieId": "248112",
+            "publicatieDatum": "2021-12-25",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "aanbestedingNaam": "EV Laadpalen",
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "aantalDagenTotSluitingsDatum": -1675,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "tsenderNaam": "Negometrix3",
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "digitaal": false,
+            "europees": true,
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isVroegtijdigeBeeindiging": false,
+            "opdrachtBeschrijving": "Aangezien Schiphol CO2 reductie doelstellingen wil verwezenlijken de komende jaren, waarbij electrification een centraal thema is, verwachten we de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens hiervoor middels een aanbesteding tot een tweetal raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen. \nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de  Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden\n ",
+            "isEformsWijziging": false,
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/248112",
+              "title": "self"
+            }
+          }
+        ],
+        "first": true,
+        "last": false,
+        "totalElements": 221,
+        "totalPages": 23,
+        "size": 10,
+        "numberOfElements": 10,
+        "number": 0
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "legal_compliance.search",
+        "version": 3,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "legal_compliance.input.search",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.cpvcodes",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.procedure",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.publicatieid",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.typeopdracht",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.sluitingsdatumtot",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.publicatiedatumtot",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.sluitingsdatumvanaf",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.publicatiedatumvanaf",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "legal_compliance.input.publicatiedatumpreset",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "legal_compliance.input.search": {
+            "in": "query",
+            "name": "search"
+          },
+          "legal_compliance.publicatieid": {
+            "in": "path_append",
+            "name": "publicatieId"
+          },
+          "legal_compliance.input.cpvcodes": {
+            "in": "query",
+            "name": "cpvCodes"
+          },
+          "legal_compliance.input.procedure": {
+            "in": "query",
+            "name": "procedure"
+          },
+          "legal_compliance.input.typeopdracht": {
+            "in": "query",
+            "name": "typeOpdracht"
+          },
+          "legal_compliance.input.sluitingsdatumtot": {
+            "in": "query",
+            "name": "sluitingsDatumTot"
+          },
+          "legal_compliance.input.publicatiedatumtot": {
+            "in": "query",
+            "name": "publicatieDatumTot"
+          },
+          "legal_compliance.input.sluitingsdatumvanaf": {
+            "in": "query",
+            "name": "sluitingsDatumVanaf"
+          },
+          "legal_compliance.input.publicatiedatumvanaf": {
+            "in": "query",
+            "name": "publicatieDatumVanaf"
+          },
+          "legal_compliance.input.publicatiedatumpreset": {
+            "in": "query",
+            "name": "publicatieDatumPreset"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "tenderned.publication_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "8e59ce7a-bc7d-4703-a09c-bbc74c687df2",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "kvkNummer": "24330087",
+        "indNonMailing": "Nee",
+        "naam": "Coolblue B.V.",
+        "materieleRegistratie": {
+          "datumAanvang": "20020110"
+        },
+        "totaalWerkzamePersonen": 110,
+        "statutaireNaam": "Coolblue B.V.",
+        "handelsnamen": [
+          {
+            "naam": "Coolblue B.V.",
+            "volgorde": 0
+          },
+          {
+            "naam": "Coolblue",
+            "volgorde": 1
+          },
+          {
+            "naam": "Coolblue.nl",
+            "volgorde": 2
+          },
+          {
+            "naam": "Wisberg",
+            "volgorde": 3
+          },
+          {
+            "naam": "BlueBuilt",
+            "volgorde": 4
+          },
+          {
+            "naam": "Veripart",
+            "volgorde": 5
+          },
+          {
+            "naam": "Fuave",
+            "volgorde": 6
+          },
+          {
+            "naam": "Vortech",
+            "volgorde": 7
+          },
+          {
+            "naam": "Woxom",
+            "volgorde": 8
+          }
+        ],
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "47789",
+            "sbiOmschrijving": "Detailhandel gespecialiseerd in overige nieuwe artikelen (rest)",
+            "indHoofdactiviteit": "Ja"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "810433941",
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              }
+            ]
+          },
+          "hoofdvestiging": {
+            "vestigingsnummer": "000018992536",
+            "kvkNummer": "24330087",
+            "materieleRegistratie": {
+              "datumAanvang": "19991124"
+            },
+            "eersteHandelsnaam": "Coolblue B.V.",
+            "indHoofdvestiging": "Ja",
+            "indCommercieleVestiging": "Ja",
+            "totaalWerkzamePersonen": 110,
+            "adressen": [
+              {
+                "type": "bezoekadres",
+                "indAfgeschermd": "Nee",
+                "volledigAdres": "Weena 664 3012CN Rotterdam",
+                "straatnaam": "Weena",
+                "huisnummer": 664,
+                "postcode": "3012CN",
+                "plaats": "Rotterdam",
+                "land": "Nederland"
+              }
+            ],
+            "websites": [
+              "www.boormachinestore.nl",
+              "www.strijkijzerstore.nl",
+              "www.bluerayspelershop.nl",
+              "www.bluerayspelershop.be",
+              "www.carkitcenter.nl",
+              "www.prepaidstore.nl",
+              "www.tvstore.nl",
+              "www.mobielinternetshop.nl",
+              "www.accustore.nl",
+              "www.seniorentelefoonstore.nl",
+              "www.verrekijkercenter.nl"
+            ],
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000018992536"
+              }
+            ]
+          }
+        },
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 6,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.profile": {
+              "fields": {
+                "sbi_codes": {
+                  "path": "$.sbiActiviteiten[*].sbiCode",
+                  "collect": true
+                },
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "trade_names": {
+                  "path": "$.handelsnamen[*].naam",
+                  "collect": true
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "6db98178-83e2-4538-a615-0a14954f2c32",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "kvkNummer": "24330087",
+        "indNonMailing": "Nee",
+        "naam": "Coolblue B.V.",
+        "materieleRegistratie": {
+          "datumAanvang": "20020110"
+        },
+        "totaalWerkzamePersonen": 110,
+        "statutaireNaam": "Coolblue B.V.",
+        "handelsnamen": [
+          {
+            "naam": "Coolblue B.V.",
+            "volgorde": 0
+          },
+          {
+            "naam": "Coolblue",
+            "volgorde": 1
+          },
+          {
+            "naam": "Coolblue.nl",
+            "volgorde": 2
+          },
+          {
+            "naam": "Wisberg",
+            "volgorde": 3
+          },
+          {
+            "naam": "BlueBuilt",
+            "volgorde": 4
+          },
+          {
+            "naam": "Veripart",
+            "volgorde": 5
+          },
+          {
+            "naam": "Fuave",
+            "volgorde": 6
+          },
+          {
+            "naam": "Vortech",
+            "volgorde": 7
+          },
+          {
+            "naam": "Woxom",
+            "volgorde": 8
+          }
+        ],
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "47789",
+            "sbiOmschrijving": "Detailhandel gespecialiseerd in overige nieuwe artikelen (rest)",
+            "indHoofdactiviteit": "Ja"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "810433941",
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              }
+            ]
+          },
+          "hoofdvestiging": {
+            "vestigingsnummer": "000018992536",
+            "kvkNummer": "24330087",
+            "materieleRegistratie": {
+              "datumAanvang": "19991124"
+            },
+            "eersteHandelsnaam": "Coolblue B.V.",
+            "indHoofdvestiging": "Ja",
+            "indCommercieleVestiging": "Ja",
+            "totaalWerkzamePersonen": 110,
+            "adressen": [
+              {
+                "type": "bezoekadres",
+                "indAfgeschermd": "Nee",
+                "volledigAdres": "Weena 664 3012CN Rotterdam",
+                "straatnaam": "Weena",
+                "huisnummer": 664,
+                "postcode": "3012CN",
+                "plaats": "Rotterdam",
+                "land": "Nederland"
+              }
+            ],
+            "websites": [
+              "www.boormachinestore.nl",
+              "www.strijkijzerstore.nl",
+              "www.bluerayspelershop.nl",
+              "www.bluerayspelershop.be",
+              "www.carkitcenter.nl",
+              "www.prepaidstore.nl",
+              "www.tvstore.nl",
+              "www.mobielinternetshop.nl",
+              "www.accustore.nl",
+              "www.seniorentelefoonstore.nl",
+              "www.verrekijkercenter.nl"
+            ],
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000018992536"
+              }
+            ]
+          }
+        },
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "company_registry.lookup",
+        "version": 6,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.profile": {
+              "fields": {
+                "sbi_codes": {
+                  "path": "$.sbiActiviteiten[*].sbiCode",
+                  "collect": true
+                },
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "trade_names": {
+                  "path": "$.handelsnamen[*].naam",
+                  "collect": true
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "02c4a6a4-481b-4808-858d-d58aa3a97b6a",
+      "endpoint_id": "e1dc0681-d7e3-48d7-8f1a-eafca2eab00b",
+      "api_slug": "pdok",
+      "name": "PDOK Maps & Addresses",
+      "method": "GET",
+      "path": "/bzk/locatieserver/search/v3_1/free",
+      "listing_type": "api",
+      "list_atomic": 8695,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "response": {
+          "numFound": 942181,
+          "start": 0,
+          "maxScore": 11.925967,
+          "numFoundExact": true,
+          "docs": [
+            {
+              "bron": "BAG/NWB",
+              "woonplaatscode": "3594",
+              "type": "weg",
+              "woonplaatsnaam": "Amsterdam",
+              "nwb_id": "031209",
+              "openbareruimtetype": "Weg",
+              "gemeentecode": "0363",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/openbare-ruimte/0363300000003186",
+              "weergavenaam": "Dam, Amsterdam",
+              "straatnaam_verkort": "Dam",
+              "id": "weg-ab6df5babb15e466f3699b5d2c22e110",
+              "gemeentenaam": "Amsterdam",
+              "identificatie": "0363300000003186",
+              "openbareruimte_id": "0363300000003186",
+              "provinciecode": "PV27",
+              "provincienaam": "Noord-Holland",
+              "centroide_ll": "POINT(4.89304433 52.37297089)",
+              "provincieafkorting": "NH",
+              "centroide_rd": "POINT(121347.914 487347.519)",
+              "straatnaam": "Dam",
+              "score": 11.925967
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "3594",
+              "type": "adres",
+              "woonplaatsnaam": "Amsterdam",
+              "wijkcode": "WK0363AE",
+              "huis_nlt": "1",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Oude Kerk e.o.",
+              "gemeentecode": "0363",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200003761447",
+              "weergavenaam": "Dam 1, 1012JS Amsterdam",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-2a8dc1af055da20b8bcdc8e4dbda1eaa",
+              "gekoppeld_perceel": [
+                "ASD04-F-6417",
+                "ASD04-F-7285"
+              ],
+              "gemeentenaam": "Amsterdam",
+              "buurtcode": "BU0363AE02",
+              "wijknaam": "Burgwallen-Oude Zijde",
+              "identificatie": "0363010003761571-0363200003761447",
+              "openbareruimte_id": "0363300000003186",
+              "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+              "provinciecode": "PV27",
+              "postcode": "1012JS",
+              "provincienaam": "Noord-Holland",
+              "centroide_ll": "POINT(4.8937175 52.37329259)",
+              "nummeraanduiding_id": "0363200003761447",
+              "waterschapscode": "11",
+              "adresseerbaarobject_id": "0363010003761571",
+              "huisnummer": 1,
+              "provincieafkorting": "NH",
+              "centroide_rd": "POINT(121394 487383)",
+              "straatnaam": "Dam",
+              "score": 11.826302
+            },
+            {
+              "bron": "NWB",
+              "woonplaatscode": "3594",
+              "type": "weg",
+              "woonplaatsnaam": "Amsterdam",
+              "nwb_id": "423803",
+              "gemeentecode": "0363",
+              "weergavenaam": "A.Dam-Tuindorp-Oostzaan 18, Amsterdam",
+              "straatnaam_verkort": "A.Dam-Tuindorp-Oostzaan 18",
+              "id": "weg-f080ca30531a364d765d803019e94404",
+              "gemeentenaam": "Amsterdam",
+              "identificatie": "423803",
+              "provinciecode": "PV27",
+              "provincienaam": "Noord-Holland",
+              "centroide_ll": "POINT(4.8850688 52.42417209)",
+              "provincieafkorting": "NH",
+              "centroide_rd": "POINT(120844.269 493048.081)",
+              "straatnaam": "A.Dam-Tuindorp-Oostzaan 18",
+              "score": 10.777853
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "3594",
+              "type": "postcode",
+              "woonplaatsnaam": "Amsterdam",
+              "openbareruimtetype": "Weg",
+              "gemeentecode": "0363",
+              "weergavenaam": "Dam, 1012JS Amsterdam",
+              "straatnaam_verkort": "Dam",
+              "id": "pcd-2c662b7262c53b5d0c85105d858ff490",
+              "gemeentenaam": "Amsterdam",
+              "identificatie": "0363300000003186_1012JS_3594",
+              "openbareruimte_id": "0363300000003186",
+              "provinciecode": "PV27",
+              "postcode": "1012JS",
+              "provincienaam": "Noord-Holland",
+              "centroide_ll": "POINT(4.89410619 52.37291108)",
+              "provincieafkorting": "NH",
+              "centroide_rd": "POINT(121420.18 487340.371)",
+              "straatnaam": "Dam",
+              "score": 10.242578
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "3594",
+              "type": "postcode",
+              "woonplaatsnaam": "Amsterdam",
+              "openbareruimtetype": "Weg",
+              "gemeentecode": "0363",
+              "weergavenaam": "Dam, 1012NP Amsterdam",
+              "straatnaam_verkort": "Dam",
+              "id": "pcd-143a62cfe564797be1d8970fb3657df8",
+              "gemeentenaam": "Amsterdam",
+              "identificatie": "0363300000003186_1012NP_3594",
+              "openbareruimte_id": "0363300000003186",
+              "provinciecode": "PV27",
+              "postcode": "1012NP",
+              "provincienaam": "Noord-Holland",
+              "centroide_ll": "POINT(4.89238644 52.37331625)",
+              "provincieafkorting": "NH",
+              "centroide_rd": "POINT(121303.375 487386.25)",
+              "straatnaam": "Dam",
+              "score": 10.242578
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "1824",
+              "type": "adres",
+              "woonplaatsnaam": "Goes",
+              "wijkcode": "WK066401",
+              "huis_nlt": "1B-01",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Goes-Centrum",
+              "gemeentecode": "0664",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0664200073646409",
+              "weergavenaam": "Dam 1B-01, 4461HV Goes",
+              "huisnummertoevoeging": "01",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-bcdf5782e1b652b70139c9716c03ed4d",
+              "gekoppeld_perceel": [
+                "GOE00-D-5089"
+              ],
+              "gemeentenaam": "Goes",
+              "buurtcode": "BU06640101",
+              "wijknaam": "Wijk 01 Goes",
+              "identificatie": "0664010000164816-0664200073646409",
+              "openbareruimte_id": "0664300000000229",
+              "waterschapsnaam": "Waterschap Scheldestromen",
+              "provinciecode": "PV29",
+              "huisletter": "B",
+              "postcode": "4461HV",
+              "provincienaam": "Zeeland",
+              "centroide_ll": "POINT(3.89026212 51.50167539)",
+              "nummeraanduiding_id": "0664200073646409",
+              "waterschapscode": "42",
+              "adresseerbaarobject_id": "0664010000164816",
+              "huisnummer": 1,
+              "provincieafkorting": "ZL",
+              "centroide_rd": "POINT(51066.538 391362.208)",
+              "straatnaam": "Dam",
+              "gekoppeld_appartement": [
+                "GOE00-D-5351-A-8"
+              ],
+              "score": 9.728817
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "1824",
+              "type": "adres",
+              "woonplaatsnaam": "Goes",
+              "wijkcode": "WK066401",
+              "huis_nlt": "1B-02",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Goes-Centrum",
+              "gemeentecode": "0664",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0664200073646410",
+              "weergavenaam": "Dam 1B-02, 4461HV Goes",
+              "huisnummertoevoeging": "02",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-15bd1df53f9032383c74c880f6ed3444",
+              "gekoppeld_perceel": [
+                "GOE00-D-5089"
+              ],
+              "gemeentenaam": "Goes",
+              "buurtcode": "BU06640101",
+              "wijknaam": "Wijk 01 Goes",
+              "identificatie": "0664010000164817-0664200073646410",
+              "openbareruimte_id": "0664300000000229",
+              "waterschapsnaam": "Waterschap Scheldestromen",
+              "provinciecode": "PV29",
+              "huisletter": "B",
+              "postcode": "4461HV",
+              "provincienaam": "Zeeland",
+              "centroide_ll": "POINT(3.89026212 51.50167539)",
+              "nummeraanduiding_id": "0664200073646410",
+              "waterschapscode": "42",
+              "adresseerbaarobject_id": "0664010000164817",
+              "huisnummer": 1,
+              "provincieafkorting": "ZL",
+              "centroide_rd": "POINT(51066.538 391362.208)",
+              "straatnaam": "Dam",
+              "gekoppeld_appartement": [
+                "GOE00-D-5351-A-9"
+              ],
+              "score": 9.728817
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "1824",
+              "type": "adres",
+              "woonplaatsnaam": "Goes",
+              "wijkcode": "WK066401",
+              "huis_nlt": "1B-03",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Goes-Centrum",
+              "gemeentecode": "0664",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0664200073646411",
+              "weergavenaam": "Dam 1B-03, 4461HV Goes",
+              "huisnummertoevoeging": "03",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-0b8edaac2c50902df4f2506762472fa7",
+              "gekoppeld_perceel": [
+                "GOE00-D-5089"
+              ],
+              "gemeentenaam": "Goes",
+              "buurtcode": "BU06640101",
+              "wijknaam": "Wijk 01 Goes",
+              "identificatie": "0664010000164818-0664200073646411",
+              "openbareruimte_id": "0664300000000229",
+              "waterschapsnaam": "Waterschap Scheldestromen",
+              "provinciecode": "PV29",
+              "huisletter": "B",
+              "postcode": "4461HV",
+              "provincienaam": "Zeeland",
+              "centroide_ll": "POINT(3.89026212 51.50167539)",
+              "nummeraanduiding_id": "0664200073646411",
+              "waterschapscode": "42",
+              "adresseerbaarobject_id": "0664010000164818",
+              "huisnummer": 1,
+              "provincieafkorting": "ZL",
+              "centroide_rd": "POINT(51066.538 391362.208)",
+              "straatnaam": "Dam",
+              "gekoppeld_appartement": [
+                "GOE00-D-5351-A-10"
+              ],
+              "score": 9.728817
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "1824",
+              "type": "adres",
+              "woonplaatsnaam": "Goes",
+              "wijkcode": "WK066401",
+              "huis_nlt": "1B-04",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Goes-Centrum",
+              "gemeentecode": "0664",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0664200073646412",
+              "weergavenaam": "Dam 1B-04, 4461HV Goes",
+              "huisnummertoevoeging": "04",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-de72ed412b72d1386c12ac72ed6d6731",
+              "gekoppeld_perceel": [
+                "GOE00-D-5089"
+              ],
+              "gemeentenaam": "Goes",
+              "buurtcode": "BU06640101",
+              "wijknaam": "Wijk 01 Goes",
+              "identificatie": "0664010000164819-0664200073646412",
+              "openbareruimte_id": "0664300000000229",
+              "waterschapsnaam": "Waterschap Scheldestromen",
+              "provinciecode": "PV29",
+              "huisletter": "B",
+              "postcode": "4461HV",
+              "provincienaam": "Zeeland",
+              "centroide_ll": "POINT(3.89026212 51.50167539)",
+              "nummeraanduiding_id": "0664200073646412",
+              "waterschapscode": "42",
+              "adresseerbaarobject_id": "0664010000164819",
+              "huisnummer": 1,
+              "provincieafkorting": "ZL",
+              "centroide_rd": "POINT(51066.538 391362.208)",
+              "straatnaam": "Dam",
+              "gekoppeld_appartement": [
+                "GOE00-D-5351-A-11"
+              ],
+              "score": 9.728817
+            },
+            {
+              "bron": "BAG",
+              "woonplaatscode": "1824",
+              "type": "adres",
+              "woonplaatsnaam": "Goes",
+              "wijkcode": "WK066401",
+              "huis_nlt": "1B-05",
+              "openbareruimtetype": "Weg",
+              "buurtnaam": "Goes-Centrum",
+              "gemeentecode": "0664",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0664200073646413",
+              "weergavenaam": "Dam 1B-05, 4461HV Goes",
+              "huisnummertoevoeging": "05",
+              "straatnaam_verkort": "Dam",
+              "id": "adr-33296be44e75baf193e0a31cd5cd9c70",
+              "gekoppeld_perceel": [
+                "GOE00-D-5089"
+              ],
+              "gemeentenaam": "Goes",
+              "buurtcode": "BU06640101",
+              "wijknaam": "Wijk 01 Goes",
+              "identificatie": "0664010000164820-0664200073646413",
+              "openbareruimte_id": "0664300000000229",
+              "waterschapsnaam": "Waterschap Scheldestromen",
+              "provinciecode": "PV29",
+              "huisletter": "B",
+              "postcode": "4461HV",
+              "provincienaam": "Zeeland",
+              "centroide_ll": "POINT(3.89026212 51.50167539)",
+              "nummeraanduiding_id": "0664200073646413",
+              "waterschapscode": "42",
+              "adresseerbaarobject_id": "0664010000164820",
+              "huisnummer": 1,
+              "provincieafkorting": "ZL",
+              "centroide_rd": "POINT(51066.538 391362.208)",
+              "straatnaam": "Dam",
+              "score": 9.728817
+            }
+          ]
+        }
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "geo.forward",
+        "version": 5,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "geo.input.q",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "geo.input.fq",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "geo_environment.input.lat",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "geo_environment.input.lon",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "geo.input.q": {
+            "in": "query",
+            "name": "q"
+          },
+          "geo.input.fq": {
+            "in": "query",
+            "name": "fq"
+          },
+          "geo_environment.input.lat": {
+            "in": "query",
+            "name": "lat"
+          },
+          "geo_environment.input.lon": {
+            "in": "query",
+            "name": "lon"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "pdok.search_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "6dfc2000-0000-4000-8000-000000000008",
+      "endpoint_id": "2f884bdc-79d7-45ac-9aeb-c52c88e6a0f2",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "method": "GET",
+      "path": "/odata/v1/CBS/82244NED/Observations",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "$top": 100,
+        "$count": true,
+        "$orderby": "Perioden desc"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#Observations",
+        "@odata.count": 332568,
+        "value": [
+          {
+            "Id": 0,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 563,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM01"
+          },
+          {
+            "Id": 1,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 601,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM02"
+          },
+          {
+            "Id": 2,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 768,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM03"
+          },
+          {
+            "Id": 3,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1932,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009KW01"
+          },
+          {
+            "Id": 4,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 717,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM04"
+          },
+          {
+            "Id": 5,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 581,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM05"
+          },
+          {
+            "Id": 6,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 797,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM06"
+          },
+          {
+            "Id": 7,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2095,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009KW02"
+          },
+          {
+            "Id": 8,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 731,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM07"
+          },
+          {
+            "Id": 9,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 586,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM08"
+          },
+          {
+            "Id": 10,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 710,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM09"
+          },
+          {
+            "Id": 11,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2027,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009KW03"
+          },
+          {
+            "Id": 12,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 621,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM10"
+          },
+          {
+            "Id": 13,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 677,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM11"
+          },
+          {
+            "Id": 14,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 635,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009MM12"
+          },
+          {
+            "Id": 15,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1933,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009KW04"
+          },
+          {
+            "Id": 16,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 7987,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2009JJ00"
+          },
+          {
+            "Id": 17,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 590,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM01"
+          },
+          {
+            "Id": 18,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 632,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM02"
+          },
+          {
+            "Id": 19,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 744,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM03"
+          },
+          {
+            "Id": 20,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1966,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010KW01"
+          },
+          {
+            "Id": 21,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 571,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM04"
+          },
+          {
+            "Id": 22,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 473,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM05"
+          },
+          {
+            "Id": 23,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 754,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM06"
+          },
+          {
+            "Id": 24,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1798,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010KW02"
+          },
+          {
+            "Id": 25,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 548,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM07"
+          },
+          {
+            "Id": 26,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 590,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM08"
+          },
+          {
+            "Id": 27,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 514,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM09"
+          },
+          {
+            "Id": 28,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1652,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010KW03"
+          },
+          {
+            "Id": 29,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 590,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM10"
+          },
+          {
+            "Id": 30,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 652,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM11"
+          },
+          {
+            "Id": 31,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 489,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010MM12"
+          },
+          {
+            "Id": 32,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1731,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010KW04"
+          },
+          {
+            "Id": 33,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 7147,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2010JJ00"
+          },
+          {
+            "Id": 34,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 546,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM01"
+          },
+          {
+            "Id": 35,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 569,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM02"
+          },
+          {
+            "Id": 36,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 620,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM03"
+          },
+          {
+            "Id": 37,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1735,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011KW01"
+          },
+          {
+            "Id": 38,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 499,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM04"
+          },
+          {
+            "Id": 39,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 631,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM05"
+          },
+          {
+            "Id": 40,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 483,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM06"
+          },
+          {
+            "Id": 41,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1613,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011KW02"
+          },
+          {
+            "Id": 42,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 503,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM07"
+          },
+          {
+            "Id": 43,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 578,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM08"
+          },
+          {
+            "Id": 44,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 582,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM09"
+          },
+          {
+            "Id": 45,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1663,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011KW03"
+          },
+          {
+            "Id": 46,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 587,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM10"
+          },
+          {
+            "Id": 47,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 718,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM11"
+          },
+          {
+            "Id": 48,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 567,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011MM12"
+          },
+          {
+            "Id": 49,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1872,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011KW04"
+          },
+          {
+            "Id": 50,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 6883,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2011JJ00"
+          },
+          {
+            "Id": 51,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 766,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM01"
+          },
+          {
+            "Id": 52,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 671,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM02"
+          },
+          {
+            "Id": 53,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 667,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM03"
+          },
+          {
+            "Id": 54,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2104,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012KW01"
+          },
+          {
+            "Id": 55,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 668,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM04"
+          },
+          {
+            "Id": 56,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 761,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM05"
+          },
+          {
+            "Id": 57,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 661,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM06"
+          },
+          {
+            "Id": 58,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2090,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012KW02"
+          },
+          {
+            "Id": 59,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 809,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM07"
+          },
+          {
+            "Id": 60,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 577,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM08"
+          },
+          {
+            "Id": 61,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 646,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM09"
+          },
+          {
+            "Id": 62,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2032,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012KW03"
+          },
+          {
+            "Id": 63,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 816,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM10"
+          },
+          {
+            "Id": 64,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 686,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM11"
+          },
+          {
+            "Id": 65,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 618,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012MM12"
+          },
+          {
+            "Id": 66,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2120,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012KW04"
+          },
+          {
+            "Id": 67,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 8346,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2012JJ00"
+          },
+          {
+            "Id": 68,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 835,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM01"
+          },
+          {
+            "Id": 69,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 832,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM02"
+          },
+          {
+            "Id": 70,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 813,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM03"
+          },
+          {
+            "Id": 71,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2480,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013KW01"
+          },
+          {
+            "Id": 72,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 791,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM04"
+          },
+          {
+            "Id": 73,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 891,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM05"
+          },
+          {
+            "Id": 74,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 797,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM06"
+          },
+          {
+            "Id": 75,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2479,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013KW02"
+          },
+          {
+            "Id": 76,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 883,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM07"
+          },
+          {
+            "Id": 77,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 682,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM08"
+          },
+          {
+            "Id": 78,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 675,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM09"
+          },
+          {
+            "Id": 79,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2240,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013KW03"
+          },
+          {
+            "Id": 80,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 840,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM10"
+          },
+          {
+            "Id": 81,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 677,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM11"
+          },
+          {
+            "Id": 82,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 715,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013MM12"
+          },
+          {
+            "Id": 83,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 2232,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013KW04"
+          },
+          {
+            "Id": 84,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 9431,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2013JJ00"
+          },
+          {
+            "Id": 85,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 700,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM01"
+          },
+          {
+            "Id": 86,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 681,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM02"
+          },
+          {
+            "Id": 87,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 596,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM03"
+          },
+          {
+            "Id": 88,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1977,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014KW01"
+          },
+          {
+            "Id": 89,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 829,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM04"
+          },
+          {
+            "Id": 90,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 621,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM05"
+          },
+          {
+            "Id": 91,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 524,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM06"
+          },
+          {
+            "Id": 92,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1974,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014KW02"
+          },
+          {
+            "Id": 93,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 721,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM07"
+          },
+          {
+            "Id": 94,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 537,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM08"
+          },
+          {
+            "Id": 95,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 630,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM09"
+          },
+          {
+            "Id": 96,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 1888,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014KW03"
+          },
+          {
+            "Id": 97,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 608,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM10"
+          },
+          {
+            "Id": 98,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 558,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM11"
+          },
+          {
+            "Id": 99,
+            "Measure": "M001327",
+            "ValueAttribute": "None",
+            "Value": 616,
+            "StringValue": null,
+            "BedrijfstakkenBranchesSBI2008": "T001081",
+            "TypeGefailleerde": "A047596",
+            "Perioden": "2014MM12"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "statistics.cbs-bankruptcies",
+        "version": 2,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": true,
+            "fact_type": "cbs.input.odata_skip",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "cbs.input.odata_filter",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "cbs.input.odata_skip": {
+            "in": "query",
+            "name": "$skip"
+          },
+          "cbs.input.odata_filter": {
+            "in": "query",
+            "name": "$filter"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.observations_82244ned": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    }
+  ]
+}

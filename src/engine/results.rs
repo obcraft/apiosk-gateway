@@ -16,7 +16,8 @@ impl Engine {
         let chars: Vec<char> = serialized.chars().collect();
         anyhow::ensure!(offset <= chars.len(), "invalid result offset");
         let end = (offset + 8000).min(chars.len());
-        Ok(json!({"result_ref":result_ref,"encoding":"json_text","subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
+        let preview=crate::source_preview::project(data["source"]["provider"].as_str().unwrap_or(""), &data["data"]);
+        Ok(json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
     }
 
     #[allow(clippy::too_many_arguments)]

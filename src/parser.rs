@@ -231,7 +231,14 @@ impl Parser {
         }
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":4096,
             "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
-            "response_format":{"type":"json_object"},"messages":[
+            "response_format":{"type":"json_schema","json_schema":{"name":"source_analysis","strict":true,"schema":{
+                "type":"object","additionalProperties":false,"required":["observations","limitations"],"properties":{
+                    "observations":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["text","evidence"],"properties":{
+                        "text":{"type":"string","description":"Qualitative finding. No numeric characters or URLs."},
+                        "evidence":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","additionalProperties":false,"required":["result_ref","pointer"],"properties":{"result_ref":{"type":"string"},"pointer":{"type":"string","description":"JSON pointer to an existing scalar under /data/ in this source document"}}}}
+                    }}},"limitations":{"type":"array","maxItems":6,"items":{"type":"string","description":"No numeric characters or URLs."}}
+                }
+            }}},"messages":[
                 {"role":"system","content":include_str!("../contracts/analysis-prompt.txt")},
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| validate_analysis(raw, sources, !failures.is_empty())).await
@@ -304,10 +311,14 @@ impl Parser {
         decode: impl Fn(&str) -> anyhow::Result<T>,
     ) -> anyhow::Result<T> {
         if self.key.is_empty() { return Err(ModelFailure::Unavailable.into()); }
+        // Analysing saved multi-source documents takes longer than intent parsing.
+        // Keep both retries bounded and below the app's 80-second request limit.
+        let (attempt_seconds, total_seconds) = if surface == "analysis" { (30, 65) } else { (12, 25) };
         let work = async {
+            let mut attempt_payload = payload.clone();
             for attempt in 1..=2 {
                 let response = self.http.post(&self.url).bearer_auth(&self.key)
-                    .timeout(Duration::from_secs(12)).json(payload).send().await;
+                    .timeout(Duration::from_secs(attempt_seconds)).json(&attempt_payload).send().await;
                 let outcome: Result<(), &str> = match response {
                     Ok(response) if response.status().is_success() => {
                         match bounded_json(response, 65536).await {
@@ -327,7 +338,23 @@ impl Parser {
                                         Err(error) if matches!(error.downcast_ref::<ModelFailure>(), Some(ModelFailure::Unsupported)) => {
                                             return Err(ModelFailure::Unsupported.into());
                                         }
-                                        Err(_) => Err("invalid_output"),
+                                        Err(error) => {
+                                            if surface == "analysis" {
+                                                // Fixed validator classifications only; never log the model answer.
+                                                let reason = match error.to_string().as_str() {
+                                                    "numbers and links must come from source evidence" => "narrative_contains_numbers_or_links",
+                                                    "missing source field" => "non_scalar_or_missing_pointer",
+                                                    "invented source" => "unknown_source_reference",
+                                                    "invalid evidence count" => "evidence_count",
+                                                    _ => "schema_or_pointer",
+                                                };
+                                                tracing::warn!(surface, attempt, reason, "analysis validation failed");
+                                                if let Some(messages)=attempt_payload["messages"].as_array_mut() {
+                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Put all exact values in evidence references only. Do not reproduce the invalid response.")}));
+                                                }
+                                            }
+                                            Err("invalid_output")
+                                        },
                                     }
                                 } else { Err("empty_output") }
                             }
@@ -351,7 +378,7 @@ impl Parser {
             }
             Err(ModelFailure::Unavailable.into())
         };
-        tokio::time::timeout(Duration::from_secs(25), work).await
+        tokio::time::timeout(Duration::from_secs(total_seconds), work).await
             .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()))
     }
     pub async fn parse(
@@ -436,9 +463,10 @@ mod tests {
     async fn model_fixture(responses: Vec<(u16, Value)>) -> (Parser, Arc<AtomicU64>, tokio::task::JoinHandle<()>) {
         use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
         use std::{collections::VecDeque, sync::Mutex};
+        type ModelState = (Arc<Mutex<VecDeque<(u16, Value)>>>, Arc<AtomicU64>);
         let calls = Arc::new(AtomicU64::new(0));
         let state = (Arc::new(Mutex::new(VecDeque::from(responses))), calls.clone());
-        let app = Router::new().route("/", post(|State((queue, calls)): State<(Arc<Mutex<VecDeque<(u16, Value)>>>, Arc<AtomicU64>)>| async move {
+        let app = Router::new().route("/", post(|State((queue, calls)): State<ModelState>| async move {
             calls.fetch_add(1, Ordering::Relaxed);
             let (status, body) = queue.lock().unwrap().pop_front().expect("unexpected extra model request");
             (StatusCode::from_u16(status).unwrap(), Json(body))

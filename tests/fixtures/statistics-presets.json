@@ -1,0 +1,2621 @@
+{
+  "vocabulary": [
+    {
+      "slug": "cbs.input.odata_skip",
+      "value_schema": {
+        "type": "integer",
+        "description": "Rows to skip, for paging."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_filter",
+      "value_schema": {
+        "type": "string",
+        "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers."
+      }
+    },
+    {
+      "slug": "cbs.input.odata_orderby",
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. Modified desc."
+      }
+    },
+    {
+      "slug": "cbs.dataset_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.input.tableid",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{5}[A-Za-z]{3}$",
+        "description": "CBS table identifier from the Datasets catalogue, e.g. 82244NED. Case sensitive: 81156ned is lower case."
+      }
+    },
+    {
+      "slug": "cbs.dimensions",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.branch_codes",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.measure_codes",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81156ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81589ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_81837ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_82244ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_83149ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "cbs.observations_86414ned",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+      }
+    },
+    {
+      "slug": "donl.input.q",
+      "value_schema": {
+        "type": "string",
+        "description": "Free-text or Solr query, e.g. jaarrekening, or organization:kamer_van_koophandel. Defaults to everything."
+      }
+    },
+    {
+      "slug": "donl.input.fq",
+      "value_schema": {
+        "type": "string",
+        "description": "Solr filter query for structured narrowing, e.g. res_format:JSON or license_id:cc-zero."
+      }
+    },
+    {
+      "slug": "donl.input.sort",
+      "value_schema": {
+        "type": "string",
+        "description": "Sort expression, e.g. metadata_modified desc or score desc."
+      }
+    },
+    {
+      "slug": "donl.input.start",
+      "value_schema": {
+        "type": "integer",
+        "description": "Offset into the result set, for paging."
+      }
+    },
+    {
+      "slug": "donl.input.id",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "donl.search_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "title"
+        ],
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.dataset_metadata",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "object"
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "donl.publishers",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "success",
+          "result"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Dataset catalogue metadata only; resources can be documentation rather than data."
+      }
+    },
+    {
+      "slug": "eurostat.input.q",
+      "value_schema": {
+        "type": "string",
+        "description": "What the caller is looking for, in plain language: inflation, unemployment rate, greenhouse gas emissions, government debt, population by age and sex. English gives the best hits, because the Eurostat titles it searches are English."
+      }
+    },
+    {
+      "slug": "eurostat.input.page",
+      "value_schema": {
+        "type": "integer",
+        "description": "Zero-based page of results, for looking past the first set."
+      }
+    },
+    {
+      "slug": "eurostat.input.dataset",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$"
+      }
+    },
+    {
+      "slug": "eurostat.search_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "identifier",
+          "title"
+        ],
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    },
+    {
+      "slug": "eurostat.input.age",
+      "value_schema": {
+        "type": "string",
+        "description": "Age class code, e.g. TOTAL, Y15-64, Y_LT15, Y_GE65. ONLY for datasets with an age dimension, such as demo_pjan. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.geo",
+      "value_schema": {
+        "type": "string",
+        "description": "Country or region code, e.g. NL, DE, EU27_2020, EA20, or a NUTS code such as NL33. Repeatable upstream; mutually exclusive with geoLevel."
+      }
+    },
+    {
+      "slug": "eurostat.input.sex",
+      "value_schema": {
+        "enum": [
+          "T",
+          "M",
+          "F"
+        ],
+        "type": "string",
+        "description": "Sex breakdown: T total, M males, F females. ONLY for the demographic and labour datasets that carry a sex dimension, such as demo_pjan or une_rt_a. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.freq",
+      "value_schema": {
+        "enum": [
+          "A",
+          "S",
+          "Q",
+          "M",
+          "W",
+          "D"
+        ],
+        "type": "string",
+        "description": "Time frequency of the series: A annual, S half-yearly, Q quarterly, M monthly, W weekly, D daily. Safe on every dataset. A frequency the dataset does not publish returns an empty result rather than an error."
+      }
+    },
+    {
+      "slug": "eurostat.input.time",
+      "value_schema": {
+        "type": "string",
+        "description": "A single period, e.g. 2023 for annual data, 2025-Q2 for quarterly, 2025-10 for monthly."
+      }
+    },
+    {
+      "slug": "eurostat.input.unit",
+      "value_schema": {
+        "type": "string",
+        "description": "Unit of measure code, e.g. CP_MEUR (current prices, million euro), CLV10_MEUR (chain linked volumes), PC (percent), PC_GDP, NR (number), THS_PER (thousand persons), RCH_A (annual rate of change). Present on most datasets but not all - a dataset without a unit dimension refuses this parameter with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.coicop",
+      "value_schema": {
+        "type": "string",
+        "description": "COICOP consumption purpose code, e.g. CP00 (all-items HICP), CP01 (food and non-alcoholic beverages). ONLY for the price datasets (prc_hicp_*). Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.na_item",
+      "value_schema": {
+        "type": "string",
+        "description": "National accounts indicator, e.g. B1GQ (gross domestic product at market prices), P3 (final consumption expenditure), P6 (exports). ONLY for the national accounts datasets (nama_*, namq_*). Any other dataset refuses it with 400."
+      }
+    },
+    {
+      "slug": "eurostat.input.nace_r2",
+      "value_schema": {
+        "type": "string",
+        "description": "NACE Rev. 2 economic activity code, e.g. TOTAL, C (manufacturing), G-I. ONLY for the business and labour datasets that carry a nace_r2 dimension. Refused with 400 elsewhere."
+      }
+    },
+    {
+      "slug": "eurostat.input.lasttimeperiod",
+      "value_schema": {
+        "type": "integer",
+        "description": "Return only the last N periods, counting back from the most recent one published, e.g. 5.",
+        "minimum": 1,
+        "maximum": 120
+      }
+    },
+    {
+      "slug": "eurostat.input.sincetimeperiod",
+      "value_schema": {
+        "type": "string",
+        "description": "Start of a period window, inclusive. Combine with untilTimePeriod."
+      }
+    },
+    {
+      "slug": "eurostat.input.untiltimeperiod",
+      "value_schema": {
+        "type": "string",
+        "description": "End of a period window, inclusive."
+      }
+    },
+    {
+      "slug": "eurostat.dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "class",
+          "id",
+          "size",
+          "dimension",
+          "value"
+        ],
+        "properties": {
+          "class": {
+            "type": "string",
+            "enum": [
+              "dataset"
+            ]
+          },
+          "id": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "dimension": {
+            "type": "object"
+          }
+        },
+        "description": "Eurostat response with dimensions, labels, units and periods; preserve all metadata."
+      }
+    },
+    {
+      "slug": "cbs.bankruptcy_type_codes",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "2024e288-b2bd-4ebd-909e-24584e214101",
+      "endpoint_id": "050799b8-d913-42ff-864b-5b524d7fe664",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/MeasureCodes",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-bankruptcy-measures",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.measure_codes": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "tableId": "82244NED",
+        "$select": "Identifier,Title,Unit"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#MeasureCodes(Identifier,Title,Unit)",
+        "value": [
+          {
+            "Identifier": "M001327",
+            "Title": "Uitgesproken faillissementen",
+            "Unit": "Aantal"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": {
+        "url": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/MeasureCodes?%24select=Identifier%2CTitle%2CUnit",
+        "retrieved_at": "2026-09-09T13:03:25.492Z"
+      }
+    },
+    {
+      "id": "f62ee34a-788e-4dab-929d-f397f89a459a",
+      "endpoint_id": "8037d0eb-4769-44d6-9843-ba5a5034118b",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/BedrijfstakkenBranchesSBI2008Codes",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-bankruptcy-sectors",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.branch_codes": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "tableId": "82244NED",
+        "$select": "Identifier,Title"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#BedrijfstakkenBranchesSBI2008Codes(Identifier,Title)",
+        "value": [
+          {
+            "Identifier": "T001081",
+            "Title": "A-U Alle economische activiteiten"
+          },
+          {
+            "Identifier": "301000",
+            "Title": "A Landbouw, bosbouw en visserij"
+          },
+          {
+            "Identifier": "301100",
+            "Title": "01 Landbouw"
+          },
+          {
+            "Identifier": "301200",
+            "Title": "011 Teelt van eenjarige gewassen"
+          },
+          {
+            "Identifier": "301700",
+            "Title": "012 Teelt van meerjarige gewassen"
+          },
+          {
+            "Identifier": "302400",
+            "Title": "013 Teelt van sierplanten"
+          },
+          {
+            "Identifier": "302600",
+            "Title": "014 Veeteelt en fokkerijen"
+          },
+          {
+            "Identifier": "303400",
+            "Title": "015 Gemengd bedrijf"
+          },
+          {
+            "Identifier": "303600",
+            "Title": "016 Dienstverlening voor de landbouw"
+          },
+          {
+            "Identifier": "304100",
+            "Title": "017 Jacht"
+          },
+          {
+            "Identifier": "304300",
+            "Title": "02 Bosbouw"
+          },
+          {
+            "Identifier": "304400",
+            "Title": "021 Bosbouw"
+          },
+          {
+            "Identifier": "304600",
+            "Title": "022 Exploitatie van bossen"
+          },
+          {
+            "Identifier": "304800",
+            "Title": "024 Dienstverlening voor de bosbouw"
+          },
+          {
+            "Identifier": "305000",
+            "Title": "03 Visserij"
+          },
+          {
+            "Identifier": "305100",
+            "Title": "031 Visserij"
+          },
+          {
+            "Identifier": "305400",
+            "Title": "032 Viskwekerij"
+          },
+          {
+            "Identifier": "305700",
+            "Title": "B Delfstoffenwinning"
+          },
+          {
+            "Identifier": "305800",
+            "Title": "06 Winning van aardolie en aardgas"
+          },
+          {
+            "Identifier": "305900",
+            "Title": "061 Winning van aardolie"
+          },
+          {
+            "Identifier": "306100",
+            "Title": "062 Winning van aardgas"
+          },
+          {
+            "Identifier": "306300",
+            "Title": "08 Delfstoffenwinning (geen olie en gas)"
+          },
+          {
+            "Identifier": "306400",
+            "Title": "081 Winning van zand, grind en klei"
+          },
+          {
+            "Identifier": "306600",
+            "Title": "089 Winning van overige delfstoffen"
+          },
+          {
+            "Identifier": "307000",
+            "Title": "09 Dienstverlening delfstoffenwinning"
+          },
+          {
+            "Identifier": "307100",
+            "Title": "091 Dienstverlening olie- en gaswinning"
+          },
+          {
+            "Identifier": "307300",
+            "Title": "099 Dienstverlening overige winning"
+          },
+          {
+            "Identifier": "307500",
+            "Title": "C Industrie"
+          },
+          {
+            "Identifier": "307600",
+            "Title": "10 Voedingsmiddelenindustrie"
+          },
+          {
+            "Identifier": "307700",
+            "Title": "101 Slachterijen en vleeswarenindustrie"
+          },
+          {
+            "Identifier": "308100",
+            "Title": "102 Visverwerkende industrie"
+          },
+          {
+            "Identifier": "308300",
+            "Title": "103 Groente-, fruitverwerkende industrie"
+          },
+          {
+            "Identifier": "308700",
+            "Title": "104 Spijsoliën- en -vettenindustrie e.d."
+          },
+          {
+            "Identifier": "309000",
+            "Title": "105 Zuivelindustrie"
+          },
+          {
+            "Identifier": "309300",
+            "Title": "106 Meelindustrie"
+          },
+          {
+            "Identifier": "309600",
+            "Title": "107 Brood- en deegwarenindustrie"
+          },
+          {
+            "Identifier": "310000",
+            "Title": "108 Overige voedingsmiddelenindustrie"
+          },
+          {
+            "Identifier": "311000",
+            "Title": "109 Diervoederindustrie"
+          },
+          {
+            "Identifier": "311300",
+            "Title": "11 Drankenindustrie"
+          },
+          {
+            "Identifier": "311400",
+            "Title": "110 Drankenindustrie"
+          },
+          {
+            "Identifier": "312200",
+            "Title": "12 Tabaksindustrie"
+          },
+          {
+            "Identifier": "312300",
+            "Title": "120 Tabaksindustrie"
+          },
+          {
+            "Identifier": "312500",
+            "Title": "13 Textielindustrie"
+          },
+          {
+            "Identifier": "312600",
+            "Title": "131 Spinnerijen"
+          },
+          {
+            "Identifier": "312800",
+            "Title": "132 Weverijen"
+          },
+          {
+            "Identifier": "313000",
+            "Title": "133 Textielveredelingsindustrie"
+          },
+          {
+            "Identifier": "313200",
+            "Title": "139 Overige textielproductenindustrie"
+          },
+          {
+            "Identifier": "314000",
+            "Title": "14 Kledingindustrie"
+          },
+          {
+            "Identifier": "314100",
+            "Title": "141 Kledingindustrie (geen bontkleding)"
+          },
+          {
+            "Identifier": "314700",
+            "Title": "142 Bontartikelenindustrie"
+          },
+          {
+            "Identifier": "314900",
+            "Title": "143 Gebreide kledingindustrie"
+          },
+          {
+            "Identifier": "315200",
+            "Title": "15 Leer- en schoenenindustrie"
+          },
+          {
+            "Identifier": "315300",
+            "Title": "151 Looierijen en lederwarenindustrie"
+          },
+          {
+            "Identifier": "315600",
+            "Title": "152 Schoenenindustrie"
+          },
+          {
+            "Identifier": "315800",
+            "Title": "16 Houtindustrie"
+          },
+          {
+            "Identifier": "315900",
+            "Title": "161 Primaire houtbewerking e.d."
+          },
+          {
+            "Identifier": "316300",
+            "Title": "162 Hout-, kurk-, en rietwarenindustrie"
+          },
+          {
+            "Identifier": "317100",
+            "Title": "17 Papierindustrie"
+          },
+          {
+            "Identifier": "317200",
+            "Title": "171 Pulp-, papier- en kartonindustrie"
+          },
+          {
+            "Identifier": "317800",
+            "Title": "172 Papier- en kartonwarenindustrie"
+          },
+          {
+            "Identifier": "318600",
+            "Title": "18 Grafische industrie"
+          },
+          {
+            "Identifier": "318700",
+            "Title": "181 Drukkerijen en diensten daarvoor"
+          },
+          {
+            "Identifier": "319800",
+            "Title": "182 Repro van geluid, beeld en software"
+          },
+          {
+            "Identifier": "320000",
+            "Title": "19 Aardolie-industrie"
+          },
+          {
+            "Identifier": "320100",
+            "Title": "191 Cokesfabrieken"
+          },
+          {
+            "Identifier": "320300",
+            "Title": "192 Aardolie-industrie"
+          },
+          {
+            "Identifier": "320700",
+            "Title": "20 Chemische industrie"
+          },
+          {
+            "Identifier": "320800",
+            "Title": "201 Basischemie"
+          },
+          {
+            "Identifier": "321800",
+            "Title": "202 Landbouwchemicaliënindustrie"
+          },
+          {
+            "Identifier": "322000",
+            "Title": "203 Verf-, vernis- en drukinktindustrie"
+          },
+          {
+            "Identifier": "322200",
+            "Title": "204 Wasmiddel- en cosmeticaindustrie"
+          },
+          {
+            "Identifier": "322500",
+            "Title": "205 Overige chemische productenindustrie"
+          },
+          {
+            "Identifier": "323000",
+            "Title": "206 Synthetische vezelindustrie"
+          },
+          {
+            "Identifier": "323200",
+            "Title": "21 Farmaceutische industrie"
+          },
+          {
+            "Identifier": "323300",
+            "Title": "211 Farmaceutische grondstofindustrie"
+          },
+          {
+            "Identifier": "323500",
+            "Title": "212 Farmaceutische productenindustrie"
+          },
+          {
+            "Identifier": "323700",
+            "Title": "22 Rubber- en kunststofproductindustrie"
+          },
+          {
+            "Identifier": "323800",
+            "Title": "221 Rubberproductenindustrie"
+          },
+          {
+            "Identifier": "324100",
+            "Title": "222 Kunststofproductenindustrie"
+          },
+          {
+            "Identifier": "324600",
+            "Title": "23 Bouwmaterialenindustrie"
+          },
+          {
+            "Identifier": "324700",
+            "Title": "231 Glas- en glaswerkindustrie"
+          },
+          {
+            "Identifier": "325300",
+            "Title": "232 Vuurvast keramische productindustrie"
+          },
+          {
+            "Identifier": "325500",
+            "Title": "233 Keramische bouwproductenindustrie"
+          },
+          {
+            "Identifier": "325800",
+            "Title": "234 Overige keramische industrie"
+          },
+          {
+            "Identifier": "326400",
+            "Title": "235 Cement-, kalk- en gipsindustrie"
+          },
+          {
+            "Identifier": "326700",
+            "Title": "236 Beton-, gips-, cementwarenindustrie"
+          },
+          {
+            "Identifier": "327600",
+            "Title": "237 Natuursteenbewerkende industrie"
+          },
+          {
+            "Identifier": "327800",
+            "Title": "239 Overige minerale productenindustrie"
+          },
+          {
+            "Identifier": "328100",
+            "Title": "24 Basismetaalindustrie"
+          },
+          {
+            "Identifier": "328200",
+            "Title": "241 IJzer- en staalindustrie"
+          },
+          {
+            "Identifier": "328400",
+            "Title": "242 Stalen buizenindustrie"
+          },
+          {
+            "Identifier": "328600",
+            "Title": "243 Staaltrekkerijen, -walserijen e.d."
+          },
+          {
+            "Identifier": "329100",
+            "Title": "244 Edel- en non-ferrometaalindustrie"
+          },
+          {
+            "Identifier": "329800",
+            "Title": "245 Metaalgieterijen"
+          },
+          {
+            "Identifier": "330300",
+            "Title": "25 Metaalproductenindustrie"
+          },
+          {
+            "Identifier": "330400",
+            "Title": "251 Metalen bouwproductenindustrie"
+          },
+          {
+            "Identifier": "330700",
+            "Title": "252 Tankbouw en cv-industrie"
+          },
+          {
+            "Identifier": "331000",
+            "Title": "253 Stoomketelindustrie"
+          },
+          {
+            "Identifier": "331200",
+            "Title": "254 Wapen- en munitie-industrie"
+          },
+          {
+            "Identifier": "331400",
+            "Title": "255 Smederijen, profielwalserijen e.d."
+          },
+          {
+            "Identifier": "331600",
+            "Title": "256 Overige metaalbewerkingsindustrie"
+          },
+          {
+            "Identifier": "331900",
+            "Title": "257 Bestek-, gereedschapindustrie e.d."
+          },
+          {
+            "Identifier": "332300",
+            "Title": "259 Overige metaalproductenindustrie"
+          },
+          {
+            "Identifier": "332900",
+            "Title": "26 Elektrotechnische industrie"
+          },
+          {
+            "Identifier": "333000",
+            "Title": "261 Elektrocomponentenindustrie e.d."
+          },
+          {
+            "Identifier": "333300",
+            "Title": "262 Computerindustrie"
+          },
+          {
+            "Identifier": "333500",
+            "Title": "263 Communicatieapparatenindustrie"
+          },
+          {
+            "Identifier": "333700",
+            "Title": "264 Consumentenelektronicaindustrie"
+          },
+          {
+            "Identifier": "333900",
+            "Title": "265 Meetapparaten- en uurwerkindustrie"
+          },
+          {
+            "Identifier": "334200",
+            "Title": "266 Elektromedische apparatenindustrie"
+          },
+          {
+            "Identifier": "334400",
+            "Title": "267 Optische instrumentenindustrie"
+          },
+          {
+            "Identifier": "334600",
+            "Title": "268 Industrie van informatiedragers"
+          },
+          {
+            "Identifier": "334800",
+            "Title": "27 Elektrische apparatenindustrie"
+          },
+          {
+            "Identifier": "334900",
+            "Title": "271 Elektromotor- en -panelenindustrie"
+          },
+          {
+            "Identifier": "335200",
+            "Title": "272 Accu- en batterijenindustrie"
+          },
+          {
+            "Identifier": "335400",
+            "Title": "273 Elektr. kabel-, schakelaarindustrie"
+          },
+          {
+            "Identifier": "335800",
+            "Title": "274 Elektrische verlichtingsindustrie"
+          },
+          {
+            "Identifier": "336000",
+            "Title": "275 Huishoudelijke apparatenindustrie"
+          },
+          {
+            "Identifier": "336300",
+            "Title": "279 Overige elektr. apparatenindustrie"
+          },
+          {
+            "Identifier": "336500",
+            "Title": "28 Machine-industrie"
+          },
+          {
+            "Identifier": "336600",
+            "Title": "281 Motoren-, pompen- e.d. industrie"
+          },
+          {
+            "Identifier": "337200",
+            "Title": "282 Overige machine-industrie algemeen"
+          },
+          {
+            "Identifier": "337900",
+            "Title": "283 Landbouwmachine-industrie"
+          },
+          {
+            "Identifier": "338100",
+            "Title": "284 Gereedschapswerktuigenindustrie"
+          },
+          {
+            "Identifier": "338400",
+            "Title": "289 Overige machine-industrie specifiek"
+          },
+          {
+            "Identifier": "339200",
+            "Title": "29 Auto- en aanhangwagenindustrie"
+          },
+          {
+            "Identifier": "339300",
+            "Title": "291 Autoindustrie"
+          },
+          {
+            "Identifier": "339500",
+            "Title": "292 Carrosserie-, aanhangwagenindustrie"
+          },
+          {
+            "Identifier": "339900",
+            "Title": "293 Auto-onderdelenindustrie"
+          },
+          {
+            "Identifier": "340200",
+            "Title": "30 Overige transportmiddelenindustrie"
+          },
+          {
+            "Identifier": "340300",
+            "Title": "301 Scheepsbouw"
+          },
+          {
+            "Identifier": "340600",
+            "Title": "302 Industrie van rollend spoormaterieel"
+          },
+          {
+            "Identifier": "340800",
+            "Title": "303 Vliegtuigindustrie"
+          },
+          {
+            "Identifier": "341000",
+            "Title": "304 Industrie van gevechtsvoertuigen"
+          },
+          {
+            "Identifier": "341200",
+            "Title": "309 Overige transportmiddelenindustrie"
+          },
+          {
+            "Identifier": "341600",
+            "Title": "31 Meubelindustrie"
+          },
+          {
+            "Identifier": "341700",
+            "Title": "310 Meubelindustrie"
+          },
+          {
+            "Identifier": "342400",
+            "Title": "32 Overige industrie"
+          },
+          {
+            "Identifier": "342500",
+            "Title": "321 Munten- en sieradenindustrie"
+          },
+          {
+            "Identifier": "342900",
+            "Title": "322 Muziekinstrumentenindustrie"
+          },
+          {
+            "Identifier": "343100",
+            "Title": "323 Sportartikelenindustrie"
+          },
+          {
+            "Identifier": "343300",
+            "Title": "324 Speelgoedindustrie"
+          },
+          {
+            "Identifier": "343500",
+            "Title": "325 Medische instrumentenindustrie"
+          },
+          {
+            "Identifier": "343900",
+            "Title": "329 Overige industrie"
+          },
+          {
+            "Identifier": "344400",
+            "Title": "33 Reparatie en installatie van machines"
+          },
+          {
+            "Identifier": "344500",
+            "Title": "331 Reparatie van machines en apparatuur"
+          },
+          {
+            "Identifier": "345700",
+            "Title": "332 Installatie van industriële machines"
+          },
+          {
+            "Identifier": "346600",
+            "Title": "D Energievoorziening"
+          },
+          {
+            "Identifier": "346700",
+            "Title": "35 Energiebedrijven"
+          },
+          {
+            "Identifier": "346800",
+            "Title": "351 Energiebedrijven"
+          },
+          {
+            "Identifier": "347600",
+            "Title": "352 Productie van biogas"
+          },
+          {
+            "Identifier": "347800",
+            "Title": "353 Productie van stoom en koele lucht"
+          },
+          {
+            "Identifier": "348000",
+            "Title": "E Waterbedrijven en afvalbeheer"
+          },
+          {
+            "Identifier": "348100",
+            "Title": "36 Waterleidingbedrijven"
+          },
+          {
+            "Identifier": "348200",
+            "Title": "360 Waterleidingbedrijven"
+          },
+          {
+            "Identifier": "348400",
+            "Title": "37 Afvalwaterinzameling en -behandeling"
+          },
+          {
+            "Identifier": "348500",
+            "Title": "370 Afvalwaterinzameling en -behandeling"
+          },
+          {
+            "Identifier": "348700",
+            "Title": "38 Afvalbehandeling en recycling"
+          },
+          {
+            "Identifier": "348800",
+            "Title": "381 Inzameling van afval"
+          },
+          {
+            "Identifier": "349100",
+            "Title": "382 Behandeling van afval"
+          },
+          {
+            "Identifier": "349400",
+            "Title": "383 Voorbereiding tot recycling"
+          },
+          {
+            "Identifier": "349700",
+            "Title": "39 Sanering en overig afvalbeheer"
+          },
+          {
+            "Identifier": "349800",
+            "Title": "390 Sanering en overig afvalbeheer"
+          },
+          {
+            "Identifier": "350000",
+            "Title": "F Bouwnijverheid"
+          },
+          {
+            "Identifier": "350100",
+            "Title": "41 Algemene bouw en projectontwikkeling"
+          },
+          {
+            "Identifier": "350200",
+            "Title": "411 Projectontwikkeling"
+          },
+          {
+            "Identifier": "350400",
+            "Title": "412 Algemene B&U-bouw"
+          },
+          {
+            "Identifier": "350600",
+            "Title": "42 Grond-, water-  en wegenbouw"
+          },
+          {
+            "Identifier": "350700",
+            "Title": "421 Bouw van wegen, spoorwegen, tunnels"
+          },
+          {
+            "Identifier": "351300",
+            "Title": "422 Buizen- en kabelleggers"
+          },
+          {
+            "Identifier": "351600",
+            "Title": "429 Overige civieltechnische bouw"
+          },
+          {
+            "Identifier": "351900",
+            "Title": "43 Gespecialiseerde bouw"
+          },
+          {
+            "Identifier": "352000",
+            "Title": "431 Sloopbedrijven en grondwerk"
+          },
+          {
+            "Identifier": "352400",
+            "Title": "432 Bouwinstallatie"
+          },
+          {
+            "Identifier": "353000",
+            "Title": "433 Afwerkingsbedrijven (bouw)"
+          },
+          {
+            "Identifier": "353500",
+            "Title": "439 Overige gespecialiseerde bouw"
+          },
+          {
+            "Identifier": "354200",
+            "Title": "G Handel"
+          },
+          {
+            "Identifier": "354300",
+            "Title": "45 Autohandel en -reparatie"
+          },
+          {
+            "Identifier": "354400",
+            "Title": "451 Autohandel en -reparatie"
+          },
+          {
+            "Identifier": "355300",
+            "Title": "452 Gespecialiseerde autoreparatie"
+          },
+          {
+            "Identifier": "356000",
+            "Title": "453 Handel in auto-onderdelen"
+          },
+          {
+            "Identifier": "356500",
+            "Title": "454 Handel en reparatie van motorfietsen"
+          },
+          {
+            "Identifier": "356900",
+            "Title": "46 Groothandel en handelsbemiddeling"
+          },
+          {
+            "Identifier": "357000",
+            "Title": "461 Handelsbemiddeling"
+          },
+          {
+            "Identifier": "358000",
+            "Title": "462 Groothandel in landbouwproducten"
+          },
+          {
+            "Identifier": "359800",
+            "Title": "463 Groothandel in voedingsmiddelen"
+          },
+          {
+            "Identifier": "361700",
+            "Title": "464 Groothandel in non-food"
+          },
+          {
+            "Identifier": "365700",
+            "Title": "465 Groothandel in ICT-apparatuur"
+          },
+          {
+            "Identifier": "366000",
+            "Title": "466 Groothandel in industriemachines"
+          },
+          {
+            "Identifier": "367900",
+            "Title": "467 Overige gespecialiseerde groothandel"
+          },
+          {
+            "Identifier": "371200",
+            "Title": "469 Niet-gespecialiseerde groothandel"
+          },
+          {
+            "Identifier": "371600",
+            "Title": "47 Detailhandel (niet in auto’s)"
+          },
+          {
+            "Identifier": "371700",
+            "Title": "471 Supermarkten en warenhuizen"
+          },
+          {
+            "Identifier": "372200",
+            "Title": "472 Winkels in voedingsmiddelen"
+          },
+          {
+            "Identifier": "373800",
+            "Title": "473 Tankstations"
+          },
+          {
+            "Identifier": "374000",
+            "Title": "474 Winkels in consumentenelektronica"
+          },
+          {
+            "Identifier": "374600",
+            "Title": "475 Winkels in overige huishoudwaren"
+          },
+          {
+            "Identifier": "377400",
+            "Title": "476 Winkels in recreatieartikelen"
+          },
+          {
+            "Identifier": "378400",
+            "Title": "477 Winkels in overige artikelen"
+          },
+          {
+            "Identifier": "381600",
+            "Title": "478 Markthandel"
+          },
+          {
+            "Identifier": "382500",
+            "Title": "479 Detailhandel, geen winkel of markt"
+          },
+          {
+            "Identifier": "383100",
+            "Title": "H Vervoer en opslag"
+          },
+          {
+            "Identifier": "383200",
+            "Title": "49 Vervoer over land"
+          },
+          {
+            "Identifier": "383300",
+            "Title": "491 Personenvervoer per spoor,geen tram"
+          },
+          {
+            "Identifier": "383500",
+            "Title": "492 Goederenvervoer per spoor"
+          },
+          {
+            "Identifier": "383700",
+            "Title": "493 Personenvervoer over de weg"
+          },
+          {
+            "Identifier": "384400",
+            "Title": "494 Goederenvervoer over de weg"
+          },
+          {
+            "Identifier": "384700",
+            "Title": "495 Transport via pijpleidingen"
+          },
+          {
+            "Identifier": "384900",
+            "Title": "50 Vervoer over water"
+          },
+          {
+            "Identifier": "385000",
+            "Title": "501 Zee- en kustvaart (passagiersvaart)"
+          },
+          {
+            "Identifier": "385200",
+            "Title": "502 Zee- en kustvaart (vrachtvaart)"
+          },
+          {
+            "Identifier": "385600",
+            "Title": "503 Binnenvaart (passagiersvaart)"
+          },
+          {
+            "Identifier": "385800",
+            "Title": "504 Binnenvaart (vracht- en sleepvaart)"
+          },
+          {
+            "Identifier": "386300",
+            "Title": "51 Vervoer door de lucht"
+          },
+          {
+            "Identifier": "386400",
+            "Title": "511 Personenvervoer door de lucht"
+          },
+          {
+            "Identifier": "386600",
+            "Title": "512 Goederenvervoer door de lucht"
+          },
+          {
+            "Identifier": "386800",
+            "Title": "52 Opslag, dienstverlening voor vervoer"
+          },
+          {
+            "Identifier": "386900",
+            "Title": "521 Opslag"
+          },
+          {
+            "Identifier": "387400",
+            "Title": "522 Dienstverlening voor vervoer"
+          },
+          {
+            "Identifier": "388400",
+            "Title": "53 Post en koeriers"
+          },
+          {
+            "Identifier": "388500",
+            "Title": "531 Nationale post"
+          },
+          {
+            "Identifier": "388700",
+            "Title": "532 Lokale post en koeriers"
+          },
+          {
+            "Identifier": "389100",
+            "Title": "I Horeca"
+          },
+          {
+            "Identifier": "389200",
+            "Title": "55 Logiesverstrekking"
+          },
+          {
+            "Identifier": "389300",
+            "Title": "551 Hotels"
+          },
+          {
+            "Identifier": "389700",
+            "Title": "552 Verhuur van vakantiehuisjes e.d."
+          },
+          {
+            "Identifier": "390100",
+            "Title": "553 Kampeerterreinen"
+          },
+          {
+            "Identifier": "390300",
+            "Title": "559 Overige logiesverstrekking"
+          },
+          {
+            "Identifier": "390500",
+            "Title": "56 Eet- en drinkgelegenheden"
+          },
+          {
+            "Identifier": "390600",
+            "Title": "561 Restaurants, andere eetgelegenheden"
+          },
+          {
+            "Identifier": "391100",
+            "Title": "562 Kantines en catering"
+          },
+          {
+            "Identifier": "391400",
+            "Title": "563 Cafés"
+          },
+          {
+            "Identifier": "391600",
+            "Title": "J Informatie en communicatie"
+          },
+          {
+            "Identifier": "391700",
+            "Title": "58 Uitgeverijen"
+          },
+          {
+            "Identifier": "391800",
+            "Title": "581 Uitgeverijen"
+          },
+          {
+            "Identifier": "392300",
+            "Title": "582 Uitgeverijen van software"
+          },
+          {
+            "Identifier": "392600",
+            "Title": "59 Film- en tv-productie; geluidsopname"
+          },
+          {
+            "Identifier": "392700",
+            "Title": "591 Productie, distributie van films, tv"
+          },
+          {
+            "Identifier": "393400",
+            "Title": "592 Maken en uitgeven van geluidsopnamen"
+          },
+          {
+            "Identifier": "393600",
+            "Title": "60 Radio- en televisieomroepen"
+          },
+          {
+            "Identifier": "393700",
+            "Title": "601 Radio-omroepen"
+          },
+          {
+            "Identifier": "393900",
+            "Title": "602 Televisieomroepen"
+          },
+          {
+            "Identifier": "394100",
+            "Title": "61 Telecommunicatie"
+          },
+          {
+            "Identifier": "394200",
+            "Title": "611 Draadgebonden telecommunicatie"
+          },
+          {
+            "Identifier": "394400",
+            "Title": "612 Draadloze telecommunicatie"
+          },
+          {
+            "Identifier": "394600",
+            "Title": "613 Telecommunicatie via satelliet"
+          },
+          {
+            "Identifier": "394800",
+            "Title": "619 Overige telecommunicatie"
+          },
+          {
+            "Identifier": "395000",
+            "Title": "62 IT-dienstverlening"
+          },
+          {
+            "Identifier": "395100",
+            "Title": "620 IT-dienstverlening"
+          },
+          {
+            "Identifier": "395600",
+            "Title": "63 Diensten op het gebied van informatie"
+          },
+          {
+            "Identifier": "395700",
+            "Title": "631 Gegevensverwerking e.d.; webportals"
+          },
+          {
+            "Identifier": "396000",
+            "Title": "639 Overige informatievoorziening"
+          },
+          {
+            "Identifier": "396300",
+            "Title": "K Financiële dienstverlening"
+          },
+          {
+            "Identifier": "396400",
+            "Title": "64 Bankwezen"
+          },
+          {
+            "Identifier": "396500",
+            "Title": "641 Banken"
+          },
+          {
+            "Identifier": "397200",
+            "Title": "642 Financiële holdings"
+          },
+          {
+            "Identifier": "397400",
+            "Title": "643 Beleggingsinstellingen"
+          },
+          {
+            "Identifier": "397900",
+            "Title": "649 Overige kredietverstrekking e.d."
+          },
+          {
+            "Identifier": "398700",
+            "Title": "65 Verzekeraars en pensioenfondsen"
+          },
+          {
+            "Identifier": "398800",
+            "Title": "651 Verzekeringen, geen herverzekering"
+          },
+          {
+            "Identifier": "399400",
+            "Title": "652 Herverzekeringen"
+          },
+          {
+            "Identifier": "399600",
+            "Title": "653 Pensioenfondsen"
+          },
+          {
+            "Identifier": "400200",
+            "Title": "66 Overige financiële dienstverlening"
+          },
+          {
+            "Identifier": "400300",
+            "Title": "661 Beurzen en financiële adviesbureaus"
+          },
+          {
+            "Identifier": "401000",
+            "Title": "662 Diensten op gebied van verzekeringen"
+          },
+          {
+            "Identifier": "401800",
+            "Title": "663 Vermogensbeheer"
+          },
+          {
+            "Identifier": "402000",
+            "Title": "L Verhuur en handel van onroerend goed"
+          },
+          {
+            "Identifier": "402100",
+            "Title": "68 Verhuur en handel van onroerend goed"
+          },
+          {
+            "Identifier": "402200",
+            "Title": "681 Handel in eigen onroerend goed"
+          },
+          {
+            "Identifier": "402400",
+            "Title": "682 Verhuur van onroerend goed"
+          },
+          {
+            "Identifier": "403000",
+            "Title": "683 Bemiddeling, beheer onroerend goed"
+          },
+          {
+            "Identifier": "403300",
+            "Title": "M Specialistische zakelijke diensten"
+          },
+          {
+            "Identifier": "403400",
+            "Title": "69 Juridische diensten en administratie"
+          },
+          {
+            "Identifier": "403500",
+            "Title": "691 Rechtskundige dienstverlening"
+          },
+          {
+            "Identifier": "404200",
+            "Title": "692 Accountancy, administratie e.d."
+          },
+          {
+            "Identifier": "404900",
+            "Title": "70 Holdings en managementadviesbureaus"
+          },
+          {
+            "Identifier": "405000",
+            "Title": "701 Holdings en interne concerndiensten"
+          },
+          {
+            "Identifier": "405400",
+            "Title": "702 Managementadviesbureaus"
+          },
+          {
+            "Identifier": "405900",
+            "Title": "71 Architecten-, ingenieursbureaus e.d."
+          },
+          {
+            "Identifier": "406000",
+            "Title": "711 Architecten- en ingenieursbureaus"
+          },
+          {
+            "Identifier": "406300",
+            "Title": "712 Keurings- en controlediensten"
+          },
+          {
+            "Identifier": "406800",
+            "Title": "72 Research"
+          },
+          {
+            "Identifier": "406900",
+            "Title": "721 Natuurwetenschappelijke research"
+          },
+          {
+            "Identifier": "407900",
+            "Title": "722 Geesteswetenschappelijke research"
+          },
+          {
+            "Identifier": "408100",
+            "Title": "73 Reclamewezen en marktonderzoek"
+          },
+          {
+            "Identifier": "408200",
+            "Title": "731 Reclamewezen"
+          },
+          {
+            "Identifier": "408500",
+            "Title": "732 Markt- en opinieonderzoek"
+          },
+          {
+            "Identifier": "408700",
+            "Title": "74 Design, fotografie, vertaalbureaus"
+          },
+          {
+            "Identifier": "408800",
+            "Title": "741 Industrieel ontwerp"
+          },
+          {
+            "Identifier": "409000",
+            "Title": "742 Fotografie en foto-ontwikkeling"
+          },
+          {
+            "Identifier": "409500",
+            "Title": "743 Vertaalbureaus en tolken"
+          },
+          {
+            "Identifier": "409700",
+            "Title": "749 Overige adviesbureaus"
+          },
+          {
+            "Identifier": "409900",
+            "Title": "75 Veterinaire dienstverlening"
+          },
+          {
+            "Identifier": "410000",
+            "Title": "750 Veterinaire dienstverlening"
+          },
+          {
+            "Identifier": "410200",
+            "Title": "N Verhuur en overige zakelijke diensten"
+          },
+          {
+            "Identifier": "410300",
+            "Title": "77 Verhuur van roerende goederen"
+          },
+          {
+            "Identifier": "410400",
+            "Title": "771 Verhuur en lease van auto’s"
+          },
+          {
+            "Identifier": "410900",
+            "Title": "772 Verhuur van consumentenartikelen"
+          },
+          {
+            "Identifier": "411600",
+            "Title": "773 Zakelijke verhuur van goederen"
+          },
+          {
+            "Identifier": "412500",
+            "Title": "774 Exploitatie van patenten"
+          },
+          {
+            "Identifier": "412700",
+            "Title": "78 Uitzendbureaus en arbeidsbemiddeling"
+          },
+          {
+            "Identifier": "412800",
+            "Title": "781 Arbeidsbemiddeling"
+          },
+          {
+            "Identifier": "413000",
+            "Title": "782 Uitzend- en uitleenbureaus; pools"
+          },
+          {
+            "Identifier": "413500",
+            "Title": "783 Payrolling (personeelsbeheer)"
+          },
+          {
+            "Identifier": "413700",
+            "Title": "79 Reisbureaus, reisorganisatie en -info"
+          },
+          {
+            "Identifier": "413800",
+            "Title": "791 Reisbureaus, reisorganisatiebureaus"
+          },
+          {
+            "Identifier": "414100",
+            "Title": "799 Reisinformatie-, reserveerbureaus"
+          },
+          {
+            "Identifier": "414300",
+            "Title": "80 Beveiligings- en opsporingsdiensten"
+          },
+          {
+            "Identifier": "414400",
+            "Title": "801 Particuliere beveiligingdiensten"
+          },
+          {
+            "Identifier": "414600",
+            "Title": "802 Beveiliging via alarmsystemen"
+          },
+          {
+            "Identifier": "414800",
+            "Title": "803 Detectivebureaus"
+          },
+          {
+            "Identifier": "415000",
+            "Title": "81 Schoonmaakbedrijven, hoveniers e.d."
+          },
+          {
+            "Identifier": "415100",
+            "Title": "811 Facility management"
+          },
+          {
+            "Identifier": "415300",
+            "Title": "812 Schoonmaakbedrijven"
+          },
+          {
+            "Identifier": "415700",
+            "Title": "813 Hoveniersbedrijven"
+          },
+          {
+            "Identifier": "415900",
+            "Title": "82 Overige zakelijke dienstverlening"
+          },
+          {
+            "Identifier": "416000",
+            "Title": "821 Administratieve dienstverlening"
+          },
+          {
+            "Identifier": "416300",
+            "Title": "822 Callcenters"
+          },
+          {
+            "Identifier": "416500",
+            "Title": "823 Organisatie van congressen, beurzen"
+          },
+          {
+            "Identifier": "416700",
+            "Title": "829 Overige zakelijke diensten (rest)"
+          },
+          {
+            "Identifier": "417400",
+            "Title": "O Openbaar bestuur en overheidsdiensten"
+          },
+          {
+            "Identifier": "417500",
+            "Title": "84 Openbaar bestuur en overheidsdiensten"
+          },
+          {
+            "Identifier": "417600",
+            "Title": "841 Openbaar bestuur"
+          },
+          {
+            "Identifier": "418000",
+            "Title": "842 Overheidsdiensten"
+          },
+          {
+            "Identifier": "418800",
+            "Title": "843 Verplichte sociale verzekeringen"
+          },
+          {
+            "Identifier": "419000",
+            "Title": "P Onderwijs"
+          },
+          {
+            "Identifier": "419100",
+            "Title": "85 Onderwijs"
+          },
+          {
+            "Identifier": "419200",
+            "Title": "852 Basisonderwijs en speciaal onderwijs"
+          },
+          {
+            "Identifier": "419700",
+            "Title": "853 Voortgezet onderwijs"
+          },
+          {
+            "Identifier": "420700",
+            "Title": "854 Hoger onderwijs"
+          },
+          {
+            "Identifier": "421000",
+            "Title": "855 Overig onderwijs"
+          },
+          {
+            "Identifier": "422200",
+            "Title": "856 Dienstverlening voor het onderwijs"
+          },
+          {
+            "Identifier": "422400",
+            "Title": "Q Gezondheids- en welzijnszorg"
+          },
+          {
+            "Identifier": "422500",
+            "Title": "86 Gezondheidszorg"
+          },
+          {
+            "Identifier": "422600",
+            "Title": "861 Ziekenhuizen"
+          },
+          {
+            "Identifier": "423200",
+            "Title": "862 Medische praktijken"
+          },
+          {
+            "Identifier": "424000",
+            "Title": "869 Overige ambulante gezondheidszorg"
+          },
+          {
+            "Identifier": "425300",
+            "Title": "87 Verpleging en zorg met overnachting"
+          },
+          {
+            "Identifier": "425400",
+            "Title": "871 Verpleeghuizen"
+          },
+          {
+            "Identifier": "425600",
+            "Title": "872 Huizen verstandelijk gehandicapten"
+          },
+          {
+            "Identifier": "425800",
+            "Title": "873 Huizen lichamelijk gehandicapten"
+          },
+          {
+            "Identifier": "426200",
+            "Title": "879 Welzijnszorg met overnachting"
+          },
+          {
+            "Identifier": "426600",
+            "Title": "88 Welzijnszorg zonder overnachting"
+          },
+          {
+            "Identifier": "426700",
+            "Title": "881 Welzijnswerk ouderen, gehandicapten"
+          },
+          {
+            "Identifier": "427200",
+            "Title": "889 Kinderopvang,jeugd- en welzijnswerk"
+          },
+          {
+            "Identifier": "428100",
+            "Title": "R Cultuur, sport en recreatie"
+          },
+          {
+            "Identifier": "428200",
+            "Title": "90 Kunst"
+          },
+          {
+            "Identifier": "428300",
+            "Title": "900 Kunst"
+          },
+          {
+            "Identifier": "429300",
+            "Title": "91 Bibliotheken, musea en natuurbehoud"
+          },
+          {
+            "Identifier": "429400",
+            "Title": "910 Bibliotheken, musea en natuurbehoud"
+          },
+          {
+            "Identifier": "430600",
+            "Title": "92 Loterijen en kansspelen"
+          },
+          {
+            "Identifier": "430700",
+            "Title": "920 Loterijen en kansspelen"
+          },
+          {
+            "Identifier": "431100",
+            "Title": "93 Sport en recreatie"
+          },
+          {
+            "Identifier": "431200",
+            "Title": "931 Sport"
+          },
+          {
+            "Identifier": "434800",
+            "Title": "932 Overige recreatie"
+          },
+          {
+            "Identifier": "435500",
+            "Title": "S Overige dienstverlening"
+          },
+          {
+            "Identifier": "435600",
+            "Title": "94 Ideële, belangen-, hobbyverenigingen"
+          },
+          {
+            "Identifier": "435700",
+            "Title": "941 Werkgevers- en beroepsorganisaties"
+          },
+          {
+            "Identifier": "436000",
+            "Title": "942 Werknemersorganisaties"
+          },
+          {
+            "Identifier": "436200",
+            "Title": "949 Ideële, belangen-, hobbyverenigingen"
+          },
+          {
+            "Identifier": "437500",
+            "Title": "95 Reparatie van consumentenartikelen"
+          },
+          {
+            "Identifier": "437600",
+            "Title": "951 Reparatie van computers en telecom"
+          },
+          {
+            "Identifier": "437900",
+            "Title": "952 Reparatie van consumentenartikelen"
+          },
+          {
+            "Identifier": "438600",
+            "Title": "96 Overige persoonlijke dienstverlening"
+          },
+          {
+            "Identifier": "438700",
+            "Title": "960 Wellness en overige dienstverlening"
+          },
+          {
+            "Identifier": "440000",
+            "Title": "T Huishoudens"
+          },
+          {
+            "Identifier": "440100",
+            "Title": "97 Huishoudens met personeel"
+          },
+          {
+            "Identifier": "440200",
+            "Title": "970 Huishoudens met personeel"
+          },
+          {
+            "Identifier": "440400",
+            "Title": "98 Huishoudproductie voor eigen gebruik"
+          },
+          {
+            "Identifier": "440500",
+            "Title": "981 Huishoudproductie eigen goederen"
+          },
+          {
+            "Identifier": "440700",
+            "Title": "982 Huishoudproductie eigen diensten"
+          },
+          {
+            "Identifier": "999999",
+            "Title": "SBI-code onbekend"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": {
+        "url": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/BedrijfstakkenBranchesSBI2008Codes?%24select=Identifier%2CTitle",
+        "retrieved_at": "2026-09-09T13:03:26.542Z"
+      }
+    },
+    {
+      "id": "3bbf7d04-aa72-4acf-9488-8f39862d494e",
+      "endpoint_id": "a3e1a2c7-8e01-4a2b-8204-d1fcd51387a2",
+      "api_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+      "method": "GET",
+      "path": "/odata/v1/CBS/{tableId}/TypeGefailleerdeCodes",
+      "listing_type": "api",
+      "list_atomic": 17391,
+      "contract": {
+        "capability_slug": "statistics.cbs-bankruptcy-entity-types",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "cbs.bankruptcy_type_codes": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "tableId": "82244NED",
+        "$select": "Identifier,Title"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/$metadata#TypeGefailleerdeCodes(Identifier,Title)",
+        "value": [
+          {
+            "Identifier": "A047596",
+            "Title": "Bedrijven, instellingen en eenmanszaken"
+          },
+          {
+            "Identifier": "A028820",
+            "Title": "Natuurlijke personen met eenmanszaak"
+          },
+          {
+            "Identifier": "A047597",
+            "Title": "Bedrijven en instellingen"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": {
+        "url": "https://datasets.cbs.nl/odata/v1/CBS/82244NED/TypeGefailleerdeCodes?%24select=Identifier%2CTitle",
+        "retrieved_at": "2026-09-09T13:03:26.595Z"
+      }
+    },
+    {
+      "id": "cfc2462e-aab9-4d7a-9189-cab5662b44fe",
+      "endpoint_id": "dd77c4c0-6cbc-48f9-affd-505fceeda929",
+      "api_slug": "eurostat",
+      "name": "Eurostat",
+      "source_url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access",
+      "method": "GET",
+      "path": "/statistics/1.0/data",
+      "listing_type": "api",
+      "list_atomic": 18903,
+      "contract": {
+        "capability_slug": "statistics.eurostat-gdp-netherlands",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "eurostat.input.time",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "eurostat.input.time": {
+            "in": "query",
+            "name": "time"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "eurostat.dataset": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "format": "JSON",
+        "lang": "EN",
+        "dataset": "nama_10_gdp",
+        "geo": "NL",
+        "unit": "CP_MEUR",
+        "na_item": "B1GQ"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "version": "2.0",
+        "class": "dataset",
+        "label": "Gross domestic product (GDP) and main components (output, expenditure and income) - annual data",
+        "source": "ESTAT",
+        "updated": "2026-09-08T11:00:00+0200",
+        "value": {
+          "0": 1050133
+        },
+        "id": [
+          "freq",
+          "unit",
+          "na_item",
+          "geo",
+          "time"
+        ],
+        "size": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "dimension": {
+          "freq": {
+            "label": "Time frequency",
+            "category": {
+              "index": {
+                "A": 0
+              },
+              "label": {
+                "A": "Annual"
+              }
+            }
+          },
+          "unit": {
+            "label": "Unit of measure",
+            "category": {
+              "index": {
+                "CP_MEUR": 0
+              },
+              "label": {
+                "CP_MEUR": "Current prices, million euro"
+              }
+            }
+          },
+          "na_item": {
+            "label": "National accounts indicator (ESA 2010)",
+            "category": {
+              "index": {
+                "B1GQ": 0
+              },
+              "label": {
+                "B1GQ": "Gross domestic product at market prices"
+              }
+            }
+          },
+          "geo": {
+            "label": "Geopolitical entity (reporting)",
+            "category": {
+              "index": {
+                "NL": 0
+              },
+              "label": {
+                "NL": "Netherlands"
+              }
+            }
+          },
+          "time": {
+            "label": "Time",
+            "category": {
+              "index": {
+                "2023": 0
+              },
+              "label": {
+                "2023": "2023"
+              }
+            }
+          }
+        },
+        "extension": {
+          "lang": "EN",
+          "id": "NAMA_10_GDP",
+          "agencyId": "ESTAT",
+          "version": "1.0",
+          "datastructure": {
+            "id": "NAMA_10_GDP",
+            "agencyId": "ESTAT",
+            "version": "138.0"
+          },
+          "annotation": [
+            {
+              "type": "CREATED",
+              "date": "2014-09-04T14:58:03+0200"
+            },
+            {
+              "type": "DISSEMINATION_DOI_XML",
+              "title": "<adms:identifier xmlns:adms=\"http://www.w3.org/ns/adms#\" xmlns:skos=\"http://www.w3.org/2004/02/skos/core.html\" xmlns:dct=\"http://purl.org/dc/terms/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><adms:Identifier rdf:about=\"https://doi.org/10.2908/NAMA_10_GDP\"><skos:notation rdf:datatype=\"http://purl.org/spar/datacite/doi\">10.2908/NAMA_10_GDP</skos:notation><dct:creator rdf:resource=\"http://publications.europa.eu/resource/authority/corporate-body/ESTAT\"/><dct:issued rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">2023-01-19</dct:issued></adms:Identifier></adms:identifier>"
+            },
+            {
+              "type": "DISSEMINATION_OBJECT_TYPE",
+              "title": "DATASET"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_DATA",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_GLOBAL",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_PLANNED",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "ESMS_HTML",
+              "title": "Explanatory texts (metadata)",
+              "href": "https://ec.europa.eu/eurostat/cache/metadata/en/nama_10_gdp_esms.htm"
+            },
+            {
+              "type": "ESMS_SDMX",
+              "title": "Explanatory texts (metadata)",
+              "href": "https://ec.europa.eu/eurostat/api/dissemination/files?file=metadata/nama_10_gdp_esms.sdmx.zip"
+            },
+            {
+              "type": "FOOTNOTE",
+              "title": "Footnote (metadata)",
+              "href": "https://ec.europa.eu/eurostat/cache/metadata/Annexes/nama_10_gdp_esms_an_Gross_domestic_product_(GDP)_a.xlsx"
+            },
+            {
+              "type": "OBS_COUNT",
+              "title": "1101905"
+            },
+            {
+              "type": "OBS_PERIOD_OVERALL_LATEST",
+              "title": "2025"
+            },
+            {
+              "type": "OBS_PERIOD_OVERALL_OLDEST",
+              "title": "1975"
+            },
+            {
+              "type": "SOURCE_INSTITUTIONS",
+              "text": "Eurostat"
+            },
+            {
+              "type": "UPDATE_DATA",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "UPDATE_FOOTNOTES",
+              "date": "2026-07-22T14:45:06Z"
+            },
+            {
+              "type": "UPDATE_STRUCTURE",
+              "date": "2026-09-08T11:00:00+0200"
+            }
+          ],
+          "positions-with-no-data": {
+            "freq": [],
+            "unit": [],
+            "na_item": [],
+            "geo": [],
+            "time": []
+          }
+        }
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    },
+    {
+      "id": "752f92ed-770f-4bfd-bcd3-4e626e4397b6",
+      "endpoint_id": "dd77c4c0-6cbc-48f9-affd-505fceeda929",
+      "api_slug": "eurostat",
+      "name": "Eurostat",
+      "source_url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access",
+      "method": "GET",
+      "path": "/statistics/1.0/data",
+      "listing_type": "api",
+      "list_atomic": 18903,
+      "contract": {
+        "capability_slug": "statistics.eurostat-gdp-germany",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "eurostat.input.time",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "eurostat.input.time": {
+            "in": "query",
+            "name": "time"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "eurostat.dataset": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "format": "JSON",
+        "lang": "EN",
+        "dataset": "nama_10_gdp",
+        "geo": "DE",
+        "unit": "CP_MEUR",
+        "na_item": "B1GQ"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "version": "2.0",
+        "class": "dataset",
+        "label": "Gross domestic product (GDP) and main components (output, expenditure and income) - annual data",
+        "source": "ESTAT",
+        "updated": "2026-09-08T11:00:00+0200",
+        "value": {
+          "0": 4254930
+        },
+        "status": {
+          "0": "p"
+        },
+        "id": [
+          "freq",
+          "unit",
+          "na_item",
+          "geo",
+          "time"
+        ],
+        "size": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "dimension": {
+          "freq": {
+            "label": "Time frequency",
+            "category": {
+              "index": {
+                "A": 0
+              },
+              "label": {
+                "A": "Annual"
+              }
+            }
+          },
+          "unit": {
+            "label": "Unit of measure",
+            "category": {
+              "index": {
+                "CP_MEUR": 0
+              },
+              "label": {
+                "CP_MEUR": "Current prices, million euro"
+              }
+            }
+          },
+          "na_item": {
+            "label": "National accounts indicator (ESA 2010)",
+            "category": {
+              "index": {
+                "B1GQ": 0
+              },
+              "label": {
+                "B1GQ": "Gross domestic product at market prices"
+              }
+            }
+          },
+          "geo": {
+            "label": "Geopolitical entity (reporting)",
+            "category": {
+              "index": {
+                "DE": 0
+              },
+              "label": {
+                "DE": "Germany"
+              }
+            }
+          },
+          "time": {
+            "label": "Time",
+            "category": {
+              "index": {
+                "2023": 0
+              },
+              "label": {
+                "2023": "2023"
+              }
+            }
+          }
+        },
+        "extension": {
+          "lang": "EN",
+          "id": "NAMA_10_GDP",
+          "agencyId": "ESTAT",
+          "version": "1.0",
+          "datastructure": {
+            "id": "NAMA_10_GDP",
+            "agencyId": "ESTAT",
+            "version": "138.0"
+          },
+          "annotation": [
+            {
+              "type": "CREATED",
+              "date": "2014-09-04T14:58:03+0200"
+            },
+            {
+              "type": "DISSEMINATION_DOI_XML",
+              "title": "<adms:identifier xmlns:adms=\"http://www.w3.org/ns/adms#\" xmlns:skos=\"http://www.w3.org/2004/02/skos/core.html\" xmlns:dct=\"http://purl.org/dc/terms/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><adms:Identifier rdf:about=\"https://doi.org/10.2908/NAMA_10_GDP\"><skos:notation rdf:datatype=\"http://purl.org/spar/datacite/doi\">10.2908/NAMA_10_GDP</skos:notation><dct:creator rdf:resource=\"http://publications.europa.eu/resource/authority/corporate-body/ESTAT\"/><dct:issued rdf:datatype=\"http://www.w3.org/2001/XMLSchema#date\">2023-01-19</dct:issued></adms:Identifier></adms:identifier>"
+            },
+            {
+              "type": "DISSEMINATION_OBJECT_TYPE",
+              "title": "DATASET"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_DATA",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_GLOBAL",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "DISSEMINATION_TIMESTAMP_PLANNED",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "ESMS_HTML",
+              "title": "Explanatory texts (metadata)",
+              "href": "https://ec.europa.eu/eurostat/cache/metadata/en/nama_10_gdp_esms.htm"
+            },
+            {
+              "type": "ESMS_SDMX",
+              "title": "Explanatory texts (metadata)",
+              "href": "https://ec.europa.eu/eurostat/api/dissemination/files?file=metadata/nama_10_gdp_esms.sdmx.zip"
+            },
+            {
+              "type": "FOOTNOTE",
+              "title": "Footnote (metadata)",
+              "href": "https://ec.europa.eu/eurostat/cache/metadata/Annexes/nama_10_gdp_esms_an_Gross_domestic_product_(GDP)_a.xlsx"
+            },
+            {
+              "type": "OBS_COUNT",
+              "title": "1101905"
+            },
+            {
+              "type": "OBS_PERIOD_OVERALL_LATEST",
+              "title": "2025"
+            },
+            {
+              "type": "OBS_PERIOD_OVERALL_OLDEST",
+              "title": "1975"
+            },
+            {
+              "type": "SOURCE_INSTITUTIONS",
+              "text": "Eurostat"
+            },
+            {
+              "type": "UPDATE_DATA",
+              "date": "2026-09-08T11:00:00+0200"
+            },
+            {
+              "type": "UPDATE_FOOTNOTES",
+              "date": "2026-07-22T14:45:06Z"
+            },
+            {
+              "type": "UPDATE_STRUCTURE",
+              "date": "2026-09-08T11:00:00+0200"
+            }
+          ],
+          "status": {
+            "label": {
+              "p": "provisional"
+            }
+          },
+          "positions-with-no-data": {
+            "freq": [],
+            "unit": [],
+            "na_item": [],
+            "geo": [],
+            "time": []
+          }
+        }
+      },
+      "jurisdiction": null,
+      "activation_status": "active",
+      "evidence": "Existing reviewed source response sample and published API schema; verified by public_statistics tests. No paid call."
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "statistics.cbs-bankruptcy-measures",
+      "name": "CBS bankruptcy measures",
+      "description": "Official measures codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."
+    },
+    {
+      "slug": "statistics.cbs-bankruptcy-sectors",
+      "name": "CBS bankruptcy sectors",
+      "description": "Official sectors codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."
+    },
+    {
+      "slug": "statistics.cbs-bankruptcy-entity-types",
+      "name": "CBS bankruptcy entity-types",
+      "description": "Official entity-types codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."
+    },
+    {
+      "slug": "statistics.eurostat-gdp-netherlands",
+      "name": "GDP of netherlands",
+      "description": "GDP at market prices in current-price million euro for netherlands. Requires the explicit year. Not real GDP, growth or GDP per capita."
+    },
+    {
+      "slug": "statistics.eurostat-gdp-germany",
+      "name": "GDP of germany",
+      "description": "GDP at market prices in current-price million euro for germany. Requires the explicit year. Not real GDP, growth or GDP per capita."
+    }
+  ],
+  "new_endpoints": [
+    {
+      "id": "a3e1a2c7-8e01-4a2b-8204-d1fcd51387a2",
+      "template_endpoint": "050799b8-d913-42ff-864b-5b524d7fe664",
+      "path": "/odata/v1/CBS/{tableId}/TypeGefailleerdeCodes"
+    }
+  ]
+}

@@ -67,7 +67,7 @@ impl Engine {
                 if until > Utc::now() { return self.view(p, id, req.request_id, None).await; }
                 self.advance(&mut task)?;
             }
-            Action::Analyze { .. } => {
+            Action::Analyze { .. } | Action::RetryAnalysis { .. } => {
                 anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid analysis input");
                 let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
                 let intent: Intent = serde_json::from_value(task.intent.clone().ok_or_else(|| anyhow::anyhow!("missing intent"))?)?;
@@ -87,6 +87,10 @@ impl Engine {
                     Err(_) => json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]}),
                 });
                 task.actions.clear();
+                if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {
+                    // Only an explicit click retries saved documents. Never poll-loop or re-purchase.
+                    task.actions.push(serde_json::to_value(Action::RetryAnalysis {action_id:Uuid::new_v4()})?);
+                }
             }
             Action::Read { result_ref, .. } => {
                 anyhow::ensure!(
