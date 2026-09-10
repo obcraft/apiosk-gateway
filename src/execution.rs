@@ -151,8 +151,8 @@ impl Executor {
             // executions are the clock; no timer or client can bypass this.
             sqlx::query("SELECT pg_advisory_xact_lock(724010602)").execute(&mut *tx).await?;
             let until: Option<chrono::DateTime<Utc>> = sqlx::query_scalar(
-                "SELECT max(CASE WHEN e.status IN ('dispatching','unresolved') THEN now()+interval '2 seconds' ELSE e.updated_at+interval '60 seconds' END) FROM gateway_v2.executions e JOIN public.user_selected_apis s ON s.id=e.selection_id WHERE s.candidate_id=$1 AND (e.status IN ('dispatching','unresolved') OR e.updated_at>now()-interval '60 seconds')"
-            ).bind(step.service.endpoint_id).fetch_one(&mut *tx).await?;
+                "SELECT max(CASE WHEN e.status IN ('dispatching','unresolved') THEN now()+interval '2 seconds' ELSE e.updated_at+interval '65 seconds' END) FROM gateway_v2.executions e JOIN public.user_selected_apis s ON s.id=e.selection_id JOIN public.api_endpoints ep ON ep.id=s.candidate_id JOIN public.apis a ON a.id=ep.api_id WHERE a.slug=$1 AND (e.status IN ('dispatching','unresolved') OR e.updated_at>now()-interval '65 seconds')"
+            ).bind(&step.service.api_slug).fetch_one(&mut *tx).await?;
             if let Some(until) = until.filter(|until| *until > Utc::now()) {
                 return Ok(Dispatch::Waiting { until });
             }
@@ -239,10 +239,11 @@ impl Executor {
                 }
             }
             if c.get::<String, _>("status") == "refunded" {
-                sqlx::query("UPDATE gateway_v2.executions SET status='failed',actual_atomic=0,updated_at=now() WHERE id=$1").bind(id).execute(&self.store.pool).await?;
-                return Ok(Some(
-                    json!({"ok":false,"charged_micro_usd":0,"error":"refunded","message":"The payment ledger confirms this execution was refunded."}),
-                ));
+                let throttled: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM public.call_runs WHERE charge_id=$1 AND user_id=$2 AND status='failed' AND output #>> '{execution,status}'='429' AND output #>> '{execution,paid}'='false')")
+                    .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_one(&self.store.pool).await?;
+                let body = json!({"ok":false,"charged_micro_usd":0,"error":if throttled {"rate_limited_refunded"} else {"refunded"},"message":"The payment ledger confirms this execution was refunded."});
+                sqlx::query("UPDATE gateway_v2.executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(id).bind(&body).execute(&self.store.pool).await?;
+                return Ok(Some(body));
             }
         }
         Ok(None)

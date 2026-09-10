@@ -59,6 +59,10 @@ pub fn public_error(body: &Value) -> Value {
             "rate_limited",
             "Please wait before requesting another quote.",
         ),
+        Some("rate_limited_refunded") => (
+            "rate_limited_refunded",
+            "The source temporarily limited this request (429). The full amount, including the fee, was refunded.",
+        ),
         Some("refunded") => (
             "refunded",
             "The payment ledger confirms that the amount, including the fee, was refunded.",

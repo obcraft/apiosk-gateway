@@ -1192,7 +1192,19 @@ async fn durable_flow_and_authorization_boundary() {
     let quote = state.proposal.as_ref().unwrap();
     multi.executor.approve(&user,task_id,quote.quote_ref,&quote.max_total_atomic).await.unwrap();
     let before = counts.provider.load(Ordering::Relaxed);
-    for _ in 0..3 { state = multi.execute(&user,"fixture",execution(&state)).await.unwrap(); assert_eq!(state.status,Status::Ready,"{state:?}"); }
+    for _ in 0..2 { state = multi.execute(&user,"fixture",execution(&state)).await.unwrap(); assert_eq!(state.status,Status::Ready,"{state:?}"); }
+    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
+    assert_eq!(state.status,Status::Running,"search traffic must also pace the first annual report: {state:?}");
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+2);
+    let (rev,mut pacing,_) = store.load(user.owner,task_id).await.unwrap();
+    pacing.actions[0]["until"]=json!(chrono::Utc::now()-chrono::Duration::seconds(1));
+    store.save(user.owner,task_id,rev,&pacing).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds'").execute(&pool).await.unwrap();
+    state=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
+    let wait_action=state.next_actions.iter().find(|a|a.kind=="poll").unwrap().action_id;
+    state=multi.execute(&user,"fixture",ExecuteRequest{request_id:Uuid::new_v4(),action_id:wait_action,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:wait_action,input:Value::Null}).await.unwrap();
+    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
+    assert_eq!(state.status,Status::Ready,"{state:?}");
     state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
     assert_eq!(state.status,Status::Running,"{state:?}");
     assert!(state.retry_after_ms.unwrap() > 59000);
@@ -1209,7 +1221,7 @@ async fn durable_flow_and_authorization_boundary() {
     // Advance the fixture clock; no sleep and no production clock override.
     saved.actions[0]["until"]=json!(chrono::Utc::now()-chrono::Duration::seconds(1));
     store.save(user.owner,task_id,revision,&saved).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '61 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
     state=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
     state=multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
     state=multi.execute(&user,"fixture",execution(&state)).await.unwrap();
@@ -1238,7 +1250,7 @@ async fn durable_flow_and_authorization_boundary() {
     failure_task.actions=vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":2})];
     for fact in &mut failure_task.facts { if fact.entity_ref==plan.steps[2].entity_ref && fact.semantic_type=="company.id" {fact.value=json!("timeout");} }
     let failed_id=store.create(user.owner,None).await.unwrap(); store.save(user.owner,failed_id,0,&failure_task).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '61 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
     let initial=multi.view(&user,failed_id,Uuid::new_v4(),None).await.unwrap();
     multi.executor.approve(&user,failed_id,plan.quote_ref,&plan.cap_atomic.to_string()).await.unwrap();
     let request=execution(&initial); let execution_id=request.idempotency_key;
@@ -1253,6 +1265,24 @@ async fn durable_flow_and_authorization_boundary() {
     let waiting=multi.execute(&user,"fixture",execution(&resumed)).await.unwrap();
     assert!(waiting.context_view["cooldown"]["until"].is_string(),"{waiting:?}");
     assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
+    sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
+
+    // The screenshot's exact failure: an unpaid upstream 429 followed by a
+    // confirmed ledger refund must enter a durable wait, not fail the plan.
+    let charge:Uuid=sqlx::query_scalar("SELECT id FROM public.balance_charges WHERE user_id=$1 AND idempotency_key=$2")
+        .bind(user.owner).bind(execution_id.to_string()).fetch_one(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.call_runs(id,charge_id,user_id,status,output,output_truncated) VALUES($1,$2,$3,'failed',$4,false)")
+        .bind(Uuid::new_v4()).bind(charge).bind(user.owner).bind(json!({"execution":{"status":429,"paid":false}})).execute(&pool).await.unwrap();
+    let (rev,mut retry_task,_)=store.load(user.owner,failed_id).await.unwrap();
+    retry_task.failed_steps.clear();
+    retry_task.actions=vec![json!({"kind":"poll","action_id":Uuid::new_v4(),"execution_id":execution_id})];
+    store.save(user.owner,failed_id,rev,&retry_task).await.unwrap();
+    let retry_state=multi.view(&user,failed_id,Uuid::new_v4(),None).await.unwrap();
+    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
+    let retry_wait=multi.execute(&user,"fixture",poll_request(&retry_state)).await.unwrap();
+    assert_eq!(retry_wait.status,Status::Running,"{retry_wait:?}");
+    assert!(retry_wait.context_view["cooldown"]["until"].is_string());
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline,"waiting cannot repurchase");
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     api_server.abort();
