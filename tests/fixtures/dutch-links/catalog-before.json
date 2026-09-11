@@ -1,0 +1,1271 @@
+{
+  "apis": [
+    {
+      "id": "a282854e-2117-4597-bbca-d27715396113",
+      "slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "origin_url": "https://api.kvk.nl"
+    },
+    {
+      "id": "5f8c78db-0579-4de8-bd1f-eed9bb8b7df5",
+      "slug": "pdok",
+      "name": "PDOK Maps & Addresses",
+      "origin_url": "https://api.pdok.nl"
+    },
+    {
+      "id": "e7990976-3d21-44c8-b844-fd6859dec80f",
+      "slug": "tenderned",
+      "name": "TenderNed",
+      "origin_url": "https://www.tenderned.nl/papi/tenderned-rs-tns"
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_id": "a282854e-2117-4597-bbca-d27715396113",
+      "path": "/api/v1/basisprofielen",
+      "method": "GET",
+      "price": 0.066162,
+      "active": true,
+      "query_params": {
+        "geoData": {
+          "type": "boolean",
+          "required": false,
+          "description": "Include geodata (GPS latitude/longitude, Rijksdriehoek coordinates, BAG object ids) on addresses. Default false."
+        },
+        "kvkNummer": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$",
+          "required": true,
+          "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+          "x-parameter-location": "path"
+        }
+      }
+    },
+    {
+      "id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "api_id": "e7990976-3d21-44c8-b844-fd6859dec80f",
+      "path": "/v2/publicaties",
+      "method": "GET",
+      "price": 0.047259,
+      "active": true,
+      "query_params": {
+        "page": {
+          "type": "integer",
+          "required": false,
+          "description": "Zero-based page number."
+        },
+        "size": {
+          "type": "integer",
+          "required": false,
+          "description": "Results per page (the site itself uses 50)."
+        },
+        "search": {
+          "type": "string",
+          "required": false,
+          "description": "Free-text search over the notice title, the awarding authority and the contract description, e.g. zorg or wegonderhoud."
+        },
+        "cpvCodes": {
+          "type": "string",
+          "required": false,
+          "description": "EU Common Procurement Vocabulary code, INCLUDING the check digit, e.g. 85000000-9 (health and social work). An eight-digit code without the check digit is rejected."
+        },
+        "procedure": {
+          "enum": [
+            "OPE",
+            "NOP",
+            "CCD",
+            "OMB",
+            "OZB",
+            "OHP",
+            "OH",
+            "INP",
+            "CA",
+            "APM",
+            "APE",
+            "VUB"
+          ],
+          "type": "string",
+          "required": false,
+          "description": "Procedure code."
+        },
+        "publicatieId": {
+          "type": "string",
+          "required": false,
+          "description": "A known publication id to fetch that notice's full detail directly, e.g. 438729. Omit to search instead using the parameters below.",
+          "x-parameter-location": "path"
+        },
+        "typeOpdracht": {
+          "enum": [
+            "W",
+            "L",
+            "D"
+          ],
+          "type": "string",
+          "required": false,
+          "description": "Contract type: W werken (works), L leveringen (supplies), D diensten (services)."
+        },
+        "sluitingsDatumTot": {
+          "type": "string",
+          "required": false,
+          "description": "Only notices closing up to this date, ISO yyyy-mm-dd."
+        },
+        "publicatieDatumTot": {
+          "type": "string",
+          "required": false,
+          "description": "Only notices published up to this date, ISO yyyy-mm-dd."
+        },
+        "sluitingsDatumVanaf": {
+          "type": "string",
+          "required": false,
+          "description": "Only notices closing on or after this date, ISO yyyy-mm-dd \u2014 the filter for finding tenders still open to bid on. Note the capital D."
+        },
+        "publicatieDatumVanaf": {
+          "type": "string",
+          "required": false,
+          "description": "Only notices published on or after this date, ISO yyyy-mm-dd."
+        },
+        "publicatieDatumPreset": {
+          "enum": [
+            "AF7",
+            "AF30"
+          ],
+          "type": "string",
+          "required": false,
+          "description": "Shorthand window on the publication date: AF7 for the last 7 days, AF30 for the last 30. Any other value is rejected."
+        }
+      }
+    }
+  ],
+  "contracts": [
+    {
+      "id": "01ee16cc-ec4e-49df-a3e5-2f99e49f7580",
+      "capability_slug": "company_intel.search",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "version": 3,
+      "status": "active",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company_intel.input.search",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.cpvcodes",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.procedure",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.publicatieid",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.typeopdracht",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.sluitingsdatumtot",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.publicatiedatumtot",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.sluitingsdatumvanaf",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.publicatiedatumvanaf",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company_intel.input.publicatiedatumpreset",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "tenderned.publication_page",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company_intel.input.search": {
+          "in": "query",
+          "name": "search"
+        },
+        "company_intel.publicatieid": {
+          "in": "path_append",
+          "name": "publicatieId"
+        },
+        "company_intel.input.cpvcodes": {
+          "in": "query",
+          "name": "cpvCodes"
+        },
+        "company_intel.input.procedure": {
+          "in": "query",
+          "name": "procedure"
+        },
+        "company_intel.input.typeopdracht": {
+          "in": "query",
+          "name": "typeOpdracht"
+        },
+        "company_intel.input.sluitingsdatumtot": {
+          "in": "query",
+          "name": "sluitingsDatumTot"
+        },
+        "company_intel.input.publicatiedatumtot": {
+          "in": "query",
+          "name": "publicatieDatumTot"
+        },
+        "company_intel.input.sluitingsdatumvanaf": {
+          "in": "query",
+          "name": "sluitingsDatumVanaf"
+        },
+        "company_intel.input.publicatiedatumvanaf": {
+          "in": "query",
+          "name": "publicatieDatumVanaf"
+        },
+        "company_intel.input.publicatiedatumpreset": {
+          "in": "query",
+          "name": "publicatieDatumPreset"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "tenderned.publication_page": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "preconditions": {},
+      "freshness_seconds": null,
+      "max_fan_out": 1,
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "adapter_version": "v1",
+      "sample_payload": {
+        "last": false,
+        "size": 10,
+        "first": true,
+        "number": 0,
+        "content": [
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/330128",
+              "title": "self"
+            },
+            "score": 27.810678,
+            "kenmerk": 458244,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NA"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/80221",
+            "tsenderNaam": "Mercell",
+            "publicatieId": "330128",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "EF04",
+              "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+            },
+            "typePublicatie": {
+              "code": "VAK",
+              "omschrijving": "Vooraankondiging"
+            },
+            "publicatieDatum": "2024-03-23",
+            "aanbestedingNaam": "Marktconsultatie Laadpalen gemeente Nijmegen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "gemeente Nijmegen",
+            "opdrachtBeschrijving": "Gemeente Nijmegen heeft circa 430 laadpalen in de openbare ruimte staan middels verschillende concessies. Daarnaast hebben we 42 semi publieke laadpalen op eigen terreinen staan. Deze laadpalen hebben we in eigen beheer. Voor vervanging en uitbreiding van de laadpalen op eigen terreinen (parkeergarages, P&R en deelvoertuigen in de openbare ruimte) gaan wij op zoek naar een aanbieder. Wij zoeken hierbij een aanbieder die de laadpalen levert, 2elijns onderhoud doet aan de laadpalen en de benodigde software kan leveren. Wij willen hierbij niet afhankelijk zijn van een CPO, zodat we zelf de controle hebben.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/376218",
+              "title": "self"
+            },
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "digitaal": true,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieId": "376218",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2025-04-24",
+            "aanbestedingNaam": "Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -566
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/361435",
+              "title": "self"
+            },
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "digitaal": true,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieId": "361435",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2024-12-18",
+            "aanbestedingNaam": "Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -566
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307391",
+              "title": "self"
+            },
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "307391",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "SF14",
+              "omschrijving": "Kennisgeving van aanvullende informatie, informatie over een onvolledige procedure of rectificatie"
+            },
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            },
+            "publicatieDatum": "2023-08-15",
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": true,
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte.\u00a0\nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie\u00a0van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1076
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307240",
+              "title": "self"
+            },
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "307240",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-08-13",
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte.\u00a0\nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie\u00a0van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1076
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/296385",
+              "title": "self"
+            },
+            "score": 25.64547,
+            "kenmerk": 410073,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NA"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/36835",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "296385",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "publicatiecode": {
+              "code": "SF07",
+              "omschrijving": "Erkenningsregeling - speciale sectoren"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-04-27",
+            "aanbestedingNaam": "Openbaar bod publieke EV laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Alliander N.V.",
+            "opdrachtBeschrijving": "Middels een openbaar bod Publieke EV laadpalen (open house) kunnen Inschrijvers zich aanmelden om het werkpakket Publieke EV laadpalen in het verzorgingsgebied van Alliander N.V. uit te voeren.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/326177",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 452537,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "tsenderNaam": "Mercell",
+            "publicatieId": "326177",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2024-02-16",
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Politie",
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/301746",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 417912,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "301746",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2023-10-05T12:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-06-24",
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Politie",
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1070
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/278739",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "tsenderNaam": "Negometrix3",
+            "publicatieId": "278739",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF06",
+              "omschrijving": "Aankondiging van een gegunde opdracht - speciale sectoren"
+            },
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2022-11-10",
+            "aanbestedingNaam": "EV Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "opdrachtBeschrijving": "Doel van de aanbesteding: de Opdracht\nAangezien Schiphol\u00a0CO2\u00a0reductie\u00a0doelstellingen wil verwezenlijken de komende jaren, waarbij\u00a0electrification\u00a0een centraal thema is,\u00a0verwachten we\u00a0de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens\u00a0hiervoor\u00a0middels\u00a0een\u00a0aanbesteding tot een tweetal\u00a0raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen.\u00a0\nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de \u00a0Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies\u00a0over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1675
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/248112",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "tsenderNaam": "Negometrix3",
+            "publicatieId": "248112",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2021-12-25",
+            "aanbestedingNaam": "EV Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "opdrachtBeschrijving": "Aangezien Schiphol\u00a0CO2\u00a0reductie\u00a0doelstellingen wil verwezenlijken de komende jaren, waarbij\u00a0electrification\u00a0een centraal thema is,\u00a0verwachten we\u00a0de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens\u00a0hiervoor\u00a0middels\u00a0een\u00a0aanbesteding tot een tweetal\u00a0raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen.\u00a0\nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de \u00a0Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies\u00a0over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden\n\u00a0",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1675
+          }
+        ],
+        "totalPages": 23,
+        "totalElements": 221,
+        "numberOfElements": 10
+      },
+      "validated_at": "2026-09-09T13:07:57.034586+00:00",
+      "validated_note": "Multi-row direct-source regression fixtures; no guessed identities or scalar arrays",
+      "notes": "direct-source-repairs-20260909",
+      "created_at": "2026-09-09T13:07:57.034586+00:00",
+      "updated_at": "2026-09-09T13:07:57.034586+00:00",
+      "identifies": null
+    },
+    {
+      "id": "7def39aa-7aa9-4e38-86cd-615af477e6a0",
+      "capability_slug": "company.registry-profile",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "version": 6,
+      "status": "active",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company_registry.kvknummer",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.profile",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company_registry.kvknummer",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company_registry.kvknummer": {
+          "in": "path_append",
+          "name": "kvkNummer"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.statutaireNaam"
+          },
+          "company.profile": {
+            "fields": {
+              "sbi_codes": {
+                "path": "$.sbiActiviteiten[*].sbiCode",
+                "collect": true
+              },
+              "legal_name": {
+                "path": "$.statutaireNaam"
+              },
+              "trade_names": {
+                "path": "$.handelsnamen[*].naam",
+                "collect": true
+              }
+            }
+          },
+          "company_registry.kvknummer": {
+            "path": "$.kvkNummer"
+          }
+        }
+      },
+      "cardinality": "one",
+      "preconditions": {},
+      "freshness_seconds": null,
+      "max_fan_out": 1,
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "adapter_version": "v1",
+      "sample_payload": {
+        "naam": "Coolblue B.V.",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "810433941",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000018992536"
+              }
+            ],
+            "adressen": [
+              {
+                "land": "Nederland",
+                "type": "bezoekadres",
+                "plaats": "Rotterdam",
+                "postcode": "3012CN",
+                "huisnummer": 664,
+                "straatnaam": "Weena",
+                "volledigAdres": "Weena 664 3012CN Rotterdam",
+                "indAfgeschermd": "Nee"
+              }
+            ],
+            "websites": [
+              "www.boormachinestore.nl",
+              "www.strijkijzerstore.nl",
+              "www.bluerayspelershop.nl",
+              "www.bluerayspelershop.be",
+              "www.carkitcenter.nl",
+              "www.prepaidstore.nl",
+              "www.tvstore.nl",
+              "www.mobielinternetshop.nl",
+              "www.accustore.nl",
+              "www.seniorentelefoonstore.nl",
+              "www.verrekijkercenter.nl"
+            ],
+            "kvkNummer": "24330087",
+            "vestigingsnummer": "000018992536",
+            "eersteHandelsnaam": "Coolblue B.V.",
+            "indHoofdvestiging": "Ja",
+            "materieleRegistratie": {
+              "datumAanvang": "19991124"
+            },
+            "totaalWerkzamePersonen": 110,
+            "indCommercieleVestiging": "Ja"
+          }
+        },
+        "kvkNummer": "24330087",
+        "handelsnamen": [
+          {
+            "naam": "Coolblue B.V.",
+            "volgorde": 0
+          },
+          {
+            "naam": "Coolblue",
+            "volgorde": 1
+          },
+          {
+            "naam": "Coolblue.nl",
+            "volgorde": 2
+          },
+          {
+            "naam": "Wisberg",
+            "volgorde": 3
+          },
+          {
+            "naam": "BlueBuilt",
+            "volgorde": 4
+          },
+          {
+            "naam": "Veripart",
+            "volgorde": 5
+          },
+          {
+            "naam": "Fuave",
+            "volgorde": 6
+          },
+          {
+            "naam": "Vortech",
+            "volgorde": 7
+          },
+          {
+            "naam": "Woxom",
+            "volgorde": 8
+          }
+        ],
+        "indNonMailing": "Nee",
+        "statutaireNaam": "Coolblue B.V.",
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "47789",
+            "sbiOmschrijving": "Detailhandel gespecialiseerd in overige nieuwe artikelen (rest)",
+            "indHoofdactiviteit": "Ja"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20020110"
+        },
+        "totaalWerkzamePersonen": 110
+      },
+      "validated_at": "2026-09-09T13:07:57.034586+00:00",
+      "validated_note": "Multi-row direct-source regression fixtures; no guessed identities or scalar arrays",
+      "notes": "direct-source-repairs-20260909",
+      "created_at": "2026-09-09T13:07:57.034586+00:00",
+      "updated_at": "2026-09-09T13:07:57.034586+00:00",
+      "identifies": "company_registry.kvknummer"
+    },
+    {
+      "id": "9a28a50d-d542-4b64-905b-cdb17c0aa3a5",
+      "capability_slug": "company_registry.lookup",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "version": 6,
+      "status": "active",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company_registry.kvknummer",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.profile",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company_registry.kvknummer",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company_registry.kvknummer": {
+          "in": "path_append",
+          "name": "kvkNummer"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.statutaireNaam"
+          },
+          "company.profile": {
+            "fields": {
+              "sbi_codes": {
+                "path": "$.sbiActiviteiten[*].sbiCode",
+                "collect": true
+              },
+              "legal_name": {
+                "path": "$.statutaireNaam"
+              },
+              "trade_names": {
+                "path": "$.handelsnamen[*].naam",
+                "collect": true
+              }
+            }
+          },
+          "company_registry.kvknummer": {
+            "path": "$.kvkNummer"
+          }
+        }
+      },
+      "cardinality": "one",
+      "preconditions": {},
+      "freshness_seconds": null,
+      "max_fan_out": 1,
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "adapter_version": "v1",
+      "sample_payload": {
+        "naam": "Coolblue B.V.",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "810433941",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000018992536"
+              }
+            ],
+            "adressen": [
+              {
+                "land": "Nederland",
+                "type": "bezoekadres",
+                "plaats": "Rotterdam",
+                "postcode": "3012CN",
+                "huisnummer": 664,
+                "straatnaam": "Weena",
+                "volledigAdres": "Weena 664 3012CN Rotterdam",
+                "indAfgeschermd": "Nee"
+              }
+            ],
+            "websites": [
+              "www.boormachinestore.nl",
+              "www.strijkijzerstore.nl",
+              "www.bluerayspelershop.nl",
+              "www.bluerayspelershop.be",
+              "www.carkitcenter.nl",
+              "www.prepaidstore.nl",
+              "www.tvstore.nl",
+              "www.mobielinternetshop.nl",
+              "www.accustore.nl",
+              "www.seniorentelefoonstore.nl",
+              "www.verrekijkercenter.nl"
+            ],
+            "kvkNummer": "24330087",
+            "vestigingsnummer": "000018992536",
+            "eersteHandelsnaam": "Coolblue B.V.",
+            "indHoofdvestiging": "Ja",
+            "materieleRegistratie": {
+              "datumAanvang": "19991124"
+            },
+            "totaalWerkzamePersonen": 110,
+            "indCommercieleVestiging": "Ja"
+          }
+        },
+        "kvkNummer": "24330087",
+        "handelsnamen": [
+          {
+            "naam": "Coolblue B.V.",
+            "volgorde": 0
+          },
+          {
+            "naam": "Coolblue",
+            "volgorde": 1
+          },
+          {
+            "naam": "Coolblue.nl",
+            "volgorde": 2
+          },
+          {
+            "naam": "Wisberg",
+            "volgorde": 3
+          },
+          {
+            "naam": "BlueBuilt",
+            "volgorde": 4
+          },
+          {
+            "naam": "Veripart",
+            "volgorde": 5
+          },
+          {
+            "naam": "Fuave",
+            "volgorde": 6
+          },
+          {
+            "naam": "Vortech",
+            "volgorde": 7
+          },
+          {
+            "naam": "Woxom",
+            "volgorde": 8
+          }
+        ],
+        "indNonMailing": "Nee",
+        "statutaireNaam": "Coolblue B.V.",
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "47789",
+            "sbiOmschrijving": "Detailhandel gespecialiseerd in overige nieuwe artikelen (rest)",
+            "indHoofdactiviteit": "Ja"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20020110"
+        },
+        "totaalWerkzamePersonen": 110
+      },
+      "validated_at": "2026-09-09T13:07:57.034586+00:00",
+      "validated_note": "Multi-row direct-source regression fixtures; no guessed identities or scalar arrays",
+      "notes": "direct-source-repairs-20260909",
+      "created_at": "2026-09-09T13:07:57.034586+00:00",
+      "updated_at": "2026-09-09T13:07:57.034586+00:00",
+      "identifies": "company_registry.kvknummer"
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{8}$"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "legal_name"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "sbi_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trade_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "employee_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "slug": "company_intel.publicatieid",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.cpvcodes",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.procedure",
+      "value_schema": {
+        "enum": [
+          "OPE",
+          "NOP",
+          "CCD",
+          "OMB",
+          "OZB",
+          "OHP",
+          "OH",
+          "INP",
+          "CA",
+          "APM",
+          "APE",
+          "VUB"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.typeopdracht",
+      "value_schema": {
+        "enum": [
+          "W",
+          "L",
+          "D"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumpreset",
+      "value_schema": {
+        "enum": [
+          "AF7",
+          "AF30"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  ]
+}

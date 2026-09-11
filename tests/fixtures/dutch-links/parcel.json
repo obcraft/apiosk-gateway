@@ -1,0 +1,29 @@
+{
+  "response": {
+    "numFound": 1,
+    "start": 0,
+    "maxScore": 1.0,
+    "numFoundExact": true,
+    "docs": [
+      {
+        "bron": "DKK",
+        "identificatie": "ASD13-Q-5400",
+        "kadastrale_aanduiding": [
+          "Amsterdam Q 5400",
+          "ASD13 Q 5400"
+        ],
+        "kadastrale_gemeentecode": "ASD13",
+        "kadastrale_sectie": "Q",
+        "kadastrale_grootte": 131,
+        "type": "perceel",
+        "perceelnummer": 5400,
+        "centroide_ll": "POINT(4.8668955 52.36817346)",
+        "weergavenaam": "Perceel Amsterdam (ASD13) Q 5400",
+        "kadastrale_gemeentenaam": "Amsterdam",
+        "centroide_rd": "POINT(119563.379 486826.207)",
+        "id": "pcl-081bae7a4f69b7771006d3dd6517248e",
+        "score": 1.0
+      }
+    ]
+  }
+}

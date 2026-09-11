@@ -1,0 +1,68 @@
+{
+  "type": "FeatureCollection",
+  "timeStamp": "2026-09-11T10:16:02Z",
+  "links": [
+    {
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "type": "application/geo+json",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=json&identificatie=0363010000579925&limit=2"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as JSON-FG",
+      "type": "application/vnd.ogc.fg+json",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=jsonfg&identificatie=0363010000579925&limit=2"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "type": "text/html",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=html&identificatie=0363010000579925&limit=2"
+    }
+  ],
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "bronhouder_identificatie": "0363",
+        "bronhouder_naam": "Amsterdam",
+        "documentdatum": "2010-09-09",
+        "documentnummer": "GV00000406",
+        "gebruiksdoel": "woonfunctie",
+        "geconstateerd": "N",
+        "hoofdadres_identificatie": "0363200000042466",
+        "hoofdadres_status": "Naamgeving uitgegeven",
+        "huisletter": null,
+        "huisnummer": 18,
+        "identificatie": "0363010000579925",
+        "openbare_ruimte_identificatie": "0363300000002505",
+        "openbare_ruimte_naam": "Bellamyplein",
+        "openbare_ruimte_naam_kort": null,
+        "openbare_ruimte_status": "Naamgeving uitgegeven",
+        "oppervlakte": 67,
+        "pand.href": [
+          "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/52aceb68-5b01-52a0-ba95-8b0a77ab96df"
+        ],
+        "postcode": "1053AT",
+        "provincie_afkorting": "NH",
+        "provincie_naam": "Noord-Holland",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010000579925",
+        "status": "Verblijfsobject in gebruik",
+        "toevoeging": "1",
+        "woonplaats_identificatie": "3594",
+        "woonplaats_naam": "Amsterdam",
+        "woonplaats_status": "Woonplaats aangewezen"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.866977847944516,
+          52.36818994196411
+        ]
+      },
+      "id": "18e9d3e8-911b-523b-bbd4-4b2bec87ee57"
+    }
+  ],
+  "numberReturned": 1
+}

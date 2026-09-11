@@ -1,0 +1,139 @@
+{
+  "searchRetrieveResponse": {
+    "version": 2.0,
+    "numberOfRecords": 1,
+    "records": {
+      "record": {
+        "recordSchema": "http://standaarden.overheid.nl/sru/",
+        "recordPacking": "xml",
+        "recordData": {
+          "gzd": {
+            "originalData": {
+              "meta": {
+                "owmskern": {
+                  "identifier": "gmb-2026-427235",
+                  "title": "Aanvraag omgevingsvergunning Tan Malakastraat 80 1087WE Amsterdam",
+                  "language": "nl",
+                  "type": {
+                    "scheme": "OVERHEIDop.Rubriek",
+                    "$": "omgevingsvergunning"
+                  },
+                  "creator": {
+                    "scheme": "OVERHEID.Gemeente",
+                    "$": "Amsterdam"
+                  },
+                  "modified": "2026-09-11",
+                  "authority": {
+                    "scheme": "OVERHEID.Gemeente",
+                    "$": "Amsterdam"
+                  }
+                },
+                "owmsmantel": {
+                  "available": "2026-09-11",
+                  "date": "2026-09-11",
+                  "hasVersion": {
+                    "resourceIdentifier": "https://zoek.officielebekendmakingen.nl/gmb-2026-427235.html",
+                    "$": 1
+                  },
+                  "subject": {
+                    "scheme": "OVERHEID.TaxonomieBeleidsagendaDecentraal",
+                    "$": "Ruimte en infrastructuur | Organisatie en beleid"
+                  },
+                  "abstract": "toevoegen van een vloer, wijzigen indeling en brandcompartimentering,  en toevoegen woning",
+                  "publisher": {
+                    "scheme": "OVERHEID.Gemeente",
+                    "$": "Amsterdam"
+                  }
+                },
+                "tpmeta": {
+                  "product-area": "officielepublicaties",
+                  "content-area": "officielepublicaties/gmb/2026",
+                  "activiteit": [
+                    {
+                      "scheme": "OVERHEIDop.ActiviteitOmgevingsvergunning",
+                      "$": "bouwen"
+                    },
+                    {
+                      "scheme": "OVERHEIDop.ActiviteitOmgevingsvergunning",
+                      "$": "ruimtelijke ordening"
+                    }
+                  ],
+                  "jaargang": 2026,
+                  "organisatietype": {
+                    "scheme": "OVERHEID.Organisatietype",
+                    "$": "gemeente"
+                  },
+                  "publicatienummer": 427235,
+                  "publicatienaam": "Gemeenteblad",
+                  "gebiedsmarkering": [
+                    {
+                      "scheme": "OVERHEIDop.locatietype",
+                      "Punt": {
+                        "geometrie": "POINT(129665 485018)",
+                        "locatiepunt": "52.3524832982059 5.01535087043477",
+                        "locatiegebied": "52.352483,5.0153509",
+                        "geometrielabel": "Gebiedsmarkering",
+                        "ligtInGemeente": "Amsterdam"
+                      }
+                    },
+                    {
+                      "scheme": "OVERHEIDop.locatietype",
+                      "Vlak": {
+                        "geometrie": "POLYGON((129673.41395085648 484995.2123223732,129678.72090974868 484997.88732465246,129672.14689242201 485010.9043668427,129666.56384795782 485021.9592716815,129661.21186037708 485019.255361725,129665.70192160275 485010.4073502041,129673.41395085648 484995.2123223732))",
+                        "locatiegebied": "POLYGON((5.0154761 52.352279,5.0155538 52.352303,5.0154563 52.35242,5.0153735 52.352519,5.0152952 52.352494,5.0153617 52.352415,5.0154761 52.352279))",
+                        "geometrielabel": "Gebiedsmarkering",
+                        "ligtInGemeente": "Amsterdam"
+                      }
+                    }
+                  ],
+                  "datumTijdstipWijzigingWork": "2026-09-11T09:12:15.2501327+02:00",
+                  "datumTijdstipWijzigingExpression": "2026-09-11T09:12:15.2501327+02:00"
+                }
+              }
+            },
+            "enrichedData": {
+              "url": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/xml/gmb-2026-427235.xml",
+              "preferredUrl": "https://zoek.officielebekendmakingen.nl/gmb-2026-427235.html",
+              "itemUrl": [
+                {
+                  "manifestation": "html",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/html/gmb-2026-427235.html"
+                },
+                {
+                  "manifestation": "metadata",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/metadata/metadata.xml"
+                },
+                {
+                  "manifestation": "metadataowms",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/metadataowms/metadata_owms.xml"
+                },
+                {
+                  "manifestation": "odt",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/odt/gmb-2026-427235.odt"
+                },
+                {
+                  "manifestation": "pdf",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/pdf/gmb-2026-427235.pdf"
+                },
+                {
+                  "manifestation": "xml",
+                  "$": "https://repository.overheid.nl/frbr/officielepublicaties/gmb/2026/gmb-2026-427235/1/xml/gmb-2026-427235.xml"
+                }
+              ],
+              "timestamp": "2026-09-11T09:15:56.058368+02:00"
+            }
+          }
+        },
+        "recordPosition": 1
+      }
+    },
+    "echoedSearchRetrieveRequest": {
+      "query": "c.product-area==officielepublicaties AND dt.identifier==\"gmb-2026-427235\"",
+      "startRecord": 1,
+      "maximumRecords": 2,
+      "recordXMLEscaping": "xml",
+      "recordSchema": "http://standaarden.overheid.nl/sru/"
+    },
+    "resultCountPrecision": "info:srw/vocabulary/resultCountPrecision/1/estimate"
+  }
+}

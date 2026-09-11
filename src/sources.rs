@@ -180,6 +180,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         let inputs: BTreeSet<_> = services.iter().flat_map(|s| s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type)).collect();
         json!({"slug":s.slug,"provider_slug":s.provider_slug,"logo_url":s.logo_url,"name":s.name,"description":s.description,"category":s.category,
             "tags":s.tags,"sectors":s.sectors,"endpoint_count":s.endpoint_count,
+            "readiness":crate::readiness::assess(catalog, &[s.slug.as_str()]),
             "available_in_v2":!services.is_empty(),"capabilities":capabilities,"input_types":inputs})
     }).collect();
     let end = offset.saturating_add(page.len());

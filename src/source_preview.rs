@@ -2,6 +2,26 @@
 use serde_json::{json,Value};
 pub fn project(provider:&str,data:&Value)->Option<Value> {
     let preview=match provider {
+        "koop" | "rdw" | "rvo" => {
+            let rows=data["items"].as_array()?;
+            if rows.len()>50 {return None}
+            let mut preview=data.clone();
+            let fields:&[&str]=match provider {
+                "koop"=>&["id","title","authority","type","published","modified","url"],
+                "rdw"=>&["kenteken","merk","handelsbenaming","voertuigsoort","vervaldatum_apk_dt","vervaldatum_apk","datum_eerste_toelating_dt","datum_eerste_toelating"],
+                _=>&["id","title","audiences","sectors","modified","application_status","eligibility","url"],
+            };
+            preview["items"]=Value::Array(rows.iter().map(|r|Value::Object(fields.iter().filter_map(|k|r.get(*k).map(|v|((*k).to_owned(),v.clone()))).collect())).collect());
+            preview
+        },
+        "ted" | "pdok" if data["items"].is_array() => {
+            let rows=data["items"].as_array()?;
+            if rows.len()>100{return None}
+            let mut preview=data.clone();
+            if let Some(obj)=preview.as_object_mut(){obj.remove("matched");}
+            preview["items"]=Value::Array(rows.iter().map(|r|{let mut row=r.clone();if let Some(obj)=row.as_object_mut(){obj.remove("source_record");obj.remove("links");obj.remove("buyer-name");obj.remove("winner-name");}row}).collect());
+            preview
+        },
         "data-overheid-nl" => {
             let rows=data.pointer("/result/results")?.as_array()?;
             if rows.len()>100 {return None}

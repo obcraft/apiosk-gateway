@@ -15,6 +15,8 @@ use uuid::Uuid;
 pub const CATALOG_SQL: &str = include_str!("catalog.sql");
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub optional_outputs: Vec<String>,
     #[serde(default)]
     pub source_url: Option<String>,
     pub id: Uuid,
@@ -94,6 +96,8 @@ pub struct KnownSource {
     pub slug: String,
     pub name: String,
     pub block_reason: Option<String>,
+    #[serde(default)]
+    pub metadata: crate::readiness::Metadata,
 }
 #[derive(Debug, Clone)]
 pub struct Catalog {
@@ -123,6 +127,7 @@ impl Catalog {
                     "invalid price"
                 );
                 service.contract.check(&vocabulary)?;
+                anyhow::ensure!(service.optional_outputs.iter().all(|k| service.contract.output_map.produces.contains_key(k)), "optional output must be declared by the contract");
                 anyhow::ensure!(
                     service
                         .contract
@@ -193,11 +198,18 @@ impl Catalog {
                 .insert(&service.contract.capability_slug);
         }
         let mut sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
-            json!({"slug":slug,"name":name,"capabilities":capabilities,"available":true})
+            { let known = self.known_sources.iter().find(|s| s.slug == *slug);
+                json!({"slug":slug,"name":name,"capabilities":capabilities,"available":true,
+                    "description":known.map(|s| &s.metadata.description),
+                    "category":known.map(|s| &s.metadata.category),"tags":known.map(|s| &s.metadata.tags),
+                    "capability_descriptions":known.map(|s| &s.metadata.capability_descriptions),
+                    "readiness":crate::readiness::assess(self, &[slug])}) }
         ).collect();
         for source in &self.known_sources {
             if !sources.iter().any(|s| s["slug"] == source.slug) {
                 sources.push(json!({"slug":source.slug,"name":source.name,"capabilities":[],"available":false,
+                    "readiness":crate::readiness::assess(self, &[source.slug.as_str()]),
+                    "description":source.metadata.description,"category":source.metadata.category,"tags":source.metadata.tags,
                     "reason":source.block_reason.as_deref().unwrap_or("No validated execution contract is available for this source.")}));
             }
         }

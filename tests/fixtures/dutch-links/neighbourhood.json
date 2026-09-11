@@ -1,0 +1,168 @@
+{
+  "type": "FeatureCollection",
+  "timeStamp": "2026-09-11T10:16:02Z",
+  "links": [
+    {
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "type": "application/geo+json",
+      "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363EP02&f=json&limit=2"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as JSON-FG",
+      "type": "application/vnd.ogc.fg+json",
+      "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363EP02&f=jsonfg&limit=2"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "type": "text/html",
+      "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363EP02&f=html&limit=2"
+    }
+  ],
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "aantal_huishoudens": 2430,
+        "aantal_inwoners": 3860,
+        "bevolkingsdichtheid_inwoners_per_km2": 24719,
+        "buurtcode": "BU0363EP02",
+        "buurtnaam": "Bellamybuurt-Zuid",
+        "dekkingspercentage": 1,
+        "gemeentecode": "GM0363",
+        "gemeentenaam": "Amsterdam",
+        "gemiddelde_huishoudsgrootte": 1.5,
+        "indelingswijziging_wijken_en_buurten": 1,
+        "jaar": 2025,
+        "jrstatcode": "2025BU0363EP02",
+        "mannen": 1900,
+        "meest_voorkomende_postcode": "1053",
+        "omgevingsadressendichtheid": 12269,
+        "oppervlakte_land_in_ha": 16,
+        "oppervlakte_totaal_in_ha": 16,
+        "oppervlakte_water_in_ha": 1,
+        "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 20,
+        "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 15,
+        "perc_geb_in_nl_met_herkomstland_buiten_europa": 10,
+        "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 5,
+        "percentage_eenpersoonshuishoudens": 61,
+        "percentage_geb_in_nl_met_herkomstland_nederland": 45,
+        "percentage_gehuwd": 17,
+        "percentage_gescheid": 7,
+        "percentage_huishoudens_met_kinderen": 13,
+        "percentage_huishoudens_zonder_kinderen": 25,
+        "percentage_met_herkomstland_buiten_europa": 35,
+        "percentage_met_herkomstland_nederland": 45,
+        "percentage_met_herkomstland_uit_europa_excl_nl": 20,
+        "percentage_ongehuwd": 75,
+        "percentage_personen_0_tot_15_jaar": 10,
+        "percentage_personen_15_tot_25_jaar": 10,
+        "percentage_personen_25_tot_45_jaar": 49,
+        "percentage_personen_45_tot_65_jaar": 21,
+        "percentage_personen_65_jaar_en_ouder": 10,
+        "percentage_verweduwd": 1,
+        "stedelijkheid_adressen_per_km2": 1,
+        "vrouwen": 1960,
+        "water": "NEE",
+        "wijkcode": "WK0363EP"
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                4.8708036509368196,
+                52.36684860838221
+              ],
+              [
+                4.868659554103796,
+                52.36626881242024
+              ],
+              [
+                4.86718675864008,
+                52.365890089514004
+              ],
+              [
+                4.862677417740211,
+                52.364806380997436
+              ],
+              [
+                4.861125578832675,
+                52.364428319528834
+              ],
+              [
+                4.860936397280367,
+                52.364399230237694
+              ],
+              [
+                4.860759029660618,
+                52.36440026616767
+              ],
+              [
+                4.860602550931137,
+                52.36442383714538
+              ],
+              [
+                4.860065313555533,
+                52.36459709371634
+              ],
+              [
+                4.8612963114713486,
+                52.366078202851554
+              ],
+              [
+                4.862253110357616,
+                52.36712063187493
+              ],
+              [
+                4.86594994245087,
+                52.36807196875761
+              ],
+              [
+                4.867021756731331,
+                52.368309581856465
+              ],
+              [
+                4.867160654114837,
+                52.368327457466705
+              ],
+              [
+                4.867303297006535,
+                52.36833395291641
+              ],
+              [
+                4.868207551415036,
+                52.368303820775544
+              ],
+              [
+                4.868318771988254,
+                52.36830410154859
+              ],
+              [
+                4.8684116727601205,
+                52.36831277737479
+              ],
+              [
+                4.868513469949914,
+                52.368331630264606
+              ],
+              [
+                4.869580120213513,
+                52.36860327897224
+              ],
+              [
+                4.8708036509368196,
+                52.36684860838221
+              ]
+            ]
+          ]
+        ]
+      },
+      "id": "910396c0-3cfd-5965-8913-8176064eb956"
+    }
+  ],
+  "numberReturned": 1
+}

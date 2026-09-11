@@ -1,0 +1,3036 @@
+[
+  {
+    "id": "89c4fee3-4683-4916-b7f7-50c6e3d7b3b7",
+    "title": "Transitiefaciliteit (TF)",
+    "created": "2012-08-06T07:18:16+00:00",
+    "changed": "2025-04-16T11:00:57+00:00",
+    "intro": "De Transitiefaciliteit (TF) stimuleerde Nederlandse mkb-bedrijven en kennisinstellingen om actief te worden op de veelbelovende markten Colombia, Vietnam en Zuid-Afrika. Het doel van het programma was om het ondernemingsklimaat in deze landen te verbeteren en de omvang van de handel, investeringen en diensten door Nederlandse bedrijven te vergroten.",
+    "countries": [
+      {
+        "name": "Zuid-Afrika",
+        "isoalpha2": "ZA"
+      },
+      {
+        "name": "Vietnam",
+        "isoalpha2": "VN"
+      },
+      {
+        "name": "Colombia",
+        "isoalpha2": "CO"
+      }
+    ],
+    "sectors": [
+      "Energiesector",
+      "Vervoer en logistiek",
+      "Watersector"
+    ],
+    "subjects": [
+      "Internationaal ondernemen",
+      "Ontwikkelingssamenwerking"
+    ],
+    "subsidies": [
+      "Transitiefaciliteit",
+      "Programma ontwikkelingssamenwerking"
+    ],
+    "tags": [
+      "Biobased economy",
+      "Klimaatadaptatie",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG17 Partnerschap om doelstellingen te bereiken"
+    ],
+    "targets": [
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/transitiefaciliteit-tf"
+  },
+  {
+    "id": "530035f0-7833-448f-adee-a36988bc6dc7",
+    "title": "Borgstelling MKB-kredieten (BMKB)",
+    "created": "2010-12-22T14:08:53+00:00",
+    "changed": "2026-03-13T09:30:11+00:00",
+    "intro": "Heeft u als ondernemer te weinig onderpand om geld te lenen? Informeer bij uw financier naar de mogelijkheden van de Borgstelling MKB-kredieten (BMKB). De BMKB vergroot het onderpand en daarmee ook de financierbaarheid van de onderneming, ook in de toekomst.&nbsp;Om de financieringsmogelijkheden voor verduurzamingsinvesteringen door het mkb te vergroten is de BMKB verruimd met een groen luik, de BMKB-G.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Saba",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Eustatius",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting",
+      "Agrarische sector"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Besluit Borgstelling MKB Kredieten (BMKB)"
+    ],
+    "tags": [
+      "Innovatie",
+      "Circulair ondernemen",
+      "Bedrijfsfinanciering",
+      "SDG1 Geen armoede",
+      "SDG8 Eerlijk werk en economische groei",
+      "Borgstelling",
+      "Krediet",
+      "Starterslening"
+    ],
+    "targets": [
+      "Financier",
+      "MKB (ook zzp)",
+      "Agrarisch ondernemer"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/bmkb"
+  },
+  {
+    "id": "f379965a-8b88-445b-bd06-657a5c555bca",
+    "title": "Partners for International Business (PIB)",
+    "created": "2013-01-24T14:54:51+00:00",
+    "changed": "2026-04-13T08:51:29+00:00",
+    "intro": "Samen staat u sterker. Daarom brengt Partners for International Business (PIB) private en publieke partijen bij elkaar om gezamenlijk een nieuwe markt te betreden.&nbsp;Uw aanvraag direct regelen&nbsp;",
+    "countries": [
+      {
+        "name": "Ghana",
+        "isoalpha2": "GH"
+      },
+      {
+        "name": "Benin",
+        "isoalpha2": "BJ"
+      },
+      {
+        "name": "Nigeria",
+        "isoalpha2": "NG"
+      },
+      {
+        "name": "Kenia",
+        "isoalpha2": "KE"
+      },
+      {
+        "name": "Ethiopië",
+        "isoalpha2": "ET"
+      },
+      {
+        "name": "Marokko",
+        "isoalpha2": "MA"
+      },
+      {
+        "name": "Egypte",
+        "isoalpha2": "EG"
+      },
+      {
+        "name": "Oeganda",
+        "isoalpha2": "UG"
+      },
+      {
+        "name": "Zuid-Afrika",
+        "isoalpha2": "ZA"
+      },
+      {
+        "name": "Mozambique",
+        "isoalpha2": "MZ"
+      },
+      {
+        "name": "Azerbeidzjan",
+        "isoalpha2": "AZ"
+      },
+      {
+        "name": "Cyprus",
+        "isoalpha2": "CY"
+      },
+      {
+        "name": "Irak",
+        "isoalpha2": "IQ"
+      },
+      {
+        "name": "Iran",
+        "isoalpha2": "IR"
+      },
+      {
+        "name": "Turkije",
+        "isoalpha2": "TR"
+      },
+      {
+        "name": "Zuid-Korea",
+        "isoalpha2": "KR"
+      },
+      {
+        "name": "Taiwan",
+        "isoalpha2": "TW"
+      },
+      {
+        "name": "Japan",
+        "isoalpha2": "JP"
+      },
+      {
+        "name": "China",
+        "isoalpha2": "CN"
+      },
+      {
+        "name": "Singapore",
+        "isoalpha2": "SG"
+      },
+      {
+        "name": "Thailand",
+        "isoalpha2": "TH"
+      },
+      {
+        "name": "Maleisië",
+        "isoalpha2": "MY"
+      },
+      {
+        "name": "Indonesië",
+        "isoalpha2": "ID"
+      },
+      {
+        "name": "Vietnam",
+        "isoalpha2": "VN"
+      },
+      {
+        "name": "India",
+        "isoalpha2": "IN"
+      },
+      {
+        "name": "Bangladesh",
+        "isoalpha2": "BD"
+      },
+      {
+        "name": "Qatar",
+        "isoalpha2": "QA"
+      },
+      {
+        "name": "Verenigde Arabische Emiraten",
+        "isoalpha2": "AE"
+      },
+      {
+        "name": "Saoedi-Arabië",
+        "isoalpha2": "SA"
+      },
+      {
+        "name": "Oman",
+        "isoalpha2": "OM"
+      },
+      {
+        "name": "Koeweit",
+        "isoalpha2": "KW"
+      },
+      {
+        "name": "Bahrein",
+        "isoalpha2": "BH"
+      },
+      {
+        "name": "Hongarije",
+        "isoalpha2": "HU"
+      },
+      {
+        "name": "Oostenrijk",
+        "isoalpha2": "AT"
+      },
+      {
+        "name": "Zwitserland",
+        "isoalpha2": "CH"
+      },
+      {
+        "name": "Bulgarije",
+        "isoalpha2": "BG"
+      },
+      {
+        "name": "Oekraïne",
+        "isoalpha2": "UA"
+      },
+      {
+        "name": "Polen",
+        "isoalpha2": "PL"
+      },
+      {
+        "name": "Roemenië",
+        "isoalpha2": "RO"
+      },
+      {
+        "name": "Tsjechië",
+        "isoalpha2": "CZ"
+      },
+      {
+        "name": "Wit-Rusland",
+        "isoalpha2": "BY"
+      },
+      {
+        "name": "Denemarken",
+        "isoalpha2": "DK"
+      },
+      {
+        "name": "Finland",
+        "isoalpha2": "FI"
+      },
+      {
+        "name": "Zweden",
+        "isoalpha2": "SE"
+      },
+      {
+        "name": "België",
+        "isoalpha2": "BE"
+      },
+      {
+        "name": "Duitsland",
+        "isoalpha2": "DE"
+      },
+      {
+        "name": "Frankrijk",
+        "isoalpha2": "FR"
+      },
+      {
+        "name": "Luxemburg",
+        "isoalpha2": "LU"
+      },
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Saba",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Eustatius",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      },
+      {
+        "name": "Verenigd Koninkrijk",
+        "isoalpha2": "GB"
+      },
+      {
+        "name": "Italië",
+        "isoalpha2": "IT"
+      },
+      {
+        "name": "Kroatië",
+        "isoalpha2": "HR"
+      },
+      {
+        "name": "Portugal",
+        "isoalpha2": "PT"
+      },
+      {
+        "name": "Spanje",
+        "isoalpha2": "ES"
+      },
+      {
+        "name": "Cuba",
+        "isoalpha2": "CU"
+      },
+      {
+        "name": "Mexico",
+        "isoalpha2": "MX"
+      },
+      {
+        "name": "Panama",
+        "isoalpha2": "PA"
+      },
+      {
+        "name": "Canada",
+        "isoalpha2": "CA"
+      },
+      {
+        "name": "Verenigde Staten",
+        "isoalpha2": "US"
+      },
+      {
+        "name": "Australië",
+        "isoalpha2": "AU"
+      },
+      {
+        "name": "Argentinië",
+        "isoalpha2": "AR"
+      },
+      {
+        "name": "Brazilië",
+        "isoalpha2": "BR"
+      },
+      {
+        "name": "Chili",
+        "isoalpha2": "CL"
+      },
+      {
+        "name": "Colombia",
+        "isoalpha2": "CO"
+      },
+      {
+        "name": "Suriname",
+        "isoalpha2": "SR"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Internationaal ondernemen"
+    ],
+    "subsidies": [
+      "Programma zakendoen",
+      "Partners for International Business (PIB)"
+    ],
+    "tags": [
+      "Hightech systemen en materialen",
+      "Publiekprivate samenwerking",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG17 Partnerschap om doelstellingen te bereiken",
+      "Klimaatadaptatie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Producentenorganisatie",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/pib"
+  },
+  {
+    "id": "70c8c42d-be63-45c5-856a-680dcb52cb01",
+    "title": "Eurostars: subsidie internationale marktgerichte R&D",
+    "created": "2011-01-07T11:20:01+00:00",
+    "changed": "2026-09-10T12:00:07+00:00",
+    "intro": "Bent u mkb'er in een technologische onderzoeks- en ontwikkelingssector? Werkt u daarbij samen met partners in andere landen of wilt u dat gaan doen? Dan kunt u mogelijk gebruik maken van Eurostars. Met de subsidie wordt snellere ontwikkeling en groei van kleine bedrijven gestimuleerd.[rvo_custom:eloket:login6-eh3-aanvraag_bekijken]&nbsp;",
+    "countries": [
+      {
+        "name": "Cyprus",
+        "isoalpha2": "CY"
+      },
+      {
+        "name": "Turkije",
+        "isoalpha2": "TR"
+      },
+      {
+        "name": "Israël",
+        "isoalpha2": "IL"
+      },
+      {
+        "name": "Zuid-Korea",
+        "isoalpha2": "KR"
+      },
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Hongarije",
+        "isoalpha2": "HU"
+      },
+      {
+        "name": "Oostenrijk",
+        "isoalpha2": "AT"
+      },
+      {
+        "name": "Slovenië",
+        "isoalpha2": "SI"
+      },
+      {
+        "name": "Zwitserland",
+        "isoalpha2": "CH"
+      },
+      {
+        "name": "Bulgarije",
+        "isoalpha2": "BG"
+      },
+      {
+        "name": "Estland",
+        "isoalpha2": "EE"
+      },
+      {
+        "name": "Letland",
+        "isoalpha2": "LV"
+      },
+      {
+        "name": "Litouwen",
+        "isoalpha2": "LT"
+      },
+      {
+        "name": "Polen",
+        "isoalpha2": "PL"
+      },
+      {
+        "name": "Roemenië",
+        "isoalpha2": "RO"
+      },
+      {
+        "name": "Slowakije",
+        "isoalpha2": "SK"
+      },
+      {
+        "name": "Tsjechië",
+        "isoalpha2": "CZ"
+      },
+      {
+        "name": "Denemarken",
+        "isoalpha2": "DK"
+      },
+      {
+        "name": "Finland",
+        "isoalpha2": "FI"
+      },
+      {
+        "name": "IJsland",
+        "isoalpha2": "IS"
+      },
+      {
+        "name": "Noorwegen",
+        "isoalpha2": "NO"
+      },
+      {
+        "name": "Zweden",
+        "isoalpha2": "SE"
+      },
+      {
+        "name": "België",
+        "isoalpha2": "BE"
+      },
+      {
+        "name": "Duitsland",
+        "isoalpha2": "DE"
+      },
+      {
+        "name": "Frankrijk",
+        "isoalpha2": "FR"
+      },
+      {
+        "name": "Ierland",
+        "isoalpha2": "IE"
+      },
+      {
+        "name": "Luxemburg",
+        "isoalpha2": "LU"
+      },
+      {
+        "name": "Verenigd Koninkrijk",
+        "isoalpha2": "GB"
+      },
+      {
+        "name": "Griekenland",
+        "isoalpha2": "GR"
+      },
+      {
+        "name": "Italië",
+        "isoalpha2": "IT"
+      },
+      {
+        "name": "Kroatië",
+        "isoalpha2": "HR"
+      },
+      {
+        "name": "Portugal",
+        "isoalpha2": "PT"
+      },
+      {
+        "name": "Spanje",
+        "isoalpha2": "ES"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Eurostars"
+    ],
+    "tags": [
+      "Innovatie",
+      "R&D",
+      "Productontwikkeling",
+      "Internationaal innoveren",
+      "Circulair ondernemen",
+      "Advies",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG9 Industrie innovatie en infrastructuur",
+      "Klimaatadaptatie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eurostars"
+  },
+  {
+    "id": "96d678b1-53da-4d97-804a-5e3d2085076e",
+    "title": "Private Sector Investeringsprogramma (PSI)",
+    "created": "2011-11-21T13:52:49+00:00",
+    "changed": "2026-06-09T12:10:20+00:00",
+    "intro": "Het bedrijfsleven heeft de afgelopen 10 jaar veel gebruikgemaakt van het Private Sector Investeringenprogramma (PSI) en voorlopers als PSOM. De PSI-projecten hebben een belangrijke bijdrage geleverd aan economische ontwikkeling en aan armoedebestrijding op alle continenten.",
+    "countries": [
+      {
+        "name": "Ghana",
+        "isoalpha2": "GH"
+      },
+      {
+        "name": "Gambia",
+        "isoalpha2": "GM"
+      },
+      {
+        "name": "Burkina Faso",
+        "isoalpha2": "BF"
+      },
+      {
+        "name": "Benin",
+        "isoalpha2": "BJ"
+      },
+      {
+        "name": "Kaapverdië",
+        "isoalpha2": "CV"
+      },
+      {
+        "name": "Mali",
+        "isoalpha2": "ML"
+      },
+      {
+        "name": "Nigeria",
+        "isoalpha2": "NG"
+      },
+      {
+        "name": "Senegal",
+        "isoalpha2": "SN"
+      },
+      {
+        "name": "Sierra Leone",
+        "isoalpha2": "SL"
+      },
+      {
+        "name": "Kenia",
+        "isoalpha2": "KE"
+      },
+      {
+        "name": "Tanzania",
+        "isoalpha2": "TZ"
+      },
+      {
+        "name": "Malawi",
+        "isoalpha2": "MW"
+      },
+      {
+        "name": "Madagaskar",
+        "isoalpha2": "MG"
+      },
+      {
+        "name": "Ethiopië",
+        "isoalpha2": "ET"
+      },
+      {
+        "name": "Djibouti",
+        "isoalpha2": "DJ"
+      },
+      {
+        "name": "Zuid-Soedan",
+        "isoalpha2": "SS"
+      },
+      {
+        "name": "Tunesië",
+        "isoalpha2": "TN"
+      },
+      {
+        "name": "Soedan",
+        "isoalpha2": "SD"
+      },
+      {
+        "name": "Marokko",
+        "isoalpha2": "MA"
+      },
+      {
+        "name": "Libië",
+        "isoalpha2": "LY"
+      },
+      {
+        "name": "Egypte",
+        "isoalpha2": "EG"
+      },
+      {
+        "name": "Algerije",
+        "isoalpha2": "DZ"
+      },
+      {
+        "name": "Angola",
+        "isoalpha2": "AO"
+      },
+      {
+        "name": "Burundi",
+        "isoalpha2": "BI"
+      },
+      {
+        "name": "Congo, Democratische Republiek",
+        "isoalpha2": "CD"
+      },
+      {
+        "name": "Oeganda",
+        "isoalpha2": "UG"
+      },
+      {
+        "name": "Zambia",
+        "isoalpha2": "ZM"
+      },
+      {
+        "name": "Rwanda",
+        "isoalpha2": "RW"
+      },
+      {
+        "name": "Zuid-Afrika",
+        "isoalpha2": "ZA"
+      },
+      {
+        "name": "Mozambique",
+        "isoalpha2": "MZ"
+      },
+      {
+        "name": "Armenië",
+        "isoalpha2": "AM"
+      },
+      {
+        "name": "Georgië",
+        "isoalpha2": "GE"
+      },
+      {
+        "name": "Irak",
+        "isoalpha2": "IQ"
+      },
+      {
+        "name": "Palestijnse Gebieden",
+        "isoalpha2": "PS"
+      },
+      {
+        "name": "Jordanië",
+        "isoalpha2": "JO"
+      },
+      {
+        "name": "Jemen",
+        "isoalpha2": "YE"
+      },
+      {
+        "name": "Mongolië",
+        "isoalpha2": "MN"
+      },
+      {
+        "name": "Thailand",
+        "isoalpha2": "TH"
+      },
+      {
+        "name": "Laos",
+        "isoalpha2": "LA"
+      },
+      {
+        "name": "Indonesië",
+        "isoalpha2": "ID"
+      },
+      {
+        "name": "Filipijnen",
+        "isoalpha2": "PH"
+      },
+      {
+        "name": "Cambodja",
+        "isoalpha2": "KH"
+      },
+      {
+        "name": "Vietnam",
+        "isoalpha2": "VN"
+      },
+      {
+        "name": "Sri Lanka",
+        "isoalpha2": "LK"
+      },
+      {
+        "name": "Pakistan",
+        "isoalpha2": "PK"
+      },
+      {
+        "name": "Nepal",
+        "isoalpha2": "NP"
+      },
+      {
+        "name": "Bangladesh",
+        "isoalpha2": "BD"
+      },
+      {
+        "name": "Afghanistan",
+        "isoalpha2": "AF"
+      },
+      {
+        "name": "Moldavië",
+        "isoalpha2": "MD"
+      },
+      {
+        "name": "Albanië",
+        "isoalpha2": "AL"
+      },
+      {
+        "name": "Bosnië en Herzegovina",
+        "isoalpha2": "BA"
+      },
+      {
+        "name": "Kosovo",
+        "isoalpha2": "XK"
+      },
+      {
+        "name": "Noord-Macedonië",
+        "isoalpha2": "MK"
+      },
+      {
+        "name": "Guatemala",
+        "isoalpha2": "GT"
+      },
+      {
+        "name": "Nicaragua",
+        "isoalpha2": "NI"
+      },
+      {
+        "name": "Bolivia",
+        "isoalpha2": "BO"
+      },
+      {
+        "name": "Colombia",
+        "isoalpha2": "CO"
+      },
+      {
+        "name": "Peru",
+        "isoalpha2": "PE"
+      },
+      {
+        "name": "Suriname",
+        "isoalpha2": "SR"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Internationaal ondernemen",
+      "Ontwikkelingssamenwerking"
+    ],
+    "subsidies": [
+      "PSI"
+    ],
+    "tags": [
+      "Ontwikkelingssamenwerking",
+      "Privatesectorontwikkeling",
+      "SDG1 Geen armoede",
+      "SDG8 Eerlijk werk en economische groei",
+      "Investeringsfaciliteit",
+      "Samenwerkingsprogramma"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/private-sector-investeringsprogramma"
+  },
+  {
+    "id": "0304bce0-991e-4025-b45f-dd246d440e0c",
+    "title": "JTI Clean Sky 2",
+    "created": "2011-01-19T16:51:08+00:00",
+    "changed": "2023-06-14T14:04:07+00:00",
+    "intro": "JTI Clean Sky 2 is een publiek-private samenwerking van de Europese luchtvaartindustrie en de Europese Commissie. Het programma richt zich op het ontwikkelen van nieuwe en milieuvriendelijker luchtvaartproducten. Clean Sky 2 is de opvolger van het Clean Sky-programma, dat van 2007 tot en met 2013 liep.\r\n",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Joint Technology Initiatives",
+      "Zevende Kaderprogramma"
+    ],
+    "tags": [
+      "Innovatie",
+      "R&D",
+      "Internationaal innoveren",
+      "Technologie",
+      "Advies"
+    ],
+    "targets": [
+      "Non-profit / NGO",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/joint-technology-initiatives/jti-clean-sky-2"
+  },
+  {
+    "id": "fc4c9323-2b08-479d-a115-73d64cd467fd",
+    "title": "Innovatiekrediet",
+    "created": "2022-04-11T09:45:28+00:00",
+    "changed": "2026-07-15T11:41:14+00:00",
+    "intro": "Bent u bezig met de technische ontwikkeling van een nieuw product, proces of dienst? Of met de klinische ontwikkeling van een medicijn of apparaat? Profiteer dan van het Innovatiekrediet. Zowel mkb'ers als grote bedrijven kunnen van deze overheidsfinanciering gebruikmaken.Doe de Quick Scan&nbsp;",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Saba",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Eustatius",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Innovatiekrediet"
+    ],
+    "tags": [
+      "Inloggen Mijn RVO",
+      "Waterstof",
+      "Innovatie en kennis",
+      "Innovatie en ondernemen",
+      "Onderzoek en ontwikkeling",
+      "Bedrijfsfinanciering",
+      "Projectfinanciering",
+      "Financieren",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG9 Industrie innovatie en infrastructuur"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/innovatiekrediet"
+  },
+  {
+    "id": "74451d1b-7062-473d-970b-8223dad02b3a",
+    "title": "Eureka: programma internationale marktgerichte R&D",
+    "created": "2011-01-07T13:42:25+00:00",
+    "changed": "2026-07-16T14:31:45+00:00",
+    "intro": "Bent u van plan om samen met partners in het buitenland nieuwe, marktgerichte technologie te ontwikkelen? Of wilt u zoeken naar geschikte partners, ruchtbaarheid geven aan uw successen en een kritisch gesprek over uw idee? Dan kan Eureka helpen.",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "Biotechnologie",
+      "Elektronica-industrie (waaronder HTSM)",
+      "ICT"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Eureka"
+    ],
+    "tags": [
+      "Innovatie",
+      "R&D",
+      "Productontwikkeling",
+      "Internationaal innoveren",
+      "Internationaal",
+      "Internationale samenwerking",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG9 Industrie innovatie en infrastructuur"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eureka"
+  },
+  {
+    "id": "b1a3481b-3fc2-4a11-bbc5-59d12d0e573a",
+    "title": "COST: Europese samenwerking in wetenschap en techniek",
+    "created": "2013-03-12T12:34:30+00:00",
+    "changed": "2025-10-30T17:14:56+00:00",
+    "intro": "Wilt u op internationaal niveau vraagstukken onderzoeken en oplossen? Wilt u dat wetenschappers elkaar ontmoeten en dat zo nieuwe ideeën ontwikkeld worden? Een COST-actie kan u daarbij helpen. Een COST-actie duurt 4 jaar en biedt de mogelijkheid om informatie uit te wisselen en innovatie te bevorderen op elk wetenschappelijk gebied.",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "Medische sector"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "COST"
+    ],
+    "tags": [
+      "R&D",
+      "Internationaal innoveren",
+      "Wetenschap",
+      "Onderzoek",
+      "EU",
+      "Internationale samenwerking",
+      "SDG9 Industrie innovatie en infrastructuur",
+      "SDG17 Partnerschap om doelstellingen te bereiken"
+    ],
+    "targets": [
+      "Overheid",
+      "Non-profit / NGO",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/horizon-europe/cost"
+  },
+  {
+    "id": "a44d5eca-4d7d-404c-a9f6-83fdb7b490dd",
+    "title": "Seed Capital",
+    "created": "2011-11-09T10:42:24+00:00",
+    "changed": "2026-08-03T07:00:28+00:00",
+    "intro": "Met Seed Capital ondersteunen investeerders start-ups met financiering, kennis, netwerk en ervaring. Private, ervaren investeerders brengen expertise en kapitaal in, de overheid verdubbelt hun inleg. Zo&nbsp;ondersteunt de overheid innovatieve ondernemingen bij het verkrijgen van risicokapitaal.[rvo_custom:upri:upri_eh2+_direct_aanvragen][rvo_custom:upri:upri_eh2+_fondsen_beheren]",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Seed Capital"
+    ],
+    "tags": [
+      "UPRI",
+      "Innovatie en ondernemen",
+      "Technostarters",
+      "Circulair ondernemen",
+      "Bedrijfsfinanciering",
+      "Startende ondernemers",
+      "SDG9 Industrie innovatie en infrastructuur"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/seed-capital"
+  },
+  {
+    "id": "30e5893a-c908-4baa-bf88-ecb322910ac0",
+    "title": "Groeifaciliteit",
+    "created": "2011-02-03T13:25:36+00:00",
+    "changed": "2025-04-24T13:46:47+00:00",
+    "intro": "Heeft u als ondernemer risicodragend vermogen nodig? Bijvoorbeeld door snelle groei, een bedrijfsovername, een buy out, expansie in het buitenland of een reorganisatie? Met de regeling Groeifaciliteit krijgt uw financier garanties op achtergestelde leningen en op aandelen van participatiemaatschappijen. Zo trekt de overheid financiers over de streep om bedrijven&nbsp;te helpen.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Saba",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Eustatius",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Groeifaciliteit"
+    ],
+    "tags": [
+      "Circulair ondernemen",
+      "Bedrijfsfinanciering",
+      "Risicodragend vermogen",
+      "SDG8 Eerlijk werk en economische groei",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/groeifaciliteit"
+  },
+  {
+    "id": "7ceb0253-9986-4b2b-844f-cf3af1ecf713",
+    "title": "Garantie Ondernemingsfinanciering (GO)",
+    "created": "2010-12-22T13:59:06+00:00",
+    "changed": "2026-07-13T11:39:36+00:00",
+    "intro": "Heeft u krediet nodig maar krijgt u niet eenvoudig een (bank)lening of bankgarantie? De overheid maakt dit makkelijker met de Garantie Ondernemingsfinanciering (GO). Uw bank of door de minister aangewezen kredietverstrekker kan zo een 50% Staatsgarantie krijgen op middelgrote en grote leningen en verkleint daarmee haar risico. De Garantie Ondernemingsfinanciering houdt kredietstromen op gang zodat ondernemers kunnen blijven ondernemen.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Saba",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Sint Eustatius",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Circulair ondernemen",
+      "Bedrijfsfinanciering",
+      "SDG8 Eerlijk werk en economische groei",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go"
+  },
+  {
+    "id": "d2464b70-3519-4c35-89fd-971c2e391250",
+    "title": "De EEPA verkiezing - Inspiratie",
+    "created": "2013-06-13T09:37:44+00:00",
+    "changed": "2025-06-19T13:18:50+00:00",
+    "intro": "De Europese Awards voor Ondernemerschapsbevordering (EEPA) erkennen en belonen het succes van openbare instanties en publiek-private samenwerkingsverbanden, die het doel hebben om ondernemerschap te bevorderen. Doe inspiratie op en lees meer over de deelnemers die u voorgingen.",
+    "countries": [],
+    "sectors": [
+      "Overheid"
+    ],
+    "subjects": [
+      "Ondernemen  en bedrijfsvoering"
+    ],
+    "subsidies": [
+      "Europese Awards voor Ondernemerschapsbevordering (EEPA)"
+    ],
+    "tags": [
+      "Innovatie",
+      "Innovatie en ondernemen",
+      "Valorisatie",
+      "EU",
+      "Ondernemerschap"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "Non-profit / NGO",
+      "School / Kennisinstelling",
+      "Overheid"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eepa/inspiratie"
+  },
+  {
+    "id": "d44f5520-5b5c-4d76-b9ba-3c0efdecb7c5",
+    "title": "Eureka: Celtic-Next",
+    "created": "2011-04-13T09:21:37+00:00",
+    "changed": "2025-10-17T13:48:46+00:00",
+    "intro": "Het internationale programma Celtic-Next heeft als doel de mondiale concurrentiekracht van de Europese telecommunicatie-industrie te versterken. Zij doen dit door het steunen van innovatieve R&amp;D-projecten in Europese samenwerkingsverbanden van bedrijven eventueel aangevuld met kennisinstellingen en universiteiten.",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      },
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "ICT"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Eureka"
+    ],
+    "tags": [
+      "Internet",
+      "Internationaal innoveren",
+      "Marktgericht onderzoek",
+      "Advies",
+      "Netwerken",
+      "SDG9 Industrie innovatie en infrastructuur"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eureka/netwerken-en-programmas/celtic-next"
+  },
+  {
+    "id": "a62f4d78-e462-4bb6-98aa-52f087978c51",
+    "title": "Internationale samenwerking (G2G, K2K en NMTP)",
+    "created": "2012-04-11T10:09:04+00:00",
+    "changed": "2025-04-16T11:07:34+00:00",
+    "intro": "Onder Government-to-Government (G2G), Knowledge-to-Knowledge (K2K) en het Netherlands Management Training Programme coördineren en organiseren wij internationale samenwerkingsprojecten. Het doel is gunstige voorwaarden te creëren voor het zakendoen met landen die interessant zijn voor Nederlandse ondernemers.",
+    "countries": [],
+    "sectors": [
+      "Overheid"
+    ],
+    "subjects": [
+      "Internationaal ondernemen",
+      "Ontwikkelingssamenwerking"
+    ],
+    "subsidies": [
+      "Programma ontwikkelingssamenwerking",
+      "Netherlands Management Training Programme",
+      "Government2government",
+      "Knowledge2knowledge"
+    ],
+    "tags": [
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG17 Partnerschap om doelstellingen te bereiken",
+      "Samenwerkingsprogramma"
+    ],
+    "targets": [
+      "Overheid",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/internationale-samenwerking-g2g-k2k-en-nmtp"
+  },
+  {
+    "id": "674fb601-eade-4710-9f7b-bdf775adbbf7",
+    "title": "Feiten en cijfers SDE(+)(+)",
+    "created": "2012-08-02T06:32:17+00:00",
+    "changed": "2026-09-07T12:23:39+00:00",
+    "intro": "Wilt u meer weten over de projecten die subsidie kregen in de verschillende aanvraagrondes van de subsidie Stimulering Duurzame Energieproductie (SDE, SDE+)&nbsp;en Stimulering Duurzame Energieproductie&nbsp;en Klimaattransitie&nbsp;(SDE++)? Op deze pagina&nbsp;vindt u feiten en cijfers over deze subsidie&nbsp;op een rij.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Waterstofsector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "SDE",
+      "SDE+",
+      "SDE++"
+    ],
+    "tags": [
+      "Aanvragen",
+      "Duurzaam ondernemen",
+      "Verduurzamen",
+      "Duurzame energie",
+      "Bodemenergie",
+      "Duurzame energievoorziening",
+      "Wind op land",
+      "Windmolens",
+      "Zonnepanelen",
+      "CO2-opslag",
+      "CO2-reductie",
+      "Subsidie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Non-profit / NGO",
+      "Producentenorganisatie"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/sde/aanvragen/feiten-en-cijfers"
+  },
+  {
+    "id": "02a2dd79-4609-49f5-b74f-a0aa750bfdb5",
+    "title": "Onderwerpen Clean Sky 2",
+    "created": "2011-01-19T17:01:23+00:00",
+    "changed": "2023-06-14T14:04:07+00:00",
+    "intro": "Clean Sky 2 bestaat uit de volgende onderdelen:\r\n",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Joint Technology Initiatives",
+      "Zevende Kaderprogramma"
+    ],
+    "tags": [
+      "Innovatie",
+      "Technologie",
+      "Onderzoek"
+    ],
+    "targets": [
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/joint-technology-initiatives/jti-clean-sky-2/onderwerpen-clean-sky-2"
+  },
+  {
+    "id": "49129edc-9e6c-4199-b6b1-0800744c4bdd",
+    "title": "Belastingaangifte Energie-investeringsaftrek (EIA)",
+    "created": "2010-09-22T10:23:37+00:00",
+    "changed": "2026-09-03T09:35:34+00:00",
+    "intro": "U heeft een investering gedaan die energie bespaart. U heeft de Energie-investeringsaftrek (EIA) aangevraagd en ook al een EIA-verklaring ontvangen. Hoe past u dit&nbsp;nu toe in uw belastingaangifte? Op deze pagina leest u er meer over.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Energie-investeringsaftrek (EIA)"
+    ],
+    "tags": [
+      "Investeringsaftrek",
+      "Energiebesparing",
+      "Bedrijfsmiddelen",
+      "Belastingvoordeel"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Non-profit / NGO",
+      "Particulier / Vereniging / (Ver)huurder",
+      "Producentenorganisatie",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eia/ondernemers/belastingaangifte"
+  },
+  {
+    "id": "4d1fabef-6a78-432b-ac81-ad8261d55ce0",
+    "title": "Eurostars: nationale aanvraagprocedure",
+    "created": "2011-01-07T11:52:26+00:00",
+    "changed": "2026-07-28T15:00:06+00:00",
+    "intro": "Wilt u gebruik maken van Eurostars subsidie om uw innovatie versneld naar de markt te brengen? Voordat u subsidie kunt aanvragen bij de Rijksdienst voor Ondernemend Nederland (RVO), moet uw internationale projectvoorstel zijn goedgekeurd door de internationale jury van Eurostars. Hierna ontvangt u een uitnodiging om een nationale subsidieaanvraag in te dienen.[rvo_custom:eloket:login6-eh3-aanvraag_bekijken]",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Eurostars"
+    ],
+    "tags": [
+      "Innovatie",
+      "R&D",
+      "Productontwikkeling",
+      "Internationaal innoveren",
+      "Circulair ondernemen",
+      "Advies",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG9 Industrie innovatie en infrastructuur",
+      "eLoket"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eurostars/nationale-aanvraagprocedure"
+  },
+  {
+    "id": "1bff2af5-ff5b-4c0d-a8a5-2365338e1ce1",
+    "title": "Eurostars: voortgang en afronding",
+    "created": "2011-05-16T10:37:06+00:00",
+    "changed": "2026-03-19T13:00:05+00:00",
+    "intro": "Voert u een Eurostars-project uit, of staat u op het punt deze af te ronden? Op deze pagina vindt u de vereisten voor de voortgangs- en eindrapportages voor uw project.",
+    "countries": [
+      {
+        "name": "Europa",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Eurostars"
+    ],
+    "tags": [
+      "Innovatie",
+      "R&D",
+      "Productontwikkeling",
+      "Internationaal innoveren",
+      "Circulair ondernemen",
+      "Advies",
+      "SDG8 Eerlijk werk en economische groei",
+      "SDG9 Industrie innovatie en infrastructuur"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/eurostars/voortgang-en-afronding"
+  },
+  {
+    "id": "f68aaa23-2360-4214-abc5-1dde7f26208d",
+    "title": "Groeifaciliteit: Aanvragen",
+    "created": "2011-02-03T15:17:26+00:00",
+    "changed": "2025-04-24T13:46:47+00:00",
+    "intro": "Wilt u gebruik maken van de Groeifaciliteit? Als ondernemer neemt u contact op met een bank of participatiemaatschappij om een lening aan te vragen.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Groeifaciliteit"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Risicodragend vermogen",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/groeifaciliteit/aanvragen"
+  },
+  {
+    "id": "86d44973-d18b-4aaa-917f-735682c2c93a",
+    "title": "Groeifaciliteit: Welke financiers doen mee?",
+    "created": "2011-02-03T16:30:08+00:00",
+    "changed": "2025-04-24T13:46:47+00:00",
+    "intro": "De volgende banken en participatiemaatschappijen kunnen risicodragend vermogen met overheidsgarantie verstrekken.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Groeifaciliteit"
+    ],
+    "tags": [
+      "Financieringsinstellingen"
+    ],
+    "targets": [
+      "Financier"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/groeifaciliteit/financiers"
+  },
+  {
+    "id": "1abc250f-9f02-4318-a21f-58277092d703",
+    "title": "Groeifaciliteit: Deelnemen als financier",
+    "created": "2011-02-03T13:54:30+00:00",
+    "changed": "2025-04-24T13:46:47+00:00",
+    "intro": "Als u als financier deelneemt aan de Groeifaciliteit moet u aan een aantal voorwaarden voldoen.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Groeifaciliteit"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Risicodragend vermogen",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/groeifaciliteit/deelnemen-financier"
+  },
+  {
+    "id": "5cf094cf-80e8-4e14-9ba4-72b08a5d8c5c",
+    "title": "Groeifaciliteit: Deelnemen als ondernemer",
+    "created": "2011-03-25T14:29:40+00:00",
+    "changed": "2025-04-24T13:46:47+00:00",
+    "intro": "Om in aanmerking te komen voor de Groeifaciliteit moet u aan een aantal voorwaarden voldoen.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Groeifaciliteit"
+    ],
+    "tags": [
+      "Innovatie",
+      "Bedrijfsfinanciering"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/groeifaciliteit/deelnemen-ondernemer"
+  },
+  {
+    "id": "1a22e759-0f4c-4d93-975c-beed476ddc1d",
+    "title": "Innovatiekrediet: Na uw aanvraag",
+    "created": "2010-12-10T11:15:18+00:00",
+    "changed": "2026-01-05T13:06:20+00:00",
+    "intro": "Heeft u een aanvraag voor Innovatiekrediet ingediend? Lees hier meer over het proces na uw aanvraag.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Innovatiekrediet"
+    ],
+    "tags": [
+      "Inloggen Mijn RVO",
+      "Innovatie en kennis",
+      "Innovatie en ondernemen",
+      "Bedrijfsfinanciering",
+      "Projectfinanciering"
+    ],
+    "targets": [
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/innovatiekrediet/na-uw-aanvraag"
+  },
+  {
+    "id": "62eff938-e38c-46d2-8b7e-b88ecac190c5",
+    "title": "Welke financiers doen mee? (GO)",
+    "created": "2012-02-03T09:38:59+00:00",
+    "changed": "2026-02-06T14:01:56+00:00",
+    "intro": "Dit zijn de banken die meedoen aan de GO-regeling:\r\n",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/financiers"
+  },
+  {
+    "id": "781c4000-8864-46b3-932f-90bbadd48249",
+    "title": "Fresh Money beginsel (GO)",
+    "created": "2012-02-03T09:02:05+00:00",
+    "changed": "2026-07-13T11:41:37+00:00",
+    "intro": "Lees meer over Fresh Money beginsel dat van toepassing is bij de regeling Garantie Ondernemingsfinanciering.\r\n",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/deelnemen-financier/fresh-money-beginsel"
+  },
+  {
+    "id": "cf8da6c1-5aac-40a1-bcd5-944d1e003014",
+    "title": "Wat zijn de vereisten om gebruik te kunnen maken van de GO-regeling?",
+    "created": "2012-02-02T13:59:47+00:00",
+    "changed": "2026-02-06T12:20:25+00:00",
+    "intro": "Om gebruik te kunnen maken van de GO gelden de volgende criteria.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/deelnemen-ondernemer/vereisten"
+  },
+  {
+    "id": "aa6c7504-f03b-4af9-903a-5db8e886aba7",
+    "title": "Kenmerken GO-financiering",
+    "created": "2012-02-02T14:07:35+00:00",
+    "changed": "2026-02-06T09:17:55+00:00",
+    "intro": "GO-financiering heeft de volgende kenmerken.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/kenmerken"
+  },
+  {
+    "id": "f28f70b1-6bab-46c3-8d2d-c7994eefd65c",
+    "title": "De door de bank verschuldigde provisies",
+    "created": "2012-02-03T09:12:16+00:00",
+    "changed": "2026-02-06T09:17:18+00:00",
+    "intro": "De bank is provisie verschuldigd aan de Staat over de verstrekte garantie.\r\n",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/deelnemen-financier/verschuldigde-provisies"
+  },
+  {
+    "id": "e3de4607-3002-4239-9c8e-b658933d8a5e",
+    "title": "Verplichtingen van de bank (GO)",
+    "created": "2012-02-03T09:28:46+00:00",
+    "changed": "2026-02-06T09:13:28+00:00",
+    "intro": "De bank heeft een aantal verplichtingen bij deelname aan de GO.\r\n",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/deelnemen-financier/verplichtingen-bank"
+  },
+  {
+    "id": "ac6d14f4-f200-47fc-b305-3e8c1788eb14",
+    "title": "Verliesdeclaratie door de bank (GO)",
+    "created": "2012-02-03T09:33:25+00:00",
+    "changed": "2026-02-06T09:14:05+00:00",
+    "intro": "In bepaalde gevallen kunt u verlies op het gegarandeerde deel van banklening declareren. Dit doet u met het vastgestelde formulier. Lees meer over in welke gevallen u verlies kunt declareren.\r\n",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/deelnemen-financier/verliesdeclaratie"
+  },
+  {
+    "id": "9d6ffed3-f1b3-438c-a28b-0e9ef65328f3",
+    "title": "Aanvraaginformatie Garantie Ondernemingsfinanciering",
+    "created": "2012-02-03T09:36:03+00:00",
+    "changed": "2026-07-13T11:38:41+00:00",
+    "intro": "Voor een financiering met overheidsgarantie onder de regeling Garantie Ondernemingsfinanciering (GO) dient een onderneming zich te wenden tot één van de tot de GO-regeling toegelaten financiers. Dit zijn banken of door de minister toegelaten kredietverstrekkers.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "Garantie Ondernemersfinanciering (GO)"
+    ],
+    "tags": [
+      "Bedrijfsfinanciering",
+      "Garantstelling"
+    ],
+    "targets": [
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/go/aanvragen"
+  },
+  {
+    "id": "d0f55f75-0da3-4671-8510-b7922028c4f3",
+    "title": "Voordelen van SBIR voor ondernemers",
+    "created": "2011-02-09T13:30:51+00:00",
+    "changed": "2024-12-06T15:24:55+00:00",
+    "intro": "Het SBIR-instrument ('Small Business Innovation Research') biedt ondernemers een aantal voordelen.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Internationaal ondernemen"
+    ],
+    "subsidies": [
+      "SBIR"
+    ],
+    "tags": [
+      "Aanbesteden",
+      "Innovatie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "Non-profit / NGO"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/sbir/voordelen-voor-ondernemers"
+  },
+  {
+    "id": "bec32996-54e1-47f6-a234-106966a0da1d",
+    "title": "Hoe werkt SBIR?",
+    "created": "2011-02-09T13:24:13+00:00",
+    "changed": "2026-01-08T16:36:40+00:00",
+    "intro": "SBIR ('Small Business Innovation Research') werkt als een gefaseerde innovatiecompetitie, waarbij per fase telkens de ondernemingen met de beste offertes doorgaan. SBIR is het inkopen door de overheid van onderzoeksdiensten om een markt te creëren waarop ze later zelf kan gaan inkopen.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "SBIR"
+    ],
+    "tags": [
+      "Aanbesteden",
+      "Innovatie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "Non-profit / NGO"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/sbir/hoe-werkt-het"
+  },
+  {
+    "id": "12330500-0b45-41d6-9069-d0d125133ad1",
+    "title": "Voordelen van SBIR voor overheden",
+    "created": "2011-04-13T10:59:05+00:00",
+    "changed": "2024-12-06T15:21:38+00:00",
+    "intro": "Niet voor alles is nog een kant en klare oplossing voorhanden. Door het uitschrijven van een SBIR-competitie daagt u als overheidsdienst marktpartijen uit om innovaties te ontwikkelen voor uw uitdaging of probleem. U koopt zo dus onderzoek en ontwikkeling in.",
+    "countries": [],
+    "sectors": [],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "SBIR"
+    ],
+    "tags": [
+      "Innovatie",
+      "Advies"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "Non-profit / NGO"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/sbir/voordelen-voor-overheden"
+  },
+  {
+    "id": "6cc53a37-84f0-4f34-ac40-97316840d17b",
+    "title": "Uw bedrijfsmiddel op de Milieulijst",
+    "created": "2010-11-30T14:09:53+00:00",
+    "changed": "2026-09-03T09:39:16+00:00",
+    "intro": "Heeft u een voorstel voor een innovatief of milieuvriendelijk bedrijfsmiddel dat nog niet op de Milieulijst staat? Bijvoorbeeld omdat u als leverancier een techniek op de markt wilt brengen, of uw markt wilt verbreden? Laat uw bedrijfsmiddel dan op de Milieulijst zetten voor het belastingvoordeel van de Milieu-investeringsaftrek (MIA) en de Willekeurige afschrijving milieu-investeringen (Vamil).",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Waterstofsector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "Duurzame technologie",
+      "Milieu",
+      "Bedrijfsmiddelen"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)",
+      "Producentenorganisatie"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/voorstel-milieulijst"
+  },
+  {
+    "id": "8778c0b7-f0fb-4e4b-84f8-a72d349d013a",
+    "title": "Officiële bekendmakingen - MIA\\Vamil",
+    "created": "2010-11-30T15:32:58+00:00",
+    "changed": "2026-08-20T10:00:22+00:00",
+    "intro": "Hieronder vindt u de meest recente officiële bekendmakingen over de milieu-investeringsaftrek (MIA) en de willekeurige afschrijving milieu-investeringen (Vamil). Waaronder ook de publicaties over het Caribisch gebied.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Energiedistributie",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "eLoket",
+      "Energie",
+      "Milieu",
+      "Wetten en regels"
+    ],
+    "targets": [
+      "Overheid",
+      "Grootbedrijf",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/ondernemers/officiele-bekendmakingen"
+  },
+  {
+    "id": "8610be2e-6565-4d53-9569-68e4f966d27e",
+    "title": "Criteria voor opname op de Milieulijst",
+    "created": "2010-11-30T14:40:18+00:00",
+    "changed": "2025-12-30T13:34:53+00:00",
+    "intro": "Leveranciers en andere belangstellenden kunnen voorstellen om een vernieuwende milieuvriendelijke techniek op te nemen op de Milieulijst. Hierdoor krijgt een ondernemer die investeert in deze techniek, belastingvoordeel met de Milieu-investeringsaftrek (MIA) en de Willekeurige afschrijving milieu-investeringen (Vamil). Of het voorstel op de lijst komt, hangt af van verschillende criteria.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Waterstofsector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "eLoket",
+      "Voorwaarden",
+      "Techniek",
+      "Milieu",
+      "Producteisen"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/voorstel-milieulijst/criteria-opname-milieulijst"
+  },
+  {
+    "id": "e227f57c-906f-4364-b7a8-53f708b9b742",
+    "title": "MIA\\Vamil voor investeringen in gebouwen",
+    "created": "2012-04-11T12:25:55+00:00",
+    "changed": "2026-09-03T09:05:47+00:00",
+    "intro": "Wilt u investeren in het verduurzamen van gebouwen? Dan kunt u mogelijk belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Bonaire",
+        "isoalpha2": ""
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "Biobased materialen",
+      "Milieu",
+      "Circulair ondernemen",
+      "Klimaatadaptatie",
+      "Materialen",
+      "Bedrijfsmiddelen",
+      "Gebouwde omgeving"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Producentenorganisatie"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/ondernemers/gebouwde-omgeving"
+  },
+  {
+    "id": "ffa5e302-9c8f-4107-b99e-3f1f5417c14e",
+    "title": "Rekenvoorbeelden MIA\\Vamil",
+    "created": "2010-12-02T11:23:13+00:00",
+    "changed": "2026-09-03T08:55:36+00:00",
+    "intro": "Investeert u als ondernemer in een milieuvriendelijk bedrijfsmiddel van de Milieulijst? Dan kunt&nbsp;u belastingvoordeel krijgen met MIA\\Vamil. Wilt u weten hoe groot dit voordeel is?&nbsp;Bekijk dan&nbsp;onderstaande rekenvoorbeelden en gebruik de rekentool om uw eigen voordeel te berekenen.\r\n",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "Duurzaam ondernemen",
+      "Energie",
+      "Milieu",
+      "Emissiereductie",
+      "Circulair ondernemen"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Non-profit / NGO",
+      "Particulier / Vereniging / (Ver)huurder",
+      "Producentenorganisatie",
+      "School / Kennisinstelling"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/ondernemers/voorwaarden/rekenvoorbeelden"
+  },
+  {
+    "id": "2c091d00-09f4-4920-9d35-d71c35df3f40",
+    "title": "MIA\\Vamil voor investeringen in de industrie",
+    "created": "2013-01-07T15:00:58+00:00",
+    "changed": "2026-09-03T09:02:59+00:00",
+    "intro": "Wilt u investeren in het verduurzamen van uw industriebedrijf? Dan kunt u mogelijk belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.&nbsp;",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Chemie en kunststoffen",
+      "Creatieve industrie",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Grafische en papierindustrie",
+      "Machine-industrie",
+      "Metaal(bewerkings)industrie",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Agrarische sector",
+      "Waterstofsector",
+      "Bouw en infrastructuur",
+      "Consumentengoederen en detailhandel",
+      "Dienstensector",
+      "Energiesector",
+      "ICT",
+      "Kleding en textiel",
+      "Medische sector",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Onderwijs en opvang",
+      "Overheid",
+      "Toerisme recreatie en horeca",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "Milieu",
+      "2025",
+      "Investeringen",
+      "Industriële processen"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/ondernemers/industrie"
+  },
+  {
+    "id": "f92ff0fc-eba0-4a3d-b19c-470229839351",
+    "title": "MIA\\Vamil voor investeringen in de landbouw",
+    "created": "2011-11-09T09:28:23+00:00",
+    "changed": "2026-09-03T09:04:19+00:00",
+    "intro": "Wilt u investeringen doen die helpen bij het verduurzamen van de landbouw? Dan kunt u mogelijk een belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.&nbsp;",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      },
+      {
+        "name": "Aruba",
+        "isoalpha2": "AW"
+      },
+      {
+        "name": "Curaçao",
+        "isoalpha2": "CW"
+      },
+      {
+        "name": "Caribisch Nederland",
+        "isoalpha2": "BQ"
+      },
+      {
+        "name": "Sint Maarten",
+        "isoalpha2": "SX"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Waterstofsector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Biologische landbouw",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Metaal(bewerkings)industrie",
+      "Milieusector",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "MIA en Vamil"
+    ],
+    "tags": [
+      "Dierenwelzijn",
+      "Mest",
+      "Milieu",
+      "Emissiereductie",
+      "Bodem",
+      "Circulair ondernemen",
+      "Mobiele werktuigen"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/mia-vamil/ondernemers/landbouw"
+  },
+  {
+    "id": "855773e8-cc8c-404d-a6ca-61068092746c",
+    "title": "Groenfondsen",
+    "created": "2010-11-29T10:00:40+00:00",
+    "changed": "2025-12-02T13:13:19+00:00",
+    "intro": "Verschillende banken en beleggingsinstellingen hebben een groenfonds. Spaarders en beleggers leggen geld in en profiteren mogelijk van een belastingvoordeel. Daardoor kunnen de groenfondsen leningen tegen een lagere rente verstrekken.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Agro 2",
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Duurzame mobiliteit",
+      "Groenfonds",
+      "Milieu",
+      "Circulair ondernemen",
+      "Natuur",
+      "Projectfinanciering",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/groenfondsen"
+  },
+  {
+    "id": "bf48de13-be49-479b-b32d-525642706743",
+    "title": "Publicaties Regeling groenprojecten",
+    "created": "2010-11-22T11:23:26+00:00",
+    "changed": "2024-04-23T12:02:32+00:00",
+    "intro": "Download brochures, jaarverslagen met aansprekende voorbeeldprojecten en onderzoeksrapporten van de Regeling groenprojecten.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Innovatie, onderzoek en onderwijs",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Groenfonds",
+      "Milieu",
+      "Natuur",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Grootbedrijf"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/publicaties-regeling-groenprojecten"
+  },
+  {
+    "id": "16f0e8ef-2563-43e7-8f03-a3eb4f5ec1fb",
+    "title": "Officiële bekendmakingen regeling Groenprojecten",
+    "created": "2010-11-22T11:07:30+00:00",
+    "changed": "2024-01-17T15:18:05+00:00",
+    "intro": "Op deze pagina staan de officiële bekendmakingen voor de regeling Groenprojecten.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Innovatie, onderzoek en onderwijs",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Groenfonds",
+      "Milieu",
+      "Natuur",
+      "Projectfinanciering",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Financier"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/officiele-bekendmakingen-regeling-groenprojecten"
+  },
+  {
+    "id": "f606e77e-9b87-4349-939d-d8055ee2d908",
+    "title": "Aanvraagproces groenverklaring",
+    "created": "2010-11-29T09:53:39+00:00",
+    "changed": "2024-04-23T08:31:29+00:00",
+    "intro": "Om een&nbsp;groene financiering te krijgen heeft u een groenverklaring nodig.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Innovatie, onderzoek en onderwijs",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Groenfonds",
+      "Milieu",
+      "Natuur",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Particulier / Vereniging / (Ver)huurder"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/aanvraagproces-groenverklaring"
+  },
+  {
+    "id": "c1295a4f-047b-4cab-b8d5-19eb09da0e69",
+    "title": "Regeling groenprojecten - Categorie 2.1 Biologische landbouw",
+    "created": "2010-11-29T16:44:59+00:00",
+    "changed": "2026-08-27T10:18:57+00:00",
+    "intro": "U kunt in aanmerking komen voor een groenverklaring voor projecten in 2 subcategorieën: het produceren of verwerken van biologische landbouwprojecten en deelname aan de kwaliteitsregeling.",
+    "countries": [],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Innovatie, onderzoek en onderwijs",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Groenfonds",
+      "Milieu",
+      "Natuur",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)",
+      "Particulier / Vereniging / (Ver)huurder"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/biologische-landbouw"
+  },
+  {
+    "id": "d9726edb-4843-42e2-8727-e91a06d4d10c",
+    "title": "Regeling groenprojecten - Categorie 3.1 Biobased",
+    "created": "2010-11-22T12:07:55+00:00",
+    "changed": "2026-08-27T10:13:36+00:00",
+    "intro": "U kunt in aanmerking komen voor een groenverklaring voor projecten in 2 subcategorieën: productieapparatuur voor grondstoffen of producten op basis van biomassa en productieapparatuur voor (producten van) biobased plastics.",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Energiesector",
+      "Milieusector"
+    ],
+    "subjects": [
+      "Landbouw",
+      "Innovatie, onderzoek en onderwijs",
+      "Klimaat en energie"
+    ],
+    "subsidies": [
+      "Regeling groenprojecten"
+    ],
+    "tags": [
+      "Groenfonds",
+      "Milieu",
+      "Grondstoffen",
+      "Natuur",
+      "Investeringen",
+      "Projecten"
+    ],
+    "targets": [
+      "Financier",
+      "Grootbedrijf",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/regeling-groenprojecten/biobased"
+  },
+  {
+    "id": "4d968e82-4b53-437c-b345-fbc65b479a6e",
+    "title": "Publicaties WBSO",
+    "created": "2011-05-18T11:39:04+00:00",
+    "changed": "2026-05-20T07:24:44+00:00",
+    "intro": "Op deze pagina vindt u publicaties die u informeren over de Wet Bevordering Speur- en Ontwikkelingswerk (WBSO) en de voorgangers WBSO en Research &amp; Development Aftrek (RDA).",
+    "countries": [
+      {
+        "name": "Nederland",
+        "isoalpha2": "NL"
+      }
+    ],
+    "sectors": [
+      "Agrarische sector",
+      "Biotechnologie",
+      "Bosbouw en hout(bewerkings)industrie",
+      "Bouw en infrastructuur",
+      "Chemie en kunststoffen",
+      "Consumentengoederen en detailhandel",
+      "Creatieve industrie",
+      "Dienstensector",
+      "Elektronica-industrie (waaronder HTSM)",
+      "Energiesector",
+      "Grafische en papierindustrie",
+      "ICT",
+      "Kleding en textiel",
+      "Machine-industrie",
+      "Medische sector",
+      "Metaal(bewerkings)industrie",
+      "Mijnbouw en petrochemie",
+      "Milieusector",
+      "Transportmiddelenindustrie",
+      "Verpakkingsindustrie",
+      "Vervoer en logistiek",
+      "Voedings- en genotmiddelen",
+      "Watersector",
+      "Woning- en projectinrichting"
+    ],
+    "subjects": [
+      "Innovatie, onderzoek en onderwijs"
+    ],
+    "subsidies": [
+      "WBSO"
+    ],
+    "tags": [
+      "UPNL modelleerconcept",
+      "Brochures en uitgaven",
+      "Informatie"
+    ],
+    "targets": [
+      "Grootbedrijf",
+      "Agrarisch ondernemer",
+      "MKB (ook zzp)"
+    ],
+    "type": "subsidy",
+    "url": "/subsidies-financiering/wbso/publicaties"
+  }
+]

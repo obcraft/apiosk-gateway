@@ -283,11 +283,22 @@ fn add(
         }) {
             continue;
         }
-        let candidates = catalog
+        let mut candidates = catalog
             .by_output
             .get(&req.fact_type)
             .cloned()
             .unwrap_or_default();
+        // Try grounded bridges before circular name searches. Cheap but
+        // unresolved alternatives must not exhaust the budget before a direct
+        // lookup using an already-known identifier is considered.
+        candidates.sort_by_key(|index| {
+            let candidate = &catalog.services[*index];
+            let missing = candidate.contract.requires.iter().filter(|r| !r.optional)
+                .filter(|r| !fact_value(&task.facts, entity, &r.fact_type).is_ok_and(|v| v.is_some())
+                    && !steps.iter().any(|s| s.entity_ref == entity && s.service.contract.output_map.produces.contains_key(&r.fact_type)))
+                .count();
+            (missing, candidate.total())
+        });
         let mut found = None;
         for index in candidates {
             let mut trial = steps.clone();

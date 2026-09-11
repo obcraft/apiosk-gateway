@@ -59,5 +59,6 @@ const server=net.createServer(socket=>{
  }
 });
 const port=Number(process.env.PGTEST_PORT || 54329);
+await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN produces jsonb NOT NULL DEFAULT '[]'::jsonb; GRANT SELECT(produces) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));
 process.on('SIGTERM',()=>{server.close();db.close().finally(()=>process.exit(0));});

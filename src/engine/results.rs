@@ -46,6 +46,10 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
+        if matches!(step.service.api_slug.as_str(), "koop" | "rdw" | "rvo" | "ted" | "pdok") && data["coverage"]["complete"] == false {
+            document["coverage"] = json!("partial");
+            document["coverage_note"] = data["coverage"]["scope"].clone();
+        }
         if step.service.path == crate::annual_report::ENDPOINT {
             document["report_subject"] = json!({
                 "name": task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label),
@@ -73,6 +77,7 @@ impl Engine {
                 .collect(),
             Err(_) => vec!["output_schema_mismatch".into()],
         };
+        let missing_required = missing.iter().any(|k| !step.service.optional_outputs.contains(k));
         if !missing.is_empty() {
             document["missing_fields"] = json!(missing);
             document["coverage"] = json!("partial");
@@ -99,7 +104,7 @@ impl Engine {
         }
         let extraction = match extraction {
             Ok(e)
-                if body["result_truncated"] != true && missing.is_empty() && !capacity_exceeded =>
+                if body["result_truncated"] != true && !missing_required && !capacity_exceeded =>
             {
                 e
             }

@@ -1,0 +1,93 @@
+{
+  "type": "Feature",
+  "properties": {
+    "aantal_verblijfsobjecten": 7,
+    "bouwjaar": 1905,
+    "documentdatum": "2023-09-15",
+    "documentnummer": "GV00007156_AC00AC",
+    "gebruiksdoel": "kantoorfunctie,woonfunctie",
+    "geconstateerd": "N",
+    "identificatie": "0363100012164493",
+    "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012164493",
+    "status": "Pand in gebruik",
+    "verblijfsobject.href": [
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/18e9d3e8-911b-523b-bbd4-4b2bec87ee57",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/1c1ca4f4-229f-566b-b495-748593378cae",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/9e51746d-a530-5434-b31b-8d3e9aca7c63",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a3dbf510-af47-5ccd-bd70-303e911718eb",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/b2e9738f-794f-5be3-bdf9-1ca6a6cca644",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/fd615e67-b4a3-5bf0-bcc8-5e00c818aae4",
+      "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/2c58a743-6b73-5847-903a-0a495134ea72"
+    ]
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          4.867016783372978,
+          52.36822407768063
+        ],
+        [
+          4.867011176502284,
+          52.368233921576405
+        ],
+        [
+          4.866995870310332,
+          52.368229468311334
+        ],
+        [
+          4.866743771755833,
+          52.36816742354021
+        ],
+        [
+          4.866779214837632,
+          52.36811374282018
+        ],
+        [
+          4.866809932168072,
+          52.36812120284125
+        ],
+        [
+          4.866859595361533,
+          52.36813325796424
+        ],
+        [
+          4.86704726729954,
+          52.368178823561784
+        ],
+        [
+          4.867016783372978,
+          52.36822407768063
+        ]
+      ]
+    ]
+  },
+  "id": "52aceb68-5b01-52a0-ba95-8b0a77ab96df",
+  "links": [
+    {
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "type": "application/geo+json",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/52aceb68-5b01-52a0-ba95-8b0a77ab96df?f=json"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as JSON-FG",
+      "type": "application/vnd.ogc.fg+json",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/52aceb68-5b01-52a0-ba95-8b0a77ab96df?f=jsonfg"
+    },
+    {
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "type": "text/html",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/52aceb68-5b01-52a0-ba95-8b0a77ab96df?f=html"
+    },
+    {
+      "rel": "collection",
+      "title": "The collection to which this feature belongs",
+      "type": "application/json",
+      "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand?f=json"
+    }
+  ]
+}

@@ -1,0 +1,914 @@
+{
+  "coverage": {
+    "complete": false,
+    "scope": "Exact numeric identifier in TED buyer or winner fields; returned page only. Identifier scheme, country and legal-entity identity still need confirmation."
+  },
+  "items": [
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Строителни и монтажни работи по общо изграждане на строителни съоръжения",
+        "ces": "Nizozemsko-Heerhugowaard: Konstrukční a stavební práce",
+        "dan": "Nederlandene-Heerhugowaard: Ingeniørarbejder og bygværker",
+        "deu": "die Niederlande-Heerhugowaard: Ingenieur- und Hochbauarbeiten",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Εργασίες μηχανικού και δομικές εργασίες",
+        "eng": "Netherlands-Heerhugowaard: Engineering works and construction works",
+        "est": "Madalmaad-Heerhugowaard: Insenertehnilised tööd ja ehitustööd",
+        "fin": "Alankomaat-Heerhugowaard: Rakennelmiin ja teknisiin rakenteisiin liittyvät työt",
+        "fra": "Pays-Bas-Heerhugowaard: Ouvrages d'art et de génie civil",
+        "gle": "Ísiltír, an-Heerhugowaard: Engineering works and construction works",
+        "hrv": "Nizozemska-Heerhugowaard: Radovi na niskogradnji i radovi na visokogradnji",
+        "hun": "Hollandia-Heerhugowaard: Mérnöki és építési munkák",
+        "ita": "Paesi Bassi-Heerhugowaard: Opere d'arte e strutture",
+        "lav": "Nīderlande-Heerhugowaard: Inženiertehniskie un celtniecības darbi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Inžinerijos ir statybos darbai",
+        "mlt": "in-Netherlands-Heerhugowaard: Xogħlijiet ta’ l-inġinerija u xogħolijiet tal-kostruzzjoni",
+        "nld": "Nederland-Heerhugowaard: Civieltechnische en bouwwerkzaamheden",
+        "pol": "Niderlandy-Heerhugowaard: Roboty inżynieryjne i budowlane",
+        "por": "Países Baixos-Heerhugowaard: Obras de engenharia civil e construção de estruturas",
+        "ron": "Ţările de Jos-Heerhugowaard: Lucrări de inginerie şi de construcţii",
+        "slk": "Holandsko-Heerhugowaard: Inžinierske práce a stavebné práce",
+        "slv": "Nizozemska-Heerhugowaard: Dela na inženirskih in visokih gradnjah",
+        "spa": "Países Bajos-Heerhugowaard: Obras de ingeniería y trabajos de construcción",
+        "swe": "Nederländerna-Heerhugowaard: Väg- och vattenbyggnad samt byggnadsverk"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-09-16+02:00",
+      "publication-number": "321697-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/321697-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Услуги, свързани с отпадъчни води",
+        "ces": "Nizozemsko-Heerhugowaard: Kanalizace",
+        "dan": "Nederlandene-Heerhugowaard: Kloakvæsen",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen in der Abwasserbeseitigung",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες αποχέτευσης",
+        "eng": "Netherlands-Heerhugowaard: Sewage services",
+        "est": "Madalmaad-Heerhugowaard: Reoveeteenused",
+        "fin": "Alankomaat-Heerhugowaard: Viemäröinti",
+        "fra": "Pays-Bas-Heerhugowaard: Services des eaux usées",
+        "gle": "Ísiltír, an-Heerhugowaard: Sewage services",
+        "hrv": "Nizozemska-Heerhugowaard: Usluge u području otpadnih voda",
+        "hun": "Hollandia-Heerhugowaard: Szennyvízzel kapcsolatos szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi fognari",
+        "lav": "Nīderlande-Heerhugowaard: Notekūdeņu pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Nuotekų paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi tad-drenaġġ",
+        "nld": "Nederland-Heerhugowaard: Diensten in verband met afvalwater",
+        "pol": "Niderlandy-Heerhugowaard: Usługi utylizacji nieczystości",
+        "por": "Países Baixos-Heerhugowaard: Serviços relacionados com águas residuais",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii privind apele reziduale",
+        "slk": "Holandsko-Heerhugowaard: Kanalizačné služby",
+        "slv": "Nizozemska-Heerhugowaard: Storitve v zvezi z odplakami",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de alcantarillado",
+        "swe": "Nederländerna-Heerhugowaard: Avloppshantering"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-09-27+02:00",
+      "publication-number": "334756-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/334756-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Архитектурни, строителни, инженерни и инспекционни услуги",
+        "ces": "Nizozemsko-Heerhugowaard: Architektonické, stavební, technické a inspekční služby",
+        "dan": "Nederlandene-Heerhugowaard: Arkitekt-, konstruktions-, ingeniør- og inspektionsvirksomhed",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Architektur-, Konstruktions- und Ingenieurbüros und Prüfstellen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες αρχιτεκτονικής, κατασκευαστικών έργων, έργων πολιτικού μηχανικού και επίβλεψης",
+        "eng": "Netherlands-Heerhugowaard: Architectural, construction, engineering and inspection services",
+        "est": "Madalmaad-Heerhugowaard: Arhitektuuri-, ehitus-, inseneri- ja ehitusjärelevalveteenused",
+        "fin": "Alankomaat-Heerhugowaard: Arkkitehti-, rakennus-, insinööri- ja tarkastuspalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services d'architecture, services de construction, services d'ingénierie et services d'inspection",
+        "gle": "Ísiltír, an-Heerhugowaard: Architectural, construction, engineering and inspection services",
+        "hrv": "Nizozemska-Heerhugowaard: Arhitektonske, građevne, tehničke i inspekcije usluge",
+        "hun": "Hollandia-Heerhugowaard: Építészeti, építési, mérnöki és vizsgálati szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi architettonici, di costruzione, ingegneria e ispezione",
+        "lav": "Nīderlande-Heerhugowaard: Arhitektūras, būvniecības, inženiertehniskie un pārbaudes pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Architektūros, statybų, inžinerijos ir inspektavimo paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' perizja, kostruzzjoni, inġinerija u spezzjoni",
+        "nld": "Nederland-Heerhugowaard: Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
+        "pol": "Niderlandy-Heerhugowaard: Usługi architektoniczne, budowlane, inżynieryjne i kontrolne",
+        "por": "Países Baixos-Heerhugowaard: Serviços de arquitectura, construção, engenharia e inspecção",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de arhitectură, de construcţii, de inginerie şi de inspecţie",
+        "slk": "Holandsko-Heerhugowaard: Architektonické, stavebné, inžinierske a inšpekčné služby",
+        "slv": "Nizozemska-Heerhugowaard: Arhitekturne, gradbeniške, inženirske in inšpekcijske storitve",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de arquitectura, construcción, ingeniería e inspección",
+        "swe": "Nederländerna-Heerhugowaard: Arkitekt-, bygg-, ingenjörs- och besiktningstjänster"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-10-04+02:00",
+      "publication-number": "344367-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/344367-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Строителни и монтажни работи на хидротехнически съоръжения",
+        "ces": "Nizozemsko-Heerhugowaard: Výstavba vodních děl",
+        "dan": "Nederlandene-Heerhugowaard: Arbejder i forbindelse med udførelse af vandbygningsanlæg",
+        "deu": "die Niederlande-Heerhugowaard: Wasserbauarbeiten",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Κατασκευαστικές εργασίες για υδραυλικά έργα",
+        "eng": "Netherlands-Heerhugowaard: Construction work for water projects",
+        "est": "Madalmaad-Heerhugowaard: Vesiehitustööd",
+        "fin": "Alankomaat-Heerhugowaard: Vesirakennustyöt",
+        "fra": "Pays-Bas-Heerhugowaard: Travaux de construction d'ouvrages hydrauliques",
+        "gle": "Ísiltír, an-Heerhugowaard: Construction work for water projects",
+        "hrv": "Nizozemska-Heerhugowaard: Građevinski radovi na hidrograđevnim objektima",
+        "hun": "Hollandia-Heerhugowaard: Vízi létesítmények építése",
+        "ita": "Paesi Bassi-Heerhugowaard: Lavori di costruzione per opere idrauliche",
+        "lav": "Nīderlande-Heerhugowaard: Ūdens projektu būvdarbi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Vandens objektų statybos darbai",
+        "mlt": "in-Netherlands-Heerhugowaard: Xogħol tal-kostruzzjoni għal proġetti ta’ l-ilma",
+        "nld": "Nederland-Heerhugowaard: Waterbouwwerkzaamheden",
+        "pol": "Niderlandy-Heerhugowaard: Budowa obiektów inżynierii wodnej",
+        "por": "Países Baixos-Heerhugowaard: Construção relacionada com projectos de engenharia hidráulica",
+        "ron": "Ţările de Jos-Heerhugowaard: Lucrări de construcţii de lucrări hidraulice",
+        "slk": "Holandsko-Heerhugowaard: Výstavba vodných diel",
+        "slv": "Nizozemska-Heerhugowaard: Gradbena dela na vodnih objektih",
+        "spa": "Países Bajos-Heerhugowaard: Trabajos de construcción para proyectos hidráulicos",
+        "swe": "Nederländerna-Heerhugowaard: Anläggningsarbete för vattenprojekt"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-10-14+02:00",
+      "publication-number": "359202-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/359202-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Строителни и монтажни работи на съоръжения за защита на бреговата ивица",
+        "ces": "Nizozemsko-Heerhugowaard: Práce na ochraně pobřeží",
+        "dan": "Nederlandene-Heerhugowaard: Kystsikringsarbejder",
+        "deu": "die Niederlande-Heerhugowaard: Bauarbeiten für Küstenschutzanlagen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Παράκτια αμυντικά έργα",
+        "eng": "Netherlands-Heerhugowaard: Coastal-defence works",
+        "est": "Madalmaad-Heerhugowaard: Rannikukaitsetööd",
+        "fin": "Alankomaat-Heerhugowaard: Rannikon suojarakenteiden rakennustyöt",
+        "fra": "Pays-Bas-Heerhugowaard: Ouvrages de défense des côtes",
+        "gle": "Ísiltír, an-Heerhugowaard: Coastal-defence works",
+        "hrv": "Nizozemska-Heerhugowaard: Radovi na zaštiti obale",
+        "hun": "Hollandia-Heerhugowaard: Parti védművek",
+        "ita": "Paesi Bassi-Heerhugowaard: Lavori di protezione costiera",
+        "lav": "Nīderlande-Heerhugowaard: Piekrastes aizsardzības darbi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Kranto apsaugos darbai",
+        "mlt": "in-Netherlands-Heerhugowaard: Xogħlijiet ta’ lqugħ tax-xtut",
+        "nld": "Nederland-Heerhugowaard: Kustverdedigingswerken",
+        "pol": "Niderlandy-Heerhugowaard: Roboty w zakresie ochrony przybrzeżnej",
+        "por": "Países Baixos-Heerhugowaard: Obras relacionadas com a defesa costeira",
+        "ron": "Ţările de Jos-Heerhugowaard: Lucrări de apărare de coastă",
+        "slk": "Holandsko-Heerhugowaard: Diela pobrežnej ochrany",
+        "slv": "Nizozemska-Heerhugowaard: Dela na objektih za zaščito obale",
+        "spa": "Países Bajos-Heerhugowaard: Obras de defensa costera",
+        "swe": "Nederländerna-Heerhugowaard: Kustförsvarsverk"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-10-22+02:00",
+      "publication-number": "370131-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/370131-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Строителни и монтажни работи на съоръжения за защита на бреговата ивица",
+        "ces": "Nizozemsko-Heerhugowaard: Práce na ochraně pobřeží",
+        "dan": "Nederlandene-Heerhugowaard: Kystsikringsarbejder",
+        "deu": "die Niederlande-Heerhugowaard: Bauarbeiten für Küstenschutzanlagen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Παράκτια αμυντικά έργα",
+        "eng": "Netherlands-Heerhugowaard: Coastal-defence works",
+        "est": "Madalmaad-Heerhugowaard: Rannikukaitsetööd",
+        "fin": "Alankomaat-Heerhugowaard: Rannikon suojarakenteiden rakennustyöt",
+        "fra": "Pays-Bas-Heerhugowaard: Ouvrages de défense des côtes",
+        "gle": "Ísiltír, an-Heerhugowaard: Coastal-defence works",
+        "hrv": "Nizozemska-Heerhugowaard: Radovi na zaštiti obale",
+        "hun": "Hollandia-Heerhugowaard: Parti védművek",
+        "ita": "Paesi Bassi-Heerhugowaard: Lavori di protezione costiera",
+        "lav": "Nīderlande-Heerhugowaard: Piekrastes aizsardzības darbi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Kranto apsaugos darbai",
+        "mlt": "in-Netherlands-Heerhugowaard: Xogħlijiet ta’ lqugħ tax-xtut",
+        "nld": "Nederland-Heerhugowaard: Kustverdedigingswerken",
+        "pol": "Niderlandy-Heerhugowaard: Roboty w zakresie ochrony przybrzeżnej",
+        "por": "Países Baixos-Heerhugowaard: Obras relacionadas com a defesa costeira",
+        "ron": "Ţările de Jos-Heerhugowaard: Lucrări de apărare de coastă",
+        "slk": "Holandsko-Heerhugowaard: Diela pobrežnej ochrany",
+        "slv": "Nizozemska-Heerhugowaard: Dela na objektih za zaščito obale",
+        "spa": "Países Bajos-Heerhugowaard: Obras de defensa costera",
+        "swe": "Nederländerna-Heerhugowaard: Kustförsvarsverk"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-10-25+02:00",
+      "publication-number": "372557-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/372557-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Строителни работи по ремонт и поддържане на пречиствателни станции",
+        "ces": "Nizozemsko-Heerhugowaard: Opravy a údržba čisticích stanic",
+        "dan": "Nederlandene-Heerhugowaard: Reparation og vedligeholdelse af rensningsanlæg",
+        "deu": "die Niederlande-Heerhugowaard: Reparatur und Wartung von Reinigungsanlagen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Επισκευή και συντήρηση εγκαταστάσεων καθαρισμού",
+        "eng": "Netherlands-Heerhugowaard: Purification-plant repair and maintenance work",
+        "est": "Madalmaad-Heerhugowaard: Puhastusseadmete remont ja hooldus",
+        "fin": "Alankomaat-Heerhugowaard: Vedenpuhdistamon koneiston korjaus ja huolto",
+        "fra": "Pays-Bas-Heerhugowaard: Réparation et entretien de station de purification",
+        "gle": "Ísiltír, an-Heerhugowaard: Purification-plant repair and maintenance work",
+        "hrv": "Nizozemska-Heerhugowaard: Popravak i održavanje uređaja za pročišćivanje",
+        "hun": "Hollandia-Heerhugowaard: Szennyvíztisztító telep javítási és karbantartási munkája",
+        "ita": "Paesi Bassi-Heerhugowaard: Riparazione e manutenzione di impianti di depurazione",
+        "lav": "Nīderlande-Heerhugowaard: Attīrīšanas iekārtu remonta un uzturēšanas darbi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Valymo įrenginių remonto ir priežiūros darbai",
+        "mlt": "in-Netherlands-Heerhugowaard: Xogħol ta’ tiswija u manutenzjoni ta’ l-impjant tal-purifikazzjoni",
+        "nld": "Nederland-Heerhugowaard: Reparatie en onderhoud van zuiveringsinstallatie",
+        "pol": "Niderlandy-Heerhugowaard: Usługi remontów i konserwacji zakładów oczyszczania",
+        "por": "Países Baixos-Heerhugowaard: Reparação e manutenção de estações depuradoras",
+        "ron": "Ţările de Jos-Heerhugowaard: Reparare şi întreţinere a staţiilor de purificare",
+        "slk": "Holandsko-Heerhugowaard: Opravy a údržba čistiacich staníc",
+        "slv": "Nizozemska-Heerhugowaard: Popravilo in vzdrževanje čistilnih naprav",
+        "spa": "Países Bajos-Heerhugowaard: Reparación y mantenimiento de planta de depuración",
+        "swe": "Nederländerna-Heerhugowaard: Reparation och underhåll av reningsverk"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-10-28+02:00",
+      "publication-number": "377826-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/377826-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Услуги по ремонт и поддържане на електрически инсталации на сгради",
+        "ces": "Nizozemsko-Heerhugowaard: Opravy a údržba elektrických stavebních zařízení",
+        "dan": "Nederlandene-Heerhugowaard: Reparation og vedligeholdelse af elektriske installationer i bygninger",
+        "deu": "die Niederlande-Heerhugowaard: Reparatur und Wartung von elektrischen Einrichtungen in Gebäuden",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες επισκευής και συντήρησης ηλεκτρολογικών εγκαταστάσεων κτιρίου",
+        "eng": "Netherlands-Heerhugowaard: Repair and maintenance services of electrical building installations",
+        "est": "Madalmaad-Heerhugowaard: Elektriliste ehitusseadmete remondi- ja hooldusteenused",
+        "fin": "Alankomaat-Heerhugowaard: Rakennuksen sähkölaitteiden korjaus ja huolto",
+        "fra": "Pays-Bas-Heerhugowaard: Services de réparation et d'entretien d'installations électriques de bâtiment",
+        "gle": "Ísiltír, an-Heerhugowaard: Repair and maintenance services of electrical building installations",
+        "hrv": "Nizozemska-Heerhugowaard: Usluge popravaka i održavanja električnih instalacija u zgradama",
+        "hun": "Hollandia-Heerhugowaard: Épületek villamos készülékeivel kapcsolatos javítási és karbantartási szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di riparazione e manutenzione di impianti elettrici di edifici",
+        "lav": "Nīderlande-Heerhugowaard: Ēku elektrotehnisko iekārtu remonta un uzturēšanas pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Pastatų elektros įrangos remonto ir priežiūros paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta’ tiswija u tal-manutenzjoni ta’ l-istallazzjoni elettriċi tal-bini",
+        "nld": "Nederland-Heerhugowaard: Reparatie en onderhoud van elektrische uitrusting in gebouwen",
+        "pol": "Niderlandy-Heerhugowaard: Usługi w zakresie napraw i konserwacji elektrycznych instalacji budynkowych",
+        "por": "Países Baixos-Heerhugowaard: Serviços de reparação e manutenção de equipamento eléctrico em edifícios",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de reparare şi de întreţinere a instalaţiilor electrice de construcţii",
+        "slk": "Holandsko-Heerhugowaard: Opravy a údržba elektrických zariadení budov",
+        "slv": "Nizozemska-Heerhugowaard: Storitve popravila in vzdrževanja električnih inštalacij pri gradnjah",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de reparación y mantenimiento de equipos eléctricos de edificios",
+        "swe": "Nederländerna-Heerhugowaard: Reparation och underhåll av elektrisk utrustning i byggnader"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-10-29+02:00",
+      "publication-number": "381505-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/381505-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Инженерни услуги в строителството",
+        "ces": "Nizozemsko-Heerhugowaard: Technicko-inženýrské služby",
+        "dan": "Nederlandene-Heerhugowaard: Ingeniørvirksomhed",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurbüros",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες μηχανικού",
+        "eng": "Netherlands-Heerhugowaard: Engineering services",
+        "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+        "fin": "Alankomaat-Heerhugowaard: Insinööripalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services d'ingénierie",
+        "gle": "Ísiltír, an-Heerhugowaard: Engineering services",
+        "hrv": "Nizozemska-Heerhugowaard: Tehničke usluge",
+        "hun": "Hollandia-Heerhugowaard: Mérnöki szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+        "lav": "Nīderlande-Heerhugowaard: Inženiertehniskie pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Inžinerijos paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-inġinerija",
+        "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+        "pol": "Niderlandy-Heerhugowaard: Usługi inżynieryjne",
+        "por": "Países Baixos-Heerhugowaard: Serviços de engenharia",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de inginerie",
+        "slk": "Holandsko-Heerhugowaard: Inžinierske služby",
+        "slv": "Nizozemska-Heerhugowaard: Inženirske storitve",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de ingeniería",
+        "swe": "Nederländerna-Heerhugowaard: Ingenjörstjänster"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-11-19+01:00",
+      "publication-number": "408399-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/408399-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Моторни превозни средства за превоз на стоки",
+        "ces": "Nizozemsko-Heerhugowaard: Motorová vozidla pro přepravu zboží",
+        "dan": "Nederlandene-Heerhugowaard: Motorkøretøjer til godstransport",
+        "deu": "die Niederlande-Heerhugowaard: Kraftfahrzeuge für den Gütertransport",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Αυτοκίνητα οχήματα για τη μεταφορά εμπορευμάτων",
+        "eng": "Netherlands-Heerhugowaard: Motor vehicles for the transport of goods",
+        "est": "Madalmaad-Heerhugowaard: Mootorsõidukid kaubaveoks",
+        "fin": "Alankomaat-Heerhugowaard: Tavarakuljetuksiin tarkoitetut moottoriajoneuvot",
+        "fra": "Pays-Bas-Heerhugowaard: Véhicules à moteur servant au transport de marchandises",
+        "gle": "Ísiltír, an-Heerhugowaard: Motor vehicles for the transport of goods",
+        "hrv": "Nizozemska-Heerhugowaard: Motorna vozila za prijevoz robe",
+        "hun": "Hollandia-Heerhugowaard: Áruszállító gépjárművek",
+        "ita": "Paesi Bassi-Heerhugowaard: Veicoli a motore per trasporto merci",
+        "lav": "Nīderlande-Heerhugowaard: Mehāniskie transportlīdzekļi kravu pārvadāšanai",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Motorinės transporto priemonės, skirtos kroviniams vežti",
+        "mlt": "in-Netherlands-Heerhugowaard: Vetturi bil-magna għat-trasport ta' merkanzija",
+        "nld": "Nederland-Heerhugowaard: Motorvoertuigen voor goederenvervoer",
+        "pol": "Niderlandy-Heerhugowaard: Pojazdy silnikowe do transportu towarów",
+        "por": "Países Baixos-Heerhugowaard: Veículos a motor para o transporte de mercadorias",
+        "ron": "Ţările de Jos-Heerhugowaard: Autovehicule pentru transportul de mărfuri",
+        "slk": "Holandsko-Heerhugowaard: Motorové vozidlá na prepravu tovaru",
+        "slv": "Nizozemska-Heerhugowaard: Motorna vozila za prevoz blaga",
+        "spa": "Países Bajos-Heerhugowaard: Vehículos de motor para el transporte de mercancías",
+        "swe": "Nederländerna-Heerhugowaard: Motorfordon för godstransport"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-11-24+01:00",
+      "publication-number": "413185-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/413185-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Печатни материали и свързани с тях продукти",
+        "ces": "Nizozemsko-Heerhugowaard: Tiskařské výrobky a související produkty",
+        "dan": "Nederlandene-Heerhugowaard: Tryksager og beslægtede produkter",
+        "deu": "die Niederlande-Heerhugowaard: Drucksachen und zugehörige Erzeugnisse",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Έντυπο υλικό και συναφή προϊόντα",
+        "eng": "Netherlands-Heerhugowaard: Printed matter and related products",
+        "est": "Madalmaad-Heerhugowaard: Trükised ja seonduvad tooted",
+        "fin": "Alankomaat-Heerhugowaard: Painotuotteet ja vastaavat tuotteet",
+        "fra": "Pays-Bas-Heerhugowaard: Imprimés et produits connexes",
+        "gle": "Ísiltír, an-Heerhugowaard: Printed matter and related products",
+        "hrv": "Nizozemska-Heerhugowaard: Tiskani materijal i srodni proizvodi",
+        "hun": "Hollandia-Heerhugowaard: Nyomtatott anyagok és kapcsolódó termékek",
+        "ita": "Paesi Bassi-Heerhugowaard: Stampati e prodotti affini",
+        "lav": "Nīderlande-Heerhugowaard: Iespieddarbi un saistītie izdevumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Spaudiniai ir susiję produktai",
+        "mlt": "in-Netherlands-Heerhugowaard: Materjal stampat u prodotti relatati",
+        "nld": "Nederland-Heerhugowaard: Drukwerk en aanverwante producten",
+        "pol": "Niderlandy-Heerhugowaard: Druki i produkty podobne",
+        "por": "Países Baixos-Heerhugowaard: Material impresso e afins",
+        "ron": "Ţările de Jos-Heerhugowaard: Imprimate şi produse conexe",
+        "slk": "Holandsko-Heerhugowaard: Tlačené výrobky a príbuzné produkty",
+        "slv": "Nizozemska-Heerhugowaard: Tiskano gradivo in z njim povezani izdelki",
+        "spa": "Países Bajos-Heerhugowaard: Impresos y productos relacionados",
+        "swe": "Nederländerna-Heerhugowaard: Trycksaker och tillhörande produkter"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-11-24+01:00",
+      "publication-number": "413656-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/413656-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Посреднически услуги по предоставяне на персонал, включително временна работна ръка",
+        "ces": "Nizozemsko-Heerhugowaard: Zabezpečování personálu včetně personálu na dobu určitou",
+        "dan": "Nederlandene-Heerhugowaard: Personaleformidling, herunder midlertidigt ansatte",
+        "deu": "die Niederlande-Heerhugowaard: Überlassung von Personal einschließlich Zeitarbeitskräfte",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες διάθεσης προσωπικού όπου περιλαμβάνεται προσωρινό προσωπικό",
+        "eng": "Netherlands-Heerhugowaard: Supply services of personnel including temporary staff",
+        "est": "Madalmaad-Heerhugowaard: Personali (sh ajutiste töötajate) värbamise teenused",
+        "fin": "Alankomaat-Heerhugowaard: Henkilöstön hankintapalvelut tilapäistyöntekijät mukaan luettuna",
+        "fra": "Pays-Bas-Heerhugowaard: Services de mise à disposition de personnel, y compris de personnel temporaire",
+        "gle": "Ísiltír, an-Heerhugowaard: Supply services of personnel including temporary staff",
+        "hrv": "Nizozemska-Heerhugowaard: Usluge pribavljanja osoblja uključujući osoblje za rad na određeno vrijeme",
+        "hun": "Hollandia-Heerhugowaard: Személyzettel és ideiglenes személyzettel való ellátási szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di fornitura di personale, compreso personale temporaneo",
+        "lav": "Nīderlande-Heerhugowaard: Personāla, tostarp pagaidu personāla, nodrošināšanas pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Aprūpinimo personalu, įskaitant laikinus darbuotojus, paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' provvista ta' persunal inkluż impjegati temporanji",
+        "nld": "Nederland-Heerhugowaard: Diensten voor de terbeschikkingstelling van personeel, met inbegrip van tijdelijk personeel",
+        "pol": "Niderlandy-Heerhugowaard: Usługi w zakresie pozyskiwania personelu, w tym pracowników sezonowych",
+        "por": "Países Baixos-Heerhugowaard: Serviços de fornecimento de pessoal, inclusive temporário",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de asigurare de personal, inclusiv personal angajat temporar",
+        "slk": "Holandsko-Heerhugowaard: Služby v oblasti zabezpečovania personálu, vrátane zabezpečovania pracovníkov na čas určitý",
+        "slv": "Nizozemska-Heerhugowaard: Storitve zagotavljanja osebja vključno z začasnim osebjem",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de suministro de personal, incluido personal temporal",
+        "swe": "Nederländerna-Heerhugowaard: Förmedling av personal, även tillfälligt anställda"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-11-24+01:00",
+      "publication-number": "413660-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/413660-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Моторни превозни средства за превоз на стоки",
+        "ces": "Nizozemsko-Heerhugowaard: Motorová vozidla pro přepravu zboží",
+        "dan": "Nederlandene-Heerhugowaard: Motorkøretøjer til godstransport",
+        "deu": "die Niederlande-Heerhugowaard: Kraftfahrzeuge für den Gütertransport",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Αυτοκίνητα οχήματα για τη μεταφορά εμπορευμάτων",
+        "eng": "Netherlands-Heerhugowaard: Motor vehicles for the transport of goods",
+        "est": "Madalmaad-Heerhugowaard: Mootorsõidukid kaubaveoks",
+        "fin": "Alankomaat-Heerhugowaard: Tavarakuljetuksiin tarkoitetut moottoriajoneuvot",
+        "fra": "Pays-Bas-Heerhugowaard: Véhicules à moteur servant au transport de marchandises",
+        "gle": "Ísiltír, an-Heerhugowaard: Motor vehicles for the transport of goods",
+        "hrv": "Nizozemska-Heerhugowaard: Motorna vozila za prijevoz robe",
+        "hun": "Hollandia-Heerhugowaard: Áruszállító gépjárművek",
+        "ita": "Paesi Bassi-Heerhugowaard: Veicoli a motore per trasporto merci",
+        "lav": "Nīderlande-Heerhugowaard: Mehāniskie transportlīdzekļi kravu pārvadāšanai",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Motorinės transporto priemonės, skirtos kroviniams vežti",
+        "mlt": "in-Netherlands-Heerhugowaard: Vetturi bil-magna għat-trasport ta' merkanzija",
+        "nld": "Nederland-Heerhugowaard: Motorvoertuigen voor goederenvervoer",
+        "pol": "Niderlandy-Heerhugowaard: Pojazdy silnikowe do transportu towarów",
+        "por": "Países Baixos-Heerhugowaard: Veículos a motor para o transporte de mercadorias",
+        "ron": "Ţările de Jos-Heerhugowaard: Autovehicule pentru transportul de mărfuri",
+        "slk": "Holandsko-Heerhugowaard: Motorové vozidlá na prepravu tovaru",
+        "slv": "Nizozemska-Heerhugowaard: Motorna vozila za prevoz blaga",
+        "spa": "Países Bajos-Heerhugowaard: Vehículos de motor para el transporte de mercancías",
+        "swe": "Nederländerna-Heerhugowaard: Motorfordon för godstransport"
+      },
+      "notice-type": "corr",
+      "publication-date": "2016-11-30+01:00",
+      "publication-number": "420842-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/420842-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Инженерни услуги в строителството",
+        "ces": "Nizozemsko-Heerhugowaard: Technicko-inženýrské služby",
+        "dan": "Nederlandene-Heerhugowaard: Ingeniørvirksomhed",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurbüros",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες μηχανικού",
+        "eng": "Netherlands-Heerhugowaard: Engineering services",
+        "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+        "fin": "Alankomaat-Heerhugowaard: Insinööripalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services d'ingénierie",
+        "gle": "Ísiltír, an-Heerhugowaard: Engineering services",
+        "hrv": "Nizozemska-Heerhugowaard: Tehničke usluge",
+        "hun": "Hollandia-Heerhugowaard: Mérnöki szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+        "lav": "Nīderlande-Heerhugowaard: Inženiertehniskie pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Inžinerijos paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-inġinerija",
+        "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+        "pol": "Niderlandy-Heerhugowaard: Usługi inżynieryjne",
+        "por": "Países Baixos-Heerhugowaard: Serviços de engenharia",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de inginerie",
+        "slk": "Holandsko-Heerhugowaard: Inžinierske služby",
+        "slv": "Nizozemska-Heerhugowaard: Inženirske storitve",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de ingeniería",
+        "swe": "Nederländerna-Heerhugowaard: Ingenjörstjänster"
+      },
+      "notice-type": "pin-only",
+      "publication-date": "2016-12-16+01:00",
+      "publication-number": "443364-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/443364-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Инженерни услуги в строителството",
+        "ces": "Nizozemsko-Heerhugowaard: Technicko-inženýrské služby",
+        "dan": "Nederlandene-Heerhugowaard: Ingeniørvirksomhed",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurbüros",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες μηχανικού",
+        "eng": "Netherlands-Heerhugowaard: Engineering services",
+        "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+        "fin": "Alankomaat-Heerhugowaard: Insinööripalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services d'ingénierie",
+        "gle": "Ísiltír, an-Heerhugowaard: Engineering services",
+        "hrv": "Nizozemska-Heerhugowaard: Tehničke usluge",
+        "hun": "Hollandia-Heerhugowaard: Mérnöki szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+        "lav": "Nīderlande-Heerhugowaard: Inženiertehniskie pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Inžinerijos paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-inġinerija",
+        "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+        "pol": "Niderlandy-Heerhugowaard: Usługi inżynieryjne",
+        "por": "Países Baixos-Heerhugowaard: Serviços de engenharia",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de inginerie",
+        "slk": "Holandsko-Heerhugowaard: Inžinierske služby",
+        "slv": "Nizozemska-Heerhugowaard: Inženirske storitve",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de ingeniería",
+        "swe": "Nederländerna-Heerhugowaard: Ingenjörstjänster"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-12-17+01:00",
+      "publication-number": "445593-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/445593-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Услуги по обучение",
+        "ces": "Nizozemsko-Heerhugowaard: Školení",
+        "dan": "Nederlandene-Heerhugowaard: Uddannelsestilbud",
+        "deu": "die Niederlande-Heerhugowaard: Ausbildung",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες κατάρτισης",
+        "eng": "Netherlands-Heerhugowaard: Training services",
+        "est": "Madalmaad-Heerhugowaard: Koolitusteenused",
+        "fin": "Alankomaat-Heerhugowaard: Ammattikoulutuspalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services de formation",
+        "gle": "Ísiltír, an-Heerhugowaard: Training services",
+        "hrv": "Nizozemska-Heerhugowaard: Usluge izobrazbe",
+        "hun": "Hollandia-Heerhugowaard: Képzési szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi di formazione",
+        "lav": "Nīderlande-Heerhugowaard: Mācību pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Apmokymo paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Faċilitajjiet tat-taħriġ",
+        "nld": "Nederland-Heerhugowaard: Opleidingsdiensten",
+        "pol": "Niderlandy-Heerhugowaard: Usługi szkoleniowe",
+        "por": "Países Baixos-Heerhugowaard: Serviços de formação",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de formare",
+        "slk": "Holandsko-Heerhugowaard: Školiace (výcvikové) služby",
+        "slv": "Nizozemska-Heerhugowaard: Storitve usposabljanja",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de formación",
+        "swe": "Nederländerna-Heerhugowaard: Utbildningstjänster"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-12-21+01:00",
+      "publication-number": "449855-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/449855-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Печатни материали и свързани с тях продукти",
+        "ces": "Nizozemsko-Heerhugowaard: Tiskařské výrobky a související produkty",
+        "dan": "Nederlandene-Heerhugowaard: Tryksager og beslægtede produkter",
+        "deu": "die Niederlande-Heerhugowaard: Drucksachen und zugehörige Erzeugnisse",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Έντυπο υλικό και συναφή προϊόντα",
+        "eng": "Netherlands-Heerhugowaard: Printed matter and related products",
+        "est": "Madalmaad-Heerhugowaard: Trükised ja seonduvad tooted",
+        "fin": "Alankomaat-Heerhugowaard: Painotuotteet ja vastaavat tuotteet",
+        "fra": "Pays-Bas-Heerhugowaard: Imprimés et produits connexes",
+        "gle": "Ísiltír, an-Heerhugowaard: Printed matter and related products",
+        "hrv": "Nizozemska-Heerhugowaard: Tiskani materijal i srodni proizvodi",
+        "hun": "Hollandia-Heerhugowaard: Nyomtatott anyagok és kapcsolódó termékek",
+        "ita": "Paesi Bassi-Heerhugowaard: Stampati e prodotti affini",
+        "lav": "Nīderlande-Heerhugowaard: Iespieddarbi un saistītie izdevumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Spaudiniai ir susiję produktai",
+        "mlt": "in-Netherlands-Heerhugowaard: Materjal stampat u prodotti relatati",
+        "nld": "Nederland-Heerhugowaard: Drukwerk en aanverwante producten",
+        "pol": "Niderlandy-Heerhugowaard: Druki i produkty podobne",
+        "por": "Países Baixos-Heerhugowaard: Material impresso e afins",
+        "ron": "Ţările de Jos-Heerhugowaard: Imprimate şi produse conexe",
+        "slk": "Holandsko-Heerhugowaard: Tlačené výrobky a príbuzné produkty",
+        "slv": "Nizozemska-Heerhugowaard: Tiskano gradivo in z njim povezani izdelki",
+        "spa": "Países Bajos-Heerhugowaard: Impresos y productos relacionados",
+        "swe": "Nederländerna-Heerhugowaard: Trycksaker och tillhörande produkter"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-12-21+01:00",
+      "publication-number": "449860-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/449860-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Архитектурни, строителни, инженерни и инспекционни услуги",
+        "ces": "Nizozemsko-Heerhugowaard: Architektonické, stavební, technické a inspekční služby",
+        "dan": "Nederlandene-Heerhugowaard: Arkitekt-, konstruktions-, ingeniør- og inspektionsvirksomhed",
+        "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Architektur-, Konstruktions- und Ingenieurbüros und Prüfstellen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Υπηρεσίες αρχιτεκτονικής, κατασκευαστικών έργων, έργων πολιτικού μηχανικού και επίβλεψης",
+        "eng": "Netherlands-Heerhugowaard: Architectural, construction, engineering and inspection services",
+        "est": "Madalmaad-Heerhugowaard: Arhitektuuri-, ehitus-, inseneri- ja ehitusjärelevalveteenused",
+        "fin": "Alankomaat-Heerhugowaard: Arkkitehti-, rakennus-, insinööri- ja tarkastuspalvelut",
+        "fra": "Pays-Bas-Heerhugowaard: Services d'architecture, services de construction, services d'ingénierie et services d'inspection",
+        "gle": "Ísiltír, an-Heerhugowaard: Architectural, construction, engineering and inspection services",
+        "hrv": "Nizozemska-Heerhugowaard: Arhitektonske, građevne, tehničke i inspekcije usluge",
+        "hun": "Hollandia-Heerhugowaard: Építészeti, építési, mérnöki és vizsgálati szolgáltatások",
+        "ita": "Paesi Bassi-Heerhugowaard: Servizi architettonici, di costruzione, ingegneria e ispezione",
+        "lav": "Nīderlande-Heerhugowaard: Arhitektūras, būvniecības, inženiertehniskie un pārbaudes pakalpojumi",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Architektūros, statybų, inžinerijos ir inspektavimo paslaugos",
+        "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' perizja, kostruzzjoni, inġinerija u spezzjoni",
+        "nld": "Nederland-Heerhugowaard: Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
+        "pol": "Niderlandy-Heerhugowaard: Usługi architektoniczne, budowlane, inżynieryjne i kontrolne",
+        "por": "Países Baixos-Heerhugowaard: Serviços de arquitectura, construção, engenharia e inspecção",
+        "ron": "Ţările de Jos-Heerhugowaard: Servicii de arhitectură, de construcţii, de inginerie şi de inspecţie",
+        "slk": "Holandsko-Heerhugowaard: Architektonické, stavebné, inžinierske a inšpekčné služby",
+        "slv": "Nizozemska-Heerhugowaard: Arhitekturne, gradbeniške, inženirske in inšpekcijske storitve",
+        "spa": "Países Bajos-Heerhugowaard: Servicios de arquitectura, construcción, ingeniería e inspección",
+        "swe": "Nederländerna-Heerhugowaard: Arkitekt-, bygg-, ingenjörs- och besiktningstjänster"
+      },
+      "notice-type": "can-standard",
+      "publication-date": "2016-12-23+01:00",
+      "publication-number": "454991-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/454991-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Компютърни и офис машини, оборудване и принадлежности, с изключение на мебели и софтуерни пакети",
+        "ces": "Nizozemsko-Heerhugowaard: Kancelářské a počítací stroje, zařízení a potřeby mimo nábytek a balíky programů",
+        "dan": "Nederlandene-Heerhugowaard: Kontor- og edb-maskiner, -udstyr og -artikler, herunder ikke møbler og softwarepakker",
+        "deu": "die Niederlande-Heerhugowaard: Maschinen, Material und Zubehör für Büro und Computer, außer Möbeln und Softwarepaketen",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Μηχανήματα γραφείου και υπολογιστές, εξοπλισμός και προμήθειες εκτός από έπιπλα και πακέτα λογισμικών",
+        "eng": "Netherlands-Heerhugowaard: Office and computing machinery, equipment and supplies except furniture and software packages",
+        "est": "Madalmaad-Heerhugowaard: Kontorimasinad ja arvutid, nende seadmed ja tarvikud, v.a mööbel ja tarkvarapaketid",
+        "fin": "Alankomaat-Heerhugowaard: Toimisto- ja atk-laitteet ja -tarvikkeet, lukuun ottamatta kalusteita ja tietokoneohjelmatuotteita",
+        "fra": "Pays-Bas-Heerhugowaard: Machines, matériel et fourniture informatique et de bureau, excepté les meubles et logiciels",
+        "gle": "Ísiltír, an-Heerhugowaard: Office and computing machinery, equipment and supplies except furniture and software packages",
+        "hrv": "Nizozemska-Heerhugowaard: Uredski i računalni strojevi, oprema i potrepštine osim namještaja i paketa programske podrške",
+        "hun": "Hollandia-Heerhugowaard: Irodai és számítástechnikai gépek, berendezések és kellékek, a bútorzat és a szoftvercsomagok kivételével",
+        "ita": "Paesi Bassi-Heerhugowaard: Macchine per ufficio ed elaboratori elettronici, attrezzature e forniture, esclusi i mobili e i pacchetti software",
+        "lav": "Nīderlande-Heerhugowaard: Biroja un skaitļošanas tehnika, aprīkojums un piederumi, izņemot mēbeles un programmatūru",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Biuro ir skaičiavimo mašinos, įrenginiai ir reikmenys, išskyrus baldus ir programinės įrangos paketus",
+        "mlt": "in-Netherlands-Heerhugowaard: Tagħmir ta' l-uffiċċju u tal-kompjuter, tagħmir u provvisti għajr għamara u pakketti tas-softwer",
+        "nld": "Nederland-Heerhugowaard: Kantoormachines en gegevensverwerkende apparatuur, kantooruitrusting en -benodigdheden, uitgez. meubilair en softwarepakketten",
+        "pol": "Niderlandy-Heerhugowaard: Maszyny biurowe i liczące, sprzęt i materiały, z wyjątkiem mebli i pakietów oprogramowania",
+        "por": "Países Baixos-Heerhugowaard: Máquinas, equipamento e material de escritório e de informática, excepto mobiliário e pacotes de programas (software)",
+        "ron": "Ţările de Jos-Heerhugowaard: Echipament informatic şi accesorii de birou, cu excepţia mobilierului şi a pachetelor software",
+        "slk": "Holandsko-Heerhugowaard: Kancelárske a počítacie stroje, vybavenie a spotrebný materiál s výnimkou nábytku a softvérových balíkov",
+        "slv": "Nizozemska-Heerhugowaard: Pisarniški in računski stroji, oprema in potrebščine, razen pohištva in programskih paketov",
+        "spa": "Países Bajos-Heerhugowaard: Máquinas, equipo y artículos de oficina y de informática, excepto mobiliario y paquetes de software",
+        "swe": "Nederländerna-Heerhugowaard: Kontorsmaskiner, datorer samt kontors- och datorutrustning, utom möbler och programvara"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-12-24+01:00",
+      "publication-number": "458241-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/458241-2016"
+    },
+    {
+      "buyer-identifier": [
+        "58668320"
+      ],
+      "buyer-name": {
+        "nld": [
+          "Hoogheemraadschap Hollands Noorderkwartier"
+        ]
+      },
+      "identifier_match": {
+        "buyer": true,
+        "scheme_and_legal_entity_confirmed": false,
+        "winner": false
+      },
+      "notice-title": {
+        "bul": "Холандия-Heerhugowaard: Софтуерни пакети и информационни системи",
+        "ces": "Nizozemsko-Heerhugowaard: Balíky programů a informační systémy",
+        "dan": "Nederlandene-Heerhugowaard: Programpakker og informationssystemer",
+        "deu": "die Niederlande-Heerhugowaard: Softwarepaket und Informationssysteme",
+        "ell": "Κάτω Χώρες-Heerhugowaard: Πακέτα λογισμικού και συστήματα πληροφορικής",
+        "eng": "Netherlands-Heerhugowaard: Software package and information systems",
+        "est": "Madalmaad-Heerhugowaard: Tarkvarapaketid ja infosüsteemid",
+        "fin": "Alankomaat-Heerhugowaard: Ohjelmatuotteet ja tietojärjestelmät",
+        "fra": "Pays-Bas-Heerhugowaard: Logiciels et systèmes d'information",
+        "gle": "Ísiltír, an-Heerhugowaard: Software package and information systems",
+        "hrv": "Nizozemska-Heerhugowaard: Programski paketi i informacijski sustavi",
+        "hun": "Hollandia-Heerhugowaard: Szoftvercsomag és információs rendszerek",
+        "ita": "Paesi Bassi-Heerhugowaard: Pacchetti software e sistemi di informazione",
+        "lav": "Nīderlande-Heerhugowaard: Programmatūras pakotne un informācijas sistēmas",
+        "lit": "Nyderlandai, Olandija-Heerhugowaard: Programinės įrangos paketai ir informacinės sistemos",
+        "mlt": "in-Netherlands-Heerhugowaard: Pakketti tas-softwer u sistemi ta' informazzjoni",
+        "nld": "Nederland-Heerhugowaard: Software en informatiesystemen",
+        "pol": "Niderlandy-Heerhugowaard: Pakiety oprogramowania i systemy informatyczne",
+        "por": "Países Baixos-Heerhugowaard: Pacotes de software e sistemas de informação",
+        "ron": "Ţările de Jos-Heerhugowaard: Pachete software şi sisteme informatice",
+        "slk": "Holandsko-Heerhugowaard: Softvérové balíky a informačné systémy",
+        "slv": "Nizozemska-Heerhugowaard: Programski paketi in informacijski sistemi",
+        "spa": "Países Bajos-Heerhugowaard: Paquetes de software y sistemas de información",
+        "swe": "Nederländerna-Heerhugowaard: Programvara och informationssystem"
+      },
+      "notice-type": "cn-standard",
+      "publication-date": "2016-12-24+01:00",
+      "publication-number": "458294-2016",
+      "url": "https://ted.europa.eu/en/notice/-/detail/458294-2016"
+    }
+  ],
+  "next_page": 2,
+  "notice": "Includes historic notices and corrections. Matching an identifier does not by itself prove a current award, contract revenue or subsidy receipt. Pagination is capped at 15,000 notices.",
+  "page": 1,
+  "requested_identifier": "58668320",
+  "source_url": "https://api.ted.europa.eu/v3/notices/search",
+  "total": 611
+}

@@ -1,0 +1,1189 @@
+{
+  "koop": {
+    "coverage": {
+      "complete": false,
+      "scope": "Official publication title search; sorted by modification date. Not consolidated current law."
+    },
+    "items": [
+      {
+        "authority": "Amsterdam",
+        "id": "gmb-2026-427235",
+        "modified": "2026-09-11",
+        "publication": "Gemeenteblad",
+        "published": "2026-09-11",
+        "summary": "toevoegen van een vloer, wijzigen indeling en brandcompartimentering,  en toevoegen woning",
+        "title": "Aanvraag omgevingsvergunning Tan Malakastraat 80 1087WE Amsterdam",
+        "type": "omgevingsvergunning",
+        "url": "https://zoek.officielebekendmakingen.nl/gmb-2026-427235.html"
+      },
+      {
+        "authority": "Amsterdam",
+        "id": "gmb-2026-428658",
+        "modified": "2026-09-11",
+        "publication": "Gemeenteblad",
+        "published": "2026-09-11",
+        "summary": "veranderen en vergroten van de woning d.m.v. een dakopbouw",
+        "title": "Aanvraag omgevingsvergunning Kantershof 574 1104HG Amsterdam",
+        "type": "omgevingsvergunning",
+        "url": "https://zoek.officielebekendmakingen.nl/gmb-2026-428658.html"
+      }
+    ],
+    "next_start": 3,
+    "notice": "An application notice is not an issued permit. Company-name mentions do not establish identity or a complete permit history.",
+    "query": {
+      "authority": "Amsterdam",
+      "limit": "2",
+      "q": "omgevingsvergunning"
+    },
+    "source_url": "https://repository.overheid.nl/sru?operation=searchRetrieve&version=2.0&httpAccept=application%2Fjson&query=c.product-area%3D%3Dofficielepublicaties+AND+dt.title%3D%22omgevingsvergunning%22+AND+dt.creator%3D%3D%22Amsterdam%22+sortBy+dt.modified%2Fsort.descending&startRecord=1&maximumRecords=2",
+    "start": 1,
+    "total": 101939
+  },
+  "koop-detail": {
+    "coverage": {
+      "complete": true,
+      "scope": "Official publication title search; sorted by modification date. Not consolidated current law."
+    },
+    "items": [
+      {
+        "authority": "Amsterdam",
+        "id": "gmb-2026-427235",
+        "modified": "2026-09-11",
+        "publication": "Gemeenteblad",
+        "published": "2026-09-11",
+        "summary": "toevoegen van een vloer, wijzigen indeling en brandcompartimentering,  en toevoegen woning",
+        "title": "Aanvraag omgevingsvergunning Tan Malakastraat 80 1087WE Amsterdam",
+        "type": "omgevingsvergunning",
+        "url": "https://zoek.officielebekendmakingen.nl/gmb-2026-427235.html"
+      }
+    ],
+    "next_start": null,
+    "notice": "An application notice is not an issued permit. Company-name mentions do not establish identity or a complete permit history.",
+    "query": {
+      "publication_id": "gmb-2026-427235"
+    },
+    "source_url": "https://repository.overheid.nl/sru?operation=searchRetrieve&version=2.0&httpAccept=application%2Fjson&query=c.product-area%3D%3Dofficielepublicaties+AND+dt.identifier%3D%3D%22gmb-2026-427235%22&startRecord=1&maximumRecords=10",
+    "start": 1,
+    "total": 1
+  },
+  "rdw": {
+    "coverage": {
+      "complete": true,
+      "scope": "Exact plate in RDW registered-vehicle dataset"
+    },
+    "items": [
+      {
+        "aantal_cilinders": "3",
+        "aantal_deuren": "5",
+        "aantal_wielen": "4",
+        "aantal_zitplaatsen": "5",
+        "api_gekentekende_voertuigen_assen": "https://opendata.rdw.nl/resource/3huj-srit.json",
+        "api_gekentekende_voertuigen_brandstof": "https://opendata.rdw.nl/resource/8ys7-d773.json",
+        "api_gekentekende_voertuigen_carrosserie": "https://opendata.rdw.nl/resource/vezc-m2t6.json",
+        "api_gekentekende_voertuigen_carrosserie_specifiek": "https://opendata.rdw.nl/resource/jhie-znh9.json",
+        "api_gekentekende_voertuigen_voertuigklasse": "https://opendata.rdw.nl/resource/kmfi-hrps.json",
+        "breedte": "175",
+        "bruto_bpm": "3328",
+        "catalogusprijs": "26536",
+        "cilinderinhoud": "999",
+        "code_toelichting_tellerstandoordeel": "00",
+        "datum_eerste_tenaamstelling_in_nederland": "20180313",
+        "datum_eerste_tenaamstelling_in_nederland_dt": "2018-03-13T00:00:00.000",
+        "datum_eerste_toelating": "20180313",
+        "datum_eerste_toelating_dt": "2018-03-13T00:00:00.000",
+        "datum_tenaamstelling": "20251101",
+        "datum_tenaamstelling_dt": "2025-11-01T00:00:00.000",
+        "eerste_kleur": "ORANJE",
+        "europese_voertuigcategorie": "M1",
+        "export_indicator": "Nee",
+        "handelsbenaming": "POLO",
+        "hoogte_voertuig": "143",
+        "inrichting": "hatchback",
+        "jaar_laatste_registratie_tellerstand": "2026",
+        "kenteken": "RZ874R",
+        "lengte": "405",
+        "massa_ledig_voertuig": "1055",
+        "massa_rijklaar": "1155",
+        "maximum_massa_samenstelling": "2720",
+        "maximum_massa_trekken_ongeremd": "570",
+        "maximum_trekken_massa_geremd": "1100",
+        "merk": "VOLKSWAGEN",
+        "openstaande_terugroepactie_indicator": "Nee",
+        "plaats_chassisnummer": "in motorruimte r.",
+        "taxi_indicator": "Nee",
+        "technische_max_massa_voertuig": "1620",
+        "tellerstandoordeel": "Logisch",
+        "tenaamstellen_mogelijk": "Ja",
+        "toegestane_maximum_massa_voertuig": "1620",
+        "tweede_kleur": "Niet geregistreerd",
+        "type": "AW",
+        "typegoedkeuringsnummer": "e1*2007/46*1783*04",
+        "uitvoering": "FM6FM6AJ017N2VR27MM62",
+        "variant": "ABCHZJ",
+        "vermogen_massarijklaar": "0.07",
+        "vervaldatum_apk": "20271029",
+        "vervaldatum_apk_dt": "2027-10-29T00:00:00.000",
+        "voertuigsoort": "Personenauto",
+        "volgnummer_wijziging_eu_typegoedkeuring": "0",
+        "wacht_op_keuren": "Geen verstrekking in Open Data",
+        "wam_verzekerd": "Ja",
+        "wielbasis": "255",
+        "zuinigheidsclassificatie": "C"
+      }
+    ],
+    "notice": "Technical register data. No owner identity or fleet ownership. Missing fields remain unknown; fuel/emissions datasets are not included.",
+    "query": {
+      "kenteken": "RZ874R"
+    },
+    "requested_plate": "RZ874R",
+    "source_url": "https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=RZ874R&%24limit=2",
+    "total": 1
+  },
+  "rvo": {
+    "coverage": {
+      "complete": false,
+      "scope": "Keyword matches within the first public RVO page only (at most 50 descriptions). Later pages are not verified."
+    },
+    "items": [
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "MKB (ook zzp)",
+          "School / Kennisinstelling"
+        ],
+        "description": "De Transitiefaciliteit (TF) stimuleerde Nederlandse mkb-bedrijven en kennisinstellingen om actief te worden op de veelbelovende markten Colombia, Vietnam en Zuid-Afrika. Het doel van het programma was om het ondernemingsklimaat in deze landen te verbeteren en de omvang van de handel, investeringen en diensten door Nederlandse bedrijven te vergroten.",
+        "eligibility": "not_assessed",
+        "id": "89c4fee3-4683-4916-b7f7-50c6e3d7b3b7",
+        "modified": "2025-04-16T11:00:57+00:00",
+        "sectors": [
+          "Energiesector",
+          "Vervoer en logistiek",
+          "Watersector"
+        ],
+        "subjects": [
+          "Internationaal ondernemen",
+          "Ontwikkelingssamenwerking"
+        ],
+        "title": "Transitiefaciliteit (TF)",
+        "url": "https://www.rvo.nl/subsidies-financiering/transitiefaciliteit-tf"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "MKB (ook zzp)",
+          "Agrarisch ondernemer"
+        ],
+        "description": "Heeft u als ondernemer te weinig onderpand om geld te lenen? Informeer bij uw financier naar de mogelijkheden van de Borgstelling MKB-kredieten (BMKB). De BMKB vergroot het onderpand en daarmee ook de financierbaarheid van de onderneming, ook in de toekomst.&nbsp;Om de financieringsmogelijkheden voor verduurzamingsinvesteringen door het mkb te vergroten is de BMKB verruimd met een groen luik, de BMKB-G.",
+        "eligibility": "not_assessed",
+        "id": "530035f0-7833-448f-adee-a36988bc6dc7",
+        "modified": "2026-03-13T09:30:11+00:00",
+        "sectors": [
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting",
+          "Agrarische sector"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Borgstelling MKB-kredieten (BMKB)",
+        "url": "https://www.rvo.nl/subsidies-financiering/bmkb"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Producentenorganisatie",
+          "School / Kennisinstelling"
+        ],
+        "description": "Samen staat u sterker. Daarom brengt Partners for International Business (PIB) private en publieke partijen bij elkaar om gezamenlijk een nieuwe markt te betreden.&nbsp;Uw aanvraag direct regelen&nbsp;",
+        "eligibility": "not_assessed",
+        "id": "f379965a-8b88-445b-bd06-657a5c555bca",
+        "modified": "2026-04-13T08:51:29+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Internationaal ondernemen"
+        ],
+        "title": "Partners for International Business (PIB)",
+        "url": "https://www.rvo.nl/subsidies-financiering/pib"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "School / Kennisinstelling"
+        ],
+        "description": "Bent u mkb'er in een technologische onderzoeks- en ontwikkelingssector? Werkt u daarbij samen met partners in andere landen of wilt u dat gaan doen? Dan kunt u mogelijk gebruik maken van Eurostars. Met de subsidie wordt snellere ontwikkeling en groei van kleine bedrijven gestimuleerd.[rvo_custom:eloket:login6-eh3-aanvraag_bekijken]&nbsp;",
+        "eligibility": "not_assessed",
+        "id": "70c8c42d-be63-45c5-856a-680dcb52cb01",
+        "modified": "2026-09-10T12:00:07+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Eurostars: subsidie internationale marktgerichte R&D",
+        "url": "https://www.rvo.nl/subsidies-financiering/eurostars"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Het bedrijfsleven heeft de afgelopen 10 jaar veel gebruikgemaakt van het Private Sector Investeringenprogramma (PSI) en voorlopers als PSOM. De PSI-projecten hebben een belangrijke bijdrage geleverd aan economische ontwikkeling en aan armoedebestrijding op alle continenten.",
+        "eligibility": "not_assessed",
+        "id": "96d678b1-53da-4d97-804a-5e3d2085076e",
+        "modified": "2026-06-09T12:10:20+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Internationaal ondernemen",
+          "Ontwikkelingssamenwerking"
+        ],
+        "title": "Private Sector Investeringsprogramma (PSI)",
+        "url": "https://www.rvo.nl/subsidies-financiering/private-sector-investeringsprogramma"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Bent u bezig met de technische ontwikkeling van een nieuw product, proces of dienst? Of met de klinische ontwikkeling van een medicijn of apparaat? Profiteer dan van het Innovatiekrediet. Zowel mkb'ers als grote bedrijven kunnen van deze overheidsfinanciering gebruikmaken.Doe de Quick Scan&nbsp;",
+        "eligibility": "not_assessed",
+        "id": "fc4c9323-2b08-479d-a115-73d64cd467fd",
+        "modified": "2026-07-15T11:41:14+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Innovatiekrediet",
+        "url": "https://www.rvo.nl/subsidies-financiering/innovatiekrediet"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Met Seed Capital ondersteunen investeerders start-ups met financiering, kennis, netwerk en ervaring. Private, ervaren investeerders brengen expertise en kapitaal in, de overheid verdubbelt hun inleg. Zo&nbsp;ondersteunt de overheid innovatieve ondernemingen bij het verkrijgen van risicokapitaal.[rvo_custom:upri:upri_eh2+_direct_aanvragen][rvo_custom:upri:upri_eh2+_fondsen_beheren]",
+        "eligibility": "not_assessed",
+        "id": "a44d5eca-4d7d-404c-a9f6-83fdb7b490dd",
+        "modified": "2026-08-03T07:00:28+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Seed Capital",
+        "url": "https://www.rvo.nl/subsidies-financiering/seed-capital"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Heeft u als ondernemer risicodragend vermogen nodig? Bijvoorbeeld door snelle groei, een bedrijfsovername, een buy out, expansie in het buitenland of een reorganisatie? Met de regeling Groeifaciliteit krijgt uw financier garanties op achtergestelde leningen en op aandelen van participatiemaatschappijen. Zo trekt de overheid financiers over de streep om bedrijven&nbsp;te helpen.",
+        "eligibility": "not_assessed",
+        "id": "30e5893a-c908-4baa-bf88-ecb322910ac0",
+        "modified": "2025-04-24T13:46:47+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Groeifaciliteit",
+        "url": "https://www.rvo.nl/subsidies-financiering/groeifaciliteit"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Heeft u krediet nodig maar krijgt u niet eenvoudig een (bank)lening of bankgarantie? De overheid maakt dit makkelijker met de Garantie Ondernemingsfinanciering (GO). Uw bank of door de minister aangewezen kredietverstrekker kan zo een 50% Staatsgarantie krijgen op middelgrote en grote leningen en verkleint daarmee haar risico. De Garantie Ondernemingsfinanciering houdt kredietstromen op gang zodat ondernemers kunnen blijven ondernemen.",
+        "eligibility": "not_assessed",
+        "id": "7ceb0253-9986-4b2b-844f-cf3af1ecf713",
+        "modified": "2026-07-13T11:39:36+00:00",
+        "sectors": [
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Garantie Ondernemingsfinanciering (GO)",
+        "url": "https://www.rvo.nl/subsidies-financiering/go"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Non-profit / NGO",
+          "Producentenorganisatie"
+        ],
+        "description": "Wilt u meer weten over de projecten die subsidie kregen in de verschillende aanvraagrondes van de subsidie Stimulering Duurzame Energieproductie (SDE, SDE+)&nbsp;en Stimulering Duurzame Energieproductie&nbsp;en Klimaattransitie&nbsp;(SDE++)? Op deze pagina&nbsp;vindt u feiten en cijfers over deze subsidie&nbsp;op een rij.",
+        "eligibility": "not_assessed",
+        "id": "674fb601-eade-4710-9f7b-bdf775adbbf7",
+        "modified": "2026-09-07T12:23:39+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Waterstofsector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Feiten en cijfers SDE(+)(+)",
+        "url": "https://www.rvo.nl/subsidies-financiering/sde/aanvragen/feiten-en-cijfers"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Non-profit / NGO",
+          "Particulier / Vereniging / (Ver)huurder",
+          "Producentenorganisatie",
+          "School / Kennisinstelling"
+        ],
+        "description": "U heeft een investering gedaan die energie bespaart. U heeft de Energie-investeringsaftrek (EIA) aangevraagd en ook al een EIA-verklaring ontvangen. Hoe past u dit&nbsp;nu toe in uw belastingaangifte? Op deze pagina leest u er meer over.",
+        "eligibility": "not_assessed",
+        "id": "49129edc-9e6c-4199-b6b1-0800744c4bdd",
+        "modified": "2026-09-03T09:35:34+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Belastingaangifte Energie-investeringsaftrek (EIA)",
+        "url": "https://www.rvo.nl/subsidies-financiering/eia/ondernemers/belastingaangifte"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "MKB (ook zzp)"
+        ],
+        "description": "Heeft u een aanvraag voor Innovatiekrediet ingediend? Lees hier meer over het proces na uw aanvraag.",
+        "eligibility": "not_assessed",
+        "id": "1a22e759-0f4c-4d93-975c-beed476ddc1d",
+        "modified": "2026-01-05T13:06:20+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Innovatiekrediet: Na uw aanvraag",
+        "url": "https://www.rvo.nl/subsidies-financiering/innovatiekrediet/na-uw-aanvraag"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "MKB (ook zzp)",
+          "Producentenorganisatie"
+        ],
+        "description": "Heeft u een voorstel voor een innovatief of milieuvriendelijk bedrijfsmiddel dat nog niet op de Milieulijst staat? Bijvoorbeeld omdat u als leverancier een techniek op de markt wilt brengen, of uw markt wilt verbreden? Laat uw bedrijfsmiddel dan op de Milieulijst zetten voor het belastingvoordeel van de Milieu-investeringsaftrek (MIA) en de Willekeurige afschrijving milieu-investeringen (Vamil).",
+        "eligibility": "not_assessed",
+        "id": "6cc53a37-84f0-4f34-ac40-97316840d17b",
+        "modified": "2026-09-03T09:39:16+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Waterstofsector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Uw bedrijfsmiddel op de Milieulijst",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/voorstel-milieulijst"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Overheid",
+          "Grootbedrijf",
+          "MKB (ook zzp)"
+        ],
+        "description": "Hieronder vindt u de meest recente officiële bekendmakingen over de milieu-investeringsaftrek (MIA) en de willekeurige afschrijving milieu-investeringen (Vamil). Waaronder ook de publicaties over het Caribisch gebied.",
+        "eligibility": "not_assessed",
+        "id": "8778c0b7-f0fb-4e4b-84f8-a72d349d013a",
+        "modified": "2026-08-20T10:00:22+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Energiedistributie",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Officiële bekendmakingen - MIA\\Vamil",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/ondernemers/officiele-bekendmakingen"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "MKB (ook zzp)"
+        ],
+        "description": "Leveranciers en andere belangstellenden kunnen voorstellen om een vernieuwende milieuvriendelijke techniek op te nemen op de Milieulijst. Hierdoor krijgt een ondernemer die investeert in deze techniek, belastingvoordeel met de Milieu-investeringsaftrek (MIA) en de Willekeurige afschrijving milieu-investeringen (Vamil). Of het voorstel op de lijst komt, hangt af van verschillende criteria.",
+        "eligibility": "not_assessed",
+        "id": "8610be2e-6565-4d53-9569-68e4f966d27e",
+        "modified": "2025-12-30T13:34:53+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Waterstofsector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Criteria voor opname op de Milieulijst",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/voorstel-milieulijst/criteria-opname-milieulijst"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Producentenorganisatie"
+        ],
+        "description": "Wilt u investeren in het verduurzamen van gebouwen? Dan kunt u mogelijk belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.",
+        "eligibility": "not_assessed",
+        "id": "e227f57c-906f-4364-b7a8-53f708b9b742",
+        "modified": "2026-09-03T09:05:47+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "MIA\\Vamil voor investeringen in gebouwen",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/ondernemers/gebouwde-omgeving"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Non-profit / NGO",
+          "Particulier / Vereniging / (Ver)huurder",
+          "Producentenorganisatie",
+          "School / Kennisinstelling"
+        ],
+        "description": "Investeert u als ondernemer in een milieuvriendelijk bedrijfsmiddel van de Milieulijst? Dan kunt&nbsp;u belastingvoordeel krijgen met MIA\\Vamil. Wilt u weten hoe groot dit voordeel is?&nbsp;Bekijk dan&nbsp;onderstaande rekenvoorbeelden en gebruik de rekentool om uw eigen voordeel te berekenen.\r\n",
+        "eligibility": "not_assessed",
+        "id": "ffa5e302-9c8f-4107-b99e-3f1f5417c14e",
+        "modified": "2026-09-03T08:55:36+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "Rekenvoorbeelden MIA\\Vamil",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/ondernemers/voorwaarden/rekenvoorbeelden"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "MKB (ook zzp)"
+        ],
+        "description": "Wilt u investeren in het verduurzamen van uw industriebedrijf? Dan kunt u mogelijk belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.&nbsp;",
+        "eligibility": "not_assessed",
+        "id": "2c091d00-09f4-4920-9d35-d71c35df3f40",
+        "modified": "2026-09-03T09:02:59+00:00",
+        "sectors": [
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Chemie en kunststoffen",
+          "Creatieve industrie",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Grafische en papierindustrie",
+          "Machine-industrie",
+          "Metaal(bewerkings)industrie",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Agrarische sector",
+          "Waterstofsector",
+          "Bouw en infrastructuur",
+          "Consumentengoederen en detailhandel",
+          "Dienstensector",
+          "Energiesector",
+          "ICT",
+          "Kleding en textiel",
+          "Medische sector",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Onderwijs en opvang",
+          "Overheid",
+          "Toerisme recreatie en horeca",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Klimaat en energie"
+        ],
+        "title": "MIA\\Vamil voor investeringen in de industrie",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/ondernemers/industrie"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Wilt u investeringen doen die helpen bij het verduurzamen van de landbouw? Dan kunt u mogelijk een belastingvoordeel krijgen. Dit voordeel geldt voor alle investeringen die op de Milieulijst van de MIA\\Vamil staan. Op deze pagina vindt u voorbeelden van investeringen en specifieke informatie om uw aanvraag voor te bereiden.&nbsp;",
+        "eligibility": "not_assessed",
+        "id": "f92ff0fc-eba0-4a3d-b19c-470229839351",
+        "modified": "2026-09-03T09:04:19+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Waterstofsector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Biologische landbouw",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Metaal(bewerkings)industrie",
+          "Milieusector",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Klimaat en energie"
+        ],
+        "title": "MIA\\Vamil voor investeringen in de landbouw",
+        "url": "https://www.rvo.nl/subsidies-financiering/mia-vamil/ondernemers/landbouw"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Verschillende banken en beleggingsinstellingen hebben een groenfonds. Spaarders en beleggers leggen geld in en profiteren mogelijk van een belastingvoordeel. Daardoor kunnen de groenfondsen leningen tegen een lagere rente verstrekken.",
+        "eligibility": "not_assessed",
+        "id": "855773e8-cc8c-404d-a6ca-61068092746c",
+        "modified": "2025-12-02T13:13:19+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Klimaat en energie"
+        ],
+        "title": "Groenfondsen",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/groenfondsen"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf"
+        ],
+        "description": "Download brochures, jaarverslagen met aansprekende voorbeeldprojecten en onderzoeksrapporten van de Regeling groenprojecten.",
+        "eligibility": "not_assessed",
+        "id": "bf48de13-be49-479b-b32d-525642706743",
+        "modified": "2024-04-23T12:02:32+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Innovatie, onderzoek en onderwijs",
+          "Klimaat en energie"
+        ],
+        "title": "Publicaties Regeling groenprojecten",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/publicaties-regeling-groenprojecten"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier"
+        ],
+        "description": "Op deze pagina staan de officiële bekendmakingen voor de regeling Groenprojecten.",
+        "eligibility": "not_assessed",
+        "id": "16f0e8ef-2563-43e7-8f03-a3eb4f5ec1fb",
+        "modified": "2024-01-17T15:18:05+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Innovatie, onderzoek en onderwijs",
+          "Klimaat en energie"
+        ],
+        "title": "Officiële bekendmakingen regeling Groenprojecten",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/officiele-bekendmakingen-regeling-groenprojecten"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Particulier / Vereniging / (Ver)huurder"
+        ],
+        "description": "Om een&nbsp;groene financiering te krijgen heeft u een groenverklaring nodig.",
+        "eligibility": "not_assessed",
+        "id": "f606e77e-9b87-4349-939d-d8055ee2d908",
+        "modified": "2024-04-23T08:31:29+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Innovatie, onderzoek en onderwijs",
+          "Klimaat en energie"
+        ],
+        "title": "Aanvraagproces groenverklaring",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/aanvraagproces-groenverklaring"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)",
+          "Particulier / Vereniging / (Ver)huurder"
+        ],
+        "description": "U kunt in aanmerking komen voor een groenverklaring voor projecten in 2 subcategorieën: het produceren of verwerken van biologische landbouwprojecten en deelname aan de kwaliteitsregeling.",
+        "eligibility": "not_assessed",
+        "id": "c1295a4f-047b-4cab-b8d5-19eb09da0e69",
+        "modified": "2026-08-27T10:18:57+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Innovatie, onderzoek en onderwijs",
+          "Klimaat en energie"
+        ],
+        "title": "Regeling groenprojecten - Categorie 2.1 Biologische landbouw",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/biologische-landbouw"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Financier",
+          "Grootbedrijf",
+          "MKB (ook zzp)"
+        ],
+        "description": "U kunt in aanmerking komen voor een groenverklaring voor projecten in 2 subcategorieën: productieapparatuur voor grondstoffen of producten op basis van biomassa en productieapparatuur voor (producten van) biobased plastics.",
+        "eligibility": "not_assessed",
+        "id": "d9726edb-4843-42e2-8727-e91a06d4d10c",
+        "modified": "2026-08-27T10:13:36+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Energiesector",
+          "Milieusector"
+        ],
+        "subjects": [
+          "Landbouw",
+          "Innovatie, onderzoek en onderwijs",
+          "Klimaat en energie"
+        ],
+        "title": "Regeling groenprojecten - Categorie 3.1 Biobased",
+        "url": "https://www.rvo.nl/subsidies-financiering/regeling-groenprojecten/biobased"
+      },
+      {
+        "application_status": "unknown",
+        "audiences": [
+          "Grootbedrijf",
+          "Agrarisch ondernemer",
+          "MKB (ook zzp)"
+        ],
+        "description": "Op deze pagina vindt u publicaties die u informeren over de Wet Bevordering Speur- en Ontwikkelingswerk (WBSO) en de voorgangers WBSO en Research &amp; Development Aftrek (RDA).",
+        "eligibility": "not_assessed",
+        "id": "4d968e82-4b53-437c-b345-fbc65b479a6e",
+        "modified": "2026-05-20T07:24:44+00:00",
+        "sectors": [
+          "Agrarische sector",
+          "Biotechnologie",
+          "Bosbouw en hout(bewerkings)industrie",
+          "Bouw en infrastructuur",
+          "Chemie en kunststoffen",
+          "Consumentengoederen en detailhandel",
+          "Creatieve industrie",
+          "Dienstensector",
+          "Elektronica-industrie (waaronder HTSM)",
+          "Energiesector",
+          "Grafische en papierindustrie",
+          "ICT",
+          "Kleding en textiel",
+          "Machine-industrie",
+          "Medische sector",
+          "Metaal(bewerkings)industrie",
+          "Mijnbouw en petrochemie",
+          "Milieusector",
+          "Transportmiddelenindustrie",
+          "Verpakkingsindustrie",
+          "Vervoer en logistiek",
+          "Voedings- en genotmiddelen",
+          "Watersector",
+          "Woning- en projectinrichting"
+        ],
+        "subjects": [
+          "Innovatie, onderzoek en onderwijs"
+        ],
+        "title": "Publicaties WBSO",
+        "url": "https://www.rvo.nl/subsidies-financiering/wbso/publicaties"
+      }
+    ],
+    "matched_in_page": 26,
+    "notice": "Includes historical scheme descriptions. No matches in this page does not mean no subsidy exists. Current application status, deadlines and eligibility are not provided.",
+    "query": {
+      "q": "energie"
+    },
+    "scanned": 50,
+    "source_url": "https://www.rvo.nl/api/v1/opendata/subsidies",
+    "total": null
+  }
+}

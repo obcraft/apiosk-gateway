@@ -1,0 +1,51 @@
+{
+  "response": {
+    "numFound": 1,
+    "start": 0,
+    "maxScore": 6.745887,
+    "numFoundExact": true,
+    "docs": [
+      {
+        "bron": "BAG",
+        "woonplaatscode": "3594",
+        "type": "adres",
+        "woonplaatsnaam": "Amsterdam",
+        "wijkcode": "WK0363AC",
+        "huis_nlt": "126",
+        "openbareruimtetype": "Weg",
+        "buurtnaam": "Leliegracht e.o.",
+        "gemeentecode": "0363",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+        "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+        "straatnaam_verkort": "Keizersgr",
+        "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+        "gekoppeld_perceel": [
+          "ASD09-M-6676",
+          "ASD09-M-6965",
+          "ASD09-M-5342"
+        ],
+        "gemeentenaam": "Amsterdam",
+        "buurtcode": "BU0363AC02",
+        "wijknaam": "Grachtengordel-West",
+        "identificatie": "0363010000700614-0363200000161902",
+        "openbareruimte_id": "0363300000003984",
+        "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+        "provinciecode": "PV27",
+        "postcode": "1015CW",
+        "provincienaam": "Noord-Holland",
+        "centroide_ll": "POINT(4.88679098 52.37678671)",
+        "nummeraanduiding_id": "0363200000161902",
+        "waterschapscode": "11",
+        "adresseerbaarobject_id": "0363010000700614",
+        "huisnummer": 126,
+        "provincieafkorting": "NH",
+        "centroide_rd": "POINT(120925 487775)",
+        "straatnaam": "Keizersgracht",
+        "gekoppeld_appartement": [
+          "ASD09-M-7318-A-1"
+        ],
+        "score": 6.745887
+      }
+    ]
+  }
+}

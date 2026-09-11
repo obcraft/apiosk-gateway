@@ -67,6 +67,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
         .route("/v2/sources", get(sources))
+        .route("/v1/source-readiness", get(source_readiness))
         .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
         .route("/v2/approve", post(approve_connection))
@@ -134,6 +135,16 @@ fn token(headers: &HeaderMap) -> anyhow::Result<&str> {
         .and_then(|h| h.to_str().ok())
         .and_then(|h| h.strip_prefix("Bearer "))
         .ok_or_else(|| anyhow::anyhow!("authentication required"))
+}
+// Public, aggregate catalog metadata only. No credentials, samples or customer data.
+async fn source_readiness(State(state): State<ServerState>) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    match state.engine.catalog.get().await {
+        Ok(catalog) => Json(crate::readiness::public_report(&catalog)).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Readiness audit is temporarily unavailable."),
+    }
 }
 async fn sources(
     State(state): State<ServerState>,

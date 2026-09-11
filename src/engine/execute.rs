@@ -289,12 +289,23 @@ impl Engine {
         )?;
         task.actions.clear();
         if !task.cancelled {
-            if let Some((step, _)) = plan
-                .steps
-                .iter()
-                .enumerate()
-                .find(|(_, s)| !task.step_finished(&s.key()))
-            {
+            let mut next_step = None;
+            for (index, candidate) in plan.steps.iter().enumerate() {
+                if task.step_finished(&candidate.key()) { continue; }
+                let missing: Vec<_> = candidate.service.contract.requires.iter().filter(|r| !r.optional)
+                    .filter(|r| !crate::catalog::fact_value(&task.facts, candidate.entity_ref, &r.fact_type).is_ok_and(|v| v.is_some()))
+                    .filter(|r| !plan.steps.iter().any(|parent| parent.entity_ref == candidate.entity_ref
+                        && !task.step_finished(&parent.key()) && parent.key() != candidate.key()
+                        && parent.service.contract.output_map.produces.contains_key(&r.fact_type)))
+                    .map(|r| r.fact_type.clone()).collect();
+                if !missing.is_empty() {
+                    task.failed_steps.insert(candidate.key(), json!({"code":"missing_source_fact","message":"Not requested because the required source identifier is unavailable.","fields":missing}));
+                    continue;
+                }
+                next_step = Some(index);
+                break;
+            }
+            if let Some(step) = next_step {
                 task.actions.push(serde_json::to_value(Action::Run {
                     action_id: Uuid::new_v4(),
                     step,

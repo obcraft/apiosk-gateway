@@ -1,0 +1,556 @@
+[
+  {
+    "count": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+    },
+    "items": [
+      {
+        "address": "Keizersgracht 126, 1015CW Amsterdam",
+        "apartment_right_designations": [
+          "ASD09-M-7318-A-1"
+        ],
+        "bag_address_id": "0363200000161902",
+        "bag_object_id": "0363010000700614",
+        "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+        "district": "Grachtengordel-West",
+        "district_code": "WK0363AC",
+        "municipality": "Amsterdam",
+        "municipality_code": "0363",
+        "neighbourhood": "Leliegracht e.o.",
+        "neighbourhood_code": "BU0363AC02",
+        "parcel_designations": [
+          "ASD09-M-6676",
+          "ASD09-M-6965",
+          "ASD09-M-5342"
+        ],
+        "source_record": {
+          "adresseerbaarobject_id": "0363010000700614",
+          "bron": "BAG",
+          "buurtcode": "BU0363AC02",
+          "buurtnaam": "Leliegracht e.o.",
+          "centroide_ll": "POINT(4.88679098 52.37678671)",
+          "centroide_rd": "POINT(120925 487775)",
+          "gekoppeld_appartement": [
+            "ASD09-M-7318-A-1"
+          ],
+          "gekoppeld_perceel": [
+            "ASD09-M-6676",
+            "ASD09-M-6965",
+            "ASD09-M-5342"
+          ],
+          "gemeentecode": "0363",
+          "gemeentenaam": "Amsterdam",
+          "huis_nlt": "126",
+          "huisnummer": 126,
+          "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+          "identificatie": "0363010000700614-0363200000161902",
+          "nummeraanduiding_id": "0363200000161902",
+          "openbareruimte_id": "0363300000003984",
+          "openbareruimtetype": "Weg",
+          "postcode": "1015CW",
+          "provincieafkorting": "NH",
+          "provinciecode": "PV27",
+          "provincienaam": "Noord-Holland",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+          "score": 1.0747517,
+          "straatnaam": "Keizersgracht",
+          "straatnaam_verkort": "Keizersgr",
+          "type": "adres",
+          "waterschapscode": "11",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+          "wijkcode": "WK0363AC",
+          "wijknaam": "Grachtengordel-West",
+          "woonplaatscode": "3594",
+          "woonplaatsnaam": "Amsterdam"
+        }
+      }
+    ],
+    "matched": {
+      "address": "Keizersgracht 126, 1015CW Amsterdam",
+      "apartment_right_designations": [
+        "ASD09-M-7318-A-1"
+      ],
+      "bag_address_id": "0363200000161902",
+      "bag_object_id": "0363010000700614",
+      "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+      "district": "Grachtengordel-West",
+      "district_code": "WK0363AC",
+      "municipality": "Amsterdam",
+      "municipality_code": "0363",
+      "neighbourhood": "Leliegracht e.o.",
+      "neighbourhood_code": "BU0363AC02",
+      "parcel_designations": [
+        "ASD09-M-6676",
+        "ASD09-M-6965",
+        "ASD09-M-5342"
+      ],
+      "source_record": {
+        "adresseerbaarobject_id": "0363010000700614",
+        "bron": "BAG",
+        "buurtcode": "BU0363AC02",
+        "buurtnaam": "Leliegracht e.o.",
+        "centroide_ll": "POINT(4.88679098 52.37678671)",
+        "centroide_rd": "POINT(120925 487775)",
+        "gekoppeld_appartement": [
+          "ASD09-M-7318-A-1"
+        ],
+        "gekoppeld_perceel": [
+          "ASD09-M-6676",
+          "ASD09-M-6965",
+          "ASD09-M-5342"
+        ],
+        "gemeentecode": "0363",
+        "gemeentenaam": "Amsterdam",
+        "huis_nlt": "126",
+        "huisnummer": 126,
+        "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+        "identificatie": "0363010000700614-0363200000161902",
+        "nummeraanduiding_id": "0363200000161902",
+        "openbareruimte_id": "0363300000003984",
+        "openbareruimtetype": "Weg",
+        "postcode": "1015CW",
+        "provincieafkorting": "NH",
+        "provinciecode": "PV27",
+        "provincienaam": "Noord-Holland",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+        "score": 1.0747517,
+        "straatnaam": "Keizersgracht",
+        "straatnaam_verkort": "Keizersgr",
+        "type": "adres",
+        "waterschapscode": "11",
+        "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+        "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+        "wijkcode": "WK0363AC",
+        "wijknaam": "Grachtengordel-West",
+        "woonplaatscode": "3594",
+        "woonplaatsnaam": "Amsterdam"
+      }
+    },
+    "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+    "route": "company-address",
+    "source_url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=*%3A*&fq=type%3Aadres+AND+postcode%3A1015CW+AND+huisnummer%3A126&rows=100"
+  },
+  {
+    "count": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+    },
+    "items": [
+      {
+        "address": "Keizersgracht 126, 1015CW Amsterdam",
+        "apartment_right_designations": [
+          "ASD09-M-7318-A-1"
+        ],
+        "bag_address_id": "0363200000161902",
+        "bag_object_id": "0363010000700614",
+        "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+        "district": "Grachtengordel-West",
+        "district_code": "WK0363AC",
+        "municipality": "Amsterdam",
+        "municipality_code": "0363",
+        "neighbourhood": "Leliegracht e.o.",
+        "neighbourhood_code": "BU0363AC02",
+        "parcel_designations": [
+          "ASD09-M-6676",
+          "ASD09-M-6965",
+          "ASD09-M-5342"
+        ],
+        "source_record": {
+          "adresseerbaarobject_id": "0363010000700614",
+          "bron": "BAG",
+          "buurtcode": "BU0363AC02",
+          "buurtnaam": "Leliegracht e.o.",
+          "centroide_ll": "POINT(4.88679098 52.37678671)",
+          "centroide_rd": "POINT(120925 487775)",
+          "gekoppeld_appartement": [
+            "ASD09-M-7318-A-1"
+          ],
+          "gekoppeld_perceel": [
+            "ASD09-M-6676",
+            "ASD09-M-6965",
+            "ASD09-M-5342"
+          ],
+          "gemeentecode": "0363",
+          "gemeentenaam": "Amsterdam",
+          "huis_nlt": "126",
+          "huisnummer": 126,
+          "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+          "identificatie": "0363010000700614-0363200000161902",
+          "nummeraanduiding_id": "0363200000161902",
+          "openbareruimte_id": "0363300000003984",
+          "openbareruimtetype": "Weg",
+          "postcode": "1015CW",
+          "provincieafkorting": "NH",
+          "provinciecode": "PV27",
+          "provincienaam": "Noord-Holland",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+          "score": 1.0747517,
+          "straatnaam": "Keizersgracht",
+          "straatnaam_verkort": "Keizersgr",
+          "type": "adres",
+          "waterschapscode": "11",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+          "wijkcode": "WK0363AC",
+          "wijknaam": "Grachtengordel-West",
+          "woonplaatscode": "3594",
+          "woonplaatsnaam": "Amsterdam"
+        }
+      }
+    ],
+    "matched": {
+      "address": "Keizersgracht 126, 1015CW Amsterdam",
+      "apartment_right_designations": [
+        "ASD09-M-7318-A-1"
+      ],
+      "bag_address_id": "0363200000161902",
+      "bag_object_id": "0363010000700614",
+      "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+      "district": "Grachtengordel-West",
+      "district_code": "WK0363AC",
+      "municipality": "Amsterdam",
+      "municipality_code": "0363",
+      "neighbourhood": "Leliegracht e.o.",
+      "neighbourhood_code": "BU0363AC02",
+      "parcel_designations": [
+        "ASD09-M-6676",
+        "ASD09-M-6965",
+        "ASD09-M-5342"
+      ],
+      "source_record": {
+        "adresseerbaarobject_id": "0363010000700614",
+        "bron": "BAG",
+        "buurtcode": "BU0363AC02",
+        "buurtnaam": "Leliegracht e.o.",
+        "centroide_ll": "POINT(4.88679098 52.37678671)",
+        "centroide_rd": "POINT(120925 487775)",
+        "gekoppeld_appartement": [
+          "ASD09-M-7318-A-1"
+        ],
+        "gekoppeld_perceel": [
+          "ASD09-M-6676",
+          "ASD09-M-6965",
+          "ASD09-M-5342"
+        ],
+        "gemeentecode": "0363",
+        "gemeentenaam": "Amsterdam",
+        "huis_nlt": "126",
+        "huisnummer": 126,
+        "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+        "identificatie": "0363010000700614-0363200000161902",
+        "nummeraanduiding_id": "0363200000161902",
+        "openbareruimte_id": "0363300000003984",
+        "openbareruimtetype": "Weg",
+        "postcode": "1015CW",
+        "provincieafkorting": "NH",
+        "provinciecode": "PV27",
+        "provincienaam": "Noord-Holland",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+        "score": 1.0747517,
+        "straatnaam": "Keizersgracht",
+        "straatnaam_verkort": "Keizersgr",
+        "type": "adres",
+        "waterschapscode": "11",
+        "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+        "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+        "wijkcode": "WK0363AC",
+        "wijknaam": "Grachtengordel-West",
+        "woonplaatscode": "3594",
+        "woonplaatsnaam": "Amsterdam"
+      }
+    },
+    "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+    "route": "bag-address",
+    "source_url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=*%3A*&fq=type%3Aadres+AND+adresseerbaarobject_id%3A0363010000700614&rows=100"
+  },
+  {
+    "count": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+    },
+    "items": [
+      {
+        "bronhouder_identificatie": "0363",
+        "bronhouder_naam": "Amsterdam",
+        "documentdatum": "2019-03-27",
+        "documentnummer": "SA03964597",
+        "gebruiksdoel": "kantoorfunctie",
+        "geconstateerd": "N",
+        "hoofdadres_identificatie": "0363200000161902",
+        "hoofdadres_status": "Naamgeving uitgegeven",
+        "huisletter": null,
+        "huisnummer": 126,
+        "identificatie": "0363010000700614",
+        "openbare_ruimte_identificatie": "0363300000003984",
+        "openbare_ruimte_naam": "Keizersgracht",
+        "openbare_ruimte_naam_kort": null,
+        "openbare_ruimte_status": "Naamgeving uitgegeven",
+        "oppervlakte": 3718,
+        "pand.href": [
+          "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e"
+        ],
+        "postcode": "1015CW",
+        "provincie_afkorting": "NH",
+        "provincie_naam": "Noord-Holland",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010000700614",
+        "single_building_href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e",
+        "status": "Verblijfsobject in gebruik",
+        "toevoeging": null,
+        "woonplaats_identificatie": "3594",
+        "woonplaats_naam": "Amsterdam",
+        "woonplaats_status": "Woonplaats aangewezen"
+      }
+    ],
+    "matched": {
+      "bronhouder_identificatie": "0363",
+      "bronhouder_naam": "Amsterdam",
+      "documentdatum": "2019-03-27",
+      "documentnummer": "SA03964597",
+      "gebruiksdoel": "kantoorfunctie",
+      "geconstateerd": "N",
+      "hoofdadres_identificatie": "0363200000161902",
+      "hoofdadres_status": "Naamgeving uitgegeven",
+      "huisletter": null,
+      "huisnummer": 126,
+      "identificatie": "0363010000700614",
+      "openbare_ruimte_identificatie": "0363300000003984",
+      "openbare_ruimte_naam": "Keizersgracht",
+      "openbare_ruimte_naam_kort": null,
+      "openbare_ruimte_status": "Naamgeving uitgegeven",
+      "oppervlakte": 3718,
+      "pand.href": [
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e"
+      ],
+      "postcode": "1015CW",
+      "provincie_afkorting": "NH",
+      "provincie_naam": "Noord-Holland",
+      "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010000700614",
+      "single_building_href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e",
+      "status": "Verblijfsobject in gebruik",
+      "toevoeging": null,
+      "woonplaats_identificatie": "3594",
+      "woonplaats_naam": "Amsterdam",
+      "woonplaats_status": "Woonplaats aangewezen"
+    },
+    "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+    "route": "bag-unit",
+    "source_url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?identificatie=0363010000700614&limit=2&f=json"
+  },
+  {
+    "count": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "CBS neighbourhood statistics for 2025, delivered by PDOK. Area aggregates are not company facts or an individual property WOZ value."
+    },
+    "items": [
+      {
+        "aantal_huishoudens": 1240,
+        "aantal_inwoners": 1825,
+        "bevolkingsdichtheid_inwoners_per_km2": 13417,
+        "buurtcode": "BU0363AC02",
+        "buurtnaam": "Leliegracht e.o.",
+        "dekkingspercentage": 4,
+        "gemeentecode": "GM0363",
+        "gemeentenaam": "Amsterdam",
+        "gemiddelde_huishoudsgrootte": 1.5,
+        "indelingswijziging_wijken_en_buurten": 1,
+        "jaar": 2025,
+        "jrstatcode": "2025BU0363AC02",
+        "mannen": 885,
+        "meest_voorkomende_postcode": "1015",
+        "omgevingsadressendichtheid": 11019,
+        "oppervlakte_land_in_ha": 14,
+        "oppervlakte_totaal_in_ha": 17,
+        "oppervlakte_water_in_ha": 4,
+        "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 20,
+        "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 25,
+        "perc_geb_in_nl_met_herkomstland_buiten_europa": 5,
+        "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 5,
+        "percentage_eenpersoonshuishoudens": 65,
+        "percentage_geb_in_nl_met_herkomstland_nederland": 45,
+        "percentage_gehuwd": 23,
+        "percentage_gescheid": 5,
+        "percentage_huishoudens_met_kinderen": 10,
+        "percentage_huishoudens_zonder_kinderen": 24,
+        "percentage_met_herkomstland_buiten_europa": 25,
+        "percentage_met_herkomstland_nederland": 45,
+        "percentage_met_herkomstland_uit_europa_excl_nl": 25,
+        "percentage_ongehuwd": 70,
+        "percentage_personen_0_tot_15_jaar": 6,
+        "percentage_personen_15_tot_25_jaar": 18,
+        "percentage_personen_25_tot_45_jaar": 38,
+        "percentage_personen_45_tot_65_jaar": 23,
+        "percentage_personen_65_jaar_en_ouder": 15,
+        "percentage_verweduwd": 2,
+        "stedelijkheid_adressen_per_km2": 1,
+        "vrouwen": 935,
+        "water": "NEE",
+        "wijkcode": "WK0363AC"
+      }
+    ],
+    "matched": {
+      "aantal_huishoudens": 1240,
+      "aantal_inwoners": 1825,
+      "bevolkingsdichtheid_inwoners_per_km2": 13417,
+      "buurtcode": "BU0363AC02",
+      "buurtnaam": "Leliegracht e.o.",
+      "dekkingspercentage": 4,
+      "gemeentecode": "GM0363",
+      "gemeentenaam": "Amsterdam",
+      "gemiddelde_huishoudsgrootte": 1.5,
+      "indelingswijziging_wijken_en_buurten": 1,
+      "jaar": 2025,
+      "jrstatcode": "2025BU0363AC02",
+      "mannen": 885,
+      "meest_voorkomende_postcode": "1015",
+      "omgevingsadressendichtheid": 11019,
+      "oppervlakte_land_in_ha": 14,
+      "oppervlakte_totaal_in_ha": 17,
+      "oppervlakte_water_in_ha": 4,
+      "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 20,
+      "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 25,
+      "perc_geb_in_nl_met_herkomstland_buiten_europa": 5,
+      "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 5,
+      "percentage_eenpersoonshuishoudens": 65,
+      "percentage_geb_in_nl_met_herkomstland_nederland": 45,
+      "percentage_gehuwd": 23,
+      "percentage_gescheid": 5,
+      "percentage_huishoudens_met_kinderen": 10,
+      "percentage_huishoudens_zonder_kinderen": 24,
+      "percentage_met_herkomstland_buiten_europa": 25,
+      "percentage_met_herkomstland_nederland": 45,
+      "percentage_met_herkomstland_uit_europa_excl_nl": 25,
+      "percentage_ongehuwd": 70,
+      "percentage_personen_0_tot_15_jaar": 6,
+      "percentage_personen_15_tot_25_jaar": 18,
+      "percentage_personen_25_tot_45_jaar": 38,
+      "percentage_personen_45_tot_65_jaar": 23,
+      "percentage_personen_65_jaar_en_ouder": 15,
+      "percentage_verweduwd": 2,
+      "stedelijkheid_adressen_per_km2": 1,
+      "vrouwen": 935,
+      "water": "NEE",
+      "wijkcode": "WK0363AC"
+    },
+    "notice": "CBS neighbourhood statistics for 2025, delivered by PDOK. Area aggregates are not company facts or an individual property WOZ value.",
+    "route": "neighbourhood",
+    "source_url": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363AC02&limit=2&f=json"
+  },
+  {
+    "count": 3,
+    "coverage": {
+      "complete": true,
+      "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+    },
+    "items": [
+      {
+        "bron": "DKK",
+        "centroide_ll": "POINT(4.88655516 52.376875)",
+        "centroide_rd": "POINT(120909.01 487784.934)",
+        "id": "pcl-5ef2fe160d7320728b6210f02217d29e",
+        "identificatie": "ASD09-M-5342",
+        "kadastrale_aanduiding": [
+          "Amsterdam M 5342",
+          "ASD09 M 5342"
+        ],
+        "kadastrale_gemeentecode": "ASD09",
+        "kadastrale_gemeentenaam": "Amsterdam",
+        "kadastrale_grootte": 985,
+        "kadastrale_sectie": "M",
+        "perceelnummer": 5342,
+        "score": 1.0,
+        "type": "perceel",
+        "weergavenaam": "Perceel Amsterdam (ASD09) M 5342"
+      },
+      {
+        "bron": "DKK",
+        "centroide_ll": "POINT(4.88645818 52.37705373)",
+        "centroide_rd": "POINT(120902.544 487804.867)",
+        "id": "pcl-c8d1e3e091b40d9511385c9f69c180ad",
+        "identificatie": "ASD09-M-6676",
+        "kadastrale_aanduiding": [
+          "Amsterdam M 6676",
+          "ASD09 M 6676"
+        ],
+        "kadastrale_gemeentecode": "ASD09",
+        "kadastrale_gemeentenaam": "Amsterdam",
+        "kadastrale_grootte": 62,
+        "kadastrale_sectie": "M",
+        "perceelnummer": 6676,
+        "score": 1.0,
+        "type": "perceel",
+        "weergavenaam": "Perceel Amsterdam (ASD09) M 6676"
+      },
+      {
+        "bron": "DKK",
+        "centroide_ll": "POINT(4.88625374 52.3768301)",
+        "centroide_rd": "POINT(120888.451 487780.081)",
+        "id": "pcl-0a80d34a9869c24220b72f13513b2d93",
+        "identificatie": "ASD09-M-6965",
+        "kadastrale_aanduiding": [
+          "Amsterdam M 6965",
+          "ASD09 M 6965"
+        ],
+        "kadastrale_gemeentecode": "ASD09",
+        "kadastrale_gemeentenaam": "Amsterdam",
+        "kadastrale_grootte": 67,
+        "kadastrale_sectie": "M",
+        "perceelnummer": 6965,
+        "score": 1.0,
+        "type": "perceel",
+        "weergavenaam": "Perceel Amsterdam (ASD09) M 6965"
+      }
+    ],
+    "matched": null,
+    "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+    "route": "linked-parcels",
+    "source_url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=*%3A*&fq=type%3Aperceel+AND+identificatie%3A%28%22ASD09-M-6676%22+OR+%22ASD09-M-6965%22+OR+%22ASD09-M-5342%22%29&rows=25"
+  },
+  {
+    "count": 1,
+    "coverage": {
+      "complete": true,
+      "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+    },
+    "items": [
+      {
+        "aantal_verblijfsobjecten": 2,
+        "bouwjaar": 1755,
+        "documentdatum": "2017-09-25",
+        "documentnummer": "TM00022919_TM00OP",
+        "gebruiksdoel": "kantoorfunctie",
+        "geconstateerd": "N",
+        "identificatie": "0363100012176541",
+        "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012176541",
+        "status": "Pand in gebruik",
+        "verblijfsobject.href": [
+          "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a1519654-f5c3-5a24-ac48-b9e82c1cf28f",
+          "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/76ea5d6b-91ae-5bfa-8f08-3ec719787f82"
+        ]
+      }
+    ],
+    "matched": {
+      "aantal_verblijfsobjecten": 2,
+      "bouwjaar": 1755,
+      "documentdatum": "2017-09-25",
+      "documentnummer": "TM00022919_TM00OP",
+      "gebruiksdoel": "kantoorfunctie",
+      "geconstateerd": "N",
+      "identificatie": "0363100012176541",
+      "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012176541",
+      "status": "Pand in gebruik",
+      "verblijfsobject.href": [
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a1519654-f5c3-5a24-ac48-b9e82c1cf28f",
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/76ea5d6b-91ae-5bfa-8f08-3ec719787f82"
+      ]
+    },
+    "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+    "route": "building",
+    "source_url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e?f=json"
+  }
+]

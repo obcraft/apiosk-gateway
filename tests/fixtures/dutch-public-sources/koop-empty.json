@@ -1,0 +1,14 @@
+{
+  "searchRetrieveResponse": {
+    "version": 2.0,
+    "numberOfRecords": 0,
+    "echoedSearchRetrieveRequest": {
+      "query": "c.product-area==officielepublicaties AND dt.title=\"apioskzeroresultxzy92745\"",
+      "startRecord": 1,
+      "maximumRecords": 2,
+      "recordXMLEscaping": "xml",
+      "recordSchema": "http://standaarden.overheid.nl/sru/"
+    },
+    "resultCountPrecision": "info:srw/vocabulary/resultCountPrecision/1/estimate"
+  }
+}

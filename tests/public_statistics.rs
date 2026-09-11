@@ -171,6 +171,7 @@ fn eurostat_error_envelopes_are_not_statistics() {
 fn known_blocked_source_is_visible_but_never_executable() {
     let mut s = snapshot();
     s.known_sources.push(KnownSource {
+        metadata: Default::default(),
         slug: "eodhd".into(),
         name: "EODHD Market Data".into(),
         block_reason: Some("Resale authorization is not recorded".into()),

@@ -1,11 +1,41 @@
+WITH recent_execution_evidence AS (
+ SELECT u.api_slug, count(*) FILTER (WHERE x.status='succeeded') AS successes,
+ count(*) FILTER (WHERE x.status='failed') AS failures,
+ count(*) FILTER (WHERE x.status IN ('dispatching','unresolved')) AS unresolved
+ FROM gateway_v2.executions x JOIN public.user_selected_apis u ON u.id=x.selection_id
+ WHERE x.created_at >= now() - interval '30 days' GROUP BY u.api_slug
+)
 SELECT jsonb_build_object(
- 'known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason') ORDER BY slug),'[]') FROM public.apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL),
+ 'known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object(
+ 'slug',a.slug,'name',a.name,'block_reason',a.listing_metadata->>'planner_block_reason',
+ 'metadata',jsonb_build_object(
+   'provider_slug',p.username,'description',left(coalesce(a.description,''),600),'category',coalesce(a.category,''),
+   'tags',coalesce((SELECT jsonb_agg(tag ORDER BY tag) FROM (SELECT DISTINCT left(t,80) AS tag FROM public.api_endpoints e CROSS JOIN LATERAL unnest(e.tags) t WHERE e.api_id=a.id AND e.active AND nullif(t,'') IS NOT NULL ORDER BY tag LIMIT 32) tags),'[]'),
+   'capability_descriptions',coalesce((SELECT jsonb_object_agg(slug,description) FROM (SELECT DISTINCT cap.slug,left(coalesce(cap.description,''),240) AS description FROM public.capability_execution_contracts c JOIN public.api_endpoints e ON e.id=c.endpoint_id JOIN public.capabilities cap ON cap.slug=c.capability_slug WHERE e.api_id=a.id AND e.active AND c.status='active' AND cap.status='active' ORDER BY cap.slug LIMIT 100) caps),'{}'),
+   'identity_documented',nullif(trim(a.name),'') IS NOT NULL AND coalesce(a.docs_url,a.website_url,'') ~ '^https://',
+   'endpoint_count',m.total,'described',m.described,'tagged',m.tagged,'categorized',m.categorized,'documented_inputs',m.inputs,'inferred',m.inferred,'unknown_provenance',m.unknown_provenance,
+   'recent_successes',coalesce(r.successes,0),'recent_failures',coalesce(r.failures,0),'recent_unresolved',coalesce(r.unresolved,0),
+   'coverage_notice',left(a.listing_metadata->>'coverage_notice',1000)
+ )) ORDER BY a.slug),'[]') FROM public.apis a LEFT JOIN public.provider_profiles p ON p.id=a.owner_id
+ LEFT JOIN recent_execution_evidence r ON r.api_slug=a.slug
+ CROSS JOIN LATERAL (
+  SELECT count(*) AS total,
+   count(*) FILTER (WHERE nullif(trim(e.description),'') IS NOT NULL) AS described,
+   count(*) FILTER (WHERE cardinality(e.tags)>0) AS tagged,
+   count(*) FILTER (WHERE nullif(trim(e.endpoint_category),'') IS NOT NULL) AS categorized,
+   count(*) FILTER (WHERE (jsonb_typeof(e.query_params->'properties')='object' AND jsonb_typeof(e.query_params->'required')='array') OR (jsonb_typeof(e.request_body->'properties')='object' AND jsonb_typeof(e.request_body->'required')='array')) AS inputs,
+   count(*) FILTER (WHERE e.metadata_source='inferred') AS inferred,
+   count(*) FILTER (WHERE nullif(trim(e.metadata_source),'') IS NULL) AS unknown_provenance
+  FROM public.api_endpoints e WHERE e.api_id=a.id AND e.active
+ ) m
+ WHERE a.status='active' AND coalesce(a.active,true) AND a.is_verified=true AND coalesce(a.discoverable,true) AND a.suspended_at IS NULL),
  'vocabulary',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'value_schema',value_schema) ORDER BY slug),'[]') FROM public.fact_types WHERE status='active'),
  'services',(SELECT coalesce(jsonb_agg(s.obj ORDER BY s.id),'[]') FROM (
  SELECT c.id,jsonb_build_object(
   'id',c.id,'endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'source_url',coalesce(a.docs_url,a.website_url),
   'method',e.method,'path',e.path,'listing_type',coalesce(a.listing_type::text,'api'),
   'list_atomic',ceil(e.price*1000000)::bigint,
+  'optional_outputs',(SELECT coalesce(jsonb_agg(p->>'fact_type' ORDER BY p->>'fact_type'),'[]') FROM jsonb_array_elements(c.produces) p WHERE p->>'optional'='true'),
   'fixed_params',c.fixed_params,'preconditions',c.preconditions,'pagination',c.pagination,
   'freshness_seconds',c.freshness_seconds,'sample_payload',c.sample_payload,
   'jurisdiction',coalesce(ft.jurisdiction,(
