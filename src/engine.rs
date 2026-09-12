@@ -1,6 +1,7 @@
 mod execute;
 mod followups;
 mod results;
+mod worker;
 use crate::{
     auth::Principal,
     catalog::{Catalog, CatalogCache},
@@ -167,8 +168,10 @@ impl Engine {
                 f.value.clone(),
             )?;
         }
+        let mut chat_intent = None;
         if app_chat {
             let reply = self.parser.chat(&req.question, &task, &catalog).await?;
+            chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, Some(reply.message));
             if !reply.discover {
@@ -190,10 +193,11 @@ impl Engine {
                     .await;
             }
         }
-        let mut intent = self
-            .parser
-            .parse(p.owner, &req.question, &task, &catalog)
-            .await?;
+        let mut intent = match chat_intent {
+            Some(intent) => intent,
+            // Compatibility for an older conversational model response.
+            None => self.parser.parse(p.owner, &req.question, &task, &catalog).await?,
+        };
         if !app_chat {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
@@ -220,6 +224,7 @@ impl Engine {
         task.focus.goal_refs = vec![Uuid::new_v4()];
         task.intent = Some(serde_json::to_value(&intent)?);
         task.completed.clear();
+        task.pending_dispatches.clear();
         task.failed_steps.clear();
         task.active_results.clear();
         task.analysis = None;
@@ -451,6 +456,14 @@ impl Engine {
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
+        let worker_active = self.worker_active(id).await?;
+        r.context_view["execution_mode"] = json!("server");
+        r.context_view["worker_active"] = json!(worker_active);
+        let events_expires = (Utc::now() + chrono::Duration::minutes(30)).timestamp();
+        let events_signature = self.signer.events_signature(p.owner, id, p.connection, events_expires);
+        r.context_view["events_path"] = json!(format!("/v2/tasks/{id}/events?owner={}&expires={events_expires}&signature={events_signature}{}", p.owner,
+            p.connection.map(|c| format!("&connection={c}")).unwrap_or_default()));
+        if worker_active && r.status == Status::Ready { r.status = Status::Running; }
         r.context_view["approval_mode"] = json!(if self.executor.connection_can_approve(p).await.unwrap_or(false) {
             "chatbot"
         } else { "app" });
@@ -470,6 +483,7 @@ impl Engine {
             r.context_view["candidates"] = json!(task.pending_candidates)
         }
         r.next_actions = actions.iter().map(Action::public).collect();
+        if worker_active { r.next_actions.retain(|a| !matches!(a.kind.as_str(), "execute_quoted_step" | "poll")); }
         for result in task.result_refs.iter().rev().take(8) {
             r.next_actions.push(
                 Action::Read {

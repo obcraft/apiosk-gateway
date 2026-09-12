@@ -59,6 +59,9 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         }).to_string()}}]}));
     }
     if input["surface"] == "ask-chat" {
+        if input["question"] == "Single-pass Example" {
+            return Json(json!({"choices":[{"message":{"content":json!({"message":"I will find the accounts and price.","discover":true,"intent":{"subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}}).to_string()}}]}));
+        }
         if input["question"] == "Unavailable first question"
             || (input["question"] == "Transient first question" && c.transient_chat.fetch_add(1, Ordering::Relaxed) == 0) {
             return Json(json!({"choices":[{"finish_reason":"length","message":{"content":null}}]}));
@@ -760,6 +763,11 @@ async fn durable_flow_and_authorization_boundary() {
         chats_before,
         "MCP callers must not enter the App chat layer"
     );
+    let before_single_pass = counts.parser.load(Ordering::Relaxed);
+    let one_pass = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),question:"Single-pass Example".into(),state:None,context_delta:Default::default() }).await.unwrap();
+    assert_eq!(one_pass.status,Status::Ready,"{one_pass:?}");
+    assert_eq!(one_pass.proposal.as_ref().unwrap().steps.len(),2);
+    assert_eq!(counts.parser.load(Ordering::Relaxed),before_single_pass+1,"one model pass must prepare the full request");
     let providers_before_failure = counts.provider.load(Ordering::Relaxed);
     let transient = engine.chat(&person, DiscoverRequest {
         request_id:Uuid::new_v4(), question:"Transient first question".into(), state:None, context_delta:Default::default(),

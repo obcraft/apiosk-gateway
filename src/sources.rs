@@ -1,7 +1,7 @@
 use crate::catalog::Catalog;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Source {
@@ -10,6 +10,8 @@ pub struct Source {
     pub provider_slug: Option<String>,
     #[serde(default)]
     pub logo_url: Option<String>,
+    #[serde(default)]
+    pub provider_logo_url: Option<String>,
     pub name: String,
     pub description: String,
     pub category: String,
@@ -31,6 +33,7 @@ pub fn safe_logo(value: &str) -> Option<String> {
 
 pub fn apply_branding(sources: &mut [Source], directory: Option<&Value>) {
     for source in sources {
+        source.provider_logo_url = source.provider_logo_url.as_deref().and_then(safe_logo);
         let provider = directory
             .and_then(|d| d["providers"].as_array())
             .and_then(|rows| {
@@ -105,6 +108,23 @@ fn selected(filter: &Option<String>, values: impl IntoIterator<Item = impl AsRef
                 .any(|v| v.as_ref().eq_ignore_ascii_case(f.trim()))
     })
 }
+/// Pulse's listings are services of one registered provider, not independent
+/// sources. Match the stored owner handle, never a name/suffix heuristic: KVK,
+/// CBS and the other upstreams distributed by Apiosk retain their own identity.
+pub fn directory_slug(source: &Source) -> &str {
+    if source.provider_slug.as_deref() == Some("pulsenetwork") {
+        "pulsenetwork"
+    } else {
+        &source.slug
+    }
+}
+pub fn directory_name(source: &Source) -> &str {
+    if source.provider_slug.as_deref() == Some("pulsenetwork") {
+        "Pulse Network"
+    } else {
+        &source.name
+    }
+}
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
     let categories: BTreeSet<_> = sources
         .iter()
@@ -125,6 +145,14 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         .iter()
         .flat_map(|s| capabilities_for(&s.slug))
         .collect();
+    let mut groups: BTreeMap<&str, Vec<(usize, &Source)>> = BTreeMap::new();
+    for (index, source) in sources.iter().enumerate() {
+        groups
+            .entry(directory_slug(source))
+            .or_default()
+            .push((index, source));
+    }
+    let catalog_total = groups.len();
     let search = query
         .search
         .as_deref()
@@ -147,55 +175,8 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     ];
     let terms: Vec<_> = search
         .split_whitespace()
-        .filter(|term| term.len() > 1 && !ignored.contains(term))
+        .filter(|t| t.len() > 1 && !ignored.contains(t))
         .collect();
-    let mut matches: Vec<_> = sources
-        .iter()
-        .enumerate()
-        .filter(|s| {
-            let s = s.1;
-            let haystack = format!(
-                "{} {} {} {} {} {} {}",
-                s.name,
-                s.slug,
-                s.description,
-                s.category,
-                s.tags.join(" "),
-                s.sectors.join(" "),
-                capabilities_for(&s.slug)
-                    .into_iter()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-                    .replace(['.', '_'], " ")
-            )
-            .to_lowercase();
-            (terms.is_empty() || terms.iter().any(|term| haystack.contains(term)))
-                && selected(&query.category, [&s.category])
-                && selected(&query.tag, &s.tags)
-                && selected(&query.sector, &s.sectors)
-                && selected(&query.capability, capabilities_for(&s.slug))
-        })
-        .map(|(index, source)| {
-            let haystack = format!(
-                "{} {} {} {} {} {} {}",
-                source.name, source.slug, source.description, source.category,
-                source.tags.join(" "), source.sectors.join(" "),
-                capabilities_for(&source.slug).into_iter().collect::<Vec<_>>().join(" ").replace(['.', '_'], " ")
-            )
-            .to_lowercase();
-            let score = terms
-                .iter()
-                .filter(|term| haystack.contains(**term))
-                .count();
-            (score, index, source)
-        })
-        .collect();
-    // Relevance still decides first — a person who types "eodhd" must find EODHD
-    // even though nothing there can be bought. What this adds is the tie-break
-    // underneath it: at equal relevance a source somebody can actually execute
-    // outranks one that only exists to be read about. Catalog order alone put
-    // 52 unbuyable endpoints above a source with a contract for every one of
-    // its own, which is the same mistake the homepage grid used to make.
     let executable: BTreeSet<&str> = catalog
         .services
         .iter()
@@ -216,28 +197,163 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             1
         }
     };
-    matches.sort_by_key(|(score, index, s)| (std::cmp::Reverse(*score), reach(&s.slug), *index));
+    let mut matches = Vec::new();
+    for (key, members) in groups {
+        let matching: Vec<_> = members
+            .iter()
+            .filter_map(|(index, source)| {
+                let haystack = format!(
+                    "{} {} {} {} {} {} {} {} {}",
+                    directory_name(source),
+                    key,
+                    source.name,
+                    source.slug,
+                    source.description,
+                    source.category,
+                    source.tags.join(" "),
+                    source.sectors.join(" "),
+                    capabilities_for(&source.slug)
+                        .into_iter()
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                        .replace(['.', '_'], " ")
+                )
+                .to_lowercase();
+                let score = terms
+                    .iter()
+                    .filter(|term| haystack.contains(**term))
+                    .count();
+                ((terms.is_empty() || score > 0)
+                    && selected(&query.category, [&source.category])
+                    && selected(&query.tag, &source.tags)
+                    && selected(&query.sector, &source.sectors)
+                    && selected(&query.capability, capabilities_for(&source.slug)))
+                .then_some((score, *index, *source))
+            })
+            .collect();
+        if matching.is_empty() {
+            continue;
+        }
+        let score = matching
+            .iter()
+            .map(|(score, _, _)| *score)
+            .max()
+            .unwrap_or(0);
+        let rank = matching
+            .iter()
+            .map(|(_, _, s)| reach(&s.slug))
+            .min()
+            .unwrap_or(2);
+        let index = members[0].0;
+        matches.push((score, rank, index, key, members, matching));
+    }
+    // Group before pagination, so a provider cannot fill a page with its services.
+    matches.sort_by_key(|(score, rank, index, ..)| (std::cmp::Reverse(*score), *rank, *index));
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(20).clamp(1, 50);
-    let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|(_, _, s)| {
-        let services: Vec<_> = catalog.services.iter().filter(|service| service.api_slug == s.slug).collect();
+    let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|(_, _, _, key, members, matching)| {
+        let first = members[0].1;
+        let slugs: Vec<_> = members.iter().map(|(_, s)| s.slug.as_str()).collect();
+        let services: Vec<_> = catalog.services.iter().filter(|s| slugs.contains(&s.api_slug.as_str())).collect();
         let capabilities: BTreeSet<_> = services.iter().map(|s| &s.contract.capability_slug).collect();
         let inputs: BTreeSet<_> = services.iter().flat_map(|s| s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type)).collect();
-        json!({"slug":s.slug,"provider_slug":s.provider_slug,"logo_url":s.logo_url,"name":s.name,"description":s.description,"category":s.category,
-            "tags":s.tags,"sectors":s.sectors,"endpoint_count":s.endpoint_count,
-            "readiness":crate::readiness::assess(catalog, &[s.slug.as_str()]),
-            "available_in_v2":!services.is_empty(),"capabilities":capabilities,"input_types":inputs})
+        let grouped = *key == "pulsenetwork";
+        let tags: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.tags).collect();
+        let sectors: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.sectors).collect();
+        let categories: BTreeSet<_> = members.iter().map(|(_,s)| &s.category).filter(|s| !s.is_empty()).collect();
+        let mut row = json!({"slug":key,"provider_slug":first.provider_slug,"logo_url":if grouped {first.provider_logo_url.as_ref().or(first.logo_url.as_ref())} else {first.logo_url.as_ref()},
+            "name":directory_name(first),"description":if grouped {"Data services published by Pulse Network."} else {&first.description},
+            "category":if grouped {"intelligence"} else {&first.category},"categories":categories,
+            "tags":tags,"sectors":sectors,"endpoint_count":members.iter().map(|(_,s)|s.endpoint_count).sum::<i64>(),
+            "readiness":crate::readiness::assess(catalog, &slugs),
+            "available_in_v2":!services.is_empty(),"capabilities":capabilities,"input_types":inputs});
+        if grouped {
+            row["service_count"] = json!(members.len());
+            row["matching_service_count"] = json!(matching.len());
+            row["services"] = json!(matching.iter().map(|(_,_,s)|json!({"slug":s.slug,"name":s.name,"description":s.description,"category":s.category})).collect::<Vec<_>>());
+        }
+        row
     }).collect();
     let end = offset.saturating_add(page.len());
-    json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":sources.len(),
+    json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
         "offset":offset,"next_offset":if end < matches.len() {Some(end)} else {None},
         "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
-        "notice":"Browsing is free. Catalog descriptions help choose a source; Apiosk checks the exact question and price before any purchase."})
+        "notice":"Browsing is free. Each source is counted once; services under Pulse Network are not separate sources. Apiosk checks the exact question and price before any purchase."})
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pulse_services_are_one_source_before_filtering_and_pagination() {
+        let mut rows = rows();
+        // A platform distributor does not turn independent upstreams into one.
+        for row in &mut rows {
+            row.provider_slug = Some("apiosk-basics".into());
+        }
+        for index in 0..87 {
+            rows.push(serde_json::from_value(json!({
+                "slug":format!("pulse-service-{index}"),"provider_slug":"pulsenetwork",
+                "name":format!("Pulse service {index}"),"description":if index==0 {"unique tax lookup"} else {"other service"},
+                "category":if index==0 {"tax"} else {"intelligence"},"tags":[],"sectors":[],"endpoint_count":2,
+                "provider_logo_url":"https://example.com/pulse.png"
+            })).unwrap());
+        }
+        let mut c = catalog();
+        c.services[0].api_slug = "pulse-service-0".into();
+        let first = browse(
+            &rows,
+            &c,
+            &SourceQuery {
+                limit: Some(2),
+                ..Default::default()
+            },
+        );
+        assert_eq!(first["total"], 3);
+        assert_eq!(first["catalog_total"], 3);
+        assert_eq!(first["next_offset"], 2);
+        let pulse = &first["sources"][0];
+        assert_eq!(pulse["slug"], "pulsenetwork");
+        assert_eq!(pulse["name"], "Pulse Network");
+        assert_eq!(pulse["service_count"], 87);
+        assert_eq!(pulse["endpoint_count"], 174);
+        assert_eq!(pulse["logo_url"], "https://example.com/pulse.png");
+        assert_eq!(pulse["services"].as_array().unwrap().len(), 87);
+        assert!(pulse["available_in_v2"].as_bool().unwrap());
+        let second = browse(
+            &rows,
+            &c,
+            &SourceQuery {
+                offset: Some(2),
+                limit: Some(2),
+                ..Default::default()
+            },
+        );
+        assert_eq!(second["sources"].as_array().unwrap().len(), 1);
+        assert!(second["next_offset"].is_null());
+        assert_ne!(second["sources"][0]["slug"], "pulsenetwork");
+        for query in [
+            SourceQuery {
+                search: Some("Pulse Network".into()),
+                ..Default::default()
+            },
+            SourceQuery {
+                category: Some("tax".into()),
+                ..Default::default()
+            },
+            SourceQuery {
+                search: Some("unique tax lookup".into()),
+                ..Default::default()
+            },
+        ] {
+            let result = browse(&rows, &c, &query);
+            assert_eq!(result["total"], 1);
+            assert_eq!(result["sources"][0]["slug"], "pulsenetwork");
+            assert_eq!(result["sources"][0]["service_count"], 87);
+        }
+        rows[0].name = "Independent Pulse".into();
+        assert_eq!(directory_slug(&rows[0]), "one");
+    }
     fn catalog() -> Catalog {
         Catalog::build(
             serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json"))

@@ -200,6 +200,7 @@ impl Catalog {
         let mut sources: Vec<_> = sources.into_iter().map(|((slug, name), capabilities)|
             { let known = self.known_sources.iter().find(|s| s.slug == *slug);
                 json!({"slug":slug,"name":name,"capabilities":capabilities,"available":true,
+                    "provider_slug":known.and_then(|s|s.metadata.provider_slug.as_deref()),
                     "description":known.map(|s| &s.metadata.description),
                     "category":known.map(|s| &s.metadata.category),"tags":known.map(|s| &s.metadata.tags),
                     "capability_descriptions":known.map(|s| &s.metadata.capability_descriptions),

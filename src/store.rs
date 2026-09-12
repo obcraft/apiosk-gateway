@@ -89,6 +89,31 @@ impl Store {
         anyhow::ensure!(n == 1, "state_conflict");
         Ok(revision + 1)
     }
+    /// Attach paid outcomes even when cancellation wins a race with a worker.
+    /// Other state changes still conflict; cancellation never discards receipts.
+    pub async fn save_progress(&self, owner: Uuid, id: Uuid, revision: i64, progress: &Task) -> anyhow::Result<i64> {
+        let mut tx = self.pool.begin().await?;
+        let row = sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
+            .bind(id).bind(owner).fetch_one(&mut *tx).await?;
+        let current: i64 = row.get("revision");
+        let mut saved: Task = serde_json::from_value(row.get("document"))?;
+        if current == revision { saved = progress.clone(); }
+        else {
+            anyhow::ensure!(saved.cancelled && saved.proposal == progress.proposal, "state_conflict");
+            for result in &progress.result_refs { if !saved.result_refs.contains(result) { saved.result_refs.push(*result); } }
+            for result in &progress.active_results { if !saved.active_results.contains(result) { saved.active_results.push(*result); } }
+            for key in &progress.completed { if !saved.completed.contains(key) { saved.completed.push(key.clone()); } }
+            saved.failed_steps.extend(progress.failed_steps.clone());
+            let plan: crate::resolver::Plan = serde_json::from_value(saved.proposal.clone().ok_or_else(||anyhow::anyhow!("missing plan"))?)?;
+            let finished: Vec<_> = plan.steps.iter().enumerate().filter(|(_,step)|saved.step_finished(&step.key())).map(|(index,_)|index).collect();
+            saved.pending_dispatches.retain(|d|!finished.contains(&d.step));
+        }
+        anyhow::ensure!(saved.bounded(), "task capacity reached");
+        sqlx::query("UPDATE tasks SET document=$3,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2")
+            .bind(id).bind(owner).bind(serde_json::to_value(saved)?).execute(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(current + 1)
+    }
     /// A new intent may not replace a plan while a dispatch is in flight or
     /// its paid result is waiting to be attached to the task after a crash.
     pub async fn save_intent(

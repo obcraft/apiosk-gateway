@@ -59,10 +59,6 @@ impl Executor {
             row.get::<Option<Uuid>, _>("connection_id") == Some(connection),
             "task belongs to another connection"
         );
-        anyhow::ensure!(
-            row.get::<i64, _>("revision") == revision,
-            "state changed; check status before approving"
-        );
         let task: Task = serde_json::from_value(row.get("document"))?;
         anyhow::ensure!(!task.cancelled, "task cancelled");
         let plan: Plan = serde_json::from_value(
@@ -98,6 +94,7 @@ impl Executor {
             );
             return Ok(existing.get("id"));
         }
+        anyhow::ensure!(row.get::<i64, _>("revision") == revision, "state changed; check status before approving");
         anyhow::ensure!(
             plan.cap_atomic >= 0 && plan.cap_atomic <= budget.get::<i64, _>("per_call_atomic"),
             "plan exceeds this connection's per-request limit"
@@ -171,15 +168,21 @@ impl Executor {
             anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
             let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
         }
-        anyhow::ensure!(task.get::<i64, _>("revision") == revision, "state_conflict");
+        let queued = task.get::<Value, _>("document")["pending_dispatches"].as_array()
+            .is_some_and(|calls| calls.iter().any(|call| call["action_id"] == json!(action_id) && call["inputs"] == *inputs));
+        // A completed sibling can advance the revision while this bounded,
+        // already-saved wave is reserving its other independent calls.
+        anyhow::ensure!(task.get::<i64, _>("revision") == revision || queued, "state_conflict");
         anyhow::ensure!(
             !task.get::<Value, _>("document")["cancelled"]
                 .as_bool()
                 .unwrap_or(false),
             "task cancelled"
         );
-        let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions WHERE task_id=$1 AND status IN ('dispatching','unresolved'))").bind(task_id).fetch_one(&mut *tx).await?;
-        anyhow::ensure!(!concurrent, "execution pending reconciliation");
+        let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions WHERE task_id=$1 AND status IN ('dispatching','unresolved') AND authorization_id<>$2)").bind(task_id).bind(authorization).fetch_one(&mut *tx).await?;
+        anyhow::ensure!(!concurrent, "another approved execution is pending reconciliation");
+        // Parallel reservations serialize on the task and authorization rows.
+        // Each reservation is included in allocated before the next is admitted.
         let auth=sqlx::query("SELECT cap_atomic,plan_hash,quote_ref FROM authorizations WHERE id=$1 AND task_id=$2 AND owner_id=$3 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE").bind(authorization).bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             auth.get::<String, _>("plan_hash") == plan.hash
@@ -234,7 +237,7 @@ impl Executor {
             "use-selection"
         };
         let result=async {
-            let r=self.http.post(format!("{}/functions/v1/{path}",self.supabase_url)).bearer_auth(bearer).timeout(Duration::from_secs(65)).json(&json!({"selection_id":selection,"inputs":inputs,"idempotency_key":idempotency,"deterministic":true})).send().await?;
+            let r=self.http.post(format!("{}/functions/v1/{path}",self.supabase_url)).bearer_auth(bearer).timeout(Duration::from_secs(8)).json(&json!({"selection_id":selection,"inputs":inputs,"idempotency_key":idempotency,"deterministic":true})).send().await?;
             bounded_json(r,4*1024*1024).await
         }.await;
         let body = match result {

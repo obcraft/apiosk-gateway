@@ -28,6 +28,17 @@ pub struct Envelope {
 }
 pub struct Signer(Vec<u8>);
 impl Signer {
+    pub fn events_signature(&self, owner: Uuid, task: Uuid, connection: Option<Uuid>, expires: i64) -> String {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("task-events-v1", owner, task, connection, expires)).unwrap());
+        hex::encode(mac.finalize().into_bytes())
+    }
+    pub fn verify_events(&self, owner: Uuid, task: Uuid, connection: Option<Uuid>, expires: i64, signature: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(expires > Utc::now().timestamp(), "event link expired");
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("task-events-v1", owner, task, connection, expires)).unwrap());
+        mac.verify_slice(&hex::decode(signature)?).map_err(|_| anyhow::anyhow!("invalid event signature"))
+    }
     pub fn research_signature(&self, owner: Uuid, task: Uuid, quote: Uuid, snapshot: &str, expires: i64) -> String {
         let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
         mac.update(&serde_json::to_vec(&("research-report-v1",owner,task,quote,snapshot,expires)).unwrap());
@@ -135,6 +146,8 @@ pub struct TurnOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
     #[serde(default)]
+    pub pending_dispatches: Vec<PendingDispatch>,
+    #[serde(default)]
     pub conversation: Vec<ConversationTurn>,
     #[serde(default)]
     pub last_archived_result_ref: Option<Uuid>,
@@ -159,6 +172,12 @@ pub struct Task {
     pub failed_steps: std::collections::BTreeMap<String, Value>,
     #[serde(default)]
     pub analysis: Option<Value>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingDispatch {
+    pub step: usize,
+    pub action_id: Uuid,
+    pub inputs: Value,
 }
 impl Task {
     pub fn step_finished(&self, key: &str) -> bool {

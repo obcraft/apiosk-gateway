@@ -1,4 +1,5 @@
 use crate::{
+    server_events::task_events,
     auth::{Auth, Principal},
     compat::ExecutorCompat,
     engine::Engine,
@@ -16,7 +17,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -77,7 +78,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
-        .layer(cors);
+        .layer(cors)
+        // EventSource runs inside the host's embedded card origin. The signed
+        // task capability is read-only; keep bearer/approval routes app-only.
+        .route("/v2/tasks/:id/events", get(task_events).layer(
+            CorsLayer::new().allow_origin(Any).allow_methods([Method::GET])
+        ));
     if compat.is_some() {
         app = app.fallback(legacy_fallback);
     }
@@ -330,7 +336,20 @@ async fn execute(
     let engine = state.engine.clone();
     match tokio::spawn(async move {
         let _permit = permit;
-        engine.execute(&p, &bearer, req).await
+        let id = req.state.state_ref;
+        let (_, saved, _) = engine.store.load(p.owner, id).await?;
+        let continuation = saved.actions.iter().any(|a| a["action_id"] == json!(req.action_id) && matches!(a["kind"].as_str(), Some("run" | "poll" | "wait" | "analyze" | "choose" | "supply" | "retry_analysis")));
+        if engine.worker_active(id).await? {
+            let (_, task, _) = engine.store.load(p.owner, id).await?;
+            if task.actions.iter().any(|a| a["action_id"] == json!(req.action_id) && matches!(a["kind"].as_str(), Some("run" | "poll" | "wait" | "analyze"))) {
+                return engine.view(&p, id, req.request_id, None).await;
+            }
+        }
+        let response = engine.execute(&p, &bearer, req).await?;
+        if continuation && response.state.is_some() && response.errors.is_empty() && !matches!(response.status, Status::RequiresApproval | Status::StateConflict) {
+            engine.start_worker(p.clone(), bearer, id).await?;
+            engine.view(&p, id, response.request_id, None).await
+        } else { Ok(response) }
     })
     .await
     {
@@ -406,10 +425,18 @@ async fn approve_connection(
         state.engine.signer.verify(p.owner, &req.state, false)?;
         state.engine.executor.approve_connection(&p, req.state.state_ref, req.state.revision,
             req.quote_ref, &req.max_total_atomic).await?;
-        state.engine.view(&p, req.state.state_ref, req.request_id, None).await
+        Ok::<(), anyhow::Error>(())
     }.await;
     match result {
-        Ok(response) => Json(response).into_response(),
+        Ok(()) => {
+            if let Err(error) = state.engine.start_worker(p.clone(), token(&headers).unwrap().to_owned(), req.state.state_ref).await {
+                tracing::warn!(task=%req.state.state_ref, error=%error, "approval saved; execution requires recovery");
+            }
+            match state.engine.view(&p, req.state.state_ref, req.request_id, None).await {
+                Ok(response) => Json(response).into_response(),
+                Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "execution_pending", "Approval was saved. Recover the task to check its result and payment status before retrying."),
+            }
+        },
         Err(error) => {
             tracing::warn!(error=%error,"connection approval refused");
             failure(StatusCode::FORBIDDEN, "approval_refused",
@@ -434,8 +461,16 @@ async fn authorize(
         .await
     {
         Ok(reference) => {
-            Json(json!({"authorization_ref":reference,"task_id":id,"quote_ref":req.quote_ref}))
-                .into_response()
+            // Connected tasks must execute with their connection's bearer.
+            if let Ok((_, _, None)) = state.engine.store.load(p.owner, id).await {
+                if let Err(error) = state.engine.start_worker(p.clone(), token(&headers).unwrap().to_owned(), id).await {
+                    tracing::warn!(task=%id, error=%error, "approved task could not start");
+                }
+            }
+            match state.engine.view(&p, id, Uuid::new_v4(), None).await {
+                Ok(response) => Json(response).into_response(),
+                Err(_) => Json(json!({"authorization_ref":reference,"task_id":id,"quote_ref":req.quote_ref})).into_response(),
+            }
         }
         Err(_) => failure(
             StatusCode::FORBIDDEN,

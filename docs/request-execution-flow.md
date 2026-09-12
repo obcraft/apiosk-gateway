@@ -1,0 +1,30 @@
+# Request → price → approve → result
+
+Implemented and deployed on 12 September 2026 across Gateway, MCP and App.
+
+The approval authorizes the entire quoted plan. The server owns execution under a database lease; closing the client does not stop the running server task. Up to four independent calls run concurrently. As soon as a dependency supplies its identifier, the executor can start its dependent call while unrelated calls continue. Every reservation locks the existing task and authorization, includes existing allocations, and checks the original ceiling. Payment identities and bound inputs are persisted before dispatch.
+
+The normal App planning response now includes its validated intent, removing the second model call. Older model responses retain the existing parser fallback. The existing typed contracts bind provider inputs and extract source facts deterministically. High-confidence, unique exact company names (including legal suffix normalization) resolve automatically; ties, conflicting known identifiers and incomplete candidate sets do not. Selection copies the selected source facts into the original entity and resumes the original quote without another search or model plan.
+
+The cards show title, source count, the exact maximum and one approval button. Source details are collapsed. Selection is prominent; results appear before source attribution and billing. Both App and supported MCP Apps use a signed, task-scoped SSE read capability. No account bearer is put in the event URL. Streaming and saved-status reads do not execute or approve purchases. Legacy clients retain their existing compatibility actions.
+
+The upstream executor response wait is bounded at eight seconds. A lost response does not establish failure or a refund: its allocation remains held and the worker reconciles the same payment identity. Confirmed source failures skip dependent work while independent results remain available. The executor has a fifteen-minute ceiling to accommodate the existing official-register queue; this is not a promise of a fifteen-second hard completion time.
+
+## Validation
+
+- `cargo test --workspace --offline -q`: 164 passed; 22 tests requiring separate fixtures/live services skipped.
+- `node scripts/test-integration.mjs`: existing durable flows and real MCP adapter → Rust HTTP/Auth → isolated PostgreSQL → fixture provider passed, including one-approval SSE completion and one-model-pass App planning.
+- `node scripts/test-worker-flow.mjs`: parallel execution, immediate dependency scheduling despite a slow sibling, original-quote ambiguity resume, no repeated search, duplicate worker admission, cancellation, budget ceiling and private lease access passed. Four calls with 200 ms fixture delays completed in about 470 ms; peak concurrency was two. These are local fixtures, not production latency measurements.
+- MCP: 167 tests passed, including server-event rendering without card-driven provider calls.
+- App: targeted conversation, result-table and transport tests passed (47 in the final run; the earlier research-card run also passed), and the production build passed.
+- Mobile approval, selection and result cards rendered in Chromium with no horizontal overflow. Example screenshots are in `Production/evidence/2026-09-12/request-flow/`; their displayed company data is illustrative.
+
+## Rollout and remaining performance work
+
+Production rollout completed on 12 September 2026. Migration `20260912181441_request_execution_lease.sql` was applied once to the shared database before Gateway release v58 (`deployment-01M2BGRES02Q3A023BT51ASJ4P`). MCP release v295 (`deployment-01M2BGEW462M8M6VDXJEVXCR6G`) serves v33 cards. App Netlify release `6aa5a3b606b9ddd27fb76c74` serves the verified production build. Nothing was committed or pushed.
+
+The production task table had already moved to `actions`. The first migration attempt failed atomically because it referenced the former schema; the corrected migration follows the actual task table and was tested under both `actions` and `gateway_v2`, including private access, foreign keys and cascade deletion. Production RLS and runtime-only table grants were verified. The migration copy in App is the same database change. For rollback, drain running leases and reconcile pending dispatches before reverting the Gateway: an older executor does not understand the new persisted dispatch queue.
+
+The production App created the two-company KVK test plan in about four seconds. The live paid execution is awaiting explicit approval of its displayed maximum of EUR 0.18; no test purchase has been made yet. The 3–10 second execution target remains unmeasured. Live Gateway health, unauthenticated access rejection, invalid SSE signature rejection, a real preapproval SSE task snapshot, MCP tool/card metadata and exact deployed MCP source hashes passed. The live test also found that the general App CORS layer overrode the event route; the event route is now separately scoped for signed read-only access from embedded host origins. The MCP-to-Gateway integration regression and final public-endpoint check verify this while preserving App-only approval CORS. The final live event response returned `Access-Control-Allow-Origin: *` without credential support; an invalid signature returned 403. Release evidence is in `Production/evidence/2026-09-12/request-flow/release/`. Data-dependent freshness and coverage continue to come from the existing contracts and result metadata. Historical p50/p95/success-based provider ranking and speculative provider racing are not implemented here; the resolver retains its existing source constraints and price selection. Do not advertise those as available or label fixture timing as upstream performance.
+
+Leases renew while the worker process is alive. A process restart requires resuming with a currently authenticated caller after lease expiry; bearer credentials are deliberately not stored in the database. An event transport failure exposes recovery instead of issuing replacement purchases. Hosts without usable EventSource support need their status/recovery control; execution still belongs to the server.

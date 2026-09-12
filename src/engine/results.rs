@@ -117,13 +117,15 @@ impl Engine {
             self.fail_step(task, step, json!({"code":"incomplete_selection","message":"The source did not return all candidates; dependent calls were not made."}))?;
             return Ok(());
         }
-        let ambiguous = extraction.is_ambiguous();
+        let selected = if extraction.is_ambiguous() { crate::entity_resolution::confident_candidate(task, step.entity_ref, &extraction.subjects) } else { None };
+        let ambiguous = extraction.is_ambiguous() && selected.is_none();
         // A completed search is a result in its own right. Only a remaining
         // dependency needs the user to disambiguate before spending again.
         let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
         let needs_choice = ambiguous && plan.steps.iter().any(|s| s.entity_ref == step.entity_ref && !task.completed.contains(&s.key()));
         let mut candidate_ids = vec![];
-        for subject in &extraction.subjects {
+        for (index, subject) in extraction.subjects.iter().enumerate() {
+            if selected.is_some_and(|selected| selected != index) { continue; }
             let entity = if ambiguous {
                 Uuid::new_v4()
             } else {
@@ -144,6 +146,12 @@ impl Engine {
                 candidate_ids.push(entity);
             }
             for f in &subject.facts {
+                if !ambiguous && f.fact_type == "company.name" {
+                    // Keep the source's canonical name without creating a
+                    // conflicting second name from the original search text.
+                    task.facts.retain(|known| known.entity_ref != entity || known.semantic_type != "company.name");
+                    if let Some(label) = f.value.as_str() { if let Some(e) = task.entities.iter_mut().find(|e|e.entity_ref==entity) { e.label=label.into(); } }
+                }
                 task.facts.push(Fact{entity_ref:entity,semantic_type:f.fact_type.clone(),value:f.value.clone(),provenance:json!({"kind":"provider_response","result_ref":result_ref,"source_pointer":f.extraction_base,"contract_id":step.service.id}),observed_at:Utc::now(),expires_at:Utc::now()+chrono::Duration::seconds(step.service.freshness_seconds.unwrap_or(3600).clamp(0,86400)),verification:"source_observed".into()});
             }
         }

@@ -141,6 +141,8 @@ fn decode_intent(raw: &str) -> anyhow::Result<Intent> {
 pub struct ChatReply {
     pub message: String,
     pub discover: bool,
+    #[serde(default)]
+    pub intent: Option<Intent>,
 }
 impl ChatReply {
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -266,21 +268,19 @@ impl Parser {
             "model": self.model, "temperature": 0, "max_tokens": 4096,
             "reasoning": {"effort":"minimal", "exclude":true},
             "provider": {"require_parameters":true},
-            "response_format": {"type":"json_schema", "json_schema": {
-                "name":"ask_chat_reply", "strict":true, "schema": {
-                    "type":"object", "additionalProperties":false,
-                    "required":["message","discover"],
-                    "properties":{"message":{"type":"string"},"discover":{"type":"boolean"}}
-                }
-            }},
+            "response_format": {"type":"json_object"},
             "messages": [
-                {"role":"system","content":include_str!("../contracts/ask-chat-prompt.txt")},
-                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"capabilities":catalog.parser_view()["capabilities"],"sources":catalog.parser_view()["sources"]}).to_string()}
+                {"role":"system","content":format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.",include_str!("../contracts/ask-chat-prompt.txt"),include_str!("../contracts/parser-prompt.txt"))},
+                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"catalog":catalog.parser_view(),"capabilities":catalog.parser_view()["capabilities"],"sources":catalog.parser_view()["sources"]}).to_string()}
             ]
         });
         self.completion("chat", &payload, |raw| {
             let reply: ChatReply = serde_json::from_str(raw)?;
             reply.validate()?;
+            if let Some(intent) = &reply.intent {
+                anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
+                intent.validate(question, task, catalog)?;
+            }
             Ok(reply)
         }).await
     }
@@ -576,13 +576,15 @@ mod tests {
         .is_err());
         assert!(ChatReply {
             message: " ".into(),
-            discover: false
+            discover: false,
+            intent: None,
         }
         .validate()
         .is_err());
         assert!(ChatReply {
             message: "x".repeat(3001),
-            discover: false
+            discover: false,
+            intent: None,
         }
         .validate()
         .is_err());

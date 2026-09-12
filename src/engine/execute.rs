@@ -16,7 +16,7 @@ impl Engine {
         let result = self.execute_inner(p, bearer, &req).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
-    async fn execute_inner(
+    pub(super) async fn execute_inner(
         &self,
         p: &Principal,
         bearer: &str,
@@ -162,7 +162,11 @@ impl Engine {
                     .collect();
                 for mut fact in chosen {
                     fact.entity_ref = original;
+                    task.facts.retain(|known| known.entity_ref != original || known.semantic_type != fact.semantic_type);
                     task.facts.push(fact)
+                }
+                if let Some(label) = task.entities.iter().find(|e|e.entity_ref==selected).map(|e|e.label.clone()) {
+                    if let Some(entity) = task.entities.iter_mut().find(|e|e.entity_ref==original) { entity.label = label; }
                 }
                 if let Some(e) = task.entities.iter_mut().find(|e| e.entity_ref == selected) {
                     e.selected = true;

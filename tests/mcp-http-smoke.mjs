@@ -35,10 +35,30 @@ r=await tool('apiosk_approve',{state:r.state,...authBody});
 assert.equal(r.billing.authorization_active,true);
 const repeated=await tool('apiosk_approve',{state:r.state,...authBody});
 assert.equal(repeated.billing.authorization_active,true);
-const firstAction=action(r);
-r=await tool('apiosk_execute',firstAction);assert.equal(r.status,'ready');
-const replay=await tool('apiosk_execute',firstAction);assert.equal(replay.status,'state_conflict');
-r=await tool('apiosk_execute',action(r));assert.equal(r.status,'succeeded');
+// Approval starts the whole request. The client only reads SSE updates.
+const stream = await fetch(new URL(r.context_view.events_path, base), {headers:{origin:'https://embedded-host.example'}});
+assert.equal(stream.status, 200);
+assert.match(stream.headers.get('content-type'), /text\/event-stream/);
+assert.equal(stream.headers.get('access-control-allow-origin'), '*');
+const approvalCors = await fetch(`${base}/v2/approve`, {method:'OPTIONS',headers:{origin:'https://embedded-host.example','access-control-request-method':'POST','access-control-request-headers':'authorization,content-type'}});
+assert.notEqual(approvalCors.headers.get('access-control-allow-origin'), '*');
+assert.notEqual(approvalCors.headers.get('access-control-allow-origin'), 'https://embedded-host.example');
+assert.equal((await fetch(new URL(r.context_view.events_path.replace(/signature=[^&]+/, 'signature=00'), base))).status, 403);
+const reader = stream.body.getReader();
+let buffer = ''; const decoder = new TextDecoder();
+while (r.status !== 'succeeded') {
+  const { value, done } = await reader.read(); assert.equal(done, false);
+  buffer += decoder.decode(value, { stream: true });
+  let end;
+  while ((end = buffer.indexOf('\n\n')) >= 0) {
+    const block = buffer.slice(0, end); buffer = buffer.slice(end + 2);
+    const line = block.split('\n').find(line => line.startsWith('data:'));
+    if (line) r = JSON.parse(line.slice(5).trim());
+  }
+}
+await reader.cancel();
+assert.equal(r.result.charged_atomic, '115');
+assert.equal(r.context_view.execution_mode, 'server');
 const read=r.next_actions.find(a=>a.kind==='read_result');
 r=await tool('apiosk_execute',{action_id:read.action_id,state:r.state});
 assert.equal(r.result.data.accounts,'2025');assert.equal(r.result.charged_atomic,'115');

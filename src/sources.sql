@@ -1,6 +1,6 @@
 SELECT coalesce(jsonb_agg(jsonb_build_object(
  'slug',a.slug,'provider_slug',p.username,'logo_url',coalesce(nullif(a.listing_metadata->>'logo',''),nullif(p.avatar_url,'')),'name',left(a.name,160),'description',left(coalesce(a.description,''),600),
- 'category',coalesce(a.category,''),
+ 'provider_logo_url',nullif(p.avatar_url,''),'category',coalesce(a.category,''),
  'tags',CASE WHEN jsonb_typeof(a.listing_metadata->'tags')='array' THEN a.listing_metadata->'tags' ELSE '[]'::jsonb END,
  'sectors',CASE WHEN jsonb_typeof(a.listing_metadata->'sectors')='array' THEN a.listing_metadata->'sectors' ELSE '[]'::jsonb END,
  'endpoint_count',(SELECT count(*) FROM api_endpoints e WHERE e.api_id=a.id AND e.active=true)

@@ -139,9 +139,11 @@ pub enum Resolution {
     Missing { entity: Uuid, kind: String },
     Unsupported(String),
 }
-fn allows(service: &Service, constraints: &BTreeMap<String, Value>) -> bool {
+fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
     constraints.iter().all(|(k, v)| match k.as_str() {
-        "source" => v.as_str() == Some(service.api_slug.as_str()),
+        "source" => v.as_str() == Some(service.api_slug.as_str())
+            || (v.as_str() == Some("pulsenetwork") && catalog.known_sources.iter().any(|s|
+                s.slug == service.api_slug && s.metadata.provider_slug.as_deref() == Some("pulsenetwork"))),
         "jurisdiction" => v
             .as_str()
             .zip(service.jurisdiction.as_deref())
@@ -172,7 +174,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         let mut missing = None;
         for index in candidates {
             let service = &catalog.services[index];
-            if !allows(service, &goal.constraints) {
+            if !allows(service, &goal.constraints, catalog) {
                 continue;
             }
             let mut trial = steps.clone();
@@ -365,7 +367,10 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
                 "label":if required.fact_type == "company_registry.kvknummer" {"KVK number".to_owned()} else {required.fact_type.replace(['.', '_', '-'], " ")}}))
         }).collect();
         json!({"number":index+1,"title":title,"capability":capability,
-            "source":{"name":service.name,"slug":service.api_slug,"logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url},
+            "source":{"name":service.name,"slug":service.api_slug,
+                "directory_slug":source.map(crate::sources::directory_slug).unwrap_or(&service.api_slug),
+                "directory_name":source.map(crate::sources::directory_name).unwrap_or(&service.name),
+                "logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url},
             "dependencies":dependencies})
     }).collect()
 }
@@ -373,6 +378,18 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
+    #[test]
+    fn pulse_parent_selection_only_allows_services_owned_by_pulse() {
+        let mut catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let service = catalog.services[0].clone();
+        let constraints = BTreeMap::from([("source".to_owned(), json!("pulsenetwork"))]);
+        assert!(!allows(&service, &constraints, &catalog));
+        catalog.known_sources.push(crate::catalog::KnownSource { slug:service.api_slug.clone(),name:"Member".into(),block_reason:None,
+            metadata:crate::readiness::Metadata { provider_slug:Some("pulsenetwork".into()),..Default::default() } });
+        assert!(allows(&service, &constraints, &catalog));
+        let mut unrelated = service.clone(); unrelated.api_slug = "independent-pulse".into();
+        assert!(!allows(&unrelated, &constraints, &catalog));
+    }
     #[test]
     fn saved_analysis_retry_is_manual_and_never_authorizes_a_purchase() {
         let action=Action::RetryAnalysis{action_id:Uuid::new_v4()}.public();
