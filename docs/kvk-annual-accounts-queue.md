@@ -8,16 +8,25 @@ payment executor reads the same cache and cannot bypass the queue for this sourc
 
 ## Deployment and capacity
 
-Five standalone `apiosk-kvk-worker` processes run on Fly.io, in apps
-`apiosk-kvk-worker-1` through `apiosk-kvk-worker-5`. Each has one Machine in `ams`,
+One standalone `apiosk-kvk-worker` process runs on Fly.io in
+`apiosk-kvk-worker-1`, with one Machine in `ams`,
 256 MiB memory, two database connections, and no public HTTP service. The gateway
 runs with `KVK_WORKERS_ENABLED=0` so only dedicated workers fetch source data.
 
 All production workers share **one persistent source budget**, with a 61-second
-start-to-start interval. Separate routes do not multiply that budget. Five workers
-provide redundancy; this release does not claim five new source documents per
+start-to-start interval. Separate routes do not multiply that budget. This
+release does not claim five new source documents per
 minute. Cached requests do not consume a source allowance. A provider-approved
 capacity increase would require a separate implementation and acceptance test.
+
+The deployment was reduced from five to one worker on 2026-09-12 to lower
+costs. Workers 2–5 are retired; future deployments target only worker 1.
+The remaining worker retains its fixed egress IP. At published Amsterdam prices,
+one continuously running shared-cpu-1x/256 MiB Machine and one static egress IP
+pair cost approximately $5.62 per 30 days, excluding traffic and taxes, versus
+$28.10 for five (a saving of $22.48). The database queue and all saved annual
+accounts remain in Supabase. A single worker relies on Fly restart and durable
+queue recovery, without a second live worker for failover.
 
 Worker startup checks the schema and configured outgoing address. The dedicated
 `apiosk_kvk_worker` database login inherits `kvk_worker_runtime`, limited to the KVK

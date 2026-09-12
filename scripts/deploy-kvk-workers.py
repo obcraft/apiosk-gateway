@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Provision five Fly worker apps/IPs and deploy one shared worker image.
+"""Provision one Fly worker app/IP and deploy one shared worker image.
 
 Default is read-only. --provision creates billable apps/egress allocations and
 imports only DATABASE_URL plus the worker's expected egress identity from .local/kvk-worker.env.
---image deploys an already-built image to all five apps (one Machine per app).
+--image deploys an already-built image to the configured app (one Machine).
 """
 import argparse
 import ipaddress
@@ -14,7 +14,7 @@ import subprocess
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-APPS = [f'apiosk-kvk-worker-{i}' for i in range(1, 6)]
+APPS = [f'apiosk-kvk-worker-{i}' for i in range(1, 2)]
 CONFIG = 'deploy/kvk-workers/fly.toml'
 
 def fly(*args, secret_input=None):
@@ -68,7 +68,7 @@ def main():
     if len(ips) != len(set(ips)):
         raise RuntimeError('Worker apps share an egress IPv4')
     if args.image:
-        assert len(ips)==5, 'Provision all five routes first'
+        assert len(ips)==len(APPS), 'Provision all configured routes first'
         assert args.image.startswith('registry.fly.io/apiosk-kvk-worker-1:'), 'Use the reviewed worker image'
         for row in manifest:
             machines = json.loads(fly('machine','list','--app',row['app'],'--json'))
