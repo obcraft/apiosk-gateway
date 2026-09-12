@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/catalog-core"]
+members = ["crates/catalog-core", "crates/kvk-accounts"]
 exclude = ["legacy-executor"]
 resolver = "2"
 
@@ -9,6 +9,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+kvk-accounts = { path = "crates/kvk-accounts" }
 catalog-core = { path = "crates/catalog-core" }
 anyhow = "1"
 axum = "0.7"
@@ -37,4 +38,3 @@ genpdf = "0.2.0"
 strip = true
 lto = "thin"
 codegen-units = 1
-

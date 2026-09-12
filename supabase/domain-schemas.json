@@ -1,0 +1,1036 @@
+{
+  "version": 1,
+  "mode": "administrative_views",
+  "description": "Administrative domain schemas; canonical storage and runtime API references remain unchanged.",
+  "domains": [
+    {
+      "name": "kyb",
+      "description": "Bedrijfsverificatie, documenten, personen en KYB-providerkoppelingen",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "kyb_documents",
+          "name": "documents"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_events",
+          "name": "events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_oauth_sessions",
+          "name": "oauth_sessions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_oauth_tokens",
+          "name": "oauth_tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_persons",
+          "name": "persons"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_profiles",
+          "name": "profiles"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_provider_secrets",
+          "name": "provider_secrets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "kyb_providers",
+          "name": "providers"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "trust_attestations",
+          "name": "trust_attestations"
+        }
+      ]
+    },
+    {
+      "name": "providers",
+      "description": "Providers, API-aanbod, endpoints, providerinstellingen en provideradministratie",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "admin_api_endpoints",
+          "name": "admin_api_endpoints"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "admin_provider_apis",
+          "name": "admin_provider_apis"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "admin_provider_users",
+          "name": "admin_provider_users"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "api_endpoints",
+          "name": "api_endpoints"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "api_monthly_volume",
+          "name": "api_monthly_volume"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "api_payout_wallets",
+          "name": "api_payout_wallets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "api_usage_stats",
+          "name": "api_usage_stats"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "apis",
+          "name": "apis"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "developer_balance_summary",
+          "name": "developer_balance_summary"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "developer_balances",
+          "name": "developer_balances"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "developer_revenue",
+          "name": "developer_revenue"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "endpoint_pricing_rules",
+          "name": "endpoint_pricing_rules"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "offramp_mandates",
+          "name": "offramp_mandates"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_accounting_mappings",
+          "name": "accounting_mappings"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_accounting_settings",
+          "name": "accounting_settings"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_api_keys",
+          "name": "api_keys"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_api_usage_30d",
+          "name": "api_usage_30d"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_company_profiles",
+          "name": "company_profiles"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_compliance_profiles",
+          "name": "compliance_profiles"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_earnings_ledger",
+          "name": "earnings_ledger"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_endpoint_usage_daily",
+          "name": "endpoint_usage_daily"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_fiat_payout_accounts",
+          "name": "fiat_payout_accounts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_gateway_request_traces",
+          "name": "gateway_request_traces"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_git_oauth_tokens",
+          "name": "git_oauth_tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_integrations",
+          "name": "integrations"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_mollie_accounts",
+          "name": "mollie_accounts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_notification_prefs",
+          "name": "notification_prefs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_offramp_runs",
+          "name": "offramp_runs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_payout_lines",
+          "name": "payout_lines"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_payout_owner_totals",
+          "name": "payout_owner_totals"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_payout_schedule",
+          "name": "payout_schedule"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_payout_summary",
+          "name": "payout_summary"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_profiles",
+          "name": "profiles"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_resource_usage_30d",
+          "name": "resource_usage_30d"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_sepa_held",
+          "name": "sepa_held"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_sepa_payable",
+          "name": "sepa_payable"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_settlement_ledger",
+          "name": "settlement_ledger"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_team_members",
+          "name": "team_members"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "provider_usdc_payouts",
+          "name": "usdc_payouts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "resource_collections",
+          "name": "resource_collections"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "resource_files",
+          "name": "resource_files"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "resource_usage",
+          "name": "resource_usage"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "source_providers",
+          "name": "source_providers"
+        }
+      ]
+    },
+    {
+      "name": "catalog",
+      "description": "Capabilities, uitvoercontracten, feiten en discovery",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "capabilities",
+          "name": "capabilities"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "capability_execution_contracts",
+          "name": "capability_execution_contracts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "capability_offers",
+          "name": "capability_offers"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connector_listings",
+          "name": "connector_listings"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "discovery_agents",
+          "name": "discovery_agents"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "discovery_sources",
+          "name": "discovery_sources"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fact_subject_kinds",
+          "name": "fact_subject_kinds"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fact_types",
+          "name": "fact_types"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "federated_execution_readiness",
+          "name": "federated_execution_readiness"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "param_resolvers",
+          "name": "param_resolvers"
+        }
+      ]
+    },
+    {
+      "name": "actions",
+      "description": "Selecties, vergelijkingen, beslissingen en bronuitvoering",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "call_runs",
+          "name": "call_runs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "comparisons",
+          "name": "comparisons"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "decision_outcomes",
+          "name": "decision_outcomes"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "decisions",
+          "name": "decisions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "external_x402_fetches",
+          "name": "external_x402_fetches"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_idempotency_keys",
+          "name": "gateway_idempotency_keys"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "user_selected_apis",
+          "name": "user_selected_apis"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "x402_host_policy",
+          "name": "x402_host_policy"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "x402_proof_nonces",
+          "name": "x402_proof_nonces"
+        },
+        {
+          "source_schema": "gateway_v2",
+          "source_name": "authorizations",
+          "name": "authorizations"
+        },
+        {
+          "source_schema": "gateway_v2",
+          "source_name": "executions",
+          "name": "executions"
+        },
+        {
+          "source_schema": "gateway_v2",
+          "source_name": "requests",
+          "name": "requests"
+        },
+        {
+          "source_schema": "gateway_v2",
+          "source_name": "results",
+          "name": "results"
+        },
+        {
+          "source_schema": "gateway_v2",
+          "source_name": "tasks",
+          "name": "tasks"
+        }
+      ]
+    },
+    {
+      "name": "billing",
+      "description": "Kopersaldo, betalingen, goedkeuringen, afrekening en uitbetalingen",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "balance_charges",
+          "name": "balance_charges"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "balance_grant_policies",
+          "name": "balance_grant_policies"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "balance_grants",
+          "name": "balance_grants"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "balance_topups",
+          "name": "balance_topups"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "commission_tiers",
+          "name": "commission_tiers"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "credit_ledger",
+          "name": "credit_ledger"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fiat_customer_profiles",
+          "name": "fiat_customer_profiles"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fiat_daily_spend_counters",
+          "name": "fiat_daily_spend_counters"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fiat_purchase_payments",
+          "name": "fiat_purchase_payments"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "fx_rates",
+          "name": "fx_rates"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_payment_attempts",
+          "name": "gateway_payment_attempts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "job_budget_reservations",
+          "name": "job_budget_reservations"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "job_charge_allocations",
+          "name": "job_charge_allocations"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "payment_intents",
+          "name": "payment_intents"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "payment_links",
+          "name": "payment_links"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "payout_requests",
+          "name": "payout_requests"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "payout_wallets",
+          "name": "payout_wallets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "purchase_approvals",
+          "name": "purchase_approvals"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "purchase_policies",
+          "name": "purchase_policies"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "purchase_policy_decisions",
+          "name": "purchase_policy_decisions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "reconciliation_daily_summary",
+          "name": "reconciliation_daily_summary"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "reconciliation_settlements_without_usage",
+          "name": "reconciliation_settlements_without_usage"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "reconciliation_stuck_settlements",
+          "name": "reconciliation_stuck_settlements"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "reconciliation_unsettled_paid_calls",
+          "name": "reconciliation_unsettled_paid_calls"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "resell_payments",
+          "name": "resell_payments"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "sepa_provider_earnings",
+          "name": "sepa_provider_earnings"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "sepa_settlement_batches",
+          "name": "sepa_settlement_batches"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "sepa_settlement_buyer_balances",
+          "name": "sepa_settlement_buyer_balances"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "sepa_settlement_ledger",
+          "name": "sepa_settlement_ledger"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "settlement_config",
+          "name": "settlement_config"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "settlements",
+          "name": "settlements"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "user_balances",
+          "name": "user_balances"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "user_credit_balances",
+          "name": "user_credit_balances"
+        }
+      ]
+    },
+    {
+      "name": "agents",
+      "description": "Agentverbindingen, toestemming, MCP-sessies en toolaanroepen",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "agent_authorizations",
+          "name": "authorizations"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_code_attempts",
+          "name": "code_attempts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_connection_intents",
+          "name": "connection_intents"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_connection_invites",
+          "name": "connection_invites"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_connection_state",
+          "name": "connection_state"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_connections",
+          "name": "connections"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_intents",
+          "name": "intents"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_presence_sessions",
+          "name": "presence_sessions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_tokens",
+          "name": "tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "mcp_oauth_events",
+          "name": "mcp_oauth_events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "mcp_sessions",
+          "name": "mcp_sessions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "mcp_settlements",
+          "name": "mcp_settlements"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "mcp_tool_calls",
+          "name": "mcp_tool_calls"
+        }
+      ]
+    },
+    {
+      "name": "wallets",
+      "description": "Wallets, wallettransacties, netwerken en tokens",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallet_connect_token_wallets",
+          "name": "agent_wallet_connect_token_wallets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallet_connect_tokens",
+          "name": "agent_wallet_connect_tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallet_stale_connect_tokens",
+          "name": "agent_wallet_stale_connect_tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallet_transactions",
+          "name": "agent_wallet_transactions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallet_user_secrets",
+          "name": "agent_wallet_user_secrets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "agent_wallets",
+          "name": "agent_wallets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "network_tokens",
+          "name": "network_tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "network_tokens_view",
+          "name": "network_tokens_view"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "networks",
+          "name": "networks"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "tokens",
+          "name": "tokens"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "wallet_accounts",
+          "name": "wallet_accounts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "wallet_auth_nonces",
+          "name": "wallet_auth_nonces"
+        }
+      ]
+    },
+    {
+      "name": "research",
+      "description": "Onderzoeksplannen, jobs, resultaten en gesprekken",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "ask_conversations",
+          "name": "ask_conversations"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "ask_messages",
+          "name": "ask_messages"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_artifacts",
+          "name": "artifacts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_job_artifacts",
+          "name": "job_artifacts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_job_events",
+          "name": "job_events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_job_facts",
+          "name": "job_facts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_job_nodes",
+          "name": "job_nodes"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_job_refs",
+          "name": "job_refs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_jobs",
+          "name": "jobs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_plan_versions",
+          "name": "plan_versions"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "research_plans",
+          "name": "plans"
+        }
+      ]
+    },
+    {
+      "name": "integrations",
+      "description": "Marketplace Connect, webshops, GitHub en WebMCP-koppelingen",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "connect_api_keys",
+          "name": "api_keys"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_audit_log",
+          "name": "audit_log"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_marketplaces",
+          "name": "marketplaces"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_merchants",
+          "name": "merchants"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_oauth_clients",
+          "name": "oauth_clients"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_oauth_codes",
+          "name": "oauth_codes"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_payments",
+          "name": "payments"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_payouts",
+          "name": "payouts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_skills",
+          "name": "skills"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "connect_wallets",
+          "name": "wallets"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "github_connections",
+          "name": "github_connections"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "v_connect_marketplace_fee_due",
+          "name": "v_connect_marketplace_fee_due"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "webmcp_sites",
+          "name": "webmcp_sites"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "webshop_integrations",
+          "name": "webshop_integrations"
+        }
+      ]
+    },
+    {
+      "name": "observability",
+      "description": "Verkeer, requestlogs, health en gebruiksmetingen",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "admin_gateway_traffic",
+          "name": "admin_gateway_traffic"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "admin_gateway_traffic_v2",
+          "name": "admin_gateway_traffic_v2"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "dashboard_visits",
+          "name": "dashboard_visits"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "discovery_impressions_daily",
+          "name": "discovery_impressions_daily"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "discovery_reads_daily",
+          "name": "discovery_reads_daily"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "endpoint_health",
+          "name": "endpoint_health"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "federated_referral_clicks",
+          "name": "federated_referral_clicks"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "federated_traffic_daily",
+          "name": "federated_traffic_daily"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_discovery_events",
+          "name": "discovery_events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_request_daily_rollups",
+          "name": "request_daily_rollups"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_request_events",
+          "name": "request_events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_request_logs",
+          "name": "request_logs"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_requests_v2",
+          "name": "requests_v2"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_upstream_attempts",
+          "name": "upstream_attempts"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "gateway_usage",
+          "name": "usage"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "launch_events",
+          "name": "launch_events"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "webmcp_injections_daily",
+          "name": "webmcp_injections_daily"
+        }
+      ]
+    },
+    {
+      "name": "support",
+      "description": "Supportgesprekken, contact en feedback",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "contact_messages",
+          "name": "contact_messages"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "dashboard_feedback",
+          "name": "dashboard_feedback"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "support_thread_messages",
+          "name": "thread_messages"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "support_threads",
+          "name": "threads"
+        }
+      ]
+    },
+    {
+      "name": "content",
+      "description": "Kennisbankartikelen en categorieën",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "learn_categories",
+          "name": "categories"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "learn_posts",
+          "name": "posts"
+        }
+      ]
+    },
+    {
+      "name": "operations",
+      "description": "Beheerregistraties, snapshots en operationele berichten",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "api_review_email_outbox",
+          "name": "api_review_email_outbox"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "apiosk_alignment_markers",
+          "name": "alignment_markers"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "apiosk_endpoint_hide_snapshots",
+          "name": "endpoint_hide_snapshots"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "apiosk_hide_snapshots",
+          "name": "hide_snapshots"
+        }
+      ]
+    },
+    {
+      "name": "identity",
+      "description": "Gebruikerslevenscyclus, voorkeuren en platformbeheerders",
+      "relations": [
+        {
+          "source_schema": "public",
+          "source_name": "platform_admins",
+          "name": "platform_admins"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "user_account_lifecycle",
+          "name": "account_lifecycle"
+        },
+        {
+          "source_schema": "public",
+          "source_name": "user_preferences",
+          "name": "preferences"
+        }
+      ]
+    }
+  ]
+}

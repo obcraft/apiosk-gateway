@@ -17,7 +17,7 @@ impl Store {
     pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> {
         // Summaries only, bounded and ordered through tasks_owner_recent.
         Ok(sqlx::query_scalar(
-            "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM gateway_v2.tasks WHERE owner_id=$1 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
+            "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM tasks WHERE owner_id=$1 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
         ).bind(owner).fetch_all(&self.pool).await?)
     }
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
@@ -26,14 +26,14 @@ impl Store {
             .bind(owner.to_string())
             .execute(&mut *tx)
             .await?;
-        if let Some(row)=sqlx::query("SELECT payload_hash,response FROM gateway_v2.requests WHERE owner_id=$1 AND request_id=$2").bind(owner).bind(request).fetch_optional(&mut *tx).await? {
+        if let Some(row)=sqlx::query("SELECT payload_hash,response FROM requests WHERE owner_id=$1 AND request_id=$2").bind(owner).bind(request).fetch_optional(&mut *tx).await? {
             if row.get::<String,_>("payload_hash")!=hash {return Ok(Claim::Conflict)}
             return Ok(match row.get::<Option<Value>,_>("response") {Some(v)=>Claim::Replay(Box::new(serde_json::from_value(v)?)),None=>Claim::Busy})
         }
-        let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.requests WHERE owner_id=$1 AND created_at>now()-interval '1 minute'").bind(owner).fetch_one(&mut *tx).await?;
+        let count:i64=sqlx::query_scalar("SELECT count(*) FROM requests WHERE owner_id=$1 AND created_at>now()-interval '1 minute'").bind(owner).fetch_one(&mut *tx).await?;
         anyhow::ensure!(count < 60, "request rate limit; wait one minute");
         sqlx::query(
-            "INSERT INTO gateway_v2.requests(owner_id,request_id,payload_hash) VALUES($1,$2,$3)",
+            "INSERT INTO requests(owner_id,request_id,payload_hash) VALUES($1,$2,$3)",
         )
         .bind(owner)
         .bind(request)
@@ -45,7 +45,7 @@ impl Store {
     }
     pub async fn finish(&self, owner: Uuid, response: &Response) -> anyhow::Result<()> {
         sqlx::query(
-            "UPDATE gateway_v2.requests SET response=$3 WHERE owner_id=$1 AND request_id=$2",
+            "UPDATE requests SET response=$3 WHERE owner_id=$1 AND request_id=$2",
         )
         .bind(owner)
         .bind(response.request_id)
@@ -57,7 +57,7 @@ impl Store {
     pub async fn create(&self, owner: Uuid, connection: Option<Uuid>) -> anyhow::Result<Uuid> {
         let id = Uuid::new_v4();
         sqlx::query(
-            "INSERT INTO gateway_v2.tasks(id,owner_id,connection_id,document) VALUES($1,$2,$3,$4)",
+            "INSERT INTO tasks(id,owner_id,connection_id,document) VALUES($1,$2,$3,$4)",
         )
         .bind(id)
         .bind(owner)
@@ -68,7 +68,7 @@ impl Store {
         Ok(id)
     }
     pub async fn load(&self, owner: Uuid, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
-        let row=sqlx::query("SELECT revision,document,connection_id FROM gateway_v2.tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now()")
+        let row=sqlx::query("SELECT revision,document,connection_id FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now()")
             .bind(id).bind(owner).fetch_optional(&self.pool).await?.ok_or_else(||anyhow::anyhow!("task unavailable"))?;
         Ok((
             row.get("revision"),
@@ -84,7 +84,7 @@ impl Store {
         task: &Task,
     ) -> anyhow::Result<i64> {
         anyhow::ensure!(task.bounded(), "task capacity reached; start a new task");
-        let n=sqlx::query("UPDATE gateway_v2.tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
+        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&self.pool).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
         Ok(revision + 1)
@@ -100,30 +100,30 @@ impl Store {
     ) -> anyhow::Result<i64> {
         anyhow::ensure!(task.bounded(), "task capacity reached");
         let mut tx = self.pool.begin().await?;
-        sqlx::query("SELECT id FROM gateway_v2.tasks WHERE id=$1 AND owner_id=$2 FOR UPDATE")
+        sqlx::query("SELECT id FROM tasks WHERE id=$1 AND owner_id=$2 FOR UPDATE")
             .bind(id)
             .bind(owner)
             .fetch_one(&mut *tx)
             .await?;
-        let pending:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.executions e JOIN gateway_v2.tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM gateway_v2.results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&mut *tx).await?;
+        let pending:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             !pending,
             "existing execution needs recovery before a new intent"
         );
-        let n=sqlx::query("UPDATE gateway_v2.tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
+        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&mut *tx).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
         tx.commit().await?;
         Ok(revision + 1)
     }
     pub async fn result(&self, owner: Uuid, task: Uuid, id: Uuid) -> anyhow::Result<Value> {
-        Ok(sqlx::query_scalar("SELECT r.document FROM gateway_v2.results r JOIN gateway_v2.tasks t ON t.id=r.task_id WHERE r.id=$1 AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
+        Ok(sqlx::query_scalar("SELECT r.document FROM results r JOIN tasks t ON t.id=r.task_id WHERE r.id=$1 AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
             .bind(id).bind(owner).bind(task).fetch_one(&self.pool).await?)
     }
     /// Compatibility lookup for pre-timeline tasks. Uses requests_owner_time
     /// and the task's creation bound; returns only presentation metadata.
     pub async fn original_result_turn(&self, owner: Uuid, task: Uuid, result: Uuid) -> anyhow::Result<Option<Value>> {
-        Ok(sqlx::query_scalar("SELECT jsonb_build_object('conversation',r.response->'context_view'->'conversation','proposal',r.response->'proposal') FROM gateway_v2.requests r WHERE r.owner_id=$1 AND r.created_at >= (SELECT created_at FROM gateway_v2.tasks WHERE id=$2 AND owner_id=$1 AND expires_at>now()) AND r.response->'state'->>'state_ref'=$2::text AND (r.response->'context_view'->'result_refs') ? $3 ORDER BY r.created_at LIMIT 1")
+        Ok(sqlx::query_scalar("SELECT jsonb_build_object('conversation',r.response->'context_view'->'conversation','proposal',r.response->'proposal') FROM requests r WHERE r.owner_id=$1 AND r.created_at >= (SELECT created_at FROM tasks WHERE id=$2 AND owner_id=$1 AND expires_at>now()) AND r.response->'state'->>'state_ref'=$2::text AND (r.response->'context_view'->'result_refs') ? $3 ORDER BY r.created_at LIMIT 1")
             .bind(owner).bind(task).bind(result.to_string()).fetch_optional(&self.pool).await?)
     }
 }

@@ -1,0 +1,18 @@
+# Supply --app apiosk-kvk-worker-N. One app and one egress allocation per worker.
+primary_region = "ams"
+kill_signal = "SIGINT"
+kill_timeout = "35s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RUST_LOG = "info"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "256mb"
+
+[[restart]]
+  policy = "always"

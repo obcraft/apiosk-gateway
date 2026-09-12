@@ -54,6 +54,9 @@ async fn main() -> anyhow::Result<()> {
         .acquire_timeout(Duration::from_secs(5))
         .after_connect(|conn, _| {
             Box::pin(async move {
+                sqlx::query("SET search_path TO public, gateway_v2, kyb, providers, catalog, actions, billing, agents, wallets, research, integrations, observability, support, content, operations, identity, extensions")
+                    .execute(&mut *conn)
+                    .await?;
                 sqlx::query("SET statement_timeout='10s'")
                     .execute(conn)
                     .await?;
@@ -63,9 +66,24 @@ async fn main() -> anyhow::Result<()> {
         .connect_with(database_options)
         .await?;
     // Startup does not run migrations or change production schemas.
-    sqlx::query("SELECT id FROM gateway_v2.tasks LIMIT 0")
+    sqlx::query("SELECT id FROM tasks LIMIT 0")
         .execute(&pool)
         .await?;
+    let mut kvk_handles = Vec::new();
+    if env::var("V2_EXECUTION_ENABLED").as_deref() == Ok("1")
+        && env::var("KVK_WORKERS_ENABLED").as_deref() != Ok("0")
+    {
+        let routes = kvk_accounts::Workers::configured(pool.clone()).await?;
+        for route in &routes {
+            route.check_schema().await?;
+        }
+        // Five configured routes: one worker each. A single direct route gets
+        // five consumers but still only one shared per-IP upstream allowance.
+        let consumers = if routes.len() == 1 { 5 } else { 1 };
+        for route in routes {
+            kvk_handles.extend(route.start(consumers));
+        }
+    }
     let http = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
@@ -87,6 +105,22 @@ async fn main() -> anyhow::Result<()> {
             timer.tick().await;
             if housekeeping.prune().await.is_err() {
                 tracing::warn!("state retention maintenance failed");
+            }
+            match housekeeping.reconcile().await {
+                Ok((closed, held)) => {
+                    if closed > 0 {
+                        tracing::info!(closed, "released abandoned dispatches");
+                    }
+                    // Charged, with no outcome recorded. Nothing here may decide
+                    // that on a timer, so say it every sweep until someone does.
+                    if held > 0 {
+                        tracing::warn!(
+                            held,
+                            "executions hold a ledger charge with no recorded outcome"
+                        );
+                    }
+                }
+                Err(_) => tracing::warn!("execution reconciliation failed"),
             }
         }
     });
@@ -144,5 +178,8 @@ async fn main() -> anyhow::Result<()> {
             tokio::signal::ctrl_c().await.ok();
         })
         .await?;
+    for handle in kvk_handles {
+        handle.abort();
+    }
     Ok(())
 }

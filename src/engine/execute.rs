@@ -188,7 +188,7 @@ impl Engine {
                 let auth = if let Some(id) = req.authorization_ref {
                     Some(id)
                 } else {
-                    sqlx::query_scalar("SELECT id FROM gateway_v2.authorizations WHERE task_id=$1 AND owner_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(id).bind(p.owner).bind(plan.quote_ref).fetch_optional(&self.store.pool).await?
+                    sqlx::query_scalar("SELECT id FROM authorizations WHERE task_id=$1 AND owner_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(id).bind(p.owner).bind(plan.quote_ref).fetch_optional(&self.store.pool).await?
                 };
                 let Some(auth) = auth else {
                     return self
@@ -267,7 +267,7 @@ impl Engine {
                         // Retry one confirmed, fully refunded KVK throttle under
                         // the original quote. Unknown payment outcomes never enter
                         // this branch. Dispatch rechecks consent, price and budget.
-                        let attempts: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.executions e JOIN public.user_selected_apis s ON s.id=e.selection_id WHERE e.task_id=$1 AND e.owner_id=$2 AND s.candidate_id=$3 AND e.response->>'error'='rate_limited_refunded'")
+                        let attempts: i64 = sqlx::query_scalar("SELECT count(*) FROM executions e JOIN user_selected_apis s ON s.id=e.selection_id WHERE e.task_id=$1 AND e.owner_id=$2 AND s.candidate_id=$3 AND e.response->>'error'='rate_limited_refunded'")
                             .bind(id).bind(p.owner).bind(step.service.endpoint_id).fetch_one(&self.store.pool).await?;
                         if body["error"] == "rate_limited_refunded" && step.service.path == crate::annual_report::ENDPOINT && attempts == 1 && !task.cancelled {
                             task.actions = vec![serde_json::to_value(Action::Wait { action_id: Uuid::new_v4(), until: Utc::now()+chrono::Duration::seconds(65) })?];

@@ -25,43 +25,93 @@ pub enum Dispatch {
 }
 impl Executor {
     pub async fn connection_can_approve(&self, p: &Principal) -> anyhow::Result<bool> {
-        let Some(connection) = p.connection else { return Ok(false) };
-        Ok(sqlx::query("SELECT 1 FROM gateway_v2.connection_budget($1,$2)")
-            .bind(p.owner).bind(connection).fetch_optional(&self.store.pool).await?.is_some())
+        let Some(connection) = p.connection else {
+            return Ok(false);
+        };
+        Ok(
+            sqlx::query("SELECT 1 FROM gateway_v2.connection_budget($1,$2)")
+                .bind(p.owner)
+                .bind(connection)
+                .fetch_optional(&self.store.pool)
+                .await?
+                .is_some(),
+        )
     }
 
     /// The caller's existing connection mandate is the authority. A host's
     /// app-only button is not proof of human presence and must not widen it.
     pub async fn approve_connection(
-        &self, p: &Principal, task_id: Uuid, revision: i64, quote: Uuid, cap: &str,
+        &self,
+        p: &Principal,
+        task_id: Uuid,
+        revision: i64,
+        quote: Uuid,
+        cap: &str,
     ) -> anyhow::Result<Uuid> {
         anyhow::ensure!(self.enabled, "purchases unavailable");
-        let connection = p.connection.ok_or_else(|| anyhow::anyhow!("connected account required"))?;
+        let connection = p
+            .connection
+            .ok_or_else(|| anyhow::anyhow!("connected account required"))?;
         let mut tx = self.store.pool.begin().await?;
-        let row = sqlx::query("SELECT revision,connection_id,document FROM gateway_v2.tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
+        let row = sqlx::query("SELECT revision,connection_id,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
             .bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
-        anyhow::ensure!(row.get::<Option<Uuid>,_>("connection_id")==Some(connection), "task belongs to another connection");
-        anyhow::ensure!(row.get::<i64,_>("revision")==revision, "state changed; check status before approving");
+        anyhow::ensure!(
+            row.get::<Option<Uuid>, _>("connection_id") == Some(connection),
+            "task belongs to another connection"
+        );
+        anyhow::ensure!(
+            row.get::<i64, _>("revision") == revision,
+            "state changed; check status before approving"
+        );
         let task: Task = serde_json::from_value(row.get("document"))?;
         anyhow::ensure!(!task.cancelled, "task cancelled");
-        let plan: Plan = serde_json::from_value(task.proposal.ok_or_else(|| anyhow::anyhow!("no proposal"))?)?;
-        anyhow::ensure!(plan.quote_ref==quote && plan.expires_at>Utc::now(), "quote changed or expired");
-        anyhow::ensure!(cap==plan.cap_atomic.to_string(), "approval amount must match displayed cap");
+        let plan: Plan = serde_json::from_value(
+            task.proposal
+                .ok_or_else(|| anyhow::anyhow!("no proposal"))?,
+        )?;
+        anyhow::ensure!(
+            plan.quote_ref == quote && plan.expires_at > Utc::now(),
+            "quote changed or expired"
+        );
+        anyhow::ensure!(
+            cap == plan.cap_atomic.to_string(),
+            "approval amount must match displayed cap"
+        );
         let budget = sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)")
             .bind(p.owner).bind(connection).fetch_optional(&mut *tx).await?
             .ok_or_else(|| anyhow::anyhow!("set a positive per-request and daily limit in Connections, then reconnect if needed"))?;
         // A repeated click reads the same authorization, never renews a revoked
         // authorization or creates another reservation/payment identity.
-        if let Some(existing) = sqlx::query("SELECT id,revoked_at FROM gateway_v2.authorizations WHERE task_id=$1 AND quote_ref=$2")
-            .bind(task_id).bind(quote).fetch_optional(&mut *tx).await? {
-            anyhow::ensure!(existing.get::<Option<chrono::DateTime<Utc>>,_>("revoked_at").is_none(), "authorization revoked");
+        if let Some(existing) = sqlx::query(
+            "SELECT id,revoked_at FROM authorizations WHERE task_id=$1 AND quote_ref=$2",
+        )
+        .bind(task_id)
+        .bind(quote)
+        .fetch_optional(&mut *tx)
+        .await?
+        {
+            anyhow::ensure!(
+                existing
+                    .get::<Option<chrono::DateTime<Utc>>, _>("revoked_at")
+                    .is_none(),
+                "authorization revoked"
+            );
             return Ok(existing.get("id"));
         }
-        anyhow::ensure!(plan.cap_atomic>=0 && plan.cap_atomic<=budget.get::<i64,_>("per_call_atomic"), "plan exceeds this connection's per-request limit");
-        anyhow::ensure!(plan.cap_atomic<=budget.get::<i64,_>("daily_remaining_atomic"), "plan exceeds this connection's remaining daily limit");
-        anyhow::ensure!(plan.cap_atomic<=budget.get::<i64,_>("balance_atomic"), "insufficient Apiosk balance for this plan");
+        anyhow::ensure!(
+            plan.cap_atomic >= 0 && plan.cap_atomic <= budget.get::<i64, _>("per_call_atomic"),
+            "plan exceeds this connection's per-request limit"
+        );
+        anyhow::ensure!(
+            plan.cap_atomic <= budget.get::<i64, _>("daily_remaining_atomic"),
+            "plan exceeds this connection's remaining daily limit"
+        );
+        anyhow::ensure!(
+            plan.cap_atomic <= budget.get::<i64, _>("balance_atomic"),
+            "insufficient Apiosk balance for this plan"
+        );
         let id = Uuid::new_v4();
-        sqlx::query("INSERT INTO gateway_v2.authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
+        sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
             .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
         tx.commit().await?;
         Ok(id)
@@ -92,7 +142,7 @@ impl Executor {
             cap == plan.cap_atomic.to_string(),
             "approval amount must match displayed cap"
         );
-        let id:Uuid=sqlx::query_scalar("INSERT INTO gateway_v2.authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(task_id,quote_ref) DO UPDATE SET quote_ref=EXCLUDED.quote_ref RETURNING id")
+        let id:Uuid=sqlx::query_scalar("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(task_id,quote_ref) DO UPDATE SET quote_ref=EXCLUDED.quote_ref RETURNING id")
             .bind(Uuid::new_v4()).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
         Ok(id)
     }
@@ -116,8 +166,8 @@ impl Executor {
         );
         let payload_hash = digest(&(task_id, action_id, &step.service, step.entity_ref, inputs));
         let mut tx = self.store.pool.begin().await?;
-        let task=sqlx::query("SELECT revision,document FROM gateway_v2.tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE").bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
-        if let Some(row)=sqlx::query("SELECT id,payload_hash,status,response FROM gateway_v2.executions WHERE owner_id=$1 AND (action_id=$2 OR id=$3)").bind(p.owner).bind(action_id).bind(idempotency).fetch_optional(&mut *tx).await? {
+        let task=sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE").bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+        if let Some(row)=sqlx::query("SELECT id,payload_hash,status,response FROM executions WHERE owner_id=$1 AND (action_id=$2 OR id=$3)").bind(p.owner).bind(action_id).bind(idempotency).fetch_optional(&mut *tx).await? {
             anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
             let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
         }
@@ -128,16 +178,16 @@ impl Executor {
                 .unwrap_or(false),
             "task cancelled"
         );
-        let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.executions WHERE task_id=$1 AND status IN ('dispatching','unresolved'))").bind(task_id).fetch_one(&mut *tx).await?;
+        let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions WHERE task_id=$1 AND status IN ('dispatching','unresolved'))").bind(task_id).fetch_one(&mut *tx).await?;
         anyhow::ensure!(!concurrent, "execution pending reconciliation");
-        let auth=sqlx::query("SELECT cap_atomic,plan_hash,quote_ref FROM gateway_v2.authorizations WHERE id=$1 AND task_id=$2 AND owner_id=$3 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE").bind(authorization).bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+        let auth=sqlx::query("SELECT cap_atomic,plan_hash,quote_ref FROM authorizations WHERE id=$1 AND task_id=$2 AND owner_id=$3 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE").bind(authorization).bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             auth.get::<String, _>("plan_hash") == plan.hash
                 && auth.get::<Uuid, _>("quote_ref") == plan.quote_ref
                 && plan.expires_at > Utc::now(),
             "authorization does not match quote"
         );
-        let allocated:i64=sqlx::query_scalar("SELECT coalesce(sum(coalesce(actual_atomic,reserved_atomic)),0)::bigint FROM gateway_v2.executions WHERE authorization_id=$1 AND status!='failed'").bind(authorization).fetch_one(&mut *tx).await?;
+        let allocated:i64=sqlx::query_scalar("SELECT coalesce(sum(coalesce(actual_atomic,reserved_atomic)),0)::bigint FROM executions WHERE authorization_id=$1 AND status!='failed'").bind(authorization).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             allocated
                 .checked_add(step.service.total())
@@ -145,24 +195,37 @@ impl Executor {
             "budget exhausted"
         );
         let selection = Uuid::new_v4();
-        if step.service.path == crate::annual_report::ENDPOINT {
-            // Serialize admission across tasks/workers sharing the upstream
-            // IP. The transaction ends before network I/O. Existing durable
-            // executions are the clock; no timer or client can bypass this.
-            sqlx::query("SELECT pg_advisory_xact_lock(724010602)").execute(&mut *tx).await?;
-            let until: Option<chrono::DateTime<Utc>> = sqlx::query_scalar(
-                "SELECT max(CASE WHEN e.status IN ('dispatching','unresolved') THEN now()+interval '2 seconds' ELSE e.updated_at+interval '65 seconds' END) FROM gateway_v2.executions e JOIN public.user_selected_apis s ON s.id=e.selection_id JOIN public.api_endpoints ep ON ep.id=s.candidate_id JOIN public.apis a ON a.id=ep.api_id WHERE a.slug=$1 AND (e.status IN ('dispatching','unresolved') OR e.updated_at>now()-interval '65 seconds')"
-            ).bind(&step.service.api_slug).fetch_one(&mut *tx).await?;
-            if let Some(until) = until.filter(|until| *until > Utc::now()) {
-                return Ok(Dispatch::Waiting { until });
+        if step.service.api_slug == kvk_accounts::PROVIDER
+            && step.service.path == kvk_accounts::ENDPOINT
+        {
+            anyhow::ensure!(step.service.method == "GET" && inputs.as_object().is_some_and(|m| m.len() == 1),
+                "KVK annual accounts only supports a KVK-number lookup; year/version selectors are not upstream inputs");
+            let number = inputs["kvkNummer"]
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("missing KVK number"))?;
+            // Admission follows authorization and budget validation, but precedes
+            // a buyer reservation. Queue waiters never hold a payment open.
+            match kvk_accounts::lookup_on(&mut tx, number).await? {
+                kvk_accounts::Lookup::Ready(_) => {}
+                kvk_accounts::Lookup::Pending { until } => {
+                    tx.commit().await?;
+                    return Ok(Dispatch::Waiting { until });
+                }
+                kvk_accounts::Lookup::Failed { code } => {
+                    tx.commit().await?;
+                    return Ok(Dispatch::Failed {
+                        body: json!({"ok":false,"error":code,"charged_micro_usd":0,
+                        "message":"KVK could not supply this annual account. No payment was reserved."}),
+                    });
+                }
             }
         }
         // The existing App ledger will reserve/debit this selection. This table
         // records only an authorized pick and never modifies a user balance.
-        sqlx::query("INSERT INTO public.user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$3,$4,'reviewed','apiosk',$5,$6,$7,$8,$9,$10,$11,$12)")
+        sqlx::query("INSERT INTO user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$3,$4,'reviewed','apiosk',$5,$6,$7,$8,$9,$10,$11,$12)")
             .bind(selection).bind(p.owner).bind(p.connection).bind(format!("Gateway v2: {}",step.service.contract.capability_slug)).bind(&step.service.name).bind(&step.service.contract.capability_slug).bind(&step.service.api_slug).bind(step.service.endpoint_id).bind(&step.service.method).bind(step.service.list_atomic).bind(step.service.total())
             .bind(json!({"gateway_v2":true,"task_id":task_id,"action_id":action_id,"inputs":inputs,"fields":[]})).execute(&mut *tx).await?;
-        sqlx::query("INSERT INTO gateway_v2.executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'dispatching')")
+        sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'dispatching')")
             .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(payload_hash).bind(selection).bind(step.service.total()).execute(&mut *tx).await?;
         tx.commit().await?;
         let path = if p.connection.is_some() {
@@ -177,7 +240,7 @@ impl Executor {
         let body = match result {
             Ok(body) => body,
             Err(_) => {
-                sqlx::query("UPDATE gateway_v2.executions SET status='unresolved',updated_at=now() WHERE id=$1").bind(idempotency).execute(&self.store.pool).await?;
+                sqlx::query("UPDATE executions SET status='unresolved',updated_at=now() WHERE id=$1").bind(idempotency).execute(&self.store.pool).await?;
                 return Ok(Dispatch::Pending {
                     execution_id: idempotency,
                 });
@@ -185,9 +248,9 @@ impl Executor {
         };
         let actual = body.get("charged_micro_usd").and_then(Value::as_i64);
         if crate::billing::refused_before_reservation(&body) {
-            let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM public.balance_charges WHERE user_id=$1 AND idempotency_key=$2)").bind(p.owner).bind(idempotency.to_string()).fetch_one(&self.store.pool).await?;
+            let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM balance_charges WHERE user_id=$1 AND idempotency_key=$2)").bind(p.owner).bind(idempotency.to_string()).fetch_one(&self.store.pool).await?;
             if !exists {
-                sqlx::query("UPDATE gateway_v2.executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(idempotency).bind(&body).execute(&self.store.pool).await?;
+                sqlx::query("UPDATE executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(idempotency).bind(&body).execute(&self.store.pool).await?;
                 return Ok(Dispatch::Failed { body });
             }
         }
@@ -199,7 +262,7 @@ impl Executor {
             actual.is_none_or(|n| n >= 0 && n <= step.service.total()),
             "executor returned invalid cost; reconcile before continuing"
         );
-        sqlx::query("UPDATE gateway_v2.executions SET status=$2,response=$3,actual_atomic=$4,updated_at=now() WHERE id=$1").bind(idempotency).bind(status).bind(&body).bind(if succeeded{actual}else{None}).execute(&self.store.pool).await?;
+        sqlx::query("UPDATE executions SET status=$2,response=$3,actual_atomic=$4,updated_at=now() WHERE id=$1").bind(idempotency).bind(status).bind(&body).bind(if succeeded{actual}else{None}).execute(&self.store.pool).await?;
         if succeeded {
             Ok(Dispatch::Done {
                 execution_id: idempotency,
@@ -212,19 +275,19 @@ impl Executor {
         }
     }
     pub async fn poll(&self, p: &Principal, task: Uuid, id: Uuid) -> anyhow::Result<Option<Value>> {
-        let row=sqlx::query("SELECT status,response FROM gateway_v2.executions WHERE id=$1 AND owner_id=$2 AND task_id=$3").bind(id).bind(p.owner).bind(task).fetch_one(&self.store.pool).await?;
+        let row=sqlx::query("SELECT status,response FROM executions WHERE id=$1 AND owner_id=$2 AND task_id=$3").bind(id).bind(p.owner).bind(task).fetch_one(&self.store.pool).await?;
         if row.get::<String, _>("status") == "succeeded" {
             return Ok(row.get("response"));
         }
         // The existing ledger's UUID string idempotency identity is stable.
-        let charge=sqlx::query("SELECT id,status,charged_micro_usd,coalesce(actual_provider_micro_usd,provider_price_micro_usd) provider_micro_usd,fee_micro_usd FROM public.balance_charges WHERE user_id=$1 AND idempotency_key=$2").bind(p.owner).bind(id.to_string()).fetch_optional(&self.store.pool).await?;
+        let charge=sqlx::query("SELECT id,status,charged_micro_usd,coalesce(actual_provider_micro_usd,provider_price_micro_usd) provider_micro_usd,fee_micro_usd FROM balance_charges WHERE user_id=$1 AND idempotency_key=$2").bind(p.owner).bind(id.to_string()).fetch_optional(&self.store.pool).await?;
         if let Some(c) = charge {
             if c.get::<String, _>("status") == "charged" {
-                let run=sqlx::query("SELECT output,output_truncated FROM public.call_runs WHERE charge_id=$1 AND user_id=$2 AND status='succeeded' ORDER BY started_at DESC LIMIT 1")
+                let run=sqlx::query("SELECT output,output_truncated FROM call_runs WHERE charge_id=$1 AND user_id=$2 AND status='succeeded' ORDER BY started_at DESC LIMIT 1")
                     .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_optional(&self.store.pool).await?;
                 if let Some(run) = run {
                     let actual = c.get::<i64, _>("charged_micro_usd");
-                    let reserved:i64=sqlx::query_scalar("SELECT reserved_atomic FROM gateway_v2.executions WHERE id=$1 AND owner_id=$2").bind(id).bind(p.owner).fetch_one(&self.store.pool).await?;
+                    let reserved:i64=sqlx::query_scalar("SELECT reserved_atomic FROM executions WHERE id=$1 AND owner_id=$2").bind(id).bind(p.owner).fetch_one(&self.store.pool).await?;
                     anyhow::ensure!(
                         (0..=reserved).contains(&actual),
                         "ledger cost exceeds authorization; operator reconciliation required"
@@ -234,15 +297,15 @@ impl Executor {
                         crate::billing::valid_capture(&body),
                         "ledger price breakdown requires reconciliation"
                     );
-                    sqlx::query("UPDATE gateway_v2.executions SET status='succeeded',actual_atomic=$2,response=$3,updated_at=now() WHERE id=$1").bind(id).bind(actual).bind(&body).execute(&self.store.pool).await?;
+                    sqlx::query("UPDATE executions SET status='succeeded',actual_atomic=$2,response=$3,updated_at=now() WHERE id=$1").bind(id).bind(actual).bind(&body).execute(&self.store.pool).await?;
                     return Ok(Some(body));
                 }
             }
             if c.get::<String, _>("status") == "refunded" {
-                let throttled: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM public.call_runs WHERE charge_id=$1 AND user_id=$2 AND status='failed' AND output #>> '{execution,status}'='429' AND output #>> '{execution,paid}'='false')")
+                let throttled: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM call_runs WHERE charge_id=$1 AND user_id=$2 AND status='failed' AND output #>> '{execution,status}'='429' AND output #>> '{execution,paid}'='false')")
                     .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_one(&self.store.pool).await?;
                 let body = json!({"ok":false,"charged_micro_usd":0,"error":if throttled {"rate_limited_refunded"} else {"refunded"},"message":"The payment ledger confirms this execution was refunded."});
-                sqlx::query("UPDATE gateway_v2.executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(id).bind(&body).execute(&self.store.pool).await?;
+                sqlx::query("UPDATE executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(id).bind(&body).execute(&self.store.pool).await?;
                 return Ok(Some(body));
             }
         }

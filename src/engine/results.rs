@@ -90,7 +90,7 @@ impl Engine {
             document["coverage"] = json!("partial");
             document["missing_fields"] = json!(["automatic_fact_binding_capacity_exceeded"]);
         }
-        let result_ref:Uuid=sqlx::query_scalar("INSERT INTO gateway_v2.results(id,owner_id,task_id,execution_id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(execution_id) DO UPDATE SET execution_id=EXCLUDED.execution_id RETURNING id")
+        let result_ref:Uuid=sqlx::query_scalar("INSERT INTO results(id,owner_id,task_id,execution_id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(execution_id) DO UPDATE SET execution_id=EXCLUDED.execution_id RETURNING id")
             .bind(Uuid::new_v4()).bind(p.owner).bind(task_id).bind(execution).bind(&document).fetch_one(&self.store.pool).await?;
         if !task.result_refs.contains(&result_ref) {
             task.result_refs.push(result_ref)

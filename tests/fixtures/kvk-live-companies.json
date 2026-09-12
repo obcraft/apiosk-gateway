@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Mollie B.V.",
+    "kvk_number": "30204462",
+    "identity_source": "https://www.mollie.com/legal"
+  },
+  {
+    "name": "Volve Capital B.V.",
+    "kvk_number": "86717162",
+    "identity_source": "gateway/crates/catalog-core/fixtures/contracts/payloads/kvk-zoeken-volve-capital.json"
+  },
+  {
+    "name": "Bitvavo B.V.",
+    "kvk_number": "68743424",
+    "identity_source": "https://support.bitvavo.com/hc/en-us/articles/4405241847569-Company-details-Bitvavo"
+  },
+  {
+    "name": "Picnic B.V.",
+    "kvk_number": "62812696",
+    "identity_source": "https://picnic.app/nl/contact/"
+  },
+  {
+    "name": "Coolblue B.V.",
+    "kvk_number": "24330087",
+    "identity_source": "https://www.coolblue.nl/c/veiligheid-en-privacy-meer-weten.html"
+  }
+]

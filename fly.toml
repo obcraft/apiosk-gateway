@@ -13,6 +13,7 @@ kill_timeout = "120s"
   INTENT_MODEL = "google/gemini-3.8-flash"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
+  KVK_WORKERS_ENABLED = "0" # Five standalone Fly workers own upstream retrieval.
   V2_SINGLE_CALL_MODE = "0"
   ASK_ENGINE_V2 = "true"
   EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"

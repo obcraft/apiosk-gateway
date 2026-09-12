@@ -233,15 +233,23 @@ impl Catalog {
     /// Reviewed API contracts for semantic planning. No credentials, payloads
     /// or fixed parameters belong in the model's context.
     pub fn planning_view(&self, intent: &crate::parser::Intent) -> Value {
-        let capabilities: std::collections::BTreeSet<_> = intent.goals.iter()
-            .map(|goal| goal.capability.as_str()).collect();
-        let services: Vec<_> = self.services.iter()
+        let capabilities: std::collections::BTreeSet<_> = intent
+            .goals
+            .iter()
+            .map(|goal| goal.capability.as_str())
+            .collect();
+        let services: Vec<_> = self
+            .services
+            .iter()
             .filter(|s| capabilities.contains(s.contract.capability_slug.as_str()))
-            .map(|s| json!({"source":s.api_slug,"name":s.name,
+            .map(|s| {
+                json!({"source":s.api_slug,"name":s.name,
                 "capability":s.contract.capability_slug,"method":s.method,"path":s.path,
                 "jurisdiction":s.jurisdiction,"requires":s.contract.requires,
                 "input_map":s.contract.input_map,"outputs":s.contract.output_map,
-                "pagination":s.pagination})).collect();
+                "pagination":s.pagination})
+            })
+            .collect();
         json!({"catalog":self.parser_view(),"requested_services":services})
     }
 }
@@ -297,6 +305,35 @@ impl CatalogCache {
 #[cfg(test)]
 mod parser_catalog_tests {
     use super::*;
+    /// Both shapes this product actually publishes count as documented inputs.
+    ///
+    /// The audit used to demand JSON Schema carrying a top-level `required`
+    /// key, and neither half of that held. KOOP publishes proper JSON Schema
+    /// whose every parameter is optional, so it carries no `required` key at
+    /// all and scored zero of one. KVK publishes a flat parameter map — the
+    /// shape `readFields` builds forms from — and scored zero of five: the
+    /// most-used source in the catalogue, reported as undocumented.
+    ///
+    /// What must NOT count is the empty publish `{"type":"object"}`, which is
+    /// what several listings send when they mean "no schema": every member of
+    /// it is a string, so the jsonpath test finds nothing. And `required`,
+    /// where present, must still be an array — a boolean there is a defect.
+    #[test]
+    fn every_published_input_shape_counts_and_the_empty_publish_does_not() {
+        assert!(CATALOG_SQL
+            .contains("jsonb_typeof(coalesce(e.query_params->'required','[]'::jsonb))='array'"));
+        assert!(CATALOG_SQL
+            .contains("jsonb_typeof(coalesce(e.request_body->'required','[]'::jsonb))='array'"));
+        // The old form treated "absent" and "wrong type" as the same failure.
+        assert!(!CATALOG_SQL.contains("jsonb_typeof(e.query_params->'required')='array'"));
+        assert!(!CATALOG_SQL.contains("jsonb_typeof(e.request_body->'required')='array'"));
+        // The flat and location-grouped maps, and only where a member is an
+        // object — which `{"type":"object"}` never has.
+        assert!(CATALOG_SQL
+            .contains(r#"jsonb_path_exists(e.query_params,'$.* ? (@.type() == "object")')"#));
+        assert!(CATALOG_SQL
+            .contains(r#"jsonb_path_exists(e.request_body,'$.* ? (@.type() == "object")')"#));
+    }
     #[test]
     fn parser_receives_exact_source_identity_and_supported_capabilities() {
         let snapshot: Snapshot =

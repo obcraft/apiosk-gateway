@@ -59,12 +59,21 @@ impl Engine {
             tracing::warn!(error=%e,"v2 operation failed");
             if let Some(model) = e.downcast_ref::<crate::parser::ModelFailure>() {
                 let (status, code) = match model {
-                    crate::parser::ModelFailure::Unsupported => (Status::Unsupported, "unsupported_request"),
-                    crate::parser::ModelFailure::Unavailable => (Status::Failed, "question_unavailable"),
+                    crate::parser::ModelFailure::Unsupported => {
+                        (Status::Unsupported, "unsupported_request")
+                    }
+                    crate::parser::ModelFailure::Unavailable => {
+                        (Status::Failed, "question_unavailable")
+                    }
                 };
                 return Response::error(id, status, code, &model.to_string());
             }
-            let message=if e.downcast_ref::<sqlx::Error>().is_some(){"Task storage is temporarily unavailable. Recover the task before continuing.".to_string()}else{e.to_string()};
+            let message = if e.downcast_ref::<sqlx::Error>().is_some() {
+                "Task storage is temporarily unavailable. Recover the task before continuing."
+                    .to_string()
+            } else {
+                e.to_string()
+            };
             Response::error(id, Status::Failed, "operation_failed", &message)
         });
         if self.store.finish(p.owner, &r).await.is_err() {
@@ -133,7 +142,7 @@ impl Engine {
                 .view(p, id, req.request_id, Some(Status::StateConflict))
                 .await;
         }
-        let in_flight:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.executions e JOIN gateway_v2.tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM gateway_v2.results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool).await?;
+        let in_flight:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool).await?;
         anyhow::ensure!(
             !in_flight,
             "existing execution must finish or reconcile before a new question"
@@ -350,20 +359,45 @@ impl Engine {
             .filter_map(|v| serde_json::from_value(v.clone()).ok())
             .collect();
         let single = single_call_mode();
-        let paused_plan = single && task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1);
-        if paused_plan { actions.retain(|a| !matches!(a, Action::Run {..} | Action::Choose {..} | Action::Supply {..})); }
+        let paused_plan = single
+            && task
+                .proposal
+                .as_ref()
+                .and_then(|v| v["steps"].as_array())
+                .is_some_and(|v| v.len() > 1);
+        if paused_plan {
+            actions.retain(|a| {
+                !matches!(
+                    a,
+                    Action::Run { .. } | Action::Choose { .. } | Action::Supply { .. }
+                )
+            });
+        }
         let inferred = if task.execution_error.is_some() && task.result_refs.is_empty() {
             Status::Failed
         } else if task.cancelled {
             Status::Partial
         } else if paused_plan {
-            if task.result_refs.is_empty() { Status::Unsupported } else { Status::Partial }
+            if task.result_refs.is_empty() {
+                Status::Unsupported
+            } else {
+                Status::Partial
+            }
         } else if !task.pending_candidates.is_empty() {
             Status::NeedsSelection
         } else if actions.iter().any(|a| matches!(a, Action::Supply { .. }))
-            || task.actions.iter().any(|v| v["kind"] == "planning_clarification") {
+            || task
+                .actions
+                .iter()
+                .any(|v| v["kind"] == "planning_clarification")
+        {
             Status::NeedsInput
-        } else if actions.iter().any(|a| matches!(a, Action::Poll { .. } | Action::Wait { .. } | Action::Analyze { .. })) {
+        } else if actions.iter().any(|a| {
+            matches!(
+                a,
+                Action::Poll { .. } | Action::Wait { .. } | Action::Analyze { .. }
+            )
+        }) {
             Status::Running
         } else if actions.iter().any(|a| matches!(a, Action::Run { .. })) {
             Status::Ready
@@ -499,11 +533,14 @@ impl Engine {
         if r.status == Status::Running {
             r.retry_after_ms = Some(2000)
         }
-        if let Some(Action::Wait { until, .. }) = actions.iter().find(|a| matches!(a, Action::Wait { .. })) {
-            r.context_view["cooldown"] = json!({"until":until,"message":"KVK allows one annual-accounts request per minute. The next report will start automatically."});
+        if let Some(Action::Wait { until, .. }) =
+            actions.iter().find(|a| matches!(a, Action::Wait { .. }))
+        {
+            r.context_view["cooldown"] = json!({"until":until,"message":"The annual account is queued or being retrieved from KVK. Requests for the same report share one job; the result will appear automatically."});
             r.retry_after_ms = Some((*until - Utc::now()).num_milliseconds().max(350) as u64);
         }
-        r.context_view["analyzing"] = json!(actions.iter().any(|a| matches!(a, Action::Analyze { .. })));
+        r.context_view["analyzing"] =
+            json!(actions.iter().any(|a| matches!(a, Action::Analyze { .. })));
         if let Some(result_ref) = task.result_refs.last() {
             r.result = Some(self.result_page(p.owner, id, *result_ref, 0).await?);
         }

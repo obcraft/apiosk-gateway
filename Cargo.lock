@@ -51,6 +51,7 @@ dependencies = [
  "genpdf",
  "hex",
  "hmac",
+ "kvk-accounts",
  "moka",
  "reqwest",
  "serde",
@@ -1106,6 +1107,23 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kvk-accounts"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "hex",
+ "reqwest",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

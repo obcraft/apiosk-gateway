@@ -63,6 +63,14 @@ pub fn public_error(body: &Value) -> Value {
             "rate_limited_refunded",
             "The source temporarily limited this request (429). The full amount, including the fee, was refunded.",
         ),
+        Some("kvk_http_404") => (
+            "annual_account_unavailable",
+            "KVK has no annual account available for this company through this source. Nothing was purchased.",
+        ),
+        Some(code) if code.starts_with("kvk_") => (
+            "annual_account_unavailable",
+            "KVK could not supply this annual account. Nothing was purchased. Please try again later.",
+        ),
         Some("refunded") => (
             "refunded",
             "The payment ledger confirms that the amount, including the fee, was refunded.",
@@ -82,17 +90,17 @@ impl Store {
         quote: Option<Uuid>,
         cap: i64,
     ) -> anyhow::Result<Value> {
-        let rows=sqlx::query("SELECT e.id,e.status execution_status,e.reserved_atomic,e.response,c.id receipt_ref,c.status ledger_status,c.charged_micro_usd,c.actual_provider_micro_usd,c.provider_price_micro_usd,c.fee_micro_usd FROM gateway_v2.executions e JOIN gateway_v2.authorizations a ON a.id=e.authorization_id LEFT JOIN public.balance_charges c ON c.user_id=e.owner_id AND c.idempotency_key=e.id::text WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref=$3 ORDER BY e.created_at,e.id")
+        let rows=sqlx::query("SELECT e.id,e.status execution_status,e.reserved_atomic,e.response,c.id receipt_ref,c.status ledger_status,c.charged_micro_usd,c.actual_provider_micro_usd,c.provider_price_micro_usd,c.fee_micro_usd FROM executions e JOIN authorizations a ON a.id=e.authorization_id LEFT JOIN balance_charges c ON c.user_id=e.owner_id AND c.idempotency_key=e.id::text WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref=$3 ORDER BY e.created_at,e.id")
             .bind(owner).bind(task).bind(quote).fetch_all(&self.pool).await?;
         // The existing balance projection already deducts held reservations.
         // Subtracting them again here would display an incorrect balance.
         let balance: Option<i64> = sqlx::query_scalar(
-            "SELECT balance_micro_usd FROM public.user_balances WHERE user_id=$1",
+            "SELECT balance_micro_usd FROM user_balances WHERE user_id=$1",
         )
         .bind(owner)
         .fetch_optional(&self.pool)
         .await?;
-        let authorized:Option<i64>=sqlx::query_scalar("SELECT cap_atomic FROM gateway_v2.authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;
+        let authorized:Option<i64>=sqlx::query_scalar("SELECT cap_atomic FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;
         let mut executions = vec![];
         let (mut total, mut provider, mut fee, mut held) = (0i64, 0i64, 0i64, 0i64);
         let (mut pending, mut refunded, mut reserved, mut charged, mut breakdown_known) =

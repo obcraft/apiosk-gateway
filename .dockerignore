@@ -20,3 +20,6 @@
 legacy-executor/target/
 legacy-executor/.git
 legacy-executor/.env*
+
+!deploy/kvk-workers/
+!deploy/kvk-workers/Dockerfile

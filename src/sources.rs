@@ -21,22 +21,41 @@ pub struct Source {
 }
 pub fn safe_logo(value: &str) -> Option<String> {
     let url = reqwest::Url::parse(value).ok()?;
-    (value.len() <= 2048 && url.scheme() == "https" && url.host_str().is_some()
-        && url.username().is_empty() && url.password().is_none()).then(|| url.to_string())
+    (value.len() <= 2048
+        && url.scheme() == "https"
+        && url.host_str().is_some()
+        && url.username().is_empty()
+        && url.password().is_none())
+    .then(|| url.to_string())
 }
 
 pub fn apply_branding(sources: &mut [Source], directory: Option<&Value>) {
     for source in sources {
-        let provider = directory.and_then(|d| d["providers"].as_array()).and_then(|rows|
-            rows.iter().find(|p| source.provider_slug.as_deref().is_some_and(|slug| p["username"].as_str() == Some(slug))));
-        source.logo_url = source.logo_url.as_deref().and_then(safe_logo)
-            .or_else(|| provider.and_then(|p| p["avatar_url"].as_str()).and_then(safe_logo));
+        let provider = directory
+            .and_then(|d| d["providers"].as_array())
+            .and_then(|rows| {
+                rows.iter().find(|p| {
+                    source
+                        .provider_slug
+                        .as_deref()
+                        .is_some_and(|slug| p["username"].as_str() == Some(slug))
+                })
+            });
+        source.logo_url = source.logo_url.as_deref().and_then(safe_logo).or_else(|| {
+            provider
+                .and_then(|p| p["avatar_url"].as_str())
+                .and_then(safe_logo)
+        });
     }
 }
 
 pub fn brand_result(result: &mut Value, sources: &[Source]) {
-    let Some(slug) = result["source"]["provider"].as_str() else { return; };
-    let Some(source) = sources.iter().find(|s| s.slug == slug) else { return; };
+    let Some(slug) = result["source"]["provider"].as_str() else {
+        return;
+    };
+    let Some(source) = sources.iter().find(|s| s.slug == slug) else {
+        return;
+    };
     result["source"]["name"] = json!(source.name);
     result["source"]["provider_slug"] = json!(source.provider_slug);
     result["source"]["logo_url"] = json!(source.logo_url);
@@ -171,7 +190,33 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             (score, index, source)
         })
         .collect();
-    matches.sort_by_key(|(score, index, _)| (std::cmp::Reverse(*score), *index));
+    // Relevance still decides first — a person who types "eodhd" must find EODHD
+    // even though nothing there can be bought. What this adds is the tie-break
+    // underneath it: at equal relevance a source somebody can actually execute
+    // outranks one that only exists to be read about. Catalog order alone put
+    // 52 unbuyable endpoints above a source with a contract for every one of
+    // its own, which is the same mistake the homepage grid used to make.
+    let executable: BTreeSet<&str> = catalog
+        .services
+        .iter()
+        .map(|s| s.api_slug.as_str())
+        .collect();
+    let restricted: BTreeSet<&str> = catalog
+        .known_sources
+        .iter()
+        .filter(|s| s.block_reason.is_some())
+        .map(|s| s.slug.as_str())
+        .collect();
+    let reach = |slug: &str| {
+        if restricted.contains(slug) {
+            2u8
+        } else if executable.contains(slug) {
+            0
+        } else {
+            1
+        }
+    };
+    matches.sort_by_key(|(score, index, s)| (std::cmp::Reverse(*score), reach(&s.slug), *index));
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(20).clamp(1, 50);
     let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|(_, _, s)| {
@@ -206,31 +251,79 @@ mod tests {
         ])).unwrap()
     }
     #[test]
+    fn an_executable_source_outranks_an_unbuyable_one_at_equal_relevance() {
+        let mut catalog = catalog();
+        // Everything the runtime can execute belongs to "two". "one" is listed
+        // first in the catalog and is visible for reference only.
+        for service in &mut catalog.services {
+            service.api_slug = "two".into();
+        }
+        catalog.known_sources = vec![crate::catalog::KnownSource {
+            slug: "one".into(),
+            name: "Company data".into(),
+            block_reason: Some("Resale authorization is not recorded.".into()),
+            metadata: Default::default(),
+        }];
+        let listed = browse(&rows(), &catalog, &SourceQuery::default());
+        assert_eq!(listed["sources"][0]["slug"], "two");
+        assert_eq!(listed["sources"][1]["slug"], "one");
+        // Relevance still outranks reach: somebody who describes the blocked
+        // source still finds it rather than being quietly handed another one.
+        let searched = browse(
+            &rows(),
+            &catalog,
+            &SourceQuery {
+                search: Some("annual filings".into()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(searched["sources"][0]["slug"], "one");
+    }
+    #[test]
     fn source_query_prefers_the_listings_own_logo() {
         let sql = include_str!("sources.sql");
-        assert!(sql.contains("coalesce(nullif(a.listing_metadata->>'logo',''),nullif(p.avatar_url,''))"));
+        assert!(sql
+            .contains("coalesce(nullif(a.listing_metadata->>'logo',''),nullif(p.avatar_url,''))"));
     }
     #[test]
     fn branding_matches_provider_identity_and_enriches_old_results() {
         let mut rows = rows();
         rows[0].provider_slug = Some("registry".into());
         rows[1].logo_url = Some("javascript:alert(1)".into());
-        apply_branding(&mut rows, Some(&json!({"providers":[
-                {"username":"other","avatar_url":"https://example.com/wrong.png"},
-                {"username":"registry","avatar_url":"https://example.com/registry.png"}
-        ]})));
-        assert_eq!(rows[0].logo_url.as_deref(), Some("https://example.com/registry.png"));
+        apply_branding(
+            &mut rows,
+            Some(&json!({"providers":[
+                    {"username":"other","avatar_url":"https://example.com/wrong.png"},
+                    {"username":"registry","avatar_url":"https://example.com/registry.png"}
+            ]})),
+        );
+        assert_eq!(
+            rows[0].logo_url.as_deref(),
+            Some("https://example.com/registry.png")
+        );
         assert!(rows[1].logo_url.is_none());
-        let mut result = json!({"source":{"provider":"one","endpoint_id":"original"},"data":{"value":42}});
+        let mut result =
+            json!({"source":{"provider":"one","endpoint_id":"original"},"data":{"value":42}});
         brand_result(&mut result, &rows);
-        assert_eq!(result["source"]["logo_url"], "https://example.com/registry.png");
+        assert_eq!(
+            result["source"]["logo_url"],
+            "https://example.com/registry.png"
+        );
         assert_eq!(result["source"]["name"], "Company data");
         assert_eq!(result["source"]["endpoint_id"], "original");
         assert_eq!(result["data"]["value"], 42);
         assert!(safe_logo("https://user:password@example.com/logo.png").is_none());
         rows[0].logo_url = Some("https://example.com/kvk.png".into());
-        apply_branding(&mut rows, Some(&json!({"providers":[{"username":"registry","avatar_url":"https://example.com/apiosk.png"}]})));
-        assert_eq!(rows[0].logo_url.as_deref(), Some("https://example.com/kvk.png"));
+        apply_branding(
+            &mut rows,
+            Some(
+                &json!({"providers":[{"username":"registry","avatar_url":"https://example.com/apiosk.png"}]}),
+            ),
+        );
+        assert_eq!(
+            rows[0].logo_url.as_deref(),
+            Some("https://example.com/kvk.png")
+        );
     }
     #[test]
     fn searches_metadata_filters_and_paginates_without_claiming_executability() {
