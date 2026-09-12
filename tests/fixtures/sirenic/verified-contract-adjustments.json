@@ -1,0 +1,36 @@
+{
+  "description": "Paid RNA association profiles may have no SIREN. Preserve the complete record without creating a company registration fact from null.",
+  "services": [
+    {
+      "id": "c8d16c4c-1bb3-5e33-b927-866e8238cab3",
+      "contract": {
+        "capability_slug": "company.sirenic-association-rna",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.sirenic.input.association_rna.rna",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.sirenic.input.association_rna.rna": {
+            "name": "rna",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.association_rna": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    }
+  ]
+}

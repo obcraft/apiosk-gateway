@@ -1,37 +1,58 @@
 # Sirenic
 
-Live and planner-enabled on 2026-09-12. All six reviewed routes returned paid production results, all response contracts extracted successfully, and independent Base Blockscout transfer records confirm $0.18 total USDC paid from the treasury to Sirenic. No customer balance was debited for operator verification. A fresh model call against the live catalog selected French financial accounts without being told to use Sirenic. The temporary planner block has been removed and the deployed gateway cache refreshed.
+## Production coverage — 2026-09-13
 
-Sirenic uses the same user flow as other sources: planner → total ceiling → approval → result. `use-selection` reserves/captures the existing Apiosk balance; its server credential dispatches `/v1/do`, and the embedded executor signs Sirenic's x402 payment using `TREASURY_PRIVATE_KEY`. The user does not need a wallet or Sirenic API key. Provider price plus the existing 15% fee is charged internally; the provider receives only its own asking price.
+Sirenic provides **63 verified fixed-price JSON routes through 65 planner operations**, up from six. The two extra operations are country-specific variants of shared routes. All 65 contracts accept actual paid responses; independent Base receipts verify the provider payments. The planner can use Sirenic through the normal Apiosk flow: question → plan and total ceiling → approval → sourced result. The treasury pays the upstream x402 charge; the user uses the existing Apiosk balance and does not need a separate wallet or Sirenic account.
 
-The reviewed integration enables six fixed-price GET routes from the [official OpenAPI](https://api.sirenic.eu/openapi.json): French search ($0.002), French profile ($0.005), French financials ($0.01), French KYB ($0.15), European search ($0.003), European profile ($0.01). Other routes, variable-price batches and watchlist mutations are not enabled. Old imported example-specific endpoints remain stored but inactive.
+Coverage includes French company search/profile, annual financials, KYB, establishments, legal alerts/court cases, procurement, intellectual property, capital and business health, intelligence reports, employment, permits, invoice checks, regulator alerts, VAT/IBAN checks, association records, and European profiles, accounts, officers, ownership, insolvency and events where the official registers support them. Country-specific coverage and missing-data notices remain in the source response. Filing indexes are not represented as downloaded financial documents. A negative or incomplete result is not evidence of zero activity or an absence of risk.
 
-The treasury accepts Sirenic's pinned payee, exact scheme, Base mainnet and USDC contract/domain only. EURC is not selected. The listing quote ceiling, caller budget, durable payment claims and receipt persistence apply. Optional global transaction/day caps are supported by the executor but are not configured on the current deployment. An uncertain paid response remains unresolved for reconciliation; it must not be purchased again with a fresh identity.
+The current route inventory is `tests/fixtures/sirenic/expanded-catalog.json`; the nullable SIREN correction for association records is in `verified-contract-adjustments.json`. The production activation migration is generated only from successful paid extraction and verified receipts.
 
-French search produces a typed SIREN dependency. European search identifies each company by country plus national ID. Partial/unreliable searches stop dependent purchases. Complete source responses retain provenance, financial quality, reporting scope and nulls. Only `absence_mesuree` asserts measured absence; null does not mean zero.
+Two candidate routes remain disabled after unsuccessful production checks:
 
-Validation:
+| Route | Observed limitation |
+| --- | --- |
+| `/v1/eu/entreprise/ES/{hoja}/actes` | The documented `VI-23141` example returned upstream HTTP 404 without settlement confirmation. |
+| `/v1/associations/recherche` | The published search example returned upstream HTTP 503 without settlement confirmation. |
 
-- `cargo test --offline --test sirenic --test company_sources`
-- `cargo test --offline --manifest-path legacy-executor/Cargo.toml --bin apiosk-gateway proxy::resell::tests -- --skip live_resell_probe`
-- `python3 scripts/test-sirenic-migration.py` uses the existing schema-only snapshot under `output/schema-physical-20260912/`, not a live database.
-- `cargo run --offline --example check-sirenic-catalog -- output/sirenic-20260912/local-catalog.json --model` checks runtime contracts and one actual intent-model response; no provider purchase.
-- `node scripts/check-sirenic-live.mjs` checks the deployed request binding. Explicit `--pay` permits at most $0.18 of provider procurement across six operations, through the actual treasury route. It records an attempt before sending and refuses to resend an existing attempt. This operator check does not debit a customer's balance. Inspect both saved responses and `billing.resell_payments` before any retry.
+These observations do not establish that every possible input fails. They are insufficient to enable a planner purchase. Variable-price batches/comparisons/custom dossiers, binary downloads, monitoring subscriptions and filing-reference/date operations requiring additional document selection are also excluded. Country profile aliases are covered by the unified profile operation.
 
-Generated migrations: `supabase/migrations/20260912202706_sirenic_search_request_methods.sql` repairs the imported POST search rows, after `supabase/migrations/20260912202445_sirenic_planner_source.sql`, mirrored in the App repository. Regenerate from `tests/fixtures/sirenic/catalog.json` using `scripts/render-sirenic-migration.mjs`; `--check` detects drift. `prepare-sirenic.py` reads the captured official OpenAPI under `output/sirenic-20260912` and does not pay.
+## Branding and Ask
 
-The first live search attempt was rejected with HTTP 405 before payment because the historical row was POST. No treasury payment claim existed for request `4c688c4e-6306-4c79-a26b-f922f13e2278`. The corrective migration repairs both methods and validates every route, schema and price; dry-run checks now reject ignored inputs and incorrect methods/prices.
+The official 512 px Sirenic wordmark from the agent card is served at `https://app.apiosk.com/brands/sirenic.png`. Listing metadata supplies that image to the shared source directory and source results. It was visibly verified in Explore. The App also includes a curated fallback.
 
-Sirenic publishes a descriptive body alongside its canonical `PAYMENT-REQUIRED` header. Use the header even when both contain `accepts`: only the header carries the complete v2 resource descriptor. Send the v2 proof in `PAYMENT-SIGNATURE`. The initial incomplete-proof request above the search-method fix (`e493a0d8-31f8-4ca9-889a-969fe69befa3`) was reconciled as failed only after USDC authorizationState was unused and the chain timestamp had passed its validity window. Evidence is in `output/sirenic-20260912/expired-corrected-diagnostic.jsonl` and `reconciliation-check.json`.
+Three tested Ask examples are stored in `app/src/lib/domain/sirenic-examples.json`:
 
-Unconfirmed provider payments must surface as HTTP 504 `payment_unresolved` from `/v1/do`. The App preserves its reservation for reconciliation. Do not wrap this as HTTP 200 `paid:false`: that describes a failed call and can trigger a refund or new purchase.
+- Use Sirenic to find DANONE and summarize its available filed annual accounts, including the reporting year and scope.
+- Use Sirenic to find DANONE and check its legal alerts and court cases, preserving dates and the company's role.
+- Use Sirenic to retrieve the Norwegian annual accounts of Equinor ASA, with reporting years and source notes.
 
-The first successful treasury search (`8b64f08d-fcd6-445a-a818-99e517d144c5`) transferred $0.002 but exposed an existing shared-receipt bug: `X-Apiosk-Price-Listed` incorrectly contained the $0.0023 buyer total, so `/v1/do` added the fee twice and reported $0.002645. No customer balance was debited. The shared receipt now carries provider price and buyer total separately; both proxy and agent envelope use the same tested header builder. The original paid capture is preserved and is never repurchased to repair reporting.
+The real intent model builds the expected search → record plans (two, three and two calls). An additional source-neutral French legal-record question checks automatic Sirenic selection. Example buttons fill the draft without making a purchase. The live App financial example displayed Sirenic and a €0.012696 approval ceiling; that test request was cancelled and showed €0.00 charged. Operator payment tests exercise the production `/v1/do` treasury path; no customer balance was debited by this campaign.
 
-For the recorded bounded campaign, `SIRENIC_CHECK_RUN=canonical SIRENIC_CHECK_START=2 node scripts/check-sirenic-live.mjs --pay` continues with the five uncalled operations after validating the persisted successful first receipt. The cumulative provider ceiling remains $0.18. `python3 scripts/verify-sirenic-receipts.py` independently checks all six USDC transfers on Base; `cargo run --offline --example check-sirenic-catalog -- output/sirenic-20260912/local-catalog.json --paid` checks actual response extraction.
+## Payment contract and evidence
 
-The first profile attempt (`8f010302-e6d5-40b9-8b96-07230bf52b62`) was rejected before payment because the executor did not resolve parameterized paths and considered retired literal POST rows during method lookup. The database confirms no payment claim. The preserved capture is `literal-routing-rejected-02.json`. Endpoint lookup now matches complete parameterized paths, prefers more specific routes, retains literal-prefix compatibility, and filters inactive rows from execution, methods and manifests. A real disposable Postgres regression exercises the migrated catalog and confirms profile/financial route separation, correct price, retired-route exclusion and documentation lookup.
+The integration pins x402 v2 exact payment, Base (`eip155:8453`), USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`), the Sirenic recipient (`0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2`) and token domain `USD Coin` / `2`. Prefer the complete `PAYMENT-REQUIRED` header over the descriptive JSON body. Send `PAYMENT-SIGNATURE`. The accepted authorization lifetime is 45–200 seconds: invoice checks use 45 seconds; health, intelligence and capital reports use 200. Signing never extends a shorter quote. Customer totals remain provider price plus the existing 15% fee, with separate provider/fee receipt amounts.
 
-Final evidence: `output/sirenic-20260912/verified-receipts.json`, six `canonical-paid-*.json` captures, the corresponding `*-chain-receipt.txt` explorer records, `live-catalog.json` and `final-live-catalog-check.log`. Five post-fix paid calls report provider cost plus 15% exactly; the first search's pre-fix reporting discrepancy is explicitly annotated in the evidence. Current ledger status: six paid claims totaling 180000 micro-USDC, one expired/unused claim reconciled as failed, zero unresolved claims. Full live customer approval/balance debit was not exercised; the existing shared balance/execution suite passed all 95 tests.
+The expansion campaign completed **59 new paid checks for $2.586 USDC**, within its $2.61 treasury ceiling. Three unused authorizations were closed as failed only after an on-chain `authorizationState=false` check beyond their maximum expiry. One was a Belgian dealing lookup for an unrelated issuer; a distinct subsequent check used UMICORE's documented enterprise number and succeeded. Five old-parser failures had no payment claim and were checked again after the timeout fix. The original attempts are preserved under `previous-attempts/`; paid attempts are never automatically retried. No unresolved payment remains.
 
-Release cleanup: migration filenames match the already-applied Supabase versions (`20260912202445`, `20260912202706`) in both repositories; SQL content is unchanged. The expired-payment diagnostic source is retained only with the ignored investigation artifacts. Executor checks: 1274 tests passed (7 opt-in/live tests ignored), formatting passed, 65 WebMCP checks passed, and all 25 embedded image assets verified. The disposable migration/database test passed after the filename alignment.
+Evidence under ignored `output/sirenic-20260913/` includes `payments/`, `payments/verified-receipts.json`, `paid-contract-evidence.json`, `reconciliation/`, `reviewed-rechecks.json`, `ask-plan-evidence.json`, `promotion-summary.json`, UI checks and deployment/test logs. The original six paid results and their $0.18 receipts remain under `output/sirenic-20260912/`. The first original search had a pre-fix reporting discrepancy (2645 rather than 2300 micro-USDC); its actual provider payment was 2000. Subsequent receipts use the corrected split.
+
+## Implementation and validation
+
+- `record.country-identifier` extracts an identifier only from the same record's matching country, preserving leading zeros. It prevents cross-country ID reuse.
+- Optional country projections do not mark otherwise complete results partial. Missing required outputs still stop dependent purchases.
+- Partial or unreliable Sirenic search results stop dependent purchases. Full source provenance, quality notes and nulls are retained.
+- Association records retain a nullable SIREN in their full record without inventing a company-registration fact.
+- The staging migration leaves new contracts draft. The final migration activates only paid, extracted, receipt-verified operations, retires the old EU contracts and disables the two failed candidate endpoints. Both migrations are mirrored into the App repository with the same production migration versions.
+
+Validation includes 1,275 executor tests, the Gateway/catalog test suite, 15 focused App example tests, six Sirenic regression tests, the production App build, real-model plan checks, live treasury calls and independent Base receipt verification. Migrations were applied twice against a disposable copy of the actual database schema, including its triggers, with the real executor route-matching test. Live customer balance debit was not performed by the expansion campaign.
+
+Manual checks (the output directory contains the pinned OpenAPI and physical schema captures):
+
+```sh
+python3 scripts/test-sirenic-migration.py --expansion --promote
+cargo run --offline --example check-sirenic-expansion -- tests/fixtures/sirenic/expanded-catalog.json --reviewed --paid
+python3 scripts/verify-sirenic-receipts.py --expansion
+```
+
+`check-sirenic-expansion-live.mjs` defaults to dry-run. Paid mode persists each attempt before dispatch and stops on an unresolved payment. `inspect-sirenic-unconfirmed.py` is read-only, never signs, and never resends an authorization. Its expiry evidence must be paired with a guarded database reconciliation before continuing. The production scripts are operator verification aids, not background buyer workflows.

@@ -161,3 +161,43 @@ fn partial_or_unreliable_search_cannot_authorize_dependent_purchases() {
         &json!({"resultats":[],"registres_muets":[],"etages_abandonnes":[]})
     ));
 }
+
+#[test]
+fn an_association_without_siren_keeps_its_record_without_a_false_company_id() {
+    let mut snapshot: Value =
+        serde_json::from_str(include_str!("fixtures/sirenic/expanded-catalog.json")).unwrap();
+    let adjustments: Value = serde_json::from_str(include_str!(
+        "fixtures/sirenic/verified-contract-adjustments.json"
+    ))
+    .unwrap();
+    for adjustment in adjustments["services"].as_array().unwrap() {
+        let service = snapshot["services"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|s| s["id"] == adjustment["id"])
+            .unwrap();
+        service["contract"] = adjustment["contract"].clone();
+    }
+    let catalog = Catalog::build(serde_json::from_value(snapshot).unwrap());
+    let service = catalog
+        .services
+        .iter()
+        .find(|s| s.path == "/v1/association/{rna}")
+        .unwrap();
+    let mut record = service.sample_payload.clone().unwrap();
+    record["siren"] = Value::Null;
+    let extracted = service
+        .contract
+        .extract(&record, &catalog.vocabulary)
+        .unwrap();
+    assert!(extracted.rejected.is_empty());
+    assert_eq!(extracted.subjects.len(), 1);
+    assert!(extracted.subjects[0]
+        .fact("company.registration.fr.siren")
+        .is_none());
+    assert!(extracted.subjects[0]
+        .facts
+        .iter()
+        .any(|f| f.value == record));
+}

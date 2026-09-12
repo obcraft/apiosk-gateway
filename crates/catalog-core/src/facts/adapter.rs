@@ -41,7 +41,7 @@ use serde_json::Value;
 
 /// Every adapter a contract may name. A contract naming anything else fails
 /// its check and never reaches `validated`.
-pub const KNOWN: &[&str] = &["tree.key-value"];
+pub const KNOWN: &[&str] = &["tree.key-value", "record.country-identifier"];
 
 /// Field names that carry the NAME half of a pair. Shape vocabulary, not a
 /// vendor list: a provider is free to say `name` where another says `key`.
@@ -56,8 +56,30 @@ const VALUE_FIELDS: &[&str] = &["value", "val", "amount", "content"];
 pub fn run(adapter: &str, key: &str, body: &Value) -> Option<Value> {
     match adapter {
         "tree.key-value" => key_value_tree(body, key),
+        "record.country-identifier" => country_identifier(body, key),
         _ => None,
     }
+}
+
+/// Extract a national identifier only for its declared register country.
+/// Country and identifier remain in the same record; numeric IDs are never
+/// cast because that would discard leading zeroes.
+fn country_identifier(body: &Value, country: &str) -> Option<Value> {
+    if country.len() != 2 || !country.bytes().all(|b| b.is_ascii_uppercase()) {
+        return None;
+    }
+    let actual = body.get("pays").or_else(|| body.get("country"))?.as_str()?;
+    if actual != country {
+        return None;
+    }
+    let id = body
+        .get("id_national")
+        .or_else(|| body.get("registration_number"))?
+        .as_str()?;
+    if id.is_empty() {
+        return None;
+    }
+    Some(Value::String(id.to_owned()))
 }
 
 /// Depth-first search of a key/value tree for one key's value.
@@ -100,6 +122,25 @@ fn key_value_tree(node: &Value, wanted: &str) -> Option<Value> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn national_identifiers_cannot_cross_country_boundaries() {
+        let body = json!({"pays":"GB", "id_national":"00445790"});
+        assert_eq!(
+            run("record.country-identifier", "GB", &body),
+            Some(json!("00445790"))
+        );
+        assert_eq!(run("record.country-identifier", "NO", &body), None);
+        assert_eq!(run("record.country-identifier", "gb", &body), None);
+        assert_eq!(
+            run(
+                "record.country-identifier",
+                "GB",
+                &json!({"pays":"GB","id_national":445790})
+            ),
+            None
+        );
+    }
 
     /// The real body stored against call_run 3f9b64bf (HTTP 200), trimmed to
     /// the branches under test. Not invented.
@@ -213,7 +254,9 @@ mod tests {
         // The rule this file exists under. An adapter names a SHAPE.
         for adapter in KNOWN {
             assert!(
-                adapter.starts_with("tree.") || adapter.starts_with("list."),
+                adapter.starts_with("tree.")
+                    || adapter.starts_with("list.")
+                    || adapter.starts_with("record."),
                 "{adapter} looks like a vendor name, not a shape"
             );
         }

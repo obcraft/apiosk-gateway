@@ -65,22 +65,10 @@ impl Engine {
         document["apiosk_fee_micro_usd"] =
             json!(body["fee_micro_usd"].as_i64().map(|v| v.to_string()));
         let missing: Vec<String> = match &extraction {
-            Ok(e) => step
-                .service
-                .contract
-                .output_map
-                .produces
-                .keys()
-                .filter(|kind| {
-                    !e.subjects
-                        .iter()
-                        .any(|s| s.facts.iter().any(|f| f.fact_type == **kind))
-                })
-                .cloned()
-                .collect(),
+            Ok(e) => missing_required_outputs(&step.service, e),
             Err(_) => vec!["output_schema_mismatch".into()],
         };
-        let missing_required = missing.iter().any(|k| !step.service.optional_outputs.contains(k));
+        let missing_required = !missing.is_empty();
         if !missing.is_empty() {
             document["missing_fields"] = json!(missing);
             document["coverage"] = json!("partial");
@@ -172,5 +160,29 @@ impl Engine {
             self.advance(task)?;
         }
         Ok(())
+    }
+}
+
+// Optional projections describe alternative record shapes (for example, the
+// national identifier for each country). Their absence is not partial data.
+fn missing_required_outputs(service: &crate::catalog::Service, extraction: &catalog_core::facts::contract::Extraction) -> Vec<String> {
+    service.contract.output_map.produces.keys().filter(|kind| {
+        !service.optional_outputs.contains(kind) && !extraction.subjects.iter().any(|subject| subject.facts.iter().any(|fact| fact.fact_type == **kind))
+    }).cloned().collect()
+}
+
+#[cfg(test)]
+mod completeness_tests {
+    use super::*;
+    #[test]
+    fn foreign_optional_ids_do_not_make_a_complete_record_partial() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/sirenic/expanded-catalog.json")).unwrap());
+        let service = catalog.services.iter().find(|s| s.path == "/v1/eu/recherche").unwrap();
+        let result = json!({"resultats":[{"pays":"NO","id_national":"923609016","denomination":"EQUINOR ASA"}]});
+        let mut extraction = service.contract.extract(&result, &catalog.vocabulary).unwrap();
+        assert!(extraction.rejected.is_empty());
+        assert!(missing_required_outputs(service, &extraction).is_empty());
+        extraction.subjects[0].facts.retain(|fact| fact.fact_type != "company.name");
+        assert_eq!(missing_required_outputs(service, &extraction), vec!["company.name"]);
     }
 }

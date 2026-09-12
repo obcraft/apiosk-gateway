@@ -45,5 +45,33 @@ with tempfile.TemporaryDirectory(prefix='sirenic-db-') as tmp:
   env=dict(os.environ, SIRENIC_ROUTE_TEST_DATABASE_URL=f'postgres://postgres@127.0.0.1:{port}/postgres?options=-csearch_path%3D'+manifest['search_path'].replace(' ',''))
   subprocess.run(['cargo','test','--offline','--manifest-path',str(ROOT/'legacy-executor/Cargo.toml'),'--bin','apiosk-gateway','database_resolves_active_templates_and_ignores_retired_literal_routes','--','--ignored'],env=env,check=True)
   print('PASS: actual schema/triggers, repeat-safe migration, stale routes withdrawn, six runtime-visible contracts')
+  if '--expansion' in __import__('sys').argv:
+   expanded=json.loads((ROOT/'tests/fixtures/sirenic/expanded-catalog.json').read_text())
+   for w in expanded['new_words']:
+    if w['slug'] in ['company.registration.gb.companies_house','company.registration.lei']:
+     sql(f"INSERT INTO catalog.fact_types(slug,name,description,subject_kind,jurisdiction,value_schema,status) VALUES({q(w['slug'])},{q(w['name'])},'fixture','company',{q(w['jurisdiction']) if w['jurisdiction'] else 'NULL'},{q(json.dumps(w['value_schema']))},'active');")
+   stage=next((ROOT/'supabase/migrations').glob('*_sirenic_expanded_company_routes.sql')).read_text()
+   sql(stage);sql(stage)
+   assert sql("SELECT count(*) FROM catalog.capability_execution_contracts WHERE status='active'")=='6'
+   assert sql("SELECT count(*) FROM catalog.capability_execution_contracts WHERE status='draft'")=='63'
+   ids=','.join(q(x['id']) for x in expanded['services'])
+   sql("UPDATE catalog.capability_execution_contracts SET status='retired' WHERE status='active' AND id NOT IN ("+ids+"); UPDATE catalog.capability_execution_contracts SET status='active',validated_at=now() WHERE id IN ("+ids+");")
+   snapshot=sql('SET search_path TO '+manifest['search_path']+';'+(ROOT/'src/catalog.sql').read_text())
+   parsed=json.loads(snapshot);assert len(parsed['services'])==67,len(parsed['services'])
+   (ROOT/'output/sirenic-20260913/local-catalog.json').write_text(json.dumps(parsed,indent=2)+'\n')
+   print('PASS: repeat-safe expansion, originals remain active, 63 drafts, 67 runtime-visible contracts after local-only promotion')
+   if '--promote' in __import__('sys').argv:
+    originals=','.join(q(x['id']) for x in f['services'])
+    sql("UPDATE catalog.capability_execution_contracts SET status='draft',validated_at=NULL; UPDATE catalog.capability_execution_contracts SET status='active',validated_at=now() WHERE id IN ("+originals+");")
+    promotion=next((ROOT/'supabase/migrations').glob('*_sirenic_verified_company_routes.sql')).read_text()
+    assert len(promotion)>100
+    sql(promotion);sql(promotion)
+    parsed=json.loads(sql('SET search_path TO '+manifest['search_path']+';'+(ROOT/'src/catalog.sql').read_text()))
+    expected=json.loads((ROOT/'output/sirenic-20260913/promotion-summary.json').read_text())['active_contracts']
+    assert len(parsed['services'])==expected
+    (ROOT/'output/sirenic-20260913/promoted-local-catalog.json').write_text(json.dumps(parsed,indent=2)+'\n')
+    print(f'PASS: final promotion applied twice; {expected} verified contracts, failed candidates excluded')
+
+
  finally:
   subprocess.run([str(PG/'pg_ctl'),'-D',str(data),'-m','immediate','stop'],stdout=subprocess.DEVNULL)
