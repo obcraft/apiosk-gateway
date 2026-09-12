@@ -36,6 +36,9 @@ impl Engine {
             "provider did not return a complete result"
         );
         let data = body.get("result").cloned().unwrap_or(Value::Null);
+        let incomplete_sirenic_search = step.service.api_slug == "sirenic"
+            && matches!(step.service.path.as_str(), "/v1/recherche" | "/v1/eu/recherche")
+            && crate::source_preview::sirenic_search_incomplete(&data);
         let extraction = step.service.contract.extract(&data, &catalog.vocabulary);
         let capacity_exceeded = extraction.as_ref().is_ok_and(|e| {
             task.entities.len() + e.subjects.len() > 100
@@ -86,6 +89,10 @@ impl Engine {
             document["coverage"] = json!("partial");
             document["missing_fields"] = json!(["upstream_result_truncated"]);
         }
+        if incomplete_sirenic_search {
+            document["coverage"] = json!("partial");
+            document["coverage_note"] = json!("Sirenic reported an incomplete or unreliable search; dependent purchases were stopped.");
+        }
         if capacity_exceeded {
             document["coverage"] = json!("partial");
             document["missing_fields"] = json!(["automatic_fact_binding_capacity_exceeded"]);
@@ -104,7 +111,7 @@ impl Engine {
         }
         let extraction = match extraction {
             Ok(e)
-                if body["result_truncated"] != true && !missing_required && !capacity_exceeded =>
+                if body["result_truncated"] != true && !missing_required && !capacity_exceeded && !incomplete_sirenic_search =>
             {
                 e
             }

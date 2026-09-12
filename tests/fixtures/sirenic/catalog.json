@@ -1,0 +1,1383 @@
+{
+  "description": "Sirenic official OpenAPI examples captured 2026-09-12. These samples validate contracts, not live paid execution.",
+  "vocabulary": [
+    {
+      "slug": "company.name",
+      "name": "company.name",
+      "description": "Company name",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.fr.siren",
+      "name": "company.registration.fr.siren",
+      "description": "Nine-digit French SIREN; resolve from the French company search, never guess.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{9}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.country_code",
+      "name": "company.country_code",
+      "description": "Country of the company register",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.search.country_code",
+      "name": "company.search.country_code",
+      "description": "Country filter explicitly supplied for a search",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.national_id",
+      "name": "company.registration.eu.national_id",
+      "description": "National company identifier, meaningful only together with company.country_code",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.identity",
+      "name": "company.registration.eu.identity",
+      "description": "Composite identity: country plus national identifier. Equal IDs in different countries are different companies.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "country",
+          "id"
+        ],
+        "properties": {
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.-]{1,20}$"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_registry_record",
+      "name": "company.fr_registry_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_financial_record",
+      "name": "company.fr_financial_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "exercices"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_kyb_record",
+      "name": "company.fr_kyb_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "identite"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.eu_registry_record",
+      "name": "company.eu_registry_record",
+      "description": "Sirenic European register profile with provenance, register link, freshness and coverage.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    }
+  ],
+  "services": [
+    {
+      "id": "6c31699d-3cae-580d-a18c-c11b3addd0c3",
+      "endpoint_id": "ae26f7f0-75fc-4d1b-b112-4ddb25c6e041",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/recherche",
+      "listing_type": "federated",
+      "list_atomic": 2000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "total_results": 10,
+        "resultats": [
+          {
+            "siren": "552032534",
+            "denomination": "DANONE",
+            "statut_diffusion": "totale",
+            "etat_administratif": "actif",
+            "activite_principale": "70.10Z",
+            "commune_siege": "PARIS",
+            "code_postal_siege": "75009",
+            "score_confiance": 1
+          }
+        ],
+        "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0",
+        "disclaimer": "Données issues de l'open data, fournies en l'état sans garantie. / Open data, provided as is without warranty.",
+        "etages_abandonnes": [],
+        "data_freshness": "stock Sirene mensuel (2026-08-01), dirigeants temps réel"
+      },
+      "contract": {
+        "capability_slug": "company.fr-registry-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "q",
+            "in": "query"
+          }
+        },
+        "output_map": {
+          "base": "$.resultats[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.denomination"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "many",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "1e8fa5b7-2909-52e7-aee5-b1f8bb717f45",
+      "endpoint_id": "bd7e87ef-21a9-53d0-93ee-94195d9aa584",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/entreprise/{siren}",
+      "listing_type": "federated",
+      "list_atomic": 5000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "siren": "552032534",
+        "denomination": "DANONE",
+        "nature_juridique": "5599",
+        "activite_principale": "70.10Z",
+        "categorie_entreprise": "GE",
+        "tranche_effectif_salarie": "42",
+        "date_creation": "1955-01-01",
+        "etat_administratif": "actif",
+        "siege": {
+          "siret": "55203253400703",
+          "adresse": "59 RUE LA FAYETTE 75009 PARIS",
+          "code_postal": "75009",
+          "commune": "PARIS"
+        },
+        "dirigeants": [
+          {
+            "type": "personne_morale",
+            "siren": "344366315",
+            "denomination": "ERNST & YOUNG AUDIT",
+            "fonction": "Commissaire aux comptes titulaire"
+          }
+        ],
+        "tva_intracommunautaire": "FR27552032534",
+        "nombre_etablissements": 19,
+        "index_egapro": [
+          {
+            "annee": 2025,
+            "note": 86
+          }
+        ],
+        "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0 ; index Egapro (ministère du Travail) et annuaire RGE (ADEME), licence ouverte Etalab 2.0",
+        "data_freshness": "stock Sirene mensuel (2026-07-01), dirigeants temps réel"
+      },
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fr.siren",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fr.siren": {
+            "name": "siren",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.fr_registry_record": {
+              "path": "$"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "2c303757-98dc-58a6-aa22-7c71b07018c2",
+      "endpoint_id": "eefad8d4-d6ea-54f1-b920-5da8c740e8e2",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/entreprise/{siren}/finances",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "siren": "552032534",
+        "nombre_exercices": 8,
+        "exercices": [
+          {
+            "date_cloture": "2017-12-31",
+            "chiffre_affaires": 609000000,
+            "ebe": 609000000,
+            "resultat_net": 176000000,
+            "ratios": {
+              "taux_endettement": 4.982,
+              "autonomie_financiere": 40.738,
+              "marge_ebe": 100
+            },
+            "qualite": {
+              "fiabilite": "a_verifier",
+              "anomalies": [
+                "ebe_non_calculable"
+              ],
+              "champs_douteux": [
+                "couverture_interets",
+                "ebe",
+                "marge_brute",
+                "marge_ebe"
+              ],
+              "champs_non_renseignes": []
+            }
+          }
+        ],
+        "perimetre_comptable": {
+          "perimetre": "social",
+          "double_depot_confirme": true
+        },
+        "controles_coherence": [
+          {
+            "code": "ebe_non_calculable",
+            "portee": "bloquante",
+            "exercices": [
+              "2017-12-31"
+            ]
+          }
+        ],
+        "comptes_consolides": {
+          "perimetre": "consolide",
+          "nombre_exercices": 8,
+          "exercices": [
+            {
+              "date_cloture": "2024-12-31",
+              "chiffre_affaires": 27376000000,
+              "resultat_net": null,
+              "qualite": {
+                "fiabilite": "exploitable",
+                "anomalies": [
+                  "resultat_net_non_calcule",
+                  "ratio_non_calcule"
+                ],
+                "champs_douteux": [],
+                "champs_non_renseignes": [
+                  "ratio_liquidite",
+                  "resultat_net"
+                ]
+              }
+            }
+          ]
+        },
+        "source": "Ratios financiers INPI / Banque de France (comptes annuels déposés) via data.economie.gouv.fr, licence ouverte 2.0",
+        "data_freshness": "jeu ratios_inpi_bce du 2026-06-01"
+      },
+      "contract": {
+        "capability_slug": "company.fr-financials",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fr.siren",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fr.siren": {
+            "name": "siren",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.fr_financial_record": {
+              "path": "$"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "55264d6c-01d3-5773-809e-48617554bae2",
+      "endpoint_id": "82d60dd2-4818-57fb-9681-473ec4859eba",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/kyb/{siren}",
+      "listing_type": "federated",
+      "list_atomic": 150000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "siren": "552032534",
+        "identite": {
+          "denomination": "DANONE",
+          "nature_juridique": "5599",
+          "activite_principale": "70.10Z",
+          "etat_administratif": "actif",
+          "date_creation": "1955-01-01",
+          "siege": {
+            "siret": "55203253400703",
+            "code_postal": "75009",
+            "commune": "PARIS"
+          },
+          "nombre_etablissements": 19
+        },
+        "tva_intracommunautaire": "FR27552032534",
+        "alertes_bodacc": {
+          "procedures_collectives": [],
+          "radiations": [],
+          "total_annonces": 106
+        },
+        "finances": {
+          "nombre_exercices": 8,
+          "exercices": [
+            {
+              "date_cloture": "2024-12-31",
+              "chiffre_affaires": 1030000000,
+              "resultat_net": 592000000
+            }
+          ]
+        },
+        "criblage_sanctions": {
+          "statut": "correspondances_a_verifier",
+          "cibles": [
+            {
+              "cible": "DANONE",
+              "role": "entreprise",
+              "nombre_correspondances": 0,
+              "correspondances": [],
+              "troncature": {
+                "tronquee": false,
+                "correspondances_servies": 0,
+                "non_servies": 0,
+                "niveau_non_servi": null,
+                "prefiltre_sature": false,
+                "note": null
+              }
+            }
+          ],
+          "cibles_non_criblees": []
+        },
+        "score_completude": 100,
+        "blocs_manquants": [],
+        "data_freshness": "identité : stock Sirene mensuel (2026-07-01)"
+      },
+      "contract": {
+        "capability_slug": "company.fr-kyb",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fr.siren",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fr.siren": {
+            "name": "siren",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.fr_kyb_record": {
+              "path": "$"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "2110a1c4-d7b3-5265-89d5-ca47146a7e2a",
+      "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/recherche",
+      "listing_type": "federated",
+      "list_atomic": 3000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": null,
+      "sample_payload": {
+        "nombre_resultats": 10,
+        "registres_muets": [],
+        "resultats": [
+          {
+            "pays": "NO",
+            "id_national": "923609016",
+            "denomination": "EQUINOR ASA",
+            "statut": "actif",
+            "ville": "STAVANGER",
+            "registre": "Enhetsregisteret (Brønnøysundregistrene)",
+            "correspondance": "registre_local",
+            "score_confiance": 1
+          }
+        ],
+        "pays_couverts": [
+          {
+            "pays": "NO",
+            "registre": "Enhetsregisteret (Brønnøysundregistrene)",
+            "mode": "base locale",
+            "entites": 1168483
+          }
+        ],
+        "source": "Registres officiels : Brønnøysundregistrene (NO, NLOD), e-Business Register (EE, CC-BY 4.0), Uzņēmumu reģistrs (LV), KBO/BCE (BE), CVR (DK), Companies House (GB, OGL), ARES (CZ), Register právnických osôb (SK, CC-BY 4.0), PRH/YTJ (FI, CC-BY 4.0), Krajowy Rejestr Sądowy (PL), Zefix (CH, OGD), Bolagsverket (SE), GLEIF (CC0)",
+        "disclaimer": "Données rediffusées telles que publiées par les registres officiels, dans un schéma unifié ; `statut` est une normalisation en 3 valeurs, le libellé source est conservé dans `statut_detail`. / Official register data as published, unified schema; `statut` is a 3-value normalization."
+      },
+      "contract": {
+        "capability_slug": "company.eu-registry-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "company.search.country_code",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "q",
+            "in": "query"
+          },
+          "company.search.country_code": {
+            "name": "pays",
+            "in": "query"
+          }
+        },
+        "output_map": {
+          "base": "$.resultats[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.denomination"
+            },
+            "company.country_code": {
+              "path": "$.pays"
+            },
+            "company.registration.eu.national_id": {
+              "path": "$.id_national"
+            },
+            "company.registration.eu.identity": {
+              "fields": {
+                "country": {
+                  "path": "$.pays"
+                },
+                "id": {
+                  "path": "$.id_national"
+                }
+              }
+            }
+          }
+        },
+        "cardinality": "many",
+        "identifies": "company.registration.eu.identity",
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "cb526407-c8fc-5bd7-b5be-2f094ea46c65",
+      "endpoint_id": "4e02bf35-6cbd-5231-88f7-1cf9a3893d7d",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/{pays}/{id}",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": null,
+      "sample_payload": {
+        "pays": "GB",
+        "registre": "Companies House",
+        "id_national": "00000006",
+        "lei": null,
+        "denomination": "MARINE AND GENERAL MUTUAL LIFE ASSURANCE SOCIETY",
+        "forme_juridique": {
+          "code": "private-unlimited-nsc",
+          "libelle": null
+        },
+        "statut": "cesse",
+        "statut_detail": "dissolved",
+        "date_creation": "1862-10-25",
+        "adresse_siege": {
+          "adresse": "Cms Cameron Mckenna Llp Cannon Place",
+          "code_postal": "EC4N 6AF",
+          "ville": "London",
+          "pays": "GB"
+        },
+        "activite": {
+          "nomenclature": "SIC-2007",
+          "code": "65110",
+          "libelle": null
+        },
+        "identifiants": {
+          "tva": null,
+          "lei": null
+        },
+        "lien_registre": "https://find-and-update.company-information.service.gov.uk/company/00000006",
+        "data_freshness": "Companies House temps réel (cache 24 h)",
+        "source": "Registres officiels : Brønnøysundregistrene (NO, NLOD), e-Business Register (EE, CC-BY 4.0), Uzņēmumu reģistrs (LV), KBO/BCE (BE), CVR (DK), Companies House (GB, OGL), ARES (CZ), Register právnických osôb (SK, CC-BY 4.0), PRH/YTJ (FI, CC-BY 4.0), Krajowy Rejestr Sądowy (PL), Zefix (CH, OGD), Bolagsverket (SE), GLEIF (CC0)",
+        "disclaimer": "Données rediffusées telles que publiées par les registres officiels, dans un schéma unifié ; `statut` est une normalisation en 3 valeurs, le libellé source est conservé dans `statut_detail`. / Official register data as published, unified schema; `statut` is a 3-value normalization."
+      },
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.country_code",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "company.registration.eu.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.country_code": {
+            "name": "pays",
+            "in": "path"
+          },
+          "company.registration.eu.national_id": {
+            "name": "id",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.denomination"
+            },
+            "company.country_code": {
+              "path": "$.pays"
+            },
+            "company.registration.eu.national_id": {
+              "path": "$.id_national"
+            },
+            "company.registration.eu.identity": {
+              "fields": {
+                "country": {
+                  "path": "$.pays"
+                },
+                "id": {
+                  "path": "$.id_national"
+                }
+              }
+            },
+            "company.eu_registry_record": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.eu.identity",
+        "max_fan_out": 1
+      }
+    }
+  ],
+  "new_words": [
+    {
+      "slug": "company.registration.fr.siren",
+      "name": "company.registration.fr.siren",
+      "description": "Nine-digit French SIREN; resolve from the French company search, never guess.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{9}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.country_code",
+      "name": "company.country_code",
+      "description": "Country of the company register",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.national_id",
+      "name": "company.registration.eu.national_id",
+      "description": "National company identifier, meaningful only together with company.country_code",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.identity",
+      "name": "company.registration.eu.identity",
+      "description": "Composite identity: country plus national identifier. Equal IDs in different countries are different companies.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "country",
+          "id"
+        ],
+        "properties": {
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.-]{1,20}$"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_registry_record",
+      "name": "company.fr_registry_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_financial_record",
+      "name": "company.fr_financial_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "exercices"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_kyb_record",
+      "name": "company.fr_kyb_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "identite"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.eu_registry_record",
+      "name": "company.eu_registry_record",
+      "description": "Sirenic European register profile with provenance, register link, freshness and coverage.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "company.fr-registry-search",
+      "name": "Search French companies by name or SIREN (top 10)",
+      "description": "French company search and company lookup by name or SIREN in the official French company registry (INSEE Sirene / INPI RNE open data). Name search returns the top 10 matches with identity, SIREN, NAF code, city and active/ceased status, plus a score_confiance (0-1 match confidence) that helps disambiguate homonyms. The entry point to official data and company data on France: resolve a trading name to its SIREN identifier before pulling the full company profile, filings or financials. Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company name, or a French identifier (SIREN, SIRET, VAT) — spaced or labelled (\"SIREN : 552 032 534\") resolves directly. Unsupported characters are stripped, not rejected; 400 only if nothing searchable is left (1-100 chars once cleaned).",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.registry-profile",
+      "name": "Full company profile by SIREN",
+      "description": "Full French company profile by SIREN: official company data from the French company registry (INSEE Sirene / INPI RNE). One company lookup returns legal name, legal form, head-office address, NAF code, workforce bracket, creation date, active or ceased status, officers with name and role, collective agreement and the computed intra-EU VAT number. The core KYB building block for verifying a French counterparty: registry facts for due diligence, compliance and onboarding checks. Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "9-digit SIREN (Luhn-validated)",
+            "x-parameter-location": "path"
+          },
+          "geo": {
+            "type": "boolean",
+            "description": "true = include GPS coordinates (WGS84) of establishments",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.fr-financials",
+      "name": "Annual financial data from filed accounts (INPI / Banque de France ratios)",
+      "description": "Annual financial data from filed accounts (INPI / Banque de France ratios) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "siren",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.fr-kyb",
+      "name": "Complete KYB file for a French company (one call)",
+      "description": "Complete KYB file for a French company (one call) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "9-digit SIREN (Luhn-validated)",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.eu-registry-search",
+      "name": "Search European companies across official registers (unified schema)",
+      "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company name — 2 to 100 characters once unsupported characters are stripped.",
+            "x-parameter-location": "query"
+          },
+          "pays": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$",
+            "description": "Optional ISO-3166 alpha-2 country filter",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.registry-profile",
+      "name": "Unified European company profile",
+      "description": "Unified European company profile Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "pays": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$",
+            "description": "ISO-3166 alpha-2 country code (NO, EE, LV, BE, CH, CZ, SK, FI, PL; DK/GB when enabled)",
+            "x-parameter-location": "path"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.-]{1,20}$",
+            "description": "National register identifier",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "pays",
+          "id"
+        ]
+      },
+      "output_contract": {
+        "type": "object"
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "ae26f7f0-75fc-4d1b-b112-4ddb25c6e041",
+      "path": "/v1/recherche",
+      "price": 0.002,
+      "description": "French company search and company lookup by name or SIREN in the official French company registry (INSEE Sirene / INPI RNE open data). Name search returns the top 10 matches with identity, SIREN, NAF code, city and active/ceased status, plus a score_confiance (0-1 match confidence) that helps disambiguate homonyms. The entry point to official data and company data on France: resolve a trading name to its SIREN identifier before pulling the full company profile, filings or financials.",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company name, or a French identifier (SIREN, SIRET, VAT) — spaced or labelled (\"SIREN : 552 032 534\") resolves directly. Unsupported characters are stripped, not rejected; 400 only if nothing searchable is left (1-100 chars once cleaned).",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "response_example": {
+        "total_results": 10,
+        "resultats": [
+          {
+            "siren": "552032534",
+            "denomination": "DANONE",
+            "statut_diffusion": "totale",
+            "etat_administratif": "actif",
+            "activite_principale": "70.10Z",
+            "commune_siege": "PARIS",
+            "code_postal_siege": "75009",
+            "score_confiance": 1
+          }
+        ],
+        "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0",
+        "disclaimer": "Données issues de l'open data, fournies en l'état sans garantie. / Open data, provided as is without warranty.",
+        "etages_abandonnes": [],
+        "data_freshness": "stock Sirene mensuel (2026-08-01), dirigeants temps réel"
+      }
+    },
+    {
+      "id": "bd7e87ef-21a9-53d0-93ee-94195d9aa584",
+      "path": "/v1/entreprise/{siren}",
+      "price": 0.005,
+      "description": "Full French company profile by SIREN: official company data from the French company registry (INSEE Sirene / INPI RNE). One company lookup returns legal name, legal form, head-office address, NAF code, workforce bracket, creation date, active or ceased status, officers with name and role, collective agreement and the computed intra-EU VAT number. The core KYB building block for verifying a French counterparty: registry facts for due diligence, compliance and onboarding checks.",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "9-digit SIREN (Luhn-validated)",
+            "x-parameter-location": "path"
+          },
+          "geo": {
+            "type": "boolean",
+            "description": "true = include GPS coordinates (WGS84) of establishments",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "response_example": {
+        "siren": "552032534",
+        "denomination": "DANONE",
+        "nature_juridique": "5599",
+        "activite_principale": "70.10Z",
+        "categorie_entreprise": "GE",
+        "tranche_effectif_salarie": "42",
+        "date_creation": "1955-01-01",
+        "etat_administratif": "actif",
+        "siege": {
+          "siret": "55203253400703",
+          "adresse": "59 RUE LA FAYETTE 75009 PARIS",
+          "code_postal": "75009",
+          "commune": "PARIS"
+        },
+        "dirigeants": [
+          {
+            "type": "personne_morale",
+            "siren": "344366315",
+            "denomination": "ERNST & YOUNG AUDIT",
+            "fonction": "Commissaire aux comptes titulaire"
+          }
+        ],
+        "tva_intracommunautaire": "FR27552032534",
+        "nombre_etablissements": 19,
+        "index_egapro": [
+          {
+            "annee": 2025,
+            "note": 86
+          }
+        ],
+        "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0 ; index Egapro (ministère du Travail) et annuaire RGE (ADEME), licence ouverte Etalab 2.0",
+        "data_freshness": "stock Sirene mensuel (2026-07-01), dirigeants temps réel"
+      }
+    },
+    {
+      "id": "eefad8d4-d6ea-54f1-b920-5da8c740e8e2",
+      "path": "/v1/entreprise/{siren}/finances",
+      "price": 0.01,
+      "description": "Annual financial data from filed accounts (INPI / Banque de France ratios)",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "siren",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "response_example": {
+        "siren": "552032534",
+        "nombre_exercices": 8,
+        "exercices": [
+          {
+            "date_cloture": "2017-12-31",
+            "chiffre_affaires": 609000000,
+            "ebe": 609000000,
+            "resultat_net": 176000000,
+            "ratios": {
+              "taux_endettement": 4.982,
+              "autonomie_financiere": 40.738,
+              "marge_ebe": 100
+            },
+            "qualite": {
+              "fiabilite": "a_verifier",
+              "anomalies": [
+                "ebe_non_calculable"
+              ],
+              "champs_douteux": [
+                "couverture_interets",
+                "ebe",
+                "marge_brute",
+                "marge_ebe"
+              ],
+              "champs_non_renseignes": []
+            }
+          }
+        ],
+        "perimetre_comptable": {
+          "perimetre": "social",
+          "double_depot_confirme": true
+        },
+        "controles_coherence": [
+          {
+            "code": "ebe_non_calculable",
+            "portee": "bloquante",
+            "exercices": [
+              "2017-12-31"
+            ]
+          }
+        ],
+        "comptes_consolides": {
+          "perimetre": "consolide",
+          "nombre_exercices": 8,
+          "exercices": [
+            {
+              "date_cloture": "2024-12-31",
+              "chiffre_affaires": 27376000000,
+              "resultat_net": null,
+              "qualite": {
+                "fiabilite": "exploitable",
+                "anomalies": [
+                  "resultat_net_non_calcule",
+                  "ratio_non_calcule"
+                ],
+                "champs_douteux": [],
+                "champs_non_renseignes": [
+                  "ratio_liquidite",
+                  "resultat_net"
+                ]
+              }
+            }
+          ]
+        },
+        "source": "Ratios financiers INPI / Banque de France (comptes annuels déposés) via data.economie.gouv.fr, licence ouverte 2.0",
+        "data_freshness": "jeu ratios_inpi_bce du 2026-06-01"
+      }
+    },
+    {
+      "id": "82d60dd2-4818-57fb-9681-473ec4859eba",
+      "path": "/v1/kyb/{siren}",
+      "price": 0.15,
+      "description": "Complete KYB file for a French company (one call)",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "description": "9-digit SIREN (Luhn-validated)",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "response_example": {
+        "siren": "552032534",
+        "identite": {
+          "denomination": "DANONE",
+          "nature_juridique": "5599",
+          "activite_principale": "70.10Z",
+          "etat_administratif": "actif",
+          "date_creation": "1955-01-01",
+          "siege": {
+            "siret": "55203253400703",
+            "code_postal": "75009",
+            "commune": "PARIS"
+          },
+          "nombre_etablissements": 19
+        },
+        "tva_intracommunautaire": "FR27552032534",
+        "alertes_bodacc": {
+          "procedures_collectives": [],
+          "radiations": [],
+          "total_annonces": 106
+        },
+        "finances": {
+          "nombre_exercices": 8,
+          "exercices": [
+            {
+              "date_cloture": "2024-12-31",
+              "chiffre_affaires": 1030000000,
+              "resultat_net": 592000000
+            }
+          ]
+        },
+        "criblage_sanctions": {
+          "statut": "correspondances_a_verifier",
+          "cibles": [
+            {
+              "cible": "DANONE",
+              "role": "entreprise",
+              "nombre_correspondances": 0,
+              "correspondances": [],
+              "troncature": {
+                "tronquee": false,
+                "correspondances_servies": 0,
+                "non_servies": 0,
+                "niveau_non_servi": null,
+                "prefiltre_sature": false,
+                "note": null
+              }
+            }
+          ],
+          "cibles_non_criblees": []
+        },
+        "score_completude": 100,
+        "blocs_manquants": [],
+        "data_freshness": "identité : stock Sirene mensuel (2026-07-01)"
+      }
+    },
+    {
+      "id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+      "path": "/v1/eu/recherche",
+      "price": 0.003,
+      "description": "Search European companies across official registers (unified schema)",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Company name — 2 to 100 characters once unsupported characters are stripped.",
+            "x-parameter-location": "query"
+          },
+          "pays": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$",
+            "description": "Optional ISO-3166 alpha-2 country filter",
+            "x-parameter-location": "query"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      },
+      "response_example": {
+        "nombre_resultats": 10,
+        "registres_muets": [],
+        "resultats": [
+          {
+            "pays": "NO",
+            "id_national": "923609016",
+            "denomination": "EQUINOR ASA",
+            "statut": "actif",
+            "ville": "STAVANGER",
+            "registre": "Enhetsregisteret (Brønnøysundregistrene)",
+            "correspondance": "registre_local",
+            "score_confiance": 1
+          }
+        ],
+        "pays_couverts": [
+          {
+            "pays": "NO",
+            "registre": "Enhetsregisteret (Brønnøysundregistrene)",
+            "mode": "base locale",
+            "entites": 1168483
+          }
+        ],
+        "source": "Registres officiels : Brønnøysundregistrene (NO, NLOD), e-Business Register (EE, CC-BY 4.0), Uzņēmumu reģistrs (LV), KBO/BCE (BE), CVR (DK), Companies House (GB, OGL), ARES (CZ), Register právnických osôb (SK, CC-BY 4.0), PRH/YTJ (FI, CC-BY 4.0), Krajowy Rejestr Sądowy (PL), Zefix (CH, OGD), Bolagsverket (SE), GLEIF (CC0)",
+        "disclaimer": "Données rediffusées telles que publiées par les registres officiels, dans un schéma unifié ; `statut` est une normalisation en 3 valeurs, le libellé source est conservé dans `statut_detail`. / Official register data as published, unified schema; `statut` is a 3-value normalization."
+      }
+    },
+    {
+      "id": "4e02bf35-6cbd-5231-88f7-1cf9a3893d7d",
+      "path": "/v1/eu/entreprise/{pays}/{id}",
+      "price": 0.01,
+      "description": "Unified European company profile",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "pays": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{2}$",
+            "description": "ISO-3166 alpha-2 country code (NO, EE, LV, BE, CH, CZ, SK, FI, PL; DK/GB when enabled)",
+            "x-parameter-location": "path"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.-]{1,20}$",
+            "description": "National register identifier",
+            "x-parameter-location": "path"
+          }
+        },
+        "required": [
+          "pays",
+          "id"
+        ]
+      },
+      "response_example": {
+        "pays": "GB",
+        "registre": "Companies House",
+        "id_national": "00000006",
+        "lei": null,
+        "denomination": "MARINE AND GENERAL MUTUAL LIFE ASSURANCE SOCIETY",
+        "forme_juridique": {
+          "code": "private-unlimited-nsc",
+          "libelle": null
+        },
+        "statut": "cesse",
+        "statut_detail": "dissolved",
+        "date_creation": "1862-10-25",
+        "adresse_siege": {
+          "adresse": "Cms Cameron Mckenna Llp Cannon Place",
+          "code_postal": "EC4N 6AF",
+          "ville": "London",
+          "pays": "GB"
+        },
+        "activite": {
+          "nomenclature": "SIC-2007",
+          "code": "65110",
+          "libelle": null
+        },
+        "identifiants": {
+          "tva": null,
+          "lei": null
+        },
+        "lien_registre": "https://find-and-update.company-information.service.gov.uk/company/00000006",
+        "data_freshness": "Companies House temps réel (cache 24 h)",
+        "source": "Registres officiels : Brønnøysundregistrene (NO, NLOD), e-Business Register (EE, CC-BY 4.0), Uzņēmumu reģistrs (LV), KBO/BCE (BE), CVR (DK), Companies House (GB, OGL), ARES (CZ), Register právnických osôb (SK, CC-BY 4.0), PRH/YTJ (FI, CC-BY 4.0), Krajowy Rejestr Sądowy (PL), Zefix (CH, OGD), Bolagsverket (SE), GLEIF (CC0)",
+        "disclaimer": "Données rediffusées telles que publiées par les registres officiels, dans un schéma unifié ; `statut` est une normalisation en 3 valeurs, le libellé source est conservé dans `statut_detail`. / Official register data as published, unified schema; `statut` is a 3-value normalization."
+      }
+    }
+  ]
+}

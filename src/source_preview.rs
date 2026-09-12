@@ -50,3 +50,12 @@ mod tests {
         assert_eq!(data["result"]["results"][0]["notes"],"large irrelevant description");
     }
 }
+
+/// A partial search can omit a competing identity; never turn its top hit into
+/// authority for another paid lookup. Keep the original response inspectable.
+pub fn sirenic_search_incomplete(data: &serde_json::Value) -> bool {
+    data["resultats_partiels"] == true
+        || data["aucune_correspondance_fiable"] == true
+        || ["registres_muets", "etages_abandonnes"].iter().any(|key|
+            data[*key].as_array().is_some_and(|items| !items.is_empty()))
+}
