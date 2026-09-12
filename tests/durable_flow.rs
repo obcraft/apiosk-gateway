@@ -166,6 +166,10 @@ fn execution(r: &Response) -> ExecuteRequest {
 #[ignore = "requires local tests/support-db.mjs on 54329; no live database"]
 async fn durable_flow_and_authorization_boundary() {
     let pool = PgPoolOptions::new()
+        .after_connect(|conn, _| Box::pin(async move {
+            sqlx::query("SET search_path TO public, gateway_v2, kyb, providers, catalog, actions, billing, agents, wallets, research, integrations, observability, support, content, operations, identity, extensions").execute(conn).await?;
+            Ok(())
+        }))
         .max_connections(1)
         .acquire_timeout(Duration::from_secs(5))
         .connect(&std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| {
@@ -1177,8 +1181,9 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
     sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(original).bind(report_id).execute(&pool).await.unwrap();
 
-    // Independent company branches, one approval, durable source pacing and
-    // backend analysis. Only local fixtures; never purchases production data.
+    // Independent company branches, one approval and backend analysis. The
+    // fixture shares a path with KVK but is a different provider: it must not
+    // enter the KVK queue. Actual KVK admission is covered by kvk_queue_flow.
     let old_endpoint: Uuid = sqlx::query_scalar("SELECT endpoint_id FROM public.capability_execution_contracts WHERE capability_slug='company.accounts'").fetch_one(&pool).await.unwrap();
     let annual_endpoint = Uuid::new_v4();
     sqlx::query("UPDATE public.api_endpoints SET id=$1,path=$2 WHERE id=$3").bind(annual_endpoint).bind(apiosk_gateway_v2::annual_report::ENDPOINT).bind(old_endpoint).execute(&pool).await.unwrap();
@@ -1194,36 +1199,12 @@ async fn durable_flow_and_authorization_boundary() {
     let before = counts.provider.load(Ordering::Relaxed);
     for _ in 0..2 { state = multi.execute(&user,"fixture",execution(&state)).await.unwrap(); assert_eq!(state.status,Status::Ready,"{state:?}"); }
     state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
-    assert_eq!(state.status,Status::Running,"search traffic must also pace the first annual report: {state:?}");
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+2);
-    let (rev,mut pacing,_) = store.load(user.owner,task_id).await.unwrap();
-    pacing.actions[0]["until"]=json!(chrono::Utc::now()-chrono::Duration::seconds(1));
-    store.save(user.owner,task_id,rev,&pacing).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds'").execute(&pool).await.unwrap();
-    state=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
-    let wait_action=state.next_actions.iter().find(|a|a.kind=="poll").unwrap().action_id;
-    state=multi.execute(&user,"fixture",ExecuteRequest{request_id:Uuid::new_v4(),action_id:wait_action,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:wait_action,input:Value::Null}).await.unwrap();
-    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
-    assert_eq!(state.status,Status::Ready,"{state:?}");
-    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
-    assert_eq!(state.status,Status::Running,"{state:?}");
-    assert!(state.retry_after_ms.unwrap() > 59000);
-    assert!(state.context_view["cooldown"]["until"].is_string());
+    assert_eq!(state.status,Status::Ready,"non-KVK providers must not enter the KVK queue");
     assert_eq!(counts.provider.load(Ordering::Relaxed),before+3);
-    let poll_request = |state: &Response| { let a=state.next_actions.iter().find(|a|a.kind=="poll").unwrap(); ExecuteRequest {request_id:Uuid::new_v4(),action_id:a.action_id,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:a.action_id,input:Value::Null} };
-    let early = multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
-    assert_eq!(early.state.as_ref().unwrap().revision,state.state.as_ref().unwrap().revision);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+3);
-    let restored = multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
-    assert_eq!(restored.context_view["cooldown"],state.context_view["cooldown"]);
-    let (revision, mut saved, _) = store.load(user.owner,task_id).await.unwrap();
+    assert!(state.context_view.get("cooldown").is_none());
+    let (_, saved, _) = store.load(user.owner,task_id).await.unwrap();
     assert_eq!(saved.facts.iter().filter(|f|f.semantic_type=="company.id").map(|f|f.value.clone()).collect::<Vec<_>>(),vec![json!("123"),json!("456")]);
-    // Advance the fixture clock; no sleep and no production clock override.
-    saved.actions[0]["until"]=json!(chrono::Utc::now()-chrono::Duration::seconds(1));
-    store.save(user.owner,task_id,revision,&saved).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
-    state=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
-    state=multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
+    let poll_request = |state: &Response| { let a=state.next_actions.iter().find(|a|a.kind=="poll").unwrap(); ExecuteRequest {request_id:Uuid::new_v4(),action_id:a.action_id,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:a.action_id,input:Value::Null} };
     state=multi.execute(&user,"fixture",execution(&state)).await.unwrap();
     assert_eq!(state.context_view["analyzing"],true);
     assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
@@ -1262,9 +1243,10 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(resumed.proposal.as_ref().unwrap().step_details[3]["subject"],"SecondCo");
     let baseline=counts.provider.load(Ordering::Relaxed);
     sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
-    let waiting=multi.execute(&user,"fixture",execution(&resumed)).await.unwrap();
-    assert!(waiting.context_view["cooldown"]["until"].is_string(),"{waiting:?}");
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
+    let delivered=multi.execute(&user,"fixture",execution(&resumed)).await.unwrap();
+    assert_eq!(delivered.context_view["analyzing"],true);
+    assert!(delivered.context_view.get("cooldown").is_none());
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline+1);
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     // The screenshot's exact failure: an unpaid upstream 429 followed by a
@@ -1282,7 +1264,7 @@ async fn durable_flow_and_authorization_boundary() {
     let retry_wait=multi.execute(&user,"fixture",poll_request(&retry_state)).await.unwrap();
     assert_eq!(retry_wait.status,Status::Running,"{retry_wait:?}");
     assert!(retry_wait.context_view["cooldown"]["until"].is_string());
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline,"waiting cannot repurchase");
+    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline+1,"waiting cannot repurchase");
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     api_server.abort();

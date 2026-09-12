@@ -41,6 +41,18 @@ for(const s of snapshot.services) {
  await db.query("INSERT INTO capability_execution_contracts VALUES($1,$2,$3,$4,'active',$5,$6,$7,$8,$9,$10,$11,'{}','{}',3600,$12,now(),'read','per_call')",[s.id,s.endpoint_id,s.contract.capability_slug,s.contract.version,JSON.stringify(s.contract.requires),JSON.stringify(s.contract.input_map),JSON.stringify(s.contract.output_map),s.contract.identifies??null,s.contract.cardinality,s.contract.max_fan_out,JSON.stringify(s.fixed_params),JSON.stringify(s.sample_payload)]);
 }
 await db.exec('ALTER TABLE public.apis ADD COLUMN provider_api_key_encrypted text;');
+// Production catalog metadata added since the original flow fixture.
+await db.exec(`ALTER TABLE public.api_endpoints
+ ADD COLUMN description text DEFAULT 'Documented fixture endpoint',
+ ADD COLUMN tags text[] DEFAULT ARRAY['registry'],
+ ADD COLUMN endpoint_category text DEFAULT 'finance',
+ ADD COLUMN metadata_source text DEFAULT 'curated',
+ ADD COLUMN query_params jsonb DEFAULT '{"type":"object","properties":{}}',
+ ADD COLUMN request_body jsonb;
+ ALTER TABLE public.capabilities ADD COLUMN description text DEFAULT 'Fixture capability';
+`);
+await db.exec(await fs.readFile(new URL("../supabase/migrations/20260911113528_source_readiness_audit_access.sql",import.meta.url),"utf8"));
+
 function msg(type,body=Buffer.alloc(0)){const header=Buffer.alloc(5);header[0]=type.charCodeAt(0);header.writeUInt32BE(body.length+4,1);return Buffer.concat([header,body]);}
 const status=(k,v)=>msg('S',Buffer.from(k+'\0'+v+'\0'));
 let occupied=false;

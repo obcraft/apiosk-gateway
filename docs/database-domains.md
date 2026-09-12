@@ -61,3 +61,5 @@ The Supabase security advisor reported no new finding categories. Existing polic
 ## Reproducible releases
 
 Use `npm run build:production` for a manual App build so local Gateway URLs cannot enter a production bundle. The legacy image overlay requires `GATEWAY_IMAGE` pointing to the exact Gateway image built from the reviewed commit. The standalone legacy repository vendors the same `kvk-accounts` crate; keep both copies byte-identical and include its queue migration so a standalone checkout builds and tests. Active Laevitas and PulseNetwork syncs use the `providers` PostgREST profile.
+
+Run `python3 scripts/test-chatbot-flow.py` for the full local MCP → HTTP/Auth → SQLx → provider-fixture acceptance test. It requires the adjacent App and MCP checkouts with their installed dependencies, starts a fresh local PGlite database on an available port, and checks approval, replay, refund handling, result retrieval, recovery, PDF downloads and source isolation. `python3 scripts/test-kvk-accounts.py` separately verifies real PostgreSQL concurrency and the physical `actions` schema.
