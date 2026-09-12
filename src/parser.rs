@@ -339,6 +339,20 @@ impl Parser {
                                             return Err(ModelFailure::Unsupported.into());
                                         }
                                         Err(error) => {
+                                            if surface == "planning" {
+                                                // Fixed diagnostics only; never log model text or user facts.
+                                                let reason = match error.to_string().as_str() {
+                                                    "planner changed the request" => "changed_request",
+                                                    "planner changed a goal" => "changed_goal",
+                                                    "planner relaxed a requirement" => "relaxed_requirement",
+                                                    "corrected plan is still unsupported; ask a clarification instead" => "still_unsupported",
+                                                    _ => "invalid_review",
+                                                };
+                                                tracing::warn!(surface, attempt, reason, "planning validation failed");
+                                                if let Some(messages) = attempt_payload["messages"].as_array_mut() {
+                                                    messages.push(json!({"role":"user","content":format!("The proposed review failed validation ({reason}). Preserve the original subjects, goal count, capabilities and constraints exactly. Do not add identifier lookup goals; the compiler supplies dependencies. If no executable correction exists, return {{\"message\":\"one focused clarification about the unsupported requirement, in the user's language\",\"intent\":null}}. Do not claim retrieval is planned or that an available filing is necessarily the latest.")}));
+                                                }
+                                            }
                                             if surface == "analysis" {
                                                 // Fixed validator classifications only; never log the model answer.
                                                 let reason = match error.to_string().as_str() {
@@ -475,6 +489,29 @@ mod tests {
         let url = format!("http://{}", listener.local_addr().unwrap());
         let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         (Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into()), calls, server)
+    }
+
+    #[tokio::test]
+    async fn invalid_planning_rewrite_recovers_with_clarification() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let task = Task::default();
+        let original: Intent = serde_json::from_value(json!({
+            "subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],
+            "goals":[{"subject":0,"capability":"company.accounts","constraints":{"filing_selection":"latest"}}],
+            "answer_operations":[],"unresolved_references":[]
+        })).unwrap();
+        let mut invalid = original.clone();
+        invalid.goals.push(original.goals[0].clone());
+        let envelope = |review: Value| json!({"choices":[{"finish_reason":"stop","message":{"content":review.to_string()}}]});
+        let (parser, calls, server) = model_fixture(vec![
+            (200, envelope(json!({"message":"Retrieve latest","intent":invalid}))),
+            (200, envelope(json!({"message":"Shall I retrieve the available filing and report its year?","intent":null}))),
+        ]).await;
+        let review = parser.review_plan("Example latest", &task, &catalog, &original, "unsupported filing selection").await.unwrap();
+        assert!(review.intent.is_none());
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        assert_eq!(original.goals[0].constraints["filing_selection"], "latest");
+        server.abort();
     }
 
     fn decode_chat(raw: &str) -> anyhow::Result<ChatReply> {
