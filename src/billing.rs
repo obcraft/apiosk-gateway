@@ -75,12 +75,61 @@ pub fn public_error(body: &Value) -> Value {
             "refunded",
             "The payment ledger confirms that the amount, including the fee, was refunded.",
         ),
+        Some("source_input_refunded") => (
+            "source_input_refunded",
+            "The source request was missing or contained invalid required input. The full amount, including the fee, was refunded.",
+        ),
+        Some("source_schema_refunded") => (
+            "source_schema_refunded",
+            "The source response could not be processed. The full amount, including the fee, was refunded.",
+        ),
         _ => (
             "execution_refused",
             "Execution was refused. Check the payment status before continuing.",
         ),
     };
     json!({"code":code,"message":message})
+}
+
+/// Preserve a safe failure category when the ledger confirms a full refund.
+pub fn refunded_failure(output: &Value) -> Value {
+    let execution = &output["execution"];
+    let error = if execution["paid"] == false {
+        match (execution["status"].as_u64(), execution["body"]["error"].as_str()) {
+            (Some(429), _) => "rate_limited_refunded",
+            (_, Some("invalid_source_query")) => "source_input_refunded",
+            (_, Some("source_schema_mismatch")) => "source_schema_refunded",
+            _ => "refunded",
+        }
+    } else { "refunded" };
+    json!({"ok":false,"charged_micro_usd":0,"error":error,"message":"The payment ledger confirms this execution was refunded."})
+}
+
+pub fn display_step_error(error: &Value) -> Value {
+    if error["code"] == "dependency_failed" {
+        let mut error = error.clone();
+        error["message"] = json!("Not requested because a required earlier source step failed.");
+        error
+    } else { error.clone() }
+}
+
+#[cfg(test)]
+mod refunded_error_tests {
+    use super::*;
+    #[test]
+    fn refund_keeps_safe_input_failure_without_exposing_upstream_body() {
+        let failure = refunded_failure(&json!({"execution":{"paid":false,"status":400,"body":{"error":"invalid_source_query","message":"Missing addresses","private":"not for display"}}}));
+        assert_eq!(failure["error"], "source_input_refunded");
+        assert!(public_error(&failure)["message"].as_str().unwrap().contains("required input"));
+        assert!(!failure.to_string().contains("private"));
+        assert_eq!(refunded_failure(&json!({"execution":{"paid":false,"status":429}}))["error"], "rate_limited_refunded");
+        assert_eq!(refunded_failure(&json!(null))["error"], "refunded");
+    }
+    #[test]
+    fn older_dependency_failures_do_not_claim_the_company_was_missing() {
+        let shown=display_step_error(&json!({"code":"dependency_failed","message":"Not requested because the company could not be resolved."}));
+        assert_eq!(shown["message"], "Not requested because a required earlier source step failed.");
+    }
 }
 impl Store {
     pub async fn billing(

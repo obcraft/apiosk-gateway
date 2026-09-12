@@ -327,7 +327,7 @@ impl Engine {
             if plan.steps.iter().any(|parent| parent.entity_ref == step.entity_ref
                 && task.failed_steps.contains_key(&parent.key())
                 && step.service.contract.requires.iter().any(|r| !r.optional && parent.service.contract.output_map.produces.contains_key(&r.fact_type))) {
-                task.failed_steps.insert(step.key(), json!({"code":"dependency_failed","message":"Not requested because the company could not be resolved."}));
+                task.failed_steps.insert(step.key(), json!({"code":"dependency_failed","message":"Not requested because a required earlier source step failed."}));
             }
         }
         self.advance(task)

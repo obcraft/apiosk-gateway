@@ -302,9 +302,9 @@ impl Executor {
                 }
             }
             if c.get::<String, _>("status") == "refunded" {
-                let throttled: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM call_runs WHERE charge_id=$1 AND user_id=$2 AND status='failed' AND output #>> '{execution,status}'='429' AND output #>> '{execution,paid}'='false')")
-                    .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_one(&self.store.pool).await?;
-                let body = json!({"ok":false,"charged_micro_usd":0,"error":if throttled {"rate_limited_refunded"} else {"refunded"},"message":"The payment ledger confirms this execution was refunded."});
+                let failed: Option<Value> = sqlx::query_scalar("SELECT output FROM call_runs WHERE charge_id=$1 AND user_id=$2 AND status='failed' ORDER BY started_at DESC LIMIT 1")
+                    .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_optional(&self.store.pool).await?.flatten();
+                let body = crate::billing::refunded_failure(&failed.unwrap_or(Value::Null));
                 sqlx::query("UPDATE executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(id).bind(&body).execute(&self.store.pool).await?;
                 return Ok(Some(body));
             }

@@ -501,7 +501,7 @@ impl Engine {
         if let Some(error) = &task.execution_error {
             r.errors.push(error.clone());
         }
-        if actions.is_empty() { r.errors.extend(task.failed_steps.values().cloned()); }
+        if actions.is_empty() { r.errors.extend(task.failed_steps.values().map(crate::billing::display_step_error)); }
         if let Some(value) = &task.proposal {
             let plan: Plan = serde_json::from_value(value.clone())?;
             let sources = self.catalog.sources().await.unwrap_or_default();
@@ -510,7 +510,7 @@ impl Engine {
             for (i, detail) in step_details.iter_mut().enumerate() {
                 detail["subject"] = json!(task.entities.iter().find(|e| e.entity_ref == plan.steps[i].entity_ref).map(|e| &e.label));
                 detail["entity_ref"] = json!(plan.steps[i].entity_ref);
-                if let Some(error) = task.failed_steps.get(&plan.steps[i].key()) { detail["error"] = error.clone(); }
+                if let Some(error) = task.failed_steps.get(&plan.steps[i].key()) { detail["error"] = crate::billing::display_step_error(error); }
                 detail["status"] = json!(if task.failed_steps.contains_key(&plan.steps[i].key()) || (current == Some(i) && task.execution_error.is_some()) { "failed" }
                     else if task.completed.contains(&plan.steps[i].key()) { "completed" }
                     else if current == Some(i) && actions.iter().any(|a|matches!(a, Action::Poll {..})) { "running" }
