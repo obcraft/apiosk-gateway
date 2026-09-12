@@ -432,11 +432,19 @@ impl Engine {
                 let mut results = Vec::new();
                 for result in &output.result_refs { results.push(self.result_page(p.owner, id, *result, 0).await?); }
                 r.context_view["conversation"][index]["output"]["results"] = json!(results);
+                if let Some(quote)=output.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
+                    if let Ok(report)=self.research_report_link(p.owner,id,&task,quote).await {
+                        r.context_view["conversation"][index]["output"]["report"]=report;
+                    }
+                }
             }
         }
         let mut results = Vec::new();
         for result in &task.active_results { results.push(self.result_page(p.owner, id, *result, 0).await?); }
         r.context_view["results"] = json!(results);
+        if let Some(quote)=task.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
+            if let Ok(report)=self.research_report_link(p.owner,id,&task,quote).await {r.context_view["report"]=report;}
+        }
         r.context_view["result_is_historical"] = json!(
             !task.result_refs.is_empty() && task.active_result_ref().is_none()
         );

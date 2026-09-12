@@ -74,6 +74,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks", get(tasks))
         .route("/v2/tasks/:id", get(task))
         .route("/v2/tasks/:task/results/:result/report.pdf", get(annual_report))
+        .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
         .layer(cors);
@@ -85,6 +86,19 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
 
 #[derive(Deserialize)]
 struct ReportDownload { owner: Uuid, expires: i64, signature: String }
+#[derive(Deserialize)]
+struct ResearchDownload { owner: Uuid, expires: i64, signature: String, snapshot: String }
+async fn research_report(State(state): State<ServerState>, Path((task,quote)): Path<(Uuid,Uuid)>, Query(query): Query<ResearchDownload>) -> HttpResponse {
+    let Ok(permit)=state.permits.clone().try_acquire_owned() else {return StatusCode::TOO_MANY_REQUESTS.into_response()};
+    if state.engine.signer.verify_research(query.owner,task,quote,&query.snapshot,query.expires,&query.signature).is_err() {return StatusCode::FORBIDDEN.into_response()}
+    let Ok((_,saved,_))=state.engine.store.load(query.owner,task).await else {return StatusCode::NOT_FOUND.into_response()};
+    let Ok(document)=state.engine.research_document(query.owner,task,&saved,quote).await else {return StatusCode::NOT_FOUND.into_response()};
+    if crate::state::digest(&document)!=query.snapshot {return StatusCode::CONFLICT.into_response()}
+    match tokio::task::spawn_blocking(move || {let _permit=permit;crate::research_report::render(&document)}).await {
+        Ok(Ok(pdf)) => ([("content-type","application/pdf".to_owned()),("content-disposition",format!("attachment; filename=\"analyse-{quote}.pdf\"")),("cache-control","private, no-store".to_owned()),("referrer-policy","no-referrer".to_owned()),("x-content-type-options","nosniff".to_owned())],pdf).into_response(),
+        _ => failure(StatusCode::INTERNAL_SERVER_ERROR,"report_unavailable","PDF generation failed. Saved results and analysis remain available; no new purchase is needed."),
+    }
+}
 async fn annual_report(
     State(state): State<ServerState>,
     Path((task, result)): Path<(Uuid, Uuid)>,

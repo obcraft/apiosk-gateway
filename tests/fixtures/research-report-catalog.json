@@ -1,0 +1,760 @@
+{
+  "services": [
+    {
+      "id": "1006fdb8-bc37-4c2e-8212-8af7f856ca9f",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "naam": "Mollie B.V.",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "815839091",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188"
+              }
+            ],
+            "adressen": [
+              {
+                "land": "Nederland",
+                "type": "bezoekadres",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "huisnummer": 126,
+                "straatnaam": "Keizersgracht",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam",
+                "indAfgeschermd": "Nee"
+              }
+            ],
+            "kvkNummer": "30204462",
+            "vestigingsnummer": "000020495188",
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indHoofdvestiging": "Ja",
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "indCommercieleVestiging": "Ja"
+          }
+        },
+        "kvkNummer": "30204462",
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "statutaireNaam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer",
+            "indHoofdactiviteit": "Ja"
+          },
+          {
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma\u2019s",
+            "indHoofdactiviteit": "Nee"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "totaalWerkzamePersonen": 110
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 7,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.profile": {
+              "fields": {
+                "sbi_codes": {
+                  "path": "$.sbiActiviteiten[*].sbiCode",
+                  "collect": true
+                },
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "trade_names": {
+                  "path": "$.handelsnamen[*].naam",
+                  "collect": true
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "optional_outputs": [
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.sbi_activities"
+      ]
+    },
+    {
+      "id": "2905e8f2-590a-4531-890a-4260d3d9d9b9",
+      "endpoint_id": "16b59e91-f2f0-4f41-8fd7-07ff07b39a49",
+      "api_slug": "pdok",
+      "name": "PDOK \u2014 Match the exact KVK main visiting address to BAG IDs, municipality, neighbourhood and linked parcels. Address suffixes must match; ambiguous results require selection.",
+      "method": "GET",
+      "path": "/apiosk/company-address",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "count": 1,
+        "coverage": {
+          "complete": true,
+          "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics."
+        },
+        "items": [
+          {
+            "address": "Keizersgracht 126, 1015CW Amsterdam",
+            "apartment_right_designations": [
+              "ASD09-M-7318-A-1"
+            ],
+            "bag_address_id": "0363200000161902",
+            "bag_object_id": "0363010000700614",
+            "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+            "district": "Grachtengordel-West",
+            "district_code": "WK0363AC",
+            "municipality": "Amsterdam",
+            "municipality_code": "0363",
+            "neighbourhood": "Leliegracht e.o.",
+            "neighbourhood_code": "BU0363AC02",
+            "parcel_designations": [
+              "ASD09-M-6676",
+              "ASD09-M-6965",
+              "ASD09-M-5342"
+            ],
+            "source_record": {
+              "adresseerbaarobject_id": "0363010000700614",
+              "bron": "BAG",
+              "buurtcode": "BU0363AC02",
+              "buurtnaam": "Leliegracht e.o.",
+              "centroide_ll": "POINT(4.88679098 52.37678671)",
+              "centroide_rd": "POINT(120925 487775)",
+              "gekoppeld_appartement": [
+                "ASD09-M-7318-A-1"
+              ],
+              "gekoppeld_perceel": [
+                "ASD09-M-6676",
+                "ASD09-M-6965",
+                "ASD09-M-5342"
+              ],
+              "gemeentecode": "0363",
+              "gemeentenaam": "Amsterdam",
+              "huis_nlt": "126",
+              "huisnummer": 126,
+              "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+              "identificatie": "0363010000700614-0363200000161902",
+              "nummeraanduiding_id": "0363200000161902",
+              "openbareruimte_id": "0363300000003984",
+              "openbareruimtetype": "Weg",
+              "postcode": "1015CW",
+              "provincieafkorting": "NH",
+              "provinciecode": "PV27",
+              "provincienaam": "Noord-Holland",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+              "score": 1.0747517,
+              "straatnaam": "Keizersgracht",
+              "straatnaam_verkort": "Keizersgr",
+              "type": "adres",
+              "waterschapscode": "11",
+              "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+              "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+              "wijkcode": "WK0363AC",
+              "wijknaam": "Grachtengordel-West",
+              "woonplaatscode": "3594",
+              "woonplaatsnaam": "Amsterdam"
+            }
+          }
+        ],
+        "matched": {
+          "address": "Keizersgracht 126, 1015CW Amsterdam",
+          "apartment_right_designations": [
+            "ASD09-M-7318-A-1"
+          ],
+          "bag_address_id": "0363200000161902",
+          "bag_object_id": "0363010000700614",
+          "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+          "district": "Grachtengordel-West",
+          "district_code": "WK0363AC",
+          "municipality": "Amsterdam",
+          "municipality_code": "0363",
+          "neighbourhood": "Leliegracht e.o.",
+          "neighbourhood_code": "BU0363AC02",
+          "parcel_designations": [
+            "ASD09-M-6676",
+            "ASD09-M-6965",
+            "ASD09-M-5342"
+          ],
+          "source_record": {
+            "adresseerbaarobject_id": "0363010000700614",
+            "bron": "BAG",
+            "buurtcode": "BU0363AC02",
+            "buurtnaam": "Leliegracht e.o.",
+            "centroide_ll": "POINT(4.88679098 52.37678671)",
+            "centroide_rd": "POINT(120925 487775)",
+            "gekoppeld_appartement": [
+              "ASD09-M-7318-A-1"
+            ],
+            "gekoppeld_perceel": [
+              "ASD09-M-6676",
+              "ASD09-M-6965",
+              "ASD09-M-5342"
+            ],
+            "gemeentecode": "0363",
+            "gemeentenaam": "Amsterdam",
+            "huis_nlt": "126",
+            "huisnummer": 126,
+            "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+            "identificatie": "0363010000700614-0363200000161902",
+            "nummeraanduiding_id": "0363200000161902",
+            "openbareruimte_id": "0363300000003984",
+            "openbareruimtetype": "Weg",
+            "postcode": "1015CW",
+            "provincieafkorting": "NH",
+            "provinciecode": "PV27",
+            "provincienaam": "Noord-Holland",
+            "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+            "score": 1.0747517,
+            "straatnaam": "Keizersgracht",
+            "straatnaam_verkort": "Keizersgr",
+            "type": "adres",
+            "waterschapscode": "11",
+            "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+            "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+            "wijkcode": "WK0363AC",
+            "wijknaam": "Grachtengordel-West",
+            "woonplaatscode": "3594",
+            "woonplaatsnaam": "Amsterdam"
+          }
+        },
+        "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+        "route": "company-address",
+        "source_url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=*%3A*&fq=type%3Aadres+AND+postcode%3A1015CW+AND+huisnummer%3A126&rows=100"
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "company.registered-address-context",
+        "version": 1,
+        "cardinality": "many",
+        "requires": [
+          {
+            "fact_type": "company.nl.main_establishment_addresses",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.nl.main_establishment_addresses": {
+            "in": "query",
+            "name": "addresses"
+          }
+        },
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "location.bag_object_id": {
+              "path": "$.bag_object_id"
+            },
+            "location.bag_address_id": {
+              "path": "$.bag_address_id"
+            },
+            "location.address_label": {
+              "path": "$.address"
+            },
+            "location.municipality_code": {
+              "path": "$.municipality_code"
+            },
+            "location.municipality": {
+              "path": "$.municipality"
+            },
+            "location.neighbourhood_code": {
+              "path": "$.neighbourhood_code"
+            },
+            "location.neighbourhood": {
+              "path": "$.neighbourhood"
+            },
+            "location.district_code": {
+              "path": "$.district_code"
+            },
+            "location.parcel_designations": {
+              "path": "$.parcel_designations"
+            },
+            "location.apartment_right_designations": {
+              "path": "$.apartment_right_designations"
+            }
+          }
+        },
+        "identifies": "location.bag_address_id",
+        "max_fan_out": 1
+      },
+      "optional_outputs": [
+        "location.municipality_code",
+        "location.municipality",
+        "location.neighbourhood_code",
+        "location.neighbourhood",
+        "location.district_code",
+        "location.parcel_designations",
+        "location.apartment_right_designations"
+      ]
+    },
+    {
+      "id": "0314e4a3-aa1c-4e62-bb82-ef3af5b7b1b7",
+      "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/hvds/jaarrekeningen/kvknummer",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "opendataFields": [
+          {
+            "key": "FinancialYear",
+            "value": "2024"
+          },
+          {
+            "key": "Assets",
+            "value": "4179160"
+          },
+          {
+            "key": "Equity",
+            "value": "1469025"
+          }
+        ]
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "company.financial-statements",
+        "version": 7,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.financialyear": {
+              "adapter": "tree.key-value",
+              "key": "FinancialYear"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "optional_outputs": []
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{8}$"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "legal_name"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "sbi_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trade_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "employee_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "description": "Registered legal name returned by the Dutch KVK profile; not an administrative area name or fuzzy search hit.",
+      "subject_kind": "company"
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{9}$"
+      },
+      "description": "RSIN of the registered legal entity. Distinct from its KVK number; may be unavailable.",
+      "subject_kind": "company"
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "description": "Source address records of the KVK main establishment. Only a single disclosed Dutch visiting address may be linked automatically.",
+      "subject_kind": "company"
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{12}$"
+      },
+      "description": "KVK main establishment number. Not a BAG ID.",
+      "subject_kind": "company"
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "description": "Source SBI activities, descriptions and main-activity flags. Do not map SBI versions or subsidy eligibility implicitly.",
+      "subject_kind": "company"
+    },
+    {
+      "slug": "location.bag_object_id",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{16}$"
+      },
+      "description": "BAG addressable-object identifier observed for the selected visiting address. Distinct from a pand or nummeraanduiding.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.bag_address_id",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{16}$"
+      },
+      "description": "BAG nummeraanduiding identifier.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.address_label",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "description": "Display address of the exact matched BAG address.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.municipality_code",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}$"
+      },
+      "description": "Municipality code without GM prefix, as returned by PDOK.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.municipality",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "description": "Municipality of the selected address, not a company identity.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.neighbourhood_code",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^BU[A-Za-z0-9]{8}$"
+      },
+      "description": "CBS neighbourhood code from PDOK, including BU prefix. Boundary vintages must be explicit.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.neighbourhood",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "description": "Neighbourhood of the selected address.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.district_code",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "description": "District code as returned by PDOK.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.parcel_designations",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "description": "All explicitly linked cadastral parcel designations. Location association does not prove ownership.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.apartment_right_designations",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "description": "Apartment-right designations, kept separate from cadastral parcel identifiers.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.bag_unit_record",
+      "value_schema": {
+        "type": "object"
+      },
+      "description": "BAG verblijfsobject record at the selected company location; not the building as a whole.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.single_building_href",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^https://api\\.pdok\\.nl/kadaster/bag/ogc/v2/collections/pand/items/[0-9a-f-]{36}$"
+      },
+      "description": "Canonical PDOK building feature link; emitted only when the BAG unit references exactly one building.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.building_record",
+      "value_schema": {
+        "type": "object"
+      },
+      "description": "BAG building record, including its own identifier, status and construction year. Not proof of ownership.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.cbs_neighbourhood_2025",
+      "value_schema": {
+        "type": "object"
+      },
+      "description": "CBS 2025 neighbourhood aggregates via PDOK. Not company-specific demographics or an individual property valuation.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "location.parcel_records",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "description": "Exact cadastral map records for the returned linked parcel designations; no ownership register information.",
+      "subject_kind": "geo"
+    },
+    {
+      "slug": "procurement.ted.identifier_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items",
+          "coverage",
+          "requested_identifier"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "coverage": {
+            "type": "object"
+          },
+          "requested_identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "TED notice page matching an exact numeric buyer/winner identifier. Scheme and legal-entity identity unconfirmed; not subsidy receipts.",
+      "subject_kind": "dataset"
+    },
+    {
+      "slug": "company.financialyear",
+      "value_schema": {
+        "type": "string"
+      }
+    }
+  ]
+}

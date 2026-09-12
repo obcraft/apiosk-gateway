@@ -68,3 +68,7 @@ When `context_view.single_call_mode` is true, only one direct source call is sup
 ## Display currency and language
 
 Use English consistently for Apiosk plan, approval, status and completion messages. Translate only when explicitly requested. Apiosk prices, charges and balances are USD (or EUR only when an actual EUR amount is supplied). Never display USDC or settlement-token names in chatbot copy. Historic Apiosk `USDC` amounts use the same micro-dollar billing units and should be displayed as USD without changing the amount. Do not infer or change a source document currency from Apiosk billing. Preserve exact sub-cent amounts.
+
+## Combined research PDF
+
+For a request combining annual accounts, a company profile, address enrichment and analysis, send the complete question in one discovery call. PDF output is a built-in deliverable, not another provider. Preserve the profile-to-address dependency and requested sources; quote the actual combined price, never invent a target price or promise a range before discovery. After the one approval, continue all returned actions, including the analysis poll, until terminal status. Use context_view.report.url for the combined PDF; individual result.report links contain only that source result. Surface the combined download link when present, including with a visible card. If analysis or the report is unavailable, say so and retain the saved data; do not claim an individual annual-account PDF contains the requested combined analysis.

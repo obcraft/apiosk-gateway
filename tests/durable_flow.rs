@@ -1222,6 +1222,32 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
     let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations WHERE task_id=$1").bind(task_id).fetch_one(&pool).await.unwrap(); assert_eq!(approvals,1);
 
+    // Combined research PDFs reuse immutable source documents and verified analysis.
+    let download=state.context_view["report"]["download_path"].as_str().unwrap();
+    let pdf_url=format!("{api_url}{download}");
+    for _ in 0..2 {
+        let response=client.get(&pdf_url).send().await.unwrap();
+        assert_eq!(response.status(),StatusCode::OK);
+        assert_eq!(response.headers()["content-type"],"application/pdf");
+        assert!(response.bytes().await.unwrap().starts_with(b"%PDF-"));
+    }
+    assert_eq!(client.get(pdf_url.replace(&user.owner.to_string(),&Uuid::new_v4().to_string())).send().await.unwrap().status(),StatusCode::FORBIDDEN);
+    assert_eq!(client.get(format!("{pdf_url}bad")).send().await.unwrap().status(),StatusCode::FORBIDDEN);
+    assert_eq!(counts.parser.load(Ordering::Relaxed),model_calls);
+    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
+    // Archive the turn, then verify its original link still returns its own data.
+    let (revision,mut archived,_) = store.load(user.owner,task_id).await.unwrap();
+    let original_research=archived.clone();
+    archived.archive_output(Some(serde_json::to_value(state.proposal.as_ref().unwrap()).unwrap()));
+    archived.proposal=None; archived.intent=None; archived.record_turn("New question",None);
+    store.save(user.owner,task_id,revision,&archived).await.unwrap();
+    assert_eq!(client.get(&pdf_url).send().await.unwrap().status(),StatusCode::OK);
+    let history=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
+    assert!(history.context_view["conversation"][0]["output"]["report"]["download_path"].is_string());
+
+    let (restored_revision,_,_)=store.load(user.owner,task_id).await.unwrap();
+    store.save(user.owner,task_id,restored_revision,&original_research).await.unwrap();
+
     // A refunded first report must not discard the other company or reuse its
     // identifier. Resume only after the ledger establishes a terminal outcome.
     let (_, mut failure_task, _)=store.load(user.owner,task_id).await.unwrap();
