@@ -559,7 +559,7 @@ impl Engine {
         if let Some(Action::Wait { until, .. }) =
             actions.iter().find(|a| matches!(a, Action::Wait { .. }))
         {
-            r.context_view["cooldown"] = json!({"until":until,"message":"The annual account is queued or being retrieved from KVK. Requests for the same report share one job; the result will appear automatically."});
+            r.context_view["cooldown"] = json!({"until":until,"message":"Waiting for the source request to finish. Saved results will appear automatically."});
             r.retry_after_ms = Some((*until - Utc::now()).num_milliseconds().max(350) as u64);
         }
         r.context_view["analyzing"] =
