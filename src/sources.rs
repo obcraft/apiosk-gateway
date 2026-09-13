@@ -126,6 +126,15 @@ pub fn directory_name(source: &Source) -> &str {
     }
 }
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
+    // The buyer directory only offers sources the current runtime can execute.
+    // Filter before facets, grouping and pagination so counts and searches never
+    // advertise a blocked listing or a source without an accepted contract.
+    let executable: BTreeSet<&str> = catalog.services.iter().map(|s| s.api_slug.as_str()).collect();
+    let restricted: BTreeSet<&str> = catalog.known_sources.iter()
+        .filter(|s| s.block_reason.is_some()).map(|s| s.slug.as_str()).collect();
+    let sources: Vec<&Source> = sources.iter()
+        .filter(|s| executable.contains(s.slug.as_str()) && !restricted.contains(s.slug.as_str()))
+        .collect();
     let categories: BTreeSet<_> = sources
         .iter()
         .map(|s| &s.category)
@@ -176,17 +185,6 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     let terms: Vec<_> = search
         .split_whitespace()
         .filter(|t| t.len() > 1 && !ignored.contains(t))
-        .collect();
-    let executable: BTreeSet<&str> = catalog
-        .services
-        .iter()
-        .map(|s| s.api_slug.as_str())
-        .collect();
-    let restricted: BTreeSet<&str> = catalog
-        .known_sources
-        .iter()
-        .filter(|s| s.block_reason.is_some())
-        .map(|s| s.slug.as_str())
         .collect();
     let reach = |slug: &str| {
         if restricted.contains(slug) {
@@ -278,7 +276,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
         "offset":offset,"next_offset":if end < matches.len() {Some(end)} else {None},
         "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
-        "notice":"Browsing is free. Each source is counted once; services under Pulse Network are not separate sources. Apiosk checks the exact question and price before any purchase."})
+        "notice":"Browsing is free. Only purchasable sources with executable capabilities are listed. Each source is counted once; services under Pulse Network are not separate sources. Apiosk checks the exact question and price before any purchase."})
 }
 
 #[cfg(test)]
@@ -300,7 +298,10 @@ mod tests {
             })).unwrap());
         }
         let mut c = catalog();
-        c.services[0].api_slug = "pulse-service-0".into();
+        let template = c.services[0].clone();
+        c.services = rows.iter().map(|s| { let mut service = template.clone(); service.api_slug = s.slug.clone(); service }).collect();
+        // Keep the parent first while its 87 services still occupy one row.
+        rows.rotate_left(2);
         let first = browse(
             &rows,
             &c,
@@ -351,8 +352,9 @@ mod tests {
             assert_eq!(result["sources"][0]["slug"], "pulsenetwork");
             assert_eq!(result["sources"][0]["service_count"], 87);
         }
-        rows[0].name = "Independent Pulse".into();
-        assert_eq!(directory_slug(&rows[0]), "one");
+        let independent = rows.iter_mut().find(|s| s.slug == "one").unwrap();
+        independent.name = "Independent Pulse".into();
+        assert_eq!(directory_slug(independent), "one");
     }
     fn catalog() -> Catalog {
         Catalog::build(
@@ -367,10 +369,10 @@ mod tests {
         ])).unwrap()
     }
     #[test]
-    fn an_executable_source_outranks_an_unbuyable_one_at_equal_relevance() {
+    fn unavailable_sources_are_removed_before_search_facets_and_pagination() {
         let mut catalog = catalog();
         // Everything the runtime can execute belongs to "two". "one" is listed
-        // first in the catalog and is visible for reference only.
+        // first in the catalog but must not appear in the buyer directory.
         for service in &mut catalog.services {
             service.api_slug = "two".into();
         }
@@ -382,9 +384,12 @@ mod tests {
         }];
         let listed = browse(&rows(), &catalog, &SourceQuery::default());
         assert_eq!(listed["sources"][0]["slug"], "two");
-        assert_eq!(listed["sources"][1]["slug"], "one");
-        // Relevance still outranks reach: somebody who describes the blocked
-        // source still finds it rather than being quietly handed another one.
+        assert_eq!(listed["sources"].as_array().unwrap().len(), 1);
+        assert_eq!(listed["total"], 1);
+        assert_eq!(listed["catalog_total"], 1);
+        assert_eq!(listed["categories"], json!(["weather"]));
+        assert_eq!(listed["tags"], json!([]));
+        assert!(listed["next_offset"].is_null());
         let searched = browse(
             &rows(),
             &catalog,
@@ -393,7 +398,17 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(searched["sources"][0]["slug"], "one");
+        assert_eq!(searched["sources"], json!([]));
+        assert_eq!(searched["total"], 0);
+        // An accepted service cannot override an explicit purchase restriction.
+        let mut blocked_service = catalog.services[0].clone();
+        blocked_service.api_slug = "one".into();
+        catalog.services.push(blocked_service);
+        assert_eq!(browse(&rows(), &catalog, &SourceQuery::default())["total"], 1);
+        // Removing the restriction alone does not make an unimplemented source usable.
+        catalog.known_sources.clear();
+        catalog.services.retain(|s| s.api_slug == "two");
+        assert_eq!(browse(&rows(), &catalog, &SourceQuery::default())["total"], 1);
     }
     #[test]
     fn source_query_prefers_the_listings_own_logo() {
@@ -442,9 +457,11 @@ mod tests {
         );
     }
     #[test]
-    fn searches_metadata_filters_and_paginates_without_claiming_executability() {
+    fn searches_metadata_filters_and_paginates_executable_sources() {
         let rows = rows();
-        let c = catalog();
+        let mut c = catalog();
+        let template = c.services[0].clone();
+        c.services = rows.iter().map(|s| { let mut service = template.clone(); service.api_slug = s.slug.clone(); service }).collect();
         let first = browse(
             &rows,
             &c,
@@ -455,7 +472,7 @@ mod tests {
         );
         assert_eq!(first["total"], 2);
         assert_eq!(first["next_offset"], 1);
-        assert_eq!(first["sources"][0]["available_in_v2"], false);
+        assert_eq!(first["sources"][0]["available_in_v2"], true);
         assert_eq!(first["sources"][0]["tags"], json!(["registry"]));
         let last = browse(
             &rows,
