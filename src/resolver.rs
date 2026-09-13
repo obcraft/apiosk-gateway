@@ -139,6 +139,21 @@ pub enum Resolution {
     Missing { entity: Uuid, kind: String },
     Unsupported(String),
 }
+fn construction_series(service: &Service) -> bool {
+    service.api_slug == "cbs-statline"
+        && service.contract.capability_slug == "statistics.cbs-construction-annual"
+        && service.path == "/odata/v1/CBS/85809NED/Observations"
+        && service.fixed_params.get("$filter").and_then(Value::as_str) == Some("Bedrijfsgrootte eq 'WP19077' and BedrijfstakkenBranchesSBI2008 eq '350000' and contains(Perioden,'JJ')")
+        && service.fixed_params.get("$top").is_none()
+        && service.fixed_params.get("$skip").is_none()
+}
+fn annual_period(value: &Value) -> bool {
+    let Some(period) = value.as_str() else { return false };
+    // Only literal calendar years/ranges: month/quarter/date filters remain unsupported.
+    let normalized=period.replace(" en ", "-").replace(" and ", "-").replace(" tot ", "-").replace(" to ", "-");
+    let years: Vec<_> = normalized.split(|c: char| c=='-' || c=='–' || c==',' || c.is_whitespace()).filter(|s| !s.is_empty()).collect();
+    !years.is_empty() && years.len() <= 2 && years.iter().all(|s| s.len()==4 && s.bytes().all(|b| b.is_ascii_digit()) && s.parse::<u16>().is_ok_and(|y| (2005..=2100).contains(&y)))
+}
 fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
     constraints.iter().all(|(k, v)| match k.as_str() {
         "source" => v.as_str() == Some(service.api_slug.as_str())
@@ -148,6 +163,11 @@ fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Ca
             .as_str()
             .zip(service.jurisdiction.as_deref())
             .is_some_and(|(a, b)| a.eq_ignore_ascii_case(b)),
+        // This reviewed preset retrieves the complete annual construction series.
+        // Keep the requested years/sector in the intent for source-backed analysis.
+        "period" if construction_series(service) => annual_period(v),
+        "sector" if construction_series(service) => v.as_str().is_some_and(|s|
+            ["bouw", "bouwsector", "nederlandse bouwsector", "bouwnijverheid", "construction", "dutch construction"].contains(&s.to_lowercase().as_str())),
         // No timestamp/filing-selection mapping yet: refusing preserves the
         // requirement instead of claiming the first record is the latest.
         _ => false,
