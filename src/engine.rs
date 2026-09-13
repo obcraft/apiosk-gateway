@@ -426,6 +426,7 @@ impl Engine {
         let mut r = Response::new(request, forced.unwrap_or(inferred));
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
+        r.context_view["money_display"] = self.store.money_display(p.owner).await;
         // Hydrate saved turn results through the same owner-scoped reader as
         // the current result, including freshly signed report download links.
         for (index, turn) in task.conversation.iter().enumerate() {

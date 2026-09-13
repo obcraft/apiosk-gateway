@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod billing;
+mod display_money;
 pub mod catalog;
 pub mod compat;
 pub mod engine;
