@@ -1,0 +1,863 @@
+{
+  "services": [
+    {
+      "id": "b2b60a87-6579-4149-aebd-a39300d6856c",
+      "endpoint_id": "c67876a1-5053-491a-a022-6d2bb2a25fbb",
+      "api_slug": "stableenrich",
+      "name": "StableEnrich",
+      "source_url": "https://stableenrich.dev/openapi.json",
+      "method": "POST",
+      "path": "/api/exa/search",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "numResults": 5
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "costDollars": {
+          "search": {
+            "neural": 0.007
+          },
+          "total": 0.007
+        },
+        "requestId": "1ad2397f0fcd658b1fc71c15ed5e8dfa",
+        "resolvedSearchType": "",
+        "results": [
+          {
+            "id": "https://docs.apiosk.com/",
+            "title": "",
+            "url": "https://docs.apiosk.com/"
+          },
+          {
+            "id": "https://gateway.apiosk.com/",
+            "title": "Apiosk Gateway | Apiosk Gateway",
+            "url": "https://gateway.apiosk.com/"
+          }
+        ],
+        "searchTime": 1035
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "web.stableenrich-search",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.source_search_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.source_search_query": {
+            "location": "body",
+            "name": "query"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.stableenrich_search_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "test_inputs": {
+        "web.source_search_query": "Apiosk data APIs"
+      }
+    },
+    {
+      "id": "8d328d7a-6706-4d8e-a68e-b941aa4077af",
+      "endpoint_id": "083326ff-e9f9-410f-bea4-0e2aaca9e56a",
+      "api_slug": "linkup",
+      "name": "Linkup",
+      "source_url": "https://docs.linkup.so/pages/documentation/endpoints/search/reference",
+      "method": "POST",
+      "path": "/v1/search",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "depth": "standard",
+        "outputType": "sourcedAnswer"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "answer": "Apiosk is a payment infrastructure platform that enables AI agents and software to make payments and transact money. It allows developers to monetize their APIs, data services, and digital products by making them discoverable and payable through its network. Users can describe what they need, review pricing, and approve work before Apiosk handles the calls and returns results. The platform supports euro settlement through SEPA and provides bookkeeping-ready records. Apiosk also offers tools for developers to connect agents, publish services, and manage payments programmatically.",
+        "sources": [
+          {
+            "name": "Apiosk",
+            "url": "https://www.linkedin.com/company/apiosk"
+          },
+          {
+            "name": "Apiosk | MCP Server",
+            "url": "https://mcp.so/servers/apiosk"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "web.linkup-answer",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.source_search_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.source_search_query": {
+            "location": "body",
+            "name": "q"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.linkup_answer_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "test_inputs": {
+        "web.source_search_query": "What does Apiosk do?"
+      }
+    },
+    {
+      "id": "daf402a0-a0af-4474-ab94-65cc5dca0f4e",
+      "endpoint_id": "729403e8-2655-4dd3-992d-211269f10b11",
+      "api_slug": "linkup",
+      "name": "Linkup",
+      "source_url": "https://docs.linkup.so/pages/documentation/endpoints/fetch/reference",
+      "method": "POST",
+      "path": "/v1/fetch",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "mode": "standard"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "favicon": "https://favicons.linkup.so?domain=example.com",
+        "images": [],
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)"
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "web.linkup-fetch",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.source_page_url",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.source_page_url": {
+            "location": "body",
+            "name": "url"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.linkup_fetch_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "test_inputs": {
+        "web.source_page_url": "https://example.com"
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "web.source_search_query",
+      "name": "Web search question",
+      "description": "The user's explicit web search query or question.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "web.source_page_url",
+      "name": "Page URL",
+      "description": "The exact HTTP(S) page URL supplied or resolved for this request.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^https?://[^\\s]+$"
+      }
+    },
+    {
+      "slug": "web.stableenrich_search_page",
+      "name": "Web search via StableEnrich",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      }
+    },
+    {
+      "slug": "web.linkup_answer_page",
+      "name": "Sourced web answer via Linkup",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "sources"
+        ]
+      }
+    },
+    {
+      "slug": "web.linkup_fetch_page",
+      "name": "Read a web page via Linkup",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "web.stableenrich-search",
+      "name": "Web search via StableEnrich",
+      "description": "Web search via StableEnrich. Returns the requested page or bounded search response with original source URLs. No exhaustive coverage claim.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "example": "Natalia Trushin-Jimenez law office Miami"
+          },
+          "category": {
+            "type": "string",
+            "example": "company"
+          },
+          "numResults": {
+            "type": "integer",
+            "example": 5
+          },
+          "excludeDomains": {
+            "type": "array",
+            "example": [
+              "yelp.com",
+              "google.com",
+              "linkedin.com"
+            ]
+          }
+        }
+      },
+      "output_contract": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      }
+    },
+    {
+      "slug": "web.linkup-answer",
+      "name": "Sourced web answer via Linkup",
+      "description": "Sourced web answer via Linkup. Returns the requested page or bounded search response with original source URLs. No exhaustive coverage claim.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "q",
+          "depth",
+          "outputType"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "example": "What is Microsoft's 2024 revenue?",
+            "description": "The natural language question you want context for."
+          },
+          "depth": {
+            "enum": [
+              "fast",
+              "standard"
+            ],
+            "type": "string",
+            "default": "standard",
+            "description": "fast is a sub-second mode for simple, focused queries; standard uses agentic search for broader questions. Linkup also has deep, but it charges five times as much for it as this listing sells, so it is not offered here."
+          },
+          "toDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-12-31",
+            "description": "Only consider results published on or before this date (YYYY-MM-DD)."
+          },
+          "fromDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-01-01",
+            "description": "Only consider results published on or after this date (YYYY-MM-DD)."
+          },
+          "maxResults": {
+            "type": "number",
+            "example": 5,
+            "minimum": 1,
+            "description": "Upper bound on the number of results."
+          },
+          "outputType": {
+            "enum": [
+              "searchResults",
+              "sourcedAnswer",
+              "structured"
+            ],
+            "type": "string",
+            "description": "searchResults returns the sources and their text; sourcedAnswer returns a written answer plus its sources; structured returns JSON matching structuredOutputSchema."
+          },
+          "includeImages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include image results."
+          },
+          "excludeDomains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "wikipedia.org"
+            ],
+            "description": "Drop results from these domains."
+          },
+          "includeDomains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "microsoft.com"
+            ],
+            "maxItems": 100,
+            "description": "Search only these domains."
+          },
+          "includeSources": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only for structured: add the sources to the response. It changes the response shape."
+          },
+          "includeInlineCitations": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only for sourcedAnswer: put the citations inline in the answer."
+          },
+          "structuredOutputSchema": {
+            "type": "string",
+            "example": "{\"type\":\"object\",\"properties\":{\"revenue\":{\"type\":\"number\"}}}",
+            "description": "Required when outputType is structured: a JSON schema, as a string, whose root is an object."
+          }
+        }
+      },
+      "output_contract": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "sources"
+        ]
+      }
+    },
+    {
+      "slug": "web.linkup-fetch",
+      "name": "Read a web page via Linkup",
+      "description": "Read a web page via Linkup. Returns the requested page or bounded search response with original source URLs. No exhaustive coverage claim.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://docs.linkup.so",
+            "description": "The page to fetch."
+          },
+          "mode": {
+            "enum": [
+              "standard",
+              "pro"
+            ],
+            "type": "string",
+            "default": "standard",
+            "description": "pro has a markedly higher success rate on pages that resist scraping. Same price."
+          },
+          "schema": {
+            "type": "string",
+            "example": "{\"type\":\"object\",\"properties\":{\"price\":{\"type\":\"number\"}}}",
+            "description": "Optional JSON schema (root type object) describing structured data to extract from the page. Fields with no grounded value are left out."
+          },
+          "renderJs": {
+            "type": "boolean",
+            "default": false,
+            "description": "Render the page's JavaScript before reading it."
+          },
+          "instructions": {
+            "type": "string",
+            "example": "Use public list prices only and express monetary values in USD.",
+            "description": "Optional guidance for the extraction. Requires schema."
+          },
+          "extractImages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also return the images found on the page."
+          },
+          "includeRawContent": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also return the raw page content and its content type."
+          }
+        }
+      },
+      "output_contract": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "c67876a1-5053-491a-a022-6d2bb2a25fbb",
+      "api_id": "56bd3656-a4dd-400c-8849-99a1a7a4bcfb",
+      "method": "POST",
+      "path": "/api/exa/search",
+      "price": 0.01,
+      "query_params": null,
+      "request_body": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "example": "Natalia Trushin-Jimenez law office Miami"
+          },
+          "category": {
+            "type": "string",
+            "example": "company"
+          },
+          "numResults": {
+            "type": "integer",
+            "example": 5
+          },
+          "excludeDomains": {
+            "type": "array",
+            "example": [
+              "yelp.com",
+              "google.com",
+              "linkedin.com"
+            ]
+          }
+        }
+      },
+      "response_example": {
+        "costDollars": {
+          "search": {
+            "neural": 0.007
+          },
+          "total": 0.007
+        },
+        "requestId": "1ad2397f0fcd658b1fc71c15ed5e8dfa",
+        "resolvedSearchType": "",
+        "results": [
+          {
+            "id": "https://docs.apiosk.com/",
+            "title": "",
+            "url": "https://docs.apiosk.com/"
+          },
+          {
+            "id": "https://gateway.apiosk.com/",
+            "title": "Apiosk Gateway | Apiosk Gateway",
+            "url": "https://gateway.apiosk.com/"
+          }
+        ],
+        "searchTime": 1035
+      },
+      "response_body": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "description": "Semantic web search for finding relevant pages.",
+      "action_type": "search",
+      "contract_documented": true,
+      "external_docs_url": null,
+      "openapi_url": null
+    },
+    {
+      "id": "083326ff-e9f9-410f-bea4-0e2aaca9e56a",
+      "api_id": "79ed3b3e-13a6-41f0-8862-46c1060ac52e",
+      "method": "POST",
+      "path": "/v1/search",
+      "price": 0.01,
+      "query_params": null,
+      "request_body": {
+        "type": "object",
+        "required": [
+          "q",
+          "depth",
+          "outputType"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "example": "What is Microsoft's 2024 revenue?",
+            "description": "The natural language question you want context for."
+          },
+          "depth": {
+            "enum": [
+              "fast",
+              "standard"
+            ],
+            "type": "string",
+            "default": "standard",
+            "description": "fast is a sub-second mode for simple, focused queries; standard uses agentic search for broader questions. Linkup also has deep, but it charges five times as much for it as this listing sells, so it is not offered here."
+          },
+          "toDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-12-31",
+            "description": "Only consider results published on or before this date (YYYY-MM-DD)."
+          },
+          "fromDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-01-01",
+            "description": "Only consider results published on or after this date (YYYY-MM-DD)."
+          },
+          "maxResults": {
+            "type": "number",
+            "example": 5,
+            "minimum": 1,
+            "description": "Upper bound on the number of results."
+          },
+          "outputType": {
+            "enum": [
+              "searchResults",
+              "sourcedAnswer",
+              "structured"
+            ],
+            "type": "string",
+            "description": "searchResults returns the sources and their text; sourcedAnswer returns a written answer plus its sources; structured returns JSON matching structuredOutputSchema."
+          },
+          "includeImages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include image results."
+          },
+          "excludeDomains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "wikipedia.org"
+            ],
+            "description": "Drop results from these domains."
+          },
+          "includeDomains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "microsoft.com"
+            ],
+            "maxItems": 100,
+            "description": "Search only these domains."
+          },
+          "includeSources": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only for structured: add the sources to the response. It changes the response shape."
+          },
+          "includeInlineCitations": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only for sourcedAnswer: put the citations inline in the answer."
+          },
+          "structuredOutputSchema": {
+            "type": "string",
+            "example": "{\"type\":\"object\",\"properties\":{\"revenue\":{\"type\":\"number\"}}}",
+            "description": "Required when outputType is structured: a JSON schema, as a string, whose root is an object."
+          }
+        }
+      },
+      "response_example": {
+        "answer": "Apiosk is a payment infrastructure platform that enables AI agents and software to make payments and transact money. It allows developers to monetize their APIs, data services, and digital products by making them discoverable and payable through its network. Users can describe what they need, review pricing, and approve work before Apiosk handles the calls and returns results. The platform supports euro settlement through SEPA and provides bookkeeping-ready records. Apiosk also offers tools for developers to connect agents, publish services, and manage payments programmatically.",
+        "sources": [
+          {
+            "name": "Apiosk",
+            "url": "https://www.linkedin.com/company/apiosk"
+          },
+          {
+            "name": "Apiosk | MCP Server",
+            "url": "https://mcp.so/servers/apiosk"
+          }
+        ]
+      },
+      "response_body": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "sources"
+        ]
+      },
+      "description": "Ask a question of the live web and choose the shape of the answer: a ranked list of sources with their text, a written answer with the sources it cites, or JSON matching a schema you supply. Scope it to a date range or a domain list.",
+      "action_type": "search",
+      "contract_documented": true,
+      "external_docs_url": null,
+      "openapi_url": null
+    },
+    {
+      "id": "729403e8-2655-4dd3-992d-211269f10b11",
+      "api_id": "79ed3b3e-13a6-41f0-8862-46c1060ac52e",
+      "method": "POST",
+      "path": "/v1/fetch",
+      "price": 0.01,
+      "query_params": null,
+      "request_body": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://docs.linkup.so",
+            "description": "The page to fetch."
+          },
+          "mode": {
+            "enum": [
+              "standard",
+              "pro"
+            ],
+            "type": "string",
+            "default": "standard",
+            "description": "pro has a markedly higher success rate on pages that resist scraping. Same price."
+          },
+          "schema": {
+            "type": "string",
+            "example": "{\"type\":\"object\",\"properties\":{\"price\":{\"type\":\"number\"}}}",
+            "description": "Optional JSON schema (root type object) describing structured data to extract from the page. Fields with no grounded value are left out."
+          },
+          "renderJs": {
+            "type": "boolean",
+            "default": false,
+            "description": "Render the page's JavaScript before reading it."
+          },
+          "instructions": {
+            "type": "string",
+            "example": "Use public list prices only and express monetary values in USD.",
+            "description": "Optional guidance for the extraction. Requires schema."
+          },
+          "extractImages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also return the images found on the page."
+          },
+          "includeRawContent": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also return the raw page content and its content type."
+          }
+        }
+      },
+      "response_example": {
+        "favicon": "https://favicons.linkup.so?domain=example.com",
+        "images": [],
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)"
+      },
+      "response_body": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      },
+      "description": "Turn one URL into clean markdown an agent can read: Linkup fetches the page, optionally renders its JavaScript, and strips the navigation and boilerplate. Can also pull structured fields out of the page against a schema you provide.",
+      "action_type": "lookup",
+      "contract_documented": true,
+      "external_docs_url": null,
+      "openapi_url": null
+    }
+  ],
+  "known_sources": [
+    {
+      "slug": "stableenrich",
+      "name": "StableEnrich",
+      "block_reason": null,
+      "metadata": {
+        "identity_documented": true
+      }
+    },
+    {
+      "slug": "linkup",
+      "name": "Linkup",
+      "block_reason": null,
+      "metadata": {
+        "identity_documented": true
+      }
+    }
+  ]
+}

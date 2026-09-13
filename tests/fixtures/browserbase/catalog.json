@@ -1,0 +1,433 @@
+{
+  "services": [
+    {
+      "id": "71011bbd-8193-4292-a612-5fde4e61d15f",
+      "endpoint_id": "532b04c5-2cc2-44b4-9fad-ed33c45d8453",
+      "api_slug": "browserbase",
+      "name": "Browserbase",
+      "source_url": "https://x402.browserbase.com/",
+      "method": "POST",
+      "path": "/search",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "numResults": 5
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "query": "Apiosk",
+        "requestId": "a903c56acfa136bf1fdc1cf24fe85d3f",
+        "results": [
+          {
+            "id": "https://apiosk.com/",
+            "image": "https://apiosk.com/og-image-v6.png?v=20260902",
+            "title": "Apiosk | One Door to the Pay-Per-Use Web",
+            "url": "https://apiosk.com/"
+          },
+          {
+            "id": "https://gateway.apiosk.com/",
+            "image": "https://gateway.apiosk.com/logo.png",
+            "title": "Apiosk Gateway | Apiosk Gateway",
+            "url": "https://gateway.apiosk.com/"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "web.browserbase-search",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.source_search_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.source_search_query": {
+            "location": "body",
+            "name": "query"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.browserbase_search_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "test_inputs": {
+        "web.source_search_query": "Apiosk"
+      }
+    },
+    {
+      "id": "596c417d-b255-4828-a1b2-524ee3b891df",
+      "endpoint_id": "7fa0e7be-5fd9-4870-ba67-b4d7d42fa160",
+      "api_slug": "browserbase",
+      "name": "Browserbase",
+      "source_url": "https://x402.browserbase.com/",
+      "method": "POST",
+      "path": "/fetch",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "content": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><link rel=\"icon\" href=\"data:,\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+        "contentType": "text/html",
+        "encoding": "utf-8",
+        "headers": {
+          "Age": "1975",
+          "Allow": "GET, HEAD",
+          "Cf-Cache-Status": "HIT",
+          "Cf-Ray": "a3a616f5482d90db-SEA",
+          "Content-Encoding": "br",
+          "Content-Type": "text/html",
+          "Date": "Sun, 13 Sep 2026 09:22:49 GMT",
+          "Last-Modified": "Fri, 11 Sep 2026 17:42:00 GMT",
+          "Server": "cloudflare"
+        },
+        "id": "55f20e58-2c19-4f24-bccd-84d7c18ce019",
+        "statusCode": 200
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "web.browserbase-fetch",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.source_page_url",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.source_page_url": {
+            "location": "body",
+            "name": "url"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.browserbase_fetch_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "test_inputs": {
+        "web.source_page_url": "https://example.com"
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "web.source_search_query",
+      "name": "Web search question",
+      "description": "The user's explicit web search query or question.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "web.source_page_url",
+      "name": "Page URL",
+      "description": "The exact HTTP(S) page URL supplied or resolved for this request.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^https?://[^\\s]+$"
+      }
+    },
+    {
+      "slug": "web.browserbase_search_page",
+      "name": "Web search via Browserbase",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      }
+    },
+    {
+      "slug": "web.browserbase_fetch_page",
+      "name": "Read a web page via Browserbase",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content",
+          "contentType",
+          "statusCode"
+        ]
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "web.browserbase-search",
+      "name": "Web search via Browserbase",
+      "description": "Web search via Browserbase. Returns the requested page or bounded search response with original source URLs. No exhaustive coverage claim.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "numResults": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "output_contract": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      }
+    },
+    {
+      "slug": "web.browserbase-fetch",
+      "name": "Read a web page via Browserbase",
+      "description": "Read a web page via Browserbase. Returns the requested page or bounded search response with original source URLs. No exhaustive coverage claim.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "output_contract": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content",
+          "contentType",
+          "statusCode"
+        ]
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "532b04c5-2cc2-44b4-9fad-ed33c45d8453",
+      "api_id": "078b1377-89e4-4760-9520-c0b178f4ecd6",
+      "method": "POST",
+      "path": "/search",
+      "price": 0.01,
+      "query_params": null,
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "numResults": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "response_example": {
+        "query": "Apiosk",
+        "requestId": "a903c56acfa136bf1fdc1cf24fe85d3f",
+        "results": [
+          {
+            "id": "https://apiosk.com/",
+            "image": "https://apiosk.com/og-image-v6.png?v=20260902",
+            "title": "Apiosk | One Door to the Pay-Per-Use Web",
+            "url": "https://apiosk.com/"
+          },
+          {
+            "id": "https://gateway.apiosk.com/",
+            "image": "https://gateway.apiosk.com/logo.png",
+            "title": "Apiosk Gateway | Apiosk Gateway",
+            "url": "https://gateway.apiosk.com/"
+          }
+        ]
+      },
+      "response_body": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "results"
+        ]
+      },
+      "description": "Search the web and return structured ranked results for agents. Upstream price $0.01/request; Apiosk adds 15%, producing a $0.0115 buyer price.",
+      "action_type": "search",
+      "contract_documented": true,
+      "external_docs_url": null,
+      "openapi_url": null
+    },
+    {
+      "id": "7fa0e7be-5fd9-4870-ba67-b4d7d42fa160",
+      "api_id": "078b1377-89e4-4760-9520-c0b178f4ecd6",
+      "method": "POST",
+      "path": "/fetch",
+      "price": 0.01,
+      "query_params": null,
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "response_example": {
+        "content": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><link rel=\"icon\" href=\"data:,\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+        "contentType": "text/html",
+        "encoding": "utf-8",
+        "headers": {
+          "Age": "1975",
+          "Allow": "GET, HEAD",
+          "Cf-Cache-Status": "HIT",
+          "Cf-Ray": "a3a616f5482d90db-SEA",
+          "Content-Encoding": "br",
+          "Content-Type": "text/html",
+          "Date": "Sun, 13 Sep 2026 09:22:49 GMT",
+          "Last-Modified": "Fri, 11 Sep 2026 17:42:00 GMT",
+          "Server": "cloudflare"
+        },
+        "id": "55f20e58-2c19-4f24-bccd-84d7c18ce019",
+        "statusCode": 200
+      },
+      "response_body": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content",
+          "contentType",
+          "statusCode"
+        ]
+      },
+      "description": "Fetch a webpage and return content plus metadata without launching a browser session. Upstream x402 price $0.01/request; Apiosk adds 15%, producing a $0.0115 buyer price.",
+      "action_type": "lookup",
+      "contract_documented": true,
+      "external_docs_url": null,
+      "openapi_url": null
+    }
+  ],
+  "known_sources": [
+    {
+      "slug": "browserbase",
+      "name": "Browserbase",
+      "block_reason": null,
+      "metadata": {
+        "identity_documented": true
+      }
+    }
+  ]
+}
