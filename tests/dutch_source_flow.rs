@@ -234,8 +234,7 @@ async fn new_sources_require_approval_and_reuse_saved_results() {
     };
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     let mut evidence = vec![];
     for source in ["koop", "koop-detail", "rdw", "rvo"] {
         let before = state.count.load(Ordering::SeqCst);

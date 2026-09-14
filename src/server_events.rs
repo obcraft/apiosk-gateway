@@ -49,10 +49,10 @@ pub async fn task_events(
     else {
         return StatusCode::TOO_MANY_REQUESTS.into_response();
     };
+    let Ok((_, saved, _)) = state.engine.store.load(access.owner, id).await else { return StatusCode::NOT_FOUND.into_response() };
     let p = Principal {
         owner: access.owner,
-        connection: access.connection,
-    };
+        connection: access.connection, workspace: saved.workspace_id, };
     let Ok(initial) = state.engine.view(&p, id, Uuid::new_v4(), None).await else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -84,6 +84,7 @@ pub async fn task_events(
                 previous = Some(key);
             }
             tokio::select! { _ = sender.closed() => break, _ = tokio::time::sleep(Duration::from_millis(750)) => {} }
+            if state.engine.store.check_workspace(&p).await.is_err() { break; }
             let version: Result<serde_json::Value,_> = sqlx::query_scalar("SELECT jsonb_build_array(t.revision,EXISTS(SELECT 1 FROM execution_leases l WHERE l.task_id=t.id AND l.expires_at>now()),EXISTS(SELECT 1 FROM authorizations a WHERE a.task_id=t.id AND a.owner_id=t.owner_id AND a.quote_ref::text=t.document#>>'{proposal,quote_ref}' AND a.revoked_at IS NULL AND a.expires_at>now())) FROM tasks t WHERE t.id=$1 AND t.owner_id=$2 AND t.expires_at>now()")
                 .bind(id).bind(p.owner).fetch_one(&state.engine.store.pool).await;
             let current = serde_json::json!([

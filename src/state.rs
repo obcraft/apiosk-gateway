@@ -145,6 +145,8 @@ pub struct TurnOutput {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<Uuid>,
     #[serde(default)]
     pub pending_dispatches: Vec<PendingDispatch>,
     #[serde(default)]

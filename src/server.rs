@@ -35,6 +35,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .allow_headers([
             axum::http::header::AUTHORIZATION,
             axum::http::header::CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-apiosk-workspace"),
         ])
         .max_age(Duration::from_secs(600));
     let compat = state.executor_compat.clone();
@@ -98,6 +99,7 @@ async fn research_report(State(state): State<ServerState>, Path((task,quote)): P
     let Ok(permit)=state.permits.clone().try_acquire_owned() else {return StatusCode::TOO_MANY_REQUESTS.into_response()};
     if state.engine.signer.verify_research(query.owner,task,quote,&query.snapshot,query.expires,&query.signature).is_err() {return StatusCode::FORBIDDEN.into_response()}
     let Ok((_,saved,_))=state.engine.store.load(query.owner,task).await else {return StatusCode::NOT_FOUND.into_response()};
+    if state.engine.store.check_workspace(&Principal {owner:query.owner,connection:None,workspace:saved.workspace_id}).await.is_err(){return StatusCode::NOT_FOUND.into_response()};
     let Ok(document)=state.engine.research_document(query.owner,task,&saved,quote).await else {return StatusCode::NOT_FOUND.into_response()};
     if crate::state::digest(&document)!=query.snapshot {return StatusCode::CONFLICT.into_response()}
     match tokio::task::spawn_blocking(move || {let _permit=permit;crate::research_report::render(&document)}).await {
@@ -118,6 +120,8 @@ async fn annual_report(
     }
     // A scoped, expiring capability permits browser downloads without exposing
     // account credentials. Store lookup still enforces owner and task retention.
+    let Ok((_,saved,_))=state.engine.store.load(query.owner,task).await else {return StatusCode::NOT_FOUND.into_response()};
+    if state.engine.store.check_workspace(&Principal {owner:query.owner,connection:None,workspace:saved.workspace_id}).await.is_err(){return StatusCode::NOT_FOUND.into_response()};
     let Ok(document) = state.engine.store.result(query.owner, task, result).await else {
         return StatusCode::NOT_FOUND.into_response();
     };
@@ -144,6 +148,10 @@ async fn legacy_fallback(
     headers: HeaderMap,
     body: Bytes,
 ) -> HttpResponse {
+    if headers.contains_key("x-apiosk-workspace") { return failure(StatusCode::FORBIDDEN,"workspace_route_required","Use Gateway v2 for workspace requests."); }
+    if token(&headers).is_ok_and(|t|t.starts_with("apk_")) {
+        match caller(&state,&headers).await { Ok(p) if p.workspace.is_none()=>{},Ok(_)=>return failure(StatusCode::FORBIDDEN,"workspace_route_required","Use Gateway v2 for workspace requests."),Err(r)=>return r }
+    }
     match state.executor_compat {
         Some(proxy) => crate::compat::forward_request(proxy, uri, method, headers, body).await,
         None => StatusCode::NOT_FOUND.into_response(),
@@ -215,13 +223,23 @@ async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, H
             "Verbind je account om door te gaan.",
         )
     })?;
-    state.auth.authenticate(bearer).await.map_err(|_| {
+    let mut principal = state.auth.authenticate(bearer).await.map_err(|_| {
         failure(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
             "The connection is invalid or expired.",
         )
-    })
+    })?;
+    let selected = headers.get("x-apiosk-workspace").map(|h| h.to_str().ok().and_then(|s|s.parse::<Uuid>().ok()).ok_or_else(||failure(StatusCode::BAD_REQUEST,"invalid_workspace","Invalid workspace."))).transpose()?;
+    let enabled = std::env::var("WORKSPACE_CONTEXT_ENABLED").as_deref() == Ok("true");
+    if selected.is_some() && !enabled { return Err(failure(StatusCode::FORBIDDEN,"workspace_unavailable","Workspace execution is not enabled.")); }
+    if enabled && (selected.is_some() || principal.connection.is_some()) {
+        let ctx: serde_json::Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
+            .bind(principal.owner).bind(principal.connection).bind(selected).fetch_one(&state.engine.store.pool).await
+            .map_err(|_| failure(StatusCode::FORBIDDEN,"workspace_unavailable","You no longer have access to this workspace."))?;
+        principal.workspace = ctx["workspace_id"].as_str().and_then(|s|s.parse().ok());
+    }
+    Ok(principal)
 }
 async fn discover(
     State(state): State<ServerState>,
@@ -337,10 +355,10 @@ async fn execute(
     match tokio::spawn(async move {
         let _permit = permit;
         let id = req.state.state_ref;
-        let (_, saved, _) = engine.store.load(p.owner, id).await?;
+        let (_, saved, _) = engine.store.load_scoped(&p, id).await?;
         let continuation = saved.actions.iter().any(|a| a["action_id"] == json!(req.action_id) && matches!(a["kind"].as_str(), Some("run" | "poll" | "wait" | "analyze" | "choose" | "supply" | "retry_analysis")));
         if engine.worker_active(id).await? {
-            let (_, task, _) = engine.store.load(p.owner, id).await?;
+            let (_, task, _) = engine.store.load_scoped(&p, id).await?;
             if task.actions.iter().any(|a| a["action_id"] == json!(req.action_id) && matches!(a["kind"].as_str(), Some("run" | "poll" | "wait" | "analyze"))) {
                 return engine.view(&p, id, req.request_id, None).await;
             }
@@ -376,7 +394,7 @@ async fn tasks(State(state): State<ServerState>, headers: HeaderMap) -> HttpResp
             "Chat history is available in the App.",
         );
     }
-    match state.engine.store.list_tasks(p.owner).await {
+    match state.engine.store.list_tasks_scoped(p.owner, p.workspace).await {
         Ok(tasks) => Json(json!({"tasks": tasks})).into_response(),
         Err(_) => failure(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -462,7 +480,7 @@ async fn authorize(
     {
         Ok(reference) => {
             // Connected tasks must execute with their connection's bearer.
-            if let Ok((_, _, None)) = state.engine.store.load(p.owner, id).await {
+            if let Ok((_, _, None)) = state.engine.store.load_scoped(&p, id).await {
                 if let Err(error) = state.engine.start_worker(p.clone(), token(&headers).unwrap().to_owned(), id).await {
                     tracing::warn!(task=%id, error=%error, "approved task could not start");
                 }

@@ -34,7 +34,7 @@ impl Engine {
                 .await;
         }
         let id = req.state.state_ref;
-        let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
         anyhow::ensure!(
             connection == p.connection,
             "task belongs to another connection"

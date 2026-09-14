@@ -34,7 +34,9 @@ impl Engine {
         id: Uuid,
         hash: &str,
     ) -> anyhow::Result<Option<Response>> {
-        Ok(match self.store.claim(p.owner, id, hash).await? {
+        self.store.check_workspace(p).await?;
+        let scoped_hash = p.workspace.map(|w|digest(&(w,hash)));
+        Ok(match self.store.claim(p.owner, id, scoped_hash.as_deref().unwrap_or(hash)).await? {
             Claim::New => None,
             Claim::Replay(r) => Some(*r),
             Claim::Conflict => Some(Response::error(
@@ -131,9 +133,9 @@ impl Engine {
             }
             state.state_ref
         } else {
-            self.store.create(p.owner, p.connection).await?
+            self.store.create_scoped(p.owner, p.connection, p.workspace).await?
         };
-        let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
         anyhow::ensure!(
             connection == p.connection,
             "task belongs to another connection; use explicit task recovery"
@@ -352,7 +354,7 @@ impl Engine {
         request: Uuid,
         forced: Option<Status>,
     ) -> anyhow::Result<Response> {
-        let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
         anyhow::ensure!(
             p.is_person() || connection == p.connection,
             "task belongs to another connection"
@@ -513,6 +515,11 @@ impl Engine {
                 )
                 .await?,
         );
+        if p.workspace.is_some() {
+            let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool).await?;
+            r.context_view["workspace"] = ctx.clone();
+            if let Some(b) = &mut r.billing { b["funding_source"] = json!("workspace_balance"); b["workspace"] = ctx; }
+        }
         if let Some(error) = &task.execution_error {
             r.errors.push(error.clone());
         }

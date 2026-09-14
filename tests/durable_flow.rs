@@ -215,8 +215,7 @@ async fn durable_flow_and_authorization_boundary() {
     });
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     let loaded = engine.catalog.get().await.unwrap();
     assert_eq!(loaded.services.len(), 2, "rejected: {:?}", loaded.rejected);
     // An accounts service identifies no new company, but its mandatory
@@ -277,8 +276,7 @@ async fn durable_flow_and_authorization_boundary() {
     let proposal = r.proposal.as_ref().unwrap();
     let agent = Principal {
         owner: person.owner,
-        connection: Some(Uuid::new_v4()),
-    };
+        connection: Some(Uuid::new_v4()), workspace: None, };
     assert!(engine
         .executor
         .approve(&agent, task, proposal.quote_ref, "138")
@@ -351,8 +349,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(counts.parser.load(Ordering::Relaxed), 2);
     let other = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     assert!(engine
         .view(&other, task, Uuid::new_v4(), None)
         .await
@@ -525,7 +522,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(bill["provider_cost"], "100");
     assert_eq!(bill["apiosk_fee"], "15");
     assert_eq!(bill["executions"][0]["receipt_ref"], charge.to_string());
-    sqlx::query("INSERT INTO public.user_balances VALUES($1,885)")
+    sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,885)")
         .bind(person.owner)
         .execute(&pool)
         .await
@@ -1108,11 +1105,11 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(listed.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
 
     // Exact in-chat approval under an existing finite connection mandate.
-    let connected = Principal { owner: Uuid::new_v4(), connection: Some(Uuid::new_v4()) };
+    let connected = Principal { owner: Uuid::new_v4(), connection: Some(Uuid::new_v4()), workspace: None, };
     let connection = connected.connection.unwrap();
     sqlx::query("INSERT INTO public.agent_connections VALUES($1,$2,NULL,1000,2000)")
         .bind(connection).bind(connected.owner).execute(&pool).await.unwrap();
-    sqlx::query("INSERT INTO public.user_balances VALUES($1,1000)")
+    sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000)")
         .bind(connected.owner).execute(&pool).await.unwrap();
     let ready = engine.discover(&connected, DiscoverRequest { request_id: Uuid::new_v4(),
         question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
@@ -1127,9 +1124,9 @@ async fn durable_flow_and_authorization_boundary() {
     assert!(approve(connected.clone(),state.revision,quote.quote_ref,"139").await.is_err());
     assert!(approve(connected.clone(),state.revision+1,quote.quote_ref,"138").await.is_err());
     assert!(approve(connected.clone(),state.revision,Uuid::new_v4(),"138").await.is_err());
-    assert!(approve(Principal {owner: connected.owner,connection:Some(Uuid::new_v4())},state.revision,quote.quote_ref,"138").await.is_err());
-    assert!(approve(Principal {owner: Uuid::new_v4(),connection:Some(connection)},state.revision,quote.quote_ref,"138").await.is_err());
-    assert!(approve(Principal {owner: connected.owner,connection:None},state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(approve(Principal {owner: connected.owner,connection:Some(Uuid::new_v4()), workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(approve(Principal {owner: Uuid::new_v4(),connection:Some(connection), workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(approve(Principal {owner: connected.owner,connection:None, workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
     for update in ["per_call_limit_micro_usd=NULL", "per_call_limit_micro_usd=0", "per_call_limit_micro_usd=137", "per_call_limit_micro_usd=1000,daily_limit_micro_usd=137", "daily_limit_micro_usd=2000,revoked_at=now()"] {
         sqlx::query(&format!("UPDATE public.agent_connections SET {update} WHERE id=$1")).bind(connection).execute(&pool).await.unwrap();
         assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err(),"{update}");
@@ -1197,7 +1194,7 @@ async fn durable_flow_and_authorization_boundary() {
     sqlx::query("UPDATE public.api_endpoints SET id=$1,path=$2 WHERE id=$3").bind(annual_endpoint).bind(apiosk_gateway_v2::annual_report::ENDPOINT).bind(old_endpoint).execute(&pool).await.unwrap();
     sqlx::query("UPDATE public.capability_execution_contracts SET endpoint_id=$1 WHERE endpoint_id=$2").bind(annual_endpoint).bind(old_endpoint).execute(&pool).await.unwrap();
     let multi = Engine { store:store.clone(), catalog:CatalogCache::new(pool.clone()), parser:Parser::new(http.clone(),format!("{base}/chat"),"fixture".into(),"fixture".into()), signer:Signer::new(vec![3;32]).unwrap(), executor:Executor{store:store.clone(),http:http.clone(),supabase_url:base.clone(),enabled:true}, app_url:base.clone() };
-    let user = Principal {owner:Uuid::new_v4(),connection:None};
+    let user = Principal {owner:Uuid::new_v4(),connection:None, workspace: None, };
     let mut state = multi.discover(&user, DiscoverRequest {request_id:Uuid::new_v4(),question:"Compare FirstCo and SecondCo".into(),state:None,context_delta:Default::default()}).await.unwrap();
     assert_eq!(state.proposal.as_ref().unwrap().steps, vec!["company.search","company.search","company.accounts","company.accounts"]);
     assert_eq!(state.proposal.as_ref().unwrap().max_total_atomic,"276");
@@ -1300,6 +1297,23 @@ async fn durable_flow_and_authorization_boundary() {
     assert!(retry_wait.context_view["cooldown"]["until"].is_string());
     assert_eq!(counts.provider.load(Ordering::Relaxed),baseline+1,"waiting cannot repurchase");
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
+
+    // Transport/task scope contract. Real tenant permission and ledger functions
+    // are separately exercised by app/scripts/test-workspaces-db.mjs.
+    sqlx::raw_sql("CREATE TABLE public.test_workspace_access(actor uuid,workspace uuid,active boolean); CREATE FUNCTION public.workspace_gateway_context(a uuid,c uuid,w uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN IF NOT EXISTS(SELECT 1 FROM public.test_workspace_access WHERE actor=a AND workspace=w AND active) THEN RAISE EXCEPTION 'forbidden'; END IF; RETURN jsonb_build_object('workspace_id',w,'name','Team Research'); END $$").execute(&pool).await.unwrap();
+    let workspace=Uuid::new_v4();
+    sqlx::query("INSERT INTO public.test_workspace_access VALUES($1,$2,true)").bind(user.owner).bind(workspace).execute(&pool).await.unwrap();
+    let scoped=Principal {owner:user.owner,connection:None,workspace:Some(workspace)};
+    let scoped_id=store.create_scoped(scoped.owner,None,scoped.workspace).await.unwrap();
+    assert!(store.load_scoped(&user,scoped_id).await.is_err());
+    assert!(store.load_scoped(&scoped,task_id).await.is_err());
+    let (rev,mut scoped_task,_)=store.load_scoped(&scoped,scoped_id).await.unwrap();
+    scoped_task.workspace_id=None;
+    assert!(store.save(scoped.owner,scoped_id,rev,&scoped_task).await.is_err());
+    assert_eq!(store.load_scoped(&scoped,scoped_id).await.unwrap().1.workspace_id,Some(workspace));
+    sqlx::query("UPDATE public.test_workspace_access SET active=false WHERE workspace=$1").bind(workspace).execute(&pool).await.unwrap();
+    assert!(store.load_scoped(&scoped,scoped_id).await.is_err());
+    println!("Workspace task mismatch, immutable saved payer, and removed-member reads refused.");
 
     api_server.abort();
     println!(

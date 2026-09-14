@@ -101,8 +101,7 @@ async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
     for _ in 0..10 {
         let p = Principal {
             owner: Uuid::new_v4(),
-            connection: None,
-        };
+            connection: None, workspace: None, };
         let task = Uuid::new_v4();
         let authorization = Uuid::new_v4();
         sqlx::query("INSERT INTO actions.tasks(id,owner_id,document) VALUES($1,$2,'{}')")

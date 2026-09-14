@@ -144,9 +144,9 @@ impl Store {
         // The existing balance projection already deducts held reservations.
         // Subtracting them again here would display an incorrect balance.
         let balance: Option<i64> = sqlx::query_scalar(
-            "SELECT balance_micro_usd FROM user_balances WHERE user_id=$1",
+            "SELECT b.balance_micro_usd FROM user_balances b JOIN tasks t ON t.id=$2 AND t.owner_id=$1 WHERE b.account_id=coalesce((t.document->>'workspace_id')::uuid,$1)",
         )
-        .bind(owner)
+        .bind(owner).bind(task)
         .fetch_optional(&self.pool)
         .await?;
         let authorized:Option<i64>=sqlx::query_scalar("SELECT cap_atomic FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;

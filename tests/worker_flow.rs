@@ -146,8 +146,7 @@ async fn one_approval_parallel_execution_and_ambiguity_resume() {
     });
     let p = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     let r = engine
         .discover(
             &p,

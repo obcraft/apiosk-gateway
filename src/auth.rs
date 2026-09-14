@@ -7,6 +7,7 @@ use uuid::Uuid;
 pub struct Principal {
     pub owner: Uuid,
     pub connection: Option<Uuid>,
+    pub workspace: Option<Uuid>,
 }
 impl Principal {
     pub fn is_person(&self) -> bool {
@@ -36,8 +37,7 @@ impl Auth {
                 .ok_or_else(|| anyhow::anyhow!("unauthorized"))?;
             return Ok(Principal {
                 owner: row.get("owner_id"),
-                connection: Some(row.get("connection_id")),
-            });
+                connection: Some(row.get("connection_id")), workspace: None, });
         }
         // Verify a session with Auth, never decode an unverified JWT for owner.
         let response = self
@@ -55,7 +55,6 @@ impl Auth {
             .parse()?;
         Ok(Principal {
             owner,
-            connection: None,
-        })
+            connection: None, workspace: None, })
     }
 }

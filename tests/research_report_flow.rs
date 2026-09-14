@@ -219,8 +219,7 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
     };
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     println!(
         "catalog rejected: {:?}",
         engine.catalog.get().await.unwrap().rejected

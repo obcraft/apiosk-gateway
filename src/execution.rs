@@ -49,6 +49,7 @@ impl Executor {
         cap: &str,
     ) -> anyhow::Result<Uuid> {
         anyhow::ensure!(self.enabled, "purchases unavailable");
+        self.store.check_workspace(p).await?;
         let connection = p
             .connection
             .ok_or_else(|| anyhow::anyhow!("connected account required"))?;
@@ -60,6 +61,7 @@ impl Executor {
             "task belongs to another connection"
         );
         let task: Task = serde_json::from_value(row.get("document"))?;
+        anyhow::ensure!(task.workspace_id == p.workspace, "task belongs to another workspace");
         anyhow::ensure!(!task.cancelled, "task cancelled");
         let plan: Plan = serde_json::from_value(
             task.proposal
@@ -125,7 +127,8 @@ impl Executor {
             p.is_person(),
             "approval requires an authenticated person in the App"
         );
-        let (_, task, _) = self.store.load(p.owner, task_id).await?;
+        let (_, task, _) = self.store.load_scoped(&p, task_id).await?;
+        anyhow::ensure!(task.workspace_id == p.workspace, "task belongs to another workspace");
         anyhow::ensure!(!task.cancelled, "task cancelled");
         let plan: Plan = serde_json::from_value(
             task.proposal
@@ -168,6 +171,7 @@ impl Executor {
             anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
             let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
         }
+        anyhow::ensure!(task.get::<Value, _>("document")["workspace_id"] == json!(p.workspace), "task belongs to another workspace");
         let queued = task.get::<Value, _>("document")["pending_dispatches"].as_array()
             .is_some_and(|calls| calls.iter().any(|call| call["action_id"] == json!(action_id) && call["inputs"] == *inputs));
         // A completed sibling can advance the revision while this bounded,
@@ -228,6 +232,11 @@ impl Executor {
         sqlx::query("INSERT INTO user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$3,$4,'reviewed','apiosk',$5,$6,$7,$8,$9,$10,$11,$12)")
             .bind(selection).bind(p.owner).bind(p.connection).bind(format!("Gateway v2: {}",step.service.contract.capability_slug)).bind(&step.service.name).bind(&step.service.contract.capability_slug).bind(&step.service.api_slug).bind(step.service.endpoint_id).bind(&step.service.method).bind(step.service.list_atomic).bind(step.service.total())
             .bind(json!({"gateway_v2":true,"task_id":task_id,"action_id":action_id,"inputs":inputs,"fields":[]})).execute(&mut *tx).await?;
+        if let Some(workspace) = p.workspace {
+            sqlx::query("SELECT public.workspace_bind_execution($1,$2,$3,$4,$5,$6,$7)")
+                .bind(p.owner).bind(p.connection).bind(workspace).bind(selection).bind(task_id)
+                .bind(step.service.total()).bind(plan.expires_at).execute(&mut *tx).await?;
+        }
         sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'dispatching')")
             .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(payload_hash).bind(selection).bind(step.service.total()).execute(&mut *tx).await?;
         tx.commit().await?;

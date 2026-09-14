@@ -16,7 +16,7 @@ await db.exec(`CREATE TABLE public.user_selected_apis(id uuid primary key,user_i
 CREATE TABLE public.balance_charges(id uuid primary key,user_id uuid,idempotency_key text,status text,charged_micro_usd bigint,actual_provider_micro_usd bigint,provider_price_micro_usd bigint,fee_micro_usd bigint,metadata jsonb,created_at timestamptz default now(),job_id uuid);
 CREATE TABLE public.agent_connections(id uuid primary key,user_id uuid,revoked_at timestamptz,per_call_limit_micro_usd bigint,daily_limit_micro_usd bigint);
 CREATE TABLE public.job_budget_reservations(user_id uuid,connection_id uuid,spent_micro_usd bigint,reserved_micro_usd bigint,created_at timestamptz,status text);
-CREATE TABLE public.user_balances(user_id uuid primary key,balance_micro_usd bigint);
+CREATE TABLE public.user_balances(user_id uuid primary key,balance_micro_usd bigint,account_id uuid GENERATED ALWAYS AS (user_id) STORED);
 CREATE TABLE public.call_runs(id uuid primary key,charge_id uuid,user_id uuid,status text,output jsonb,output_truncated boolean,started_at timestamptz default now());
 CREATE TABLE public.fact_types(slug text primary key,status text,value_schema jsonb,jurisdiction text);
 CREATE TABLE public.capabilities(slug text primary key,status text);
@@ -28,8 +28,9 @@ const fixtureHash=createHash('sha256').update('apk_access_local_fixture').digest
 await db.exec(`CREATE FUNCTION public.use_agent_token(text) RETURNS TABLE(status text,owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT 'ok'::text,'00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000002'::uuid WHERE $1='${fixtureHash}' $$;
 CREATE FUNCTION public.use_agent_connection(text) RETURNS TABLE(owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::uuid WHERE false $$;`);
 await db.exec(await fs.readFile(new URL('../supabase/runtime-role.sql',import.meta.url),'utf8'));
+await db.exec('GRANT SELECT(account_id) ON public.user_balances TO gateway_v2_runtime');
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260908104136_gateway_v2_connection_approval.sql',import.meta.url),'utf8'));
-await db.exec("INSERT INTO agent_connections VALUES('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000); INSERT INTO user_balances VALUES('00000000-0000-4000-8000-000000000001',2000000);");
+await db.exec("INSERT INTO agent_connections VALUES('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000); INSERT INTO user_balances(user_id,balance_micro_usd) VALUES('00000000-0000-4000-8000-000000000001',2000000);");
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907124538_gateway_v2_source_catalog.sql',import.meta.url),'utf8'));
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907125545_gateway_v2_source_identity.sql',import.meta.url),'utf8'));
 const snapshot=JSON.parse(await fs.readFile(new URL('./fixtures/integration-catalog.json',import.meta.url),'utf8'));

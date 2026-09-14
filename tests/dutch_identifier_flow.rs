@@ -215,8 +215,7 @@ async fn identifier_graph_requires_one_approval_and_reuses_each_dependency() {
     };
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None,
-    };
+        connection: None, workspace: None, };
     let start=engine.discover(&person,DiscoverRequest{request_id:Uuid::new_v4(),question:"For KVK 30204462 retrieve its building, CBS 2025 neighbourhood statistics, linked cadastral parcels, TenderNed mentions and TED KVK/RSIN notices.".into(),state:None,context_delta:Default::default()}).await.unwrap();
     assert_eq!(start.status, Status::Ready, "{start:?}");
     let quote = start.proposal.as_ref().unwrap();

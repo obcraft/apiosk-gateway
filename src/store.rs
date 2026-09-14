@@ -14,11 +14,12 @@ pub enum Claim {
     Conflict,
 }
 impl Store {
-    pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> {
+    pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> { self.list_tasks_scoped(owner,None).await }
+    pub async fn list_tasks_scoped(&self, owner: Uuid, workspace: Option<Uuid>) -> anyhow::Result<Vec<Value>> {
         // Summaries only, bounded and ordered through tasks_owner_recent.
         Ok(sqlx::query_scalar(
-            "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM tasks WHERE owner_id=$1 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
-        ).bind(owner).fetch_all(&self.pool).await?)
+            "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM tasks WHERE owner_id=$1 AND (document->>'workspace_id')::uuid IS NOT DISTINCT FROM $2 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
+        ).bind(owner).bind(workspace).fetch_all(&self.pool).await?)
     }
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
         let mut tx = self.pool.begin().await?;
@@ -55,6 +56,9 @@ impl Store {
         Ok(())
     }
     pub async fn create(&self, owner: Uuid, connection: Option<Uuid>) -> anyhow::Result<Uuid> {
+        self.create_scoped(owner, connection, None).await
+    }
+    pub async fn create_scoped(&self, owner: Uuid, connection: Option<Uuid>, workspace: Option<Uuid>) -> anyhow::Result<Uuid> {
         let id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO tasks(id,owner_id,connection_id,document) VALUES($1,$2,$3,$4)",
@@ -62,10 +66,23 @@ impl Store {
         .bind(id)
         .bind(owner)
         .bind(connection)
-        .bind(serde_json::to_value(Task::default())?)
+        .bind(serde_json::to_value(Task { workspace_id: workspace, ..Task::default() })?)
         .execute(&self.pool)
         .await?;
         Ok(id)
+    }
+    pub async fn check_workspace(&self, p: &crate::auth::Principal) -> anyhow::Result<()> {
+        if p.workspace.is_some() {
+            let _: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
+                .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await?;
+        }
+        Ok(())
+    }
+    pub async fn load_scoped(&self, p: &crate::auth::Principal, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
+        self.check_workspace(p).await?;
+        let row = self.load(p.owner, id).await?;
+        anyhow::ensure!(row.1.workspace_id == p.workspace, "task belongs to another workspace");
+        Ok(row)
     }
     pub async fn load(&self, owner: Uuid, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
         let row=sqlx::query("SELECT revision,document,connection_id FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now()")
@@ -84,7 +101,7 @@ impl Store {
         task: &Task,
     ) -> anyhow::Result<i64> {
         anyhow::ensure!(task.bounded(), "task capacity reached; start a new task");
-        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
+        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND (document->>'workspace_id') IS NOT DISTINCT FROM ($4::jsonb->>'workspace_id') AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&self.pool).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
         Ok(revision + 1)
@@ -97,6 +114,7 @@ impl Store {
             .bind(id).bind(owner).fetch_one(&mut *tx).await?;
         let current: i64 = row.get("revision");
         let mut saved: Task = serde_json::from_value(row.get("document"))?;
+        anyhow::ensure!(saved.workspace_id == progress.workspace_id, "immutable workspace");
         if current == revision { saved = progress.clone(); }
         else {
             anyhow::ensure!(saved.cancelled && saved.proposal == progress.proposal, "state_conflict");
@@ -135,7 +153,7 @@ impl Store {
             !pending,
             "existing execution needs recovery before a new intent"
         );
-        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND expires_at>now()")
+        let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND (document->>'workspace_id') IS NOT DISTINCT FROM ($4::jsonb->>'workspace_id') AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&mut *tx).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
         tx.commit().await?;
