@@ -1,0 +1,3609 @@
+{
+  "known_sources": [
+    {
+      "slug": "reuters",
+      "name": "Reuters News",
+      "block_reason": null,
+      "metadata": {
+        "description": "Reuters news headlines: the latest wire headlines, keyword headline search, headlines per section (World, Business, Markets, Technology and more) and the section list. Headlines and links only, no article text. Up to 12 results per call.",
+        "category": "news",
+        "tags": [
+          "news",
+          "headlines",
+          "breaking news",
+          "world news",
+          "business news",
+          "markets news",
+          "RapidAPI",
+          "Reuters",
+          "wire"
+        ],
+        "identity_documented": true
+      }
+    },
+    {
+      "slug": "bloomberg",
+      "name": "Bloomberg News",
+      "block_reason": null,
+      "metadata": {
+        "description": "Latest Bloomberg news stories: headline, summary, byline, publication time, category and article link. Summaries only, no full article text.",
+        "category": "news",
+        "tags": [
+          "news",
+          "headlines",
+          "breaking news",
+          "world news",
+          "business news",
+          "markets news",
+          "RapidAPI",
+          "Bloomberg"
+        ],
+        "identity_documented": true
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "6ac49665-0d85-4677-a2c0-55efdec41d15",
+      "endpoint_id": "64207748-5d3e-4bf4-a352-365602c83353",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/latest",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/business/retail-consumer/companies-left-china-dodge-tariffs-now-some-are-heading-back-2026-09-14/",
+          "title": "Companies left China to dodge tariffs. Now some are heading back",
+          "published_at": "2026-09-14T08:51:00+08:00"
+        },
+        {
+          "link": "https://www.reuters.com/legal/litigation/king-charles-host-ai-executives-threat-fears-mount-2026-09-14/",
+          "title": "King Charles to host AI executives as threat fears mount",
+          "published_at": "2026-09-14T10:00:00+08:00"
+        },
+        {
+          "link": "https://www.reuters.com/world/airbaltic-files-chapter-11-bankruptcy-new-york-2026-09-14/",
+          "title": "AirBaltic files for Chapter 11 bankruptcy as Iran war costs bite",
+          "published_at": "2026-09-14T10:00:00+08:00"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-latest",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "news.reuters_result_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "news.reuters_result_limit": {
+            "in": "query",
+            "name": "limit"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_latest_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "latest"
+    },
+    {
+      "id": "f2f75bc4-c1c1-4a2e-a656-e06fb4aae1f7",
+      "endpoint_id": "59ebf3e7-da1a-4592-abad-eb14a8d09966",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/search",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 900,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/business/world-at-work/crypto-firm-bitcoin-suisse-cut-up-half-jobs-switzerland-2026-09-11/",
+          "title": "Crypto firm Bitcoin Suisse to cut up to half of jobs in Switzerland"
+        },
+        {
+          "link": "https://www.reuters.com/technology/bitcoin-based-liquid-network-says-320-million-withdrawn-hack-2026-09-07/",
+          "title": "Bitcoin-based Liquid Network says $320 million withdrawn in hack"
+        },
+        {
+          "link": "https://www.reuters.com/markets/global-markets-technicals-graphic-2026-09-03/",
+          "title": "Mapping the Market: Bitcoin has challenges to face after dramatic surge"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-search",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "news.reuters_search_query",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "news.reuters_result_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "news.reuters_search_query": {
+            "in": "query",
+            "name": "q"
+          },
+          "news.reuters_result_limit": {
+            "in": "query",
+            "name": "limit"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_search_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "search"
+    },
+    {
+      "id": "d0f68527-36a6-4835-a2f7-dafa81f70bfc",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/airbaltic-files-chapter-11-bankruptcy-new-york-2026-09-14/",
+          "position": 1,
+          "title": "AirBaltic files for Chapter 11 bankruptcy as Iran war costs bite"
+        },
+        {
+          "link": "https://www.reuters.com/world/china/chinese-defence-forum-set-open-amid-roiling-regional-tensions-2026-09-14/",
+          "position": 2,
+          "title": "Chinese defence forum set to open amid roiling regional tensions"
+        },
+        {
+          "link": "https://www.reuters.com/world/us/trump-calls-5000-payouts-easy-fit-into-federal-budget-2026-09-13/",
+          "position": 3,
+          "title": "Trump calls $5,000 payouts 'easy' to fit into federal budget"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-world",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/world"
+    },
+    {
+      "id": "96d92767-78e0-4ceb-a8da-d31a352588a9",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/africa/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/africa/how-does-aliko-dangotes-oil-refinery-fit-into-his-conglomerate-2026-09-14/",
+          "position": 1,
+          "title": "How does Aliko Dangote's oil refinery fit into his conglomerate?"
+        },
+        {
+          "link": "https://www.reuters.com/world/africa/drugs-marked-with-gaddafis-face-seized-libya-2026-09-13/",
+          "position": 2,
+          "title": "Drugs marked with Gaddafi's face seized in Libya"
+        },
+        {
+          "link": "https://www.reuters.com/world/africa/uganda-holding-last-ditch-talks-over-kings-succession-allow-him-be-buried-2026-09-11/",
+          "position": 3,
+          "title": "Uganda holding last-ditch talks over king's succession to allow him to be buried"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-africa",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/africa"
+    },
+    {
+      "id": "c4ec4462-67f7-44f5-af01-acdc2b4e4124",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/americas/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/americas/carney-pushes-idea-making-canada-associate-member-eu-wsj-reports-2026-09-13/",
+          "position": 1,
+          "title": "Carney says Canada seeks \"unique alliance\" but not membership with the European Union"
+        },
+        {
+          "link": "https://www.reuters.com/world/americas/poll-suggests-brazils-bolsonaro-would-beat-lula-by-one-point-runoff-2026-09-08/",
+          "position": 2,
+          "title": "Poll suggests Brazil's Bolsonaro would beat Lula by one point in a runoff"
+        },
+        {
+          "link": "https://www.reuters.com/world/americas/hidden-crypto-farm-mexican-mountains-puts-spotlight-cartel-funding-2026-09-12/",
+          "position": 3,
+          "title": "Hidden crypto farm in Mexican mountains puts spotlight on cartel funding"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-americas",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/americas"
+    },
+    {
+      "id": "4a739ddf-fc29-48ce-ae1b-acfdc7de5fcd",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/asia-pacific/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/asia-pacific/asml-extends-chipmaking-dominance-customers-embrace-high-na-2026-09-14/",
+          "position": 1,
+          "title": "ASML extends chipmaking dominance as customers embrace High NA"
+        },
+        {
+          "link": "https://www.reuters.com/world/asia-pacific/taiwan-likely-keep-rates-unchanged-fed-hike-could-upend-expectations-2026-09-14/",
+          "position": 2,
+          "title": "Taiwan likely to keep rates unchanged, but Fed hike could upend expectations"
+        },
+        {
+          "link": "https://www.reuters.com/world/asia-pacific/indonesia-passenger-ship-with-243-people-reported-missing-sea-agency-says-2026-09-13/",
+          "position": 3,
+          "title": "At least 129 missing after Indonesian passenger ship capsizes"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-asia-pacific",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/asia-pacific"
+    },
+    {
+      "id": "1dc112cc-8902-4ed1-ace7-00aa92c13641",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/china/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/china/chinese-defence-forum-set-open-amid-roiling-regional-tensions-2026-09-14/",
+          "position": 1,
+          "title": "Chinese defence forum set to open amid roiling regional tensions"
+        },
+        {
+          "link": "https://www.reuters.com/world/china/nepal-tunnel-survivor-finds-solace-village-homecoming-2026-09-13/",
+          "position": 2,
+          "title": "Nepal tunnel survivor finds solace in village homecoming"
+        },
+        {
+          "link": "https://www.reuters.com/world/china/trump-dismisses-report-china-entities-helped-iran-before-attack-that-killed-us-2026-09-14/",
+          "position": 3,
+          "title": "Trump downplays report China entities helped Iran before attack that killed US troops"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-china",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/china"
+    },
+    {
+      "id": "8a3b6583-ab3f-4dc6-a609-1dd18edb620a",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/europe/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/europe/zelenskiy-asks-lawmakers-support-removal-prosecutor-general-2026-09-14/",
+          "position": 1,
+          "title": "Zelenskiy asks lawmakers for swift removal of Ukraine's prosecutor general"
+        },
+        {
+          "link": "https://www.reuters.com/world/europe/ecbs-kazimir-shifts-focus-gas-prices-sees-upside-inflation-risk-2026-09-14/",
+          "position": 2,
+          "title": "ECB's Kazimir shifts focus to gas prices, sees upside inflation risk"
+        },
+        {
+          "link": "https://www.reuters.com/world/europe/swedes-vote-election-that-could-usher-far-right-into-government-2026-09-13/",
+          "position": 3,
+          "title": "Sweden's centre-left bloc leads close election against right-wing government"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-europe",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/europe"
+    },
+    {
+      "id": "5c5a6c44-f5a3-46df-add8-9eba6c6e27dc",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/india/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/india/gold-gains-dollar-eases-with-us-inflation-data-radar-2026-09-08/",
+          "position": 1,
+          "title": "Gold lackluster ahead of inflation data as oil prices rise"
+        },
+        {
+          "link": "https://www.reuters.com/world/india/indias-central-bank-rejects-tata-sons-request-avoid-public-listing-sources-say-2026-09-12/",
+          "position": 2,
+          "title": "India's central bank rejects Tata Sons request to avoid public listing, sources say"
+        },
+        {
+          "link": "https://www.reuters.com/world/india/india-central-bank-likely-deploys-fx-swaps-mop-up-overseas-deposit-driven-2026-09-09/",
+          "position": 3,
+          "title": "India central bank likely deploys FX swaps to mop up overseas deposit-driven liquidity, traders say"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-india",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/india"
+    },
+    {
+      "id": "132441f5-e977-4224-ace5-22bb01333c20",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/middle-east/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/middle-east/houthis-yemen-advance-leaves-gulf-states-with-uncomfortable-choice-2026-09-13/",
+          "position": 1,
+          "title": "Houthis' Yemen advance leaves Gulf states with uncomfortable choice"
+        },
+        {
+          "link": "https://www.reuters.com/world/middle-east/saudi-civil-defense-lifts-warnings-potential-danger-four-cities-2026-09-14/",
+          "position": 2,
+          "title": "Saudi Civil Defense lifts warnings of potential danger in four cities"
+        },
+        {
+          "link": "https://www.reuters.com/world/middle-east/oman-meeting-between-gulf-states-iran-postponed-omani-foreign-minister-says-2026-09-13/",
+          "position": 3,
+          "title": "Oman meeting between Gulf states and Iran postponed, Omani foreign minister says"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-middle-east",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/middle-east"
+    },
+    {
+      "id": "1e7bfba0-264c-4c11-a3bb-550ba5f030c9",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/uk/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/uk/uks-ftse-100-rises-oil-stocks-gain-key-announcements-focus-2026-09-14/",
+          "position": 1,
+          "title": "UK's FTSE 100 rises as oil stocks gain; key announcements in focus"
+        },
+        {
+          "link": "https://www.reuters.com/world/uk/uk-announce-trade-ban-israeli-west-bank-goods-2026-09-08/",
+          "position": 2,
+          "title": "Israel to close British consulate in East Jerusalem after UK, France and Canada ban imports from settlements"
+        },
+        {
+          "link": "https://www.reuters.com/world/uk/ryanairs-oleary-accuses-uk-air-traffic-control-boss-lying-over-outage-2026-09-10/",
+          "position": 3,
+          "title": "Ryanair's O'Leary accuses UK air traffic control boss of lying over outage"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-uk",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/uk"
+    },
+    {
+      "id": "1057a9e5-c77a-4cc6-a1af-f56a8ef1ea11",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/world/us/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/world/us/trump-calls-5000-payouts-easy-fit-into-federal-budget-2026-09-13/",
+          "position": 1,
+          "title": "Trump calls $5,000 payouts 'easy' to fit into federal budget"
+        },
+        {
+          "link": "https://www.reuters.com/world/us/how-drought-demand-pushed-colorado-river-toward-crisis-2026-09-14/",
+          "position": 2,
+          "title": "How drought and demand pushed the Colorado River toward crisis"
+        },
+        {
+          "link": "https://www.reuters.com/world/us/trump-says-he-is-lifting-tariffs-irish-whiskey-2026-09-13/",
+          "position": 3,
+          "title": "Trump says he is removing US tariffs on Irish whiskey"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-us",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/us"
+    },
+    {
+      "id": "34eaa0c3-e13f-4740-a372-4d5c7cb414d0",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/business/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/business/ai-warnings-knock-nasdaq-futures-pressure-tech-stocks-2026-09-14/",
+          "position": 1,
+          "title": "AI warnings knock Nasdaq futures, pressure tech stocks"
+        },
+        {
+          "link": "https://www.reuters.com/business/retail-consumer/companies-left-china-dodge-tariffs-now-some-are-heading-back-2026-09-14/",
+          "position": 2,
+          "title": "Companies left China to dodge tariffs. Now some are heading back"
+        },
+        {
+          "link": "https://www.reuters.com/business/ahead-fed-meeting-trump-says-us-should-have-worlds-lowest-interest-rate-2026-09-13/",
+          "position": 3,
+          "title": "Ahead of Fed meeting, Trump says US should have world's lowest interest rate"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-business",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/business"
+    },
+    {
+      "id": "8318b093-0e2a-4906-aaa6-7ac4ceabe201",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/markets/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/markets/asia/houthi-advance-yemen-puts-us-new-bind-2026-09-12/",
+          "position": 1,
+          "title": "Houthi advance in Yemen puts U.S. in a new bind"
+        },
+        {
+          "link": "https://www.reuters.com/markets/on-the-money/some-young-buyers-renting-investing-beats-buying-home-2026-09-10/",
+          "position": 2,
+          "title": "For some young buyers, renting and investing beats buying a home"
+        },
+        {
+          "link": "https://www.reuters.com/markets/on-the-money/college-cash-protecting-your-family-911-remembered-2026-09-10/",
+          "position": 3,
+          "title": "College cash, protecting your family and 9/11 remembered"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-markets",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/markets"
+    },
+    {
+      "id": "119a046f-f209-4ea7-aaff-02378fb9fff0",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/technology/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/technology/ai-could-pose-existential-risk-humanity-un-rights-chief-warns-2026-09-07/",
+          "position": 1,
+          "title": "AI could pose 'existential' risk to humanity, UN rights chief warns"
+        },
+        {
+          "link": "https://www.reuters.com/technology/roblox-expands-tools-help-creators-build-distribute-games-2026-09-11/",
+          "position": 2,
+          "title": "Roblox expands tools to help creators build, distribute games"
+        },
+        {
+          "link": "https://www.reuters.com/technology/mamdani-imposes-one-year-ban-ai-most-nyc-students-2026-09-02/",
+          "position": 3,
+          "title": "Mamdani imposes one-year ban on AI for most NYC students"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-technology",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/technology"
+    },
+    {
+      "id": "edd342d3-b5e8-481e-a1bb-078dac931132",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/legal/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/legal/litigation/king-charles-host-ai-executives-threat-fears-mount-2026-09-14/",
+          "position": 1,
+          "title": "King Charles to host AI executives as threat fears mount"
+        },
+        {
+          "link": "https://www.reuters.com/legal/transactional/italys-mps-says-bids-bpm-banca-generali-stand-even-if-intesa-seizes-control-2026-09-14/",
+          "position": 2,
+          "title": "Italy's MPS says bids for BPM, Banca Generali stand even if Intesa seizes control"
+        },
+        {
+          "link": "https://www.reuters.com/legal/litigation/revolut-confirms-sensitive-customer-data-breach-falling-fake-government-requests-2026-09-12/",
+          "position": 3,
+          "title": "Revolut confirms sensitive customer data breach after fake government requests"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-legal",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/legal"
+    },
+    {
+      "id": "a40274e6-d40e-4801-a8b4-7de7b116079f",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/sustainability/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/sustainability/cop/himalayas-approaching-tipping-point-millions-livelihoods-stake-report-2026-09-14/",
+          "position": 1,
+          "title": "Himalayas approaching tipping point, millions of livelihoods at stake - report"
+        },
+        {
+          "link": "https://www.reuters.com/sustainability/cop/wildfires-heat-waves-threaten-undermine-air-quality-un-weather-agency-says-2026-09-07/",
+          "position": 2,
+          "title": "Wildfires, heat waves threaten to undermine air quality, UN weather agency says"
+        },
+        {
+          "link": "https://www.reuters.com/sustainability/boards-policy-regulation/australian-regulator-reviewing-551-audit-misconduct-complaints-big-four-firms-2026-09-04/",
+          "position": 3,
+          "title": "Australian regulator reviewing 551 audit misconduct complaints at Big Four firms"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-sustainability",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/sustainability"
+    },
+    {
+      "id": "f26333ac-1daa-4b21-a6fc-7185de0d464b",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/science/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/science/google-backed-indian-space-startup-raises-100-million-latest-funding-round-2026-09-07/",
+          "position": 1,
+          "title": "Google-backed Indian space startup raises $100 million in latest funding round"
+        },
+        {
+          "link": "https://www.reuters.com/science/ibm-nasa-launch-ai-model-help-map-ice-craters-moon-2026-09-10/",
+          "position": 2,
+          "title": "IBM, NASA launch AI model to help map ice, craters on Moon"
+        },
+        {
+          "link": "https://www.reuters.com/science/indian-space-startup-galaxeye-wins-us-patent-satellite-imaging-technology-2026-09-08/",
+          "position": 3,
+          "title": "Indian space startup GalaxEye wins US patent for satellite imaging technology"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-science",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/science"
+    },
+    {
+      "id": "3d1643e6-b4f0-4a3b-ac8f-1bd459309745",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/sports/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/sports/clippers-owner-steve-ballmer-comply-with-nba-penalties-salary-cap-violations--fldm-2026-09-14/",
+          "position": 1,
+          "title": "Clippers owner Steve Ballmer to comply with NBA penalties for salary-cap violations"
+        },
+        {
+          "link": "https://www.reuters.com/sports/wallabies-coach-kiss-admits-playing-springboks-will-be-step-up-intensity-2026-09-14/",
+          "position": 2,
+          "title": "Wallabies coach Kiss admits playing Springboks will be a step up in intensity"
+        },
+        {
+          "link": "https://www.reuters.com/sports/soccer/lamine-yamal-says-mbappe-his-only-rival-ballon-dor-2026-09-14/",
+          "position": 3,
+          "title": "Lamine Yamal says Mbappe his only rival for Ballon d'Or"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-sports",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/sports"
+    },
+    {
+      "id": "16e4a5bc-79b4-462e-a921-df91e0c43878",
+      "endpoint_id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/category",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "url": "https://www.reuters.com/lifestyle/"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/lifestyle/its-all-coming-back-me-now-celine-dion-returns-stage-paris-2026-09-11/",
+          "position": 1,
+          "title": "'It's all coming back to me now': Celine Dion returns to the stage in Paris"
+        },
+        {
+          "link": "https://www.reuters.com/lifestyle/culture-current/jay-rayner-responsibility-restaurant-criticism-2026-09-12/",
+          "position": 2,
+          "title": "Jay Rayner on the responsibility of restaurant criticism"
+        },
+        {
+          "link": "https://www.reuters.com/lifestyle/sarandon-says-she-still-loses-movie-roles-over-support-palestinians-2026-09-06/",
+          "position": 3,
+          "title": "Sarandon says she still loses movie roles over support for Palestinians"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-section-lifestyle",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_section_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections/lifestyle"
+    },
+    {
+      "id": "6f4d3a3e-7ebf-4170-ae64-281f30741eea",
+      "endpoint_id": "b8a4f167-d595-44ba-a782-f7e737821dfc",
+      "api_slug": "reuters",
+      "name": "Reuters News",
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "method": "GET",
+      "path": "/sections",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 86400,
+      "sample_payload": [
+        {
+          "name": "World",
+          "url": "https://www.reuters.com/world/"
+        },
+        {
+          "name": "Africa",
+          "url": "https://www.reuters.com/world/africa/"
+        },
+        {
+          "name": "Americas",
+          "url": "https://www.reuters.com/world/americas/"
+        },
+        {
+          "name": "Asia Pacific",
+          "url": "https://www.reuters.com/world/asia-pacific/"
+        },
+        {
+          "name": "China",
+          "url": "https://www.reuters.com/world/china/"
+        },
+        {
+          "name": "Europe",
+          "url": "https://www.reuters.com/world/europe/"
+        },
+        {
+          "name": "India",
+          "url": "https://www.reuters.com/world/india/"
+        },
+        {
+          "name": "Middle East",
+          "url": "https://www.reuters.com/world/middle-east/"
+        },
+        {
+          "name": "UK",
+          "url": "https://www.reuters.com/world/uk/"
+        },
+        {
+          "name": "US",
+          "url": "https://www.reuters.com/world/us/"
+        },
+        {
+          "name": "Business",
+          "url": "https://www.reuters.com/business/"
+        },
+        {
+          "name": "Markets",
+          "url": "https://www.reuters.com/markets/"
+        },
+        {
+          "name": "Technology",
+          "url": "https://www.reuters.com/technology/"
+        },
+        {
+          "name": "Legal",
+          "url": "https://www.reuters.com/legal/"
+        },
+        {
+          "name": "Breakingviews",
+          "url": "https://www.reuters.com/breakingviews/"
+        },
+        {
+          "name": "Sustainability",
+          "url": "https://www.reuters.com/sustainability/"
+        },
+        {
+          "name": "Science",
+          "url": "https://www.reuters.com/science/"
+        },
+        {
+          "name": "Sports",
+          "url": "https://www.reuters.com/sports/"
+        },
+        {
+          "name": "Lifestyle",
+          "url": "https://www.reuters.com/lifestyle/"
+        }
+      ],
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.reuters-sections",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_sections": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "sections"
+    },
+    {
+      "id": "a67f2619-16cf-47dd-a0bd-d213d53d6c1f",
+      "endpoint_id": "00e66885-5cad-48bd-a637-9123c07365ab",
+      "api_slug": "bloomberg",
+      "name": "Bloomberg News",
+      "source_url": "https://rapidapi.com/search/bloomberg",
+      "method": "GET",
+      "path": "/news/list",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "id": "phx-latest"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "data": {
+          "title": "Latest News & Updates: Breaking News, Headlines Today",
+          "modules": [
+            {
+              "id": "filter_latest",
+              "type": "lineup_content",
+              "title": null,
+              "stories": [
+                {
+                  "id": "2026-09-14/ai-data-center-boom-is-changing-cmbs-risks",
+                  "type": "article",
+                  "internalID": "TJZGDVKK3NYA00",
+                  "title": "Wall Street’s Data Center Boom Is Reshaping the Real Estate Bond Market",
+                  "autoGeneratedSummary": "The commercial mortgage backed securities market, long a mainstay of financing for America’s offices, apartments and malls, is being reshaped by a surge in data-center deals, forcing investors to grapple with an entirely new set of risks.",
+                  "published": 1789380600,
+                  "updatedAt": 1789380600,
+                  "byline": "Eliza Ronalds-Hannon and Scott Carpenter",
+                  "longURL": "https://www.bloomberg.com/news/articles/2026-09-14/ai-data-center-boom-is-changing-cmbs-risks",
+                  "primaryCategory": "Markets",
+                  "wordCount": 1201,
+                  "premium": false
+                },
+                {
+                  "id": "2026-09-14/argentina-s-ypf-says-close-to-signing-more-lng-sales-contracts",
+                  "type": "article",
+                  "internalID": "TLCJWRKK3NY900",
+                  "title": "Argentina’s YPF Says Close to Signing More LNG Sales Contracts",
+                  "autoGeneratedSummary": "Argentina’s state-run YPF SA is close to signing several liquefied natural gas sales contracts for a proposed $24 billion export plant, its chief executive said on Monday, a key step toward a green light for the facility.",
+                  "published": 1789380484,
+                  "updatedAt": 1789380484,
+                  "byline": "Stephen Stapczynski",
+                  "longURL": "https://www.bloomberg.com/news/articles/2026-09-14/argentina-s-ypf-says-close-to-signing-more-lng-sales-contracts",
+                  "primaryCategory": null,
+                  "wordCount": 214,
+                  "premium": false
+                },
+                {
+                  "id": "2026-09-14/warsh-and-the-fed-need-clarity-more-than-certainty",
+                  "type": "article",
+                  "internalID": "TLCMG4KGCTFK00",
+                  "title": "Warsh and the Fed Need Clarity More Than Certainty",
+                  "autoGeneratedSummary": "Kevin Warsh has rightly called into question the effectiveness of the Federal Reserve’s communications — but his arrival as chairman only seems to have made the problem worse. To put this right after the next Fed meeting this week, he’ll need to rethink his approach to explaining where things stand.",
+                  "published": 1789380004,
+                  "updatedAt": 1789380004,
+                  "byline": "The Editors",
+                  "longURL": "https://www.bloomberg.com/opinion/articles/2026-09-14/warsh-and-the-fed-need-clarity-more-than-certainty",
+                  "primaryCategory": "Editorial Board",
+                  "wordCount": 622,
+                  "premium": false
+                }
+              ]
+            }
+          ]
+        },
+        "status": true,
+        "message": "Successful"
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "news.bloomberg-latest",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [],
+        "input_map": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.bloomberg_latest_stories": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "capture": "news-list"
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "news.reuters_search_query",
+      "name": "Reuters headline search keywords",
+      "freshness_seconds": 900,
+      "value_schema": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "description": "Plain keywords to search Reuters headlines for, e.g. bitcoin or Nvidia earnings. Not a boolean query."
+      },
+      "description": "Plain keywords to search Reuters headlines for, e.g. bitcoin or Nvidia earnings. Not a boolean query."
+    },
+    {
+      "slug": "news.reuters_result_limit",
+      "name": "Reuters headline count",
+      "freshness_seconds": 900,
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "description": "Number of headlines to return, 1-12. The provider never returns more than 12."
+      },
+      "description": "Number of headlines to return, 1-12. The provider never returns more than 12."
+    },
+    {
+      "slug": "news.reuters_latest_headlines",
+      "name": "Latest Reuters headlines",
+      "freshness_seconds": 300,
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "published_at"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "published_at": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "Latest Reuters headlines with article link, headline and provider-reported publication time. Headlines only, not article text."
+    },
+    {
+      "slug": "news.reuters_search_headlines",
+      "name": "Reuters headline search results",
+      "freshness_seconds": 900,
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "Reuters articles matching the keywords: link and headline only. No publication date field (the date is in the URL). Keyword relevance is loose; an empty list is not proof nothing was published."
+    },
+    {
+      "slug": "news.reuters_section_headlines",
+      "name": "Reuters section headlines",
+      "freshness_seconds": 300,
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "description": "Headlines on one Reuters section front page, in page order. Headlines only, not article text."
+    },
+    {
+      "slug": "news.reuters_sections",
+      "name": "Reuters sections",
+      "freshness_seconds": 86400,
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "url"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "description": "Reuters sections with their section URL."
+    },
+    {
+      "slug": "news.bloomberg_latest_stories",
+      "name": "Latest Bloomberg stories",
+      "freshness_seconds": 300,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "modules"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "modules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "stories"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "stories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "published",
+                          "longURL"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "published": {
+                            "type": "integer"
+                          },
+                          "longURL": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Latest Bloomberg stories: headline, auto-generated summary, byline, Unix publication time, category, article URL, word count and premium flag. Summaries only, not article text."
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "news.reuters-latest",
+      "name": "Latest Reuters headlines",
+      "description": "Latest Reuters news headlines across all sections, newest wire stories with link and publication time. Optional headline count 1-12. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "required": false,
+            "description": "Number of headlines to return, 1-12. The provider never returns more than 12.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "published_at"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "published_at": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-search",
+      "name": "Search Reuters headlines",
+      "description": "Search Reuters news headlines by keywords (a company, person, topic or event). Returns up to 12 article links and headlines, no dates; keyword matching is loose.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "q"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120,
+            "description": "Plain keywords to search Reuters headlines for, e.g. bitcoin or Nvidia earnings. Not a boolean query.",
+            "required": true,
+            "x-parameter-location": "query"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "required": false,
+            "description": "Number of headlines to return, 1-12. The provider never returns more than 12.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-world",
+      "name": "Reuters World headlines",
+      "description": "Current Reuters World (all regions) news headlines: up to 12 article links and headlines from the Reuters World section front page (https://www.reuters.com/world/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-africa",
+      "name": "Reuters Africa headlines",
+      "description": "Current Reuters Africa news headlines: up to 12 article links and headlines from the Reuters Africa section front page (https://www.reuters.com/world/africa/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-americas",
+      "name": "Reuters Americas headlines",
+      "description": "Current Reuters Americas news headlines: up to 12 article links and headlines from the Reuters Americas section front page (https://www.reuters.com/world/americas/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-asia-pacific",
+      "name": "Reuters Asia Pacific headlines",
+      "description": "Current Reuters Asia Pacific news headlines: up to 12 article links and headlines from the Reuters Asia Pacific section front page (https://www.reuters.com/world/asia-pacific/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-china",
+      "name": "Reuters China headlines",
+      "description": "Current Reuters China news headlines: up to 12 article links and headlines from the Reuters China section front page (https://www.reuters.com/world/china/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-europe",
+      "name": "Reuters Europe headlines",
+      "description": "Current Reuters Europe news headlines: up to 12 article links and headlines from the Reuters Europe section front page (https://www.reuters.com/world/europe/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-india",
+      "name": "Reuters India headlines",
+      "description": "Current Reuters India news headlines: up to 12 article links and headlines from the Reuters India section front page (https://www.reuters.com/world/india/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-middle-east",
+      "name": "Reuters Middle East headlines",
+      "description": "Current Reuters Middle East news headlines: up to 12 article links and headlines from the Reuters Middle East section front page (https://www.reuters.com/world/middle-east/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-uk",
+      "name": "Reuters UK headlines",
+      "description": "Current Reuters UK news headlines: up to 12 article links and headlines from the Reuters UK section front page (https://www.reuters.com/world/uk/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-us",
+      "name": "Reuters US headlines",
+      "description": "Current Reuters US news headlines: up to 12 article links and headlines from the Reuters US section front page (https://www.reuters.com/world/us/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-business",
+      "name": "Reuters Business headlines",
+      "description": "Current Reuters Business news headlines: up to 12 article links and headlines from the Reuters Business section front page (https://www.reuters.com/business/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-markets",
+      "name": "Reuters Markets headlines",
+      "description": "Current Reuters Markets news headlines: up to 12 article links and headlines from the Reuters Markets section front page (https://www.reuters.com/markets/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-technology",
+      "name": "Reuters Technology headlines",
+      "description": "Current Reuters Technology news headlines: up to 12 article links and headlines from the Reuters Technology section front page (https://www.reuters.com/technology/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-legal",
+      "name": "Reuters Legal headlines",
+      "description": "Current Reuters Legal news headlines: up to 12 article links and headlines from the Reuters Legal section front page (https://www.reuters.com/legal/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-sustainability",
+      "name": "Reuters Sustainability headlines",
+      "description": "Current Reuters Sustainability news headlines: up to 12 article links and headlines from the Reuters Sustainability section front page (https://www.reuters.com/sustainability/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-science",
+      "name": "Reuters Science headlines",
+      "description": "Current Reuters Science news headlines: up to 12 article links and headlines from the Reuters Science section front page (https://www.reuters.com/science/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-sports",
+      "name": "Reuters Sports headlines",
+      "description": "Current Reuters Sports news headlines: up to 12 article links and headlines from the Reuters Sports section front page (https://www.reuters.com/sports/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-section-lifestyle",
+      "name": "Reuters Lifestyle headlines",
+      "description": "Current Reuters Lifestyle news headlines: up to 12 article links and headlines from the Reuters Lifestyle section front page (https://www.reuters.com/lifestyle/), in page order. Headlines only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters-sections",
+      "name": "Reuters sections",
+      "description": "List the Reuters news sections (World, regions, Business, Markets, Technology, Legal and more) with their section URLs.",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "url"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.bloomberg-latest",
+      "name": "Latest Bloomberg stories",
+      "description": "Latest Bloomberg news stories (about 25): headline, summary, byline, publication time, category such as Markets, Technology or Politics, and article link. Summaries only, not article text.",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "phx-latest"
+            ],
+            "required": true,
+            "description": "Latest-news feed identifier; fixed by Apiosk.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "modules"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "modules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "stories"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "stories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "published",
+                          "longURL"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "published": {
+                            "type": "integer"
+                          },
+                          "longURL": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "64207748-5d3e-4bf4-a352-365602c83353",
+      "api_slug": "reuters",
+      "path": "/latest",
+      "active": true,
+      "description": "Latest Reuters news headlines across all sections, newest wire stories with link and publication time. Optional headline count 1-12. Headlines only, not article text.",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "required": false,
+            "description": "Number of headlines to return, 1-12. The provider never returns more than 12.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": {
+        "limit": 12
+      },
+      "response_body": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "published_at"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "published_at": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "response_example": [
+        {
+          "link": "https://www.reuters.com/business/retail-consumer/companies-left-china-dodge-tariffs-now-some-are-heading-back-2026-09-14/",
+          "title": "Companies left China to dodge tariffs. Now some are heading back",
+          "published_at": "2026-09-14T08:51:00+08:00"
+        },
+        {
+          "link": "https://www.reuters.com/legal/litigation/king-charles-host-ai-executives-threat-fears-mount-2026-09-14/",
+          "title": "King Charles to host AI executives as threat fears mount",
+          "published_at": "2026-09-14T10:00:00+08:00"
+        },
+        {
+          "link": "https://www.reuters.com/world/airbaltic-files-chapter-11-bankruptcy-new-york-2026-09-14/",
+          "title": "AirBaltic files for Chapter 11 bankruptcy as Iran war costs bite",
+          "published_at": "2026-09-14T10:00:00+08:00"
+        }
+      ],
+      "tags": [
+        "news",
+        "reuters",
+        "headlines",
+        "latest"
+      ],
+      "use_cases": [
+        "see the latest Reuters headlines",
+        "monitor breaking world and business news"
+      ],
+      "search_terms": [
+        "latest reuters news",
+        "reuters headlines today",
+        "breaking news reuters"
+      ],
+      "task_summary": "Return the latest Reuters headlines with links and publication times.",
+      "cache_ttl_seconds": 300
+    },
+    {
+      "id": "59ebf3e7-da1a-4592-abad-eb14a8d09966",
+      "api_slug": "reuters",
+      "path": "/search",
+      "active": true,
+      "description": "Search Reuters news headlines by keywords (a company, person, topic or event). Returns up to 12 article links and headlines, no dates; keyword matching is loose.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "q"
+        ],
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120,
+            "description": "Plain keywords to search Reuters headlines for, e.g. bitcoin or Nvidia earnings. Not a boolean query.",
+            "required": true,
+            "x-parameter-location": "query"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "required": false,
+            "description": "Number of headlines to return, 1-12. The provider never returns more than 12.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": {
+        "q": "bitcoin",
+        "limit": 12
+      },
+      "response_body": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "response_example": [
+        {
+          "link": "https://www.reuters.com/business/world-at-work/crypto-firm-bitcoin-suisse-cut-up-half-jobs-switzerland-2026-09-11/",
+          "title": "Crypto firm Bitcoin Suisse to cut up to half of jobs in Switzerland"
+        },
+        {
+          "link": "https://www.reuters.com/technology/bitcoin-based-liquid-network-says-320-million-withdrawn-hack-2026-09-07/",
+          "title": "Bitcoin-based Liquid Network says $320 million withdrawn in hack"
+        },
+        {
+          "link": "https://www.reuters.com/markets/global-markets-technicals-graphic-2026-09-03/",
+          "title": "Mapping the Market: Bitcoin has challenges to face after dramatic surge"
+        }
+      ],
+      "tags": [
+        "news",
+        "reuters",
+        "search",
+        "headlines"
+      ],
+      "use_cases": [
+        "find Reuters coverage of a company or topic",
+        "check recent Reuters reporting on an event"
+      ],
+      "search_terms": [
+        "search reuters news",
+        "reuters articles about",
+        "reuters coverage"
+      ],
+      "task_summary": "Search Reuters headlines for keywords.",
+      "cache_ttl_seconds": 900
+    },
+    {
+      "id": "f38a340c-59c3-4fd9-a8a1-0bbe4f0ee78b",
+      "api_slug": "reuters",
+      "path": "/category",
+      "active": true,
+      "description": "Current Reuters World (all regions) news headlines: up to 12 article links and headlines from the Reuters World section front page (https://www.reuters.com/world/), in page order. Headlines only, not article text.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "enum": [
+              "https://www.reuters.com/world/",
+              "https://www.reuters.com/world/africa/",
+              "https://www.reuters.com/world/americas/",
+              "https://www.reuters.com/world/asia-pacific/",
+              "https://www.reuters.com/world/china/",
+              "https://www.reuters.com/world/europe/",
+              "https://www.reuters.com/world/india/",
+              "https://www.reuters.com/world/middle-east/",
+              "https://www.reuters.com/world/uk/",
+              "https://www.reuters.com/world/us/",
+              "https://www.reuters.com/business/",
+              "https://www.reuters.com/markets/",
+              "https://www.reuters.com/technology/",
+              "https://www.reuters.com/legal/",
+              "https://www.reuters.com/sustainability/",
+              "https://www.reuters.com/science/",
+              "https://www.reuters.com/sports/",
+              "https://www.reuters.com/lifestyle/"
+            ],
+            "required": true,
+            "description": "Reuters section URL; fixed per section capability.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": {
+        "url": "https://www.reuters.com/world/africa/"
+      },
+      "response_body": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title",
+            "position"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "position": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "response_example": [
+        {
+          "link": "https://www.reuters.com/world/airbaltic-files-chapter-11-bankruptcy-new-york-2026-09-14/",
+          "position": 1,
+          "title": "AirBaltic files for Chapter 11 bankruptcy as Iran war costs bite"
+        },
+        {
+          "link": "https://www.reuters.com/world/china/chinese-defence-forum-set-open-amid-roiling-regional-tensions-2026-09-14/",
+          "position": 2,
+          "title": "Chinese defence forum set to open amid roiling regional tensions"
+        },
+        {
+          "link": "https://www.reuters.com/world/us/trump-calls-5000-payouts-easy-fit-into-federal-budget-2026-09-13/",
+          "position": 3,
+          "title": "Trump calls $5,000 payouts 'easy' to fit into federal budget"
+        }
+      ],
+      "tags": [
+        "news",
+        "reuters",
+        "section",
+        "headlines",
+        "region"
+      ],
+      "use_cases": [
+        "headlines for a region such as Africa or Europe",
+        "technology or markets headlines from Reuters"
+      ],
+      "search_terms": [
+        "reuters africa news",
+        "reuters technology news",
+        "reuters markets headlines"
+      ],
+      "task_summary": "Return headlines from one Reuters section.",
+      "cache_ttl_seconds": 300
+    },
+    {
+      "id": "b8a4f167-d595-44ba-a782-f7e737821dfc",
+      "api_slug": "reuters",
+      "path": "/sections",
+      "active": true,
+      "description": "List the Reuters news sections (World, regions, Business, Markets, Technology, Legal and more) with their section URLs.",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_example": {},
+      "response_body": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "url"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "response_example": [
+        {
+          "name": "World",
+          "url": "https://www.reuters.com/world/"
+        },
+        {
+          "name": "Africa",
+          "url": "https://www.reuters.com/world/africa/"
+        },
+        {
+          "name": "Americas",
+          "url": "https://www.reuters.com/world/americas/"
+        },
+        {
+          "name": "Asia Pacific",
+          "url": "https://www.reuters.com/world/asia-pacific/"
+        },
+        {
+          "name": "China",
+          "url": "https://www.reuters.com/world/china/"
+        },
+        {
+          "name": "Europe",
+          "url": "https://www.reuters.com/world/europe/"
+        },
+        {
+          "name": "India",
+          "url": "https://www.reuters.com/world/india/"
+        },
+        {
+          "name": "Middle East",
+          "url": "https://www.reuters.com/world/middle-east/"
+        },
+        {
+          "name": "UK",
+          "url": "https://www.reuters.com/world/uk/"
+        },
+        {
+          "name": "US",
+          "url": "https://www.reuters.com/world/us/"
+        },
+        {
+          "name": "Business",
+          "url": "https://www.reuters.com/business/"
+        },
+        {
+          "name": "Markets",
+          "url": "https://www.reuters.com/markets/"
+        },
+        {
+          "name": "Technology",
+          "url": "https://www.reuters.com/technology/"
+        },
+        {
+          "name": "Legal",
+          "url": "https://www.reuters.com/legal/"
+        },
+        {
+          "name": "Breakingviews",
+          "url": "https://www.reuters.com/breakingviews/"
+        },
+        {
+          "name": "Sustainability",
+          "url": "https://www.reuters.com/sustainability/"
+        },
+        {
+          "name": "Science",
+          "url": "https://www.reuters.com/science/"
+        },
+        {
+          "name": "Sports",
+          "url": "https://www.reuters.com/sports/"
+        },
+        {
+          "name": "Lifestyle",
+          "url": "https://www.reuters.com/lifestyle/"
+        }
+      ],
+      "tags": [
+        "news",
+        "reuters",
+        "sections"
+      ],
+      "use_cases": [
+        "see which Reuters sections exist"
+      ],
+      "search_terms": [
+        "reuters sections",
+        "reuters categories"
+      ],
+      "task_summary": "List Reuters news sections.",
+      "cache_ttl_seconds": 86400
+    },
+    {
+      "id": "00e66885-5cad-48bd-a637-9123c07365ab",
+      "api_slug": "bloomberg",
+      "path": "/news/list",
+      "active": true,
+      "description": "Latest Bloomberg news stories (about 25): headline, summary, byline, publication time, category such as Markets, Technology or Politics, and article link. Summaries only, not article text.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "phx-latest"
+            ],
+            "required": true,
+            "description": "Latest-news feed identifier; fixed by Apiosk.",
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": {
+        "id": "phx-latest"
+      },
+      "response_body": {
+        "type": "object",
+        "required": [
+          "status",
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "modules"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "modules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "stories"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "stories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "published",
+                          "longURL"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "published": {
+                            "type": "integer"
+                          },
+                          "longURL": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "response_example": {
+        "data": {
+          "title": "Latest News & Updates: Breaking News, Headlines Today",
+          "modules": [
+            {
+              "id": "filter_latest",
+              "type": "lineup_content",
+              "title": null,
+              "stories": [
+                {
+                  "id": "2026-09-14/ai-data-center-boom-is-changing-cmbs-risks",
+                  "type": "article",
+                  "internalID": "TJZGDVKK3NYA00",
+                  "title": "Wall Street’s Data Center Boom Is Reshaping the Real Estate Bond Market",
+                  "autoGeneratedSummary": "The commercial mortgage backed securities market, long a mainstay of financing for America’s offices, apartments and malls, is being reshaped by a surge in data-center deals, forcing investors to grapple with an entirely new set of risks.",
+                  "published": 1789380600,
+                  "updatedAt": 1789380600,
+                  "byline": "Eliza Ronalds-Hannon and Scott Carpenter",
+                  "longURL": "https://www.bloomberg.com/news/articles/2026-09-14/ai-data-center-boom-is-changing-cmbs-risks",
+                  "primaryCategory": "Markets",
+                  "wordCount": 1201,
+                  "premium": false
+                },
+                {
+                  "id": "2026-09-14/argentina-s-ypf-says-close-to-signing-more-lng-sales-contracts",
+                  "type": "article",
+                  "internalID": "TLCJWRKK3NY900",
+                  "title": "Argentina’s YPF Says Close to Signing More LNG Sales Contracts",
+                  "autoGeneratedSummary": "Argentina’s state-run YPF SA is close to signing several liquefied natural gas sales contracts for a proposed $24 billion export plant, its chief executive said on Monday, a key step toward a green light for the facility.",
+                  "published": 1789380484,
+                  "updatedAt": 1789380484,
+                  "byline": "Stephen Stapczynski",
+                  "longURL": "https://www.bloomberg.com/news/articles/2026-09-14/argentina-s-ypf-says-close-to-signing-more-lng-sales-contracts",
+                  "primaryCategory": null,
+                  "wordCount": 214,
+                  "premium": false
+                },
+                {
+                  "id": "2026-09-14/warsh-and-the-fed-need-clarity-more-than-certainty",
+                  "type": "article",
+                  "internalID": "TLCMG4KGCTFK00",
+                  "title": "Warsh and the Fed Need Clarity More Than Certainty",
+                  "autoGeneratedSummary": "Kevin Warsh has rightly called into question the effectiveness of the Federal Reserve’s communications — but his arrival as chairman only seems to have made the problem worse. To put this right after the next Fed meeting this week, he’ll need to rethink his approach to explaining where things stand.",
+                  "published": 1789380004,
+                  "updatedAt": 1789380004,
+                  "byline": "The Editors",
+                  "longURL": "https://www.bloomberg.com/opinion/articles/2026-09-14/warsh-and-the-fed-need-clarity-more-than-certainty",
+                  "primaryCategory": "Editorial Board",
+                  "wordCount": 622,
+                  "premium": false
+                }
+              ]
+            }
+          ]
+        },
+        "status": true,
+        "message": "Successful"
+      },
+      "tags": [
+        "news",
+        "bloomberg",
+        "headlines",
+        "latest",
+        "markets"
+      ],
+      "use_cases": [
+        "see the latest Bloomberg stories",
+        "monitor financial and business news"
+      ],
+      "search_terms": [
+        "latest bloomberg news",
+        "bloomberg headlines today",
+        "bloomberg markets news"
+      ],
+      "task_summary": "Return the latest Bloomberg stories with summaries and links.",
+      "cache_ttl_seconds": 300
+    },
+    {
+      "id": "dcb54431-9132-475d-a3e5-8ff2f12a509f",
+      "api_slug": "reuters",
+      "path": "/details",
+      "active": false,
+      "description": "Not offered: returns text synthesized from the article URL (slug title, boilerplate body, URL date), not the Reuters article. Measured 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "reuters",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: returns text synthesized from the article URL (slug title, boilerplate body, URL date), not the Reuters article. Measured 2026-09-14.",
+      "cache_ttl_seconds": null
+    },
+    {
+      "id": "f183fcd5-753c-4621-a32a-9204ded6dfcd",
+      "api_slug": "bloomberg",
+      "path": "/news/list-by-region",
+      "active": false,
+      "description": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "bloomberg",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "cache_ttl_seconds": null
+    },
+    {
+      "id": "63125578-fc51-4b4f-a781-5f539f1f5e63",
+      "api_slug": "bloomberg",
+      "path": "/stories/list",
+      "active": false,
+      "description": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "bloomberg",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "cache_ttl_seconds": null
+    },
+    {
+      "id": "edf4182a-8c11-4014-a312-d2577740182e",
+      "api_slug": "bloomberg",
+      "path": "/stories/detail",
+      "active": false,
+      "description": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "internalID"
+        ],
+        "properties": {
+          "internalID": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "bloomberg",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "cache_ttl_seconds": null
+    },
+    {
+      "id": "0ad82504-8b5e-46a5-a0c2-5467a2011aa4",
+      "api_slug": "bloomberg",
+      "path": "/stock/get-financials",
+      "active": false,
+      "description": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "bloomberg",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "cache_ttl_seconds": null
+    },
+    {
+      "id": "e725ad19-85cd-4e5e-a177-dc257c0e1942",
+      "api_slug": "bloomberg",
+      "path": "/stock/get-keystats",
+      "active": false,
+      "description": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "required": true,
+            "x-parameter-location": "query"
+          }
+        }
+      },
+      "request_example": null,
+      "response_body": null,
+      "response_example": null,
+      "tags": [
+        "news",
+        "bloomberg",
+        "not offered"
+      ],
+      "use_cases": [],
+      "search_terms": [],
+      "task_summary": "Not offered: upstream returned HTTP 406 Not Acceptable on two attempts on 2026-09-14.",
+      "cache_ttl_seconds": null
+    }
+  ],
+  "sources": [
+    {
+      "id": "56491d62-616b-4ce9-ac5c-0d835ef1e676",
+      "slug": "reuters",
+      "name": "Reuters News",
+      "origin_url": "https://reuters-api.p.rapidapi.com",
+      "logo": "https://apiosk.com/brands/reuters.png"
+    },
+    {
+      "id": "e5489c5c-f84d-431a-a78b-c6dcf533805e",
+      "slug": "bloomberg",
+      "name": "Bloomberg News",
+      "origin_url": "https://bloomberg-finance.p.rapidapi.com",
+      "logo": "https://apiosk.com/brands/bloomberg.png"
+    }
+  ]
+}

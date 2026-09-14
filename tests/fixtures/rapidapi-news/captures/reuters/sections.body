@@ -1,0 +1,78 @@
+[
+    {
+        "name": "World",
+        "url": "https://www.reuters.com/world/"
+    },
+    {
+        "name": "Africa",
+        "url": "https://www.reuters.com/world/africa/"
+    },
+    {
+        "name": "Americas",
+        "url": "https://www.reuters.com/world/americas/"
+    },
+    {
+        "name": "Asia Pacific",
+        "url": "https://www.reuters.com/world/asia-pacific/"
+    },
+    {
+        "name": "China",
+        "url": "https://www.reuters.com/world/china/"
+    },
+    {
+        "name": "Europe",
+        "url": "https://www.reuters.com/world/europe/"
+    },
+    {
+        "name": "India",
+        "url": "https://www.reuters.com/world/india/"
+    },
+    {
+        "name": "Middle East",
+        "url": "https://www.reuters.com/world/middle-east/"
+    },
+    {
+        "name": "UK",
+        "url": "https://www.reuters.com/world/uk/"
+    },
+    {
+        "name": "US",
+        "url": "https://www.reuters.com/world/us/"
+    },
+    {
+        "name": "Business",
+        "url": "https://www.reuters.com/business/"
+    },
+    {
+        "name": "Markets",
+        "url": "https://www.reuters.com/markets/"
+    },
+    {
+        "name": "Technology",
+        "url": "https://www.reuters.com/technology/"
+    },
+    {
+        "name": "Legal",
+        "url": "https://www.reuters.com/legal/"
+    },
+    {
+        "name": "Breakingviews",
+        "url": "https://www.reuters.com/breakingviews/"
+    },
+    {
+        "name": "Sustainability",
+        "url": "https://www.reuters.com/sustainability/"
+    },
+    {
+        "name": "Science",
+        "url": "https://www.reuters.com/science/"
+    },
+    {
+        "name": "Sports",
+        "url": "https://www.reuters.com/sports/"
+    },
+    {
+        "name": "Lifestyle",
+        "url": "https://www.reuters.com/lifestyle/"
+    }
+]

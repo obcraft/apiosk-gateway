@@ -1,0 +1,199 @@
+{
+  "measured_at": "2026-09-14T10:11:00Z",
+  "method": "One direct curl per documented operation through the Apiosk RapidAPI subscription; timings from curl (-w). Credentials never written to disk.",
+  "reuters": {
+    "host": "reuters-api.p.rapidapi.com",
+    "provider_listing": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+    "plan_quota": "Operator-reported 10,000 requests/month; response headers at measurement time reported x-ratelimit-requests-limit 5000; also a per-second request limit (HTTP 429 \"exceeded the rate limit per second for your plan, PRO\") when calls are sent back to back",
+    "operations": [
+      {
+        "path": "/search",
+        "query": {
+          "q": "bitcoin",
+          "limit": 20
+        },
+        "http": 200,
+        "total_s": 0.91,
+        "ttfb_s": 0.91,
+        "bytes": 2701,
+        "items": 12,
+        "verdict": "connected",
+        "notes": "limit is capped at 12. Results carry link and title only, no publication date (date is embedded in the URL slug). Keyword relevance is loose: some results only mention the term in body text."
+      },
+      {
+        "path": "/latest",
+        "query": {
+          "limit": 20
+        },
+        "http": 200,
+        "total_s": 0.61,
+        "ttfb_s": 0.61,
+        "bytes": 3499,
+        "items": 12,
+        "verdict": "connected",
+        "notes": "limit capped at 12; limit=5 returned exactly 5 (0.245 s). published_at is provider-reported ISO 8601 with a +08:00 offset."
+      },
+      {
+        "path": "/category",
+        "query": {
+          "url": "https://www.reuters.com/world/africa/"
+        },
+        "http": 200,
+        "total_s": 0.555,
+        "ttfb_s": 0.554,
+        "bytes": 3105,
+        "items": 12,
+        "verdict": "connected",
+        "notes": "Section front page headlines with link, position and title; no dates."
+      },
+      {
+        "path": "/sections",
+        "query": {},
+        "http": 200,
+        "total_s": 0.186,
+        "ttfb_s": 0.185,
+        "bytes": 1782,
+        "items": 19,
+        "verdict": "connected",
+        "notes": "19 Reuters sections with name and section URL; the valid inputs for /category."
+      },
+      {
+        "path": "/details",
+        "query": {
+          "url": "https://www.reuters.com/world/middle-east/blast-turkish-aviation-company-tusas-hq-gunfire-heard-media-2024-10-23/"
+        },
+        "http": 200,
+        "total_s": 0.936,
+        "ttfb_s": 0.936,
+        "bytes": 886,
+        "verdict": "not connected",
+        "notes": "Returns synthesized content, not the article: title is the title-cased URL slug, body is fixed boilerplate, published_at is the URL date at 00:00, image is the default Reuters logo. Re-checked with a 2026-09-14 article (0.891 s): the real headline 'AirBaltic files for Chapter 11 bankruptcy as Iran war costs bite' came back as 'Airbaltic Files Chapter 11 Bankruptcy New York'. Must not be sold as article content."
+      }
+    ],
+    "section_captures": {
+      "endpoint": "/category",
+      "results": "18 of 19 sections returned 12 headlines (0.15-0.62 s). Breakingviews returned HTTP 502 'API is unreachable' twice and is not offered. Short values such as url=africa are rejected by the provider with HTTP 400 'Only reuters.com URLs are allowed', so each section is a separate capability with the URL fixed by Apiosk.",
+      "rate_limited_first_attempt": [
+        "asia-pacific",
+        "china",
+        "india",
+        "middle-east",
+        "business",
+        "markets",
+        "sports"
+      ]
+    }
+  },
+  "bloomberg": {
+    "host": "bloomberg-finance.p.rapidapi.com",
+    "plan_quota": "Free plan, 500 requests/month (x-ratelimit-requests-limit 500)",
+    "operations": [
+      {
+        "path": "/news/list",
+        "query": {
+          "id": "phx-latest"
+        },
+        "http": 200,
+        "total_s": 2.174,
+        "ttfb_s": 2.151,
+        "bytes": 41761,
+        "items": 25,
+        "verdict": "connected",
+        "notes": "Latest Bloomberg stories: headline, auto-generated summary, byline, Unix publish/update time, primary category, URL, word count, premium flag, images."
+      },
+      {
+        "path": "/news/list-by-region",
+        "query": {
+          "id": "home-v4"
+        },
+        "http": 406,
+        "total_s": 1.28,
+        "retry": {
+          "http": 406,
+          "total_s": 1.905
+        },
+        "verdict": "not connected",
+        "notes": "Upstream NOT ACCEPTABLE (Bloomberg CDN/Fastly block passed through); failed twice."
+      },
+      {
+        "path": "/stories/list",
+        "query": {
+          "id": "NVDA:US"
+        },
+        "http": 406,
+        "total_s": 1.344,
+        "retry": {
+          "http": 406,
+          "total_s": 0.597
+        },
+        "verdict": "not connected",
+        "notes": "Not Acceptable on both attempts."
+      },
+      {
+        "path": "/stories/detail",
+        "query": {
+          "internalID": "SRMOZAT0G1KW00"
+        },
+        "http": 406,
+        "total_s": 0.835,
+        "retry": {
+          "query": {
+            "internalID": "TJZGDVKK3NYA00"
+          },
+          "http": 406,
+          "total_s": 1.29
+        },
+        "verdict": "not connected",
+        "notes": "Not Acceptable, also for a current story id taken from /news/list."
+      },
+      {
+        "path": "/stock/get-financials",
+        "query": {
+          "id": "NVDA:US"
+        },
+        "http": 406,
+        "total_s": 0.534,
+        "retry": {
+          "http": 406,
+          "total_s": 0.864
+        },
+        "verdict": "not connected",
+        "notes": "Not Acceptable on both attempts."
+      },
+      {
+        "path": "/stock/get-keystats",
+        "query": {
+          "id": "NVDA:US"
+        },
+        "http": 406,
+        "total_s": 0.59,
+        "retry": {
+          "http": 406,
+          "total_s": 1.266
+        },
+        "verdict": "not connected",
+        "notes": "Not Acceptable on both attempts."
+      }
+    ]
+  },
+  "gateway_checks": {
+    "dry_run": "5/5 ready via https://apiosk-gateway-v2.fly.dev/v1/do, no ignored inputs",
+    "paid": "5/5 did=true, upstream HTTP 200, paid=true, charged 0.054348 USD each, settlement apiosk-proxied; reuters latest 3 items (limit bound), search 3, africa section 12, sections 19, bloomberg 25 stories",
+    "gateway_elapsed_ms": {
+      "news.reuters-latest": 4530,
+      "news.reuters-search": 3525,
+      "news.reuters-section": 3607,
+      "news.reuters-sections": 3310,
+      "news.bloomberg-latest": 4337
+    },
+    "records": "gateway/*-dry.json, gateway/*-paid.json"
+  },
+  "planner_check": {
+    "log": "planner-production-check.log",
+    "result": "10/10 English and Dutch questions: production catalog + configured intent model chose the expected capability, resolved a one-step plan quoted at 54,348 micro-USD and bound inputs (limit 5, q bitcoin/Nvidia, fixed Africa/Technology/Markets section URLs)."
+  },
+  "production_readiness": {
+    "reuters": "planner-ready, available_in_v2, 21 accepted contracts over 4 endpoints",
+    "bloomberg": "planner-ready, available_in_v2, 1 accepted contract"
+  }
+}
