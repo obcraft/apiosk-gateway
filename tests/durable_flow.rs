@@ -37,8 +37,21 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("answer_operations").is_some() {
-        let reports: Vec<_> = input["sources"].as_array().unwrap().iter().filter(|s| s["document"]["data"]["accounts"].is_string()).collect();
-        return Json(json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."]}).to_string()}}]}));
+        let reports: Vec<_> = input["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|s| s["document"]["data"]["accounts"].is_string())
+            .collect();
+        if reports.is_empty() {
+            let source = &input["sources"][0];
+            return Json(
+                json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The source reports company identifier {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":"/data/companies/0/id"}]}],"limitations":[]}).to_string()}}]}),
+            );
+        }
+        return Json(
+            json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."]}).to_string()}}]}),
+        );
     }
     if input["question"] == "Compare FirstCo and SecondCo" {
         return Json(json!({"choices":[{"message":{"content":json!({"subjects":[
@@ -47,7 +60,10 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
             "goals":[{"capability":"company.accounts","subject":0,"constraints":{}},{"capability":"company.accounts","subject":1,"constraints":{}}],"answer_operations":["Compare the reports"],"unresolved_references":[]}).to_string()}}]}));
     }
     if input["surface"] == "planning-review" {
-        assert!(input["available"]["requested_services"].as_array().unwrap().iter()
+        assert!(input["available"]["requested_services"]
+            .as_array()
+            .unwrap()
+            .iter()
             .any(|s| s["capability"] == "company.accounts" && s["input_map"].is_object()));
         let mut corrected = input["intent"].clone();
         let alias = input["question"] == "Alias Example";
@@ -60,13 +76,20 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     }
     if input["surface"] == "ask-chat" {
         if input["question"] == "Single-pass Example" {
-            return Json(json!({"choices":[{"message":{"content":json!({"message":"I will find the accounts and price.","discover":true,"intent":{"subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}}).to_string()}}]}));
+            return Json(
+                json!({"choices":[{"message":{"content":json!({"message":"I will find the accounts and price.","discover":true,"intent":{"subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}}).to_string()}}]}),
+            );
         }
         if input["question"] == "Unavailable first question"
-            || (input["question"] == "Transient first question" && c.transient_chat.fetch_add(1, Ordering::Relaxed) == 0) {
-            return Json(json!({"choices":[{"finish_reason":"length","message":{"content":null}}]}));
+            || (input["question"] == "Transient first question"
+                && c.transient_chat.fetch_add(1, Ordering::Relaxed) == 0)
+        {
+            return Json(
+                json!({"choices":[{"finish_reason":"length","message":{"content":null}}]}),
+            );
         }
-        let greeting = input["question"] == "Hallo" || input["question"] == "Transient first question";
+        let greeting =
+            input["question"] == "Hallo" || input["question"] == "Transient first question";
         return Json(
             json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":!greeting}).to_string()}}]}),
         );
@@ -84,7 +107,9 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     } else {
         json!({"entity_ref":null,"label":label,"values":{"company.name":label}})
     };
-    let capability = if input["question"] == "Unsupported Example" { "unsupported.fixture" } else if input["question"]
+    let capability = if input["question"] == "Unsupported Example" {
+        "unsupported.fixture"
+    } else if input["question"]
         .as_str()
         .unwrap()
         .starts_with("Search only")
@@ -215,36 +240,114 @@ async fn durable_flow_and_authorization_boundary() {
     });
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None, workspace: None, };
+        connection: None,
+        workspace: None,
+    };
     let loaded = engine.catalog.get().await.unwrap();
     assert_eq!(loaded.services.len(), 2, "rejected: {:?}", loaded.rejected);
     // An accounts service identifies no new company, but its mandatory
     // national registry identifier still constrains the jurisdiction.
     sqlx::query("UPDATE public.fact_types SET jurisdiction='NL' WHERE slug='company.id'")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
     let national = engine.catalog.fresh().await.unwrap();
-    assert_eq!(national.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap().jurisdiction.as_deref(), Some("NL"));
+    assert_eq!(
+        national
+            .services
+            .iter()
+            .find(|s| s.contract.capability_slug == "company.accounts")
+            .unwrap()
+            .jurisdiction
+            .as_deref(),
+        Some("NL")
+    );
     sqlx::query("UPDATE public.fact_types SET jurisdiction=NULL WHERE slug='company.id'")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
     let unclassified = engine.catalog.fresh().await.unwrap();
-    assert!(unclassified.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap().jurisdiction.is_none());
+    assert!(unclassified
+        .services
+        .iter()
+        .find(|s| s.contract.capability_slug == "company.accounts")
+        .unwrap()
+        .jurisdiction
+        .is_none());
     if apiosk_gateway_v2::engine::single_call_mode() {
-        let multi = engine.discover(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
+        let multi = engine
+            .discover(
+                &person,
+                DiscoverRequest {
+                    request_id: Uuid::new_v4(),
+                    question: "Get accounts for Example".into(),
+                    state: None,
+                    context_delta: Default::default(),
+                },
+            )
+            .await
+            .unwrap();
         assert_eq!(multi.status, Status::Unsupported);
         assert!(multi.proposal.is_none());
         assert_eq!(counts.provider.load(Ordering::Relaxed), 0);
-        let search = engine.discover(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Search only Ambiguous".into(), state: None, context_delta: Default::default() }).await.unwrap();
+        let search = engine
+            .discover(
+                &person,
+                DiscoverRequest {
+                    request_id: Uuid::new_v4(),
+                    question: "Search only Ambiguous".into(),
+                    state: None,
+                    context_delta: Default::default(),
+                },
+            )
+            .await
+            .unwrap();
         assert_eq!(search.proposal.as_ref().unwrap().steps.len(), 1);
         let quote = search.proposal.as_ref().unwrap();
-        engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
-        let result = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+        engine
+            .executor
+            .approve(
+                &person,
+                search.state.as_ref().unwrap().state_ref,
+                quote.quote_ref,
+                &quote.max_total_atomic,
+            )
+            .await
+            .unwrap();
+        let result = engine
+            .execute(&person, "fixture", execution(&search))
+            .await
+            .unwrap();
         assert_eq!(result.status, Status::Succeeded, "{result:?}");
-        assert_eq!(result.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
-        assert!(!result.next_actions.iter().any(|a|a.kind == "select_entity" || a.kind == "execute_quoted_step"));
-        assert_eq!(result.proposal.as_ref().unwrap().step_details[0]["status"], "completed");
+        assert_eq!(
+            result.result.as_ref().unwrap()["data"]["companies"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(!result
+            .next_actions
+            .iter()
+            .any(|a| a.kind == "select_entity" || a.kind == "execute_quoted_step"));
+        assert_eq!(
+            result.proposal.as_ref().unwrap().step_details[0]["status"],
+            "completed"
+        );
         assert_eq!(counts.provider.load(Ordering::Relaxed), 1);
-        let recovered = engine.view(&person, result.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
-        assert_eq!(recovered.result.as_ref().unwrap()["data"], result.result.as_ref().unwrap()["data"]);
+        let recovered = engine
+            .view(
+                &person,
+                result.state.as_ref().unwrap().state_ref,
+                Uuid::new_v4(),
+                None,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            recovered.result.as_ref().unwrap()["data"],
+            result.result.as_ref().unwrap()["data"]
+        );
         println!("Single-call mode: multi-step blocked, ambiguous search returns raw JSON, completed status and recovery passed.");
         server.abort();
         return;
@@ -276,7 +379,9 @@ async fn durable_flow_and_authorization_boundary() {
     let proposal = r.proposal.as_ref().unwrap();
     let agent = Principal {
         owner: person.owner,
-        connection: Some(Uuid::new_v4()), workspace: None, };
+        connection: Some(Uuid::new_v4()),
+        workspace: None,
+    };
     assert!(engine
         .executor
         .approve(&agent, task, proposal.quote_ref, "138")
@@ -349,7 +454,9 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(counts.parser.load(Ordering::Relaxed), 2);
     let other = Principal {
         owner: Uuid::new_v4(),
-        connection: None, workspace: None, };
+        connection: None,
+        workspace: None,
+    };
     assert!(engine
         .view(&other, task, Uuid::new_v4(), None)
         .await
@@ -761,68 +868,158 @@ async fn durable_flow_and_authorization_boundary() {
         "MCP callers must not enter the App chat layer"
     );
     let before_single_pass = counts.parser.load(Ordering::Relaxed);
-    let one_pass = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),question:"Single-pass Example".into(),state:None,context_delta:Default::default() }).await.unwrap();
-    assert_eq!(one_pass.status,Status::Ready,"{one_pass:?}");
-    assert_eq!(one_pass.proposal.as_ref().unwrap().steps.len(),2);
-    assert_eq!(counts.parser.load(Ordering::Relaxed),before_single_pass+1,"one model pass must prepare the full request");
+    let one_pass = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Single-pass Example".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(one_pass.status, Status::Ready, "{one_pass:?}");
+    assert_eq!(one_pass.proposal.as_ref().unwrap().steps.len(), 2);
+    assert_eq!(
+        counts.parser.load(Ordering::Relaxed),
+        before_single_pass + 1,
+        "one model pass must prepare the full request"
+    );
     let providers_before_failure = counts.provider.load(Ordering::Relaxed);
-    let transient = engine.chat(&person, DiscoverRequest {
-        request_id:Uuid::new_v4(), question:"Transient first question".into(), state:None, context_delta:Default::default(),
-    }).await.unwrap();
+    let transient = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Transient first question".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(transient.status, Status::NeedsInput);
     assert!(transient.errors.is_empty());
     assert_eq!(counts.transient_chat.load(Ordering::Relaxed), 2);
     let failed_request = DiscoverRequest {
-        request_id:Uuid::new_v4(), question:"Unavailable first question".into(), state:None, context_delta:Default::default(),
+        request_id: Uuid::new_v4(),
+        question: "Unavailable first question".into(),
+        state: None,
+        context_delta: Default::default(),
     };
     let failed = engine.chat(&person, failed_request.clone()).await.unwrap();
     assert_eq!(failed.status, Status::Failed);
     assert_eq!(failed.errors[0]["code"], "question_unavailable");
-    assert!(!failed.errors[0]["message"].as_str().unwrap().contains("JSON"));
+    assert!(!failed.errors[0]["message"]
+        .as_str()
+        .unwrap()
+        .contains("JSON"));
     assert!(failed.state.is_none());
     assert!(failed.proposal.is_none());
     assert!(failed.next_actions.is_empty());
     let model_calls_after_failure = counts.parser.load(Ordering::Relaxed);
     let replayed = engine.chat(&person, failed_request).await.unwrap();
     assert_eq!(replayed.errors, failed.errors);
-    assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls_after_failure);
-    let unsupported = engine.chat(&person, DiscoverRequest {
-        request_id:Uuid::new_v4(), question:"Unsupported Example".into(), state:None, context_delta:Default::default(),
-    }).await.unwrap();
+    assert_eq!(
+        counts.parser.load(Ordering::Relaxed),
+        model_calls_after_failure
+    );
+    let unsupported = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Unsupported Example".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(unsupported.status, Status::Unsupported);
     assert_eq!(unsupported.errors[0]["code"], "unsupported_request");
     assert!(unsupported.proposal.is_none());
-    assert_eq!(counts.provider.load(Ordering::Relaxed), providers_before_failure, "interpretation retries and failures cannot purchase data");
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        providers_before_failure,
+        "interpretation retries and failures cannot purchase data"
+    );
     // Both App and connected clients get a saved AI clarification rather
     // than the compiler's unsupported error. Reloading does not replan.
     for app_chat in [true, false] {
-        let request = DiscoverRequest { request_id:Uuid::new_v4(),
-            question:"Period Example 2024 en 2025".into(), state:None, context_delta:Default::default() };
-        let clarification = if app_chat { engine.chat(&person, request).await.unwrap() }
-            else { engine.discover(&person, request).await.unwrap() };
-        assert_eq!(clarification.status, Status::NeedsInput, "{clarification:?}");
+        let request = DiscoverRequest {
+            request_id: Uuid::new_v4(),
+            question: "Period Example 2024 en 2025".into(),
+            state: None,
+            context_delta: Default::default(),
+        };
+        let clarification = if app_chat {
+            engine.chat(&person, request).await.unwrap()
+        } else {
+            engine.discover(&person, request).await.unwrap()
+        };
+        assert_eq!(
+            clarification.status,
+            Status::NeedsInput,
+            "{clarification:?}"
+        );
         assert!(clarification.errors.is_empty());
         assert!(clarification.proposal.is_none());
         assert!(clarification.next_actions.is_empty());
-        assert!(clarification.context_view["conversation"][0]["reply"].as_str().unwrap().contains("boekjaar"));
+        assert!(clarification.context_view["conversation"][0]["reply"]
+            .as_str()
+            .unwrap()
+            .contains("boekjaar"));
         let task_id = clarification.state.as_ref().unwrap().state_ref;
         let (_, saved, _) = store.load(person.owner, task_id).await.unwrap();
-        assert_eq!(saved.intent.unwrap()["goals"][0]["constraints"]["period"], "2024 en 2025");
+        assert_eq!(
+            saved.intent.unwrap()["goals"][0]["constraints"]["period"],
+            "2024 en 2025"
+        );
         let model_calls = counts.parser.load(Ordering::Relaxed);
-        let recovered = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+        let recovered = engine
+            .view(&person, task_id, Uuid::new_v4(), None)
+            .await
+            .unwrap();
         assert_eq!(recovered.status, Status::NeedsInput);
         assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls);
-        let continued = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),
-            question:"Haal de beschikbare jaarrekening op".into(), state:recovered.state, context_delta:Default::default() }).await.unwrap();
+        let continued = engine
+            .chat(
+                &person,
+                DiscoverRequest {
+                    request_id: Uuid::new_v4(),
+                    question: "Haal de beschikbare jaarrekening op".into(),
+                    state: recovered.state,
+                    context_delta: Default::default(),
+                },
+            )
+            .await
+            .unwrap();
         assert_eq!(continued.status, Status::Ready);
         assert_eq!(continued.proposal.as_ref().unwrap().steps.len(), 2);
     }
-    let corrected = engine.chat(&person, DiscoverRequest { request_id:Uuid::new_v4(),
-        question:"Alias Example".into(), state:None, context_delta:Default::default() }).await.unwrap();
+    let corrected = engine
+        .chat(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Alias Example".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(corrected.status, Status::Ready, "{corrected:?}");
     assert_eq!(corrected.proposal.as_ref().unwrap().max_total_atomic, "138");
     assert_eq!(corrected.proposal.as_ref().unwrap().steps.len(), 2);
-    assert_eq!(counts.provider.load(Ordering::Relaxed), providers_before_failure, "planning cannot purchase data");
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        providers_before_failure,
+        "planning cannot purchase data"
+    );
     let before = counts.provider.load(Ordering::Relaxed);
     let greeting = engine
         .chat(
@@ -990,7 +1187,43 @@ async fn durable_flow_and_authorization_boundary() {
         .execute(&person, "fixture", execution(&lookup))
         .await
         .unwrap();
+    assert_eq!(found.status, Status::Running);
+    assert_eq!(
+        found.context_view["analyzing"], true,
+        "Ask must answer even a simple lookup"
+    );
+    let before_answer = counts.provider.load(Ordering::Relaxed);
+    let action = found
+        .next_actions
+        .iter()
+        .find(|a| a.kind == "poll")
+        .unwrap();
+    found = engine
+        .execute(
+            &person,
+            "fixture",
+            ExecuteRequest {
+                request_id: Uuid::new_v4(),
+                action_id: action.action_id,
+                idempotency_key: action.action_id,
+                authorization_ref: None,
+                state: found.state.clone().unwrap(),
+                quote_ref: found.proposal.as_ref().map(|p| p.quote_ref),
+                input: Value::Null,
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(found.status, Status::Succeeded);
+    assert_eq!(
+        found.context_view["analysis"]["observations"][0]["text"],
+        "The source reports company identifier 123."
+    );
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        before_answer,
+        "Answering saved results cannot make another purchase"
+    );
     // Reproduce an old chat that appended another question above a saved
     // result, before turn outputs existed. A read must recover the original
     // placement from its response history, without another provider request.
@@ -1001,14 +1234,29 @@ async fn durable_flow_and_authorization_boundary() {
     legacy_task.proposal = None;
     legacy_task.intent = None;
     legacy_task.actions.clear();
-    engine.store.save_intent(person.owner, task_id, revision, &legacy_task).await.unwrap();
+    engine
+        .store
+        .save_intent(person.owner, task_id, revision, &legacy_task)
+        .await
+        .unwrap();
     let before_legacy_read = counts.provider.load(Ordering::Relaxed);
-    let legacy_view = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+    let legacy_view = engine
+        .view(&person, task_id, Uuid::new_v4(), None)
+        .await
+        .unwrap();
     assert_eq!(legacy_view.context_view["result_is_historical"], true);
-    assert_eq!(legacy_view.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
+    assert_eq!(
+        legacy_view.context_view["conversation"][0]["output"]["result"],
+        *found.result.as_ref().unwrap()
+    );
     assert!(legacy_view.context_view["conversation"][1]["output"].is_null());
     assert_eq!(counts.provider.load(Ordering::Relaxed), before_legacy_read);
-    assert!(engine.store.original_result_turn(Uuid::new_v4(), task_id, legacy_task.result_refs[0]).await.unwrap().is_none());
+    assert!(engine
+        .store
+        .original_result_turn(Uuid::new_v4(), task_id, legacy_task.result_refs[0])
+        .await
+        .unwrap()
+        .is_none());
     found = legacy_view;
     let suggestions = found.context_view["related_services"].as_array().unwrap();
     assert_eq!(suggestions.len(), 1);
@@ -1019,10 +1267,27 @@ async fn durable_flow_and_authorization_boundary() {
     let parser_before_preview = counts.parser.load(Ordering::Relaxed);
     let preview = engine.followup(&person, followup_request).await.unwrap();
     assert_eq!(preview.context_view["result_is_historical"], true);
-    assert_eq!(preview.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
-    assert_eq!(preview.context_view["conversation"][0]["output"]["proposal"]["quote_ref"], lookup_plan.quote_ref.to_string());
-    let reopened = engine.view(&person, preview.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
-    assert_eq!(reopened.context_view["conversation"], preview.context_view["conversation"]);
+    assert_eq!(
+        preview.context_view["conversation"][0]["output"]["result"],
+        *found.result.as_ref().unwrap()
+    );
+    assert_eq!(
+        preview.context_view["conversation"][0]["output"]["proposal"]["quote_ref"],
+        lookup_plan.quote_ref.to_string()
+    );
+    let reopened = engine
+        .view(
+            &person,
+            preview.state.as_ref().unwrap().state_ref,
+            Uuid::new_v4(),
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        reopened.context_view["conversation"],
+        preview.context_view["conversation"]
+    );
     assert_eq!(preview.status, Status::Ready);
     assert_eq!(preview.proposal.as_ref().unwrap().steps.len(), 1);
     assert_eq!(preview.proposal.as_ref().unwrap().max_total_atomic, "115");
@@ -1059,12 +1324,37 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
-    let followup_done = engine
+    let mut followup_done = engine
         .execute(&person, "fixture", execution(&preview))
         .await
         .unwrap();
     assert_eq!(followup_done.context_view["result_is_historical"], false);
-    assert_eq!(followup_done.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
+    assert_eq!(
+        followup_done.context_view["conversation"][0]["output"]["result"],
+        *found.result.as_ref().unwrap()
+    );
+    assert_eq!(followup_done.context_view["analyzing"], true);
+    let action = followup_done
+        .next_actions
+        .iter()
+        .find(|a| a.kind == "poll")
+        .unwrap();
+    followup_done = engine
+        .execute(
+            &person,
+            "fixture",
+            ExecuteRequest {
+                request_id: Uuid::new_v4(),
+                action_id: action.action_id,
+                idempotency_key: action.action_id,
+                authorization_ref: None,
+                state: followup_done.state.clone().unwrap(),
+                quote_ref: followup_done.proposal.as_ref().map(|p| p.quote_ref),
+                input: Value::Null,
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(followup_done.status, Status::Succeeded);
     assert_eq!(
         counts.provider.load(Ordering::Relaxed),
@@ -1092,228 +1382,693 @@ async fn durable_flow_and_authorization_boundary() {
         .unwrap();
     assert_eq!(stale.status, Status::StateConflict);
     // Searching a list needs no choice, while dependent account lookups below do.
-    let search = engine.discover(&person, DiscoverRequest {
-        request_id: Uuid::new_v4(), question: "Search only Ambiguous".into(),
-        state: None, context_delta: Default::default(),
-    }).await.unwrap();
+    let search = engine
+        .discover(
+            &person,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Search only Ambiguous".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
     let quote = search.proposal.as_ref().unwrap();
-    engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref,
-        quote.quote_ref, &quote.max_total_atomic).await.unwrap();
-    let listed = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+    engine
+        .executor
+        .approve(
+            &person,
+            search.state.as_ref().unwrap().state_ref,
+            quote.quote_ref,
+            &quote.max_total_atomic,
+        )
+        .await
+        .unwrap();
+    let listed = engine
+        .execute(&person, "fixture", execution(&search))
+        .await
+        .unwrap();
     assert_eq!(listed.status, Status::Succeeded);
-    assert!(!listed.next_actions.iter().any(|a| a.kind == "select_entity"));
-    assert_eq!(listed.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
+    assert!(!listed
+        .next_actions
+        .iter()
+        .any(|a| a.kind == "select_entity"));
+    assert_eq!(
+        listed.result.as_ref().unwrap()["data"]["companies"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
 
     // Exact in-chat approval under an existing finite connection mandate.
-    let connected = Principal { owner: Uuid::new_v4(), connection: Some(Uuid::new_v4()), workspace: None, };
+    let connected = Principal {
+        owner: Uuid::new_v4(),
+        connection: Some(Uuid::new_v4()),
+        workspace: None,
+    };
     let connection = connected.connection.unwrap();
     sqlx::query("INSERT INTO public.agent_connections VALUES($1,$2,NULL,1000,2000)")
-        .bind(connection).bind(connected.owner).execute(&pool).await.unwrap();
+        .bind(connection)
+        .bind(connected.owner)
+        .execute(&pool)
+        .await
+        .unwrap();
     sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000)")
-        .bind(connected.owner).execute(&pool).await.unwrap();
-    let ready = engine.discover(&connected, DiscoverRequest { request_id: Uuid::new_v4(),
-        question: "Get accounts for Example".into(), state: None, context_delta: Default::default() }).await.unwrap();
+        .bind(connected.owner)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let ready = engine
+        .discover(
+            &connected,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Get accounts for Example".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(ready.context_view["approval_mode"], "chatbot");
     let state = ready.state.as_ref().unwrap();
     let quote = ready.proposal.as_ref().unwrap();
     let baseline = counts.provider.load(Ordering::Relaxed);
     let approve = |p: Principal, revision, quote_ref, cap: &'static str| {
-        let engine = engine.clone();let task = state.state_ref;
-        async move { engine.executor.approve_connection(&p,task,revision,quote_ref,cap).await }
+        let engine = engine.clone();
+        let task = state.state_ref;
+        async move {
+            engine
+                .executor
+                .approve_connection(&p, task, revision, quote_ref, cap)
+                .await
+        }
     };
-    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"139").await.is_err());
-    assert!(approve(connected.clone(),state.revision+1,quote.quote_ref,"138").await.is_err());
-    assert!(approve(connected.clone(),state.revision,Uuid::new_v4(),"138").await.is_err());
-    assert!(approve(Principal {owner: connected.owner,connection:Some(Uuid::new_v4()), workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
-    assert!(approve(Principal {owner: Uuid::new_v4(),connection:Some(connection), workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
-    assert!(approve(Principal {owner: connected.owner,connection:None, workspace: None, },state.revision,quote.quote_ref,"138").await.is_err());
-    for update in ["per_call_limit_micro_usd=NULL", "per_call_limit_micro_usd=0", "per_call_limit_micro_usd=137", "per_call_limit_micro_usd=1000,daily_limit_micro_usd=137", "daily_limit_micro_usd=2000,revoked_at=now()"] {
-        sqlx::query(&format!("UPDATE public.agent_connections SET {update} WHERE id=$1")).bind(connection).execute(&pool).await.unwrap();
-        assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err(),"{update}");
+    assert!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "139")
+            .await
+            .is_err()
+    );
+    assert!(approve(
+        connected.clone(),
+        state.revision + 1,
+        quote.quote_ref,
+        "138"
+    )
+    .await
+    .is_err());
+    assert!(
+        approve(connected.clone(), state.revision, Uuid::new_v4(), "138")
+            .await
+            .is_err()
+    );
+    assert!(approve(
+        Principal {
+            owner: connected.owner,
+            connection: Some(Uuid::new_v4()),
+            workspace: None,
+        },
+        state.revision,
+        quote.quote_ref,
+        "138"
+    )
+    .await
+    .is_err());
+    assert!(approve(
+        Principal {
+            owner: Uuid::new_v4(),
+            connection: Some(connection),
+            workspace: None,
+        },
+        state.revision,
+        quote.quote_ref,
+        "138"
+    )
+    .await
+    .is_err());
+    assert!(approve(
+        Principal {
+            owner: connected.owner,
+            connection: None,
+            workspace: None,
+        },
+        state.revision,
+        quote.quote_ref,
+        "138"
+    )
+    .await
+    .is_err());
+    for update in [
+        "per_call_limit_micro_usd=NULL",
+        "per_call_limit_micro_usd=0",
+        "per_call_limit_micro_usd=137",
+        "per_call_limit_micro_usd=1000,daily_limit_micro_usd=137",
+        "daily_limit_micro_usd=2000,revoked_at=now()",
+    ] {
+        sqlx::query(&format!(
+            "UPDATE public.agent_connections SET {update} WHERE id=$1"
+        ))
+        .bind(connection)
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert!(
+            approve(connected.clone(), state.revision, quote.quote_ref, "138")
+                .await
+                .is_err(),
+            "{update}"
+        );
     }
-    sqlx::query("UPDATE public.agent_connections SET revoked_at=NULL WHERE id=$1").bind(connection).execute(&pool).await.unwrap();
-    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=137 WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
-    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
-    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=1000 WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE public.agent_connections SET revoked_at=NULL WHERE id=$1")
+        .bind(connection)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=137 WHERE user_id=$1")
+        .bind(connected.owner)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "138")
+            .await
+            .is_err()
+    );
+    sqlx::query("UPDATE public.user_balances SET balance_micro_usd=1000 WHERE user_id=$1")
+        .bind(connected.owner)
+        .execute(&pool)
+        .await
+        .unwrap();
     // Reserved calls and open job holds count; refunds do not count twice.
     sqlx::query("INSERT INTO public.balance_charges(id,user_id,status,charged_micro_usd,metadata) VALUES($1,$2,'reserved',1863,$3)")
         .bind(Uuid::new_v4()).bind(connected.owner).bind(json!({"connection_id":connection})).execute(&pool).await.unwrap();
-    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
-    sqlx::query("UPDATE public.balance_charges SET status='refunded' WHERE user_id=$1").bind(connected.owner).execute(&pool).await.unwrap();
+    assert!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "138")
+            .await
+            .is_err()
+    );
+    sqlx::query("UPDATE public.balance_charges SET status='refunded' WHERE user_id=$1")
+        .bind(connected.owner)
+        .execute(&pool)
+        .await
+        .unwrap();
     sqlx::query("INSERT INTO public.job_budget_reservations VALUES($1,$2,0,1863,now()-interval '2 days','open')")
         .bind(connected.owner).bind(connection).execute(&pool).await.unwrap();
-    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    assert!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "138")
+            .await
+            .is_err()
+    );
     sqlx::query("UPDATE public.job_budget_reservations SET reserved_micro_usd=0,status='closed' WHERE user_id=$1")
         .bind(connected.owner).execute(&pool).await.unwrap();
-    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
-    let approved_id = approve(connected.clone(),state.revision,quote.quote_ref,"138").await.unwrap();
-    assert_eq!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.unwrap(),approved_id);
-    let audit = sqlx::query("SELECT approved_via,approved_connection_id FROM gateway_v2.authorizations WHERE id=$1")
-        .bind(approved_id).fetch_one(&pool).await.unwrap();
-    assert_eq!(audit.get::<String,_>("approved_via"),"connection_budget");
-    assert_eq!(audit.get::<Uuid,_>("approved_connection_id"),connection);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline,"approval alone never buys data");
-    sqlx::query("UPDATE gateway_v2.authorizations SET revoked_at=now() WHERE id=$1").bind(approved_id).execute(&pool).await.unwrap();
-    assert!(approve(connected.clone(),state.revision,quote.quote_ref,"138").await.is_err());
+    sqlx::query("SET ROLE gateway_v2_runtime")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let approved_id = approve(connected.clone(), state.revision, quote.quote_ref, "138")
+        .await
+        .unwrap();
+    assert_eq!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "138")
+            .await
+            .unwrap(),
+        approved_id
+    );
+    let audit = sqlx::query(
+        "SELECT approved_via,approved_connection_id FROM gateway_v2.authorizations WHERE id=$1",
+    )
+    .bind(approved_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(audit.get::<String, _>("approved_via"), "connection_budget");
+    assert_eq!(audit.get::<Uuid, _>("approved_connection_id"), connection);
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        baseline,
+        "approval alone never buys data"
+    );
+    sqlx::query("UPDATE gateway_v2.authorizations SET revoked_at=now() WHERE id=$1")
+        .bind(approved_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        approve(connected.clone(), state.revision, quote.quote_ref, "138")
+            .await
+            .is_err()
+    );
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
     sqlx::query("SET ROLE anon").execute(&pool).await.unwrap();
-    assert!(sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)").bind(connected.owner).bind(connection).fetch_all(&pool).await.is_err());
+    assert!(
+        sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)")
+            .bind(connected.owner)
+            .bind(connection)
+            .fetch_all(&pool)
+            .await
+            .is_err()
+    );
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     // Reports reuse an existing saved result and never invoke the paid provider.
-    let saved = sqlx::query("SELECT id,owner_id,task_id,document FROM gateway_v2.results LIMIT 1").fetch_one(&pool).await.unwrap();
-    let report_id: Uuid=saved.get("id"); let report_owner: Uuid=saved.get("owner_id"); let report_task: Uuid=saved.get("task_id");
-    let original: Value=saved.get("document");
-    let filing: Value=serde_json::from_str(include_str!("../crates/catalog-core/fixtures/contracts/payloads/kvk-jaarrekening-86717162.json")).unwrap();
-    let report_doc=json!({"source":{"provider":"kvk-dutch-business-register","path":apiosk_gateway_v2::annual_report::ENDPOINT},"data":filing});
-    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(report_doc).bind(report_id).execute(&pool).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()+interval '1 day' WHERE id=$1").bind(report_task).execute(&pool).await.unwrap();
-    let expires=chrono::Utc::now().timestamp()+60;
-    let signature=engine.signer.report_signature(report_owner,report_task,report_id,expires);
+    let saved = sqlx::query("SELECT id,owner_id,task_id,document FROM gateway_v2.results LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let report_id: Uuid = saved.get("id");
+    let report_owner: Uuid = saved.get("owner_id");
+    let report_task: Uuid = saved.get("task_id");
+    let original: Value = saved.get("document");
+    let filing: Value = serde_json::from_str(include_str!(
+        "../crates/catalog-core/fixtures/contracts/payloads/kvk-jaarrekening-86717162.json"
+    ))
+    .unwrap();
+    let report_doc = json!({"source":{"provider":"kvk-dutch-business-register","path":apiosk_gateway_v2::annual_report::ENDPOINT},"data":filing});
+    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2")
+        .bind(report_doc)
+        .bind(report_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()+interval '1 day' WHERE id=$1")
+        .bind(report_task)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let expires = chrono::Utc::now().timestamp() + 60;
+    let signature = engine
+        .signer
+        .report_signature(report_owner, report_task, report_id, expires);
     let report_url=format!("{api_url}/v2/tasks/{report_task}/results/{report_id}/report.pdf?owner={report_owner}&expires={expires}&signature={signature}");
-    let baseline=counts.provider.load(Ordering::Relaxed);
+    let baseline = counts.provider.load(Ordering::Relaxed);
     for _ in 0..2 {
-        let response=client.get(&report_url).send().await.unwrap();
-        assert_eq!(response.status(),StatusCode::OK);
-        assert_eq!(response.headers()["content-type"],"application/pdf");
-        assert_eq!(response.headers()["cache-control"],"private, no-store");
+        let response = client.get(&report_url).send().await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "application/pdf");
+        assert_eq!(response.headers()["cache-control"], "private, no-store");
         assert!(response.bytes().await.unwrap().starts_with(b"%PDF-"));
     }
-    let bad=report_url.replace(&report_owner.to_string(),&Uuid::new_v4().to_string());
-    assert_eq!(client.get(bad).send().await.unwrap().status(),StatusCode::FORBIDDEN);
-    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()-interval '1 day' WHERE id=$1").bind(report_task).execute(&pool).await.unwrap();
-    assert_eq!(client.get(&report_url).send().await.unwrap().status(),StatusCode::NOT_FOUND);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline);
-    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2").bind(original).bind(report_id).execute(&pool).await.unwrap();
+    let bad = report_url.replace(&report_owner.to_string(), &Uuid::new_v4().to_string());
+    assert_eq!(
+        client.get(bad).send().await.unwrap().status(),
+        StatusCode::FORBIDDEN
+    );
+    sqlx::query("UPDATE gateway_v2.tasks SET expires_at=now()-interval '1 day' WHERE id=$1")
+        .bind(report_task)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        client.get(&report_url).send().await.unwrap().status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(counts.provider.load(Ordering::Relaxed), baseline);
+    sqlx::query("UPDATE gateway_v2.results SET document=$1 WHERE id=$2")
+        .bind(original)
+        .bind(report_id)
+        .execute(&pool)
+        .await
+        .unwrap();
 
     // Independent company branches, one approval and backend analysis. The
     // fixture shares a path with KVK but is a different provider: it must not
     // enter the KVK queue. Actual KVK admission is covered by kvk_queue_flow.
     let old_endpoint: Uuid = sqlx::query_scalar("SELECT endpoint_id FROM public.capability_execution_contracts WHERE capability_slug='company.accounts'").fetch_one(&pool).await.unwrap();
     let annual_endpoint = Uuid::new_v4();
-    sqlx::query("UPDATE public.api_endpoints SET id=$1,path=$2 WHERE id=$3").bind(annual_endpoint).bind(apiosk_gateway_v2::annual_report::ENDPOINT).bind(old_endpoint).execute(&pool).await.unwrap();
-    sqlx::query("UPDATE public.capability_execution_contracts SET endpoint_id=$1 WHERE endpoint_id=$2").bind(annual_endpoint).bind(old_endpoint).execute(&pool).await.unwrap();
-    let multi = Engine { store:store.clone(), catalog:CatalogCache::new(pool.clone()), parser:Parser::new(http.clone(),format!("{base}/chat"),"fixture".into(),"fixture".into()), signer:Signer::new(vec![3;32]).unwrap(), executor:Executor{store:store.clone(),http:http.clone(),supabase_url:base.clone(),enabled:true}, app_url:base.clone() };
-    let user = Principal {owner:Uuid::new_v4(),connection:None, workspace: None, };
-    let mut state = multi.discover(&user, DiscoverRequest {request_id:Uuid::new_v4(),question:"Compare FirstCo and SecondCo".into(),state:None,context_delta:Default::default()}).await.unwrap();
-    assert_eq!(state.proposal.as_ref().unwrap().steps, vec!["company.search","company.search","company.accounts","company.accounts"]);
-    assert_eq!(state.proposal.as_ref().unwrap().max_total_atomic,"276");
+    sqlx::query("UPDATE public.api_endpoints SET id=$1,path=$2 WHERE id=$3")
+        .bind(annual_endpoint)
+        .bind(apiosk_gateway_v2::annual_report::ENDPOINT)
+        .bind(old_endpoint)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query(
+        "UPDATE public.capability_execution_contracts SET endpoint_id=$1 WHERE endpoint_id=$2",
+    )
+    .bind(annual_endpoint)
+    .bind(old_endpoint)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let multi = Engine {
+        store: store.clone(),
+        catalog: CatalogCache::new(pool.clone()),
+        parser: Parser::new(
+            http.clone(),
+            format!("{base}/chat"),
+            "fixture".into(),
+            "fixture".into(),
+        ),
+        signer: Signer::new(vec![3; 32]).unwrap(),
+        executor: Executor {
+            store: store.clone(),
+            http: http.clone(),
+            supabase_url: base.clone(),
+            enabled: true,
+        },
+        app_url: base.clone(),
+    };
+    let user = Principal {
+        owner: Uuid::new_v4(),
+        connection: None,
+        workspace: None,
+    };
+    let mut state = multi
+        .discover(
+            &user,
+            DiscoverRequest {
+                request_id: Uuid::new_v4(),
+                question: "Compare FirstCo and SecondCo".into(),
+                state: None,
+                context_delta: Default::default(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        state.proposal.as_ref().unwrap().steps,
+        vec![
+            "company.search",
+            "company.search",
+            "company.accounts",
+            "company.accounts"
+        ]
+    );
+    assert_eq!(state.proposal.as_ref().unwrap().max_total_atomic, "276");
     let task_id = state.state.as_ref().unwrap().state_ref;
     let quote = state.proposal.as_ref().unwrap();
-    multi.executor.approve(&user,task_id,quote.quote_ref,&quote.max_total_atomic).await.unwrap();
+    multi
+        .executor
+        .approve(&user, task_id, quote.quote_ref, &quote.max_total_atomic)
+        .await
+        .unwrap();
     let before = counts.provider.load(Ordering::Relaxed);
-    for _ in 0..2 { state = multi.execute(&user,"fixture",execution(&state)).await.unwrap(); assert_eq!(state.status,Status::Ready,"{state:?}"); }
-    state = multi.execute(&user,"fixture",execution(&state)).await.unwrap();
-    assert_eq!(state.status,Status::Ready,"non-KVK providers must not enter the KVK queue");
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+3);
+    for _ in 0..2 {
+        state = multi
+            .execute(&user, "fixture", execution(&state))
+            .await
+            .unwrap();
+        assert_eq!(state.status, Status::Ready, "{state:?}");
+    }
+    state = multi
+        .execute(&user, "fixture", execution(&state))
+        .await
+        .unwrap();
+    assert_eq!(
+        state.status,
+        Status::Ready,
+        "non-KVK providers must not enter the KVK queue"
+    );
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 3);
     assert!(state.context_view.get("cooldown").is_none());
-    let (_, saved, _) = store.load(user.owner,task_id).await.unwrap();
-    assert_eq!(saved.facts.iter().filter(|f|f.semantic_type=="company.id").map(|f|f.value.clone()).collect::<Vec<_>>(),vec![json!("123"),json!("456")]);
-    let poll_request = |state: &Response| { let a=state.next_actions.iter().find(|a|a.kind=="poll").unwrap(); ExecuteRequest {request_id:Uuid::new_v4(),action_id:a.action_id,state:state.state.clone().unwrap(),quote_ref:state.proposal.as_ref().map(|p|p.quote_ref),authorization_ref:None,idempotency_key:a.action_id,input:Value::Null} };
-    state=multi.execute(&user,"fixture",execution(&state)).await.unwrap();
-    assert_eq!(state.context_view["analyzing"],true);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
-    state=multi.execute(&user,"fixture",poll_request(&state)).await.unwrap();
-    assert_eq!(state.status,Status::Succeeded,"{state:?}");
-    assert_eq!(state.context_view["results"].as_array().unwrap().len(),4);
-    assert_eq!(state.context_view["analysis"]["status"],"completed");
-    let evidence=&state.context_view["analysis"]["observations"][0]["evidence"];
-    assert_eq!(evidence[0]["subject"]["label"],"FirstCo"); assert_eq!(evidence[0]["value"],"2025");
-    assert_eq!(evidence[1]["subject"]["label"],"SecondCo"); assert_eq!(evidence[1]["value"],"2024");
-    let model_calls=counts.parser.load(Ordering::Relaxed);
-    let readback=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
-    assert_eq!(readback.context_view["analysis"],state.context_view["analysis"]);
-    assert_eq!(counts.parser.load(Ordering::Relaxed),model_calls);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
-    let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations WHERE task_id=$1").bind(task_id).fetch_one(&pool).await.unwrap(); assert_eq!(approvals,1);
+    let (_, saved, _) = store.load(user.owner, task_id).await.unwrap();
+    assert_eq!(
+        saved
+            .facts
+            .iter()
+            .filter(|f| f.semantic_type == "company.id")
+            .map(|f| f.value.clone())
+            .collect::<Vec<_>>(),
+        vec![json!("123"), json!("456")]
+    );
+    let poll_request = |state: &Response| {
+        let a = state
+            .next_actions
+            .iter()
+            .find(|a| a.kind == "poll")
+            .unwrap();
+        ExecuteRequest {
+            request_id: Uuid::new_v4(),
+            action_id: a.action_id,
+            state: state.state.clone().unwrap(),
+            quote_ref: state.proposal.as_ref().map(|p| p.quote_ref),
+            authorization_ref: None,
+            idempotency_key: a.action_id,
+            input: Value::Null,
+        }
+    };
+    state = multi
+        .execute(&user, "fixture", execution(&state))
+        .await
+        .unwrap();
+    assert_eq!(state.context_view["analyzing"], true);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 4);
+    state = multi
+        .execute(&user, "fixture", poll_request(&state))
+        .await
+        .unwrap();
+    assert_eq!(state.status, Status::Succeeded, "{state:?}");
+    assert_eq!(state.context_view["results"].as_array().unwrap().len(), 4);
+    assert_eq!(state.context_view["analysis"]["status"], "completed");
+    let evidence = &state.context_view["analysis"]["observations"][0]["evidence"];
+    assert_eq!(evidence[0]["subject"]["label"], "FirstCo");
+    assert_eq!(evidence[0]["value"], "2025");
+    assert_eq!(evidence[1]["subject"]["label"], "SecondCo");
+    assert_eq!(evidence[1]["value"], "2024");
+    let model_calls = counts.parser.load(Ordering::Relaxed);
+    let readback = multi
+        .view(&user, task_id, Uuid::new_v4(), None)
+        .await
+        .unwrap();
+    assert_eq!(
+        readback.context_view["analysis"],
+        state.context_view["analysis"]
+    );
+    assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 4);
+    let approvals: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations WHERE task_id=$1")
+            .bind(task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(approvals, 1);
 
     // Combined research PDFs reuse immutable source documents and verified analysis.
-    let download=state.context_view["report"]["download_path"].as_str().unwrap();
-    let pdf_url=format!("{api_url}{download}");
+    let download = state.context_view["report"]["download_path"]
+        .as_str()
+        .unwrap();
+    let pdf_url = format!("{api_url}{download}");
     for _ in 0..2 {
-        let response=client.get(&pdf_url).send().await.unwrap();
-        assert_eq!(response.status(),StatusCode::OK);
-        assert_eq!(response.headers()["content-type"],"application/pdf");
+        let response = client.get(&pdf_url).send().await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "application/pdf");
         assert!(response.bytes().await.unwrap().starts_with(b"%PDF-"));
     }
-    assert_eq!(client.get(pdf_url.replace(&user.owner.to_string(),&Uuid::new_v4().to_string())).send().await.unwrap().status(),StatusCode::FORBIDDEN);
-    assert_eq!(client.get(format!("{pdf_url}bad")).send().await.unwrap().status(),StatusCode::FORBIDDEN);
-    assert_eq!(counts.parser.load(Ordering::Relaxed),model_calls);
-    assert_eq!(counts.provider.load(Ordering::Relaxed),before+4);
+    assert_eq!(
+        client
+            .get(pdf_url.replace(&user.owner.to_string(), &Uuid::new_v4().to_string()))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        client
+            .get(format!("{pdf_url}bad"))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 4);
     // Archive the turn, then verify its original link still returns its own data.
-    let (revision,mut archived,_) = store.load(user.owner,task_id).await.unwrap();
-    let original_research=archived.clone();
-    archived.archive_output(Some(serde_json::to_value(state.proposal.as_ref().unwrap()).unwrap()));
-    archived.proposal=None; archived.intent=None; archived.record_turn("New question",None);
-    store.save(user.owner,task_id,revision,&archived).await.unwrap();
-    assert_eq!(client.get(&pdf_url).send().await.unwrap().status(),StatusCode::OK);
-    let history=multi.view(&user,task_id,Uuid::new_v4(),None).await.unwrap();
-    assert!(history.context_view["conversation"][0]["output"]["report"]["download_path"].is_string());
+    let (revision, mut archived, _) = store.load(user.owner, task_id).await.unwrap();
+    let original_research = archived.clone();
+    archived.archive_output(Some(
+        serde_json::to_value(state.proposal.as_ref().unwrap()).unwrap(),
+    ));
+    archived.proposal = None;
+    archived.intent = None;
+    archived.record_turn("New question", None);
+    store
+        .save(user.owner, task_id, revision, &archived)
+        .await
+        .unwrap();
+    assert_eq!(
+        client.get(&pdf_url).send().await.unwrap().status(),
+        StatusCode::OK
+    );
+    let history = multi
+        .view(&user, task_id, Uuid::new_v4(), None)
+        .await
+        .unwrap();
+    assert!(
+        history.context_view["conversation"][0]["output"]["report"]["download_path"].is_string()
+    );
 
-    let (restored_revision,_,_)=store.load(user.owner,task_id).await.unwrap();
-    store.save(user.owner,task_id,restored_revision,&original_research).await.unwrap();
+    let (restored_revision, _, _) = store.load(user.owner, task_id).await.unwrap();
+    store
+        .save(user.owner, task_id, restored_revision, &original_research)
+        .await
+        .unwrap();
 
     // A refunded first report must not discard the other company or reuse its
     // identifier. Resume only after the ledger establishes a terminal outcome.
-    let (_, mut failure_task, _)=store.load(user.owner,task_id).await.unwrap();
-    let plan:apiosk_gateway_v2::resolver::Plan=serde_json::from_value(failure_task.proposal.clone().unwrap()).unwrap();
-    failure_task.completed=plan.steps[..2].iter().map(|s|s.key()).collect();
-    failure_task.active_results.clear(); failure_task.result_refs.clear(); failure_task.conversation.clear(); failure_task.analysis=None;
-    failure_task.actions=vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":2})];
-    for fact in &mut failure_task.facts { if fact.entity_ref==plan.steps[2].entity_ref && fact.semantic_type=="company.id" {fact.value=json!("timeout");} }
-    let failed_id=store.create(user.owner,None).await.unwrap(); store.save(user.owner,failed_id,0,&failure_task).await.unwrap();
-    sqlx::query("UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds' WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
-    let initial=multi.view(&user,failed_id,Uuid::new_v4(),None).await.unwrap();
-    multi.executor.approve(&user,failed_id,plan.quote_ref,&plan.cap_atomic.to_string()).await.unwrap();
-    let request=execution(&initial); let execution_id=request.idempotency_key;
-    let pending=multi.execute(&user,"fixture",request).await.unwrap(); assert_eq!(pending.status,Status::Running);
+    let (_, mut failure_task, _) = store.load(user.owner, task_id).await.unwrap();
+    let plan: apiosk_gateway_v2::resolver::Plan =
+        serde_json::from_value(failure_task.proposal.clone().unwrap()).unwrap();
+    failure_task.completed = plan.steps[..2].iter().map(|s| s.key()).collect();
+    failure_task.active_results.clear();
+    failure_task.result_refs.clear();
+    failure_task.conversation.clear();
+    failure_task.analysis = None;
+    failure_task.actions = vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":2})];
+    for fact in &mut failure_task.facts {
+        if fact.entity_ref == plan.steps[2].entity_ref && fact.semantic_type == "company.id" {
+            fact.value = json!("timeout");
+        }
+    }
+    let failed_id = store.create(user.owner, None).await.unwrap();
+    store
+        .save(user.owner, failed_id, 0, &failure_task)
+        .await
+        .unwrap();
+    sqlx::query(
+        "UPDATE gateway_v2.executions SET updated_at=now()-interval '66 seconds' WHERE task_id=$1",
+    )
+    .bind(task_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let initial = multi
+        .view(&user, failed_id, Uuid::new_v4(), None)
+        .await
+        .unwrap();
+    multi
+        .executor
+        .approve(
+            &user,
+            failed_id,
+            plan.quote_ref,
+            &plan.cap_atomic.to_string(),
+        )
+        .await
+        .unwrap();
+    let request = execution(&initial);
+    let execution_id = request.idempotency_key;
+    let pending = multi.execute(&user, "fixture", request).await.unwrap();
+    assert_eq!(pending.status, Status::Running);
     sqlx::query("INSERT INTO public.balance_charges(id,user_id,idempotency_key,status,charged_micro_usd) VALUES($1,$2,$3,'refunded',0)").bind(Uuid::new_v4()).bind(user.owner).bind(execution_id.to_string()).execute(&pool).await.unwrap();
-    let resumed=multi.execute(&user,"fixture",poll_request(&pending)).await.unwrap();
-    assert_eq!(resumed.status,Status::Ready,"{resumed:?}");
-    assert_eq!(resumed.proposal.as_ref().unwrap().step_details[2]["status"],"failed");
-    assert_eq!(resumed.proposal.as_ref().unwrap().step_details[3]["subject"],"SecondCo");
-    let baseline=counts.provider.load(Ordering::Relaxed);
-    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
-    let delivered=multi.execute(&user,"fixture",execution(&resumed)).await.unwrap();
-    assert_eq!(delivered.context_view["analyzing"],true);
+    let resumed = multi
+        .execute(&user, "fixture", poll_request(&pending))
+        .await
+        .unwrap();
+    assert_eq!(resumed.status, Status::Ready, "{resumed:?}");
+    assert_eq!(
+        resumed.proposal.as_ref().unwrap().step_details[2]["status"],
+        "failed"
+    );
+    assert_eq!(
+        resumed.proposal.as_ref().unwrap().step_details[3]["subject"],
+        "SecondCo"
+    );
+    let baseline = counts.provider.load(Ordering::Relaxed);
+    sqlx::query("SET ROLE gateway_v2_runtime")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let delivered = multi
+        .execute(&user, "fixture", execution(&resumed))
+        .await
+        .unwrap();
+    assert_eq!(delivered.context_view["analyzing"], true);
     assert!(delivered.context_view.get("cooldown").is_none());
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline+1);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), baseline + 1);
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     // The screenshot's exact failure: an unpaid upstream 429 followed by a
     // confirmed ledger refund must enter a durable wait, not fail the plan.
-    let charge:Uuid=sqlx::query_scalar("SELECT id FROM public.balance_charges WHERE user_id=$1 AND idempotency_key=$2")
-        .bind(user.owner).bind(execution_id.to_string()).fetch_one(&pool).await.unwrap();
+    let charge: Uuid = sqlx::query_scalar(
+        "SELECT id FROM public.balance_charges WHERE user_id=$1 AND idempotency_key=$2",
+    )
+    .bind(user.owner)
+    .bind(execution_id.to_string())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
     sqlx::query("INSERT INTO public.call_runs(id,charge_id,user_id,status,output,output_truncated) VALUES($1,$2,$3,'failed',$4,false)")
         .bind(Uuid::new_v4()).bind(charge).bind(user.owner).bind(json!({"execution":{"status":429,"paid":false}})).execute(&pool).await.unwrap();
-    let (rev,mut retry_task,_)=store.load(user.owner,failed_id).await.unwrap();
+    let (rev, mut retry_task, _) = store.load(user.owner, failed_id).await.unwrap();
     retry_task.failed_steps.clear();
-    retry_task.actions=vec![json!({"kind":"poll","action_id":Uuid::new_v4(),"execution_id":execution_id})];
-    store.save(user.owner,failed_id,rev,&retry_task).await.unwrap();
-    let retry_state=multi.view(&user,failed_id,Uuid::new_v4(),None).await.unwrap();
-    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
-    let retry_wait=multi.execute(&user,"fixture",poll_request(&retry_state)).await.unwrap();
-    assert_eq!(retry_wait.status,Status::Running,"{retry_wait:?}");
+    retry_task.actions =
+        vec![json!({"kind":"poll","action_id":Uuid::new_v4(),"execution_id":execution_id})];
+    store
+        .save(user.owner, failed_id, rev, &retry_task)
+        .await
+        .unwrap();
+    let retry_state = multi
+        .view(&user, failed_id, Uuid::new_v4(), None)
+        .await
+        .unwrap();
+    sqlx::query("SET ROLE gateway_v2_runtime")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let retry_wait = multi
+        .execute(&user, "fixture", poll_request(&retry_state))
+        .await
+        .unwrap();
+    assert_eq!(retry_wait.status, Status::Running, "{retry_wait:?}");
     assert!(retry_wait.context_view["cooldown"]["until"].is_string());
-    assert_eq!(counts.provider.load(Ordering::Relaxed),baseline+1,"waiting cannot repurchase");
+    assert_eq!(
+        counts.provider.load(Ordering::Relaxed),
+        baseline + 1,
+        "waiting cannot repurchase"
+    );
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     // Transport/task scope contract. Real tenant permission and ledger functions
     // are separately exercised by app/scripts/test-workspaces-db.mjs.
     sqlx::raw_sql("CREATE TABLE public.test_workspace_access(actor uuid,workspace uuid,active boolean); CREATE FUNCTION public.workspace_gateway_context(a uuid,c uuid,w uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN IF NOT EXISTS(SELECT 1 FROM public.test_workspace_access WHERE actor=a AND workspace=w AND active) THEN RAISE EXCEPTION 'forbidden'; END IF; RETURN jsonb_build_object('workspace_id',w,'name','Team Research'); END $$").execute(&pool).await.unwrap();
-    let workspace=Uuid::new_v4();
-    sqlx::query("INSERT INTO public.test_workspace_access VALUES($1,$2,true)").bind(user.owner).bind(workspace).execute(&pool).await.unwrap();
-    let scoped=Principal {owner:user.owner,connection:None,workspace:Some(workspace)};
-    let scoped_id=store.create_scoped(scoped.owner,None,scoped.workspace).await.unwrap();
-    assert!(store.check_spending(&scoped).await.is_err(), "read permission is not spending permission");
-    assert!(store.load_scoped(&user,scoped_id).await.is_err());
-    assert!(store.load_scoped(&scoped,task_id).await.is_err());
-    let (rev,mut scoped_task,_)=store.load_scoped(&scoped,scoped_id).await.unwrap();
-    scoped_task.workspace_id=None;
-    assert!(store.save(scoped.owner,scoped_id,rev,&scoped_task).await.is_err());
-    assert_eq!(store.load_scoped(&scoped,scoped_id).await.unwrap().1.workspace_id,Some(workspace));
-    sqlx::query("UPDATE public.test_workspace_access SET active=false WHERE workspace=$1").bind(workspace).execute(&pool).await.unwrap();
-    assert!(store.load_scoped(&scoped,scoped_id).await.is_err());
+    let workspace = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.test_workspace_access VALUES($1,$2,true)")
+        .bind(user.owner)
+        .bind(workspace)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let scoped = Principal {
+        owner: user.owner,
+        connection: None,
+        workspace: Some(workspace),
+    };
+    let scoped_id = store
+        .create_scoped(scoped.owner, None, scoped.workspace)
+        .await
+        .unwrap();
+    assert!(
+        store.check_spending(&scoped).await.is_err(),
+        "read permission is not spending permission"
+    );
+    assert!(store.load_scoped(&user, scoped_id).await.is_err());
+    assert!(store.load_scoped(&scoped, task_id).await.is_err());
+    let (rev, mut scoped_task, _) = store.load_scoped(&scoped, scoped_id).await.unwrap();
+    scoped_task.workspace_id = None;
+    assert!(store
+        .save(scoped.owner, scoped_id, rev, &scoped_task)
+        .await
+        .is_err());
+    assert_eq!(
+        store
+            .load_scoped(&scoped, scoped_id)
+            .await
+            .unwrap()
+            .1
+            .workspace_id,
+        Some(workspace)
+    );
+    sqlx::query("UPDATE public.test_workspace_access SET active=false WHERE workspace=$1")
+        .bind(workspace)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(store.load_scoped(&scoped, scoped_id).await.is_err());
     println!("Workspace task mismatch, immutable saved payer, and removed-member reads refused.");
 
     api_server.abort();

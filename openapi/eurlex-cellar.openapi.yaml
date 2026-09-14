@@ -1,0 +1,270 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EUR-Lex Cellar",
+    "version": "1.0.0",
+    "description": "Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "eurlex-cellar",
+  "x-apiosk-category": "legal",
+  "x-apiosk-sectors": [
+    "Legal",
+    "Government and public data"
+  ],
+  "externalDocs": {
+    "url": "https://op.europa.eu/en/web/cellar"
+  },
+  "paths": {
+    "/webapi/rdf/sparql": {
+      "get": {
+        "operationId": "eu_law_sparql_select",
+        "summary": "Query EU legal metadata with a bounded SPARQL SELECT",
+        "description": "Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text.",
+        "tags": [
+          "EUR-Lex",
+          "Cellar",
+          "CELEX",
+          "EU law",
+          "wetgeving",
+          "SPARQL",
+          "RDF"
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "description": "Read-only SPARQL SELECT with LIMIT 1..100; no external SERVICE.",
+            "schema": {
+              "type": "string",
+              "description": "Read-only SPARQL SELECT with LIMIT 1..100; no external SERVICE.",
+              "minLength": 1,
+              "maxLength": 8000,
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "head": {
+                          "type": "object",
+                          "properties": {
+                            "vars": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "vars"
+                          ]
+                        },
+                        "results": {
+                          "type": "object",
+                          "properties": {
+                            "bindings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object"
+                              }
+                            }
+                          },
+                          "required": [
+                            "bindings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "head",
+                        "results"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "eu_law.sparql.select"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://publications.europa.eu"
+      }
+    },
+    "/resource/celex/{celex}": {
+      "get": {
+        "operationId": "eu_law_celex_metadata",
+        "summary": "Retrieve a CELEX publication metadata notice",
+        "description": "Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text.",
+        "tags": [
+          "EUR-Lex",
+          "Cellar",
+          "CELEX",
+          "EU law",
+          "wetgeving",
+          "SPARQL",
+          "RDF"
+        ],
+        "parameters": [
+          {
+            "name": "celex",
+            "in": "path",
+            "required": true,
+            "description": "Exact CELEX identifier",
+            "schema": {
+              "type": "string",
+              "description": "Exact CELEX identifier",
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "^[A-Za-z0-9()-]{6,40}$",
+              "x-parameter-location": "path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "celex": {
+                          "type": "string"
+                        },
+                        "metadata": {
+                          "type": "object"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "celex",
+                        "metadata",
+                        "url"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "eu_law.celex.metadata"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://publications.europa.eu"
+      }
+    }
+  }
+}

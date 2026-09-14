@@ -1,0 +1,1426 @@
+{
+  "bodem": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "bbox": "120900,487200,121000,487300",
+      "crs": "EPSG:28992",
+      "items": [],
+      "layer": "WBB_locaties"
+    },
+    "notice": "Map-layer information only; no complete soil investigation reports. No feature does not mean clean soil.",
+    "source_url": "https://gis.gdngeoservices.nl/standalone/services/blk_gdn/lks_blk_rd_v1/MapServer/WMSServer?BBOX=120900%2C487200%2C121000%2C487300&CRS=EPSG%3A28992&FEATURE_COUNT=10&FORMAT=image%2Fpng&HEIGHT=101&I=50&INFO_FORMAT=application%2Fgeo%2Bjson&J=50&LAYERS=WBB_locaties&QUERY_LAYERS=WBB_locaties&REQUEST=GetFeatureInfo&SERVICE=WMS&STYLES=&VERSION=1.3.0&WIDTH=101"
+  },
+  "bodem-hit": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "bbox": "120900,487200,121000,487300",
+      "crs": "EPSG:28992",
+      "items": [
+        {
+          "id": null,
+          "properties": {
+            "AUTHORITY_CD": "Null",
+            "AUTHORITY_DBK": "1594096",
+            "AUTHORITY_NM": "Omgevingsdienst Noordzeekanaalgebied",
+            "DISPLAY_CD": "JN",
+            "DOSSIER_BLN": "N",
+            "Shape": "Polygon",
+            "WEBSITE_BLN": "J",
+            "WEBSITE_URL": "https://odnzkg.nazca4u.nl/rapportage/viewerLookUp/Geolocator.aspx"
+          }
+        }
+      ],
+      "layer": "Beschikbaarheid_gegevens"
+    },
+    "notice": "Map-layer information only; no complete soil investigation reports. No feature does not mean clean soil.",
+    "source_url": "https://gis.gdngeoservices.nl/standalone/services/blk_gdn/lks_blk_rd_v1/MapServer/WMSServer?BBOX=120900%2C487200%2C121000%2C487300&CRS=EPSG%3A28992&FEATURE_COUNT=10&FORMAT=image%2Fpng&HEIGHT=101&I=50&INFO_FORMAT=application%2Fgeo%2Bjson&J=50&LAYERS=Beschikbaarheid_gegevens&QUERY_LAYERS=Beschikbaarheid_gegevens&REQUEST=GetFeatureInfo&SERVICE=WMS&STYLES=&VERSION=1.3.0&WIDTH=101"
+  },
+  "bwb-ok": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "collection": "BWB",
+      "items": [
+        {
+          "id": "BWBR0016434",
+          "metadata": {
+            "authority": [
+              "Infrastructuur en Milieu"
+            ],
+            "created": [
+              "2015-07-02"
+            ],
+            "creator": [
+              "Ministerie van Binnenlandse Zaken en Koninkrijksrelaties"
+            ],
+            "geldigheidsperiode_einddatum": [
+              "2004-03-04"
+            ],
+            "geldigheidsperiode_startdatum": [
+              "2004-02-10"
+            ],
+            "identifier": [
+              "BWBR0016434"
+            ],
+            "language": [
+              "nl"
+            ],
+            "locatie_manifest": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/manifest.xml"
+            ],
+            "locatie_toestand": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/2004-02-10_1/xml/BWBR0016434_2004-02-10_1.xml"
+            ],
+            "locatie_wti": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/BWBR0016434.WTI"
+            ],
+            "modified": [
+              "2016-01-19"
+            ],
+            "overheidsdomein": [
+              "Milieu, ruimte en water"
+            ],
+            "rechtsgebied": [
+              "Ruimtelijke ordening en milieu",
+              "Waterrecht"
+            ],
+            "recordPacking": [
+              "xml"
+            ],
+            "recordPosition": [
+              "1"
+            ],
+            "recordSchema": [
+              "http://standaarden.overheid.nl/sru/"
+            ],
+            "title": [
+              "Instellingsbesluit Adviescommissie Water"
+            ],
+            "toestand": [
+              "http://wetten.overheid.nl/id/BWBR0016434/2004-02-10/1"
+            ],
+            "type": [
+              "ministeriele-regeling"
+            ],
+            "zichtperiode_einddatum": [
+              "9999-12-31"
+            ],
+            "zichtperiode_startdatum": [
+              "2004-03-05"
+            ]
+          },
+          "title": "Instellingsbesluit Adviescommissie Water",
+          "url": null
+        },
+        {
+          "id": "BWBR0016434",
+          "metadata": {
+            "authority": [
+              "Infrastructuur en Milieu"
+            ],
+            "created": [
+              "2015-07-02"
+            ],
+            "creator": [
+              "Ministerie van Binnenlandse Zaken en Koninkrijksrelaties"
+            ],
+            "geldigheidsperiode_einddatum": [
+              "2005-06-29"
+            ],
+            "geldigheidsperiode_startdatum": [
+              "2004-03-05"
+            ],
+            "identifier": [
+              "BWBR0016434"
+            ],
+            "language": [
+              "nl"
+            ],
+            "locatie_manifest": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/manifest.xml"
+            ],
+            "locatie_toestand": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/2004-03-05_0/xml/BWBR0016434_2004-03-05_0.xml"
+            ],
+            "locatie_wti": [
+              "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0016434/BWBR0016434.WTI"
+            ],
+            "modified": [
+              "2016-02-02"
+            ],
+            "overheidsdomein": [
+              "Milieu, ruimte en water"
+            ],
+            "rechtsgebied": [
+              "Ruimtelijke ordening en milieu",
+              "Waterrecht"
+            ],
+            "recordPacking": [
+              "xml"
+            ],
+            "recordPosition": [
+              "2"
+            ],
+            "recordSchema": [
+              "http://standaarden.overheid.nl/sru/"
+            ],
+            "title": [
+              "Instellingsbesluit Adviescommissie Water"
+            ],
+            "toestand": [
+              "http://wetten.overheid.nl/id/BWBR0016434/2004-03-05/0"
+            ],
+            "type": [
+              "ministeriele-regeling"
+            ],
+            "zichtperiode_einddatum": [
+              "9999-12-31"
+            ],
+            "zichtperiode_startdatum": [
+              "2004-03-05"
+            ]
+          },
+          "title": "Instellingsbesluit Adviescommissie Water",
+          "url": null
+        }
+      ],
+      "next_start": 3,
+      "start": 1,
+      "total": 270
+    },
+    "notice": "Returned regulation metadata may include historic versions. Check effective dates and original text before drawing legal conclusions.",
+    "source_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&operation=searchRetrieve&version=2.0&query=overheidbwb.titel+any+%22water%22&startRecord=1&maximumRecords=2"
+  },
+  "celex-object": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "celex": "32016R0679",
+      "metadata": {
+        "RESOURCE_LEGAL_DATE_SIGNATURE": [
+          {
+            "DAY": [
+              "27"
+            ],
+            "MONTH": [
+              "04"
+            ],
+            "RESOURCE_LEGAL_DATE_SIGNATURE": [
+              "2016-04-27"
+            ],
+            "YEAR": [
+              "2016"
+            ]
+          }
+        ],
+        "RESOURCE_LEGAL_ID_CELEX": [
+          {
+            "RESOURCE_LEGAL_ID_CELEX": [
+              "32016R0679"
+            ]
+          }
+        ],
+        "RESOURCE_LEGAL_IN-FORCE": [
+          {
+            "RESOURCE_LEGAL_IN-FORCE": [
+              "true"
+            ]
+          }
+        ],
+        "RESOURCE_LEGAL_YEAR": [
+          {
+            "RESOURCE_LEGAL_YEAR": [
+              "2016"
+            ]
+          }
+        ],
+        "SAMEAS": [
+          {
+            "IDENTIFIER": [
+              "reg:2016:679:oj"
+            ],
+            "TYPE": [
+              "eli"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/eli/reg/2016/679/oj"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "32016R0679"
+            ],
+            "TYPE": [
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/celex/32016R0679"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "JOL_2016_119_R_0001"
+            ],
+            "TYPE": [
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001"
+            ]
+          }
+        ],
+        "URI": [
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1"
+            ],
+            "TYPE": [
+              "cellar"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1"
+            ]
+          }
+        ],
+        "WORK_DATE_DOCUMENT": [
+          {
+            "COMMENT_ON_DATE": [
+              "{DATSIG|http://publications.europa.eu/resource/authority/fd_365/DATSIG}"
+            ],
+            "DAY": [
+              "27"
+            ],
+            "MONTH": [
+              "04"
+            ],
+            "WORK_DATE_DOCUMENT": [
+              "2016-04-27"
+            ],
+            "YEAR": [
+              "2016"
+            ]
+          }
+        ],
+        "WORK_HAS_EXPRESSION": [
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0012",
+              "32016R0679.HUN",
+              "JOL_2016_119_R_0001.HUN",
+              "OJ.L_.2016.119.01.0001.01.HUN"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "oj",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0012",
+              "http://publications.europa.eu/resource/celex/32016R0679.HUN",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.HUN",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.HUN"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0005",
+              "JOL_2016_119_R_0001.ELL",
+              "OJ.L_.2016.119.01.0001.01.ELL",
+              "32016R0679.ELL"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0005",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ELL",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ELL",
+              "http://publications.europa.eu/resource/celex/32016R0679.ELL"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0013",
+              "JOL_2016_119_R_0001.ITA",
+              "OJ.L_.2016.119.01.0001.01.ITA",
+              "32016R0679.ITA"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0013",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ITA",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ITA",
+              "http://publications.europa.eu/resource/celex/32016R0679.ITA"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0022",
+              "OJ.L_.2016.119.01.0001.01.SLV",
+              "32016R0679.SLV",
+              "JOL_2016_119_R_0001.SLV"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "celex",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0022",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SLV",
+              "http://publications.europa.eu/resource/celex/32016R0679.SLV",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SLV"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0002",
+              "32016R0679.CES",
+              "JOL_2016_119_R_0001.CES",
+              "OJ.L_.2016.119.01.0001.01.CES"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "oj",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0002",
+              "http://publications.europa.eu/resource/celex/32016R0679.CES",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.CES",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.CES"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0021",
+              "JOL_2016_119_R_0001.SLK",
+              "OJ.L_.2016.119.01.0001.01.SLK",
+              "32016R0679.SLK"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0021",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SLK",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SLK",
+              "http://publications.europa.eu/resource/celex/32016R0679.SLK"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0016",
+              "JOL_2016_119_R_0001.MLT",
+              "32016R0679.MLT",
+              "OJ.L_.2016.119.01.0001.01.MLT"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "celex",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0016",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.MLT",
+              "http://publications.europa.eu/resource/celex/32016R0679.MLT",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.MLT"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0004",
+              "JOL_2016_119_R_0001.DEU",
+              "OJ.L_.2016.119.01.0001.01.DEU",
+              "32016R0679.DEU"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0004",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.DEU",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.DEU",
+              "http://publications.europa.eu/resource/celex/32016R0679.DEU"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0003",
+              "32016R0679.DAN",
+              "JOL_2016_119_R_0001.DAN",
+              "OJ.L_.2016.119.01.0001.01.DAN"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "oj",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0003",
+              "http://publications.europa.eu/resource/celex/32016R0679.DAN",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.DAN",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.DAN"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0010",
+              "32016R0679.GLE",
+              "JOL_2016_119_R_0001.GLE",
+              "OJ.L_.2016.119.01.0001.01.GLE"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "oj",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0010",
+              "http://publications.europa.eu/resource/celex/32016R0679.GLE",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.GLE",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.GLE"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0017",
+              "JOL_2016_119_R_0001.NLD",
+              "32016R0679.NLD",
+              "OJ.L_.2016.119.01.0001.01.NLD"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "celex",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0017",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.NLD",
+              "http://publications.europa.eu/resource/celex/32016R0679.NLD",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.NLD"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0014",
+              "JOL_2016_119_R_0001.LAV",
+              "32016R0679.LAV",
+              "OJ.L_.2016.119.01.0001.01.LAV"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "celex",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0014",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.LAV",
+              "http://publications.europa.eu/resource/celex/32016R0679.LAV",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.LAV"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0006",
+              "OJ.L_.2016.119.01.0001.01.ENG",
+              "32016R0679.ENG",
+              "JOL_2016_119_R_0001.ENG",
+              "JOL_2016_119_R_0001.RNG"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "celex",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0006",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ENG",
+              "http://publications.europa.eu/resource/celex/32016R0679.ENG",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ENG",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.RNG"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0024",
+              "JOL_2016_119_R_0001.SWE",
+              "OJ.L_.2016.119.01.0001.01.SWE",
+              "32016R0679.SWE"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0024",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SWE",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SWE",
+              "http://publications.europa.eu/resource/celex/32016R0679.SWE"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0015",
+              "32016R0679.LIT",
+              "JOL_2016_119_R_0001.LIT",
+              "OJ.L_.2016.119.01.0001.01.LIT"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "oj",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0015",
+              "http://publications.europa.eu/resource/celex/32016R0679.LIT",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.LIT",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.LIT"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0020",
+              "JOL_2016_119_R_0001.RON",
+              "32016R0679.RON",
+              "OJ.L_.2016.119.01.0001.01.RON"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "celex",
+              "uriserv"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0020",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.RON",
+              "http://publications.europa.eu/resource/celex/32016R0679.RON",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.RON"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0001",
+              "OJ.L_.2016.119.01.0001.01.BUL",
+              "32016R0679.BUL",
+              "JOL_2016_119_R_0001.BUL"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "celex",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0001",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.BUL",
+              "http://publications.europa.eu/resource/celex/32016R0679.BUL",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.BUL"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0011",
+              "32016R0679.HRV",
+              "OJ.L_.2016.119.01.0001.01.HRV",
+              "JOL_2016_119_R_0001.HRV"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "uriserv",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0011",
+              "http://publications.europa.eu/resource/celex/32016R0679.HRV",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.HRV",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.HRV"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0007",
+              "OJ.L_.2016.119.01.0001.01.EST",
+              "JOL_2016_119_R_0001.EST",
+              "32016R0679.EST"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "oj",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0007",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.EST",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.EST",
+              "http://publications.europa.eu/resource/celex/32016R0679.EST"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0018",
+              "32016R0679.POL",
+              "OJ.L_.2016.119.01.0001.01.POL",
+              "JOL_2016_119_R_0001.POL"
+            ],
+            "TYPE": [
+              "cellar",
+              "celex",
+              "uriserv",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0018",
+              "http://publications.europa.eu/resource/celex/32016R0679.POL",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.POL",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.POL"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0019",
+              "JOL_2016_119_R_0001.POR",
+              "OJ.L_.2016.119.01.0001.01.POR",
+              "32016R0679.POR"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0019",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.POR",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.POR",
+              "http://publications.europa.eu/resource/celex/32016R0679.POR"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0023",
+              "OJ.L_.2016.119.01.0001.01.SPA",
+              "JOL_2016_119_R_0001.SPA",
+              "32016R0679.SPA"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "oj",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0023",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SPA",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SPA",
+              "http://publications.europa.eu/resource/celex/32016R0679.SPA"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0008",
+              "OJ.L_.2016.119.01.0001.01.FIN",
+              "32016R0679.FIN",
+              "JOL_2016_119_R_0001.FIN"
+            ],
+            "TYPE": [
+              "cellar",
+              "uriserv",
+              "celex",
+              "oj"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0008",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.FIN",
+              "http://publications.europa.eu/resource/celex/32016R0679.FIN",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.FIN"
+            ]
+          },
+          {
+            "IDENTIFIER": [
+              "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0009",
+              "JOL_2016_119_R_0001.FRA",
+              "OJ.L_.2016.119.01.0001.01.FRA",
+              "32016R0679.FRA"
+            ],
+            "TYPE": [
+              "cellar",
+              "oj",
+              "uriserv",
+              "celex"
+            ],
+            "URI": [
+              "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0009",
+              "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.FRA",
+              "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.FRA",
+              "http://publications.europa.eu/resource/celex/32016R0679.FRA"
+            ]
+          }
+        ],
+        "WORK_ID_DOCUMENT": [
+          {
+            "WORK_ID_DOCUMENT": [
+              "immc:PE 17 2016 INIT"
+            ]
+          },
+          {
+            "WORK_ID_DOCUMENT": [
+              "oj:JOL_2016_119_R_0001"
+            ]
+          },
+          {
+            "WORK_ID_DOCUMENT": [
+              "celex:32016R0679"
+            ]
+          }
+        ]
+      },
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
+    },
+    "notice": "Cellar metadata notice, not the complete legal text or a legal opinion. Check document version and language.",
+    "source_url": "https://publications.europa.eu/resource/celex/32016R0679"
+  },
+  "cellar-json": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "head": {
+        "link": [],
+        "vars": [
+          "s"
+        ]
+      },
+      "results": {
+        "bindings": [
+          {
+            "s": {
+              "type": "uri",
+              "value": "http://publications.europa.eu/ontology/cdm/cmr#metsStructSubDiv"
+            }
+          },
+          {
+            "s": {
+              "type": "uri",
+              "value": "http://eurovoc.europa.eu/schema#microThesaurus"
+            }
+          }
+        ],
+        "distinct": false,
+        "ordered": true
+      }
+    },
+    "notice": "Bounded SPARQL result only. LIMIT may truncate matching records; no complete coverage claim.",
+    "source_url": "https://publications.europa.eu/webapi/rdf/sparql?query=SELECT+%3Fs+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+2&format=application%2Fsparql-results%2Bjson"
+  },
+  "cvdr": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "collection": "cvdr",
+      "items": [
+        {
+          "id": "CVDR743806_1",
+          "metadata": {
+            "alternatieveIdentifier": [
+              "/akn/nl/act/gemeente/2025/CVDR743806",
+              "/akn/nl/act/gemeente/2025/CVDR743806/nld@2025-09-03",
+              "/akn/nl/act/gm0342/2025/2_8",
+              "/akn/nl/act/gm0342/2025/2_8/nld@21"
+            ],
+            "alternative": [
+              "Omgevingsprogramma Water"
+            ],
+            "creator": [
+              "Soest"
+            ],
+            "identifier": [
+              "CVDR743806_1"
+            ],
+            "indeling": [
+              "overig"
+            ],
+            "inwerkingtredingDatum": [
+              "2025-09-03"
+            ],
+            "isFormatOf": [
+              "gmb-2025-384732"
+            ],
+            "isRatifiedBy": [
+              "gemeenteraad"
+            ],
+            "language": [
+              "nl"
+            ],
+            "modified": [
+              "2026-07-21Z"
+            ],
+            "omgevingswet": [
+              "ja"
+            ],
+            "onderwerp": [
+              "ruimtelijke ordening"
+            ],
+            "organisatietype": [
+              "Gemeente"
+            ],
+            "preferred_url": [
+              "https://lokaleregelgeving.overheid.nl/CVDR743806/1"
+            ],
+            "preferred_work_url": [
+              "https://lokaleregelgeving.overheid.nl/CVDR743806"
+            ],
+            "publicatieurl_xml": [
+              "https://repository.officiele-overheidspublicaties.nl/cvdr/CVDR743806/1/xml/CVDR743806_1.xml"
+            ],
+            "recordPacking": [
+              "xml"
+            ],
+            "recordPosition": [
+              "1"
+            ],
+            "recordSchema": [
+              "http://standaarden.overheid.nl/sru/"
+            ],
+            "source": [
+              "Artikel 3.4 Omgevingswet"
+            ],
+            "subject": [
+              "algemeen"
+            ],
+            "title": [
+              "Omgevingsprogramma Water"
+            ],
+            "type": [
+              "regeling"
+            ]
+          },
+          "title": "Omgevingsprogramma Water",
+          "url": "https://lokaleregelgeving.overheid.nl/CVDR743806/1"
+        },
+        {
+          "id": "CVDR120246_1",
+          "metadata": {
+            "alternative": [
+              "Verordening openbaar water"
+            ],
+            "betreft": [
+              "nieuwe regeling"
+            ],
+            "creator": [
+              "Alkmaar"
+            ],
+            "gedelegeerdeRegelgeving": [
+              "<al>Geen</al>"
+            ],
+            "identifier": [
+              "CVDR120246_1"
+            ],
+            "indeling": [
+              "overig"
+            ],
+            "intrekkingRegeling": [
+              "2016-10-27"
+            ],
+            "inwerkingtredingDatum": [
+              "2011-11-10"
+            ],
+            "isFormatOf": [
+              "Officiële Mededelingen, 02-11-2011"
+            ],
+            "isRatifiedBy": [
+              "college van burgemeester en wethouders"
+            ],
+            "issued": [
+              "2011-10-27"
+            ],
+            "kenmerk": [
+              "Onbekend."
+            ],
+            "language": [
+              "nl"
+            ],
+            "modified": [
+              "2018-05-29"
+            ],
+            "omgevingswet": [
+              "nee"
+            ],
+            "organisatietype": [
+              "Gemeente"
+            ],
+            "preferred_url": [
+              "https://lokaleregelgeving.overheid.nl/CVDR120246/1"
+            ],
+            "preferred_work_url": [
+              "https://lokaleregelgeving.overheid.nl/CVDR120246"
+            ],
+            "publicatieurl_xml": [
+              "https://repository.officiele-overheidspublicaties.nl/cvdr/CVDR120246/1/xml/CVDR120246_1.xml"
+            ],
+            "recordPacking": [
+              "xml"
+            ],
+            "recordPosition": [
+              "2"
+            ],
+            "recordSchema": [
+              "http://standaarden.overheid.nl/sru/"
+            ],
+            "redactioneleToevoeging": [
+              "<al>Deze regeling is vervangen door de <extref doc=\"1.1:CVDR408727_1\">Verordening openbaar water</extref>.</al>"
+            ],
+            "source": [
+              "Gemeentewet, art. 149"
+            ],
+            "subject": [
+              "ruimtelijke ordening, verkeer en vervoer"
+            ],
+            "title": [
+              "Verordening openbaar water"
+            ],
+            "type": [
+              "regeling"
+            ],
+            "uitwerkingtredingDatum": [
+              "2016-10-27"
+            ]
+          },
+          "title": "Verordening openbaar water",
+          "url": "https://lokaleregelgeving.overheid.nl/CVDR120246/1"
+        }
+      ],
+      "next_start": 3,
+      "start": 1,
+      "total": 528
+    },
+    "notice": "Returned regulation metadata may include historic versions. Check effective dates and original text before drawing legal conclusions.",
+    "source_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&operation=searchRetrieve&version=2.0&query=dcterms.title+any+%22water%22&startRecord=1&maximumRecords=2"
+  },
+  "funding-en": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "items": [
+        {
+          "language": "en",
+          "metadata": {
+            "DATASOURCE": [
+              "SEDIA"
+            ],
+            "budgetOverview": [
+              "{\"budgetTopicActionMap\":{\"3300109\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300108\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300107\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-6-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300106\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-14-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300105\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-10-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300104\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-16-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300103\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-9-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300069\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-9-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300102\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-37-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300068\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-13-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300101\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-1-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":45000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300067\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-8-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300100\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-31-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300066\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-4-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300065\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":7500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300064\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300063\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-19-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300062\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-9-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300061\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-33-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300060\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-27-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300119\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-24-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300118\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-8-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300117\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-17-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":40000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300116\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300115\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-5-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300114\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-15-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300113\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-8-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300079\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300112\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-11-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300078\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-5-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300111\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300077\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-18-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300110\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-13-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300076\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":7500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300074\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-10-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300073\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-14-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300072\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-11-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300071\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-16-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300070\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-6-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300129\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-5-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300128\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300127\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"CE-SC3-NZE-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300126\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300124\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-NZE-3-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300123\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\"],\"action\":\"LC-SC3-JA-4-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300089\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-EC-3-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":16000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300122\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-30-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300088\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":55000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300121\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300087\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"19 April 2018\"],\"action\":\"LC-SC3-CC-4-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":8500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300120\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-15-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300086\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"19 April 2018\"],\"action\":\"LC-SC3-RES-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300085\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-ES-9-2019 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300084\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-JA-3-2019 - PCP Pre-Commercial Procurement\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300083\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-JA-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300082\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-CC-3-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":2000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300081\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300080\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-3-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300139\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-7-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300138\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-4-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":19000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300137\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":43000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300136\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-EE-17-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":16000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300135\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"11 September 2018\"],\"action\":\"LC-SC3-JA-1-2018 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300134\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"11 September 2018\"],\"action\":\"LC-SC3-JA-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300133\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\",\"28 August 2018\"],\"action\":\"LC-SC3-RES-11-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300099\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-32-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300132\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\",\"28 August 2018\"],\"action\":\"LC-SC3-RES-4-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":27500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300098\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-26-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300131\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-6-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":2000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300097\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-18-2020 - RIA-LS Research and Innovation action Lump Sum\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300130\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-NZE-1-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300096\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-12-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":0},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300095\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-5-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":22000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300094\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-4-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":40000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300093\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-11-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300092\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-3-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300091\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-10-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":14000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300090\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-SA-1-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300149\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300148\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-7-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300147\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-23-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300146\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-NZE-5-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":33000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300145\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-29-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300144\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-NZE-4-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300143\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-16-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300142\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-5-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300141\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-RES-22-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300140\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-3-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":26300000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300039\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300038\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300159\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-7-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300037\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-2-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300158\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-5-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300036\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-13-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300157\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-12-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300035\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-3-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300156\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-9-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":1500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300034\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-5-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300155\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-8-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300033\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-12-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300154\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":83000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300032\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-4-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300153\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-2-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300031\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-11-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300152\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-1-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":37300000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300151\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-8-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300150\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-6-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":28350000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300049\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300048\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-20-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300047\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-34-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300046\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-36-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300045\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-25-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300044\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-SCC-2-2020 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300165\":[{\"plannedOpeningDate\":\"26 September 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-10-2020 - PCP Pre-Commercial Procurement\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300043\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-NZE-6-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":14000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300164\":[{\"plannedOpeningDate\":\"26 September 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-JA-5-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300042\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"16 October 2018\",\"25 April 2019\"],\"action\":\"LC-SC3-RES-14-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300163\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-10-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300041\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"16 October 2018\",\"25 April 2019\"],\"action\":\"LC-SC3-RES-1-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300162\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-EC-4-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300040\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-14-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300161\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-1-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300160\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-6-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300059\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-35-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300058\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-12-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300057\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-13-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":45000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300056\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300055\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-6-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300054\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-5-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300053\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-21-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300052\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-3-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300051\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-ES-13-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300050\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-CC-7-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}]},\"budgetYearsColumns\":[\"2018\",\"2019\",\"2020\"]}"
+            ],
+            "callIdentifier": [
+              "H2020-LC-SC3-2018-2019-2020"
+            ],
+            "callTitle": [
+              "BUILDING A LOW-CARBON, CLIMATE RESILIENT FUTURE: SECURE, CLEAN AND EFFICIENT ENERGY"
+            ],
+            "deadlineDate": [
+              "2018-09-13T17:00:00.000+0000"
+            ],
+            "deadlineModel": [
+              "single-stage"
+            ],
+            "frameworkProgramme": [
+              "31045243"
+            ],
+            "identifier": [
+              "LC-SC3-EE-13-2018-2019-2020"
+            ],
+            "programmePeriod": [
+              "2014 - 2020"
+            ],
+            "startDate": [
+              "2018-01-25T00:00:00.000+0000"
+            ],
+            "status": [
+              "31094503"
+            ],
+            "title": [
+              "Enabling next-generation of smart energy services valorising energy efficiency and flexibility at demand-side as energy resource"
+            ],
+            "type": [
+              "1"
+            ]
+          },
+          "reference": "31089389Coordinationandsupportaction1516838400000",
+          "title": "Enabling next-generation of smart energy services valorising energy efficiency and flexibility at demand-side as energy resource",
+          "url": "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/LC-SC3-EE-13-2018-2019-2020.json"
+        },
+        {
+          "language": "en",
+          "metadata": {
+            "DATASOURCE": [
+              "SEDIA"
+            ],
+            "budgetOverview": [
+              "{\"budgetTopicActionMap\":{\"3300109\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300108\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300107\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-6-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300106\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-14-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300105\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-10-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300104\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-16-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300103\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-9-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300069\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-9-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300102\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-37-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300068\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-13-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300101\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-1-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":45000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300067\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-8-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300100\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-31-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300066\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-4-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300065\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":7500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300064\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300063\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-19-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300062\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-9-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300061\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-33-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300060\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-27-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300119\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-24-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300118\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-8-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300117\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-17-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":40000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300116\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300115\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-5-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300114\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-15-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300113\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-8-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300079\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300112\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-11-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300078\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-5-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300111\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300077\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-18-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300110\":[{\"plannedOpeningDate\":\"25 January 2018\",\"deadlineDates\":[\"13 September 2018\"],\"action\":\"LC-SC3-EE-13-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300076\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":7500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300074\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-10-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300073\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-14-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300072\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-11-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300071\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-16-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300070\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-6-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300129\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-5-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300128\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300127\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"CE-SC3-NZE-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300126\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300124\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-NZE-3-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300123\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\"],\"action\":\"LC-SC3-JA-4-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300089\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-EC-3-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":16000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300122\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-30-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300088\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":55000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300121\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300087\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"19 April 2018\"],\"action\":\"LC-SC3-CC-4-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":8500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300120\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"11 December 2018\"],\"action\":\"LC-SC3-RES-15-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300086\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"19 April 2018\"],\"action\":\"LC-SC3-RES-2-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300085\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-ES-9-2019 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300084\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-JA-3-2019 - PCP Pre-Commercial Procurement\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300083\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-JA-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":1000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300082\":[{\"plannedOpeningDate\":\"14 November 2018\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-CC-3-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":2000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300081\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300080\":[{\"plannedOpeningDate\":\"12 March 2019\",\"deadlineDates\":[\"10 September 2019\"],\"action\":\"LC-SC3-EE-3-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300139\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-7-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300138\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-4-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":19000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300137\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":43000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300136\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-EE-17-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":16000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300135\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"11 September 2018\"],\"action\":\"LC-SC3-JA-1-2018 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300134\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"11 September 2018\"],\"action\":\"LC-SC3-JA-2-2018-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300133\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\",\"28 August 2018\"],\"action\":\"LC-SC3-RES-11-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300099\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-32-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300132\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"31 January 2018\",\"28 August 2018\"],\"action\":\"LC-SC3-RES-4-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":27500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300098\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-26-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300131\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-CC-6-2018 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":2000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300097\":[{\"plannedOpeningDate\":\"03 December 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-18-2020 - RIA-LS Research and Innovation action Lump Sum\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300130\":[{\"plannedOpeningDate\":\"15 May 2018\",\"deadlineDates\":[\"06 September 2018\"],\"action\":\"LC-SC3-NZE-1-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300096\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-12-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":0},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300095\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-5-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":22000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300094\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-4-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":40000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300093\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-11-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300092\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-3-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300091\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-ES-10-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":14000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300090\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"29 January 2020\"],\"action\":\"LC-SC3-SA-1-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300149\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300148\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-7-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300147\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-23-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300146\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-NZE-5-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":33000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300145\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-29-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300144\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-NZE-4-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300143\":[{\"plannedOpeningDate\":\"07 May 2019\",\"deadlineDates\":[\"27 August 2019\"],\"action\":\"LC-SC3-RES-16-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300142\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-5-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300141\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-RES-22-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300140\":[{\"plannedOpeningDate\":\"05 December 2017\",\"deadlineDates\":[\"05 April 2018\"],\"action\":\"LC-SC3-ES-3-2018-2020 - IA Innovation action\",\"budgetYearMap\":{\"2018\":26300000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300039\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-2-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300038\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-1-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300159\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-7-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300037\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-2-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":4000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300158\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-5-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300036\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-13-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300157\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-12-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300035\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-3-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":8000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300156\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-9-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":1500000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300034\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-EC-5-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300155\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-8-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300033\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-12-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":3000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300154\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-SCC-1-2018-2019-2020 - IA Innovation action\",\"budgetYearMap\":{\"2019\":83000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300032\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-4-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300153\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-2-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300031\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-11-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300152\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-1-2019 - IA Innovation action\",\"budgetYearMap\":{\"2019\":37300000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300151\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-8-2019 - CSA Coordination and support action\",\"budgetYearMap\":{\"2019\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300150\":[{\"plannedOpeningDate\":\"05 September 2018\",\"deadlineDates\":[\"05 February 2019\"],\"action\":\"LC-SC3-ES-6-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":28350000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300049\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-CC-1-2018-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300048\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-20-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300047\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-34-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300046\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-36-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300045\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-25-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300044\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-SCC-2-2020 - ERA-NET-Cofund ERA-NET Cofund\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300165\":[{\"plannedOpeningDate\":\"26 September 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-RES-10-2020 - PCP Pre-Commercial Procurement\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300043\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-NZE-6-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":14000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300164\":[{\"plannedOpeningDate\":\"26 September 2019\",\"deadlineDates\":[\"28 April 2020\"],\"action\":\"LC-SC3-JA-5-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300042\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"16 October 2018\",\"25 April 2019\"],\"action\":\"LC-SC3-RES-14-2019 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300163\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-10-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300041\":[{\"plannedOpeningDate\":\"01 August 2018\",\"deadlineDates\":[\"16 October 2018\",\"25 April 2019\"],\"action\":\"LC-SC3-RES-1-2019-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2019\":20000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"two-stage\"}],\"3300162\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-EC-4-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300040\":[{\"plannedOpeningDate\":\"05 March 2020\",\"deadlineDates\":[\"10 September 2020\"],\"action\":\"LC-SC3-B4E-14-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":6000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300161\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-1-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2020\":7000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300160\":[{\"plannedOpeningDate\":\"16 July 2019\",\"deadlineDates\":[\"15 January 2020\"],\"action\":\"LC-SC3-B4E-6-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":12000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300059\":[{\"plannedOpeningDate\":\"03 September 2019\",\"deadlineDates\":[\"11 December 2019\"],\"action\":\"LC-SC3-RES-35-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300058\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-12-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300057\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-13-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":45000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300056\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-28-2018-2019-2020 - CSA Coordination and support action\",\"budgetYearMap\":{\"2018\":15000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300055\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-6-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":30000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300054\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-5-2018 - IA Innovation action\",\"budgetYearMap\":{\"2018\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300053\":[{\"plannedOpeningDate\":\"31 October 2017\",\"deadlineDates\":[\"13 February 2018\"],\"action\":\"LC-SC3-RES-21-2018 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2018\":25000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300052\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-RES-3-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":10000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300051\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-ES-13-2020 - IA Innovation action\",\"budgetYearMap\":{\"2020\":9000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}],\"3300050\":[{\"plannedOpeningDate\":\"05 May 2020\",\"deadlineDates\":[\"01 September 2020\"],\"action\":\"LC-SC3-CC-7-2020 - RIA Research and Innovation action\",\"budgetYearMap\":{\"2020\":5000000},\"budgetTopicActionMap\":{},\"deadlineModel\":\"single-stage\"}]},\"budgetYearsColumns\":[\"2018\",\"2019\",\"2020\"]}"
+            ],
+            "callIdentifier": [
+              "H2020-LC-SC3-2018-2019-2020"
+            ],
+            "callTitle": [
+              "BUILDING A LOW-CARBON, CLIMATE RESILIENT FUTURE: SECURE, CLEAN AND EFFICIENT ENERGY"
+            ],
+            "deadlineDate": [
+              "2019-09-10T17:00:00.000+0000"
+            ],
+            "deadlineModel": [
+              "single-stage"
+            ],
+            "frameworkProgramme": [
+              "31045243"
+            ],
+            "identifier": [
+              "LC-SC3-EE-13-2018-2019-2020"
+            ],
+            "programmePeriod": [
+              "2014 - 2020"
+            ],
+            "startDate": [
+              "2019-03-12T00:00:00.000+0000"
+            ],
+            "status": [
+              "31094503"
+            ],
+            "title": [
+              "Enabling next-generation of smart energy services valorising energy efficiency and flexibility at demand-side as energy resource"
+            ],
+            "type": [
+              "1"
+            ]
+          },
+          "reference": "31089389Innovationaction1552348800000",
+          "title": "Enabling next-generation of smart energy services valorising energy efficiency and flexibility at demand-side as energy resource",
+          "url": "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/LC-SC3-EE-13-2018-2019-2020.json"
+        }
+      ],
+      "next_page": 2,
+      "page": 1,
+      "total": 3602
+    },
+    "notice": "Grant and tender discovery includes historic calls and multilingual records. No eligibility, application approval or open-status guarantee.",
+    "source_url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search?apiKey=SEDIA&text=energy&pageNumber=1&pageSize=2&language=en"
+  },
+  "pdok": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "bbox": "120900,487200,121000,487300",
+      "crs": "EPSG:28992",
+      "items": [
+        {
+          "id": "enkelbestemming.50d31b4d-c849-4081-8d0e-28e9ecfe984e",
+          "properties": {
+            "bestemmingshoofdgroep": "water",
+            "datum": "2012-07-27",
+            "dossierid": "NL.IMRO.0363.A1103BPSTD",
+            "dossierstatus": "deels onherroepelijk in werking",
+            "historisch": "0",
+            "hoofdfuncties": "",
+            "identificatie": "NL.IMRO.798",
+            "naam": "Water",
+            "ondergeschiktefuncties": "",
+            "plangebied": "NL.IMRO.0363.A1103BPSTD-VG01",
+            "planstatus": "vastgesteld",
+            "typeplan": "bestemmingsplan",
+            "versieimro": "IMRO2008",
+            "verwijzingnaarexternplan": "",
+            "verwijzingnaarobjectgerichtetekst": "",
+            "verwijzingnaartekst": "https://ruimtelijkeplannen.nl/documents/NL.IMRO.0363.A1103BPSTD-VG01/r_NL.IMRO.0363.A1103BPSTD-VG01_2.4.html"
+          }
+        }
+      ],
+      "layer": "enkelbestemming"
+    },
+    "notice": "Map-layer features at the requested pixel, not a complete or definitive statement of current planning rights. Follow original plan documents.",
+    "source_url": "https://service.pdok.nl/kadaster/ruimtelijke-plannen/wms/v1_0?BBOX=120900%2C487200%2C121000%2C487300&CRS=EPSG%3A28992&FEATURE_COUNT=10&FORMAT=image%2Fpng&HEIGHT=101&I=50&INFO_FORMAT=application%2Fjson&J=50&LAYERS=enkelbestemming&QUERY_LAYERS=enkelbestemming&REQUEST=GetFeatureInfo&SERVICE=WMS&STYLES=&VERSION=1.3.0&WIDTH=101"
+  },
+  "staatscourant": {
+    "coverage": {
+      "complete": false,
+      "scope": "Official publication title search; sorted by modification date. Not consolidated current law."
+    },
+    "items": [
+      {
+        "authority": "Advocaten (cluster)",
+        "id": "stcrt-2016-54095",
+        "modified": "2016-11-10",
+        "publication": "Staatscourant",
+        "published": "2016-10-11",
+        "summary": null,
+        "title": "Grensoverschrijdende omzetting International Water Services (Guayaquil) B.V.",
+        "type": null,
+        "url": "https://zoek.officielebekendmakingen.nl/stcrt-2016-54095.html"
+      },
+      {
+        "authority": "Ministerie van Infrastructuur en Milieu",
+        "id": "stcrt-2014-37307",
+        "modified": "2014-12-24",
+        "publication": "Staatscourant",
+        "published": "2014-12-24",
+        "summary": null,
+        "title": "Besluit van de directeur-generaal Ruimte en Water, van 18 december 2014, nr. IENM/BSK-2014/262839, tot wijziging van het Ondermandaatbesluit directoraat-generaal Ruimte en Water Infrastructuur en Milieu 2012 naar aanleiding van actualisatie van het Organisatie- en mandaatbesluit Infrastructuur en Milieu 2012 voor 2015",
+        "type": null,
+        "url": "https://zoek.officielebekendmakingen.nl/stcrt-2014-37307.html"
+      }
+    ],
+    "next_start": 3,
+    "notice": "An application notice is not an issued permit. Company-name mentions do not establish identity or a complete permit history.",
+    "query": {
+      "journal": "Staatscourant",
+      "limit": "2",
+      "q": "water"
+    },
+    "source_url": "https://repository.overheid.nl/sru?operation=searchRetrieve&version=2.0&httpAccept=application%2Fjson&query=c.product-area%3D%3Dofficielepublicaties+AND+w.publicatienaam%3D%3DStaatscourant+AND+dt.title%3D%22water%22+sortBy+dt.modified%2Fsort.descending&startRecord=1&maximumRecords=2",
+    "start": 1,
+    "total": 1334
+  },
+  "vies-get": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+      "country_code": "NL",
+      "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+      "request_date": "2026-09-14T16:48:04.183Z",
+      "upstream": {
+        "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+        "isValid": true,
+        "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+        "originalVatNumber": "004495445B01",
+        "requestDate": "2026-09-14T16:48:04.183Z",
+        "requestIdentifier": "",
+        "userError": "VALID",
+        "vatNumber": "004495445B01",
+        "viesApproximate": {
+          "city": "---",
+          "companyType": "---",
+          "matchCity": 3,
+          "matchCompanyType": 3,
+          "matchName": 3,
+          "matchPostalCode": 3,
+          "matchStreet": 3,
+          "name": "---",
+          "postalCode": "---",
+          "street": "---"
+        }
+      },
+      "valid": true,
+      "vat_number": "004495445B01"
+    },
+    "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+    "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01"
+  },
+  "vies-post": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+      "country_code": "NL",
+      "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+      "request_date": "2026-09-14T16:49:07.018Z",
+      "upstream": {
+        "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+        "countryCode": "NL",
+        "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+        "requestDate": "2026-09-14T16:49:07.018Z",
+        "requestIdentifier": "",
+        "traderCity": "---",
+        "traderCityMatch": "NOT_PROCESSED",
+        "traderCompanyType": "---",
+        "traderCompanyTypeMatch": "NOT_PROCESSED",
+        "traderName": "---",
+        "traderNameMatch": "NOT_PROCESSED",
+        "traderPostalCode": "---",
+        "traderPostalCodeMatch": "NOT_PROCESSED",
+        "traderStreet": "---",
+        "traderStreetMatch": "NOT_PROCESSED",
+        "valid": true,
+        "vatNumber": "004495445B01"
+      },
+      "valid": true,
+      "vat_number": "004495445B01"
+    },
+    "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+    "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number"
+  },
+  "vies-status": {
+    "coverage": {
+      "complete": false,
+      "scope": "One bounded upstream response per purchased call"
+    },
+    "data": {
+      "countries": [
+        {
+          "availability": "Available",
+          "countryCode": "AT"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "BE"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "BG"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "CY"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "CZ"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "DE"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "DK"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "EE"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "EL"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "ES"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "FI"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "FR"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "HR"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "HU"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "IE"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "IT"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "LT"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "LU"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "LV"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "MT"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "NL"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "PL"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "PT"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "RO"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "SE"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "SI"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "SK"
+        },
+        {
+          "availability": "Available",
+          "countryCode": "XI"
+        }
+      ],
+      "vow": {
+        "available": true
+      }
+    },
+    "notice": "VIES service availability at the request time; this does not validate a VAT number.",
+    "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-status"
+  }
+}

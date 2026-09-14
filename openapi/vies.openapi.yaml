@@ -1,0 +1,672 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VIES EU VAT Validation",
+    "version": "1.0.0",
+    "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "vies",
+  "x-apiosk-category": "finance",
+  "x-apiosk-sectors": [
+    "Company data",
+    "Finance"
+  ],
+  "externalDocs": {
+    "url": "https://ec.europa.eu/taxation_customs/vies/"
+  },
+  "paths": {
+    "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}": {
+      "get": {
+        "operationId": "vat_eu_validate",
+        "summary": "Validate a VAT number using VIES",
+        "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "tags": [
+          "VIES",
+          "VAT",
+          "btw",
+          "btw-nummer",
+          "EU",
+          "VAT validation",
+          "tax compliance"
+        ],
+        "parameters": [
+          {
+            "name": "cc",
+            "in": "path",
+            "required": true,
+            "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+            "schema": {
+              "type": "string",
+              "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+              "minLength": 1,
+              "maxLength": 2,
+              "enum": [
+                "AT",
+                "BE",
+                "BG",
+                "CY",
+                "CZ",
+                "DE",
+                "DK",
+                "EE",
+                "EL",
+                "ES",
+                "FI",
+                "FR",
+                "HR",
+                "HU",
+                "IE",
+                "IT",
+                "LT",
+                "LU",
+                "LV",
+                "MT",
+                "NL",
+                "PL",
+                "PT",
+                "RO",
+                "SE",
+                "SI",
+                "SK",
+                "XI"
+              ],
+              "x-parameter-location": "path"
+            }
+          },
+          {
+            "name": "nr",
+            "in": "path",
+            "required": true,
+            "description": "VAT number without country prefix or punctuation.",
+            "schema": {
+              "type": "string",
+              "description": "VAT number without country prefix or punctuation.",
+              "minLength": 1,
+              "maxLength": 14,
+              "pattern": "^[A-Z0-9]{1,14}$",
+              "x-parameter-location": "path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "country_code": {
+                          "type": "string",
+                          "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                          "minLength": 1,
+                          "maxLength": 2,
+                          "enum": [
+                            "AT",
+                            "BE",
+                            "BG",
+                            "CY",
+                            "CZ",
+                            "DE",
+                            "DK",
+                            "EE",
+                            "EL",
+                            "ES",
+                            "FI",
+                            "FR",
+                            "HR",
+                            "HU",
+                            "IE",
+                            "IT",
+                            "LT",
+                            "LU",
+                            "LV",
+                            "MT",
+                            "NL",
+                            "PL",
+                            "PT",
+                            "RO",
+                            "SE",
+                            "SI",
+                            "SK",
+                            "XI"
+                          ]
+                        },
+                        "vat_number": {
+                          "type": "string",
+                          "description": "VAT number without country prefix or punctuation.",
+                          "minLength": 1,
+                          "maxLength": 14,
+                          "pattern": "^[A-Z0-9]{1,14}$"
+                        },
+                        "valid": {
+                          "type": "boolean"
+                        },
+                        "request_date": {
+                          "type": "string",
+                          "description": "Time reported by VIES",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "address": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "upstream": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "country_code",
+                        "vat_number",
+                        "valid",
+                        "request_date",
+                        "name",
+                        "address",
+                        "upstream"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "vat.eu.validate"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://ec.europa.eu"
+      }
+    },
+    "/taxation_customs/vies/rest-api/check-vat-number": {
+      "post": {
+        "operationId": "vat_eu_check",
+        "summary": "Check VAT registration with optional requester identification",
+        "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "tags": [
+          "VIES",
+          "VAT",
+          "btw",
+          "btw-nummer",
+          "EU",
+          "VAT validation",
+          "tax compliance"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "countryCode": {
+                    "type": "string",
+                    "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                    "minLength": 1,
+                    "maxLength": 2,
+                    "enum": [
+                      "AT",
+                      "BE",
+                      "BG",
+                      "CY",
+                      "CZ",
+                      "DE",
+                      "DK",
+                      "EE",
+                      "EL",
+                      "ES",
+                      "FI",
+                      "FR",
+                      "HR",
+                      "HU",
+                      "IE",
+                      "IT",
+                      "LT",
+                      "LU",
+                      "LV",
+                      "MT",
+                      "NL",
+                      "PL",
+                      "PT",
+                      "RO",
+                      "SE",
+                      "SI",
+                      "SK",
+                      "XI"
+                    ],
+                    "x-parameter-location": "body"
+                  },
+                  "vatNumber": {
+                    "type": "string",
+                    "description": "VAT number without country prefix or punctuation.",
+                    "minLength": 1,
+                    "maxLength": 14,
+                    "pattern": "^[A-Z0-9]{1,14}$",
+                    "x-parameter-location": "body"
+                  },
+                  "requesterMemberStateCode": {
+                    "type": "string",
+                    "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                    "minLength": 1,
+                    "maxLength": 2,
+                    "enum": [
+                      "AT",
+                      "BE",
+                      "BG",
+                      "CY",
+                      "CZ",
+                      "DE",
+                      "DK",
+                      "EE",
+                      "EL",
+                      "ES",
+                      "FI",
+                      "FR",
+                      "HR",
+                      "HU",
+                      "IE",
+                      "IT",
+                      "LT",
+                      "LU",
+                      "LV",
+                      "MT",
+                      "NL",
+                      "PL",
+                      "PT",
+                      "RO",
+                      "SE",
+                      "SI",
+                      "SK",
+                      "XI"
+                    ],
+                    "x-parameter-location": "body"
+                  },
+                  "requesterNumber": {
+                    "type": "string",
+                    "description": "VAT number without country prefix or punctuation.",
+                    "minLength": 1,
+                    "maxLength": 14,
+                    "pattern": "^[A-Z0-9]{1,14}$",
+                    "x-parameter-location": "body"
+                  }
+                },
+                "required": [
+                  "countryCode",
+                  "vatNumber"
+                ]
+              },
+              "example": {
+                "countryCode": "NL",
+                "vatNumber": "004495445B01"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "country_code": {
+                          "type": "string",
+                          "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                          "minLength": 1,
+                          "maxLength": 2,
+                          "enum": [
+                            "AT",
+                            "BE",
+                            "BG",
+                            "CY",
+                            "CZ",
+                            "DE",
+                            "DK",
+                            "EE",
+                            "EL",
+                            "ES",
+                            "FI",
+                            "FR",
+                            "HR",
+                            "HU",
+                            "IE",
+                            "IT",
+                            "LT",
+                            "LU",
+                            "LV",
+                            "MT",
+                            "NL",
+                            "PL",
+                            "PT",
+                            "RO",
+                            "SE",
+                            "SI",
+                            "SK",
+                            "XI"
+                          ]
+                        },
+                        "vat_number": {
+                          "type": "string",
+                          "description": "VAT number without country prefix or punctuation.",
+                          "minLength": 1,
+                          "maxLength": 14,
+                          "pattern": "^[A-Z0-9]{1,14}$"
+                        },
+                        "valid": {
+                          "type": "boolean"
+                        },
+                        "request_date": {
+                          "type": "string",
+                          "description": "Time reported by VIES",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "address": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "upstream": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "country_code",
+                        "vat_number",
+                        "valid",
+                        "request_date",
+                        "name",
+                        "address",
+                        "upstream"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "vat.eu.check"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://ec.europa.eu"
+      }
+    },
+    "/taxation_customs/vies/rest-api/check-status": {
+      "get": {
+        "operationId": "vat_eu_service-status",
+        "summary": "Inspect VIES and national VAT service availability",
+        "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "tags": [
+          "VIES",
+          "VAT",
+          "btw",
+          "btw-nummer",
+          "EU",
+          "VAT validation",
+          "tax compliance"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "vow": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "available"
+                          ]
+                        },
+                        "countries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "countryCode": {
+                                "type": "string",
+                                "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                                "minLength": 1,
+                                "maxLength": 2,
+                                "enum": [
+                                  "AT",
+                                  "BE",
+                                  "BG",
+                                  "CY",
+                                  "CZ",
+                                  "DE",
+                                  "DK",
+                                  "EE",
+                                  "EL",
+                                  "ES",
+                                  "FI",
+                                  "FR",
+                                  "HR",
+                                  "HU",
+                                  "IE",
+                                  "IT",
+                                  "LT",
+                                  "LU",
+                                  "LV",
+                                  "MT",
+                                  "NL",
+                                  "PL",
+                                  "PT",
+                                  "RO",
+                                  "SE",
+                                  "SI",
+                                  "SK",
+                                  "XI"
+                                ]
+                              },
+                              "availability": {
+                                "type": "string",
+                                "description": "National service availability",
+                                "minLength": 1,
+                                "maxLength": 200
+                              }
+                            },
+                            "required": [
+                              "countryCode",
+                              "availability"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "vow",
+                        "countries"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "vat.eu.service-status"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://ec.europa.eu"
+      }
+    }
+  }
+}

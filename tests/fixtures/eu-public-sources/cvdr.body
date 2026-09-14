@@ -1,0 +1,1991 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://docs.oasis-open.org/ns/search-ws/sruResponse"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/sruResponse http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/sruResponse.xsd">
+   <version>2.0</version>
+   <numberOfRecords>528</numberOfRecords>
+   <records>
+      <record>
+         <recordSchema>http://standaarden.overheid.nl/sru/</recordSchema>
+         <recordPacking>xml</recordPacking>
+         <recordData>
+            <gzd xmlns="http://standaarden.overheid.nl/sru"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:overheid="http://standaarden.overheid.nl/owms/terms/"
+                 xsi:schemaLocation="http://standaarden.overheid.nl/sru http://standaarden.overheid.nl/sru/gzd.xsd">
+               <originalData>
+                  <overheidrg:meta xmlns:overheidrg="http://standaarden.overheid.nl/cvdr/terms/">
+                     <owmskern>
+                        <dcterms:identifier>CVDR743806_1</dcterms:identifier>
+                        <dcterms:title>Omgevingsprogramma Water</dcterms:title>
+                        <dcterms:language>nl</dcterms:language>
+                        <dcterms:type scheme="overheid:Informatietype">regeling</dcterms:type>
+                        <dcterms:creator scheme="overheid:Gemeente">Soest</dcterms:creator>
+                        <dcterms:modified>2026-07-21Z</dcterms:modified>
+                     </owmskern>
+                     <owmsmantel>
+                        <dcterms:isFormatOf resourceIdentifier="https://zoek.officielebekendmakingen.nl/gmb-2025-384732.html">gmb-2025-384732</dcterms:isFormatOf>
+                        <dcterms:alternative>Omgevingsprogramma Water</dcterms:alternative>
+                        <dcterms:source resourceIdentifier="jci1.3:c:BWBR0037885&amp;artikel=3.4">Artikel 3.4 Omgevingswet</dcterms:source>
+                        <overheid:isRatifiedBy scheme="">gemeenteraad</overheid:isRatifiedBy>
+                        <dcterms:subject>algemeen</dcterms:subject>
+                        <dcterms:issued/>
+                     </owmsmantel>
+                     <cvdripm>
+                        <overheidrg:inwerkingtredingDatum>2025-09-03</overheidrg:inwerkingtredingDatum>
+                        <overheidrg:uitwerkingtredingDatum/>
+                        <overheidrg:betreft/>
+                        <overheidrg:kenmerk/>
+                        <overheidrg:onderwerp>ruimtelijke ordening</overheidrg:onderwerp>
+                        <overheidrg:redactioneleToevoeging/>
+                        <overheidrg:alternatieveIdentifier>/akn/nl/act/gemeente/2025/CVDR743806</overheidrg:alternatieveIdentifier>
+                        <overheidrg:alternatieveIdentifier>/akn/nl/act/gemeente/2025/CVDR743806/nld@2025-09-03</overheidrg:alternatieveIdentifier>
+                        <overheidrg:alternatieveIdentifier>/akn/nl/act/gm0342/2025/2_8</overheidrg:alternatieveIdentifier>
+                        <overheidrg:alternatieveIdentifier>/akn/nl/act/gm0342/2025/2_8/nld@21</overheidrg:alternatieveIdentifier>
+                        <overheidrg:opvolgerVan/>
+                        <overheidrg:indeling>overig</overheidrg:indeling>
+                        <overheidrg:omgevingswet>ja</overheidrg:omgevingswet>
+                     </cvdripm>
+                  </overheidrg:meta>
+               </originalData>
+               <enrichedData>
+                  <organisatietype>Gemeente</organisatietype>
+                  <publicatieurl_xml>https://repository.officiele-overheidspublicaties.nl/cvdr/CVDR743806/1/xml/CVDR743806_1.xml</publicatieurl_xml>
+                  <preferred_url>https://lokaleregelgeving.overheid.nl/CVDR743806/1</preferred_url>
+                  <preferred_work_url>https://lokaleregelgeving.overheid.nl/CVDR743806</preferred_work_url>
+               </enrichedData>
+            </gzd>
+         </recordData>
+         <recordPosition>1</recordPosition>
+      </record>
+      <record>
+         <recordSchema>http://standaarden.overheid.nl/sru/</recordSchema>
+         <recordPacking>xml</recordPacking>
+         <recordData>
+            <gzd xmlns="http://standaarden.overheid.nl/sru"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:overheid="http://standaarden.overheid.nl/owms/terms/"
+                 xsi:schemaLocation="http://standaarden.overheid.nl/sru http://standaarden.overheid.nl/sru/gzd.xsd">
+               <originalData>
+                  <overheidrg:meta xmlns:overheidrg="http://standaarden.overheid.nl/cvdr/terms/">
+                     <owmskern>
+                        <dcterms:identifier>CVDR120246_1</dcterms:identifier>
+                        <dcterms:title>Verordening openbaar water</dcterms:title>
+                        <dcterms:language>nl</dcterms:language>
+                        <dcterms:type scheme="overheid:Informatietype">regeling</dcterms:type>
+                        <dcterms:creator scheme="overheid:Gemeente">Alkmaar</dcterms:creator>
+                        <dcterms:modified>2018-05-29</dcterms:modified>
+                     </owmskern>
+                     <owmsmantel>
+                        <dcterms:isFormatOf resourceIdentifier="">Officiële Mededelingen, 02-11-2011</dcterms:isFormatOf>
+                        <dcterms:alternative>Verordening openbaar water</dcterms:alternative>
+                        <dcterms:source resourceIdentifier="http://wetten.overheid.nl/cgi-bin/deeplink/law1/title=Gemeentewet/article=149">Gemeentewet, art. 149 </dcterms:source>
+                        <overheid:isRatifiedBy scheme="overheid:BestuursorgaanGemeente">college van burgemeester en wethouders</overheid:isRatifiedBy>
+                        <dcterms:subject>ruimtelijke ordening, verkeer en vervoer</dcterms:subject>
+                        <dcterms:issued>2011-10-27</dcterms:issued>
+                     </owmsmantel>
+                     <cvdripm>
+                        <overheidrg:inwerkingtredingDatum>2011-11-10</overheidrg:inwerkingtredingDatum>
+                        <overheidrg:uitwerkingtredingDatum>2016-10-27</overheidrg:uitwerkingtredingDatum>
+                        <overheidrg:betreft>nieuwe regeling</overheidrg:betreft>
+                        <overheidrg:kenmerk>Onbekend.</overheidrg:kenmerk>
+                        <overheidrg:onderwerp/>
+                        <overheidrg:redactioneleToevoeging>&lt;al&gt;Deze regeling is vervangen door de &lt;extref doc="1.1:CVDR408727_1"&gt;Verordening openbaar water&lt;/extref&gt;.&lt;/al&gt;</overheidrg:redactioneleToevoeging>
+                        <overheidrg:alternatieveIdentifier/>
+                        <overheidrg:opvolgerVan/>
+                        <overheidrg:gedelegeerdeRegelgeving>&lt;al&gt;Geen&lt;/al&gt;</overheidrg:gedelegeerdeRegelgeving>
+                        <overheidrg:intrekkingRegeling>2016-10-27</overheidrg:intrekkingRegeling>
+                        <overheidrg:indeling>overig</overheidrg:indeling>
+                        <overheidrg:omgevingswet>nee</overheidrg:omgevingswet>
+                     </cvdripm>
+                  </overheidrg:meta>
+               </originalData>
+               <enrichedData>
+                  <organisatietype>Gemeente</organisatietype>
+                  <publicatieurl_xml>https://repository.officiele-overheidspublicaties.nl/cvdr/CVDR120246/1/xml/CVDR120246_1.xml</publicatieurl_xml>
+                  <preferred_url>https://lokaleregelgeving.overheid.nl/CVDR120246/1</preferred_url>
+                  <preferred_work_url>https://lokaleregelgeving.overheid.nl/CVDR120246</preferred_work_url>
+               </enrichedData>
+            </gzd>
+         </recordData>
+         <recordPosition>2</recordPosition>
+      </record>
+   </records>
+   <nextRecordPosition>3</nextRecordPosition>
+   <extraResponseData>
+      <facetedResults>
+         <datasource xmlns="http://docs.oasis-open.org/ns/search-ws/facetedResults"
+                     xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+            <datasourceDisplayLabel>CVDR</datasourceDisplayLabel>
+            <datasourceDescription>regelgeving van decentrale overheden</datasourceDescription>
+            <baseURL>https://zoekservice.overheid.nl/sru/Search</baseURL>
+            <facets>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Uitgever</facetDisplayLabel>
+                  <facetDescription>Het type organisatie dat de regeling vaststelt.</facetDescription>
+                  <index>organisatietype</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>CaribischOpenbaarLichaam</actualTerm>
+                        <query>organisatietype = "CaribischOpenbaarLichaam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22CaribischOpenbaarLichaam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Deelgemeente</actualTerm>
+                        <query>organisatietype = "Deelgemeente" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22Deelgemeente%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Gemeente</actualTerm>
+                        <query>organisatietype = "Gemeente" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22Gemeente%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>191</count>
+                     </term>
+                     <term>
+                        <actualTerm>Koninkrijksdeel</actualTerm>
+                        <query>organisatietype = "Koninkrijksdeel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22Koninkrijksdeel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>NederlandseAntillen</actualTerm>
+                        <query>organisatietype = "NederlandseAntillen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22NederlandseAntillen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Provincie</actualTerm>
+                        <query>organisatietype = "Provincie" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22Provincie%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>199</count>
+                     </term>
+                     <term>
+                        <actualTerm>RegionaalSamenwerkingsorgaan</actualTerm>
+                        <query>organisatietype = "RegionaalSamenwerkingsorgaan" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22RegionaalSamenwerkingsorgaan%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>11</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap</actualTerm>
+                        <query>organisatietype = "Waterschap" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=organisatietype%20%3D%20%22Waterschap%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>110</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Uitgever</facetDisplayLabel>
+                  <facetDescription>De naam van de organisatie die de regeling vaststelt.</facetDescription>
+                  <index>dcterms.creator</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>'s-Hertogenbosch</actualTerm>
+                        <query>dcterms.creator = "'s-Hertogenbosch" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22%27s-Hertogenbosch%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Aalburg</actualTerm>
+                        <query>dcterms.creator = "Aalburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Aalburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Aalsmeer</actualTerm>
+                        <query>dcterms.creator = "Aalsmeer" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Aalsmeer%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alblasserdam</actualTerm>
+                        <query>dcterms.creator = "Alblasserdam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Alblasserdam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Albrandswaard</actualTerm>
+                        <query>dcterms.creator = "Albrandswaard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Albrandswaard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alkmaar</actualTerm>
+                        <query>dcterms.creator = "Alkmaar" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Alkmaar%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>14</count>
+                     </term>
+                     <term>
+                        <actualTerm>Almelo</actualTerm>
+                        <query>dcterms.creator = "Almelo" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Almelo%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alphen aan den Rijn</actualTerm>
+                        <query>dcterms.creator = "Alphen aan den Rijn" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Alphen%20aan%20den%20Rijn%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alphen-Chaam</actualTerm>
+                        <query>dcterms.creator = "Alphen-Chaam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Alphen-Chaam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Altena</actualTerm>
+                        <query>dcterms.creator = "Altena" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Altena%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Amsterdam</actualTerm>
+                        <query>dcterms.creator = "Amsterdam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Amsterdam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>25</count>
+                     </term>
+                     <term>
+                        <actualTerm>Amsterdam - Centrum</actualTerm>
+                        <query>dcterms.creator = "Amsterdam - Centrum" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Amsterdam%20-%20Centrum%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Assen</actualTerm>
+                        <query>dcterms.creator = "Assen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Assen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Asten</actualTerm>
+                        <query>dcterms.creator = "Asten" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Asten%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Barendrecht</actualTerm>
+                        <query>dcterms.creator = "Barendrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Barendrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Bergeijk</actualTerm>
+                        <query>dcterms.creator = "Bergeijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Bergeijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Bergen (NH)</actualTerm>
+                        <query>dcterms.creator = "Bergen (NH)" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Bergen%20%28NH%29%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Beuningen</actualTerm>
+                        <query>dcterms.creator = "Beuningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Beuningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Blaricum</actualTerm>
+                        <query>dcterms.creator = "Blaricum" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Blaricum%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Boekel</actualTerm>
+                        <query>dcterms.creator = "Boekel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Boekel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Bonaire</actualTerm>
+                        <query>dcterms.creator = "Bonaire" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Bonaire%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Boxtel</actualTerm>
+                        <query>dcterms.creator = "Boxtel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Boxtel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Breda</actualTerm>
+                        <query>dcterms.creator = "Breda" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Breda%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Brummen</actualTerm>
+                        <query>dcterms.creator = "Brummen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Brummen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Capelle aan den IJssel</actualTerm>
+                        <query>dcterms.creator = "Capelle aan den IJssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Capelle%20aan%20den%20IJssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Castricum</actualTerm>
+                        <query>dcterms.creator = "Castricum" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Castricum%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Curaçao</actualTerm>
+                        <query>dcterms.creator = "Curaçao" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Cura%C3%A7ao%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>De Fryske Marren</actualTerm>
+                        <query>dcterms.creator = "De Fryske Marren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22De%20Fryske%20Marren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Delft</actualTerm>
+                        <query>dcterms.creator = "Delft" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Delft%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dijk en Waard</actualTerm>
+                        <query>dcterms.creator = "Dijk en Waard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Dijk%20en%20Waard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dinkelland</actualTerm>
+                        <query>dcterms.creator = "Dinkelland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Dinkelland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Doetinchem</actualTerm>
+                        <query>dcterms.creator = "Doetinchem" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Doetinchem%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dordrecht</actualTerm>
+                        <query>dcterms.creator = "Dordrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Dordrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Drenthe</actualTerm>
+                        <query>dcterms.creator = "Drenthe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Drenthe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>11</count>
+                     </term>
+                     <term>
+                        <actualTerm>Drimmelen</actualTerm>
+                        <query>dcterms.creator = "Drimmelen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Drimmelen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Edam-Volendam</actualTerm>
+                        <query>dcterms.creator = "Edam-Volendam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Edam-Volendam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Eemnes</actualTerm>
+                        <query>dcterms.creator = "Eemnes" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Eemnes%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Eindhoven</actualTerm>
+                        <query>dcterms.creator = "Eindhoven" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Eindhoven%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Enkhuizen</actualTerm>
+                        <query>dcterms.creator = "Enkhuizen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Enkhuizen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Flevoland</actualTerm>
+                        <query>dcterms.creator = "Flevoland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Flevoland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Fryslân</actualTerm>
+                        <query>dcterms.creator = "Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>18</count>
+                     </term>
+                     <term>
+                        <actualTerm>Geertruidenberg</actualTerm>
+                        <query>dcterms.creator = "Geertruidenberg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Geertruidenberg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Gelderland</actualTerm>
+                        <query>dcterms.creator = "Gelderland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Gelderland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>17</count>
+                     </term>
+                     <term>
+                        <actualTerm>Gouda</actualTerm>
+                        <query>dcterms.creator = "Gouda" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Gouda%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Groningen</actualTerm>
+                        <query>dcterms.creator = "Groningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Groningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>12</count>
+                     </term>
+                     <term>
+                        <actualTerm>Haaksbergen</actualTerm>
+                        <query>dcterms.creator = "Haaksbergen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Haaksbergen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Harderwijk</actualTerm>
+                        <query>dcterms.creator = "Harderwijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Harderwijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hardinxveld-Giessendam</actualTerm>
+                        <query>dcterms.creator = "Hardinxveld-Giessendam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hardinxveld-Giessendam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Harlingen</actualTerm>
+                        <query>dcterms.creator = "Harlingen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Harlingen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heemstede</actualTerm>
+                        <query>dcterms.creator = "Heemstede" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Heemstede%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heeze-Leende</actualTerm>
+                        <query>dcterms.creator = "Heeze-Leende" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Heeze-Leende%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heiloo</actualTerm>
+                        <query>dcterms.creator = "Heiloo" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Heiloo%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heusden</actualTerm>
+                        <query>dcterms.creator = "Heusden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Heusden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hollands Kroon</actualTerm>
+                        <query>dcterms.creator = "Hollands Kroon" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hollands%20Kroon%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap De Stichtse Rijnlanden</actualTerm>
+                        <query>dcterms.creator = "Hoogheemraadschap De Stichtse Rijnlanden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hoogheemraadschap%20De%20Stichtse%20Rijnlanden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>12</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap Hollands Noorderkwartier</actualTerm>
+                        <query>dcterms.creator = "Hoogheemraadschap Hollands Noorderkwartier" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hoogheemraadschap%20Hollands%20Noorderkwartier%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>15</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Delfland</actualTerm>
+                        <query>dcterms.creator = "Hoogheemraadschap van Delfland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hoogheemraadschap%20van%20Delfland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Rijnland</actualTerm>
+                        <query>dcterms.creator = "Hoogheemraadschap van Rijnland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hoogheemraadschap%20van%20Rijnland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Schieland en de Krimpenerwaard</actualTerm>
+                        <query>dcterms.creator = "Hoogheemraadschap van Schieland en de Krimpenerwaard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hoogheemraadschap%20van%20Schieland%20en%20de%20Krimpenerwaard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Horst aan de Maas</actualTerm>
+                        <query>dcterms.creator = "Horst aan de Maas" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Horst%20aan%20de%20Maas%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Houten</actualTerm>
+                        <query>dcterms.creator = "Houten" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Houten%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hulst</actualTerm>
+                        <query>dcterms.creator = "Hulst" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Hulst%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Kampen</actualTerm>
+                        <query>dcterms.creator = "Kampen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Kampen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Laren</actualTerm>
+                        <query>dcterms.creator = "Laren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Laren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Leeuwarden</actualTerm>
+                        <query>dcterms.creator = "Leeuwarden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Leeuwarden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Limburg</actualTerm>
+                        <query>dcterms.creator = "Limburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Limburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Maasdriel</actualTerm>
+                        <query>dcterms.creator = "Maasdriel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Maasdriel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Meierijstad</actualTerm>
+                        <query>dcterms.creator = "Meierijstad" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Meierijstad%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Meppel</actualTerm>
+                        <query>dcterms.creator = "Meppel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Meppel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Midden-Delfland</actualTerm>
+                        <query>dcterms.creator = "Midden-Delfland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Midden-Delfland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Midden-Groningen</actualTerm>
+                        <query>dcterms.creator = "Midden-Groningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Midden-Groningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Moerdijk</actualTerm>
+                        <query>dcterms.creator = "Moerdijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Moerdijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Montferland</actualTerm>
+                        <query>dcterms.creator = "Montferland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Montferland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Neder-Betuwe</actualTerm>
+                        <query>dcterms.creator = "Neder-Betuwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Neder-Betuwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Nederlandse Antillen</actualTerm>
+                        <query>dcterms.creator = "Nederlandse Antillen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Nederlandse%20Antillen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Nijmegen</actualTerm>
+                        <query>dcterms.creator = "Nijmegen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Nijmegen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noardeast-Fryslân</actualTerm>
+                        <query>dcterms.creator = "Noardeast-Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Noardeast-Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Beveland</actualTerm>
+                        <query>dcterms.creator = "Noord-Beveland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Noord-Beveland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Brabant</actualTerm>
+                        <query>dcterms.creator = "Noord-Brabant" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Noord-Brabant%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>40</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Holland</actualTerm>
+                        <query>dcterms.creator = "Noord-Holland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Noord-Holland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>28</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noordenveld</actualTerm>
+                        <query>dcterms.creator = "Noordenveld" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Noordenveld%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Nunspeet</actualTerm>
+                        <query>dcterms.creator = "Nunspeet" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Nunspeet%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oisterwijk</actualTerm>
+                        <query>dcterms.creator = "Oisterwijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Oisterwijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oldambt</actualTerm>
+                        <query>dcterms.creator = "Oldambt" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Oldambt%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Opmeer</actualTerm>
+                        <query>dcterms.creator = "Opmeer" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Opmeer%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Opsterland</actualTerm>
+                        <query>dcterms.creator = "Opsterland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Opsterland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oude IJsselstreek</actualTerm>
+                        <query>dcterms.creator = "Oude IJsselstreek" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Oude%20IJsselstreek%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Ouder-Amstel</actualTerm>
+                        <query>dcterms.creator = "Ouder-Amstel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Ouder-Amstel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Overijssel</actualTerm>
+                        <query>dcterms.creator = "Overijssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Overijssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Papendrecht</actualTerm>
+                        <query>dcterms.creator = "Papendrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Papendrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Parkschap Nationaal Park De Biesbosch</actualTerm>
+                        <query>dcterms.creator = "Parkschap Nationaal Park De Biesbosch" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Parkschap%20Nationaal%20Park%20De%20Biesbosch%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Purmerend</actualTerm>
+                        <query>dcterms.creator = "Purmerend" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Purmerend%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Recreatieschap voor het Friese water en land de Marrekrite</actualTerm>
+                        <query>dcterms.creator = "Recreatieschap voor het Friese water en land de Marrekrite" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Recreatieschap%20voor%20het%20Friese%20water%20en%20land%20de%20Marrekrite%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Regionale Belasting Groep</actualTerm>
+                        <query>dcterms.creator = "Regionale Belasting Groep" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Regionale%20Belasting%20Groep%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Ridderkerk</actualTerm>
+                        <query>dcterms.creator = "Ridderkerk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Ridderkerk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Roosendaal</actualTerm>
+                        <query>dcterms.creator = "Roosendaal" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Roosendaal%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Sint Maarten</actualTerm>
+                        <query>dcterms.creator = "Sint Maarten" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Sint%20Maarten%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Sittard-Geleen</actualTerm>
+                        <query>dcterms.creator = "Sittard-Geleen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Sittard-Geleen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Sliedrecht</actualTerm>
+                        <query>dcterms.creator = "Sliedrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Sliedrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Slochteren</actualTerm>
+                        <query>dcterms.creator = "Slochteren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Slochteren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Smallingerland</actualTerm>
+                        <query>dcterms.creator = "Smallingerland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Smallingerland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Soest</actualTerm>
+                        <query>dcterms.creator = "Soest" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Soest%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Son en Breugel</actualTerm>
+                        <query>dcterms.creator = "Son en Breugel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Son%20en%20Breugel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Steenwijkerland</actualTerm>
+                        <query>dcterms.creator = "Steenwijkerland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Steenwijkerland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Súdwest-Fryslân</actualTerm>
+                        <query>dcterms.creator = "Súdwest-Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22S%C3%BAdwest-Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Terneuzen</actualTerm>
+                        <query>dcterms.creator = "Terneuzen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Terneuzen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Terschelling</actualTerm>
+                        <query>dcterms.creator = "Terschelling" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Terschelling%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Tilburg</actualTerm>
+                        <query>dcterms.creator = "Tilburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Tilburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Tubbergen</actualTerm>
+                        <query>dcterms.creator = "Tubbergen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Tubbergen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Twenterand</actualTerm>
+                        <query>dcterms.creator = "Twenterand" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Twenterand%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Uitgeest</actualTerm>
+                        <query>dcterms.creator = "Uitgeest" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Uitgeest%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Uithoorn</actualTerm>
+                        <query>dcterms.creator = "Uithoorn" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Uithoorn%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Utrecht</actualTerm>
+                        <query>dcterms.creator = "Utrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Utrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>8</count>
+                     </term>
+                     <term>
+                        <actualTerm>Utrechtse Heuvelrug</actualTerm>
+                        <query>dcterms.creator = "Utrechtse Heuvelrug" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Utrechtse%20Heuvelrug%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Veere</actualTerm>
+                        <query>dcterms.creator = "Veere" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Veere%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Venray</actualTerm>
+                        <query>dcterms.creator = "Venray" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Venray%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Vijfheerenlanden</actualTerm>
+                        <query>dcterms.creator = "Vijfheerenlanden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Vijfheerenlanden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waadhoeke</actualTerm>
+                        <query>dcterms.creator = "Waadhoeke" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waadhoeke%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waddenfonds</actualTerm>
+                        <query>dcterms.creator = "Waddenfonds" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waddenfonds%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Amstel, Gooi en Vecht</actualTerm>
+                        <query>dcterms.creator = "Waterschap Amstel, Gooi en Vecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Amstel%2C%20Gooi%20en%20Vecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>21</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Brabantse Delta</actualTerm>
+                        <query>dcterms.creator = "Waterschap Brabantse Delta" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Brabantse%20Delta%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap De Dommel</actualTerm>
+                        <query>dcterms.creator = "Waterschap De Dommel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20De%20Dommel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Drents Overijsselse Delta</actualTerm>
+                        <query>dcterms.creator = "Waterschap Drents Overijsselse Delta" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Drents%20Overijsselse%20Delta%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Limburg</actualTerm>
+                        <query>dcterms.creator = "Waterschap Limburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Limburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Peel en Maasvallei</actualTerm>
+                        <query>dcterms.creator = "Waterschap Peel en Maasvallei" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Peel%20en%20Maasvallei%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>8</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Reest en Wieden</actualTerm>
+                        <query>dcterms.creator = "Waterschap Reest en Wieden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Reest%20en%20Wieden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Rijn en IJssel</actualTerm>
+                        <query>dcterms.creator = "Waterschap Rijn en IJssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Rijn%20en%20IJssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Rivierenland</actualTerm>
+                        <query>dcterms.creator = "Waterschap Rivierenland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Rivierenland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>9</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Vallei en Veluwe</actualTerm>
+                        <query>dcterms.creator = "Waterschap Vallei en Veluwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Vallei%20en%20Veluwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Vechtstromen</actualTerm>
+                        <query>dcterms.creator = "Waterschap Vechtstromen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Waterschap%20Vechtstromen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>West Betuwe</actualTerm>
+                        <query>dcterms.creator = "West Betuwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22West%20Betuwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerkwartier</actualTerm>
+                        <query>dcterms.creator = "Westerkwartier" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Westerkwartier%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerveld</actualTerm>
+                        <query>dcterms.creator = "Westerveld" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Westerveld%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerwolde</actualTerm>
+                        <query>dcterms.creator = "Westerwolde" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Westerwolde%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Wijdemeren</actualTerm>
+                        <query>dcterms.creator = "Wijdemeren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Wijdemeren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Wijk bij Duurstede</actualTerm>
+                        <query>dcterms.creator = "Wijk bij Duurstede" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Wijk%20bij%20Duurstede%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Winterswijk</actualTerm>
+                        <query>dcterms.creator = "Winterswijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Winterswijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Woensdrecht</actualTerm>
+                        <query>dcterms.creator = "Woensdrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Woensdrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zaanstad</actualTerm>
+                        <query>dcterms.creator = "Zaanstad" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zaanstad%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zaltbommel</actualTerm>
+                        <query>dcterms.creator = "Zaltbommel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zaltbommel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zeeland</actualTerm>
+                        <query>dcterms.creator = "Zeeland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zeeland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>20</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zeewolde</actualTerm>
+                        <query>dcterms.creator = "Zeewolde" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zeewolde%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zuid-Holland</actualTerm>
+                        <query>dcterms.creator = "Zuid-Holland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zuid-Holland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>24</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zundert</actualTerm>
+                        <query>dcterms.creator = "Zundert" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.creator%20%3D%20%22Zundert%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Onderwerp</facetDisplayLabel>
+                  <facetDescription>Het onderwerp (categorie) van de regeling.</facetDescription>
+                  <index>dcterms.subject</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>algemeen</actualTerm>
+                        <query>dcterms.subject = "algemeen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22algemeen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>20</count>
+                     </term>
+                     <term>
+                        <actualTerm>bestuur en recht</actualTerm>
+                        <query>dcterms.subject = "bestuur en recht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22bestuur%20en%20recht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>74</count>
+                     </term>
+                     <term>
+                        <actualTerm>financiën en economie</actualTerm>
+                        <query>dcterms.subject = "financiën en economie" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22financi%C3%ABn%20en%20economie%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>161</count>
+                     </term>
+                     <term>
+                        <actualTerm>maatschappelijke zorg en welzijn</actualTerm>
+                        <query>dcterms.subject = "maatschappelijke zorg en welzijn" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22maatschappelijke%20zorg%20en%20welzijn%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>5</count>
+                     </term>
+                     <term>
+                        <actualTerm>milieu</actualTerm>
+                        <query>dcterms.subject = "milieu" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22milieu%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>240</count>
+                     </term>
+                     <term>
+                        <actualTerm>openbare orde en veiligheid</actualTerm>
+                        <query>dcterms.subject = "openbare orde en veiligheid" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22openbare%20orde%20en%20veiligheid%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>30</count>
+                     </term>
+                     <term>
+                        <actualTerm>ruimtelijke ordening, verkeer en vervoer</actualTerm>
+                        <query>dcterms.subject = "ruimtelijke ordening, verkeer en vervoer" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=dcterms.subject%20%3D%20%22ruimtelijke%20ordening%2C%20verkeer%20en%20vervoer%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>98</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Gemeente</facetDisplayLabel>
+                  <facetDescription>De naam van de gemeente die de regeling vaststelt.</facetDescription>
+                  <index>gemeente</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>'s-Hertogenbosch</actualTerm>
+                        <query>gemeente = "'s-Hertogenbosch" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22%27s-Hertogenbosch%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Aalburg</actualTerm>
+                        <query>gemeente = "Aalburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Aalburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Aalsmeer</actualTerm>
+                        <query>gemeente = "Aalsmeer" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Aalsmeer%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alblasserdam</actualTerm>
+                        <query>gemeente = "Alblasserdam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Alblasserdam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Albrandswaard</actualTerm>
+                        <query>gemeente = "Albrandswaard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Albrandswaard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alkmaar</actualTerm>
+                        <query>gemeente = "Alkmaar" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Alkmaar%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>14</count>
+                     </term>
+                     <term>
+                        <actualTerm>Almelo</actualTerm>
+                        <query>gemeente = "Almelo" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Almelo%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alphen aan den Rijn</actualTerm>
+                        <query>gemeente = "Alphen aan den Rijn" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Alphen%20aan%20den%20Rijn%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Alphen-Chaam</actualTerm>
+                        <query>gemeente = "Alphen-Chaam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Alphen-Chaam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Altena</actualTerm>
+                        <query>gemeente = "Altena" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Altena%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Amsterdam</actualTerm>
+                        <query>gemeente = "Amsterdam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Amsterdam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>25</count>
+                     </term>
+                     <term>
+                        <actualTerm>Assen</actualTerm>
+                        <query>gemeente = "Assen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Assen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Asten</actualTerm>
+                        <query>gemeente = "Asten" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Asten%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Barendrecht</actualTerm>
+                        <query>gemeente = "Barendrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Barendrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Bergeijk</actualTerm>
+                        <query>gemeente = "Bergeijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Bergeijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Bergen (NH)</actualTerm>
+                        <query>gemeente = "Bergen (NH)" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Bergen%20%28NH%29%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Beuningen</actualTerm>
+                        <query>gemeente = "Beuningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Beuningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Blaricum</actualTerm>
+                        <query>gemeente = "Blaricum" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Blaricum%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Boekel</actualTerm>
+                        <query>gemeente = "Boekel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Boekel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Boxtel</actualTerm>
+                        <query>gemeente = "Boxtel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Boxtel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Breda</actualTerm>
+                        <query>gemeente = "Breda" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Breda%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Brummen</actualTerm>
+                        <query>gemeente = "Brummen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Brummen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Capelle aan den IJssel</actualTerm>
+                        <query>gemeente = "Capelle aan den IJssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Capelle%20aan%20den%20IJssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Castricum</actualTerm>
+                        <query>gemeente = "Castricum" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Castricum%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>De Fryske Marren</actualTerm>
+                        <query>gemeente = "De Fryske Marren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22De%20Fryske%20Marren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Delft</actualTerm>
+                        <query>gemeente = "Delft" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Delft%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dijk en Waard</actualTerm>
+                        <query>gemeente = "Dijk en Waard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Dijk%20en%20Waard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dinkelland</actualTerm>
+                        <query>gemeente = "Dinkelland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Dinkelland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Doetinchem</actualTerm>
+                        <query>gemeente = "Doetinchem" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Doetinchem%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Dordrecht</actualTerm>
+                        <query>gemeente = "Dordrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Dordrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Drimmelen</actualTerm>
+                        <query>gemeente = "Drimmelen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Drimmelen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Edam-Volendam</actualTerm>
+                        <query>gemeente = "Edam-Volendam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Edam-Volendam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Eemnes</actualTerm>
+                        <query>gemeente = "Eemnes" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Eemnes%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Eindhoven</actualTerm>
+                        <query>gemeente = "Eindhoven" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Eindhoven%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Enkhuizen</actualTerm>
+                        <query>gemeente = "Enkhuizen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Enkhuizen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Geertruidenberg</actualTerm>
+                        <query>gemeente = "Geertruidenberg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Geertruidenberg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Gouda</actualTerm>
+                        <query>gemeente = "Gouda" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Gouda%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Groningen</actualTerm>
+                        <query>gemeente = "Groningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Groningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Haaksbergen</actualTerm>
+                        <query>gemeente = "Haaksbergen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Haaksbergen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Harderwijk</actualTerm>
+                        <query>gemeente = "Harderwijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Harderwijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hardinxveld-Giessendam</actualTerm>
+                        <query>gemeente = "Hardinxveld-Giessendam" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Hardinxveld-Giessendam%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Harlingen</actualTerm>
+                        <query>gemeente = "Harlingen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Harlingen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heemstede</actualTerm>
+                        <query>gemeente = "Heemstede" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Heemstede%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heeze-Leende</actualTerm>
+                        <query>gemeente = "Heeze-Leende" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Heeze-Leende%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heiloo</actualTerm>
+                        <query>gemeente = "Heiloo" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Heiloo%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Heusden</actualTerm>
+                        <query>gemeente = "Heusden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Heusden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hollands Kroon</actualTerm>
+                        <query>gemeente = "Hollands Kroon" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Hollands%20Kroon%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Horst aan de Maas</actualTerm>
+                        <query>gemeente = "Horst aan de Maas" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Horst%20aan%20de%20Maas%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Houten</actualTerm>
+                        <query>gemeente = "Houten" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Houten%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hulst</actualTerm>
+                        <query>gemeente = "Hulst" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Hulst%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Kampen</actualTerm>
+                        <query>gemeente = "Kampen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Kampen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Laren</actualTerm>
+                        <query>gemeente = "Laren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Laren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Leeuwarden</actualTerm>
+                        <query>gemeente = "Leeuwarden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Leeuwarden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Maasdriel</actualTerm>
+                        <query>gemeente = "Maasdriel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Maasdriel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Meierijstad</actualTerm>
+                        <query>gemeente = "Meierijstad" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Meierijstad%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Meppel</actualTerm>
+                        <query>gemeente = "Meppel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Meppel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Midden-Delfland</actualTerm>
+                        <query>gemeente = "Midden-Delfland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Midden-Delfland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Midden-Groningen</actualTerm>
+                        <query>gemeente = "Midden-Groningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Midden-Groningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Moerdijk</actualTerm>
+                        <query>gemeente = "Moerdijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Moerdijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Montferland</actualTerm>
+                        <query>gemeente = "Montferland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Montferland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Neder-Betuwe</actualTerm>
+                        <query>gemeente = "Neder-Betuwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Neder-Betuwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Nijmegen</actualTerm>
+                        <query>gemeente = "Nijmegen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Nijmegen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noardeast-Fryslân</actualTerm>
+                        <query>gemeente = "Noardeast-Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Noardeast-Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Beveland</actualTerm>
+                        <query>gemeente = "Noord-Beveland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Noord-Beveland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noordenveld</actualTerm>
+                        <query>gemeente = "Noordenveld" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Noordenveld%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Nunspeet</actualTerm>
+                        <query>gemeente = "Nunspeet" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Nunspeet%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oisterwijk</actualTerm>
+                        <query>gemeente = "Oisterwijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Oisterwijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oldambt</actualTerm>
+                        <query>gemeente = "Oldambt" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Oldambt%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Opmeer</actualTerm>
+                        <query>gemeente = "Opmeer" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Opmeer%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Opsterland</actualTerm>
+                        <query>gemeente = "Opsterland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Opsterland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Oude IJsselstreek</actualTerm>
+                        <query>gemeente = "Oude IJsselstreek" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Oude%20IJsselstreek%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Ouder-Amstel</actualTerm>
+                        <query>gemeente = "Ouder-Amstel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Ouder-Amstel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Papendrecht</actualTerm>
+                        <query>gemeente = "Papendrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Papendrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Purmerend</actualTerm>
+                        <query>gemeente = "Purmerend" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Purmerend%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Ridderkerk</actualTerm>
+                        <query>gemeente = "Ridderkerk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Ridderkerk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Roosendaal</actualTerm>
+                        <query>gemeente = "Roosendaal" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Roosendaal%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Sittard-Geleen</actualTerm>
+                        <query>gemeente = "Sittard-Geleen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Sittard-Geleen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Sliedrecht</actualTerm>
+                        <query>gemeente = "Sliedrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Sliedrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Slochteren</actualTerm>
+                        <query>gemeente = "Slochteren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Slochteren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Smallingerland</actualTerm>
+                        <query>gemeente = "Smallingerland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Smallingerland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Soest</actualTerm>
+                        <query>gemeente = "Soest" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Soest%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Son en Breugel</actualTerm>
+                        <query>gemeente = "Son en Breugel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Son%20en%20Breugel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Steenwijkerland</actualTerm>
+                        <query>gemeente = "Steenwijkerland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Steenwijkerland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Súdwest-Fryslân</actualTerm>
+                        <query>gemeente = "Súdwest-Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22S%C3%BAdwest-Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Terneuzen</actualTerm>
+                        <query>gemeente = "Terneuzen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Terneuzen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Terschelling</actualTerm>
+                        <query>gemeente = "Terschelling" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Terschelling%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Tilburg</actualTerm>
+                        <query>gemeente = "Tilburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Tilburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Tubbergen</actualTerm>
+                        <query>gemeente = "Tubbergen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Tubbergen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Twenterand</actualTerm>
+                        <query>gemeente = "Twenterand" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Twenterand%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Uitgeest</actualTerm>
+                        <query>gemeente = "Uitgeest" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Uitgeest%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Uithoorn</actualTerm>
+                        <query>gemeente = "Uithoorn" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Uithoorn%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Utrechtse Heuvelrug</actualTerm>
+                        <query>gemeente = "Utrechtse Heuvelrug" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Utrechtse%20Heuvelrug%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Veere</actualTerm>
+                        <query>gemeente = "Veere" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Veere%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Venray</actualTerm>
+                        <query>gemeente = "Venray" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Venray%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Vijfheerenlanden</actualTerm>
+                        <query>gemeente = "Vijfheerenlanden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Vijfheerenlanden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waadhoeke</actualTerm>
+                        <query>gemeente = "Waadhoeke" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Waadhoeke%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>West Betuwe</actualTerm>
+                        <query>gemeente = "West Betuwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22West%20Betuwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerkwartier</actualTerm>
+                        <query>gemeente = "Westerkwartier" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Westerkwartier%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerveld</actualTerm>
+                        <query>gemeente = "Westerveld" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Westerveld%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Westerwolde</actualTerm>
+                        <query>gemeente = "Westerwolde" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Westerwolde%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Wijdemeren</actualTerm>
+                        <query>gemeente = "Wijdemeren" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Wijdemeren%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Wijk bij Duurstede</actualTerm>
+                        <query>gemeente = "Wijk bij Duurstede" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Wijk%20bij%20Duurstede%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Winterswijk</actualTerm>
+                        <query>gemeente = "Winterswijk" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Winterswijk%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Woensdrecht</actualTerm>
+                        <query>gemeente = "Woensdrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Woensdrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zaanstad</actualTerm>
+                        <query>gemeente = "Zaanstad" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Zaanstad%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zaltbommel</actualTerm>
+                        <query>gemeente = "Zaltbommel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Zaltbommel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zeewolde</actualTerm>
+                        <query>gemeente = "Zeewolde" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Zeewolde%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zundert</actualTerm>
+                        <query>gemeente = "Zundert" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=gemeente%20%3D%20%22Zundert%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Provincie</facetDisplayLabel>
+                  <facetDescription>De naam van de provincie die de regeling vaststelt.</facetDescription>
+                  <index>provincie</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>Drenthe</actualTerm>
+                        <query>provincie = "Drenthe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Drenthe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>11</count>
+                     </term>
+                     <term>
+                        <actualTerm>Flevoland</actualTerm>
+                        <query>provincie = "Flevoland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Flevoland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Fryslân</actualTerm>
+                        <query>provincie = "Fryslân" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Frysl%C3%A2n%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>18</count>
+                     </term>
+                     <term>
+                        <actualTerm>Gelderland</actualTerm>
+                        <query>provincie = "Gelderland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Gelderland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>17</count>
+                     </term>
+                     <term>
+                        <actualTerm>Groningen</actualTerm>
+                        <query>provincie = "Groningen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Groningen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>11</count>
+                     </term>
+                     <term>
+                        <actualTerm>Limburg</actualTerm>
+                        <query>provincie = "Limburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Limburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Brabant</actualTerm>
+                        <query>provincie = "Noord-Brabant" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Noord-Brabant%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>40</count>
+                     </term>
+                     <term>
+                        <actualTerm>Noord-Holland</actualTerm>
+                        <query>provincie = "Noord-Holland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Noord-Holland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>28</count>
+                     </term>
+                     <term>
+                        <actualTerm>Overijssel</actualTerm>
+                        <query>provincie = "Overijssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Overijssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Utrecht</actualTerm>
+                        <query>provincie = "Utrecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Utrecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>8</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zeeland</actualTerm>
+                        <query>provincie = "Zeeland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Zeeland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>20</count>
+                     </term>
+                     <term>
+                        <actualTerm>Zuid-Holland</actualTerm>
+                        <query>provincie = "Zuid-Holland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=provincie%20%3D%20%22Zuid-Holland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>24</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Waterschap</facetDisplayLabel>
+                  <facetDescription>De naam van het waterschap dat de regeling vaststelt.</facetDescription>
+                  <index>waterschap</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>Hoogheemraadschap De Stichtse Rijnlanden</actualTerm>
+                        <query>waterschap = "Hoogheemraadschap De Stichtse Rijnlanden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Hoogheemraadschap%20De%20Stichtse%20Rijnlanden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>12</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap Hollands Noorderkwartier</actualTerm>
+                        <query>waterschap = "Hoogheemraadschap Hollands Noorderkwartier" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Hoogheemraadschap%20Hollands%20Noorderkwartier%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>15</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Delfland</actualTerm>
+                        <query>waterschap = "Hoogheemraadschap van Delfland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Hoogheemraadschap%20van%20Delfland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Rijnland</actualTerm>
+                        <query>waterschap = "Hoogheemraadschap van Rijnland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Hoogheemraadschap%20van%20Rijnland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Hoogheemraadschap van Schieland en de Krimpenerwaard</actualTerm>
+                        <query>waterschap = "Hoogheemraadschap van Schieland en de Krimpenerwaard" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Hoogheemraadschap%20van%20Schieland%20en%20de%20Krimpenerwaard%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Amstel, Gooi en Vecht</actualTerm>
+                        <query>waterschap = "Waterschap Amstel, Gooi en Vecht" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Amstel%2C%20Gooi%20en%20Vecht%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>21</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Brabantse Delta</actualTerm>
+                        <query>waterschap = "Waterschap Brabantse Delta" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Brabantse%20Delta%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap De Dommel</actualTerm>
+                        <query>waterschap = "Waterschap De Dommel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20De%20Dommel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Drents Overijsselse Delta</actualTerm>
+                        <query>waterschap = "Waterschap Drents Overijsselse Delta" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Drents%20Overijsselse%20Delta%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Limburg</actualTerm>
+                        <query>waterschap = "Waterschap Limburg" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Limburg%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>7</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Peel en Maasvallei</actualTerm>
+                        <query>waterschap = "Waterschap Peel en Maasvallei" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Peel%20en%20Maasvallei%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>8</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Reest en Wieden</actualTerm>
+                        <query>waterschap = "Waterschap Reest en Wieden" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Reest%20en%20Wieden%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Rijn en IJssel</actualTerm>
+                        <query>waterschap = "Waterschap Rijn en IJssel" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Rijn%20en%20IJssel%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Rivierenland</actualTerm>
+                        <query>waterschap = "Waterschap Rivierenland" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Rivierenland%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>9</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Vallei en Veluwe</actualTerm>
+                        <query>waterschap = "Waterschap Vallei en Veluwe" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Vallei%20en%20Veluwe%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>10</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waterschap Vechtstromen</actualTerm>
+                        <query>waterschap = "Waterschap Vechtstromen" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=waterschap%20%3D%20%22Waterschap%20Vechtstromen%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>2</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Regionaal samenwerkingsorgaan</facetDisplayLabel>
+                  <facetDescription>De naam van het regionaal samenwerkingsorgaan dat de regeling vaststelt.</facetDescription>
+                  <index>regionaalsamenwerkingsorgaan</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>Parkschap Nationaal Park De Biesbosch</actualTerm>
+                        <query>regionaalsamenwerkingsorgaan = "Parkschap Nationaal Park De Biesbosch" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=regionaalsamenwerkingsorgaan%20%3D%20%22Parkschap%20Nationaal%20Park%20De%20Biesbosch%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Recreatieschap voor het Friese water en land de Marrekrite</actualTerm>
+                        <query>regionaalsamenwerkingsorgaan = "Recreatieschap voor het Friese water en land de Marrekrite" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=regionaalsamenwerkingsorgaan%20%3D%20%22Recreatieschap%20voor%20het%20Friese%20water%20en%20land%20de%20Marrekrite%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>3</count>
+                     </term>
+                     <term>
+                        <actualTerm>Regionale Belasting Groep</actualTerm>
+                        <query>regionaalsamenwerkingsorgaan = "Regionale Belasting Groep" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=regionaalsamenwerkingsorgaan%20%3D%20%22Regionale%20Belasting%20Groep%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>1</count>
+                     </term>
+                     <term>
+                        <actualTerm>Waddenfonds</actualTerm>
+                        <query>regionaalsamenwerkingsorgaan = "Waddenfonds" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=regionaalsamenwerkingsorgaan%20%3D%20%22Waddenfonds%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>4</count>
+                     </term>
+                  </terms>
+               </facet>
+               <facet xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/facetedResults http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/facetedResults.xsd">
+                  <facetDisplayLabel>Caribisch openbaar lichaam</facetDisplayLabel>
+                  <facetDescription>De naam van het caribische openbare lichaam die de regeling vaststelt.</facetDescription>
+                  <index>caribischopenbaarlichaam</index>
+                  <relation>=</relation>
+                  <terms>
+                     <term>
+                        <actualTerm>Bonaire</actualTerm>
+                        <query>caribischopenbaarlichaam = "Bonaire" AND dcterms.title any "water"</query>
+                        <requestUrl>https://zoekservice.overheid.nl/sru/Search?version=2.0&amp;operation=searchRetrieve&amp;x-connection=cvdr&amp;query=caribischopenbaarlichaam%20%3D%20%22Bonaire%22%20AND%20dcterms.title%20any%20%22water%22</requestUrl>
+                        <count>6</count>
+                     </term>
+                  </terms>
+               </facet>
+            </facets>
+         </datasource>
+      </facetedResults>
+   </extraResponseData>
+</searchRetrieveResponse>

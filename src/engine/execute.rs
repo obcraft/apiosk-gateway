@@ -58,38 +58,90 @@ impl Engine {
                 .find(|a| a.id() == req.action_id)
                 .ok_or_else(|| anyhow::anyhow!("unknown or stale action"))?
         };
-        if single_call_mode() && matches!(action, Action::Run {..} | Action::Choose {..} | Action::Supply {..}) {
+        if single_call_mode()
+            && matches!(
+                action,
+                Action::Run { .. } | Action::Choose { .. } | Action::Supply { .. }
+            )
+        {
             anyhow::ensure!(!task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1), "Multi-step research is paused. Read the existing result or start a single-call question.");
         }
         match action {
             Action::Wait { until, .. } => {
                 anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid wait input");
-                if until > Utc::now() { return self.view(p, id, req.request_id, None).await; }
+                if until > Utc::now() {
+                    return self.view(p, id, req.request_id, None).await;
+                }
                 self.advance(&mut task)?;
             }
             Action::Analyze { .. } | Action::RetryAnalysis { .. } => {
-                anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid analysis input");
-                let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
-                let intent: Intent = serde_json::from_value(task.intent.clone().ok_or_else(|| anyhow::anyhow!("missing intent"))?)?;
+                anyhow::ensure!(
+                    req.input.is_null() && !task.cancelled,
+                    "invalid analysis input"
+                );
+                let plan: Plan = serde_json::from_value(
+                    task.proposal
+                        .clone()
+                        .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
+                )?;
+                let intent: Intent = serde_json::from_value(
+                    task.intent
+                        .clone()
+                        .ok_or_else(|| anyhow::anyhow!("missing intent"))?,
+                )?;
                 let mut sources = Vec::new();
                 for result in &task.active_results {
                     let document = self.store.result(p.owner, id, *result).await?;
-                    if plan.steps.iter().any(|step| document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
-                        && document["subject"]["entity_ref"] == json!(step.entity_ref)
-                        && intent.goals.iter().any(|goal| goal.capability == step.service.contract.capability_slug
-                            && intent.subjects.get(goal.subject).is_some_and(|s| s.entity_ref == Some(step.entity_ref)))) {
+                    if plan.steps.iter().any(|step| {
+                        document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
+                            && document["subject"]["entity_ref"] == json!(step.entity_ref)
+                            && intent.goals.iter().any(|goal| {
+                                goal.capability == step.service.contract.capability_slug
+                                    && intent
+                                        .subjects
+                                        .get(goal.subject)
+                                        .is_some_and(|s| s.entity_ref == Some(step.entity_ref))
+                            })
+                    }) {
                         sources.push(json!({"result_ref":result,"document":document}));
                     }
                 }
-                let operations = task.intent.as_ref().map(|v| v["answer_operations"].clone()).unwrap_or(json!([]));
-                task.analysis = Some(match self.parser.analyze(&operations, &sources, &task.failed_steps).await {
-                    Ok(analysis) => analysis,
-                    Err(_) => json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]}),
-                });
+                let mut operations = task
+                    .intent
+                    .as_ref()
+                    .and_then(|v| v["answer_operations"].as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                if let Some(turn) = task.conversation.last() {
+                    operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
+                }
+                if operations.is_empty() {
+                    operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
+                }
+                let operations = json!(operations);
+                task.analysis = Some(
+                    match self
+                        .parser
+                        .analyze(&operations, &sources, &task.failed_steps)
+                        .await
+                    {
+                        Ok(analysis) => analysis,
+                        Err(_) => {
+                            json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
+                        }
+                    },
+                );
                 task.actions.clear();
-                if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {
+                if task
+                    .analysis
+                    .as_ref()
+                    .is_some_and(|a| a["status"] == "unavailable")
+                {
                     // Only an explicit click retries saved documents. Never poll-loop or re-purchase.
-                    task.actions.push(serde_json::to_value(Action::RetryAnalysis {action_id:Uuid::new_v4()})?);
+                    task.actions
+                        .push(serde_json::to_value(Action::RetryAnalysis {
+                            action_id: Uuid::new_v4(),
+                        })?);
                 }
             }
             Action::Read { result_ref, .. } => {
@@ -102,7 +154,15 @@ impl Engine {
                     "unexpected read input"
                 );
                 let mut r = self.view(p, id, req.request_id, None).await?;
-                r.result = Some(self.result_page(p.owner, id, result_ref, req.input["offset"].as_u64().unwrap_or(0) as usize).await?);
+                r.result = Some(
+                    self.result_page(
+                        p.owner,
+                        id,
+                        result_ref,
+                        req.input["offset"].as_u64().unwrap_or(0) as usize,
+                    )
+                    .await?,
+                );
                 return Ok(r);
             }
             Action::Cancel { .. } => {
@@ -162,11 +222,22 @@ impl Engine {
                     .collect();
                 for mut fact in chosen {
                     fact.entity_ref = original;
-                    task.facts.retain(|known| known.entity_ref != original || known.semantic_type != fact.semantic_type);
+                    task.facts.retain(|known| {
+                        known.entity_ref != original || known.semantic_type != fact.semantic_type
+                    });
                     task.facts.push(fact)
                 }
-                if let Some(label) = task.entities.iter().find(|e|e.entity_ref==selected).map(|e|e.label.clone()) {
-                    if let Some(entity) = task.entities.iter_mut().find(|e|e.entity_ref==original) { entity.label = label; }
+                if let Some(label) = task
+                    .entities
+                    .iter()
+                    .find(|e| e.entity_ref == selected)
+                    .map(|e| e.label.clone())
+                {
+                    if let Some(entity) =
+                        task.entities.iter_mut().find(|e| e.entity_ref == original)
+                    {
+                        entity.label = label;
+                    }
                 }
                 if let Some(e) = task.entities.iter_mut().find(|e| e.entity_ref == selected) {
                     e.selected = true;
@@ -230,7 +301,10 @@ impl Engine {
                     .await?
                 {
                     Dispatch::Waiting { until } => {
-                        task.actions = vec![serde_json::to_value(Action::Wait { action_id: Uuid::new_v4(), until })?];
+                        task.actions = vec![serde_json::to_value(Action::Wait {
+                            action_id: Uuid::new_v4(),
+                            until,
+                        })?];
                     }
                     Dispatch::Failed { body } => {
                         self.fail_step(&mut task, selected, crate::billing::public_error(&body))?;
@@ -266,15 +340,30 @@ impl Engine {
                         self.ingest(p, id, &mut task, &step, execution_id, body, &catalog)
                             .await?;
                     } else {
-                        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing quote"))?)?;
-                        let step = plan.steps.iter().find(|s| !task.step_finished(&s.key())).ok_or_else(|| anyhow::anyhow!("missing step"))?;
+                        let plan: Plan = serde_json::from_value(
+                            task.proposal
+                                .clone()
+                                .ok_or_else(|| anyhow::anyhow!("missing quote"))?,
+                        )?;
+                        let step = plan
+                            .steps
+                            .iter()
+                            .find(|s| !task.step_finished(&s.key()))
+                            .ok_or_else(|| anyhow::anyhow!("missing step"))?;
                         // Retry one confirmed, fully refunded KVK throttle under
                         // the original quote. Unknown payment outcomes never enter
                         // this branch. Dispatch rechecks consent, price and budget.
                         let attempts: i64 = sqlx::query_scalar("SELECT count(*) FROM executions e JOIN user_selected_apis s ON s.id=e.selection_id WHERE e.task_id=$1 AND e.owner_id=$2 AND s.candidate_id=$3 AND e.response->>'error'='rate_limited_refunded'")
                             .bind(id).bind(p.owner).bind(step.service.endpoint_id).fetch_one(&self.store.pool).await?;
-                        if body["error"] == "rate_limited_refunded" && step.service.path == crate::annual_report::ENDPOINT && attempts == 1 && !task.cancelled {
-                            task.actions = vec![serde_json::to_value(Action::Wait { action_id: Uuid::new_v4(), until: Utc::now()+chrono::Duration::seconds(65) })?];
+                        if body["error"] == "rate_limited_refunded"
+                            && step.service.path == crate::annual_report::ENDPOINT
+                            && attempts == 1
+                            && !task.cancelled
+                        {
+                            task.actions = vec![serde_json::to_value(Action::Wait {
+                                action_id: Uuid::new_v4(),
+                                until: Utc::now() + chrono::Duration::seconds(65),
+                            })?];
                         } else {
                             self.fail_step(&mut task, step, crate::billing::public_error(&body))?;
                         }
@@ -295,13 +384,34 @@ impl Engine {
         if !task.cancelled {
             let mut next_step = None;
             for (index, candidate) in plan.steps.iter().enumerate() {
-                if task.step_finished(&candidate.key()) { continue; }
-                let missing: Vec<_> = candidate.service.contract.requires.iter().filter(|r| !r.optional)
-                    .filter(|r| !crate::catalog::fact_value(&task.facts, candidate.entity_ref, &r.fact_type).is_ok_and(|v| v.is_some()))
-                    .filter(|r| !plan.steps.iter().any(|parent| parent.entity_ref == candidate.entity_ref
-                        && !task.step_finished(&parent.key()) && parent.key() != candidate.key()
-                        && parent.service.contract.output_map.produces.contains_key(&r.fact_type)))
-                    .map(|r| r.fact_type.clone()).collect();
+                if task.step_finished(&candidate.key()) {
+                    continue;
+                }
+                let missing: Vec<_> = candidate
+                    .service
+                    .contract
+                    .requires
+                    .iter()
+                    .filter(|r| !r.optional)
+                    .filter(|r| {
+                        !crate::catalog::fact_value(&task.facts, candidate.entity_ref, &r.fact_type)
+                            .is_ok_and(|v| v.is_some())
+                    })
+                    .filter(|r| {
+                        !plan.steps.iter().any(|parent| {
+                            parent.entity_ref == candidate.entity_ref
+                                && !task.step_finished(&parent.key())
+                                && parent.key() != candidate.key()
+                                && parent
+                                    .service
+                                    .contract
+                                    .output_map
+                                    .produces
+                                    .contains_key(&r.fact_type)
+                        })
+                    })
+                    .map(|r| r.fact_type.clone())
+                    .collect();
                 if !missing.is_empty() {
                     task.failed_steps.insert(candidate.key(), json!({"code":"missing_source_fact","message":"Not requested because the required source identifier is unavailable.","fields":missing}));
                     continue;
@@ -314,23 +424,56 @@ impl Engine {
                     action_id: Uuid::new_v4(),
                     step,
                 })?);
-            } else if task.analysis.is_none() && task.intent.as_ref().is_some_and(|v| v["answer_operations"].as_array().is_some_and(|a| !a.is_empty())) {
-                task.actions.push(serde_json::to_value(Action::Analyze { action_id: Uuid::new_v4() })?);
+            } else if task.analysis.is_none()
+                && (task
+                    .conversation
+                    .last()
+                    .is_some_and(|turn| turn.reply.is_some())
+                    || task.intent.as_ref().is_some_and(|v| {
+                        v["answer_operations"]
+                            .as_array()
+                            .is_some_and(|a| !a.is_empty())
+                    }))
+            {
+                task.actions.push(serde_json::to_value(Action::Analyze {
+                    action_id: Uuid::new_v4(),
+                })?);
             }
         }
         Ok(())
     }
 
-    pub(super) fn fail_step(&self, task: &mut Task, failed: &resolver::Step, error: Value) -> anyhow::Result<()> {
+    pub(super) fn fail_step(
+        &self,
+        task: &mut Task,
+        failed: &resolver::Step,
+        error: Value,
+    ) -> anyhow::Result<()> {
         task.failed_steps.insert(failed.key(), error);
-        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
+        let plan: Plan = serde_json::from_value(
+            task.proposal
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
+        )?;
         // Skip only descendants of this failure. Independent companies and
         // goals remain executable under the original approved cap.
         for step in &plan.steps {
-            if task.step_finished(&step.key()) { continue; }
-            if plan.steps.iter().any(|parent| parent.entity_ref == step.entity_ref
-                && task.failed_steps.contains_key(&parent.key())
-                && step.service.contract.requires.iter().any(|r| !r.optional && parent.service.contract.output_map.produces.contains_key(&r.fact_type))) {
+            if task.step_finished(&step.key()) {
+                continue;
+            }
+            if plan.steps.iter().any(|parent| {
+                parent.entity_ref == step.entity_ref
+                    && task.failed_steps.contains_key(&parent.key())
+                    && step.service.contract.requires.iter().any(|r| {
+                        !r.optional
+                            && parent
+                                .service
+                                .contract
+                                .output_map
+                                .produces
+                                .contains_key(&r.fact_type)
+                    })
+            }) {
                 task.failed_steps.insert(step.key(), json!({"code":"dependency_failed","message":"Not requested because a required earlier source step failed."}));
             }
         }

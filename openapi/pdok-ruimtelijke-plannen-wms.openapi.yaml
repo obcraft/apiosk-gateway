@@ -1,0 +1,243 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PDOK Ruimtelijke Plannen",
+    "version": "1.0.0",
+    "description": "Query spatial-plan map features at a pixel in an RD-coordinate map extent. Check the original plan documents for current legal effect. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "pdok-ruimtelijke-plannen",
+  "x-apiosk-category": "geospatial",
+  "x-apiosk-sectors": [
+    "Real estate",
+    "Government and public data"
+  ],
+  "externalDocs": {
+    "url": "https://www.pdok.nl/"
+  },
+  "paths": {
+    "/kadaster/ruimtelijke-plannen/wms/v1_0": {
+      "get": {
+        "operationId": "planning_pdok_feature-info",
+        "summary": "Retrieve spatial-plan features at a map pixel",
+        "description": "Query spatial-plan map features at a pixel in an RD-coordinate map extent. Check the original plan documents for current legal effect.",
+        "tags": [
+          "PDOK",
+          "Kadaster",
+          "ruimtelijke plannen",
+          "bestemmingsplan",
+          "bouwvlak",
+          "WMS",
+          "GetFeatureInfo"
+        ],
+        "parameters": [
+          {
+            "name": "BBOX",
+            "in": "query",
+            "required": true,
+            "description": "RD extent xmin,ymin,xmax,ymax in metres; ordered, at most 10 km wide/high.",
+            "schema": {
+              "type": "string",
+              "description": "RD extent xmin,ymin,xmax,ymax in metres; ordered, at most 10 km wide/high.",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?$",
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "LAYERS",
+            "in": "query",
+            "required": true,
+            "description": "One queryable map layer",
+            "schema": {
+              "type": "string",
+              "description": "One queryable map layer",
+              "minLength": 1,
+              "maxLength": 200,
+              "enum": [
+                "enkelbestemming",
+                "dubbelbestemming",
+                "bouwvlak",
+                "bouwaanduiding",
+                "figuur",
+                "functieaanduiding",
+                "gebiedsaanduiding",
+                "lettertekenaanduiding",
+                "maatvoering",
+                "plangebied",
+                "bestemmingsplangebied"
+              ],
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "WIDTH",
+            "in": "query",
+            "required": false,
+            "description": "Map image width in pixels",
+            "schema": {
+              "type": "integer",
+              "description": "Map image width in pixels",
+              "minimum": 1,
+              "maximum": 2048,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "HEIGHT",
+            "in": "query",
+            "required": false,
+            "description": "Map image height in pixels",
+            "schema": {
+              "type": "integer",
+              "description": "Map image height in pixels",
+              "minimum": 1,
+              "maximum": 2048,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "I",
+            "in": "query",
+            "required": false,
+            "description": "Pixel column; smaller than WIDTH",
+            "schema": {
+              "type": "integer",
+              "description": "Pixel column; smaller than WIDTH",
+              "minimum": 0,
+              "maximum": 2047,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "J",
+            "in": "query",
+            "required": false,
+            "description": "Pixel row; smaller than HEIGHT",
+            "schema": {
+              "type": "integer",
+              "description": "Pixel row; smaller than HEIGHT",
+              "minimum": 0,
+              "maximum": 2047,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "FEATURE_COUNT",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records in this paid page",
+            "schema": {
+              "type": "integer",
+              "description": "Maximum records in this paid page",
+              "minimum": 1,
+              "maximum": 25,
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {},
+                              "properties": {
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "properties"
+                            ]
+                          }
+                        },
+                        "layer": {
+                          "type": "string"
+                        },
+                        "bbox": {
+                          "type": "string"
+                        },
+                        "crs": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "layer",
+                        "bbox",
+                        "crs"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "planning.pdok.feature-info"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://service.pdok.nl"
+      }
+    }
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EU Funding & Tenders",
+    "version": "1.0.0",
+    "description": "Search EU funding and tender records by keyword and language, excluding FAQ records. Includes historical calls; eligibility and current application status are not inferred. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "eu-funding-tenders",
+  "x-apiosk-category": "government",
+  "x-apiosk-sectors": [
+    "Government and public data",
+    "Company data"
+  ],
+  "externalDocs": {
+    "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/apis"
+  },
+  "paths": {
+    "/search-api/prod/rest/search": {
+      "post": {
+        "operationId": "eu_funding_calls_search",
+        "summary": "Search EU funding and tender records by keyword",
+        "description": "Search EU funding and tender records by keyword and language, excluding FAQ records. Includes historical calls; eligibility and current application status are not inferred.",
+        "tags": [
+          "EU funding",
+          "tenders",
+          "subsidies",
+          "grants",
+          "Horizon Europe",
+          "SEDIA",
+          "aanbestedingen"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Literal title or search keyword; not a query expression.",
+            "schema": {
+              "type": "string",
+              "description": "Literal title or search keyword; not a query expression.",
+              "minLength": 1,
+              "maxLength": 200,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "One-based next page from prior result",
+            "schema": {
+              "type": "integer",
+              "description": "One-based next page from prior result",
+              "minimum": 1,
+              "maximum": 1000,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records in this paid page",
+            "schema": {
+              "type": "integer",
+              "description": "Maximum records in this paid page",
+              "minimum": 1,
+              "maximum": 25,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "description": "ISO two-letter result language",
+            "schema": {
+              "type": "string",
+              "description": "ISO two-letter result language",
+              "minLength": 1,
+              "maxLength": 2,
+              "pattern": "^[a-z]{2}$",
+              "default": "en",
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "next_page": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "page",
+                        "next_page"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "eu_funding.calls.search"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://api.tech.ec.europa.eu"
+      }
+    }
+  }
+}

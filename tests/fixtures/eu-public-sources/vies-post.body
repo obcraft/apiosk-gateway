@@ -1,0 +1,19 @@
+{
+  "countryCode" : "NL",
+  "vatNumber" : "004495445B01",
+  "requestDate" : "2026-09-14T16:49:07.018Z",
+  "valid" : true,
+  "requestIdentifier" : "",
+  "name" : "OPENJONGERENVERENIGING DE KOORNBEURS",
+  "address" : "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+  "traderName" : "---",
+  "traderStreet" : "---",
+  "traderPostalCode" : "---",
+  "traderCity" : "---",
+  "traderCompanyType" : "---",
+  "traderNameMatch" : "NOT_PROCESSED",
+  "traderStreetMatch" : "NOT_PROCESSED",
+  "traderPostalCodeMatch" : "NOT_PROCESSED",
+  "traderCityMatch" : "NOT_PROCESSED",
+  "traderCompanyTypeMatch" : "NOT_PROCESSED"
+}

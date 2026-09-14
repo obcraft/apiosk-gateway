@@ -1,0 +1,235 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bodemloket",
+    "version": "1.0.0",
+    "description": "Query soil-investigation map layers and geographic data availability. Does not supply full soil reports; no returned feature does not establish clean soil. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "bodemloket",
+  "x-apiosk-category": "geospatial",
+  "x-apiosk-sectors": [
+    "Real estate",
+    "Environment"
+  ],
+  "externalDocs": {
+    "url": "https://www.bodemloket.nl/content/kan-ik-bodemloket-ook-mijn-gis-inladen"
+  },
+  "paths": {
+    "/standalone/services/blk_gdn/lks_blk_rd_v1/MapServer/WMSServer": {
+      "get": {
+        "operationId": "soil_bodemloket_feature-info",
+        "summary": "Retrieve soil-map features at a map pixel",
+        "description": "Query soil-investigation map layers and geographic data availability. Does not supply full soil reports; no returned feature does not establish clean soil.",
+        "tags": [
+          "Bodemloket",
+          "bodem",
+          "bodemonderzoek",
+          "soil",
+          "WBB",
+          "soil contamination",
+          "WMS"
+        ],
+        "parameters": [
+          {
+            "name": "BBOX",
+            "in": "query",
+            "required": true,
+            "description": "RD extent xmin,ymin,xmax,ymax in metres; ordered, at most 10 km wide/high.",
+            "schema": {
+              "type": "string",
+              "description": "RD extent xmin,ymin,xmax,ymax in metres; ordered, at most 10 km wide/high.",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?,-?[0-9]+(\\.[0-9]+)?$",
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "LAYERS",
+            "in": "query",
+            "required": true,
+            "description": "One queryable map layer",
+            "schema": {
+              "type": "string",
+              "description": "One queryable map layer",
+              "minLength": 1,
+              "maxLength": 200,
+              "enum": [
+                "WBB_locaties",
+                "Beschikbaarheid_gegevens",
+                "Bevoegd_gezag"
+              ],
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "WIDTH",
+            "in": "query",
+            "required": false,
+            "description": "Map image width in pixels",
+            "schema": {
+              "type": "integer",
+              "description": "Map image width in pixels",
+              "minimum": 1,
+              "maximum": 2048,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "HEIGHT",
+            "in": "query",
+            "required": false,
+            "description": "Map image height in pixels",
+            "schema": {
+              "type": "integer",
+              "description": "Map image height in pixels",
+              "minimum": 1,
+              "maximum": 2048,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "I",
+            "in": "query",
+            "required": false,
+            "description": "Pixel column; smaller than WIDTH",
+            "schema": {
+              "type": "integer",
+              "description": "Pixel column; smaller than WIDTH",
+              "minimum": 0,
+              "maximum": 2047,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "J",
+            "in": "query",
+            "required": false,
+            "description": "Pixel row; smaller than HEIGHT",
+            "schema": {
+              "type": "integer",
+              "description": "Pixel row; smaller than HEIGHT",
+              "minimum": 0,
+              "maximum": 2047,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "FEATURE_COUNT",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records in this paid page",
+            "schema": {
+              "type": "integer",
+              "description": "Maximum records in this paid page",
+              "minimum": 1,
+              "maximum": 25,
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {},
+                              "properties": {
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "properties"
+                            ]
+                          }
+                        },
+                        "layer": {
+                          "type": "string"
+                        },
+                        "bbox": {
+                          "type": "string"
+                        },
+                        "crs": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "layer",
+                        "bbox",
+                        "crs"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "soil.bodemloket.feature-info"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://gis.gdngeoservices.nl"
+      }
+    }
+  }
+}

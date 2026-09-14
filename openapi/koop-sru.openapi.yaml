@@ -1,0 +1,337 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KOOP Official Publications and Regulations",
+    "version": "1.0.0",
+    "description": "Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents. Apiosk adapter contract; source-specific requests and response normalization are handled by the gateway."
+  },
+  "x-apiosk-source": "koop",
+  "x-apiosk-category": "government",
+  "x-apiosk-sectors": [
+    "Government and public data",
+    "Legal"
+  ],
+  "externalDocs": {
+    "url": "https://www.koopoverheid.nl/"
+  },
+  "paths": {
+    "/sru": {
+      "get": {
+        "operationId": "government_staatscourant_search",
+        "summary": "Search Staatscourant publication titles",
+        "description": "Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents.",
+        "tags": [
+          "KOOP",
+          "Staatscourant",
+          "CVDR",
+          "BWB",
+          "wetgeving",
+          "regelingen",
+          "bekendmakingen",
+          "Dutch law"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Literal title or search keyword; not a query expression.",
+            "schema": {
+              "type": "string",
+              "description": "Literal title or search keyword; not a query expression.",
+              "minLength": 1,
+              "maxLength": 200,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "journal",
+            "in": "query",
+            "required": true,
+            "description": "Official publication journal",
+            "schema": {
+              "type": "string",
+              "description": "Official publication journal",
+              "minLength": 1,
+              "maxLength": 200,
+              "enum": [
+                "Staatscourant"
+              ],
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records in this paid page",
+            "schema": {
+              "type": "integer",
+              "description": "Maximum records in this paid page",
+              "minimum": 1,
+              "maximum": 25,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "description": "One-based next start record from the prior result",
+            "schema": {
+              "type": "integer",
+              "description": "One-based next start record from the prior result",
+              "minimum": 1,
+              "maximum": 100000,
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "start": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "next_start": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "coverage": {
+                      "type": "object"
+                    },
+                    "notice": {
+                      "type": "string"
+                    },
+                    "source_url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "total",
+                    "start",
+                    "next_start",
+                    "coverage",
+                    "notice",
+                    "source_url"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "government.staatscourant.search"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://repository.overheid.nl"
+      }
+    },
+    "/sru/Search": {
+      "get": {
+        "operationId": "government_cvdr_search",
+        "summary": "Search CVDR local and BWB national regulation titles",
+        "description": "Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents.",
+        "tags": [
+          "KOOP",
+          "Staatscourant",
+          "CVDR",
+          "BWB",
+          "wetgeving",
+          "regelingen",
+          "bekendmakingen",
+          "Dutch law"
+        ],
+        "parameters": [
+          {
+            "name": "x-connection",
+            "in": "query",
+            "required": true,
+            "description": "KOOP regulation collection",
+            "schema": {
+              "type": "string",
+              "description": "KOOP regulation collection",
+              "minLength": 1,
+              "maxLength": 200,
+              "enum": [
+                "cvdr",
+                "BWB"
+              ],
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Literal title or search keyword; not a query expression.",
+            "schema": {
+              "type": "string",
+              "description": "Literal title or search keyword; not a query expression.",
+              "minLength": 1,
+              "maxLength": 200,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records in this paid page",
+            "schema": {
+              "type": "integer",
+              "description": "Maximum records in this paid page",
+              "minimum": 1,
+              "maximum": 25,
+              "x-parameter-location": "query"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "description": "One-based next start record from the prior result",
+            "schema": {
+              "type": "integer",
+              "description": "One-based next start record from the prior result",
+              "minimum": 1,
+              "maximum": 100000,
+              "x-parameter-location": "query"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated Apiosk source response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "start": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "next_start": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "collection": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "items",
+                        "total",
+                        "start",
+                        "next_start"
+                      ]
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "description": "Exact upstream request URL",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    },
+                    "notice": {
+                      "type": "string",
+                      "description": "Source limitations",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "coverage": {
+                      "type": "object",
+                      "properties": {
+                        "complete": {
+                          "type": "boolean"
+                        },
+                        "scope": {
+                          "type": "string",
+                          "description": "Scope of the returned response",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "complete",
+                        "scope"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "source_url",
+                    "notice",
+                    "coverage"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source input"
+          },
+          "502": {
+            "description": "Upstream unavailable, diagnostic, or response validation failure; unsuccessful calls do not settle"
+          }
+        },
+        "x-apiosk-capabilities": [
+          "government.cvdr.search",
+          "government.bwb.search"
+        ],
+        "x-apiosk-price": {
+          "currency": "USD",
+          "list": 0.085066,
+          "buyer_total": 0.097826,
+          "indicative_eur": 0.09
+        },
+        "x-apiosk-upstream-origin": "https://zoekservice.overheid.nl"
+      }
+    }
+  }
+}

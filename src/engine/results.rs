@@ -1,23 +1,40 @@
 use super::*;
 
 impl Engine {
-    pub(super) async fn result_page(&self, owner: Uuid, task: Uuid, result_ref: Uuid, offset: usize) -> anyhow::Result<Value> {
+    pub(super) async fn result_page(
+        &self,
+        owner: Uuid,
+        task: Uuid,
+        result_ref: Uuid,
+        offset: usize,
+    ) -> anyhow::Result<Value> {
         let mut data = self.store.result(owner, task, result_ref).await?;
         data["result_ref"] = json!(result_ref);
         if crate::annual_report::eligible(&data) {
             let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
-            let signature = self.signer.report_signature(owner, task, result_ref, expires);
+            let signature = self
+                .signer
+                .report_signature(owner, task, result_ref, expires);
             data["report"] = json!({"format":"pdf", "filename":format!("jaarrekening-{result_ref}.pdf"), "expires_at":expires,
                 "download_path":format!("/v2/tasks/{task}/results/{result_ref}/report.pdf?owner={owner}&expires={expires}&signature={signature}")});
         }
-        if let Ok(sources) = self.catalog.sources().await { crate::sources::brand_result(&mut data, &sources); }
+        if let Ok(sources) = self.catalog.sources().await {
+            crate::sources::brand_result(&mut data, &sources);
+        }
         let serialized = serde_json::to_string(&data)?;
-        if serialized.len() <= MAX_INLINE { return Ok(data); }
+        if serialized.len() <= MAX_INLINE {
+            return Ok(data);
+        }
         let chars: Vec<char> = serialized.chars().collect();
         anyhow::ensure!(offset <= chars.len(), "invalid result offset");
         let end = (offset + 8000).min(chars.len());
-        let preview=crate::source_preview::project(data["source"]["provider"].as_str().unwrap_or(""), &data["data"]);
-        Ok(json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}))
+        let preview = crate::source_preview::project(
+            data["source"]["provider"].as_str().unwrap_or(""),
+            &data["data"],
+        );
+        Ok(
+            json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"coverage":data.get("coverage"),"coverage_note":data.get("coverage_note"),"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -37,7 +54,10 @@ impl Engine {
         );
         let data = body.get("result").cloned().unwrap_or(Value::Null);
         let incomplete_sirenic_search = step.service.api_slug == "sirenic"
-            && matches!(step.service.path.as_str(), "/v1/recherche" | "/v1/eu/recherche")
+            && matches!(
+                step.service.path.as_str(),
+                "/v1/recherche" | "/v1/eu/recherche"
+            )
             && crate::source_preview::sirenic_search_incomplete(&data);
         let extraction = step.service.contract.extract(&data, &catalog.vocabulary);
         let capacity_exceeded = extraction.as_ref().is_ok_and(|e| {
@@ -49,7 +69,20 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
-        if matches!(step.service.api_slug.as_str(), "koop" | "rdw" | "rvo" | "ted" | "pdok") && data["coverage"]["complete"] == false {
+        if matches!(
+            step.service.api_slug.as_str(),
+            "koop"
+                | "rdw"
+                | "rvo"
+                | "ted"
+                | "pdok"
+                | "vies"
+                | "eurlex-cellar"
+                | "eu-funding-tenders"
+                | "pdok-ruimtelijke-plannen"
+                | "bodemloket"
+        ) && data["coverage"]["complete"] == false
+        {
             document["coverage"] = json!("partial");
             document["coverage_note"] = data["coverage"]["scope"].clone();
         }
@@ -90,7 +123,9 @@ impl Engine {
         if !task.result_refs.contains(&result_ref) {
             task.result_refs.push(result_ref)
         }
-        if !task.active_results.contains(&result_ref) { task.active_results.push(result_ref); }
+        if !task.active_results.contains(&result_ref) {
+            task.active_results.push(result_ref);
+        }
         task.completed.push(step.key());
         if single_call_mode() {
             task.actions.clear();
@@ -99,7 +134,10 @@ impl Engine {
         }
         let extraction = match extraction {
             Ok(e)
-                if body["result_truncated"] != true && !missing_required && !capacity_exceeded && !incomplete_sirenic_search =>
+                if body["result_truncated"] != true
+                    && !missing_required
+                    && !capacity_exceeded
+                    && !incomplete_sirenic_search =>
             {
                 e
             }
@@ -112,40 +150,75 @@ impl Engine {
             self.fail_step(task, step, json!({"code":"incomplete_selection","message":"The source did not return all candidates; dependent calls were not made."}))?;
             return Ok(());
         }
-        let selected = if extraction.is_ambiguous() { crate::entity_resolution::confident_candidate(task, step.entity_ref, &extraction.subjects) } else { None };
+        let selected = if extraction.is_ambiguous() {
+            crate::entity_resolution::confident_candidate(
+                task,
+                step.entity_ref,
+                &extraction.subjects,
+            )
+        } else {
+            None
+        };
         let ambiguous = extraction.is_ambiguous() && selected.is_none();
         // A completed search is a result in its own right. Only a remaining
         // dependency needs the user to disambiguate before spending again.
-        let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing plan"))?)?;
-        let needs_choice = ambiguous && plan.steps.iter().any(|s| s.entity_ref == step.entity_ref && !task.completed.contains(&s.key()));
+        let plan: Plan = serde_json::from_value(
+            task.proposal
+                .clone()
+                .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
+        )?;
+        let needs_choice = ambiguous
+            && plan
+                .steps
+                .iter()
+                .any(|s| s.entity_ref == step.entity_ref && !task.completed.contains(&s.key()));
         let mut candidate_ids = vec![];
         for (index, subject) in extraction.subjects.iter().enumerate() {
-            if selected.is_some_and(|selected| selected != index) { continue; }
+            if selected.is_some_and(|selected| selected != index) {
+                continue;
+            }
             let entity = if ambiguous {
                 Uuid::new_v4()
             } else {
                 step.entity_ref
             };
             if ambiguous {
-                let label = subject.facts.iter()
+                let label = subject
+                    .facts
+                    .iter()
                     .find(|f| f.fact_type == "company.name")
-                    .and_then(|f| f.value.as_str()).map(str::to_owned)
-                    .or_else(|| subject.identity.as_ref().map(|v| v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string())))
+                    .and_then(|f| f.value.as_str())
+                    .map(str::to_owned)
+                    .or_else(|| {
+                        subject.identity.as_ref().map(|v| {
+                            v.as_str()
+                                .map(str::to_owned)
+                                .unwrap_or_else(|| v.to_string())
+                        })
+                    })
                     .unwrap_or_else(|| format!("Kandidaat {}", subject.index + 1));
                 task.entities.push(Entity {
                     entity_ref: entity,
                     label: label.clone(),
                     selected: false,
                 });
-                if needs_choice { task.pending_candidates.push(json!({"entity_ref":entity,"label":label,"facts":subject.facts.iter().map(|f|json!({"type":f.fact_type,"value":f.value})).collect::<Vec<_>>() })); }
+                if needs_choice {
+                    task.pending_candidates.push(json!({"entity_ref":entity,"label":label,"facts":subject.facts.iter().map(|f|json!({"type":f.fact_type,"value":f.value})).collect::<Vec<_>>() }));
+                }
                 candidate_ids.push(entity);
             }
             for f in &subject.facts {
                 if !ambiguous && f.fact_type == "company.name" {
                     // Keep the source's canonical name without creating a
                     // conflicting second name from the original search text.
-                    task.facts.retain(|known| known.entity_ref != entity || known.semantic_type != "company.name");
-                    if let Some(label) = f.value.as_str() { if let Some(e) = task.entities.iter_mut().find(|e|e.entity_ref==entity) { e.label=label.into(); } }
+                    task.facts.retain(|known| {
+                        known.entity_ref != entity || known.semantic_type != "company.name"
+                    });
+                    if let Some(label) = f.value.as_str() {
+                        if let Some(e) = task.entities.iter_mut().find(|e| e.entity_ref == entity) {
+                            e.label = label.into();
+                        }
+                    }
                 }
                 task.facts.push(Fact{entity_ref:entity,semantic_type:f.fact_type.clone(),value:f.value.clone(),provenance:json!({"kind":"provider_response","result_ref":result_ref,"source_pointer":f.extraction_base,"contract_id":step.service.id}),observed_at:Utc::now(),expires_at:Utc::now()+chrono::Duration::seconds(step.service.freshness_seconds.unwrap_or(3600).clamp(0,86400)),verification:"source_observed".into()});
             }
@@ -165,10 +238,24 @@ impl Engine {
 
 // Optional projections describe alternative record shapes (for example, the
 // national identifier for each country). Their absence is not partial data.
-fn missing_required_outputs(service: &crate::catalog::Service, extraction: &catalog_core::facts::contract::Extraction) -> Vec<String> {
-    service.contract.output_map.produces.keys().filter(|kind| {
-        !service.optional_outputs.contains(kind) && !extraction.subjects.iter().any(|subject| subject.facts.iter().any(|fact| fact.fact_type == **kind))
-    }).cloned().collect()
+fn missing_required_outputs(
+    service: &crate::catalog::Service,
+    extraction: &catalog_core::facts::contract::Extraction,
+) -> Vec<String> {
+    service
+        .contract
+        .output_map
+        .produces
+        .keys()
+        .filter(|kind| {
+            !service.optional_outputs.contains(kind)
+                && !extraction
+                    .subjects
+                    .iter()
+                    .any(|subject| subject.facts.iter().any(|fact| fact.fact_type == **kind))
+        })
+        .cloned()
+        .collect()
 }
 
 #[cfg(test)]
@@ -176,13 +263,30 @@ mod completeness_tests {
     use super::*;
     #[test]
     fn foreign_optional_ids_do_not_make_a_complete_record_partial() {
-        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/sirenic/expanded-catalog.json")).unwrap());
-        let service = catalog.services.iter().find(|s| s.path == "/v1/eu/recherche").unwrap();
+        let catalog = Catalog::build(
+            serde_json::from_str(include_str!(
+                "../../tests/fixtures/sirenic/expanded-catalog.json"
+            ))
+            .unwrap(),
+        );
+        let service = catalog
+            .services
+            .iter()
+            .find(|s| s.path == "/v1/eu/recherche")
+            .unwrap();
         let result = json!({"resultats":[{"pays":"NO","id_national":"923609016","denomination":"EQUINOR ASA"}]});
-        let mut extraction = service.contract.extract(&result, &catalog.vocabulary).unwrap();
+        let mut extraction = service
+            .contract
+            .extract(&result, &catalog.vocabulary)
+            .unwrap();
         assert!(extraction.rejected.is_empty());
         assert!(missing_required_outputs(service, &extraction).is_empty());
-        extraction.subjects[0].facts.retain(|fact| fact.fact_type != "company.name");
-        assert_eq!(missing_required_outputs(service, &extraction), vec!["company.name"]);
+        extraction.subjects[0]
+            .facts
+            .retain(|fact| fact.fact_type != "company.name");
+        assert_eq!(
+            missing_required_outputs(service, &extraction),
+            vec!["company.name"]
+        );
     }
 }

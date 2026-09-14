@@ -1,0 +1,21 @@
+
+  {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": null,
+        "properties": {
+          "AUTHORITY_DBK": "1594096",
+          "AUTHORITY_CD": "Null",
+          "AUTHORITY_NM": "Omgevingsdienst Noordzeekanaalgebied",
+          "WEBSITE_BLN": "J",
+          "DOSSIER_BLN": "N",
+          "DISPLAY_CD": "JN",
+          "WEBSITE_URL": "https://odnzkg.nazca4u.nl/rapportage/viewerLookUp/Geolocator.aspx",
+          "Shape": "Polygon"
+        },
+        "layerName": "Beschikbaarheid_gegevens"
+      }
+    ]
+  }

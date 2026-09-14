@@ -1,0 +1,5 @@
+
+{ "head": { "link": [], "vars": ["s"] },
+  "results": { "distinct": false, "ordered": true, "bindings": [
+    { "s": { "type": "uri", "value": "http://publications.europa.eu/ontology/cdm/cmr#metsStructSubDiv" }},
+    { "s": { "type": "uri", "value": "http://eurovoc.europa.eu/schema#microThesaurus" }} ] } }

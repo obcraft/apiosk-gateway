@@ -1,0 +1,22 @@
+{
+  "isValid" : true,
+  "requestDate" : "2026-09-14T16:48:04.183Z",
+  "userError" : "VALID",
+  "name" : "OPENJONGERENVERENIGING DE KOORNBEURS",
+  "address" : "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+  "requestIdentifier" : "",
+  "originalVatNumber" : "004495445B01",
+  "vatNumber" : "004495445B01",
+  "viesApproximate" : {
+    "name" : "---",
+    "street" : "---",
+    "postalCode" : "---",
+    "city" : "---",
+    "companyType" : "---",
+    "matchName" : 3,
+    "matchStreet" : 3,
+    "matchPostalCode" : 3,
+    "matchCity" : 3,
+    "matchCompanyType" : 3
+  }
+}
