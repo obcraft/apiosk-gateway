@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {PGlite} from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
 const fixture=JSON.parse(await fs.readFile(new URL('../tests/fixtures/cbs-construction.json',import.meta.url),'utf8'));
-const sql=await fs.readFile(new URL('../supabase/migrations/20260913134258_cbs_construction_annual_source.sql',import.meta.url),'utf8');
+const sql=await fs.readFile(new URL('../supabase/migrations/20260913134913_cbs_construction_annual_source.sql',import.meta.url),'utf8');
 const db=new PGlite();await db.waitReady;
 try{
 await db.exec(`CREATE SCHEMA providers;CREATE SCHEMA catalog;

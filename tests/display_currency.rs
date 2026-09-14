@@ -16,7 +16,7 @@ async fn display_currency_is_owner_scoped_and_uses_only_published_rates() {
         INSERT INTO identity.user_preferences VALUES ('00000000-0000-4000-8000-000000000001','EUR'),('00000000-0000-4000-8000-000000000002','GBP');
         INSERT INTO billing.fx_rates VALUES ('EUR',CURRENT_DATE-2,0.91),('EUR',CURRENT_DATE-1,0.92),('EUR',CURRENT_DATE+1,0.99),('GBP',CURRENT_DATE-1,0.80);")
         .execute(&pool).await.unwrap();
-    sqlx::raw_sql(include_str!("../supabase/migrations/20260913125000_gateway_display_currency.sql")).execute(&pool).await.unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20260913121701_gateway_display_currency.sql")).execute(&pool).await.unwrap();
     sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
     let store = Store { pool: pool.clone() };
     let eur = store.money_display(Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap()).await;

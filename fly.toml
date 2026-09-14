@@ -16,6 +16,7 @@ kill_timeout = "120s"
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.
   V2_SINGLE_CALL_MODE = "0"
   ASK_ENGINE_V2 = "true"
+  WORKSPACE_CONTEXT_ENABLED = "true"
   EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"
   EMBEDDED_EXECUTOR_PORT = "8080"
   EMBEDDED_RESEARCH_WORKER_PORT = "8081"
