@@ -49,7 +49,7 @@ impl Executor {
         cap: &str,
     ) -> anyhow::Result<Uuid> {
         anyhow::ensure!(self.enabled, "purchases unavailable");
-        self.store.check_workspace(p).await?;
+        self.store.check_spending(p).await?;
         let connection = p
             .connection
             .ok_or_else(|| anyhow::anyhow!("connected account required"))?;
@@ -127,6 +127,7 @@ impl Executor {
             p.is_person(),
             "approval requires an authenticated person in the App"
         );
+        self.store.check_spending(p).await?;
         let (_, task, _) = self.store.load_scoped(&p, task_id).await?;
         anyhow::ensure!(task.workspace_id == p.workspace, "task belongs to another workspace");
         anyhow::ensure!(!task.cancelled, "task cancelled");

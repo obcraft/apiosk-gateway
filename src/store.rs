@@ -78,6 +78,14 @@ impl Store {
         }
         Ok(())
     }
+    pub async fn check_spending(&self, p: &crate::auth::Principal) -> anyhow::Result<()> {
+        if p.workspace.is_some() {
+            let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
+                .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await?;
+            anyhow::ensure!(ctx["can_spend"] == true, "workspace spending is not permitted");
+        }
+        Ok(())
+    }
     pub async fn load_scoped(&self, p: &crate::auth::Principal, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
         self.check_workspace(p).await?;
         let row = self.load(p.owner, id).await?;

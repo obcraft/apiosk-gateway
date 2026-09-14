@@ -1305,6 +1305,7 @@ async fn durable_flow_and_authorization_boundary() {
     sqlx::query("INSERT INTO public.test_workspace_access VALUES($1,$2,true)").bind(user.owner).bind(workspace).execute(&pool).await.unwrap();
     let scoped=Principal {owner:user.owner,connection:None,workspace:Some(workspace)};
     let scoped_id=store.create_scoped(scoped.owner,None,scoped.workspace).await.unwrap();
+    assert!(store.check_spending(&scoped).await.is_err(), "read permission is not spending permission");
     assert!(store.load_scoped(&user,scoped_id).await.is_err());
     assert!(store.load_scoped(&scoped,task_id).await.is_err());
     let (rev,mut scoped_task,_)=store.load_scoped(&scoped,scoped_id).await.unwrap();

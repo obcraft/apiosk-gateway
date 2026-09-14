@@ -517,6 +517,7 @@ impl Engine {
         );
         if p.workspace.is_some() {
             let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool).await?;
+            r.context_view["execution_enabled"] = json!(ctx["can_spend"] == true && self.executor.enabled);
             r.context_view["workspace"] = ctx.clone();
             if let Some(b) = &mut r.billing { b["funding_source"] = json!("workspace_balance"); b["workspace"] = ctx; }
         }
