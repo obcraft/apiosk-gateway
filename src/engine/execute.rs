@@ -82,9 +82,13 @@ impl Engine {
                     }
                 }
                 let operations = task.intent.as_ref().map(|v| v["answer_operations"].clone()).unwrap_or(json!([]));
-                task.analysis = Some(match self.parser.analyze(&operations, &sources, &task.failed_steps).await {
+                let question = task.conversation.last().map(|turn| turn.question.clone()).unwrap_or_default();
+                // Leave room for the question, the operations and the prompt
+                // itself inside the model request the parser bounds at 256 KiB.
+                let sources = crate::answer_input::bounded(sources, 192 * 1024);
+                task.analysis = Some(match self.parser.analyze(&question, &operations, &sources, &task.failed_steps).await {
                     Ok(analysis) => analysis,
-                    Err(_) => json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]}),
+                    Err(_) => json!({"status":"unavailable","limitations":["The answer could not be written. Your source results are saved; no additional source purchase was made."],"observations":[]}),
                 });
                 task.actions.clear();
                 if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {
@@ -314,7 +318,10 @@ impl Engine {
                     action_id: Uuid::new_v4(),
                     step,
                 })?);
-            } else if task.analysis.is_none() && task.intent.as_ref().is_some_and(|v| v["answer_operations"].as_array().is_some_and(|a| !a.is_empty())) {
+            } else if task.analysis.is_none() && !task.active_results.is_empty() && task.intent.is_some() {
+                // Every finished question is answered from its own saved
+                // results, not only the ones that asked for a comparison. The
+                // answer buys nothing: it reads documents already paid for.
                 task.actions.push(serde_json::to_value(Action::Analyze { action_id: Uuid::new_v4() })?);
             }
         }

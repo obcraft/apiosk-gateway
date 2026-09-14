@@ -47,7 +47,7 @@ async fn live_multi_company_parser_and_saved_report_analysis() {
         let data:Value=serde_json::from_slice(&std::fs::read(format!("{dir}/{file}")).unwrap()).unwrap();
         sources.push(json!({"result_ref":Uuid::new_v4(),"document":{"subject":{"label":name},"source":{"name":"KVK","path":apiosk_gateway_v2::annual_report::ENDPOINT},"data":data}}));
     }
-    let analysis=parser.analyze(&json!(["Vergelijk de beschikbare jaarrekeningen van Jortt en Moneybird. Vermeld de beperkingen van deze vergelijking."]),&sources,&Default::default()).await.unwrap();
+    let analysis=parser.analyze(question,&json!(["Vergelijk de beschikbare jaarrekeningen van Jortt en Moneybird. Vermeld de beperkingen van deze vergelijking."]),&sources,&Default::default()).await.unwrap();
     assert!(!analysis["observations"].as_array().unwrap().is_empty());
     println!("Saved-source analysis: {}",serde_json::to_string_pretty(&analysis).unwrap());
 }

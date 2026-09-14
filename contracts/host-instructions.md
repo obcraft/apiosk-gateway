@@ -29,11 +29,13 @@ Copy the newest state unchanged, including signature, revision, expiry and focus
 | `needs_selection` | Show the returned candidates and ask which entity is intended. Use `select_entity` with `{"entity_ref": <returned reference>}`. Do not guess the first match. |
 | `requires_approval` | Show the plan and exact total, and wait for the person to approve in the interactive card when `context_view.approval_mode` is `chatbot`. Otherwise offer `proposal.approval_url`. After approval, the server continues automatically. If a legacy external approval leaves an offered continuation, start it once using its current action and quote reference; the backend handles all remaining calls. |
 | `running` | With server execution, the card receives events and the backend continues. Do not issue execute or poll loops. Use apiosk_status only when current saved evidence is needed. For a legacy server without execution_mode=server, follow its offered poll action and retry_after_ms. Never buy again to check progress. |
-| `succeeded` | Answer from returned evidence. Use offered result reads if details are needed. |
+| `succeeded` | Answer from returned evidence, leading with `context_view.analysis` when it is present. Use offered result reads if details are needed. |
 | `partial` | Answer the supported part and state missing fields, entities, periods or truncation. Do not imply complete coverage. |
 | `unsupported` | Explain the specific limitation. Ask before changing the requested source or scope. |
 | `state_conflict` | Adopt the returned current state and reassess its actions. Do not replay an old paid action blindly. |
 | `failed` | Explain the error and inspect billing. Do not create another payment identity or try different credentials to bypass a refusal. |
+
+After the paid steps of a request finish, the gateway writes one source-backed answer to the question and offers it as a free `poll` action; `context_view.analyzing` is true while it is being written. Follow that action to terminal status — it buys nothing. The answer arrives in `context_view.analysis`: each observation carries the exact source values it cites, and no figures appear in its prose. Present those cited values with the observation, keep the saved source response available, and say so plainly when `analysis.status` is not `completed` rather than summarizing the raw response yourself.
 
 When `context_view.execution_enabled` is false, explain that purchases are unavailable in this environment; present the plan without asking the person to approve an unavailable purchase.
 
@@ -63,7 +65,7 @@ Read billing status separately from result status. Funding is the existing Apios
 
 When `context_view.single_call_mode` is false, preserve every dependency as a separate service step. If step 2 requires a value produced by step 1, explain that handoff clearly and use the returned value; do not ask the person to know or select an opaque identifier unless the gateway returns a genuine ambiguous match selection.
 
-When `context_view.single_call_mode` is true, only one direct source call is supported per question. Multi-step research and automatic related-service continuation are paused. Present the returned source JSON, attribution, and service status. A company search can return multiple matches as JSON; do not ask the person to choose an unexplained registration number or auto-select one. If more calls would be required, explain the missing identifier and offer a standalone search question. For existing multi-step tasks, read available results; do not try to bypass the paused execution actions.
+When `context_view.single_call_mode` is true, only one direct source call is supported per question. Multi-step research and automatic related-service continuation are paused. Present the answer written for the question, the returned source JSON, attribution, and service status. A company search can return multiple matches as JSON; do not ask the person to choose an unexplained registration number or auto-select one. If more calls would be required, explain the missing identifier and offer a standalone search question. For existing multi-step tasks, read available results; do not try to bypass the paused execution actions.
 
 ## Display currency and language
 

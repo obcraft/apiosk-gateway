@@ -93,8 +93,13 @@ impl Engine {
         if !task.active_results.contains(&result_ref) { task.active_results.push(result_ref); }
         task.completed.push(step.key());
         if single_call_mode() {
+            // Paused research still answers the one call it made: reading a
+            // saved document is free and makes no further request.
             task.actions.clear();
             task.pending_candidates.clear();
+            if task.analysis.is_none() && task.intent.is_some() {
+                task.actions.push(serde_json::to_value(Action::Analyze { action_id: Uuid::new_v4() })?);
+            }
             return Ok(());
         }
         let extraction = match extraction {

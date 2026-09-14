@@ -225,18 +225,23 @@ mod analysis_tests {
     }
 }
 impl Parser {
-    pub async fn analyze(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
-        let input = json!({"answer_operations":operations,"sources":sources,"unavailable_steps":failures});
+    /// Write the answer to `question` from the saved source documents.
+    ///
+    /// `operations` carries anything extra the person asked for (a comparison,
+    /// a summary). It is routinely empty: every question gets an answer, and
+    /// the question itself is what the answer must address.
+    pub async fn analyze(&self, question: &str, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
+        let input = json!({"question":question,"answer_operations":operations,"sources":sources,"unavailable_steps":failures});
         anyhow::ensure!(serde_json::to_vec(&input)?.len() <= 256 * 1024, "analysis input too large");
         if sources.is_empty() {
-            return Ok(json!({"status":"partial","observations":[],"limitations":["No source result is available to support an analysis."]}));
+            return Ok(json!({"status":"partial","observations":[],"limitations":["No source result is available to answer this question."]}));
         }
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":4096,
             "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
             "response_format":{"type":"json_schema","json_schema":{"name":"source_analysis","strict":true,"schema":{
                 "type":"object","additionalProperties":false,"required":["observations","limitations"],"properties":{
                     "observations":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["text","evidence"],"properties":{
-                        "text":{"type":"string","description":"Qualitative finding. No numeric characters or URLs."},
+                        "text":{"type":"string","description":"Qualitative finding, the first one answering the question. No numeric characters or URLs."},
                         "evidence":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","additionalProperties":false,"required":["result_ref","pointer"],"properties":{"result_ref":{"type":"string"},"pointer":{"type":"string","description":"JSON pointer to an existing scalar under /data/ in this source document"}}}}
                     }}},"limitations":{"type":"array","maxItems":6,"items":{"type":"string","description":"No numeric characters or URLs."}}
                 }

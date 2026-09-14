@@ -24,6 +24,8 @@ use std::{
 };
 use uuid::Uuid;
 
+mod common;
+
 #[derive(Clone)]
 struct TestState {
     pool: PgPool,
@@ -33,7 +35,12 @@ struct TestState {
 fn fixture() -> Value {
     serde_json::from_str(include_str!("fixtures/dutch-links/catalog.json")).unwrap()
 }
-async fn model(Json(_body): Json<Value>) -> Json<Value> {
+async fn model(Json(body): Json<Value>) -> Json<Value> {
+    let input: Value =
+        serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if common::asks_for_answer(&input) {
+        return Json(common::answer(&input));
+    }
     let goals = [
         "building.bag-building",
         "area.cbs-neighbourhood-2025",
@@ -249,7 +256,13 @@ async fn identifier_graph_requires_one_approval_and_reuses_each_dependency() {
         assert_eq!(state.count.load(Ordering::SeqCst), calls);
         assert_eq!(replay.result, next.result);
         response = next;
-        if matches!(response.status,Status::Succeeded|Status::Partial) {
+        if !response
+            .next_actions
+            .iter()
+            .any(|a| a.kind == "execute_quoted_step")
+        {
+            // The paid plan is finished; what remains is the free answer.
+            response = common::settle(&engine, &person, response).await;
             break;
         }
         assert_eq!(response.status, Status::Ready, "{response:?}");

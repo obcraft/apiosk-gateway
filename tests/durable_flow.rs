@@ -26,6 +26,8 @@ use std::{
 };
 use uuid::Uuid;
 
+mod common;
+
 #[derive(Default)]
 struct Counters {
     parser: AtomicU64,
@@ -36,8 +38,13 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     c.parser.fetch_add(1, Ordering::Relaxed);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
-    if input.get("answer_operations").is_some() {
+    if common::asks_for_answer(&input) {
         let reports: Vec<_> = input["sources"].as_array().unwrap().iter().filter(|s| s["document"]["data"]["accounts"].is_string()).collect();
+        // Every question is answered from its own saved results; only the
+        // filings this suite compares have an answer written for them here.
+        if reports.is_empty() {
+            return Json(common::answer(&input));
+        }
         return Json(json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."]}).to_string()}}]}));
     }
     if input["question"] == "Compare FirstCo and SecondCo" {
@@ -237,7 +244,7 @@ async fn durable_flow_and_authorization_boundary() {
         assert_eq!(search.proposal.as_ref().unwrap().steps.len(), 1);
         let quote = search.proposal.as_ref().unwrap();
         engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
-        let result = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+        let result = common::settle(&engine, &person, engine.execute(&person, "fixture", execution(&search)).await.unwrap()).await;
         assert_eq!(result.status, Status::Succeeded, "{result:?}");
         assert_eq!(result.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);
         assert!(!result.next_actions.iter().any(|a|a.kind == "select_entity" || a.kind == "execute_quoted_step"));
@@ -305,9 +312,11 @@ async fn durable_flow_and_authorization_boundary() {
         .execute(&person, "fixture", execution(&first))
         .await
         .unwrap();
+    let done = common::settle(&engine, &person, done).await;
     assert_eq!(done.status, Status::Succeeded, "{done:?}");
     assert_eq!(counts.provider.load(Ordering::Relaxed), 2);
-    assert_eq!(counts.parser.load(Ordering::Relaxed), 1);
+    // One plan, and one answer written from the results it bought.
+    assert_eq!(counts.parser.load(Ordering::Relaxed), 2);
     let money: i64 = sqlx::query_scalar(
         "SELECT sum(actual_atomic)::bigint FROM gateway_v2.executions WHERE task_id=$1",
     )
@@ -346,7 +355,7 @@ async fn durable_flow_and_authorization_boundary() {
         .await
         .unwrap();
     assert_eq!(follow.proposal.as_ref().unwrap().steps.len(), 1);
-    assert_eq!(counts.parser.load(Ordering::Relaxed), 2);
+    assert_eq!(counts.parser.load(Ordering::Relaxed), 3);
     let other = Principal {
         owner: Uuid::new_v4(),
         connection: None, workspace: None, };
@@ -413,11 +422,12 @@ async fn durable_flow_and_authorization_boundary() {
         .unwrap();
     assert_eq!(selected.status, Status::Ready);
     assert_eq!(counts.provider.load(Ordering::Relaxed), before);
-    assert_eq!(counts.parser.load(Ordering::Relaxed), 3);
+    assert_eq!(counts.parser.load(Ordering::Relaxed), 4);
     let finished = engine
         .execute(&person, "fixture", execution(&selected))
         .await
         .unwrap();
+    let finished = common::settle(&engine, &person, finished).await;
     assert_eq!(finished.status, Status::Succeeded);
     // Persisted source data must also be attached to the task before a new
     // intent may replace its recovery plan (crash between ingest and CAS).
@@ -515,6 +525,7 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
+    let recovered = common::settle(&engine, &person, recovered).await;
     assert_eq!(recovered.status, Status::Succeeded, "{recovered:?}");
     let bill = recovered.billing.as_ref().unwrap();
     assert_eq!(bill["status"], "captured");
@@ -662,6 +673,7 @@ async fn durable_flow_and_authorization_boundary() {
         .execute(&person, "fixture", execution(&partial))
         .await
         .unwrap();
+    let partial = common::settle(&engine, &person, partial).await;
     assert_eq!(partial.status, Status::Partial);
     let last = partial
         .next_actions
@@ -986,10 +998,12 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
-    let mut found = engine
-        .execute(&person, "fixture", execution(&lookup))
-        .await
-        .unwrap();
+    let mut found = common::settle(
+        &engine,
+        &person,
+        engine.execute(&person, "fixture", execution(&lookup)).await.unwrap(),
+    )
+    .await;
     assert_eq!(found.status, Status::Succeeded);
     // Reproduce an old chat that appended another question above a saved
     // result, before turn outputs existed. A read must recover the original
@@ -1059,10 +1073,12 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
-    let followup_done = engine
-        .execute(&person, "fixture", execution(&preview))
-        .await
-        .unwrap();
+    let followup_done = common::settle(
+        &engine,
+        &person,
+        engine.execute(&person, "fixture", execution(&preview)).await.unwrap(),
+    )
+    .await;
     assert_eq!(followup_done.context_view["result_is_historical"], false);
     assert_eq!(followup_done.context_view["conversation"][0]["output"]["result"], *found.result.as_ref().unwrap());
     assert_eq!(followup_done.status, Status::Succeeded);
@@ -1099,7 +1115,7 @@ async fn durable_flow_and_authorization_boundary() {
     let quote = search.proposal.as_ref().unwrap();
     engine.executor.approve(&person, search.state.as_ref().unwrap().state_ref,
         quote.quote_ref, &quote.max_total_atomic).await.unwrap();
-    let listed = engine.execute(&person, "fixture", execution(&search)).await.unwrap();
+    let listed = common::settle(&engine, &person, engine.execute(&person, "fixture", execution(&search)).await.unwrap()).await;
     assert_eq!(listed.status, Status::Succeeded);
     assert!(!listed.next_actions.iter().any(|a| a.kind == "select_entity"));
     assert_eq!(listed.result.as_ref().unwrap()["data"]["companies"].as_array().unwrap().len(), 2);

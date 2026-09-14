@@ -24,6 +24,8 @@ use std::{
 };
 use uuid::Uuid;
 
+mod common;
+
 #[derive(Clone)]
 struct TestState {
     pool: PgPool,
@@ -56,6 +58,9 @@ fn case(source: &str) -> (&str, Value) {
 async fn model(Json(body): Json<Value>) -> Json<Value> {
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if common::asks_for_answer(&input) {
+        return Json(common::answer(&input));
+    }
     let key = input["question"]
         .as_str()
         .unwrap()
@@ -281,10 +286,12 @@ async fn new_sources_require_approval_and_reuse_saved_results() {
             .await
             .unwrap();
         let request = execute(&start);
-        let result = engine
-            .execute(&person, "fixture", request.clone())
-            .await
-            .unwrap();
+        let result = common::settle(
+            &engine,
+            &person,
+            engine.execute(&person, "fixture", request.clone()).await.unwrap(),
+        )
+        .await;
         assert_eq!(result.status, Status::Succeeded, "{result:?}");
         assert_eq!(state.count.load(Ordering::SeqCst), before + 1);
         let replay = engine.execute(&person, "fixture", request).await.unwrap();

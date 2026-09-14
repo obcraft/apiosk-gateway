@@ -113,7 +113,7 @@ impl Action {
             ),
             Self::RetryAnalysis { .. } => (
                 "retry_analysis",
-                "Retry analysis of saved results".into(),
+                "Retry the answer from saved results".into(),
                 false,
                 json!({"type":"null"}),
             ),

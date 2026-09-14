@@ -26,6 +26,13 @@ pub struct Engine {
     pub app_url: String,
 }
 pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
+/// Whether the person asked for an interpretation of the results themselves,
+/// rather than only for the results.
+fn requested_analysis(task: &Task) -> bool {
+    task.intent
+        .as_ref()
+        .is_some_and(|v| v["answer_operations"].as_array().is_some_and(|a| !a.is_empty()))
+}
 
 impl Engine {
     async fn request_claim(
@@ -418,7 +425,11 @@ impl Engine {
             Status::NeedsInput
         } else if !task.failed_steps.is_empty() {
             if task.active_results.is_empty() { Status::Failed } else { Status::Partial }
-        } else if task.analysis.as_ref().is_some_and(|a| a["status"] != "completed") {
+        } else if requested_analysis(&task) && task.analysis.as_ref().is_some_and(|a| a["status"] != "completed") {
+            // An answer is now written for every question. A missing answer to
+            // an explicitly requested comparison is still partial delivery; a
+            // missing answer to a plain retrieval is not — the results the
+            // person paid for are all there, and the answer can be retried.
             Status::Partial
         } else if !task.result_refs.is_empty() {
             Status::Succeeded

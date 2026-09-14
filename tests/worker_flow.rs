@@ -19,6 +19,9 @@ use std::{
     time::{Duration, Instant},
 };
 use uuid::Uuid;
+
+mod common;
+
 struct Counts {
     pool: sqlx::PgPool,
     active: AtomicUsize,
@@ -33,6 +36,9 @@ async fn model(State(c): State<Arc<Counts>>, Json(body): Json<Value>) -> Json<Va
     c.parses.fetch_add(1, Ordering::SeqCst);
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if common::asks_for_answer(&input) {
+        return Json(common::answer(&input));
+    }
     let ambiguous = input["question"] == "Ambiguous";
     let labels = if ambiguous {
         vec!["Ambiguous"]
@@ -194,7 +200,8 @@ async fn one_approval_parallel_execution_and_ambiguity_resume() {
     );
     assert_eq!(done.billing.as_ref().unwrap()["total_charged"], "276");
     assert_eq!(done.proposal.as_ref().unwrap().quote_ref, quote.quote_ref);
-    assert_eq!(counts.parses.load(Ordering::SeqCst), 1);
+    // One plan, and one answer written from the results it bought.
+    assert_eq!(counts.parses.load(Ordering::SeqCst), 2);
     engine
         .start_worker(p.clone(), "fixture".into(), id)
         .await
@@ -275,8 +282,8 @@ async fn one_approval_parallel_execution_and_ambiguity_resume() {
     );
     assert_eq!(
         counts.parses.load(Ordering::SeqCst),
-        2,
-        "selection must not replan"
+        4,
+        "selection must not replan; each of the two requests is answered once"
     );
     assert_eq!(done.billing.unwrap()["total_charged"], "138");
     let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations WHERE task_id=$1")

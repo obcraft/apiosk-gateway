@@ -11,6 +11,7 @@ pub mod input_binding;
 pub mod maintenance;
 pub mod parser;
 pub mod annual_report;
+pub mod answer_input;
 pub mod research_report;
 pub mod protocol;
 pub mod resolver;
