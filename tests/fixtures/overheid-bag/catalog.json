@@ -1,0 +1,132 @@
+{
+  "services": [
+    {
+      "id": "0ff9f5ad-7d22-462a-babe-29d43e7d3fd3",
+      "name": "Overheid.io Public Data",
+      "path": "/bag",
+      "method": "GET",
+      "api_slug": "overheid-io",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "building.postcode",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "building.postcode": {
+            "in": "query",
+            "name": "filters[postcode]"
+          }
+        },
+        "identifies": "address.bag_slug",
+        "output_map": {
+          "base": "$._embedded.adres[*]",
+          "produces": {
+            "address.postal": {
+              "fields": {
+                "city": {
+                  "path": "$.woonplaats"
+                },
+                "street": {
+                  "path": "$.openbareruimte"
+                },
+                "postcode": {
+                  "path": "$.postcode"
+                },
+                "house_number": {
+                  "path": "$.huisnummer"
+                }
+              }
+            },
+            "address.bag_slug": {
+              "path": "$.slug"
+            },
+            "building.postcode": {
+              "path": "$.postcode"
+            }
+          }
+        },
+        "cardinality": "many",
+        "max_fan_out": 1,
+        "capability_slug": "building.registry-search"
+      },
+      "pagination": {
+        "kind": "hal",
+        "next": "$._links.next.href"
+      },
+      "source_url": "https://overheid.io/documentatie/",
+      "endpoint_id": "5f80af63-c24e-46b0-aa0a-d31e1383c87a",
+      "list_atomic": 50000,
+      "fixed_params": {},
+      "jurisdiction": "NL",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "size": 1,
+        "_embedded": {
+          "adres": [
+            {
+              "slug": "3015ba-nieuwe-binnenweg-10-c",
+              "postcode": "3015BA",
+              "huisnummer": "10",
+              "woonplaats": "Rotterdam",
+              "openbareruimte": "Nieuwe Binnenweg"
+            }
+          ]
+        },
+        "pageCount": 110,
+        "totalItemCount": 110
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 86400
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "address.bag_slug",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "address.postal",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "postcode"
+        ],
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "postcode": {
+            "type": "string",
+            "pattern": "^[0-9]{4}\\s?[A-Za-z]{2}$"
+          },
+          "house_number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "building.postcode",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}(\\s?[A-Za-z]{2})?$"
+      }
+    }
+  ]
+}

@@ -284,10 +284,9 @@ fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Res
         .iter()
         .map(prose)
         .collect::<anyhow::Result<Vec<_>>>()?;
-    if partial {
+    if partial && caveats.is_empty() {
         caveats.push(
-            "Some requested source calls did not return usable data. This analysis is incomplete."
-                .into(),
+            "Some source information is unavailable. The answer uses the available results.".into(),
         );
     }
     anyhow::ensure!(!checked.is_empty() || !caveats.is_empty(), "empty analysis");

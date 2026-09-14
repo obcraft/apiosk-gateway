@@ -1,0 +1,11 @@
+# Overheid.io postcode-area search and concise Ask results
+
+The saved request `f75f8787-df1f-498e-b03d-dbd68a32b2ff` sent `/bag?filters[postcode]=3011`. The provider returned a valid empty result, which the engine incorrectly classified as missing address fields. The App displayed that error, a second generic partial-result alert and repeated analysis caveats.
+
+The exact filter was reproduced against the live provider. The working area request is `/bag?query=3011*&queryfields[]=postcode`; the scalar `queryfields=postcode` returned HTTP 500. The adapter now converts four-digit postcodes to the verified area query, defaults to 25 records, retains page/size/other filters, and preserves exact six-character postcodes. Corrected requests use their normalized URL as the upstream cache identity so the previous empty response cannot mask the repair. It does not fetch additional pages automatically.
+
+Confirmed empty BAG search responses are treated as empty results. Malformed responses and missing fields on actual records still fail completeness checks. Paginated results retain an explicit coverage note. Model answers use exact saved evidence values and explain missing data once in ordinary language.
+
+The App uses 1.5 line height and 6px paragraph spacing for progressively revealed replies. Source completeness failures share one neutral notice; technical details and charges remain in the source drawer. Saved calls made with the incorrect four-digit exact filter receive a specific explanation and a button to prepare a corrected question. Existing results and charges are preserved; this button does not execute a purchase.
+
+Verification: focused App rendering/recovery tests, source adapter tests, engine completeness and analysis tests, and the local durable approval/execution/replay suite. `cargo run --locked --example check-overheid-postcode` verifies the exact adapter against the live provider, checks the returned addresses against the execution contract, and generates a sourced answer without an Apiosk purchase. The probe returned 25 addresses, all in area 3011, with a reported total of 17602; these are address records, not residents. Local probe evidence is under `output/overheid-postcode-fix/`.

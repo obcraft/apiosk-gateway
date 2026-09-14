@@ -69,6 +69,13 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
+        if step.service.api_slug == "overheid-io"
+            && step.service.path == "/bag"
+            && data["_links"]["next"]["href"].is_string()
+        {
+            document["coverage"] = json!("partial");
+            document["coverage_note"] = json!("One page of matching addresses. The total includes matches on later pages; address counts are not population counts.");
+        }
         if matches!(
             step.service.api_slug.as_str(),
             "koop"
@@ -98,10 +105,13 @@ impl Engine {
         document["apiosk_fee_micro_usd"] =
             json!(body["fee_micro_usd"].as_i64().map(|v| v.to_string()));
         let missing: Vec<String> = match &extraction {
-            Ok(e) => missing_required_outputs(&step.service, e),
+            Ok(e) => missing_required_outputs(&step.service, e, &data),
             Err(_) => vec!["output_schema_mismatch".into()],
         };
         let missing_required = !missing.is_empty();
+        if confirmed_empty_search(&step.service, &data) && !missing_required {
+            document["coverage"] = json!("empty");
+        }
         if !missing.is_empty() {
             document["missing_fields"] = json!(missing);
             document["coverage"] = json!("partial");
@@ -241,7 +251,16 @@ impl Engine {
 fn missing_required_outputs(
     service: &crate::catalog::Service,
     extraction: &catalog_core::facts::contract::Extraction,
+    data: &Value,
 ) -> Vec<String> {
+    // A confirmed empty search has no address fields to extract. It must not
+    // be reported as a broken response or used to fabricate dependent facts.
+    if confirmed_empty_search(service, data)
+        && extraction.subjects.is_empty()
+        && extraction.rejected.is_empty()
+    {
+        return Vec::new();
+    }
     service
         .contract
         .output_map
@@ -256,6 +275,20 @@ fn missing_required_outputs(
         })
         .cloned()
         .collect()
+}
+
+fn confirmed_empty_search(service: &crate::catalog::Service, data: &Value) -> bool {
+    service.api_slug == "overheid-io"
+        && service.path == "/bag"
+        && data["totalItemCount"].as_u64() == Some(0)
+        && data["size"].as_u64().is_some_and(|size| size > 0)
+        && data["_links"]["self"]["href"]
+            .as_str()
+            .is_some_and(|href| href.starts_with("/bag?"))
+        && (data.get("_embedded").is_none()
+            || data["_embedded"]["adres"]
+                .as_array()
+                .is_some_and(|rows| rows.is_empty()))
 }
 
 #[cfg(test)]
@@ -280,13 +313,46 @@ mod completeness_tests {
             .extract(&result, &catalog.vocabulary)
             .unwrap();
         assert!(extraction.rejected.is_empty());
-        assert!(missing_required_outputs(service, &extraction).is_empty());
+        assert!(missing_required_outputs(service, &extraction, &result).is_empty());
         extraction.subjects[0]
             .facts
             .retain(|fact| fact.fact_type != "company.name");
         assert_eq!(
-            missing_required_outputs(service, &extraction),
+            missing_required_outputs(service, &extraction, &result),
             vec!["company.name"]
         );
+    }
+
+    #[test]
+    fn empty_bag_search_does_not_claim_missing_address_fields() {
+        let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!(
+            "../../tests/fixtures/overheid-bag/catalog.json"
+        ))
+        .unwrap();
+        let catalog = Catalog::build(snapshot);
+        let mut service = catalog.services[0].clone();
+        let sample = service.sample_payload.as_ref().unwrap();
+        let extracted = service
+            .contract
+            .extract(sample, &catalog.vocabulary)
+            .unwrap();
+        assert!(!extracted.subjects.is_empty());
+        assert!(missing_required_outputs(&service, &extracted, sample).is_empty());
+        let empty = json!({"totalItemCount":0,"size":100,"pageCount":1,"_links":{"self":{"href":"/bag?query=9999*&queryfields[0]=postcode"}}});
+        let extraction = service
+            .contract
+            .extract(&empty, &catalog.vocabulary)
+            .unwrap();
+        assert!(missing_required_outputs(&service, &extraction, &empty).is_empty());
+        for malformed in [
+            json!({}),
+            json!({"totalItemCount":0}),
+            json!({"totalItemCount":0,"size":100,"_links":{"self":{"href":"/bag?x=y"}},"_embedded":{"adres":[{"postcode":"3011HA"}]}}),
+        ] {
+            assert!(!confirmed_empty_search(&service, &malformed));
+            assert!(!missing_required_outputs(&service, &extraction, &malformed).is_empty());
+        }
+        service.api_slug = "another-source".into();
+        assert!(!missing_required_outputs(&service, &extraction, &empty).is_empty());
     }
 }
