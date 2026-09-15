@@ -273,6 +273,11 @@ pub struct CatalogCache {
     pool: PgPool,
     cache: moka::future::Cache<u8, Arc<Catalog>>,
     sources: moka::future::Cache<u8, Arc<Vec<crate::sources::Source>>>,
+    /// Last catalog and source list that loaded. A slow or failing refresh keeps
+    /// serving them instead of failing every question; prices are still quoted
+    /// and re-checked at execution by the payment executor.
+    last_catalog: std::sync::RwLock<Option<Arc<Catalog>>>,
+    last_sources: std::sync::RwLock<Option<Arc<Vec<crate::sources::Source>>>>,
 }
 impl CatalogCache {
     pub fn new(pool: PgPool) -> Self {
@@ -286,13 +291,24 @@ impl CatalogCache {
                 .max_capacity(1)
                 .time_to_live(Duration::from_secs(60))
                 .build(),
+            last_catalog: std::sync::RwLock::new(None),
+            last_sources: std::sync::RwLock::new(None),
         }
     }
     pub async fn get(&self) -> anyhow::Result<Arc<Catalog>> {
-        self.cache
-            .try_get_with(0, self.fresh())
-            .await
-            .map_err(|e| anyhow::anyhow!("catalog unavailable: {e}"))
+        match self.cache.try_get_with(0, self.fresh()).await {
+            Ok(catalog) => {
+                *self.last_catalog.write().unwrap() = Some(catalog.clone());
+                Ok(catalog)
+            }
+            Err(error) => match self.last_catalog.read().unwrap().clone() {
+                Some(stale) => {
+                    tracing::warn!(error = %error, "catalog refresh failed; serving the last loaded catalog");
+                    Ok(stale)
+                }
+                None => Err(anyhow::anyhow!("catalog unavailable: {error}")),
+            },
+        }
     }
     pub async fn fresh(&self) -> anyhow::Result<Arc<Catalog>> {
         let value: Value = sqlx::query_scalar(CATALOG_SQL)
@@ -301,7 +317,7 @@ impl CatalogCache {
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }
     pub async fn sources(&self) -> anyhow::Result<Arc<Vec<crate::sources::Source>>> {
-        self.sources
+        let loaded = self.sources
             .try_get_with(0, async {
                 let value: Value = sqlx::query_scalar(include_str!("sources.sql"))
                     .fetch_one(&self.pool)
@@ -313,8 +329,20 @@ impl CatalogCache {
                 crate::sources::apply_branding(&mut sources, None);
                 Ok::<_, anyhow::Error>(Arc::new(sources))
             })
-            .await
-            .map_err(|_| anyhow::anyhow!("source catalog unavailable"))
+            .await;
+        match loaded {
+            Ok(sources) => {
+                *self.last_sources.write().unwrap() = Some(sources.clone());
+                Ok(sources)
+            }
+            Err(error) => match self.last_sources.read().unwrap().clone() {
+                Some(stale) => {
+                    tracing::warn!(error = %error, "source list refresh failed; serving the last loaded list");
+                    Ok(stale)
+                }
+                None => Err(anyhow::anyhow!("source catalog unavailable")),
+            },
+        }
     }
 }
 
