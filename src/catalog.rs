@@ -43,6 +43,15 @@ impl Service {
         )
         .buyer_total_atomic as i64
     }
+    /// Buyer total with the plan's markup (15% standard, 20% inside workflows).
+    pub fn total_with(&self, markup_bps: i64) -> i64 {
+        fees::quote_with_markup(
+            self.list_atomic.into(),
+            fees::ProviderClass::from_listing_type(Some(&self.listing_type)),
+            markup_bps.into(),
+        )
+        .buyer_total_atomic as i64
+    }
     pub fn version_hash(&self) -> String {
         digest(self)
     }
@@ -227,7 +236,13 @@ impl Catalog {
         let bindings: Vec<_> = self.services.iter().map(|s| json!({
             "source":s.api_slug,"capability":s.contract.capability_slug,"inputs":s.contract.requires
         })).collect();
-        json!({"capabilities":self.by_capability.keys().collect::<Vec<_>>(),"sources":sources,
+        let mut capabilities: Vec<&str> = self.by_capability.keys().map(String::as_str).collect();
+        let mut presets = vec![];
+        if crate::supplier_check::available(self) {
+            capabilities.push(crate::supplier_check::PRESET);
+            presets.push(json!({"capability":crate::supplier_check::PRESET,"description":"Supplier payment safety check for one supplier/invoice: business register, VAT, sanctions, domain age, IBAN and earlier invoices. Code adds the individual checks."}));
+        }
+        json!({"capabilities":capabilities,"workflow_presets":presets,"sources":sources,
             "input_types":inputs,"input_definitions":definitions,"service_inputs":bindings})
     }
 

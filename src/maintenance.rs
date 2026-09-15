@@ -3,6 +3,10 @@ impl Store {
     /// Bounded batches, with unresolved executions retained for reconciliation.
     pub async fn prune(&self) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM requests WHERE (owner_id,request_id) IN (SELECT owner_id,request_id FROM requests WHERE created_at<now()-interval '30 days' LIMIT 500)").execute(&self.pool).await?;
+        // Temporary uploads never outlive their one-hour reading window.
+        sqlx::query("DELETE FROM document_uploads WHERE id IN (SELECT id FROM document_uploads WHERE expires_at<now() LIMIT 100)").execute(&self.pool).await?;
+        sqlx::query("DELETE FROM workflow_runs WHERE id IN (SELECT id FROM workflow_runs WHERE expires_at<now() ORDER BY expires_at LIMIT 500)").execute(&self.pool).await?;
+        sqlx::query("DELETE FROM supplier_invoice_checks WHERE id IN (SELECT id FROM supplier_invoice_checks WHERE expires_at<now() ORDER BY expires_at LIMIT 500)").execute(&self.pool).await?;
         sqlx::query("DELETE FROM tasks WHERE id IN (SELECT t.id FROM tasks t WHERE expires_at<now() AND NOT EXISTS(SELECT 1 FROM executions e WHERE e.task_id=t.id AND e.status IN ('dispatching','unresolved')) ORDER BY expires_at LIMIT 50)").execute(&self.pool).await?;
         Ok(())
     }

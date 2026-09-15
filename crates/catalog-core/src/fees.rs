@@ -211,12 +211,27 @@ fn div_ceil(numerator: i128, denominator: i128) -> i128 {
 /// input is clamped to zero; a zero price yields an all-zero quote (free
 /// endpoints never reach settlement).
 pub fn quote(list_atomic: i128, class: ProviderClass) -> FeeQuote {
+    quote_with_markup(list_atomic, class, BUYER_MARKUP_BPS)
+}
+
+/// The buyer markup for runs of an Apiosk workflow (e.g. the supplier payment
+/// check): list + 20%. The provider leg is unchanged; the extra goes to Apiosk.
+pub const WORKFLOW_MARKUP_BPS: i128 = 2_000;
+
+/// Only the standard and the workflow markup exist; anything else is standard.
+pub fn allowed_markup(markup_bps: i128) -> i128 {
+    if markup_bps == WORKFLOW_MARKUP_BPS { WORKFLOW_MARKUP_BPS } else { BUYER_MARKUP_BPS }
+}
+
+/// [`quote`] with an allowed buyer markup ([`allowed_markup`]).
+pub fn quote_with_markup(list_atomic: i128, class: ProviderClass, markup_bps: i128) -> FeeQuote {
     let list_atomic = list_atomic.max(0);
+    let markup_bps = allowed_markup(markup_bps);
 
     // The markup rounds up and the provider fee rounds down: the platform
     // never earns less than the rule says, and the provider is never paid a
     // fraction of a unit less than theirs.
-    let buyer_markup_atomic = markup_atomic(list_atomic, BUYER_MARKUP_BPS);
+    let buyer_markup_atomic = markup_atomic(list_atomic, markup_bps);
     let provider_fee_atomic = list_atomic * class.provider_fee_bps() / BPS_DENOMINATOR;
 
     let buyer_total_atomic = list_atomic + buyer_markup_atomic;

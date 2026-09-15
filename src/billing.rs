@@ -15,8 +15,11 @@ pub fn valid_capture(body: &Value) -> bool {
     if !(0..1_000_000_000_000).contains(&p) || f < 0 {
         return false;
     }
-    let q = catalog_core::fees::quote(p.into(), catalog_core::fees::ProviderClass::Federated);
-    q.buyer_markup_atomic == i128::from(f) && q.buyer_total_atomic == i128::from(t)
+    // Standard calls carry 15%, workflow runs 20%; nothing else is a valid capture.
+    [catalog_core::fees::BUYER_MARKUP_BPS, catalog_core::fees::WORKFLOW_MARKUP_BPS].iter().any(|bps| {
+        let q = catalog_core::fees::quote_with_markup(p.into(), catalog_core::fees::ProviderClass::Federated, *bps);
+        q.buyer_markup_atomic == i128::from(f) && q.buyer_total_atomic == i128::from(t)
+    })
 }
 
 /// Only explicit refusals BEFORE reservation may finish without a ledger row.
@@ -79,6 +82,10 @@ pub fn public_error(body: &Value) -> Value {
             "source_input_refunded",
             "The source request was missing or contained invalid required input. The full amount, including the fee, was refunded.",
         ),
+        Some("source_not_found_refunded") => (
+            "source_not_found",
+            "The source has no record for this input (404). The full amount, including the fee, was refunded.",
+        ),
         Some("source_schema_refunded") => (
             "source_schema_refunded",
             "The source response could not be processed. The full amount, including the fee, was refunded.",
@@ -97,6 +104,7 @@ pub fn refunded_failure(output: &Value) -> Value {
     let error = if execution["paid"] == false {
         match (execution["status"].as_u64(), execution["body"]["error"].as_str()) {
             (Some(429), _) => "rate_limited_refunded",
+            (Some(404), _) => "source_not_found_refunded",
             (_, Some("invalid_source_query")) => "source_input_refunded",
             (_, Some("source_schema_mismatch")) => "source_schema_refunded",
             _ => "refunded",
@@ -123,6 +131,7 @@ mod refunded_error_tests {
         assert!(public_error(&failure)["message"].as_str().unwrap().contains("required input"));
         assert!(!failure.to_string().contains("private"));
         assert_eq!(refunded_failure(&json!({"execution":{"paid":false,"status":429}}))["error"], "rate_limited_refunded");
+        assert_eq!(public_error(&refunded_failure(&json!({"execution":{"paid":false,"status":404}})))["code"], "source_not_found");
         assert_eq!(refunded_failure(&json!(null))["error"], "refunded");
     }
     #[test]

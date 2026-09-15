@@ -1,0 +1,91 @@
+//! Workflows: ready-made flows that run inside the Ask chat (and connected
+//! chatbots). A run is a normal gateway task, so price, approval, execution and
+//! results use the same guarded path as any other request.
+use crate::{invoice_document::FIELDS, supplier_check};
+use serde_json::{json, Value};
+
+pub const SUPPLIER_CHECK: &str = "supplier-payment-check";
+
+/// The quoted price range of a supplier check at the workflow markup: a minimal
+/// invoice (KVK number, name, IBAN) and a complete one (name search, VAT,
+/// website). Converted with the account's display rate; charges stay in USD.
+pub fn supplier_price_range(catalog: &crate::catalog::Catalog, display: &Value) -> Option<(String, String, String)> {
+    let markup = catalog_core::fees::WORKFLOW_MARKUP_BPS as i64;
+    let price = |capability: &str, source: &str| catalog.by_capability.get(capability)
+        .and_then(|ids| ids.iter().map(|i| &catalog.services[*i]).filter(|s| s.api_slug == source).map(|s| s.total_with(markup)).min());
+    let iban = price("iban.validate", "iban-check").or_else(|| price("company.sirenic-iban-verifier-iban", "sirenic")).unwrap_or(0);
+    let profile = price("company.registry-profile", "kvk-dutch-business-register")?;
+    let sanctions = price("company.sanctions-screen", "opensanctions").unwrap_or(0);
+    let min = profile + sanctions + iban;
+    let max = min + price("company_registry.search", "kvk-dutch-business-register").unwrap_or(0) + price("vat.eu.validate", "vies").unwrap_or(0)
+        + price(crate::supplier_check::DOMAIN_REGISTRATION, "domain-intelligence").unwrap_or(0) + price(crate::supplier_check::DOMAIN_MAIL_DNS, "domain-intelligence").unwrap_or(0);
+    let currency = display["currency"].as_str().unwrap_or("USD").to_owned();
+    let rate: f64 = display["rate"].as_str().and_then(|r| r.parse().ok()).filter(|r: &f64| *r > 0.0).unwrap_or(1.0);
+    // An indicative range to the cent; the exact maximum is quoted before approval.
+    let amount = |atomic: i64| format!("{:.2}", ((atomic as f64 / 1e6) * rate * 100.0).round() / 100.0);
+    Some((currency, amount(min), amount(max)))
+}
+
+pub fn definitions(catalog: &crate::catalog::Catalog, display: &Value) -> Value {
+    let label = |key: &str| match key {
+        "supplier_name" => "Supplier name", "kvk_number" => "KVK number", "company_number_uk" => "UK company number", "vat_number" => "VAT number",
+        "iban" => "IBAN", "website" => "Website", "email" => "E-mail", "street" => "Street and number", "postcode" => "Postcode", "city" => "City",
+        "country" => "Country", "invoice_number" => "Invoice number", "invoice_date" => "Invoice date", "total_amount" => "Total amount", _ => "Currency",
+    };
+    let checks = [("company_exists", "Company exists"), ("registry_name_match", "Name matches the register"), ("name_vat_match", "VAT number belongs to this company"),
+        ("address_match", "Invoice address matches registration"), ("iban_valid", "IBAN is valid"), ("account_holder", "Account holder matches"),
+        ("recent_changes", "Not recently registered or changed"), ("domain_age", "Domain looks established"), ("sanctions_pep", "No sanctions or PEP hit"),
+        ("invoice_history", "Consistent with earlier invoices")];
+    let sources: Vec<Value> = [("kvk-dutch-business-register", "KVK"), ("companies-house", "Companies House"), ("vies", "VIES"), ("opensanctions", "OpenSanctions"), ("domain-intelligence", "RDAP & DNS"), ("sirenic", "IBAN check")]
+        .iter().filter(|(slug, _)| catalog.services.iter().any(|s| s.api_slug == *slug)).map(|(slug, name)| json!({"slug":slug,"name":name})).collect();
+    let mut workflows = vec![];
+    if supplier_check::available(catalog) {
+        workflows.push(json!({
+            "slug": SUPPLIER_CHECK, "name": "Supplier payment check", "name_nl": "Kan ik deze leverancier veilig betalen?", "category": "finance",
+            "description": "Upload an invoice. Apiosk checks the business register, VAT number, sanctions, domain age, bank account and earlier invoices, and tells you whether to hold the payment.",
+            "input": {"kind":"document","purpose":"invoice","accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::documents::MAX_FILE_BYTES},
+            "fields": FIELDS.iter().map(|k| json!({"key":k,"label":label(k),"required":false})).collect::<Vec<_>>(),
+            "checks": checks.iter().map(|(id, label)| json!({"id":id,"label":label})).collect::<Vec<_>>(),
+            "sources": sources,
+            "price": match supplier_price_range(catalog, display) {
+                Some((currency, min, max)) => json!({"currency":currency,"min":min,"max":max,"fee_percent":20,"note":"Sum of the source calls this invoice needs, plus a 20% Apiosk workflow fee. The exact maximum is quoted before you approve; failed source calls are refunded."}),
+                None => Value::Null,
+            },
+        }));
+    }
+    json!({"workflows": workflows})
+}
+
+pub fn run_status(status: &crate::protocol::Status, decision: Option<&str>) -> &'static str {
+    use crate::protocol::Status::*;
+    if decision.is_some() { return "completed" }
+    match status {
+        Ready | RequiresApproval => "quoted",
+        NeedsInput => "needs_input",
+        NeedsSelection => "needs_selection",
+        Unsupported => "unsupported",
+        Running => "running",
+        Succeeded | Partial => "completed",
+        Failed | StateConflict => "failed",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn price_range_uses_the_workflow_markup_and_display_rate() {
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/supplier-check/catalog.json")).unwrap();
+        let iban: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/iban-check/services.json")).unwrap();
+        snapshot.services.extend(iban.services);
+        snapshot.vocabulary.extend(iban.vocabulary);
+        let catalog = crate::catalog::Catalog::build(snapshot);
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        let (currency, min, max) = supplier_price_range(&catalog, &json!({"currency":"EUR","rate":"0.92"})).unwrap();
+        assert_eq!(currency, "EUR");
+        // KVK profile 0.066162 + OpenSanctions 0.094518 + IBAN 0.054348 list, +20%, x0.92.
+        assert_eq!(min, "0.24");
+        // + KVK search 0.018903 + VIES 0.085066 + RDAP 0.085066 + DNS 0.085066.
+        assert_eq!(max, "0.54");
+    }
+}

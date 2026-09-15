@@ -1,0 +1,310 @@
+{
+  "services": [
+    {
+      "id": "957ab76a-9ac2-4e99-84a2-b2719c9e2a7f",
+      "endpoint_id": "1fe3de32-f0b5-4ced-8254-25815656e8bb",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/domain/{domain}",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://about.rdap.org/",
+      "contract": {
+        "capability_slug": "domain.registration",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.registration.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.nl",
+          "registered_at": "2000-05-23T14:06:31Z",
+          "last_changed_at": "2021-03-22T15:18:26Z",
+          "expires_at": null,
+          "registrar": "team.blue nl B.V.",
+          "statuses": [
+            "active"
+          ],
+          "nameservers": [
+            "ns-cloud-a4.googledomains.com",
+            "ns-cloud-a1.googledomains.com",
+            "ns-cloud-a2.googledomains.com",
+            "ns-cloud-a3.googledomains.com"
+          ],
+          "rdap_server": "rdap.sidn.nl"
+        },
+        "notice": "Registry RDAP data at request time. Registrant identity is usually redacted; a registration date shows when the current registration started, not who controls the domain.",
+        "coverage": {
+          "complete": true,
+          "scope": "Authoritative registry RDAP record for one domain"
+        },
+        "source_url": "https://rdap.sidn.nl/domain/mollie.nl"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "24681eb4-ddb6-48e6-8843-686fcef4b08d",
+      "endpoint_id": "93c4c97c-05e2-4026-8bb2-44bd9d958c68",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://about.rdap.org/",
+      "contract": {
+        "capability_slug": "domain.mail-dns",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.mail-dns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "exists": true,
+          "accepts_mail": true,
+          "mx": [
+            "10 aspmx2.googlemail.com.",
+            "5 alt2.aspmx.l.google.com.",
+            "5 alt1.aspmx.l.google.com.",
+            "1 aspmx.l.google.com.",
+            "10 aspmx3.googlemail.com."
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS MX lookup at request time (Google Public DNS). DNS shows mail routing, not ownership.",
+        "coverage": {
+          "complete": true,
+          "scope": "MX records for one domain"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "jurisdiction": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "domain.name",
+      "value_schema": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 253,
+        "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+        "description": "Registrable domain name in lowercase, e.g. example.nl"
+      }
+    },
+    {
+      "slug": "domain.registration.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "statuses",
+              "nameservers"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "description": "Domain"
+              },
+              "registered_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "RFC 3339 registration event"
+              },
+              "last_changed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registrar": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "statuses": {
+                "type": "array"
+              },
+              "nameservers": {
+                "type": "array"
+              },
+              "rdap_server": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string",
+                "description": "Scope"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Domain registration date (RDAP)"
+      }
+    },
+    {
+      "slug": "domain.mail-dns.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "exists",
+              "accepts_mail",
+              "mx",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "description": "Domain"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "accepts_mail": {
+                "type": "boolean"
+              },
+              "mx": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string",
+                "description": "Scope"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Domain mail servers (DNS MX)"
+      }
+    }
+  ]
+}

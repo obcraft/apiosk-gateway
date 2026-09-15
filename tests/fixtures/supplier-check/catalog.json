@@ -1,0 +1,1251 @@
+{
+  "services": [
+    {
+      "api_slug": "opensanctions",
+      "contract": {
+        "capability_slug": "company.sanctions-screen",
+        "cardinality": "one",
+        "input_map": {
+          "company.name": {
+            "in": "body",
+            "name": "/queries/q1/properties/name",
+            "wrap": "array"
+          },
+          "company.search.country_code": {
+            "in": "body",
+            "name": "/queries/q1/properties/country",
+            "wrap": "array"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company.search.country_code",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "queries": {
+          "q1": {
+            "properties": {},
+            "schema": "Company"
+          }
+        }
+      },
+      "freshness_seconds": 3600,
+      "id": "0202e192-7b3f-5074-84a1-4dcfffd28df2",
+      "jurisdiction": null,
+      "list_atomic": 94518,
+      "listing_type": "api",
+      "method": "POST",
+      "name": "OpenSanctions",
+      "pagination": {},
+      "path": "/match",
+      "preconditions": {},
+      "sample_payload": {
+        "limit": 2,
+        "responses": {
+          "q1": {
+            "query": {
+              "id": null,
+              "properties": {
+                "name": [
+                  "Gazprom"
+                ]
+              },
+              "schema": "Company"
+            },
+            "results": [
+              {
+                "caption": "OPEN JOINT STOCK COMPANY GAZPROM",
+                "datasets": [
+                  "us_ofac_cons",
+                  "ca_dfatd_sema_sanctions",
+                  "eu_esma_saris",
+                  "us_sam_exclusions",
+                  "ext_ror",
+                  "permid",
+                  "ir_uani_business_registry",
+                  "ext_gleif",
+                  "ext_us_ofac_press_releases",
+                  "us_trade_csl",
+                  "ext_eu_esma_firds",
+                  "ext_ru_egrul",
+                  "gem_energy_ownership",
+                  "ua_war_sanctions",
+                  "ext_ua_edr",
+                  "ext_gb_fca_firds",
+                  "ext_icij_offshoreleaks",
+                  "au_dfat_sanctions",
+                  "pl_mswia_sanctions",
+                  "nz_russia_sanctions",
+                  "ext_gb_coh_psc"
+                ],
+                "id": "NK-N7dfJjNtqB9hibmDaoviPf",
+                "match": true,
+                "properties": {
+                  "country": [
+                    "ru"
+                  ],
+                  "name": [
+                    "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"ГАЗПРОМ\"",
+                    "Gazprom",
+                    "OAO GAZPROM -",
+                    "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО ГАЗПРОМ",
+                    "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО\"ГАЗПРОМ\"",
+                    "OAO GAZPROM",
+                    "ОАО\"ГАЗПРОМ\"",
+                    "Публичное Акционерное Общество Газпром",
+                    "GAZPROM OAO",
+                    "ПАО «Газпром»",
+                    "НА УЧЕТЕ В МИ МНС РФ ПО КРУПН.N 2",
+                    "Gazprom (Russia)",
+                    "Gazprom PAO",
+                    "Public Joint Stock Company Gazprom",
+                    "PAO Gazprom",
+                    "OPEN JOINT STOCK COMPANY GAZPROM",
+                    "Pjsc Gazprom",
+                    "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"ГАЗПРОМ\"",
+                    "Gazprom, OAO",
+                    "Gazprom PJSC",
+                    "ГАЗПРОМ ОАО"
+                  ],
+                  "registrationNumber": [
+                    "1027700070518",
+                    "0000000"
+                  ]
+                },
+                "schema": "Company",
+                "score": 1
+              },
+              {
+                "caption": "GAZPROM TELECOM",
+                "datasets": [
+                  "us_ofac_cons",
+                  "permid",
+                  "us_trade_csl",
+                  "ext_ru_egrul",
+                  "us_sam_exclusions"
+                ],
+                "id": "NK-7CA2ijwrW2pE6toLKbgEtx",
+                "match": true,
+                "properties": {
+                  "country": [
+                    "ru"
+                  ],
+                  "name": [
+                    "Gazprom Telekom OOO",
+                    "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ \"ГАЗПРОМ ТЕЛЕКОМ\"",
+                    "ZAKRYTOE AKTSIONERNOE OBSHCHESTVO GAZTELEKOM",
+                    "GAZPROM TELEKOM, OOO",
+                    "GAZPROM TELECOM",
+                    "OBSHCHESTVO S OGRANICHENNOI OTVETSTVENNOSTYU 'GAZPROM TELEKOM'",
+                    "Gazprom Telekom ZAO",
+                    "Gazprom Telekom, OOO"
+                  ],
+                  "registrationNumber": [
+                    "1137746329962"
+                  ]
+                },
+                "schema": "Company",
+                "score": 0.8333333333333334
+              }
+            ],
+            "status": 200,
+            "total": {
+              "relation": "eq",
+              "value": 17
+            }
+          }
+        }
+      },
+      "source_url": "https://www.opensanctions.org/docs/api/"
+    },
+    {
+      "api_slug": "kvk-dutch-business-register",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbiActiviteiten[*].sbiCode"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.handelsnamen[*].naam"
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 7
+      },
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "03f57299-a454-4049-8e47-1f46cabe90c9",
+      "jurisdiction": "NL",
+      "list_atomic": 66162,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "KVK Business Register",
+      "optional_outputs": [
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.sbi_activities"
+      ],
+      "pagination": {},
+      "path": "/api/v1/basisprofielen",
+      "preconditions": {},
+      "sample_payload": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "source_url": "https://developers.kvk.nl/nl/documentation"
+    },
+    {
+      "api_slug": "sirenic",
+      "contract": {
+        "capability_slug": "company.sirenic-iban-verifier-iban",
+        "cardinality": "one",
+        "input_map": {
+          "company.sirenic.input.iban_verifier_iban.iban": {
+            "in": "path",
+            "name": "iban"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.iban_verifier_iban": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.sirenic.input.iban_verifier_iban.iban",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "endpoint_id": "eda5ef9c-0d84-503d-9cf6-6c6f9844334e",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "49daaf2d-0c4a-5588-9054-24bd38ddb124",
+      "jurisdiction": "FR",
+      "list_atomic": 5000,
+      "listing_type": "federated",
+      "method": "GET",
+      "name": "Sirenic",
+      "pagination": {},
+      "path": "/v1/iban/verifier/{iban}",
+      "preconditions": {},
+      "sample_payload": {
+        "banque": {
+          "bic": "PSSTFRPPXXX",
+          "identifiee": true,
+          "lei": "96950066U5XAAIRCPA78",
+          "nom": "La Banque Postale",
+          "siren": "421100645"
+        },
+        "code_banque": "20041",
+        "controles": {
+          "longueur": "ok",
+          "mod97": "ok",
+          "pays_connu": "ok"
+        },
+        "disclaimer": "Contrôle de FORME (structure ISO 13616 + clé mod 97-10) et registres publics uniquement — ceci n'est PAS une Verification of Payee au sens du règlement (UE) 2024/886 (le schéma VoP est réservé aux prestataires de services de paiement) : le nom du TITULAIRE du compte n'est jamais vérifié. L'existence du compte n'est pas contrôlée. / Format check (ISO 13616 structure + mod 97-10 check digits) and public registers only — NOT a Verification of Payee: the account holder's name is never checked and the account's existence is not tested.",
+        "exemple_de_documentation": true,
+        "iban_normalise": "FR1420041010050500013M02606",
+        "nature_du_controle": "forme_et_registres",
+        "non_verifie": [
+          "existence_du_compte",
+          "nom_du_titulaire"
+        ],
+        "valide": true,
+        "verification_titulaire": "non_disponible"
+      },
+      "source_url": "https://api.sirenic.eu/openapi.json"
+    },
+    {
+      "api_slug": "kvk-dutch-business-register",
+      "contract": {
+        "capability_slug": "company_registry.search",
+        "cardinality": "many",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "building.huisletter": {
+            "in": "query",
+            "name": "huisletter"
+          },
+          "building.postcode": {
+            "in": "query",
+            "name": "postcode"
+          },
+          "company.name": {
+            "in": "query",
+            "name": "naam"
+          },
+          "company_registry.kvknummer": {
+            "in": "query",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.resultaten[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "building.postcode",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "building.huisletter",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 5
+      },
+      "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "a4ea2bea-9438-4e8d-9ce5-06a1e4e435d8",
+      "jurisdiction": "NL",
+      "list_atomic": 18903,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "KVK Business Register",
+      "pagination": {},
+      "path": "/api/v2/zoeken",
+      "preconditions": {},
+      "sample_payload": {
+        "pagina": 1,
+        "resultaten": [
+          {
+            "actief": "Ja",
+            "adres": {
+              "binnenlandsAdres": {
+                "plaats": "Amsterdam",
+                "straatnaam": "Keizersgracht"
+              }
+            },
+            "kvkNummer": "30204462",
+            "naam": "Mollie B.V.",
+            "type": "rechtspersoon"
+          }
+        ],
+        "resultatenPerPagina": 10,
+        "totaal": 2
+      },
+      "source_url": "https://developers.kvk.nl/nl/documentation"
+    },
+    {
+      "api_slug": "vies",
+      "contract": {
+        "capability_slug": "vat.eu.validate",
+        "cardinality": "one",
+        "input_map": {
+          "vat.eu.country_code": {
+            "in": "path",
+            "name": "cc"
+          },
+          "vat.eu.number": {
+            "in": "path",
+            "name": "nr"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "vat.eu.validate.result": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "vat.eu.country_code",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "vat.eu.number",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+      "fixed_params": {},
+      "freshness_seconds": 60,
+      "id": "cb28efa7-a0da-4743-986b-016c5e415400",
+      "jurisdiction": "EU",
+      "list_atomic": 85066,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "VIES EU VAT Validation",
+      "pagination": {},
+      "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+      "preconditions": {},
+      "sample_payload": {
+        "coverage": {
+          "complete": false,
+          "scope": "One bounded upstream response per purchased call"
+        },
+        "data": {
+          "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+          "country_code": "NL",
+          "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+          "request_date": "2026-09-14T16:48:04.183Z",
+          "upstream": {
+            "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+            "isValid": true,
+            "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+            "originalVatNumber": "004495445B01",
+            "requestDate": "2026-09-14T16:48:04.183Z",
+            "requestIdentifier": "",
+            "userError": "VALID",
+            "vatNumber": "004495445B01",
+            "viesApproximate": {
+              "city": "---",
+              "companyType": "---",
+              "matchCity": 3,
+              "matchCompanyType": 3,
+              "matchName": 3,
+              "matchPostalCode": 3,
+              "matchStreet": 3,
+              "name": "---",
+              "postalCode": "---",
+              "street": "---"
+            }
+          },
+          "valid": true,
+          "vat_number": "004495445B01"
+        },
+        "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01"
+      },
+      "source_url": "https://ec.europa.eu/taxation_customs/vies/"
+    },
+    {
+      "api_slug": "domain-intelligence",
+      "contract": {
+        "capability_slug": "domain.registration",
+        "cardinality": "one",
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.registration.result": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "endpoint_id": "1fe3de32-f0b5-4ced-8254-25815656e8bb",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "957ab76a-9ac2-4e99-84a2-b2719c9e2a7f",
+      "jurisdiction": null,
+      "list_atomic": 85066,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "pagination": {},
+      "path": "/domain/{domain}",
+      "preconditions": {},
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "Authoritative registry RDAP record for one domain"
+        },
+        "data": {
+          "domain": "mollie.nl",
+          "expires_at": null,
+          "last_changed_at": "2021-03-22T15:18:26Z",
+          "nameservers": [
+            "ns-cloud-a4.googledomains.com",
+            "ns-cloud-a1.googledomains.com",
+            "ns-cloud-a2.googledomains.com",
+            "ns-cloud-a3.googledomains.com"
+          ],
+          "rdap_server": "rdap.sidn.nl",
+          "registered_at": "2000-05-23T14:06:31Z",
+          "registrar": "team.blue nl B.V.",
+          "statuses": [
+            "active"
+          ]
+        },
+        "notice": "Registry RDAP data at request time. Registrant identity is usually redacted; a registration date shows when the current registration started, not who controls the domain.",
+        "source_url": "https://rdap.sidn.nl/domain/mollie.nl"
+      },
+      "source_url": "https://about.rdap.org/"
+    },
+    {
+      "api_slug": "domain-intelligence",
+      "contract": {
+        "capability_slug": "domain.mail-dns",
+        "cardinality": "one",
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.mail-dns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "endpoint_id": "93c4c97c-05e2-4026-8bb2-44bd9d958c68",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "24681eb4-ddb6-48e6-8843-686fcef4b08d",
+      "jurisdiction": null,
+      "list_atomic": 85066,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "pagination": {},
+      "path": "/dns/{domain}",
+      "preconditions": {},
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "MX records for one domain"
+        },
+        "data": {
+          "accepts_mail": true,
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "mx": [
+            "10 aspmx2.googlemail.com.",
+            "5 alt2.aspmx.l.google.com.",
+            "5 alt1.aspmx.l.google.com.",
+            "1 aspmx.l.google.com.",
+            "10 aspmx3.googlemail.com."
+          ]
+        },
+        "notice": "Public DNS MX lookup at request time (Google Public DNS). DNS shows mail routing, not ownership.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "source_url": "https://about.rdap.org/"
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "building.huisletter",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "building.postcode",
+      "value_schema": {
+        "pattern": "^[0-9]{4}(\\s?[A-Za-z]{2})?$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "pattern": "^[0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "pattern": "^[0-9]{9}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "properties": {
+          "employee_count": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sbi_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trade_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "legal_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.screening_result",
+      "value_schema": {
+        "properties": {
+          "results": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              200
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.search.country_code",
+      "value_schema": {
+        "pattern": "^[A-Z]{2}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.sirenic.input.iban_verifier_iban.iban",
+      "value_schema": {
+        "maxLength": 42,
+        "minLength": 15,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.sirenic.record.iban_verifier_iban",
+      "value_schema": {
+        "required": [
+          "iban_normalise",
+          "valide"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "vat.eu.country_code",
+      "value_schema": {
+        "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+        "enum": [
+          "AT",
+          "BE",
+          "BG",
+          "CY",
+          "CZ",
+          "DE",
+          "DK",
+          "EE",
+          "EL",
+          "ES",
+          "FI",
+          "FR",
+          "HR",
+          "HU",
+          "IE",
+          "IT",
+          "LT",
+          "LU",
+          "LV",
+          "MT",
+          "NL",
+          "PL",
+          "PT",
+          "RO",
+          "SE",
+          "SI",
+          "SK",
+          "XI"
+        ],
+        "maxLength": 2,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "vat.eu.number",
+      "value_schema": {
+        "description": "VAT number without country prefix or punctuation.",
+        "maxLength": 14,
+        "minLength": 1,
+        "pattern": "^[A-Z0-9]{1,14}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "vat.eu.validate.result",
+      "value_schema": {
+        "description": "Validate a VAT number using VIES",
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "description": "Scope of the returned response",
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "country_code": {
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI.",
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "maxLength": 2,
+                "minLength": 1,
+                "type": "string"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_date": {
+                "description": "Time reported by VIES",
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "valid": {
+                "type": "boolean"
+              },
+              "vat_number": {
+                "description": "VAT number without country prefix or punctuation.",
+                "maxLength": 14,
+                "minLength": 1,
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "name",
+              "address",
+              "upstream"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "description": "Source limitations",
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Exact upstream request URL",
+            "maxLength": 20000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.name",
+      "value_schema": {
+        "description": "Registrable domain name in lowercase, e.g. example.nl",
+        "maxLength": 253,
+        "minLength": 4,
+        "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "domain.registration.result",
+      "value_schema": {
+        "description": "Domain registration date (RDAP)",
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "description": "Scope",
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "domain": {
+                "description": "Domain",
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_changed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "nameservers": {
+                "type": "array"
+              },
+              "rdap_server": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registered_at": {
+                "description": "RFC 3339 registration event",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registrar": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "statuses": {
+                "type": "array"
+              }
+            },
+            "required": [
+              "domain",
+              "statuses",
+              "nameservers"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "description": "Source limitations",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Exact upstream request URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.mail-dns.result",
+      "value_schema": {
+        "description": "Domain mail servers (DNS MX)",
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "description": "Scope",
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "accepts_mail": {
+                "type": "boolean"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "description": "Domain",
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "mx": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "domain",
+              "exists",
+              "accepts_mail",
+              "mx",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "description": "Source limitations",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Exact upstream request URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}

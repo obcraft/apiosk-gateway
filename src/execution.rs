@@ -11,6 +11,17 @@ use sqlx::Row;
 use std::time::Duration;
 use uuid::Uuid;
 
+/// The selection row the App's payment function prices from. A workflow plan
+/// marks its steps so reservation and settlement use the same 20% markup.
+fn selection_metadata(plan: &Plan, task_id: Uuid, action_id: Uuid, inputs: &Value) -> Value {
+    let mut metadata = json!({"gateway_v2":true,"task_id":task_id,"action_id":action_id,"inputs":inputs,"fields":[]});
+    if plan.fee_bps == catalog_core::fees::WORKFLOW_MARKUP_BPS as i64 {
+        metadata["fee_bps"] = json!(plan.fee_bps);
+        metadata["workflow"] = json!(crate::workflows::SUPPLIER_CHECK);
+    }
+    metadata
+}
+
 pub struct Executor {
     pub store: Store,
     pub http: reqwest::Client,
@@ -198,7 +209,7 @@ impl Executor {
         let allocated:i64=sqlx::query_scalar("SELECT coalesce(sum(coalesce(actual_atomic,reserved_atomic)),0)::bigint FROM executions WHERE authorization_id=$1 AND status!='failed'").bind(authorization).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             allocated
-                .checked_add(step.service.total())
+                .checked_add(plan.step_total(step))
                 .is_some_and(|total| total <= auth.get::<i64, _>("cap_atomic")),
             "budget exhausted"
         );
@@ -231,15 +242,15 @@ impl Executor {
         // The existing App ledger will reserve/debit this selection. This table
         // records only an authorized pick and never modifies a user balance.
         sqlx::query("INSERT INTO user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$3,$4,'reviewed','apiosk',$5,$6,$7,$8,$9,$10,$11,$12)")
-            .bind(selection).bind(p.owner).bind(p.connection).bind(format!("Gateway v2: {}",step.service.contract.capability_slug)).bind(&step.service.name).bind(&step.service.contract.capability_slug).bind(&step.service.api_slug).bind(step.service.endpoint_id).bind(&step.service.method).bind(step.service.list_atomic).bind(step.service.total())
-            .bind(json!({"gateway_v2":true,"task_id":task_id,"action_id":action_id,"inputs":inputs,"fields":[]})).execute(&mut *tx).await?;
+            .bind(selection).bind(p.owner).bind(p.connection).bind(format!("Gateway v2: {}",step.service.contract.capability_slug)).bind(&step.service.name).bind(&step.service.contract.capability_slug).bind(&step.service.api_slug).bind(step.service.endpoint_id).bind(&step.service.method).bind(step.service.list_atomic).bind(plan.step_total(step))
+            .bind(selection_metadata(plan, task_id, action_id, inputs)).execute(&mut *tx).await?;
         if let Some(workspace) = p.workspace {
             sqlx::query("SELECT public.workspace_bind_execution($1,$2,$3,$4,$5,$6,$7)")
                 .bind(p.owner).bind(p.connection).bind(workspace).bind(selection).bind(task_id)
-                .bind(step.service.total()).bind(plan.expires_at).execute(&mut *tx).await?;
+                .bind(plan.step_total(step)).bind(plan.expires_at).execute(&mut *tx).await?;
         }
         sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'dispatching')")
-            .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(payload_hash).bind(selection).bind(step.service.total()).execute(&mut *tx).await?;
+            .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(payload_hash).bind(selection).bind(plan.step_total(step)).execute(&mut *tx).await?;
         tx.commit().await?;
         let path = if p.connection.is_some() {
             "agent-gateway/v1/run"
@@ -272,7 +283,7 @@ impl Executor {
         // spent. Poll/reconciliation reads that ledger; never redispatch here.
         let status = if succeeded { "succeeded" } else { "unresolved" };
         anyhow::ensure!(
-            actual.is_none_or(|n| n >= 0 && n <= step.service.total()),
+            actual.is_none_or(|n| n >= 0 && n <= plan.step_total(step)),
             "executor returned invalid cost; reconcile before continuing"
         );
         sqlx::query("UPDATE executions SET status=$2,response=$3,actual_atomic=$4,updated_at=now() WHERE id=$1").bind(idempotency).bind(status).bind(&body).bind(if succeeded{actual}else{None}).execute(&self.store.pool).await?;

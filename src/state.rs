@@ -174,6 +174,9 @@ pub struct Task {
     pub failed_steps: std::collections::BTreeMap<String, Value>,
     #[serde(default)]
     pub analysis: Option<Value>,
+    /// Invoice identifiers read by code from the current supplier-check question.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supplier_check: Option<Value>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingDispatch {

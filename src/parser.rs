@@ -145,6 +145,9 @@ impl Intent {
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
+            if g.capability == crate::supplier_check::PRESET && crate::supplier_check::available(catalog) {
+                continue;
+            }
             if !catalog.by_capability.contains_key(&g.capability) {
                 return Err(ModelFailure::Unsupported.into());
             }
@@ -423,6 +426,27 @@ impl Parser {
         .await
     }
 
+    /// Propose invoice fields for review. Never stored, never executable.
+    pub async fn extract_invoice(&self, document: crate::documents::Content<'_>) -> anyhow::Result<Value> {
+        use crate::documents::Content;
+        use crate::invoice_document::{schema, PROMPT};
+        let content = match document {
+            Content::Text(text) => json!(format!("Invoice text:\n{text}")),
+            Content::Image(image) => json!([{"type":"text","text":"Invoice page image:"},{"type":"image_url","image_url":{"url":image}}]),
+            Content::File { file_name, data_url } => json!([{"type":"text","text":"Invoice document:"},{"type":"file","file":{"filename":file_name,"file_data":data_url}}]),
+        };
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":1500,
+            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_schema","json_schema":{"name":"invoice_fields","strict":true,"schema":schema()}},
+            "messages":[{"role":"system","content":PROMPT},{"role":"user","content":content}]});
+        self.completion("invoice", &payload, |raw| {
+            let value: Value = serde_json::from_str(raw)?;
+            anyhow::ensure!(value.is_object(), "invalid invoice fields");
+            Ok(value)
+        })
+        .await
+    }
+
     pub async fn review_plan(
         &self,
         question: &str,
@@ -461,7 +485,7 @@ impl Parser {
         }
         // Analysing saved multi-source documents takes longer than intent parsing.
         // Keep both retries bounded and below the app's 80-second request limit.
-        let (attempt_seconds, total_seconds) = if surface == "analysis" {
+        let (attempt_seconds, total_seconds) = if surface == "analysis" || surface == "invoice" {
             (30, 65)
         } else {
             (12, 25)

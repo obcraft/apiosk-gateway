@@ -1,6 +1,8 @@
 mod execute;
 mod followups;
 mod results;
+mod supplier;
+mod workflows;
 mod worker;
 use crate::{
     auth::Principal,
@@ -115,6 +117,16 @@ impl Engine {
         req: &DiscoverRequest,
         app_chat: bool,
     ) -> anyhow::Result<Response> {
+        self.intake(p, req, app_chat, None).await
+    }
+    /// `forced`: a code-built intent (workflow pages) that skips interpretation.
+    pub(crate) async fn intake(
+        &self,
+        p: &Principal,
+        req: &DiscoverRequest,
+        app_chat: bool,
+        forced: Option<crate::parser::Intent>,
+    ) -> anyhow::Result<Response> {
         anyhow::ensure!(
             !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
             "invalid question length"
@@ -171,8 +183,43 @@ impl Engine {
             )?;
         }
         let mut chat_intent = None;
-        if app_chat {
-            let reply = self.parser.chat(&req.question, &task, &catalog).await?;
+        // Invoice checks must not depend on the model recognising the wording.
+        let invoice_fallback = if forced.is_none() { crate::supplier_check::fallback_intent(&req.question, &catalog) } else { None };
+        // A plain invoice check needs no interpretation: skip the model call.
+        let forced = forced.or_else(|| crate::supplier_check::direct_intent(&req.question, &catalog));
+        if app_chat && forced.is_none() && crate::supplier_check::needs_invoice_upload(&req.question, &catalog) {
+            // Deterministic: ask for the invoice in the conversation, no model call.
+            self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+            task.record_turn(&req.question, Some(crate::supplier_check::upload_message(&req.question)));
+            task.intent = None;
+            task.proposal = None;
+            task.completed.clear();
+            task.failed_steps.clear();
+            task.active_results.clear();
+            task.analysis = None;
+            task.supplier_check = None;
+            task.pending_candidates.clear();
+            task.original_subject = None;
+            task.execution_error = None;
+            task.cancelled = false;
+            task.focus.goal_refs.clear();
+            task.actions = vec![serde_json::to_value(Action::Upload { action_id: Uuid::new_v4(), purpose: "invoice".into() })?];
+            self.store.save_intent(p.owner, id, revision, &task).await?;
+            return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
+        }
+        if app_chat && forced.is_some() {
+            self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+            task.record_turn(&req.question, Some(crate::supplier_check::routing_message(&req.question)));
+        }
+        if app_chat && forced.is_none() {
+            let mut reply = match (self.parser.chat(&req.question, &task, &catalog).await, &invoice_fallback) {
+                (Ok(reply), _) => reply,
+                (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
+                (Err(error), None) => return Err(error),
+            };
+            if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
+                reply = crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) };
+            }
             chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, Some(reply.message));
@@ -184,6 +231,7 @@ impl Engine {
                 task.failed_steps.clear();
                 task.active_results.clear();
                 task.analysis = None;
+                task.supplier_check = None;
                 task.pending_candidates.clear();
                 task.original_subject = None;
                 task.execution_error = None;
@@ -195,11 +243,18 @@ impl Engine {
                     .await;
             }
         }
-        let mut intent = match chat_intent {
-            Some(intent) => intent,
+        let mut intent = match (forced, chat_intent) {
+            (Some(intent), _) | (None, Some(intent)) => intent,
             // Compatibility for an older conversational model response.
-            None => self.parser.parse(p.owner, &req.question, &task, &catalog).await?,
+            (None, None) => match (self.parser.parse(p.owner, &req.question, &task, &catalog).await, invoice_fallback) {
+                (Ok(intent), _) => intent,
+                (Err(_), Some(fallback)) => fallback,
+                (Err(error), None) => return Err(error),
+            },
         };
+        if crate::supplier_check::route(&req.question, &mut intent, &catalog) {
+            tracing::info!("invoice question routed to the supplier payment check");
+        }
         if !app_chat {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
@@ -217,6 +272,13 @@ impl Engine {
             for (kind, value) in &subject.values {
                 self.user_fact(&mut task, &catalog, entity, kind, value.clone())?;
             }
+        }
+        task.supplier_check = None;
+        if let Some(expansion) = crate::supplier_check::expand(&req.question, &mut intent, &catalog) {
+            for (kind, value) in &expansion.facts {
+                self.user_fact(&mut task, &catalog, expansion.invoice.entity_ref, kind, value.clone())?;
+            }
+            task.supplier_check = Some(serde_json::to_value(&expansion.invoice)?);
         }
         task.focus.entity_refs = intent
             .subjects
@@ -294,7 +356,11 @@ impl Engine {
         task.actions.clear();
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
-            Resolution::Plan(plan) => {
+            Resolution::Plan(mut plan) => {
+                if task.supplier_check.is_some() {
+                    // Workflow runs carry the workflow markup on every step.
+                    plan.apply_markup(catalog_core::fees::WORKFLOW_MARKUP_BPS as i64);
+                }
                 if single_call_mode() && plan.steps.len() > 1 {
                     task.actions.push(json!({"kind":"unsupported_reason","message":"Multi-step research is paused. Ask for one direct API call, such as a company search. To retrieve a profile or filing directly, provide its required identifier."}));
                     return Ok(Status::Unsupported);
@@ -392,7 +458,7 @@ impl Engine {
             }
         } else if !task.pending_candidates.is_empty() {
             Status::NeedsSelection
-        } else if actions.iter().any(|a| matches!(a, Action::Supply { .. }))
+        } else if actions.iter().any(|a| matches!(a, Action::Supply { .. } | Action::Upload { .. }))
             || task
                 .actions
                 .iter()
@@ -456,6 +522,9 @@ impl Engine {
         r.context_view["result_is_historical"] = json!(
             !task.result_refs.is_empty() && task.active_result_ref().is_none()
         );
+        if actions.iter().any(|a| matches!(a, Action::Upload { .. })) {
+            r.context_view["upload_request"] = json!({"purpose":"invoice","workflow":crate::workflows::SUPPLIER_CHECK,"accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::documents::MAX_FILE_BYTES});
+        }
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
@@ -515,6 +584,9 @@ impl Engine {
                 )
                 .await?,
         );
+        if let (Some(billing), Some(plan)) = (r.billing.as_mut(), billing_plan.as_ref()) {
+            billing["fee_percent"] = json!(plan.fee_bps / 100);
+        }
         if p.workspace.is_some() {
             let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool).await?;
             r.context_view["execution_enabled"] = json!(ctx["can_spend"] == true && self.executor.enabled);

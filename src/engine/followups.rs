@@ -88,6 +88,7 @@ impl Engine {
             hash: digest(&steps),
             steps,
             expires_at: Utc::now() + chrono::Duration::minutes(10),
+            fee_bps: crate::resolver::standard_markup(),
         };
         self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
         task.active_results.clear();

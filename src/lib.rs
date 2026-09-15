@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod billing;
 mod display_money;
+pub mod documents;
 pub mod catalog;
 pub mod compat;
 pub mod engine;
@@ -8,6 +9,7 @@ mod entity_resolution;
 pub mod execution;
 pub mod followups;
 pub mod input_binding;
+pub mod invoice_document;
 pub mod maintenance;
 pub mod parser;
 pub mod annual_report;
@@ -20,5 +22,7 @@ pub mod sources;
 pub mod source_preview;
 pub mod state;
 pub mod store;
+pub mod supplier_check;
+pub mod workflows;
 
 pub mod readiness;

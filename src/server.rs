@@ -79,6 +79,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .layer(DefaultBodyLimit::max(64 * 1024))
+        // A scanned invoice page image exceeds the default JSON limit.
+        .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
+        .route("/v2/documents/:id/read", post(read_document_again).layer(DefaultBodyLimit::max(64 * 1024)))
+        .route("/v2/workflows", get(workflows))
+        .route("/v2/workflows/runs", get(workflow_runs))
+        .route("/v2/workflows/runs/:id", get(workflow_run))
         .layer(cors)
         // EventSource runs inside the host's embedded card origin. The signed
         // task capability is read-only; keep bearer/approval routes app-only.
@@ -302,6 +308,154 @@ async fn chat(
                 "The conversation could not be saved.",
             )
         }
+    }
+}
+async fn read_document(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Json(req): Json<crate::documents::DocumentRequest>,
+) -> HttpResponse {
+    use crate::documents::{self, Content, Reading};
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    let reading = match req.reading() {
+        Ok(reading) => reading,
+        Err(message) => return failure(StatusCode::BAD_REQUEST, "invalid_document", message),
+    };
+    // Shares the per-account request budget; a request ID is used once.
+    match state.engine.store.claim(p.owner, req.request_id, &crate::state::digest(&("document", req.request_id, &req.file_name, &req.purpose))).await {
+        Ok(crate::store::Claim::New) => {}
+        Ok(_) => return failure(StatusCode::CONFLICT, "request_conflict", "Use a new request ID for each document."),
+        Err(e) => return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", &e.to_string()),
+    }
+    let dutch = req.dutch();
+    let (raw, text, label, stored) = match reading {
+        Reading::Text(text) => (state.engine.parser.extract_invoice(Content::Text(&text)).await, Some(text), "text_layer", None),
+        Reading::Image(image) => (state.engine.parser.extract_invoice(Content::Image(&image)).await, None, "page_image", None),
+        Reading::File { mime_type, bytes } => {
+            // Reading needs the original file: keep it only for this reading window.
+            let stored = match documents::store(&state.engine.store.pool, p.owner, p.workspace, &req.purpose, &req.file_name, mime_type, &bytes).await {
+                Ok(stored) => stored,
+                Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "document_unavailable", "The file could not be prepared for reading. Try again."),
+            };
+            let raw = state.engine.parser.extract_invoice(Content::File { file_name: &stored.file_name, data_url: documents::data_url(&stored.mime_type, &stored.bytes) }).await;
+            (raw, None, "server_file", Some(stored))
+        }
+    };
+    finish_document_read(&state, &p, raw, text.as_deref(), label, stored, dutch).await
+}
+async fn read_document_again(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<crate::documents::ReadAgain>,
+) -> HttpResponse {
+    use crate::documents::{self, Content};
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    match state.engine.store.claim(p.owner, req.request_id, &crate::state::digest(&("document-read", id, req.request_id))).await {
+        Ok(crate::store::Claim::New) => {}
+        Ok(_) => return failure(StatusCode::CONFLICT, "request_conflict", "Use a new request ID for each attempt."),
+        Err(e) => return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", &e.to_string()),
+    }
+    let stored = match documents::load(&state.engine.store.pool, p.owner, p.workspace, id).await {
+        Ok(Some(stored)) => stored,
+        Ok(None) => return failure(StatusCode::NOT_FOUND, "document_expired", "This file is no longer stored. Upload it again."),
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "document_unavailable", "The file could not be loaded. Try again."),
+    };
+    let raw = state.engine.parser.extract_invoice(Content::File { file_name: &stored.file_name, data_url: documents::data_url(&stored.mime_type, &stored.bytes) }).await;
+    finish_document_read(&state, &p, raw, None, "server_file", Some(stored), req.language.as_deref() != Some("en")).await
+}
+async fn finish_document_read(
+    state: &ServerState,
+    p: &Principal,
+    raw: anyhow::Result<serde_json::Value>,
+    text: Option<&str>,
+    reading: &str,
+    stored: Option<crate::documents::Stored>,
+    dutch: bool,
+) -> HttpResponse {
+    let kept = |deleted: bool| match &stored {
+        Some(s) => json!({"id":s.id,"stored_temporarily":true,"deleted":deleted,"expires_at":if deleted { serde_json::Value::Null } else { json!(s.expires_at) }}),
+        None => json!({"id":null,"stored_temporarily":false,"deleted":false,"expires_at":null}),
+    };
+    let raw = match raw {
+        Ok(raw) => raw,
+        Err(_) => {
+            // Keep a stored file (for at most its hour) so reading can be retried without a new upload.
+            let mut body = serde_json::to_value(Response::error(Uuid::new_v4(), Status::Failed, "extraction_unavailable", "The document could not be read just now. Try again, or enter the supplier details yourself.")).unwrap_or_default();
+            body["document"] = kept(false);
+            return (StatusCode::SERVICE_UNAVAILABLE, Json(body)).into_response();
+        }
+    };
+    // A successful read no longer needs the original file.
+    let mut deleted = false;
+    if let Some(s) = &stored {
+        deleted = crate::documents::delete(&state.engine.store.pool, p.owner, s.id).await.is_ok();
+    }
+    match crate::documents::invoice_result(&raw, text, reading, dutch, kept(deleted)) {
+        Ok(result) => Json(result).into_response(),
+        Err(message) => {
+            let mut body = serde_json::to_value(Response::error(Uuid::new_v4(), Status::Failed, "document_unreadable", message)).unwrap_or_default();
+            body["document"] = kept(deleted);
+            (StatusCode::UNPROCESSABLE_ENTITY, Json(body)).into_response()
+        }
+    }
+}
+async fn app_person(state: &ServerState, headers: &HeaderMap) -> Result<Principal, HttpResponse> {
+    let p = caller(state, headers).await?;
+    if !p.is_person() {
+        return Err(failure(StatusCode::FORBIDDEN, "app_only", "Connected chatbots read attachments themselves and send the printed identifiers in the question."));
+    }
+    Ok(p)
+}
+async fn workflows(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    let display = state.engine.store.money_display(p.owner).await;
+    match state.engine.catalog.get().await {
+        Ok(catalog) => Json(crate::workflows::definitions(&catalog, &display)).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Workflows are temporarily unavailable."),
+    }
+}
+#[derive(Deserialize)]
+struct RunQuery {
+    workflow: Option<String>,
+}
+async fn workflow_runs(State(state): State<ServerState>, headers: HeaderMap, Query(query): Query<RunQuery>) -> HttpResponse {
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if query.workflow.as_deref().is_some_and(|w| w.len() > 64) {
+        return failure(StatusCode::BAD_REQUEST, "invalid_query", "Unknown workflow.");
+    }
+    match state.engine.workflow_runs(&p, query.workflow.as_deref()).await {
+        Ok(runs) => Json(runs).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "history_unavailable", "Workflow history could not be loaded. Try again."),
+    }
+}
+async fn workflow_run(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>) -> HttpResponse {
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    match state.engine.workflow_run(&p, id).await {
+        Ok(Some(run)) => Json(run).into_response(),
+        Ok(None) => failure(StatusCode::NOT_FOUND, "run_unavailable", "This workflow run is not available for this account."),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "history_unavailable", "The workflow run could not be loaded. Try again."),
     }
 }
 async fn followup(

@@ -119,7 +119,16 @@ impl Engine {
                     operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
                 }
                 let operations = json!(operations);
-                task.analysis = Some(
+                task.analysis = Some(if let Some(check) = task.supplier_check.clone() {
+                    // Deterministic verdict from saved documents; no model and no purchase.
+                    match self.supplier_verdict(p, id, &task, &plan, check).await {
+                        Ok(analysis) => analysis,
+                        Err(error) => {
+                            tracing::warn!(error=%error, "supplier verdict failed");
+                            json!({"status":"unavailable","limitations":["The supplier check could not be evaluated. Your source results are saved; no additional source purchase was made."],"observations":[]})
+                        }
+                    }
+                } else {
                     match self
                         .parser
                         .analyze(&operations, &sources, &task.failed_steps)
@@ -129,8 +138,8 @@ impl Engine {
                         Err(_) => {
                             json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
                         }
-                    },
-                );
+                    }
+                });
                 task.actions.clear();
                 if task
                     .analysis
@@ -143,6 +152,11 @@ impl Engine {
                             action_id: Uuid::new_v4(),
                         })?);
                 }
+            }
+            Action::Upload { .. } => {
+                // Uploads are read by the App through /v2/documents; the read
+                // question is sent as a new chat turn, never executed here.
+                anyhow::bail!("upload the document in the App; it is read there and sent as the next question");
             }
             Action::Read { result_ref, .. } => {
                 anyhow::ensure!(

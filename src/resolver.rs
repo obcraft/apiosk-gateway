@@ -28,6 +28,22 @@ pub struct Plan {
     pub cap_atomic: i64,
     pub expires_at: DateTime<Utc>,
     pub hash: String,
+    /// Buyer markup for every step of this plan: 1500 standard, 2000 workflow.
+    #[serde(default = "standard_markup")]
+    pub fee_bps: i64,
+}
+pub fn standard_markup() -> i64 {
+    catalog_core::fees::BUYER_MARKUP_BPS as i64
+}
+impl Plan {
+    /// Charge this plan's steps with the workflow markup and re-quote the cap.
+    pub fn apply_markup(&mut self, markup_bps: i64) {
+        self.fee_bps = catalog_core::fees::allowed_markup(markup_bps.into()) as i64;
+        self.cap_atomic = self.steps.iter().map(|s| s.service.total_with(self.fee_bps)).sum();
+    }
+    pub fn step_total(&self, step: &Step) -> i64 {
+        step.service.total_with(self.fee_bps)
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -55,6 +71,9 @@ pub enum Action {
         execution_id: Uuid,
     },
     Wait { action_id: Uuid, until: DateTime<Utc> },
+    /// The App asks the person for a document; reading happens client-side
+    /// through /v2/documents and the result is sent as the next question.
+    Upload { action_id: Uuid, purpose: String },
     Analyze { action_id: Uuid },
     RetryAnalysis { action_id: Uuid },
     Cancel {
@@ -70,6 +89,7 @@ impl Action {
             | Self::Read { action_id, .. }
             | Self::Poll { action_id, .. }
             | Self::Wait { action_id, .. }
+            | Self::Upload { action_id, .. }
             | Self::Analyze { action_id }
             | Self::RetryAnalysis { action_id }
             | Self::Cancel { action_id } => *action_id,
@@ -110,6 +130,12 @@ impl Action {
                 "Check status".into(),
                 false,
                 json!({"type":"null"}),
+            ),
+            Self::Upload { purpose, .. } => (
+                "upload_document",
+                if purpose == "invoice" { "Upload the invoice".into() } else { "Upload a document".into() },
+                false,
+                json!({"type":"object","x-purpose":purpose,"x-workflow":crate::workflows::SUPPLIER_CHECK,"x-accept":".pdf,application/pdf,image/png,image/jpeg","x-max-bytes":crate::documents::MAX_FILE_BYTES}),
             ),
             Self::RetryAnalysis { .. } => (
                 "retry_analysis",
@@ -262,6 +288,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         cap_atomic,
         expires_at: Utc::now() + chrono::Duration::minutes(10),
         hash,
+        fee_bps: standard_markup(),
     })
 }
 #[allow(clippy::too_many_arguments)]
@@ -421,7 +448,7 @@ mod presentation_tests {
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
         let entity = Uuid::new_v4();
-        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
+        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
         let details = describe_steps(&plan, &[]);
         assert_eq!(details[1]["dependencies"][0]["step"], 1);
         assert_eq!(details[1]["dependencies"][0]["field"], "company.id");

@@ -78,6 +78,7 @@ async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
         cap_atomic: step.service.total(),
         expires_at: Utc::now() + chrono::Duration::minutes(10),
         hash: "fixture-hash".into(),
+        fee_bps: apiosk_gateway_v2::resolver::standard_markup(),
     };
     let calls = Arc::new(AtomicUsize::new(0));
     let app = Router::new()
