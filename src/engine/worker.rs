@@ -158,6 +158,7 @@ impl Engine {
                 response.status,
                 Status::RequiresApproval
                     | Status::StateConflict
+                    | Status::Cancelled
                     | Status::Failed
                     | Status::Unsupported
             ) {

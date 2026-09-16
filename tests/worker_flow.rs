@@ -365,7 +365,7 @@ async fn one_approval_parallel_execution_and_ambiguity_resume() {
         .await
         .unwrap();
     let cancelled = settled(&engine, &p, id).await;
-    assert_eq!(cancelled.status, Status::Partial);
+    assert_eq!(cancelled.status, Status::Cancelled);
     assert_eq!(
         counts.calls.load(Ordering::SeqCst),
         baseline + 2,

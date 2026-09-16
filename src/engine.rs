@@ -421,10 +421,9 @@ impl Engine {
         forced: Option<Status>,
     ) -> anyhow::Result<Response> {
         let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
-        anyhow::ensure!(
-            p.is_person() || connection == p.connection,
-            "task belongs to another connection"
-        );
+        if !p.is_person() && connection != p.connection {
+            return Err(crate::store::StoreAccessError::TaskUnavailable.into());
+        }
         self.prepare_conversation(p.owner, id, &mut task).await?;
         let mut actions: Vec<Action> = task
             .actions
@@ -449,7 +448,7 @@ impl Engine {
         let inferred = if task.execution_error.is_some() && task.result_refs.is_empty() {
             Status::Failed
         } else if task.cancelled {
-            Status::Partial
+            Status::Cancelled
         } else if paused_plan {
             if task.result_refs.is_empty() {
                 Status::Unsupported

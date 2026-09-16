@@ -7,6 +7,27 @@ use uuid::Uuid;
 pub struct Store {
     pub pool: PgPool,
 }
+#[derive(Debug, thiserror::Error)]
+pub enum StoreAccessError {
+    #[error("task unavailable")]
+    TaskUnavailable,
+    #[error("workspace unavailable")]
+    WorkspaceUnavailable,
+}
+
+pub fn is_workspace_access_denied(error: &sqlx::Error) -> bool {
+    error.as_database_error().is_some_and(|database| {
+        database.code().as_deref() == Some("42501") && database.message() == "forbidden"
+    })
+}
+
+fn workspace_error(error: sqlx::Error) -> anyhow::Error {
+    if is_workspace_access_denied(&error) {
+        StoreAccessError::WorkspaceUnavailable.into()
+    } else {
+        error.into()
+    }
+}
 pub enum Claim {
     New,
     Replay(Box<Response>),
@@ -74,7 +95,7 @@ impl Store {
     pub async fn check_workspace(&self, p: &crate::auth::Principal) -> anyhow::Result<()> {
         if p.workspace.is_some() {
             let _: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
-                .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await?;
+                .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await.map_err(workspace_error)?;
         }
         Ok(())
     }
@@ -89,12 +110,14 @@ impl Store {
     pub async fn load_scoped(&self, p: &crate::auth::Principal, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
         self.check_workspace(p).await?;
         let row = self.load(p.owner, id).await?;
-        anyhow::ensure!(row.1.workspace_id == p.workspace, "task belongs to another workspace");
+        if row.1.workspace_id != p.workspace {
+            return Err(StoreAccessError::TaskUnavailable.into());
+        }
         Ok(row)
     }
     pub async fn load(&self, owner: Uuid, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
         let row=sqlx::query("SELECT revision,document,connection_id FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now()")
-            .bind(id).bind(owner).fetch_optional(&self.pool).await?.ok_or_else(||anyhow::anyhow!("task unavailable"))?;
+            .bind(id).bind(owner).fetch_optional(&self.pool).await?.ok_or(StoreAccessError::TaskUnavailable)?;
         Ok((
             row.get("revision"),
             serde_json::from_value(row.get("document"))?,

@@ -732,7 +732,7 @@ async fn durable_flow_and_authorization_boundary() {
         )
         .await
         .unwrap();
-    assert_eq!(cancelled.status, Status::Partial);
+    assert_eq!(cancelled.status, Status::Cancelled);
     assert!(!cancelled
         .next_actions
         .iter()

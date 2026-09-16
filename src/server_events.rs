@@ -73,7 +73,7 @@ pub async fn task_events(
             if previous.as_ref() != Some(&key) {
                 let terminal = matches!(
                     next.status,
-                    Status::Succeeded | Status::Partial | Status::Failed | Status::Unsupported
+                    Status::Succeeded | Status::Partial | Status::Cancelled | Status::Failed | Status::Unsupported
                 ) && next.context_view["worker_active"] != true;
                 let Ok(event) = Event::default().event("task").json_data(&next) else {
                     break;

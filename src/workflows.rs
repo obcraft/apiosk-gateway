@@ -65,6 +65,7 @@ pub fn run_status(status: &crate::protocol::Status, decision: Option<&str>) -> &
         NeedsSelection => "needs_selection",
         Unsupported => "unsupported",
         Running => "running",
+        Cancelled => "cancelled",
         Succeeded | Partial => "completed",
         Failed | StateConflict => "failed",
     }

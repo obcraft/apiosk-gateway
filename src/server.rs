@@ -1,6 +1,6 @@
 use crate::{
     server_events::task_events,
-    auth::{Auth, Principal},
+    auth::{Auth, AuthError, Principal},
     compat::ExecutorCompat,
     engine::Engine,
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
@@ -229,12 +229,20 @@ async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, H
             "Verbind je account om door te gaan.",
         )
     })?;
-    let mut principal = state.auth.authenticate(bearer).await.map_err(|_| {
-        failure(
+    let mut principal = state.auth.authenticate(bearer).await.map_err(|error| match error {
+        AuthError::Unauthorized => failure(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
             "The connection is invalid or expired.",
-        )
+        ),
+        AuthError::Unavailable(source) => {
+            tracing::error!(error=%source, "authentication dependency unavailable");
+            failure(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "authentication_unavailable",
+                "Authentication could not be confirmed. Your session may still be valid; try again shortly.",
+            )
+        }
     })?;
     let selected = headers.get("x-apiosk-workspace").map(|h| h.to_str().ok().and_then(|s|s.parse::<Uuid>().ok()).ok_or_else(||failure(StatusCode::BAD_REQUEST,"invalid_workspace","Invalid workspace."))).transpose()?;
     let enabled = std::env::var("WORKSPACE_CONTEXT_ENABLED").as_deref() == Ok("true");
@@ -242,8 +250,24 @@ async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, H
     if enabled && (selected.is_some() || principal.connection.is_some()) {
         let ctx: serde_json::Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
             .bind(principal.owner).bind(principal.connection).bind(selected).fetch_one(&state.engine.store.pool).await
-            .map_err(|_| failure(StatusCode::FORBIDDEN,"workspace_unavailable","You no longer have access to this workspace."))?;
-        principal.workspace = ctx["workspace_id"].as_str().and_then(|s|s.parse().ok());
+            .map_err(|error| {
+                if crate::store::is_workspace_access_denied(&error) {
+                    failure(StatusCode::FORBIDDEN,"workspace_access_denied","You no longer have access to this workspace.")
+                } else {
+                    tracing::error!(error=%error, "workspace lookup unavailable");
+                    failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")
+                }
+            })?;
+        principal.workspace = match ctx.get("workspace_id") {
+            None | Some(serde_json::Value::Null) => None,
+            Some(serde_json::Value::String(value)) => Some(value.parse().map_err(|_| {
+                failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")
+            })?),
+            _ => return Err(failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")),
+        };
+        if selected.is_some() && principal.workspace != selected {
+            return Err(failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly."));
+        }
     }
     Ok(principal)
 }
@@ -568,11 +592,23 @@ async fn task(
     };
     match state.engine.view(&p, id, Uuid::new_v4(), None).await {
         Ok(r) => Json(r).into_response(),
-        Err(_) => failure(
+        Err(error) => task_view_failure(id, error),
+    }
+}
+fn task_view_failure(id: Uuid, error: anyhow::Error) -> HttpResponse {
+    if error.downcast_ref::<crate::store::StoreAccessError>().is_some() {
+        failure(
             StatusCode::NOT_FOUND,
             "task_unavailable",
-            "Deze taak is niet beschikbaar voor dit account.",
-        ),
+            "This task is not available for this account.",
+        )
+    } else {
+        tracing::error!(task=%id, error=%error, "task recovery unavailable");
+        failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "task_recovery_unavailable",
+            "The saved task could not be loaded just now. Try recovery again; do not create a new purchase.",
+        )
     }
 }
 #[derive(Deserialize)]
@@ -649,5 +685,23 @@ async fn authorize(
             "approval_refused",
             "Open the current request in Apiosk and approve it there.",
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn task_access_and_dependency_failures_have_different_http_statuses() {
+        let id = Uuid::new_v4();
+        let inaccessible = task_view_failure(
+            id,
+            crate::store::StoreAccessError::TaskUnavailable.into(),
+        );
+        assert_eq!(inaccessible.status(), StatusCode::NOT_FOUND);
+
+        let transient = task_view_failure(id, anyhow::anyhow!("database unavailable"));
+        assert_eq!(transient.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 }
