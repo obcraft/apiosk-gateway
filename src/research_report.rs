@@ -12,7 +12,6 @@ use genpdf::{
     Element,
 };
 use serde_json::{json, Value};
-use crate::company_display::{company_name, name_field, CompanyNames};
 use uuid::Uuid;
 
 fn ready(analysis: &Value) -> bool {
@@ -213,7 +212,6 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         .padded(genpdf::Margins::trbl(0, 0, 6, 0))
     });
     doc.set_page_decorator(decorator);
-    let company_names = CompanyNames::from_document(document);
     heading(&mut doc, "Onderzoeksrapport", 24);
     paragraph(&mut doc, document["question"].as_str().unwrap_or(""));
     paragraph(&mut doc,"Samengesteld uit opgeslagen brongegevens. Brondata en analyse worden hieronder afzonderlijk vermeld. Dit is geen accountantsverklaring of bewijs van eigendom; ontbrekende waarden zijn niet nul.");
@@ -225,7 +223,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         .as_array()
         .context("missing observations")?
     {
-        paragraph(&mut doc, &company_names.text(observation["text"].as_str().unwrap_or("")));
+        paragraph(&mut doc, observation["text"].as_str().unwrap_or(""));
         for evidence in observation["evidence"]
             .as_array()
             .context("missing evidence")?
@@ -250,9 +248,9 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
                 &format!(
                     "Bron: {} | {} | {}: {}",
                     source_name(d),
-                    company_names.text(d["subject"]["label"].as_str().unwrap_or("")),
+                    d["subject"]["label"].as_str().unwrap_or(""),
                     label(evidence["field"].as_str().unwrap_or(pointer)),
-                    if name_field(evidence["field"].as_str().unwrap_or(pointer)) { company_name(&scalar(value)) } else { company_names.text(&scalar(value)) }
+                    scalar(value)
                 ),
             );
             doc.push(
@@ -272,7 +270,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         .as_array()
         .context("missing limitations")?
     {
-        paragraph(&mut doc, &company_names.text(item.as_str().unwrap_or("")));
+        paragraph(&mut doc, item.as_str().unwrap_or(""));
     }
     paragraph(&mut doc,"Eenheid, valuta, boekjaar en reikwijdte gelden uitsluitend zoals de bron ze vermeldt. Locatiegegevens beschrijven een adres of gebied en bewijzen geen eigendom of bedrijfsactiviteit ter plaatse.");
     doc.push(genpdf::elements::PageBreak::new());
@@ -285,7 +283,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
             &format!(
                 "Brongegevens: {} - {}",
                 source_name(d),
-                company_names.text(d["subject"]["label"].as_str().unwrap_or(""))
+                d["subject"]["label"].as_str().unwrap_or("")
             ),
             16,
         );
@@ -310,7 +308,6 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         let mut rows = Vec::new();
         fields(&excerpt(d), "", &mut rows);
         for (key, value) in &rows {
-            let value = if name_field(key) { company_name(value) } else { company_names.text(value) };
             paragraph(&mut doc, &format!("{}: {value}", label(key)));
         }
         if rows.len() == 500 {
