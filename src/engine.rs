@@ -29,6 +29,15 @@ pub struct Engine {
 }
 pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
 
+fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
+    let base = app_url.trim_end_matches('/');
+    let scope = workspace.map(|id| format!("?workspace={id}")).unwrap_or_default();
+    json!({
+        "balance_url": format!("{base}/settings/billing{scope}"),
+        "history_url": format!("{base}/usage/history{scope}")
+    })
+}
+
 impl Engine {
     async fn request_claim(
         &self,
@@ -494,6 +503,7 @@ impl Engine {
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
         r.context_view["money_display"] = self.store.money_display(p.owner).await;
+        r.context_view["navigation"] = account_navigation(&self.app_url, p.workspace);
         // Hydrate saved turn results through the same owner-scoped reader as
         // the current result, including freshly signed report download links.
         for (index, turn) in task.conversation.iter().enumerate() {
@@ -648,5 +658,22 @@ impl Engine {
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod account_navigation_tests {
+    use super::account_navigation;
+
+    #[test]
+    fn account_shortcuts_are_absolute_and_stable() {
+        let links = account_navigation("https://app.apiosk.com/", None);
+        assert_eq!(links["balance_url"], "https://app.apiosk.com/settings/billing");
+        assert_eq!(links["history_url"], "https://app.apiosk.com/usage/history");
+
+        let workspace = uuid::Uuid::parse_str("00000000-0000-4000-8000-000000000123").unwrap();
+        let links = account_navigation("https://app.apiosk.com", Some(workspace));
+        assert_eq!(links["balance_url"], "https://app.apiosk.com/settings/billing?workspace=00000000-0000-4000-8000-000000000123");
+        assert_eq!(links["history_url"], "https://app.apiosk.com/usage/history?workspace=00000000-0000-4000-8000-000000000123");
     }
 }
