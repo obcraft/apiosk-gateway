@@ -12,6 +12,7 @@ pub mod input_binding;
 pub mod invoice_document;
 pub mod maintenance;
 pub mod parser;
+mod company_display;
 pub mod annual_report;
 pub mod research_report;
 pub mod protocol;

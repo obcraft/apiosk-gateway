@@ -1,4 +1,5 @@
 //! Deterministic PDF projection of saved KVK data. No provider calls or inferred figures.
+use crate::company_display::{company_name, name_field};
 use genpdf::{elements::{Break, Paragraph, TableLayout, LinearLayout}, fonts::{FontData, FontFamily}, style::{Color, Style}, Element};
 use serde_json::Value;
 
@@ -49,6 +50,7 @@ fn scalar(v: &Value) -> String {
 /// Format financial-section values without a float conversion or rounding.
 /// General metadata, years, codes and already formatted strings stay literal.
 fn display_value(row: &Row) -> String {
+    if name_field(&row.key) || name_field(&row.context) { return company_name(&row.value); }
     let key = row.key.to_ascii_lowercase();
     if row.section == 0 || matches!(key.as_str(), "financialyear" | "year" | "fiscalyear" | "bookyear"
         | "sbibusinesscode" | "documentadoptiondate" | "kvknummer" | "unit" | "currency" | "decimals" | "scale")
@@ -124,7 +126,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
     doc.set_page_decorator(decorator);
     heading(&mut doc, "Jaarrekeningrapport", 24);
     if let Some(name) = document["report_subject"]["name"].as_str() {
-        doc.push(Paragraph::new(wrap(name)).styled(Style::new().with_font_size(14)));
+        doc.push(Paragraph::new(wrap(&company_name(name))).styled(Style::new().with_font_size(14)));
     }
     if let Some(ids) = document["report_subject"]["identifiers"].as_array() {
         for id in ids { doc.push(Paragraph::new(format!("KVK: {}", scalar(id)))); }
