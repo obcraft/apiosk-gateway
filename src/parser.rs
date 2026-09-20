@@ -215,6 +215,10 @@ fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
 }
 
 pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
+    validate_analysis_limits(raw, sources, partial, 8, 6)
+}
+
+fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_observations: usize, max_limitations: usize) -> anyhow::Result<Value> {
     let value: Value = serde_json::from_str(raw)?;
     let observations = value["observations"]
         .as_array()
@@ -223,7 +227,7 @@ pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> 
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("missing limitations"))?;
     anyhow::ensure!(
-        observations.len() <= 8 && limitations.len() <= 6,
+        observations.len() <= max_observations && limitations.len() <= max_limitations,
         "analysis too large"
     );
     let prose = |v: &Value| -> anyhow::Result<String> {
@@ -306,6 +310,17 @@ pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> 
 mod analysis_tests {
     use super::*;
     #[test]
+    fn workflow_reports_can_cover_ten_checks_without_relaxing_evidence_validation() {
+        let sources=vec![json!({"result_ref":"saved","document":{"data":{"name":"Example","year":2026}}})];
+        let observation=json!({"text":"{{a}} was reported in {{b}}.","evidence":[{"result_ref":"saved","pointer":"/data/name"},{"result_ref":"saved","pointer":"/data/year"}]});
+        let mut answer=json!({"observations":vec![observation;10],"limitations":[]});
+        assert!(validate_analysis(&answer.to_string(),&sources,false).is_err());
+        let checked=validate_analysis_limits(&answer.to_string(),&sources,false,24,12).unwrap();
+        assert_eq!(checked["observations"].as_array().unwrap().len(),10);
+        answer["observations"][9]["evidence"][0]["pointer"]=json!("/data/invented");
+        assert!(validate_analysis_limits(&answer.to_string(),&sources,false,24,12).is_err());
+    }
+    #[test]
     fn answer_slots_copy_only_verified_values() {
         let sources = vec![
             json!({"result_ref":"saved","document":{"data":{"postcode":3011,"population":20440,"year":2024}}}),
@@ -347,6 +362,15 @@ impl Parser {
         sources: &[Value],
         failures: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Value> {
+        self.analyze_with_scope(operations, sources, failures, false).await
+    }
+
+    pub async fn analyze_workflow(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
+        self.analyze_with_scope(operations, sources, failures, true).await
+    }
+
+    async fn analyze_with_scope(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>, workflow: bool) -> anyhow::Result<Value> {
+        let (max_observations, max_limitations) = if workflow { (24, 12) } else { (8, 6) };
         let mut projected = sources.to_vec();
         for source in &mut projected {
             // Geometry dominates GeoJSON size but contributes no demographic
@@ -372,20 +396,24 @@ impl Parser {
                 json!({"status":"partial","observations":[],"limitations":["No source result is available to support an analysis."]}),
             );
         }
-        let payload = json!({"model":self.model,"temperature":0,"max_tokens":4096,
+        let mut prompt = include_str!("../contracts/analysis-prompt.txt").to_owned();
+        if workflow {
+            prompt = prompt.replace("At most eight observations, four evidence fields each, and six limitations.", "At most twenty-four observations, four evidence fields each, and twelve limitations. Cover every requested check with a supported finding or an explicit unknown in limitations. For shortlists, name each candidate and explain its fit; for comparisons, group findings by company. A completed retrieval is not a passed check.");
+        }
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":if workflow {8192} else {4096},
             "reasoning":{"effort":"low","exclude":true},"provider":{"require_parameters":true},
             "response_format":{"type":"json_schema","json_schema":{"name":"source_analysis","strict":true,"schema":{
                 "type":"object","additionalProperties":false,"required":["observations","limitations"],"properties":{
-                    "observations":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["text","evidence"],"properties":{
+                    "observations":{"type":"array","maxItems":max_observations,"items":{"type":"object","additionalProperties":false,"required":["text","evidence"],"properties":{
                         "text":{"type":"string","description":"A direct answer sentence. Insert exact evidence values with {{a}}, {{b}}, {{c}}, {{d}} for the corresponding evidence item. No literal numeric characters or URLs."},
                         "evidence":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","additionalProperties":false,"required":["result_ref","pointer"],"properties":{"result_ref":{"type":"string"},"pointer":{"type":"string","description":"JSON pointer to an existing scalar under /data/ in this source document"}}}}
-                    }}},"limitations":{"type":"array","maxItems":6,"items":{"type":"string","description":"No numeric characters or URLs."}}
+                    }}},"limitations":{"type":"array","maxItems":max_limitations,"items":{"type":"string","description":"No numeric characters or URLs."}}
                 }
             }}},"messages":[
-                {"role":"system","content":include_str!("../contracts/analysis-prompt.txt")},
+                {"role":"system","content":prompt},
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| {
-            validate_analysis(raw, sources, !failures.is_empty())
+            validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)
         })
         .await
     }

@@ -27,6 +27,12 @@ pub fn supplier_price_range(catalog: &crate::catalog::Catalog, display: &Value) 
 }
 
 pub fn definitions(catalog: &crate::catalog::Catalog, display: &Value) -> Value {
+    definitions_for_client(catalog, display, true)
+}
+
+/// Existing browser bundles only understand invoice inputs and numeric price
+/// ranges. The new App opts in to field forms while older tabs keep working.
+pub fn definitions_for_client(catalog: &crate::catalog::Catalog, display: &Value, forms: bool) -> Value {
     let label = |key: &str| match key {
         "supplier_name" => "Supplier name", "kvk_number" => "KVK number", "company_number_uk" => "UK company number", "vat_number" => "VAT number",
         "iban" => "IBAN", "website" => "Website", "email" => "E-mail", "street" => "Street and number", "postcode" => "Postcode", "city" => "City",
@@ -53,6 +59,7 @@ pub fn definitions(catalog: &crate::catalog::Catalog, display: &Value) -> Value 
             },
         }));
     }
+    if forms { workflows.extend(crate::workflow_catalog::definitions(catalog)); }
     json!({"workflows": workflows})
 }
 

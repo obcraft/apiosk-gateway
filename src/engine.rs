@@ -134,8 +134,10 @@ impl Engine {
         p: &Principal,
         req: &DiscoverRequest,
         app_chat: bool,
-        forced: Option<crate::parser::Intent>,
+        forced: Option<(crate::parser::Intent, crate::workflow_catalog::WorkflowContext)>,
     ) -> anyhow::Result<Response> {
+        let workflow = forced.as_ref().map(|(_, workflow)| workflow.clone());
+        let forced = forced.map(|(intent, _)| intent);
         anyhow::ensure!(
             !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
             "invalid question length"
@@ -172,6 +174,7 @@ impl Engine {
             "existing execution must finish or reconcile before a new question"
         );
         self.prepare_conversation(p.owner, id, &mut task).await?;
+        task.workflow = workflow.clone();
         for focus in &req.context_delta.requested_focus_refs {
             anyhow::ensure!(
                 task.entities.iter().any(|e| e.entity_ref == *focus),
@@ -218,7 +221,9 @@ impl Engine {
         }
         if app_chat && forced.is_some() {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
-            task.record_turn(&req.question, Some(crate::supplier_check::routing_message(&req.question)));
+            task.record_turn(&req.question, Some(if workflow.is_some() {
+                "I'll prepare the source checks and show the total price before you approve.".into()
+            } else { crate::supplier_check::routing_message(&req.question) }));
         }
         if app_chat && forced.is_none() {
             let mut reply = match (self.parser.chat(&req.question, &task, &catalog).await, &invoice_fallback) {
@@ -261,7 +266,7 @@ impl Engine {
                 (Err(error), None) => return Err(error),
             },
         };
-        if crate::supplier_check::route(&req.question, &mut intent, &catalog) {
+        if workflow.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
             tracing::info!("invoice question routed to the supplier payment check");
         }
         if !app_chat {
@@ -366,9 +371,10 @@ impl Engine {
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
             Resolution::Plan(mut plan) => {
-                if task.supplier_check.is_some() {
+                if task.supplier_check.is_some() || task.workflow.is_some() {
                     // Workflow runs carry the workflow markup on every step.
                     plan.apply_markup(catalog_core::fees::WORKFLOW_MARKUP_BPS as i64);
+                    plan.workflow_slug = Some(task.workflow.as_ref().map(|w|w.slug.clone()).unwrap_or_else(||crate::workflows::SUPPLIER_CHECK.into()));
                 }
                 if single_call_mode() && plan.steps.len() > 1 {
                     task.actions.push(json!({"kind":"unsupported_reason","message":"Multi-step research is paused. Ask for one direct API call, such as a company search. To retrieve a profile or filing directly, provide its required identifier."}));
@@ -612,6 +618,8 @@ impl Engine {
         );
         if let (Some(billing), Some(plan)) = (r.billing.as_mut(), billing_plan.as_ref()) {
             billing["fee_percent"] = json!(plan.fee_bps / 100);
+            billing["apiosk_fee_bps"] = json!(plan.fee_bps);
+            billing["pricing_rule"] = json!(if plan.fee_bps == 2000 { "provider_cost_plus_20_v1" } else { "provider_cost_plus_15_v1" });
         }
         if p.workspace.is_some() {
             let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool).await?;
@@ -672,6 +680,10 @@ impl Engine {
             json!(actions.iter().any(|a| matches!(a, Action::Analyze { .. })));
         if let Some(result_ref) = task.result_refs.last() {
             r.result = Some(page(*result_ref)?);
+        }
+        if let Some(workflow)=&task.workflow {
+            r.context_view["workflow"]=json!({"slug":workflow.slug,"title":workflow.title,"limitations":workflow.limitations});
+            self.record_named_workflow_run(p,id,&task,&r).await?;
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
         tracing::info!(task = %id, view_ms = started.elapsed().as_millis() as u64, result_documents = documents.len(), "task view completed");

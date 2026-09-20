@@ -1,0 +1,352 @@
+//! Fixed workflow recipes. Source calls still use the ordinary resolver, quote,
+//! authorization, worker and saved-result analysis.
+use crate::{
+    catalog::Catalog,
+    parser::{Goal, Intent, Subject},
+    state::{Entity, Fact, Task},
+};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::collections::BTreeMap;
+use uuid::Uuid;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Field {
+    pub key: String,
+    pub label: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default = "text_type")]
+    pub input_type: String,
+    #[serde(default)]
+    pub placeholder: String,
+    #[serde(default)]
+    pub help: String,
+    #[serde(default)]
+    pub options: Vec<String>,
+}
+fn text_type() -> String {
+    "text".into()
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Recipe {
+    pub slug: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub fields: Vec<Field>,
+    pub checks: Vec<String>,
+    pub limitations: Vec<String>,
+    pub output: String,
+    pub answer_instructions: String,
+    pub example: BTreeMap<String, Value>,
+    pub steps: Vec<RecipeStep>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RecipeStep {
+    pub source: String,
+    pub capability: String,
+    pub subject: String,
+    pub inputs: BTreeMap<String, Value>,
+    #[serde(default)]
+    pub when: BTreeMap<String, String>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WorkflowContext {
+    pub slug: String,
+    pub title: String,
+    pub input: BTreeMap<String, Value>,
+    pub limitations: Vec<String>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct StartRequest {
+    pub request_id: Uuid,
+    pub input: BTreeMap<String, Value>,
+}
+pub fn recipes() -> Vec<Recipe> {
+    serde_json::from_str(include_str!("workflow_catalog.json"))
+        .expect("checked workflow definitions")
+}
+pub fn recipe(slug: &str) -> Option<Recipe> {
+    recipes().into_iter().find(|r| r.slug == slug)
+}
+pub fn known(slug: &str) -> bool {
+    slug == crate::workflows::SUPPLIER_CHECK || recipe(slug).is_some()
+}
+
+fn substitute(template: &str, values: &BTreeMap<String, Value>) -> anyhow::Result<String> {
+    let mut result = template.to_owned();
+    for (key, value) in values {
+        let text = value
+            .as_str()
+            .map(str::to_owned)
+            .unwrap_or_else(|| value.to_string());
+        result = result.replace(&format!("{{{key}}}"), &text);
+    }
+    anyhow::ensure!(
+        !result.contains('{') && !result.contains('}'),
+        "Complete the required workflow details."
+    );
+    Ok(result)
+}
+
+/// Validate browser input independently of HTML validation. Derived URL hosts
+/// and search queries are code-built and never become executable instructions.
+pub fn prepare(
+    slug: &str,
+    input: &BTreeMap<String, Value>,
+    catalog: &Catalog,
+) -> anyhow::Result<(Intent, WorkflowContext, String)> {
+    let recipe = recipe(slug).ok_or_else(|| anyhow::anyhow!("Unknown workflow."))?;
+    anyhow::ensure!(
+        input
+            .keys()
+            .all(|k| recipe.fields.iter().any(|f| f.key == *k)),
+        "Unknown workflow field."
+    );
+    let mut values = BTreeMap::new();
+    for field in &recipe.fields {
+        let value = input.get(&field.key).cloned().unwrap_or(Value::Null);
+        let text = match &value {
+            Value::String(s) => s.trim().to_owned(),
+            Value::Number(n) => n.to_string(),
+            Value::Null => String::new(),
+            _ => anyhow::bail!("{} must be text or a number.", field.label),
+        };
+        anyhow::ensure!(text.len() <= 500, "{} is too long.", field.label);
+        anyhow::ensure!(
+            !field.required || !text.is_empty(),
+            "{} is required.",
+            field.label
+        );
+        if text.is_empty() {
+            continue;
+        }
+        anyhow::ensure!(
+            !text.contains(['{', '}']) && !text.chars().any(|c| c.is_control()),
+            "{} contains invalid characters.",
+            field.label
+        );
+        anyhow::ensure!(
+            field.options.is_empty() || field.options.contains(&text),
+            "Choose a supported {}.",
+            field.label
+        );
+        let normalized = match field.input_type.as_str() {
+            "number" => {
+                let n: u64 = text
+                    .parse()
+                    .map_err(|_| anyhow::anyhow!("{} must be a whole number.", field.label))?;
+                anyhow::ensure!(n <= 1_000_000, "{} is too large.", field.label);
+                json!(n)
+            }
+            "url" => {
+                let url = url::Url::parse(&text).map_err(|_| {
+                    anyhow::anyhow!("Enter a complete https:// URL for {}.", field.label)
+                })?;
+                anyhow::ensure!(
+                    url.scheme() == "https"
+                        && url.username().is_empty()
+                        && url.password().is_none()
+                        && url.host_str().is_some(),
+                    "{} must be a public HTTPS URL.",
+                    field.label
+                );
+                let host = url.host_str().unwrap();
+                anyhow::ensure!(
+                    host.contains('.')
+                        && host.parse::<std::net::IpAddr>().is_err()
+                        && !host.ends_with(".localhost")
+                        && !host.ends_with(".local"),
+                    "{} must be a public website.",
+                    field.label
+                );
+                values.insert(
+                    format!("{}_domain", field.key),
+                    json!(host.trim_start_matches("www.")),
+                );
+                json!(url.as_str())
+            }
+            "domain" => {
+                let host = text
+                    .trim_start_matches("https://")
+                    .trim_start_matches("http://")
+                    .trim_end_matches('/')
+                    .to_lowercase();
+                anyhow::ensure!(
+                    host.contains('.')
+                        && host.len() <= 253
+                        && host
+                            .bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-'),
+                    "Enter a domain such as example.com."
+                );
+                json!(host)
+            }
+            _ => json!(text),
+        };
+        values.insert(field.key.clone(), normalized);
+    }
+    if let (Some(min), Some(max)) = (
+        values.get("headcount_min").and_then(Value::as_u64),
+        values.get("headcount_max").and_then(Value::as_u64),
+    ) {
+        anyhow::ensure!(
+            min <= max,
+            "Minimum headcount must not exceed maximum headcount."
+        );
+    }
+    anyhow::ensure!(
+        values.contains_key("vat_country") == values.contains_key("vat_number"),
+        "Provide both the VAT country code and VAT number, or leave both empty."
+    );
+    if let Some(plate) = values.get_mut("plate") {
+        *plate = json!(plate
+            .as_str()
+            .unwrap()
+            .replace(['-', ' '], "")
+            .to_uppercase());
+    }
+    if let Some(number) = values.get_mut("registration") {
+        *number = json!(number.as_str().unwrap().to_uppercase());
+    }
+    let mut subjects: Vec<Subject> = Vec::new();
+    let mut keys: Vec<String> = Vec::new();
+    let mut goals = Vec::new();
+    for step in &recipe.steps {
+        if !step.when.iter().all(|(k, w)| {
+            values
+                .get(k)
+                .is_some_and(|v| w == "*" || v.as_str() == Some(w))
+        }) {
+            continue;
+        }
+        anyhow::ensure!(catalog.services.iter().any(|s| s.api_slug == step.source && s.contract.capability_slug == step.capability), "{} is temporarily unavailable for this workflow.", step.source);
+        let index = if let Some(i) = keys.iter().position(|k| k == &step.subject) {
+            i
+        } else {
+            let i = subjects.len();
+            keys.push(step.subject.clone());
+            subjects.push(Subject {
+                entity_ref: None,
+                label: substitute(&step.subject, &values)?,
+                values: BTreeMap::new(),
+            });
+            i
+        };
+        for (kind, template) in &step.inputs {
+            let value = if let Some(text) = template.as_str() {
+                if let Some(key) = text
+                    .strip_prefix('{')
+                    .and_then(|t| t.strip_suffix('}'))
+                    .filter(|k| !k.contains(['{', '}']))
+                {
+                    match values.get(key) {
+                        Some(v) => v.clone(),
+                        None => continue,
+                    }
+                } else {
+                    json!(substitute(text, &values)?)
+                }
+            } else {
+                template.clone()
+            };
+            let fact = catalog
+                .vocabulary
+                .get(kind)
+                .ok_or_else(|| anyhow::anyhow!("Workflow input {} is unavailable.", kind))?;
+            catalog_core::facts::schema::validate(&fact.value_schema, &value)
+                .map_err(|_| anyhow::anyhow!("Invalid value for {}.", kind))?;
+            if let Some(existing) = subjects[index].values.insert(kind.clone(), value.clone()) {
+                anyhow::ensure!(existing == value, "Conflicting workflow values.");
+            }
+        }
+        goals.push(Goal {
+            capability: step.capability.clone(),
+            subject: index,
+            constraints: BTreeMap::from([("source".into(), json!(step.source))]),
+        });
+    }
+    anyhow::ensure!(
+        !goals.is_empty() && goals.len() <= 8 && subjects.len() <= 8,
+        "Invalid workflow recipe size."
+    );
+    let title = values
+        .get("name")
+        .or_else(|| values.get("address"))
+        .or_else(|| values.get("topic"))
+        .or_else(|| values.get("plate"))
+        .or_else(|| values.get("location"))
+        .or_else(|| values.get("url1"))
+        .and_then(Value::as_str)
+        .unwrap_or(&recipe.name)
+        .to_owned();
+    let context = WorkflowContext {
+        slug: recipe.slug.clone(),
+        title,
+        input: input.clone(),
+        limitations: recipe.limitations.clone(),
+    };
+    let question = format!(
+        "{}: {}. {}",
+        recipe.name,
+        recipe.fields
+            .iter()
+            .filter_map(|field| values.get(&field.key).map(|value| (field, value)))
+            .map(|(field, v)| format!(
+                "{}: {}",
+                field.label,
+                v.as_str()
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| v.to_string())
+            ))
+            .collect::<Vec<_>>()
+            .join("; "),
+        recipe.output
+    );
+    anyhow::ensure!(
+        question.len() <= crate::protocol::MAX_QUESTION,
+        "Workflow details are too long."
+    );
+    let intent=Intent {subjects,goals,answer_operations:vec![format!("{}. Address these checks: {}. Preserve these coverage limits: {}. Use only saved evidence; say unknown for missing checks, distinguish possible name matches from confirmed identities, and never describe a source retrieval as a passed verification. Return a concise, usable result in the user's language.",recipe.answer_instructions,recipe.checks.join("; "),recipe.limitations.join(" "))],unresolved_references:vec![]};
+    Ok((intent, context, question))
+}
+
+/// Used by recipe validation and the production-catalog audit before a purchase.
+pub fn plan_preview(catalog: &Catalog, intent: &Intent) -> crate::resolver::Resolution {
+    let mut intent = intent.clone();
+    let mut task = Task::default();
+    for subject in &mut intent.subjects {
+        let id = Uuid::new_v4();
+        subject.entity_ref = Some(id);
+        task.entities.push(Entity {
+            entity_ref: id,
+            label: subject.label.clone(),
+            selected: true,
+        });
+        for (kind, value) in &subject.values {
+            task.facts.push(Fact {
+                entity_ref: id,
+                semantic_type: kind.clone(),
+                value: value.clone(),
+                provenance: json!({"kind":"user_input"}),
+                observed_at: chrono::Utc::now(),
+                expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
+                verification: "user_asserted".into(),
+            });
+        }
+    }
+    crate::resolver::resolve(catalog, &task, &intent)
+}
+
+pub fn definitions(catalog: &Catalog) -> Vec<Value> {
+    recipes().into_iter().map(|r| {
+        let available=prepare(&r.slug,&r.example,catalog).and_then(|(intent,_,_)| match plan_preview(catalog,&intent) {
+            crate::resolver::Resolution::Plan(_)=>Ok(()), _=>anyhow::bail!("The required source operations are temporarily unavailable."),
+        });
+        let mut sources=BTreeMap::new();
+        for s in &r.steps { if let Some(service)=catalog.services.iter().find(|v|v.api_slug==s.source) { sources.insert(s.source.clone(),service.name.clone()); } }
+        json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
+    }).collect()
+}

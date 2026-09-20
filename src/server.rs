@@ -83,6 +83,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
         .route("/v2/documents/:id/read", post(read_document_again).layer(DefaultBodyLimit::max(64 * 1024)))
         .route("/v2/workflows", get(workflows))
+        .route("/v2/workflows/:slug/start", post(start_workflow))
         .route("/v2/workflows/runs", get(workflow_runs))
         .route("/v2/workflows/runs/:id", get(workflow_run))
         .layer(cors)
@@ -443,15 +444,29 @@ async fn app_person(state: &ServerState, headers: &HeaderMap) -> Result<Principa
     }
     Ok(p)
 }
-async fn workflows(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
+#[derive(Default, Deserialize)]
+struct WorkflowCatalogQuery { catalog: Option<u8> }
+
+async fn workflows(State(state): State<ServerState>, headers: HeaderMap, Query(query): Query<WorkflowCatalogQuery>) -> HttpResponse {
     let p = match app_person(&state, &headers).await {
         Ok(p) => p,
         Err(r) => return r,
     };
     let display = state.engine.store.money_display(p.owner).await;
     match state.engine.catalog.get().await {
-        Ok(catalog) => Json(crate::workflows::definitions(&catalog, &display)).into_response(),
+        Ok(catalog) => Json(crate::workflows::definitions_for_client(&catalog, &display, query.catalog == Some(2))).into_response(),
         Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Workflows are temporarily unavailable."),
+    }
+}
+
+async fn start_workflow(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(request): Json<crate::workflow_catalog::StartRequest>) -> HttpResponse {
+    let p = match app_person(&state, &headers).await { Ok(p) => p, Err(r) => return r };
+    match state.engine.start_workflow(&p, &slug, request).await {
+        Ok(response) => Json(response).into_response(),
+        Err(error) => {
+            tracing::warn!(error=%error, "workflow start failed");
+            failure(StatusCode::SERVICE_UNAVAILABLE, "workflow_unavailable", "The workflow could not be prepared. Try again.")
+        }
     }
 }
 #[derive(Deserialize)]

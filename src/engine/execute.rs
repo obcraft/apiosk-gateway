@@ -136,17 +136,26 @@ impl Engine {
                         }
                     }
                 } else {
-                    match self
-                        .parser
-                        .analyze(&operations, &sources, &task.failed_steps)
-                        .await
-                    {
+                    let answer = if task.workflow.is_some() {
+                        self.parser.analyze_workflow(&operations, &sources, &task.failed_steps).await
+                    } else {
+                        self.parser.analyze(&operations, &sources, &task.failed_steps).await
+                    };
+                    match answer {
                         Ok(analysis) => analysis,
                         Err(_) => {
                             json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
                         }
                     }
                 });
+                if let (Some(workflow),Some(analysis))=(&task.workflow,task.analysis.as_mut()) {
+                    if let Some(limitations)=analysis.get_mut("limitations").and_then(Value::as_array_mut) {
+                        for limitation in &workflow.limitations {
+                            let value=json!(limitation);
+                            if !limitations.contains(&value) {limitations.push(value);}
+                        }
+                    }
+                }
                 task.actions.clear();
                 if task
                     .analysis

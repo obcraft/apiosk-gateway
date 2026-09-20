@@ -25,5 +25,6 @@ pub mod state;
 pub mod store;
 pub mod supplier_check;
 pub mod workflows;
+pub mod workflow_catalog;
 
 pub mod readiness;

@@ -202,7 +202,7 @@ impl Engine {
                 let label = subject
                     .facts
                     .iter()
-                    .find(|f| f.fact_type == "company.name")
+                    .find(|f| matches!(f.fact_type.as_str(), "company.name" | "location.address_label"))
                     .and_then(|f| f.value.as_str())
                     .map(str::to_owned)
                     .or_else(|| {

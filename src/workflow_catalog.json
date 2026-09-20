@@ -1,0 +1,1192 @@
+[
+  {
+    "slug": "prospect-shortlist",
+    "name": "Find my next customers",
+    "description": "Find and rank companies that match your ideal customer.",
+    "category": "sales",
+    "fields": [
+      {
+        "key": "location",
+        "label": "Target location",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Amsterdam, Netherlands",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "topic",
+        "label": "What do your ideal customers do?",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Accounting software",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "headcount_min",
+        "label": "Minimum employees",
+        "required": false,
+        "input_type": "number",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "headcount_max",
+        "label": "Maximum employees",
+        "required": false,
+        "input_type": "number",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Location match",
+      "Business relevance",
+      "Employee range",
+      "Company description",
+      "Available website",
+      "Supporting web evidence",
+      "Reason for ranking",
+      "Missing or conflicting information"
+    ],
+    "limitations": [
+      "Company search returns a bounded page, normally up to 10 companies. This is not an exhaustive market list.",
+      "Enrichment fields and employee estimates are source claims. Registry verification of every company is not included."
+    ],
+    "output": "A ranked shortlist of companies, their websites, available employee estimates, and reasons they fit your target.",
+    "example": {
+      "location": "Amsterdam, Netherlands",
+      "topic": "accounting software",
+      "headcount_min": 10,
+      "headcount_max": 200
+    },
+    "steps": [
+      {
+        "source": "stableenrich",
+        "capability": "company.prospect-search",
+        "subject": "Prospects in {location}",
+        "inputs": {
+          "company.search.headquarters_location": "{location}",
+          "company.search.keyword": "{topic}",
+          "company.search.headcount_min": "{headcount_min}",
+          "company.search.headcount_max": "{headcount_max}"
+        },
+        "when": {}
+      },
+      {
+        "source": "exa",
+        "capability": "web.search",
+        "subject": "Market evidence",
+        "inputs": {
+          "web.query": "{topic} companies in {location} official company websites"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-answer",
+        "subject": "Market context",
+        "inputs": {
+          "web.source_search_query": "Find {topic} companies in {location}. Give company names, official websites and evidence of their business."
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a ranked prospect shortlist with company, website, location, available employee range, fit reason and evidence. Keep web candidates separate when identity cannot be matched."
+  },
+  {
+    "slug": "customer-onboarding",
+    "name": "New customer onboarding check",
+    "description": "Check a new business customer before onboarding.",
+    "category": "compliance",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Legal company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Mollie B.V.",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Register country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "GB",
+          "FR"
+        ]
+      },
+      {
+        "key": "registration",
+        "label": "Company registration number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "30204462",
+        "help": "KVK: 8 digits; UK: 8 characters; France: 9-digit SIREN.",
+        "options": []
+      },
+      {
+        "key": "domain",
+        "label": "Company website domain",
+        "required": true,
+        "input_type": "domain",
+        "placeholder": "mollie.com",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "vat_country",
+        "label": "VAT country code",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "BE",
+          "DE",
+          "FR",
+          "IE",
+          "ES",
+          "IT",
+          "AT",
+          "DK",
+          "SE",
+          "FI",
+          "PL",
+          "PT",
+          "LU",
+          "EL",
+          "XI"
+        ]
+      },
+      {
+        "key": "vat_number",
+        "label": "VAT number without country prefix",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Company identity",
+      "Registration status",
+      "Name consistency",
+      "Available registered address",
+      "VAT validity when provided",
+      "Available VAT identity match",
+      "Sanctions matches",
+      "Domain registration",
+      "Email DNS",
+      "Unconfirmed checks"
+    ],
+    "limitations": [
+      "A sanctions name match needs review; no match is not a compliance certification.",
+      "VIES names and addresses depend on national availability. Domain age does not prove legitimacy."
+    ],
+    "output": "An onboarding checklist with company details, discrepancies, possible sanctions matches, and items for review.",
+    "example": {
+      "name": "Mollie B.V.",
+      "country": "NL",
+      "registration": "30204462",
+      "domain": "mollie.com",
+      "vat_country": "NL",
+      "vat_number": "815839091B01"
+    },
+    "steps": [
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {
+          "country": "NL"
+        }
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.gb.companies_house": "{registration}"
+        },
+        "when": {
+          "country": "GB"
+        }
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fr.siren": "{registration}"
+        },
+        "when": {
+          "country": "FR"
+        }
+      },
+      {
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "subject": "{name}",
+        "inputs": {
+          "company.name": "{name}",
+          "company.search.country_code": "{country}"
+        },
+        "when": {}
+      },
+      {
+        "source": "domain-intelligence",
+        "capability": "domain.registration",
+        "subject": "{domain}",
+        "inputs": {
+          "domain.name": "{domain}"
+        },
+        "when": {}
+      },
+      {
+        "source": "domain-intelligence",
+        "capability": "domain.mail-dns",
+        "subject": "{domain}",
+        "inputs": {
+          "domain.name": "{domain}"
+        },
+        "when": {}
+      },
+      {
+        "source": "vies",
+        "capability": "vat.eu.validate",
+        "subject": "VAT registration",
+        "inputs": {
+          "vat.eu.country_code": "{vat_country}",
+          "vat.eu.number": "{vat_number}"
+        },
+        "when": {
+          "vat_number": "*"
+        }
+      }
+    ],
+    "answer_instructions": "Return an onboarding checklist with supported findings, discrepancies, possible matches and items for manual review. Do not claim a legal compliance decision."
+  },
+  {
+    "slug": "competitor-comparison",
+    "name": "Competitor and pricing comparison",
+    "description": "Compare published pricing, features and commercial terms.",
+    "category": "research",
+    "fields": [
+      {
+        "key": "url1",
+        "label": "First product or pricing page",
+        "required": true,
+        "input_type": "url",
+        "placeholder": "https://example.com/pricing",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "url2",
+        "label": "Second product or pricing page",
+        "required": true,
+        "input_type": "url",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "url3",
+        "label": "Third product or pricing page",
+        "required": false,
+        "input_type": "url",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "topic",
+        "label": "What matters in this comparison?",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Team pricing, API access and cancellation terms",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Product positioning",
+      "Published plans",
+      "Price and currency",
+      "Billing period",
+      "Included features",
+      "Usage limits",
+      "Trial and cancellation terms",
+      "Company context",
+      "Missing prices",
+      "Source dates"
+    ],
+    "limitations": [
+      "Only publicly returned pages are compared. Missing pricing remains unknown.",
+      "Currencies, billing periods and usage assumptions must be comparable before ranking cost."
+    ],
+    "output": "A comparison of published prices, features, and terms, with the main differences and sources.",
+    "example": {
+      "url1": "https://www.notion.com/pricing",
+      "url2": "https://slack.com/pricing",
+      "topic": "Team pricing and cancellation terms"
+    },
+    "steps": [
+      {
+        "source": "linkup",
+        "capability": "web.linkup-fetch",
+        "subject": "Vendor 1",
+        "inputs": {
+          "web.source_page_url": "{url1}"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-fetch",
+        "subject": "Vendor 2",
+        "inputs": {
+          "web.source_page_url": "{url2}"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-fetch",
+        "subject": "Vendor 3",
+        "inputs": {
+          "web.source_page_url": "{url3}"
+        },
+        "when": {
+          "url3": "*"
+        }
+      },
+      {
+        "source": "stableenrich",
+        "capability": "company.enrich",
+        "subject": "Vendor 1",
+        "inputs": {
+          "company.domain": "{url1_domain}"
+        },
+        "when": {}
+      },
+      {
+        "source": "stableenrich",
+        "capability": "company.enrich",
+        "subject": "Vendor 2",
+        "inputs": {
+          "company.domain": "{url2_domain}"
+        },
+        "when": {}
+      },
+      {
+        "source": "stableenrich",
+        "capability": "company.enrich",
+        "subject": "Vendor 3",
+        "inputs": {
+          "company.domain": "{url3_domain}"
+        },
+        "when": {
+          "url3": "*"
+        }
+      },
+      {
+        "source": "exa",
+        "capability": "web.search",
+        "subject": "Comparison evidence",
+        "inputs": {
+          "web.query": "Compare {url1_domain} and {url2_domain}: {topic}"
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a comparison report, the main differences and a recommendation tied to the supplied criteria. Cite each price and commercial term; never invent hidden plans."
+  },
+  {
+    "slug": "tender-finder",
+    "name": "Find relevant tenders",
+    "description": "Find procurement notices and assess their fit.",
+    "category": "procurement",
+    "fields": [
+      {
+        "key": "topic",
+        "label": "Product or service",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Charging stations",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "market",
+        "label": "Target region or buyer",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Netherlands municipalities",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "buyer",
+        "label": "Known buyer name",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "Gemeente Amsterdam",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Subject relevance",
+      "Buyer identity",
+      "Publication type",
+      "Publication date",
+      "Available closing date",
+      "Geographic fit",
+      "Published requirements",
+      "Historical or awarded notice",
+      "Reasons to investigate",
+      "Missing details"
+    ],
+    "limitations": [
+      "TenderNed results may include historical and awarded notices. Only explicitly current notices can be described as open.",
+      "This retrieves bounded result pages and does not submit a bid."
+    ],
+    "output": "A prioritized shortlist of relevant procurement notices, available dates, and questions to resolve before bidding.",
+    "example": {
+      "topic": "laadpalen",
+      "market": "Nederland",
+      "buyer": "Gemeente Amsterdam"
+    },
+    "steps": [
+      {
+        "source": "tenderned",
+        "capability": "company_intel.search",
+        "subject": "Tender notices",
+        "inputs": {
+          "company_intel.input.search": "{topic}"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-answer",
+        "subject": "Tender context",
+        "inputs": {
+          "web.source_search_query": "Official procurement notices for {topic} in {market}. Give original notice links, publication type and dates; identify historical awards."
+        },
+        "when": {}
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company_registry.search",
+        "subject": "{buyer}",
+        "inputs": {
+          "company.name": "{buyer}"
+        },
+        "when": {
+          "buyer": "*"
+        }
+      }
+    ],
+    "answer_instructions": "Return a prioritized shortlist of notices with buyer, publication type, available dates, fit reason, source URL and questions to resolve before bidding."
+  },
+  {
+    "slug": "subsidy-finder",
+    "name": "Find potential subsidies",
+    "description": "Find Dutch and EU funding programmes for your project.",
+    "category": "funding",
+    "fields": [
+      {
+        "key": "topic",
+        "label": "Project description",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Industrial energy efficiency",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Project country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Netherlands",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "sector",
+        "label": "Sector",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "Manufacturing",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Project relevance",
+      "Programme title",
+      "Funding authority",
+      "Programme geography",
+      "Available programme dates",
+      "Published requirements",
+      "Historical records",
+      "Application links",
+      "Eligibility questions",
+      "Coverage gaps"
+    ],
+    "limitations": [
+      "RVO searches only the first 50 public descriptions and can include historical schemes. No match does not mean no funding exists.",
+      "EU records may be historical. Eligibility, deadlines and open status must be supported by current official evidence."
+    ],
+    "output": "A funding shortlist with programme details, source links, and eligibility questions to check.",
+    "example": {
+      "topic": "energy efficiency",
+      "country": "Netherlands",
+      "sector": "manufacturing"
+    },
+    "steps": [
+      {
+        "source": "rvo",
+        "capability": "subsidy.scheme.first-page-search",
+        "subject": "Dutch funding",
+        "inputs": {
+          "subsidy.discovery.keyword": "{topic}",
+          "subsidy.discovery.sector": "{sector}"
+        },
+        "when": {}
+      },
+      {
+        "source": "eu-funding-tenders",
+        "capability": "eu_funding.calls.search",
+        "subject": "EU funding",
+        "inputs": {
+          "source.eu_funding_tenders.q": "{topic}",
+          "source.eu_funding_tenders.limit": 5,
+          "source.eu_funding_tenders.language": "en"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-answer",
+        "subject": "Official funding context",
+        "inputs": {
+          "web.source_search_query": "Official current funding programmes for {topic} projects in {country}. Include programme links, published eligibility and dates; distinguish historical schemes."
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a funding shortlist with programme, fit reason, source links, available dates and eligibility questions. Explicitly label status unknown when it cannot be confirmed."
+  },
+  {
+    "slug": "property-precheck",
+    "name": "Property pre-check",
+    "description": "Check a Dutch address, building, planning and soil signals.",
+    "category": "property",
+    "fields": [
+      {
+        "key": "address",
+        "label": "Full Dutch address",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Dam 1, 1012JS Amsterdam",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Exact address selection",
+      "BAG identity",
+      "Building and unit details",
+      "Available building use",
+      "Planning-map features",
+      "Soil investigation signals",
+      "Official notices",
+      "Record dates",
+      "Missing records",
+      "Follow-up questions"
+    ],
+    "limitations": [
+      "Select the correct address if the source returns multiple candidates.",
+      "Map features do not establish current building rights. No soil-map feature is not proof of clean soil.",
+      "This does not supply ownership, valuation, a full soil report or a structural survey."
+    ],
+    "output": "A property checklist with building details, planning and soil signals, official notices, and follow-up questions.",
+    "example": {
+      "address": "Dam 1, 1012JS Amsterdam"
+    },
+    "steps": [
+      {
+        "source": "pdok",
+        "capability": "location.property-search",
+        "subject": "{address}",
+        "inputs": {
+          "geo.input.q": "{address}"
+        },
+        "when": {}
+      },
+      {
+        "source": "pdok",
+        "capability": "building.bag-unit",
+        "subject": "{address}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "pdok",
+        "capability": "building.bag-building",
+        "subject": "{address}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "pdok-ruimtelijke-plannen",
+        "capability": "planning.pdok.feature-info",
+        "subject": "{address}",
+        "inputs": {
+          "source.pdok_ruimtelijke_plannen.l_a_y_e_r_s": "enkelbestemming",
+          "source.pdok_ruimtelijke_plannen.w_i_d_t_h": 101,
+          "source.pdok_ruimtelijke_plannen.h_e_i_g_h_t": 101,
+          "source.pdok_ruimtelijke_plannen.i": 50,
+          "source.pdok_ruimtelijke_plannen.j": 50
+        },
+        "when": {}
+      },
+      {
+        "source": "bodemloket",
+        "capability": "soil.bodemloket.feature-info",
+        "subject": "{address}",
+        "inputs": {
+          "source.bodemloket.l_a_y_e_r_s": "WBB_locaties",
+          "source.bodemloket.w_i_d_t_h": 101,
+          "source.bodemloket.h_e_i_g_h_t": 101,
+          "source.bodemloket.i": 50,
+          "source.bodemloket.j": 50
+        },
+        "when": {}
+      },
+      {
+        "source": "koop",
+        "capability": "government.publication.search",
+        "subject": "Official notices",
+        "inputs": {
+          "government.publication.keyword": "{address}"
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a property screening checklist, factual building details, planning and soil signals, relevant notices, source links and follow-up questions. Keep absence of evidence separate from a passed check."
+  },
+  {
+    "slug": "company-ownership",
+    "name": "Who is behind this company?",
+    "description": "Trace UK officers, controllers and available corporate parents.",
+    "category": "compliance",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "MONZO BANK LIMITED",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "registration",
+        "label": "UK company number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "09446231",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "lei",
+        "label": "Legal Entity Identifier",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "20-character LEI",
+        "help": "Optional. Adds direct and ultimate parent relationships from GLEIF.",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Registered entity",
+      "Current officers",
+      "Resigned officers",
+      "Significant controllers",
+      "Control descriptions",
+      "Direct parent when LEI provided",
+      "Ultimate parent when LEI provided",
+      "Entity sanctions matches",
+      "Record status",
+      "Unknown relationships"
+    ],
+    "limitations": [
+      "Companies House significant control and GLEIF corporate parents are different relationships; neither is a universal beneficial ownership register.",
+      "Only the named company is screened against sanctions in this run; officers, controllers and parents are not individually screened.",
+      "An absent relationship is not evidence that no parent exists."
+    ],
+    "output": "A summary of company officers, significant controllers, and available parent relationships, with sources.",
+    "example": {
+      "name": "MONZO BANK LIMITED",
+      "registration": "09446231"
+    },
+    "steps": [
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.gb.companies_house": "{registration}"
+        },
+        "when": {}
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.officers",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.significant-control",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "subject": "{name}",
+        "inputs": {
+          "company.name": "{name}",
+          "company.search.country_code": "GB"
+        },
+        "when": {}
+      },
+      {
+        "source": "gleif",
+        "capability": "company.lei-verification",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.lei": "{lei}"
+        },
+        "when": {
+          "lei": "*"
+        }
+      },
+      {
+        "source": "gleif",
+        "capability": "company.direct-parent",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "lei": "*"
+        }
+      },
+      {
+        "source": "gleif",
+        "capability": "company.ultimate-parent",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "lei": "*"
+        }
+      }
+    ],
+    "answer_instructions": "Return an ownership and control summary with relationship type, person or entity, current or ceased status and evidence. Separate the named-company sanctions result from ownership records."
+  },
+  {
+    "slug": "company-health",
+    "name": "Company financial health snapshot",
+    "description": "Review available filings, financial data and warning signals.",
+    "category": "finance",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Mollie B.V.",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Register country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "GB",
+          "FR"
+        ]
+      },
+      {
+        "key": "registration",
+        "label": "Company registration number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "30204462",
+        "help": "KVK: 8 digits; UK: 8 characters; France: 9-digit SIREN.",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Company identity",
+      "Registration status",
+      "Available financial statements",
+      "Reporting period",
+      "Available assets and equity",
+      "Filing history where supported",
+      "Insolvency or alerts where supported",
+      "Relevant headlines",
+      "Conflicting dates",
+      "Missing financial coverage"
+    ],
+    "limitations": [
+      "Coverage differs: NL provides the supported KVK XBRL account subset; UK provides filing history and insolvency records; France provides available Sirenic financials and alerts.",
+      "Missing accounts do not prove that a company failed to file. This is a factual snapshot, not a credit rating.",
+      "Reuters keyword results can be loosely matched and lack dates."
+    ],
+    "output": "A company health snapshot with reporting dates, available financial figures, warning signals, and headlines.",
+    "example": {
+      "name": "Mollie B.V.",
+      "country": "NL",
+      "registration": "30204462"
+    },
+    "steps": [
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {
+          "country": "NL"
+        }
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.financial-statements",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL"
+        }
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.gb.companies_house": "{registration}"
+        },
+        "when": {
+          "country": "GB"
+        }
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.filing-history",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB"
+        }
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-gb-company-number-insolvabilite",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB"
+        }
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fr.siren": "{registration}"
+        },
+        "when": {
+          "country": "FR"
+        }
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.fr-financials",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        }
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.sirenic-entreprise-siren-alertes",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        }
+      },
+      {
+        "source": "reuters",
+        "capability": "news.reuters-search",
+        "subject": "Company news",
+        "inputs": {
+          "news.reuters_search_query": "{name}",
+          "news.reuters_result_limit": 5
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a factual company health snapshot with reporting dates, available financial figures, supported warning signals, relevant headlines and missing checks. Do not compare unlike periods or infer solvency from missing data."
+  },
+  {
+    "slug": "vehicle-precheck",
+    "name": "Used business vehicle pre-check",
+    "description": "Compare a Dutch vehicle and its seller with official records.",
+    "category": "vehicles",
+    "fields": [
+      {
+        "key": "plate",
+        "label": "Dutch registration plate",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "G-123-AB",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "name",
+        "label": "Seller company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Example dealer B.V.",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "registration",
+        "label": "Seller KVK number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "12345678",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "url1",
+        "label": "Advertisement URL",
+        "required": true,
+        "input_type": "url",
+        "placeholder": "https://example.com/vehicle",
+        "help": "",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Registration plate",
+      "Vehicle make and model",
+      "Available technical specifications",
+      "APK expiry",
+      "Advertisement consistency",
+      "Dealer registration",
+      "Dealer legal name",
+      "Seller domain registration",
+      "Unavailable vehicle data",
+      "Questions for the seller"
+    ],
+    "limitations": [
+      "RDW does not identify the owner or prove the seller owns the vehicle.",
+      "No accident history, mechanical inspection, mileage guarantee or separate fuel/emissions dataset is included."
+    ],
+    "output": "A comparison of the advertisement and RDW vehicle data, plus seller registration and website signals.",
+    "example": {
+      "plate": "G123AB",
+      "name": "Example dealer B.V.",
+      "registration": "12345678",
+      "url1": "https://example.com/vehicle"
+    },
+    "steps": [
+      {
+        "source": "rdw",
+        "capability": "vehicle.technical-profile",
+        "subject": "Vehicle {plate}",
+        "inputs": {
+          "vehicle.registration.nl.plate": "{plate}"
+        },
+        "when": {}
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {}
+      },
+      {
+        "source": "linkup",
+        "capability": "web.linkup-fetch",
+        "subject": "Advertisement",
+        "inputs": {
+          "web.source_page_url": "{url1}"
+        },
+        "when": {}
+      },
+      {
+        "source": "domain-intelligence",
+        "capability": "domain.registration",
+        "subject": "Seller website",
+        "inputs": {
+          "domain.name": "{url1_domain}"
+        },
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a report comparing the advertisement with RDW fields, seller registration details and domain signals. Highlight discrepancies and unknowns without declaring the vehicle safe to buy."
+  },
+  {
+    "slug": "company-news",
+    "name": "Company news and events brief",
+    "description": "Combine company news, sentiment and corporate events.",
+    "category": "research",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Apple",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "ticker",
+        "label": "Full CityFALCON ticker",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "AAPL_US",
+        "help": "Use the full ticker including market suffix, such as AAPL_US.",
+        "options": []
+      },
+      {
+        "key": "insiders",
+        "label": "Include US insider transactions",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "checks": [
+      "Company-specific news",
+      "Source relevance",
+      "Available publication dates",
+      "Reported sentiment",
+      "Investor-relations events",
+      "US insider records when selected",
+      "Reuters headline matches",
+      "Broader Bloomberg context",
+      "Duplicate stories",
+      "Coverage window"
+    ],
+    "limitations": [
+      "CityFALCON uses a recent 30-day API window and bounded pages. Insider transaction coverage is US only.",
+      "Reuters search can be loosely matched and lack dates. Bloomberg is a latest-stories feed, not a ticker-specific search.",
+      "Sentiment is a source-derived signal, not an investment recommendation."
+    ],
+    "output": "A company briefing with dated news, reported sentiment, investor events, and available insider records.",
+    "example": {
+      "name": "Apple",
+      "ticker": "AAPL_US",
+      "insiders": "Yes"
+    },
+    "steps": [
+      {
+        "source": "cityfalcon-financial-api",
+        "capability": "finance_markets.cityfalcon-news",
+        "subject": "{name}",
+        "inputs": {
+          "finance_markets.cityfalcon_identifiers": "{ticker}"
+        },
+        "when": {}
+      },
+      {
+        "source": "cityfalcon-financial-api",
+        "capability": "finance_markets.cityfalcon-sentiment",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "cityfalcon-financial-api",
+        "capability": "finance_markets.cityfalcon-investor-relations",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {}
+      },
+      {
+        "source": "cityfalcon-financial-api",
+        "capability": "finance_markets.cityfalcon-insider-transactions",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "insiders": "Yes"
+        }
+      },
+      {
+        "source": "reuters",
+        "capability": "news.reuters-search",
+        "subject": "Company headlines",
+        "inputs": {
+          "news.reuters_search_query": "{name}",
+          "news.reuters_result_limit": 5
+        },
+        "when": {}
+      },
+      {
+        "source": "bloomberg",
+        "capability": "news.bloomberg-latest",
+        "subject": "Market context",
+        "inputs": {},
+        "when": {}
+      }
+    ],
+    "answer_instructions": "Return a dated company briefing with key developments, reported sentiment, investor events, selected insider records and source links. Separate broad market context and exclude unrelated name matches."
+  }
+]

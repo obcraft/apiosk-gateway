@@ -31,6 +31,8 @@ pub struct Plan {
     /// Buyer markup for every step of this plan: 1500 standard, 2000 workflow.
     #[serde(default = "standard_markup")]
     pub fee_bps: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_slug: Option<String>,
 }
 pub fn standard_markup() -> i64 {
     catalog_core::fees::BUYER_MARKUP_BPS as i64
@@ -289,6 +291,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         expires_at: Utc::now() + chrono::Duration::minutes(10),
         hash,
         fee_bps: standard_markup(),
+        workflow_slug: None,
     })
 }
 #[allow(clippy::too_many_arguments)]
@@ -448,7 +451,7 @@ mod presentation_tests {
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
         let entity = Uuid::new_v4();
-        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
+        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
         let details = describe_steps(&plan, &[]);
         assert_eq!(details[1]["dependencies"][0]["step"], 1);
         assert_eq!(details[1]["dependencies"][0]["field"], "company.id");

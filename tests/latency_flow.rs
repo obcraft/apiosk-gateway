@@ -99,6 +99,7 @@ async fn saved_lookup_and_batched_history_preserve_results() {
             expires_at: Utc::now() + Duration::hours(1),
             hash: "fixture".into(),
             fee_bps: 1500,
+            workflow_slug: None,
         })
         .unwrap(),
     );

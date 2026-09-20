@@ -17,7 +17,7 @@ fn selection_metadata(plan: &Plan, task_id: Uuid, action_id: Uuid, inputs: &Valu
     let mut metadata = json!({"gateway_v2":true,"task_id":task_id,"action_id":action_id,"inputs":inputs,"fields":[]});
     if plan.fee_bps == catalog_core::fees::WORKFLOW_MARKUP_BPS as i64 {
         metadata["fee_bps"] = json!(plan.fee_bps);
-        metadata["workflow"] = json!(crate::workflows::SUPPLIER_CHECK);
+        metadata["workflow"] = json!(plan.workflow_slug.as_deref().unwrap_or(crate::workflows::SUPPLIER_CHECK));
     }
     metadata
 }

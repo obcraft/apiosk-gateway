@@ -89,8 +89,11 @@ impl Engine {
             steps,
             expires_at: Utc::now() + chrono::Duration::minutes(10),
             fee_bps: crate::resolver::standard_markup(),
+            workflow_slug: None,
         };
         self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+        task.workflow = None;
+        task.supplier_check = None;
         task.active_results.clear();
         task.analysis = None;
         task.failed_steps.clear();

@@ -177,6 +177,8 @@ pub struct Task {
     /// Invoice identifiers read by code from the current supplier-check question.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supplier_check: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow: Option<crate::workflow_catalog::WorkflowContext>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingDispatch {

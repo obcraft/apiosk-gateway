@@ -41,7 +41,7 @@ use serde_json::Value;
 
 /// Every adapter a contract may name. A contract naming anything else fails
 /// its check and never reaches `validated`.
-pub const KNOWN: &[&str] = &["tree.key-value", "record.country-identifier"];
+pub const KNOWN: &[&str] = &["tree.key-value", "record.country-identifier", "point.rd-extent"];
 
 /// Field names that carry the NAME half of a pair. Shape vocabulary, not a
 /// vendor list: a provider is free to say `name` where another says `key`.
@@ -57,8 +57,18 @@ pub fn run(adapter: &str, key: &str, body: &Value) -> Option<Value> {
     match adapter {
         "tree.key-value" => key_value_tree(body, key),
         "record.country-identifier" => country_identifier(body, key),
+        "point.rd-extent" => rd_extent(body, key),
         _ => None,
     }
+}
+
+/// A 100-metre map extent around a source's RD point. A malformed or out-of-
+/// bounds point never turns into a location for a dependent paid call.
+fn rd_extent(body: &Value, key: &str) -> Option<Value> {
+    let text=body.get(key)?.as_str()?.strip_prefix("POINT(")?.strip_suffix(')')?;
+    let numbers:Vec<f64>=text.split_whitespace().map(str::parse).collect::<Result<_,_>>().ok()?;
+    if numbers.len()!=2 || !numbers.iter().all(|n|n.is_finite()) || !(0.0..=300000.0).contains(&numbers[0]) || !(280000.0..=630000.0).contains(&numbers[1]) {return None;}
+    Some(Value::String(format!("{},{},{},{}",numbers[0]-50.0,numbers[1]-50.0,numbers[0]+50.0,numbers[1]+50.0)))
 }
 
 /// Extract a national identifier only for its declared register country.
@@ -122,6 +132,14 @@ fn key_value_tree(node: &Value, wanted: &str) -> Option<Value> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn rd_extent_keeps_the_exact_selected_record_and_rejects_invalid_points() {
+        assert_eq!(run("point.rd-extent","centroide_rd",&json!({"centroide_rd":"POINT(121394 487383)"})),Some(json!("121344,487333,121444,487433")));
+        for point in ["POINT(NaN 487383)","POINT(121394)","POINT(4.89 52.37)","POINT(121394 487383 2)","LINESTRING(121394 487383)"] {
+            assert_eq!(run("point.rd-extent","centroide_rd",&json!({"centroide_rd":point})),None);
+        }
+    }
 
     #[test]
     fn national_identifiers_cannot_cross_country_boundaries() {
@@ -256,6 +274,7 @@ mod tests {
             assert!(
                 adapter.starts_with("tree.")
                     || adapter.starts_with("list.")
+                    || adapter.starts_with("point.")
                     || adapter.starts_with("record."),
                 "{adapter} looks like a vendor name, not a shape"
             );
