@@ -12,10 +12,74 @@ use genpdf::{
     Element,
 };
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use uuid::Uuid;
 
 fn ready(analysis: &Value) -> bool {
     matches!(analysis["status"].as_str(), Some("completed" | "partial"))
+}
+
+fn research_turn(task: &Task, quote: Uuid) -> anyhow::Result<(&str, &[Uuid], &Value)> {
+    let (question, refs, analysis) = if task
+        .proposal
+        .as_ref()
+        .is_some_and(|p| p["quote_ref"] == json!(quote))
+    {
+        ensure!(
+            !task.cancelled && task.actions.is_empty(),
+            "research is still running"
+        );
+        (
+            task.conversation
+                .last()
+                .map(|t| t.question.as_str())
+                .unwrap_or(""),
+            &task.active_results,
+            task.analysis.as_ref(),
+        )
+    } else {
+        let turn = task
+            .conversation
+            .iter()
+            .find(|t| {
+                t.output.as_ref().is_some_and(|o| {
+                    o.proposal
+                        .as_ref()
+                        .is_some_and(|p| p["quote_ref"] == json!(quote))
+                })
+            })
+            .context("report turn unavailable")?;
+        let output = turn.output.as_ref().unwrap();
+        (
+            turn.question.as_str(),
+            &output.result_refs,
+            output.analysis.as_ref(),
+        )
+    };
+    let analysis = analysis
+        .filter(|a| ready(a))
+        .context("analysis is not complete")?;
+    ensure!(
+        !refs.is_empty() && refs.len() <= 32,
+        "report source capacity exceeded"
+    );
+    Ok((question, refs, analysis))
+}
+
+fn research_document_from_results(
+    task: &Task,
+    quote: Uuid,
+    documents: &BTreeMap<Uuid, Value>,
+) -> anyhow::Result<Value> {
+    let (question, refs, analysis) = research_turn(task, quote)?;
+    let sources = refs
+        .iter()
+        .map(|result| {
+            let document = documents.get(result).context("report result unavailable")?;
+            Ok(json!({"result_ref":result,"document":document}))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    Ok(json!({"question":question,"quote_ref":quote,"analysis":analysis,"sources":sources}))
 }
 
 impl Engine {
@@ -26,56 +90,21 @@ impl Engine {
         task: &Task,
         quote: Uuid,
     ) -> anyhow::Result<Value> {
-        let (question, refs, analysis) = if task
-            .proposal
-            .as_ref()
-            .is_some_and(|p| p["quote_ref"] == json!(quote))
-        {
-            ensure!(
-                !task.cancelled && task.actions.is_empty(),
-                "research is still running"
-            );
-            (
-                task.conversation
-                    .last()
-                    .map(|t| t.question.as_str())
-                    .unwrap_or(""),
-                &task.active_results,
-                task.analysis.as_ref(),
-            )
-        } else {
-            let turn = task
-                .conversation
-                .iter()
-                .find(|t| {
-                    t.output.as_ref().is_some_and(|o| {
-                        o.proposal
-                            .as_ref()
-                            .is_some_and(|p| p["quote_ref"] == json!(quote))
-                    })
-                })
-                .context("report turn unavailable")?;
-            let output = turn.output.as_ref().unwrap();
-            (
-                turn.question.as_str(),
-                &output.result_refs,
-                output.analysis.as_ref(),
-            )
-        };
-        let analysis = analysis
-            .filter(|a| ready(a))
-            .context("analysis is not complete")?;
-        ensure!(
-            !refs.is_empty() && refs.len() <= 32,
-            "report source capacity exceeded"
-        );
-        let mut sources = Vec::new();
-        for result in refs {
-            sources.push(
-                json!({"result_ref":result,"document":self.store.result(owner,id,*result).await?}),
-            );
-        }
-        Ok(json!({"question":question,"quote_ref":quote,"analysis":analysis,"sources":sources}))
+        let (_, refs, _) = research_turn(task, quote)?;
+        let documents = self.store.results(owner, id, refs).await?;
+        research_document_from_results(task, quote, &documents)
+    }
+
+    pub(crate) fn research_report_link_from_results(
+        &self,
+        owner: Uuid,
+        id: Uuid,
+        task: &Task,
+        quote: Uuid,
+        documents: &BTreeMap<Uuid, Value>,
+    ) -> anyhow::Result<Value> {
+        let document = research_document_from_results(task, quote, documents)?;
+        self.sign_research_report(owner, id, quote, &document)
     }
 
     pub async fn research_report_link(
@@ -86,6 +115,16 @@ impl Engine {
         quote: Uuid,
     ) -> anyhow::Result<Value> {
         let document = self.research_document(owner, id, task, quote).await?;
+        self.sign_research_report(owner, id, quote, &document)
+    }
+
+    fn sign_research_report(
+        &self,
+        owner: Uuid,
+        id: Uuid,
+        quote: Uuid,
+        document: &Value,
+    ) -> anyhow::Result<Value> {
         let snapshot = digest(&document);
         let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
         let signature = self

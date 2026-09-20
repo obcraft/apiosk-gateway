@@ -429,6 +429,7 @@ impl Engine {
         request: Uuid,
         forced: Option<Status>,
     ) -> anyhow::Result<Response> {
+        let started = std::time::Instant::now();
         let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
         if !p.is_person() && connection != p.connection {
             return Err(crate::store::StoreAccessError::TaskUnavailable.into());
@@ -504,29 +505,45 @@ impl Engine {
         r.context_view = task.context_view();
         r.context_view["money_display"] = self.store.money_display(p.owner).await;
         r.context_view["navigation"] = account_navigation(&self.app_url, p.workspace);
+        // Read each referenced source document once for this response. Reuse
+        // that snapshot for current results, history, pagination and PDF hashes.
+        let mut result_ids = task.active_results.clone();
+        result_ids.extend(task.result_refs.last().copied());
+        for output in task.conversation.iter().filter_map(|turn| turn.output.as_ref()) {
+            result_ids.extend(output.result_ref);
+            result_ids.extend(&output.result_refs);
+        }
+        let documents = self.store.results(p.owner, id, &result_ids).await?;
+        let sources = if documents.is_empty() { Default::default() } else { self.catalog.sources().await.unwrap_or_default() };
+        let pages = documents.iter().map(|(result, document)| {
+            Ok((*result, self.project_result_page(p.owner, id, *result, 0, document.clone(), &sources)?))
+        }).collect::<anyhow::Result<std::collections::BTreeMap<_, _>>>()?;
+        let page = |result: Uuid| -> anyhow::Result<Value> {
+            pages.get(&result).cloned().ok_or_else(|| sqlx::Error::RowNotFound.into())
+        };
         // Hydrate saved turn results through the same owner-scoped reader as
         // the current result, including freshly signed report download links.
         for (index, turn) in task.conversation.iter().enumerate() {
             if let Some(result_ref) = turn.output.as_ref().and_then(|output| output.result_ref) {
                 r.context_view["conversation"][index]["output"]["result"] =
-                    self.result_page(p.owner, id, result_ref, 0).await?;
+                    page(result_ref)?;
             }
             if let Some(output) = &turn.output {
                 let mut results = Vec::new();
-                for result in &output.result_refs { results.push(self.result_page(p.owner, id, *result, 0).await?); }
+                for result in &output.result_refs { results.push(page(*result)?); }
                 r.context_view["conversation"][index]["output"]["results"] = json!(results);
                 if let Some(quote)=output.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
-                    if let Ok(report)=self.research_report_link(p.owner,id,&task,quote).await {
+                    if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,&documents) {
                         r.context_view["conversation"][index]["output"]["report"]=report;
                     }
                 }
             }
         }
         let mut results = Vec::new();
-        for result in &task.active_results { results.push(self.result_page(p.owner, id, *result, 0).await?); }
+        for result in &task.active_results { results.push(page(*result)?); }
         r.context_view["results"] = json!(results);
         if let Some(quote)=task.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
-            if let Ok(report)=self.research_report_link(p.owner,id,&task,quote).await {r.context_view["report"]=report;}
+            if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,&documents) {r.context_view["report"]=report;}
         }
         r.context_view["result_is_historical"] = json!(
             !task.result_refs.is_empty() && task.active_result_ref().is_none()
@@ -654,9 +671,10 @@ impl Engine {
         r.context_view["analyzing"] =
             json!(actions.iter().any(|a| matches!(a, Action::Analyze { .. })));
         if let Some(result_ref) = task.result_refs.last() {
-            r.result = Some(self.result_page(p.owner, id, *result_ref, 0).await?);
+            r.result = Some(page(*result_ref)?);
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
+        tracing::info!(task = %id, view_ms = started.elapsed().as_millis() as u64, result_documents = documents.len(), "task view completed");
         Ok(r)
     }
 }

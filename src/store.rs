@@ -1,6 +1,7 @@
 use crate::{protocol::Response, state::Task};
 use serde_json::Value;
 use sqlx::{PgPool, Row};
+use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -135,6 +136,7 @@ impl Store {
         let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND (document->>'workspace_id') IS NOT DISTINCT FROM ($4::jsonb->>'workspace_id') AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&self.pool).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
+        crate::server_events::task_changed(id);
         Ok(revision + 1)
     }
     /// Attach paid outcomes even when cancellation wins a race with a worker.
@@ -161,6 +163,7 @@ impl Store {
         sqlx::query("UPDATE tasks SET document=$3,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2")
             .bind(id).bind(owner).bind(serde_json::to_value(saved)?).execute(&mut *tx).await?;
         tx.commit().await?;
+        crate::server_events::task_changed(id);
         Ok(current + 1)
     }
     /// A new intent may not replace a plan while a dispatch is in flight or
@@ -188,11 +191,22 @@ impl Store {
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&mut *tx).await?.rows_affected();
         anyhow::ensure!(n == 1, "state_conflict");
         tx.commit().await?;
+        crate::server_events::task_changed(id);
         Ok(revision + 1)
     }
     pub async fn result(&self, owner: Uuid, task: Uuid, id: Uuid) -> anyhow::Result<Value> {
         Ok(sqlx::query_scalar("SELECT r.document FROM results r JOIN tasks t ON t.id=r.task_id WHERE r.id=$1 AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
             .bind(id).bind(owner).bind(task).fetch_one(&self.pool).await?)
+    }
+    /// One request-scoped snapshot, with the same ownership and expiry boundary
+    /// as `result`. A missing reference fails instead of hiding a saved result.
+    pub async fn results(&self, owner: Uuid, task: Uuid, ids: &[Uuid]) -> anyhow::Result<BTreeMap<Uuid, Value>> {
+        if ids.is_empty() { return Ok(BTreeMap::new()); }
+        let ids: Vec<_> = ids.iter().copied().collect::<BTreeSet<_>>().into_iter().collect();
+        let rows: Vec<(Uuid, Value)> = sqlx::query_as("SELECT r.id,r.document FROM results r JOIN tasks t ON t.id=r.task_id WHERE r.id=ANY($1) AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
+            .bind(&ids).bind(owner).bind(task).fetch_all(&self.pool).await?;
+        if rows.len() != ids.len() { return Err(sqlx::Error::RowNotFound.into()); }
+        Ok(rows.into_iter().collect())
     }
     /// Compatibility lookup for pre-timeline tasks. Uses requests_owner_time
     /// and the task's creation bound; returns only presentation metadata.

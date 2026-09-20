@@ -90,8 +90,9 @@ impl Engine {
                         .ok_or_else(|| anyhow::anyhow!("missing intent"))?,
                 )?;
                 let mut sources = Vec::new();
+                let documents = self.store.results(p.owner, id, &task.active_results).await?;
                 for result in &task.active_results {
-                    let document = self.store.result(p.owner, id, *result).await?;
+                    let document = &documents[result];
                     if plan.steps.iter().any(|step| {
                         document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
                             && document["subject"]["entity_ref"] == json!(step.entity_ref)
@@ -119,7 +120,13 @@ impl Engine {
                     operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
                 }
                 let operations = json!(operations);
-                task.analysis = Some(if let Some(check) = task.supplier_check.clone() {
+                let direct = if task.failed_steps.is_empty() && task.supplier_check.is_none() {
+                    task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources))
+                } else { None };
+                task.analysis = Some(if let Some(answer) = direct {
+                    tracing::info!(task = %id, "saved source answered directly");
+                    answer
+                } else if let Some(check) = task.supplier_check.clone() {
                     // Deterministic verdict from saved documents; no model and no purchase.
                     match self.supplier_verdict(p, id, &task, &plan, check).await {
                         Ok(analysis) => analysis,

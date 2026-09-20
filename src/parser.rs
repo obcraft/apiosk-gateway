@@ -210,7 +210,11 @@ pub struct Parser {
     pub calls: AtomicU64,
 }
 
-fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
+fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
+    json!({"surface":"ask-chat","question":question,"context":task.context_view(),"catalog":catalog.parser_view()})
+}
+
+pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
     let value: Value = serde_json::from_str(raw)?;
     let observations = value["observations"]
         .as_array()
@@ -411,7 +415,7 @@ impl Parser {
             "response_format": {"type":"json_object"},
             "messages": [
                 {"role":"system","content":format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.",include_str!("../contracts/ask-chat-prompt.txt"),include_str!("../contracts/parser-prompt.txt"))},
-                {"role":"user","content":json!({"surface":"ask-chat","question":question,"context":task.context_view(),"catalog":catalog.parser_view(),"capabilities":catalog.parser_view()["capabilities"],"sources":catalog.parser_view()["sources"]}).to_string()}
+                {"role":"user","content":chat_input(question, task, catalog).to_string()}
             ]
         });
         self.completion("chat", &payload, |raw| {
@@ -480,6 +484,8 @@ impl Parser {
         payload: &Value,
         decode: impl Fn(&str) -> anyhow::Result<T>,
     ) -> anyhow::Result<T> {
+        let started = std::time::Instant::now();
+        let input_bytes = serde_json::to_vec(payload)?.len();
         if self.key.is_empty() {
             return Err(ModelFailure::Unavailable.into());
         }
@@ -602,9 +608,12 @@ impl Parser {
             }
             Err(ModelFailure::Unavailable.into())
         };
-        tokio::time::timeout(Duration::from_secs(total_seconds), work)
+        let result = tokio::time::timeout(Duration::from_secs(total_seconds), work)
             .await
-            .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()))
+            .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()));
+        tracing::info!(surface, input_bytes, model_ms = started.elapsed().as_millis() as u64,
+            success = result.is_ok(), "model stage completed");
+        result
     }
     pub async fn parse(
         &self,
@@ -662,6 +671,20 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn chat_keeps_the_complete_catalog_once() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/supplier-check/catalog.json")).unwrap());
+        let task = Task::default();
+        let input = chat_input("Wat is het adres van Mollie B.V.?", &task, &catalog);
+        assert_eq!(input["catalog"], catalog.parser_view());
+        assert!(input.get("sources").is_none());
+        assert!(input.get("capabilities").is_none());
+        let mut old = input.clone();
+        old["sources"] = input["catalog"]["sources"].clone();
+        old["capabilities"] = input["catalog"]["capabilities"].clone();
+        eprintln!("chat input fixture: {} -> {} bytes", old.to_string().len(), input.to_string().len());
+        assert!(input.to_string().len() < old.to_string().len());
+    }
     #[test]
     fn planning_cannot_drop_periods_goals_or_change_an_explicit_source() {
         let catalog = Catalog::build(

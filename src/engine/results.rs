@@ -8,7 +8,15 @@ impl Engine {
         result_ref: Uuid,
         offset: usize,
     ) -> anyhow::Result<Value> {
-        let mut data = self.store.result(owner, task, result_ref).await?;
+        let data = self.store.result(owner, task, result_ref).await?;
+        let sources = self.catalog.sources().await.unwrap_or_default();
+        self.project_result_page(owner, task, result_ref, offset, data, &sources)
+    }
+
+    pub(super) fn project_result_page(
+        &self, owner: Uuid, task: Uuid, result_ref: Uuid, offset: usize,
+        mut data: Value, sources: &[crate::sources::Source],
+    ) -> anyhow::Result<Value> {
         data["result_ref"] = json!(result_ref);
         if crate::annual_report::eligible(&data) {
             let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
@@ -18,9 +26,7 @@ impl Engine {
             data["report"] = json!({"format":"pdf", "filename":format!("jaarrekening-{result_ref}.pdf"), "expires_at":expires,
                 "download_path":format!("/v2/tasks/{task}/results/{result_ref}/report.pdf?owner={owner}&expires={expires}&signature={signature}")});
         }
-        if let Ok(sources) = self.catalog.sources().await {
-            crate::sources::brand_result(&mut data, &sources);
-        }
+        crate::sources::brand_result(&mut data, sources);
         let serialized = serde_json::to_string(&data)?;
         if serialized.len() <= MAX_INLINE {
             return Ok(data);

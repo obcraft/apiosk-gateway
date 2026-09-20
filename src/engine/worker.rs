@@ -63,8 +63,10 @@ impl Engine {
         if claimed == 0 {
             return Ok(());
         }
+        crate::server_events::task_changed(id);
         let engine = self.clone();
         tokio::spawn(async move {
+            let started = std::time::Instant::now();
             let _permit = permit;
             let result: anyhow::Result<()> = {
                 let renew = async {
@@ -92,6 +94,8 @@ impl Engine {
                 .bind(worker)
                 .execute(&engine.store.pool)
                 .await;
+            crate::server_events::task_changed(id);
+            tracing::info!(task = %id, worker_ms = started.elapsed().as_millis() as u64, "server execution finished");
         });
         Ok(())
     }
