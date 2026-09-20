@@ -44,12 +44,13 @@ pub struct Recipe {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RecipeStep {
+    pub label: String,
     pub source: String,
     pub capability: String,
     pub subject: String,
     pub inputs: BTreeMap<String, Value>,
     #[serde(default)]
-    pub when: BTreeMap<String, String>,
+    pub when: BTreeMap<String, Value>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorkflowContext {
@@ -218,7 +219,10 @@ pub fn prepare(
         if !step.when.iter().all(|(k, w)| {
             values
                 .get(k)
-                .is_some_and(|v| w == "*" || v.as_str() == Some(w))
+                .is_some_and(|v| {
+                    let matches = |expected: &Value| expected.as_str().is_some_and(|expected| expected == "*" || v.as_str().is_some_and(|actual| actual.eq_ignore_ascii_case(expected)));
+                    w.as_array().map_or_else(|| matches(w), |options| options.iter().any(matches))
+                })
         }) {
             continue;
         }
@@ -347,6 +351,14 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
         });
         let mut sources=BTreeMap::new();
         for s in &r.steps { if let Some(service)=catalog.services.iter().find(|v|v.api_slug==s.source) { sources.insert(s.source.clone(),service.name.clone()); } }
-        json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
+        let steps:Vec<_>=r.steps.iter().enumerate().map(|(i,step)| {
+            let condition=step.when.iter().map(|(key,value)| {
+                let label=r.fields.iter().find(|f|f.key==*key).map(|f|f.label.as_str()).unwrap_or(key);
+                let value=value.as_str().or_else(||value.as_array().and_then(|options|options.first()).and_then(Value::as_str)).unwrap_or_default();
+                if value=="*" {format!("When {} is provided",label.to_lowercase())} else {format!("When {} is {}",label.to_lowercase(),value)}
+            }).collect::<Vec<_>>().join(" and ");
+            json!({"id":format!("step-{i}"),"label":step.label,"sources":[{"slug":step.source,"name":sources.get(&step.source).unwrap_or(&step.source)}],"when":step.when,"condition":condition})
+        }).collect();
+        json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"steps":steps,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
     }).collect()
 }

@@ -43,14 +43,10 @@
       }
     ],
     "checks": [
-      "Location match",
-      "Business relevance",
-      "Employee range",
-      "Company description",
-      "Available website",
-      "Supporting web evidence",
-      "Reason for ranking",
-      "Missing or conflicting information"
+      "Business and location fit",
+      "Available company websites",
+      "Employee range when provided",
+      "Evidence for the shortlist"
     ],
     "limitations": [
       "Company search returns a bounded page, normally up to 10 companies. This is not an exhaustive market list.",
@@ -74,7 +70,8 @@
           "company.search.headcount_min": "{headcount_min}",
           "company.search.headcount_max": "{headcount_max}"
         },
-        "when": {}
+        "when": {},
+        "label": "Find matching companies"
       },
       {
         "source": "exa",
@@ -83,16 +80,8 @@
         "inputs": {
           "web.query": "{topic} companies in {location} official company websites"
         },
-        "when": {}
-      },
-      {
-        "source": "linkup",
-        "capability": "web.linkup-answer",
-        "subject": "Market context",
-        "inputs": {
-          "web.source_search_query": "Find {topic} companies in {location}. Give company names, official websites and evidence of their business."
-        },
-        "when": {}
+        "when": {},
+        "label": "Find supporting web evidence"
       }
     ],
     "answer_instructions": "Return a ranked prospect shortlist with company, website, location, available employee range, fit reason and evidence. Keep web candidates separate when identity cannot be matched."
@@ -180,16 +169,10 @@
       }
     ],
     "checks": [
-      "Company identity",
-      "Registration status",
-      "Name consistency",
-      "Available registered address",
-      "VAT validity when provided",
-      "Available VAT identity match",
-      "Sanctions matches",
-      "Domain registration",
-      "Email DNS",
-      "Unconfirmed checks"
+      "Registered identity and status",
+      "Potential sanctions matches",
+      "Website registration and mail DNS",
+      "VAT validity and available identity match when provided"
     ],
     "limitations": [
       "A sanctions name match needs review; no match is not a compliance certification.",
@@ -214,7 +197,8 @@
         },
         "when": {
           "country": "NL"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "companies-house",
@@ -225,7 +209,8 @@
         },
         "when": {
           "country": "GB"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "sirenic",
@@ -236,7 +221,8 @@
         },
         "when": {
           "country": "FR"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "opensanctions",
@@ -246,7 +232,8 @@
           "company.name": "{name}",
           "company.search.country_code": "{country}"
         },
-        "when": {}
+        "when": {},
+        "label": "Screen the company for sanctions"
       },
       {
         "source": "domain-intelligence",
@@ -255,7 +242,8 @@
         "inputs": {
           "domain.name": "{domain}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read website registration"
       },
       {
         "source": "domain-intelligence",
@@ -264,7 +252,8 @@
         "inputs": {
           "domain.name": "{domain}"
         },
-        "when": {}
+        "when": {},
+        "label": "Check mail DNS"
       },
       {
         "source": "vies",
@@ -276,7 +265,8 @@
         },
         "when": {
           "vat_number": "*"
-        }
+        },
+        "label": "Validate VAT details"
       }
     ],
     "answer_instructions": "Return an onboarding checklist with supported findings, discrepancies, possible matches and items for manual review. Do not claim a legal compliance decision."
@@ -325,16 +315,11 @@
       }
     ],
     "checks": [
-      "Product positioning",
-      "Published plans",
-      "Price and currency",
-      "Billing period",
-      "Included features",
-      "Usage limits",
+      "Published plans and prices",
+      "Currencies and billing periods",
+      "Included features and usage limits",
       "Trial and cancellation terms",
-      "Company context",
-      "Missing prices",
-      "Source dates"
+      "Missing or incomparable pricing"
     ],
     "limitations": [
       "Only publicly returned pages are compared. Missing pricing remains unknown.",
@@ -354,7 +339,8 @@
         "inputs": {
           "web.source_page_url": "{url1}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read the first pricing page"
       },
       {
         "source": "linkup",
@@ -363,7 +349,8 @@
         "inputs": {
           "web.source_page_url": "{url2}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read the second pricing page"
       },
       {
         "source": "linkup",
@@ -374,45 +361,8 @@
         },
         "when": {
           "url3": "*"
-        }
-      },
-      {
-        "source": "stableenrich",
-        "capability": "company.enrich",
-        "subject": "Vendor 1",
-        "inputs": {
-          "company.domain": "{url1_domain}"
         },
-        "when": {}
-      },
-      {
-        "source": "stableenrich",
-        "capability": "company.enrich",
-        "subject": "Vendor 2",
-        "inputs": {
-          "company.domain": "{url2_domain}"
-        },
-        "when": {}
-      },
-      {
-        "source": "stableenrich",
-        "capability": "company.enrich",
-        "subject": "Vendor 3",
-        "inputs": {
-          "company.domain": "{url3_domain}"
-        },
-        "when": {
-          "url3": "*"
-        }
-      },
-      {
-        "source": "exa",
-        "capability": "web.search",
-        "subject": "Comparison evidence",
-        "inputs": {
-          "web.query": "Compare {url1_domain} and {url2_domain}: {topic}"
-        },
-        "when": {}
+        "label": "Read the third pricing page"
       }
     ],
     "answer_instructions": "Return a comparison report, the main differences and a recommendation tied to the supplied criteria. Cite each price and commercial term; never invent hidden plans."
@@ -452,16 +402,11 @@
       }
     ],
     "checks": [
-      "Subject relevance",
-      "Buyer identity",
-      "Publication type",
-      "Publication date",
-      "Available closing date",
-      "Geographic fit",
-      "Published requirements",
-      "Historical or awarded notice",
-      "Reasons to investigate",
-      "Missing details"
+      "Subject and geographic fit",
+      "Publication and closing dates",
+      "Open, awarded or historical status",
+      "Published requirements and bid links",
+      "Buyer identity when provided"
     ],
     "limitations": [
       "TenderNed results may include historical and awarded notices. Only explicitly current notices can be described as open.",
@@ -481,7 +426,8 @@
         "inputs": {
           "company_intel.input.search": "{topic}"
         },
-        "when": {}
+        "when": {},
+        "label": "Find relevant procurement notices"
       },
       {
         "source": "linkup",
@@ -490,7 +436,8 @@
         "inputs": {
           "web.source_search_query": "Official procurement notices for {topic} in {market}. Give original notice links, publication type and dates; identify historical awards."
         },
-        "when": {}
+        "when": {},
+        "label": "Check supporting public information"
       },
       {
         "source": "kvk-dutch-business-register",
@@ -501,7 +448,8 @@
         },
         "when": {
           "buyer": "*"
-        }
+        },
+        "label": "Look up the named buyer"
       }
     ],
     "answer_instructions": "Return a prioritized shortlist of notices with buyer, publication type, available dates, fit reason, source URL and questions to resolve before bidding."
@@ -527,7 +475,7 @@
         "required": true,
         "input_type": "text",
         "placeholder": "Netherlands",
-        "help": "",
+        "help": "Dutch RVO descriptions are included only for projects in the Netherlands.",
         "options": []
       },
       {
@@ -541,16 +489,10 @@
       }
     ],
     "checks": [
-      "Project relevance",
-      "Programme title",
-      "Funding authority",
-      "Programme geography",
-      "Available programme dates",
-      "Published requirements",
-      "Historical records",
-      "Application links",
-      "Eligibility questions",
-      "Coverage gaps"
+      "Project and geographic fit",
+      "Programme authority and dates",
+      "Published eligibility requirements",
+      "Application links and next questions"
     ],
     "limitations": [
       "RVO searches only the first 50 public descriptions and can include historical schemes. No match does not mean no funding exists.",
@@ -571,7 +513,16 @@
           "subsidy.discovery.keyword": "{topic}",
           "subsidy.discovery.sector": "{sector}"
         },
-        "when": {}
+        "when": {
+          "country": [
+            "Netherlands",
+            "Nederland",
+            "NL",
+            "The Netherlands",
+            "Holland"
+          ]
+        },
+        "label": "Find Dutch subsidy descriptions"
       },
       {
         "source": "eu-funding-tenders",
@@ -582,7 +533,8 @@
           "source.eu_funding_tenders.limit": 5,
           "source.eu_funding_tenders.language": "en"
         },
-        "when": {}
+        "when": {},
+        "label": "Find EU funding programmes"
       },
       {
         "source": "linkup",
@@ -591,7 +543,8 @@
         "inputs": {
           "web.source_search_query": "Official current funding programmes for {topic} projects in {country}. Include programme links, published eligibility and dates; distinguish historical schemes."
         },
-        "when": {}
+        "when": {},
+        "label": "Check supporting public information"
       }
     ],
     "answer_instructions": "Return a funding shortlist with programme, fit reason, source links, available dates and eligibility questions. Explicitly label status unknown when it cannot be confirmed."
@@ -613,16 +566,12 @@
       }
     ],
     "checks": [
-      "Exact address selection",
-      "BAG identity",
+      "Correct address and BAG identity",
       "Building and unit details",
       "Available building use",
       "Planning-map features",
       "Soil investigation signals",
-      "Official notices",
-      "Record dates",
-      "Missing records",
-      "Follow-up questions"
+      "Relevant official notices"
     ],
     "limitations": [
       "Select the correct address if the source returns multiple candidates.",
@@ -641,21 +590,24 @@
         "inputs": {
           "geo.input.q": "{address}"
         },
-        "when": {}
+        "when": {},
+        "label": "Resolve the exact address"
       },
       {
         "source": "pdok",
         "capability": "building.bag-unit",
         "subject": "{address}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read BAG unit details"
       },
       {
         "source": "pdok",
         "capability": "building.bag-building",
         "subject": "{address}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read BAG building details"
       },
       {
         "source": "pdok-ruimtelijke-plannen",
@@ -668,7 +620,8 @@
           "source.pdok_ruimtelijke_plannen.i": 50,
           "source.pdok_ruimtelijke_plannen.j": 50
         },
-        "when": {}
+        "when": {},
+        "label": "Check planning-map features"
       },
       {
         "source": "bodemloket",
@@ -681,7 +634,8 @@
           "source.bodemloket.i": 50,
           "source.bodemloket.j": 50
         },
-        "when": {}
+        "when": {},
+        "label": "Check soil-map signals"
       },
       {
         "source": "koop",
@@ -690,7 +644,8 @@
         "inputs": {
           "government.publication.keyword": "{address}"
         },
-        "when": {}
+        "when": {},
+        "label": "Find official notices"
       }
     ],
     "answer_instructions": "Return a property screening checklist, factual building details, planning and soil signals, relevant notices, source links and follow-up questions. Keep absence of evidence separate from a passed check."
@@ -730,16 +685,11 @@
       }
     ],
     "checks": [
-      "Registered entity",
-      "Current officers",
-      "Resigned officers",
-      "Significant controllers",
-      "Control descriptions",
-      "Direct parent when LEI provided",
-      "Ultimate parent when LEI provided",
-      "Entity sanctions matches",
-      "Record status",
-      "Unknown relationships"
+      "Registered company identity",
+      "Current and resigned officers",
+      "Significant controllers and control descriptions",
+      "Potential company sanctions matches",
+      "Direct and ultimate parents when LEI provided"
     ],
     "limitations": [
       "Companies House significant control and GLEIF corporate parents are different relationships; neither is a universal beneficial ownership register.",
@@ -759,21 +709,24 @@
         "inputs": {
           "company.registration.gb.companies_house": "{registration}"
         },
-        "when": {}
+        "when": {},
+        "label": "Check registered company details"
       },
       {
         "source": "companies-house",
         "capability": "company.officers",
         "subject": "{name}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read current and former officers"
       },
       {
         "source": "companies-house",
         "capability": "company.significant-control",
         "subject": "{name}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read significant controllers"
       },
       {
         "source": "opensanctions",
@@ -783,7 +736,8 @@
           "company.name": "{name}",
           "company.search.country_code": "GB"
         },
-        "when": {}
+        "when": {},
+        "label": "Screen the company for sanctions"
       },
       {
         "source": "gleif",
@@ -794,7 +748,8 @@
         },
         "when": {
           "lei": "*"
-        }
+        },
+        "label": "Verify the LEI identity"
       },
       {
         "source": "gleif",
@@ -803,7 +758,8 @@
         "inputs": {},
         "when": {
           "lei": "*"
-        }
+        },
+        "label": "Read the direct corporate parent"
       },
       {
         "source": "gleif",
@@ -812,7 +768,8 @@
         "inputs": {},
         "when": {
           "lei": "*"
-        }
+        },
+        "label": "Read the ultimate corporate parent"
       }
     ],
     "answer_instructions": "Return an ownership and control summary with relationship type, person or entity, current or ceased status and evidence. Separate the named-company sanctions result from ownership records."
@@ -856,16 +813,11 @@
       }
     ],
     "checks": [
-      "Company identity",
-      "Registration status",
-      "Available financial statements",
-      "Reporting period",
-      "Available assets and equity",
-      "Filing history where supported",
-      "Insolvency or alerts where supported",
-      "Relevant headlines",
-      "Conflicting dates",
-      "Missing financial coverage"
+      "Registered identity and status",
+      "Available financial data or filings",
+      "Reporting periods and missing coverage",
+      "Insolvency records or alerts where supported",
+      "Relevant company headlines"
     ],
     "limitations": [
       "Coverage differs: NL provides the supported KVK XBRL account subset; UK provides filing history and insolvency records; France provides available Sirenic financials and alerts.",
@@ -888,7 +840,8 @@
         },
         "when": {
           "country": "NL"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "kvk-dutch-business-register",
@@ -897,7 +850,8 @@
         "inputs": {},
         "when": {
           "country": "NL"
-        }
+        },
+        "label": "Read available financial statements"
       },
       {
         "source": "companies-house",
@@ -908,7 +862,8 @@
         },
         "when": {
           "country": "GB"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "companies-house",
@@ -917,7 +872,8 @@
         "inputs": {},
         "when": {
           "country": "GB"
-        }
+        },
+        "label": "Read filing history"
       },
       {
         "source": "sirenic",
@@ -926,7 +882,8 @@
         "inputs": {},
         "when": {
           "country": "GB"
-        }
+        },
+        "label": "Check insolvency records"
       },
       {
         "source": "sirenic",
@@ -937,7 +894,8 @@
         },
         "when": {
           "country": "FR"
-        }
+        },
+        "label": "Check registered company details"
       },
       {
         "source": "sirenic",
@@ -946,7 +904,8 @@
         "inputs": {},
         "when": {
           "country": "FR"
-        }
+        },
+        "label": "Read available financial figures"
       },
       {
         "source": "sirenic",
@@ -955,7 +914,8 @@
         "inputs": {},
         "when": {
           "country": "FR"
-        }
+        },
+        "label": "Check company alerts"
       },
       {
         "source": "reuters",
@@ -965,7 +925,8 @@
           "news.reuters_search_query": "{name}",
           "news.reuters_result_limit": 5
         },
-        "when": {}
+        "when": {},
+        "label": "Find company headlines"
       }
     ],
     "answer_instructions": "Return a factual company health snapshot with reporting dates, available financial figures, supported warning signals, relevant headlines and missing checks. Do not compare unlike periods or infer solvency from missing data."
@@ -1014,16 +975,11 @@
       }
     ],
     "checks": [
-      "Registration plate",
-      "Vehicle make and model",
-      "Available technical specifications",
-      "APK expiry",
+      "RDW make, model and technical details",
+      "Available APK expiry",
       "Advertisement consistency",
-      "Dealer registration",
-      "Dealer legal name",
-      "Seller domain registration",
-      "Unavailable vehicle data",
-      "Questions for the seller"
+      "Seller registration and legal name",
+      "Seller website registration"
     ],
     "limitations": [
       "RDW does not identify the owner or prove the seller owns the vehicle.",
@@ -1044,7 +1000,8 @@
         "inputs": {
           "vehicle.registration.nl.plate": "{plate}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read RDW vehicle details"
       },
       {
         "source": "kvk-dutch-business-register",
@@ -1053,7 +1010,8 @@
         "inputs": {
           "company_registry.kvknummer": "{registration}"
         },
-        "when": {}
+        "when": {},
+        "label": "Check registered company details"
       },
       {
         "source": "linkup",
@@ -1062,7 +1020,8 @@
         "inputs": {
           "web.source_page_url": "{url1}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read the vehicle advertisement"
       },
       {
         "source": "domain-intelligence",
@@ -1071,7 +1030,8 @@
         "inputs": {
           "domain.name": "{url1_domain}"
         },
-        "when": {}
+        "when": {},
+        "label": "Read website registration"
       }
     ],
     "answer_instructions": "Return a report comparing the advertisement with RDW fields, seller registration details and domain signals. Highlight discrepancies and unknowns without declaring the vehicle safe to buy."
@@ -1114,20 +1074,16 @@
       }
     ],
     "checks": [
-      "Company-specific news",
-      "Source relevance",
+      "Company news and relevance",
       "Available publication dates",
       "Reported sentiment",
       "Investor-relations events",
-      "US insider records when selected",
-      "Reuters headline matches",
-      "Broader Bloomberg context",
-      "Duplicate stories",
-      "Coverage window"
+      "Duplicate stories and coverage gaps",
+      "US insider records when selected"
     ],
     "limitations": [
       "CityFALCON uses a recent 30-day API window and bounded pages. Insider transaction coverage is US only.",
-      "Reuters search can be loosely matched and lack dates. Bloomberg is a latest-stories feed, not a ticker-specific search.",
+      "Reuters search can be loosely matched and lack dates.",
       "Sentiment is a source-derived signal, not an investment recommendation."
     ],
     "output": "A company briefing with dated news, reported sentiment, investor events, and available insider records.",
@@ -1144,21 +1100,24 @@
         "inputs": {
           "finance_markets.cityfalcon_identifiers": "{ticker}"
         },
-        "when": {}
+        "when": {},
+        "label": "Find company news"
       },
       {
         "source": "cityfalcon-financial-api",
         "capability": "finance_markets.cityfalcon-sentiment",
         "subject": "{name}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read reported sentiment"
       },
       {
         "source": "cityfalcon-financial-api",
         "capability": "finance_markets.cityfalcon-investor-relations",
         "subject": "{name}",
         "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Read investor-relations events"
       },
       {
         "source": "cityfalcon-financial-api",
@@ -1167,7 +1126,8 @@
         "inputs": {},
         "when": {
           "insiders": "Yes"
-        }
+        },
+        "label": "Read US insider transactions"
       },
       {
         "source": "reuters",
@@ -1177,14 +1137,8 @@
           "news.reuters_search_query": "{name}",
           "news.reuters_result_limit": 5
         },
-        "when": {}
-      },
-      {
-        "source": "bloomberg",
-        "capability": "news.bloomberg-latest",
-        "subject": "Market context",
-        "inputs": {},
-        "when": {}
+        "when": {},
+        "label": "Find company headlines"
       }
     ],
     "answer_instructions": "Return a dated company briefing with key developments, reported sentiment, investor events, selected insider records and source links. Separate broad market context and exclude unrelated name matches."

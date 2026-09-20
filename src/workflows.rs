@@ -42,8 +42,22 @@ pub fn definitions_for_client(catalog: &crate::catalog::Catalog, display: &Value
         ("address_match", "Invoice address matches registration"), ("iban_valid", "IBAN is valid"), ("account_holder", "Account holder matches"),
         ("recent_changes", "Not recently registered or changed"), ("domain_age", "Domain looks established"), ("sanctions_pep", "No sanctions or PEP hit"),
         ("invoice_history", "Consistent with earlier invoices")];
-    let sources: Vec<Value> = [("kvk-dutch-business-register", "KVK"), ("companies-house", "Companies House"), ("vies", "VIES"), ("opensanctions", "OpenSanctions"), ("domain-intelligence", "RDAP & DNS"), ("sirenic", "IBAN check")]
+    let bank_source = if catalog.services.iter().any(|s| s.api_slug=="iban-check" && s.contract.capability_slug=="iban.validate") { "iban-check" } else { "sirenic" };
+    let sources: Vec<Value> = [("kvk-dutch-business-register", "KVK"), ("companies-house", "Companies House"), ("vies", "VIES"), ("opensanctions", "OpenSanctions"), ("domain-intelligence", "RDAP & DNS"), (bank_source, "IBAN check")]
         .iter().filter(|(slug, _)| catalog.services.iter().any(|s| s.api_slug == *slug)).map(|(slug, name)| json!({"slug":slug,"name":name})).collect();
+    let group = |slugs: &[&str]| sources.iter().filter(|source| slugs.contains(&source["slug"].as_str().unwrap_or_default())).cloned().collect::<Vec<_>>();
+    let steps = json!([
+        {"id":"invoice","label":"Read the invoice details","sources":[],"condition":"From your uploaded invoice"},
+        {"id":"register","label":"Check company identity and registration","sources":group(&["kvk-dutch-business-register","companies-house"]),"condition":"Use the register for the supplier's country; search only when its identifier is missing"},
+        {"id":"vat","label":"Validate VAT and available identity details","sources":group(&["vies"]),"condition":"When a VAT number is provided"},
+        {"id":"bank","label":"Validate the IBAN format and bank details","sources":group(&[bank_source]),"condition":"When an IBAN is provided; this does not establish account ownership"},
+        {"id":"sanctions","label":"Screen the supplier for potential sanctions matches","sources":group(&["opensanctions"])},
+        {"id":"domain","label":"Check domain registration and mail DNS","sources":group(&["domain-intelligence"]),"condition":"When a website or email domain is provided"},
+        {"id":"history","label":"Compare with earlier invoices","sources":[],"condition":"Uses your saved supplier invoice history"}
+    ]);
+    let checks: Vec<Value> = if forms {
+        ["Company identity and registration", "Invoice name and address consistency", "VAT details when provided", "IBAN validity and available bank evidence", "Potential sanctions matches", "Domain signals when provided", "Changes from earlier invoices"].iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect()
+    } else {checks.iter().map(|(id,label)|json!({"id":id,"label":label})).collect()};
     let mut workflows = vec![];
     if supplier_check::available(catalog) {
         workflows.push(json!({
@@ -51,7 +65,8 @@ pub fn definitions_for_client(catalog: &crate::catalog::Catalog, display: &Value
             "description": "Upload an invoice. Apiosk checks the business register, VAT number, sanctions, domain age, bank account and earlier invoices, and tells you whether to hold the payment.",
             "input": {"kind":"document","purpose":"invoice","accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::documents::MAX_FILE_BYTES},
             "fields": FIELDS.iter().map(|k| json!({"key":k,"label":label(k),"required":false})).collect::<Vec<_>>(),
-            "checks": checks.iter().map(|(id, label)| json!({"id":id,"label":label})).collect::<Vec<_>>(),
+            "checks": checks,
+            "steps": steps,
             "sources": sources,
             "price": match supplier_price_range(catalog, display) {
                 Some((currency, min, max)) => json!({"currency":currency,"min":min,"max":max,"fee_percent":20,"note":"Sum of the source calls this invoice needs, plus a 20% Apiosk workflow fee. The exact maximum is quoted before you approve; failed source calls are refunded."}),

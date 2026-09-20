@@ -12,7 +12,7 @@ fn catalog() -> Catalog {
 }
 
 #[test]
-fn all_eleven_workflows_are_available_and_each_recipe_prices_multiple_sources() {
+fn all_eleven_workflows_are_available_and_each_recipe_prices_its_needed_sources() {
     let c = catalog();
     assert!(c.rejected.is_empty(), "{:?}", c.rejected);
     let definitions =
@@ -34,7 +34,7 @@ fn all_eleven_workflows_are_available_and_each_recipe_prices_multiple_sources() 
         p.apply_markup(2000);
         let sources: std::collections::BTreeSet<_> =
             p.steps.iter().map(|s| &s.service.api_slug).collect();
-        assert!(sources.len() >= 2, "{} must combine sources", r.slug);
+        assert!(!sources.is_empty(), "{} needs source evidence", r.slug);
         assert!(p.steps.len() <= 12);
         assert_eq!(
             p.cap_atomic,
@@ -160,5 +160,50 @@ fn property_address_outputs_preserve_subject_identity_and_coordinates() {
             .collect();
         assert_eq!(maps.len(), 2);
         assert_eq!(maps[0].value, maps[1].value);
+    }
+}
+
+#[test]
+fn recipes_only_quote_relevant_country_and_optional_steps() {
+    let c = catalog();
+    let planned = |slug: &str, edits: &[(&str, Value)]| {
+        let mut input=workflow_catalog::recipe(slug).unwrap().example;
+        for (key,value) in edits { if value.is_null() {input.remove(*key);} else {input.insert((*key).into(),value.clone());} }
+        let (intent,_,_)=workflow_catalog::prepare(slug,&input,&c).unwrap();
+        let Resolution::Plan(plan)=workflow_catalog::plan_preview(&c,&intent) else {panic!("{slug} did not plan")};
+        plan.steps.iter().map(|step|(step.service.api_slug.clone(),step.service.contract.capability_slug.clone())).collect::<Vec<_>>()
+    };
+    let prospects=planned("prospect-shortlist",&[]);
+    assert_eq!(prospects.len(),2);
+    assert!(!prospects.iter().any(|(source,_)|source=="linkup"));
+    let comparison=planned("competitor-comparison",&[]);
+    assert_eq!(comparison.len(),2);
+    assert!(comparison.iter().all(|(source,cap)|source=="linkup" && cap=="web.linkup-fetch"));
+    assert_eq!(planned("competitor-comparison",&[("url3",json!("https://example.com/pricing"))]).len(),3);
+    let onboarding=planned("customer-onboarding",&[("country",json!("GB")),("registration",json!("09446231")),("vat_number",Value::Null),("vat_country",Value::Null)]);
+    assert_eq!(onboarding.len(),4);
+    assert!(!onboarding.iter().any(|(source,_)|["vies","kvk-dutch-business-register","sirenic"].contains(&source.as_str())));
+    let funding=planned("subsidy-finder",&[("country",json!("France"))]);
+    assert_eq!(funding.len(),2);
+    assert!(!funding.iter().any(|(source,_)|source=="rvo"));
+    assert_eq!(planned("subsidy-finder",&[]).len(),3);
+    assert_eq!(planned("subsidy-finder",&[("country",json!("nederland"))]).len(),3);
+    assert_eq!(planned("subsidy-finder",&[("country",json!("NL"))]).len(),3);
+    assert_eq!(planned("company-ownership",&[]).len(),4);
+    assert_eq!(planned("company-ownership",&[("lei",json!("724500Y6DUVHQD6OXN27"))]).len(),7);
+    let news=planned("company-news",&[("insiders",json!("No"))]);
+    assert_eq!(news.len(),4);
+    assert!(!news.iter().any(|(source,cap)|source=="bloomberg" || cap.contains("insider")));
+    assert_eq!(planned("company-news",&[("insiders",json!("Yes"))]).len(),5);
+
+    // Public steps carry the execution conditions, rather than an unrelated UI recipe.
+    for (recipe,definition) in workflow_catalog::recipes().iter().zip(workflow_catalog::definitions(&c)) {
+        let steps=definition["steps"].as_array().unwrap();
+        assert_eq!(steps.len(),recipe.steps.len());
+        for (public,actual) in steps.iter().zip(&recipe.steps) {
+            assert_eq!(public["when"],serde_json::to_value(&actual.when).unwrap());
+            assert_eq!(public["sources"][0]["slug"],actual.source);
+            assert!(!public["label"].as_str().unwrap().is_empty());
+        }
     }
 }
