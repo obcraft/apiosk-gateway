@@ -200,7 +200,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     // the schema layout used by production's catalog query.
     sqlx::raw_sql("CREATE SCHEMA catalog; ALTER TABLE public.capabilities ADD COLUMN name text NOT NULL DEFAULT 'Fixture'; ALTER TABLE public.capabilities SET SCHEMA catalog; CREATE VIEW public.capabilities AS SELECT * FROM catalog.capabilities; ALTER TABLE public.capability_execution_contracts SET SCHEMA catalog; CREATE VIEW public.capability_execution_contracts AS SELECT * FROM catalog.capability_execution_contracts; DELETE FROM catalog.capability_execution_contracts WHERE capability_slug='location.property-search';").execute(&pool).await.unwrap();
     let migration =
-        include_str!("../supabase/migrations/20260920213646_eleven_workflow_catalog.sql");
+        include_str!("../supabase/migrations/20260920222320_eleven_workflow_catalog.sql");
     sqlx::raw_sql(migration).execute(&pool).await.unwrap();
     sqlx::raw_sql(migration).execute(&pool).await.unwrap();
     sqlx::raw_sql("CREATE ROLE service_role").execute(&pool).await.unwrap();

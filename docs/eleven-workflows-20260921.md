@@ -1,6 +1,6 @@
 # Eleven workflows — implementation and test report
 
-**Status: implementation verified; production release authorized on 2026-09-21.**
+**Status: committed, deployed and verified in production on 2026-09-21 (Europe/Amsterdam).**
 
 The App now offers the existing Supplier payment check plus ten input-driven workflows. Each new workflow uses fixed, validated source operations, the existing saved-task execution engine, one quoted cap, one approval, a 20% workflow fee, and a sourced result. Inputs, source coverage and limits are shown before approval.
 
@@ -55,12 +55,12 @@ Operation counts are the tested examples, not a promise that every input costs t
 
 ### Supabase
 
-One migration, mirrored in App and Gateway: `20260920213646_eleven_workflow_catalog.sql`.
+One migration, mirrored in App and Gateway: `20260920222320_eleven_workflow_catalog.sql`.
 
 - Allows the eleven workflow slugs and explicit `partial` history status.
 - Adds one address-resolution capability on the existing PDOK endpoint, preserving BAG identity and the selected address's map coordinates.
 - Uses existing providers, endpoints and fact schemas. It does not onboard another source.
-- The full migration was applied twice successfully in the isolated test database. Production schema was inspected read-only.
+- The full migration was applied twice successfully in the isolated test database. The migration was applied to production and its constraints and address contract were verified.
 
 **MCP and website:** no changes. Named form starts are an App feature; the existing MCP execution/recovery contract is unchanged.
 
@@ -88,11 +88,11 @@ Local evidence is under `gateway/output/eleven-workflows/` and `app/artifacts/el
 
 ## Production release
 
-The production release ships App and Gateway workflow commits, the mirrored database migration, and the `use-selection` / `agent-gateway` functions. The catalogue opt-in protects older browser tabs during rollout. Deployment evidence is recorded in `docs/eleven-workflows-production-20260921.md` after publication.
+The production release ships App and Gateway workflow commits, the mirrored database migration, and the `use-selection` / `agent-gateway` functions. The catalogue opt-in protects older browser tabs during rollout. Deployment evidence is recorded in `docs/eleven-workflows-production-20260921.md`. All eleven tiles and all ten new live quotes were verified; no paid purchase was approved.
 
 ### Isolated release checks
 
-- Gateway workspace tests pass; supplier and all ten new workflow integrations pass on an isolated database.
+- Gateway workspace: 241 passed, zero failed, 27 environment-dependent tests ignored by the normal suite; supplier and all ten new workflow integrations pass when explicitly run on an isolated database.
 - App: 2,203 passed; four failures in standalone manifest/icon and workspace-selection tests reproduce unchanged on baseline commit `5c70046`.
 - Production build and ESLint pass.
 - Earlier full-suite counts above include the preserved local latency work. The isolated release excludes that work.
