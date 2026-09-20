@@ -19,6 +19,9 @@ immediately. The existing 750 ms database check remains as recovery for missed
 notifications and changes on another instance. App recovery waits four seconds
 after the most recent event instead of making duplicate reads during healthy live
 updates. Received text is displayed in full without simulated typing.
+Idle App conversations awaiting input or a selection stop observing until work
+resumes. Event streams also close after a saved input request with no worker;
+this prevents completed greetings from continuously reading task status.
 
 Logs include model-stage duration and input bytes, task-view duration and unique
 result count, direct-answer use, and worker duration. No prompt, answer, credentials
@@ -49,7 +52,7 @@ model or alter source pricing, approval or payment identity.
 - `node scripts/test-worker-flow.mjs`: parallel execution, cancellation, budget
   ceiling and lease checks passed (four fixture calls, one approval, 486 ms).
 - MCP `npm test`: 195 passed; no MCP source changes required.
-- App: 2,188 passed, four pre-existing failures. The same four failures reproduce
+- App: 2,190 passed, four pre-existing failures. The same four failures reproduce
   at unchanged commit `132a026`: two manifest/icon tests and two organisation
   owner/admin workspace-selector tests. The changed answer/recovery tests pass.
 - App lint, TypeScript checks and `npm run build:production` passed. A plain build
