@@ -60,10 +60,8 @@ async fn model(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Valu
         let ready = input["fields"].as_array().unwrap().iter().all(|f| f["required"] != true || values.get(f["key"].as_str().unwrap()).is_some_and(|v| !v.is_null() && v.as_str() != Some("")));
         return Json(json!({"choices":[{"message":{"content":json!({"message":if ready {"I'll prepare the price for approval."} else {"Which details should I use?"},"input":patch,"ready":ready}).to_string()}}]}));
     }
-    assert_eq!(
-        body["response_format"]["json_schema"]["schema"]["properties"]["observations"]["maxItems"],
-        24
-    );
+    assert_eq!(body["response_format"]["type"], "json_object");
+    assert!(body["messages"][0]["content"].as_str().unwrap().contains("twenty-four observations"));
     assert!(
         input.get("answer_operations").is_some(),
         "Named workflows never ask the model to invent their source plan"
