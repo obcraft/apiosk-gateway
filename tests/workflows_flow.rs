@@ -6,7 +6,7 @@ use apiosk_gateway_v2::{
     engine::Engine,
     execution::Executor,
     parser::Parser,
-    protocol::{ExecuteRequest, Response, Status},
+    protocol::{ContextDelta, DiscoverRequest, ExecuteRequest, Response, Status},
     state::Signer,
     store::Store,
     workflow_catalog::{self, StartRequest},
@@ -53,6 +53,13 @@ async fn model(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Valu
     }
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input.get("workflow").is_some() {
+        let patch: Value = serde_json::from_str(input["question"].as_str().unwrap()).unwrap_or(json!({}));
+        let mut values = input["collected"].as_object().unwrap().clone();
+        for (key,value) in patch.as_object().unwrap() { values.insert(key.clone(),value.clone()); }
+        let ready = input["fields"].as_array().unwrap().iter().all(|f| f["required"] != true || values.get(f["key"].as_str().unwrap()).is_some_and(|v| !v.is_null() && v.as_str() != Some("")));
+        return Json(json!({"choices":[{"message":{"content":json!({"message":if ready {"I'll prepare the price for approval."} else {"Which details should I use?"},"input":patch,"ready":ready}).to_string()}}]}));
+    }
     assert_eq!(
         body["response_format"]["json_schema"]["schema"]["properties"]["observations"]["maxItems"],
         24
@@ -266,38 +273,62 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             connection: None,
             workspace: None,
         };
-        let input = recipe.example.clone();
-        let start_request = StartRequest {
-            request_id: Uuid::new_v4(),
-            input,
-        };
         let before = state.count.load(Ordering::SeqCst);
+        let start_request = DiscoverRequest {
+            request_id: Uuid::new_v4(), question: format!("Start {}", recipe.name), state: None,
+            context_delta: ContextDelta { workflow_slug: Some(recipe.slug.clone()), ..Default::default() },
+        };
+        let started = engine.chat(&person, start_request.clone()).await.unwrap();
+        assert_eq!(started.status, Status::NeedsInput, "{}: {started:?}",recipe.slug);
+        assert!(started.errors.is_empty());
+        assert!(started.proposal.is_none());
+        assert_eq!(started.context_view["workflow"]["slug"], recipe.slug);
+        assert_eq!(state.count.load(Ordering::SeqCst), before);
         let models = state.model.load(Ordering::SeqCst);
-        let mut response = engine
-            .start_workflow(&person, &recipe.slug, start_request.clone())
-            .await
-            .unwrap();
-        assert_eq!(
-            response.status,
-            Status::Ready,
-            "{}: {response:?}",
-            recipe.slug
-        );
+        let replay = engine.chat(&person, start_request).await.unwrap();
+        assert_eq!(replay.state.as_ref().unwrap().state_ref, started.state.as_ref().unwrap().state_ref);
+        assert_eq!(state.model.load(Ordering::SeqCst), models);
+        let recovered = engine.view(&person, started.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
+        let required: Vec<_> = recipe.fields.iter().filter(|f| f.required).collect();
+        // Give only one required value, then recover the saved chat before completing it.
+        let mut patch = json!({});
+        let mut collected = recovered;
+        if required.len() > 1 {
+            let key = &required[0].key;
+            patch[key] = recipe.example[key].clone();
+            collected = engine.chat(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: patch.to_string(), state: collected.state, context_delta: ContextDelta::default() }).await.unwrap();
+            assert_eq!(collected.status, Status::NeedsInput, "{}: {collected:?}",recipe.slug);
+            assert!(collected.proposal.is_none());
+            assert!(collected.errors.is_empty());
+        }
+        let mut remaining = recipe.example.clone();
+        if required.len() > 1 { remaining.remove(&required[0].key); }
+        if recipe.slug == "customer-onboarding" {
+            let mut invalid = remaining.clone();
+            invalid.insert("country".into(), json!("Atlantis"));
+            collected = engine.chat(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: serde_json::to_string(&invalid).unwrap(), state: collected.state, context_delta: ContextDelta::default() }).await.unwrap();
+            assert_eq!(collected.status, Status::NeedsInput);
+            assert!(collected.errors.is_empty());
+            assert!(collected.proposal.is_none());
+        }
+        let mut response = engine.chat(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: serde_json::to_string(&remaining).unwrap(), state: collected.state, context_delta: ContextDelta::default() }).await.unwrap();
+        assert_eq!(response.status, Status::Ready, "{}: {response:?}",recipe.slug);
         assert_eq!(response.billing.as_ref().unwrap()["apiosk_fee_bps"], 2000);
-        assert_eq!(
-            response.billing.as_ref().unwrap()["pricing_rule"],
-            "provider_cost_plus_20_v1"
-        );
+        if recipe.slug == "prospect-shortlist" {
+            let old_quote = response.proposal.as_ref().unwrap().quote_ref;
+            response = engine.chat(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: serde_json::to_string(&recipe.example).unwrap(), state: response.state, context_delta: ContextDelta::default() }).await.unwrap();
+            assert_eq!(response.status, Status::Ready);
+            assert_ne!(response.proposal.as_ref().unwrap().quote_ref,old_quote);
+            assert_eq!(response.context_view["workflow"]["slug"],recipe.slug);
+            assert_eq!(response.billing.as_ref().unwrap()["apiosk_fee_bps"],2000);
+        }
         let quoted = serde_json::to_value(&response).unwrap();
         let task = response.state.as_ref().unwrap().state_ref;
         let quote = response.proposal.clone().unwrap();
         assert_eq!(state.count.load(Ordering::SeqCst), before);
-        assert_eq!(state.model.load(Ordering::SeqCst), models);
-        let replay = engine
-            .start_workflow(&person, &recipe.slug, start_request)
-            .await
-            .unwrap();
-        assert_eq!(replay.state.as_ref().unwrap().state_ref, task);
+        let stored = engine.store.load(person.owner,task).await.unwrap().1;
+        assert_eq!(stored.workflow.as_ref().unwrap().input,recipe.example);
+        assert!(!stored.workflow.unwrap().collecting);
         let unapproved = engine
             .execute(&person, "fixture", request(&response).unwrap())
             .await

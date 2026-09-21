@@ -54,6 +54,8 @@ pub struct RecipeStep {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorkflowContext {
+    #[serde(default)]
+    pub collecting: bool,
     pub slug: String,
     pub title: String,
     pub input: BTreeMap<String, Value>,
@@ -287,6 +289,7 @@ pub fn prepare(
         .unwrap_or(&recipe.name)
         .to_owned();
     let context = WorkflowContext {
+        collecting: false,
         slug: recipe.slug.clone(),
         title,
         input: input.clone(),

@@ -12,6 +12,9 @@ pub const MAX_DEPTH: usize = 5;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ContextDelta {
+    /// App workflow selection, only accepted when opening a fresh chat.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_slug: Option<String>,
     #[serde(default)]
     pub explicit_values: Vec<ExplicitValue>,
     #[serde(default)]

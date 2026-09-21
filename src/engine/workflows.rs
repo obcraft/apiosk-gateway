@@ -1,3 +1,4 @@
+use crate::workflow_catalog;
 use super::*;
 use crate::workflows::{run_status, SUPPLIER_CHECK};
 use sqlx::Row;
@@ -13,6 +14,49 @@ fn run_json(row: &sqlx::postgres::PgRow) -> Value {
 }
 
 impl Engine {
+    /// Collect conversational input before building the existing, code-owned recipe.
+    pub(crate) async fn collect_workflow(&self, question: &str, task: &mut crate::state::Task, catalog: &crate::catalog::Catalog) -> anyhow::Result<Option<crate::parser::Intent>> {
+        let workflow = task.workflow.as_mut().ok_or_else(|| anyhow::anyhow!("Missing workflow context"))?;
+        workflow.collecting = true;
+        let recipe = workflow_catalog::recipe(&workflow.slug).ok_or_else(|| anyhow::anyhow!("Unknown workflow"))?;
+        let reply = self.parser.workflow_chat(question, task, &recipe).await?;
+        let workflow = task.workflow.as_mut().unwrap();
+        for (key, value) in reply.input {
+            if value.is_null() || value.as_str() == Some("") { workflow.input.remove(&key); }
+            else { workflow.input.insert(key, value); }
+        }
+        let prepared = workflow_catalog::prepare(&workflow.slug, &workflow.input, catalog);
+        let mut message = reply.message;
+        let mut intent = None;
+        if reply.ready {
+            match prepared {
+                Ok((plan, context, _)) => {
+                    task.workflow = Some(context);
+                    intent = Some(plan);
+                }
+                Err(error) => {
+                    // A missing or invalid value is a normal chat turn, not a failed request.
+                    message = format!("Please check this detail so I can prepare the workflow: {error}");
+                }
+            }
+        }
+        task.record_turn(question, Some(message));
+        task.intent = None;
+        task.proposal = None;
+        task.actions.clear();
+        task.completed.clear();
+        task.failed_steps.clear();
+        task.active_results.clear();
+        task.analysis = None;
+        task.supplier_check = None;
+        task.pending_candidates.clear();
+        task.original_subject = None;
+        task.execution_error = None;
+        task.cancelled = false;
+        task.focus.goal_refs.clear();
+        Ok(intent)
+    }
+
     pub async fn start_workflow(&self, p: &Principal, slug: &str, request: crate::workflow_catalog::StartRequest) -> anyhow::Result<Response> {
         anyhow::ensure!(p.is_person(), "Workflow forms require an App account");
         if let Some(response)=self.request_claim(p,request.request_id,&digest(&("start-workflow",slug,&request))).await? { return Ok(response); }

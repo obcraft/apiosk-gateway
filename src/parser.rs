@@ -191,6 +191,14 @@ impl ChatReply {
         Ok(())
     }
 }
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowChatReply {
+    pub message: String,
+    pub input: BTreeMap<String, Value>,
+    pub ready: bool,
+}
+
 /// Only these public classifications leave the model boundary. Provider
 /// envelopes, JSON errors and model internals stay out of client responses.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -459,6 +467,41 @@ impl Parser {
     }
 
     /// Propose invoice fields for review. Never stored, never executable.
+    pub async fn workflow_chat(&self, question: &str, task: &Task, recipe: &crate::workflow_catalog::Recipe) -> anyhow::Result<WorkflowChatReply> {
+        let workflow = task.workflow.as_ref().ok_or_else(|| anyhow::anyhow!("Missing workflow context"))?;
+        let payload = json!({
+            "model": self.model, "temperature": 0, "max_tokens": 2048,
+            "reasoning": {"effort":"minimal", "exclude":true},
+            "provider": {"require_parameters":true},
+            "response_format": {"type":"json_object"},
+            "messages": [
+                {"role":"system","content":include_str!("../contracts/workflow-chat-prompt.txt")},
+                {"role":"user","content":json!({"workflow":recipe.slug,"name":recipe.name,"description":recipe.description,"fields":recipe.fields,"limitations":recipe.limitations,"collected":workflow.input,"conversation":task.conversation,"question":question}).to_string()}
+            ]
+        });
+        self.completion("workflow-chat", &payload, |raw| {
+            let reply: WorkflowChatReply = serde_json::from_str(raw)?;
+            anyhow::ensure!(!reply.message.trim().is_empty() && reply.message.len() <= 3000, "Invalid workflow reply");
+            for (key, value) in &reply.input {
+                anyhow::ensure!(recipe.fields.iter().any(|field| field.key == *key), "Unknown workflow field");
+                anyhow::ensure!(value.is_null() || value.is_number() || value.as_str().is_some_and(|value| value.len() <= 500), "Invalid workflow value");
+                let literal = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
+                let normalize = |s: &str| s.to_lowercase().replace("https://", "").chars().filter(|c| c.is_alphanumeric()).collect::<String>();
+                let text = std::iter::once(question).chain(task.conversation.iter().map(|turn| turn.question.as_str())).collect::<Vec<_>>().join(" ");
+                let country_aliases: &[&str] = match literal.as_str() {
+                    "NL" => &["Netherlands", "Nederland", "Dutch", "Holland"],
+                    "GB" => &["UK", "United Kingdom", "British", "Verenigd Koninkrijk", "Engeland"],
+                    "FR" => &["France", "Frankrijk", "French"],
+                    "No" => &["nee", "without", "geen", "no"],
+                    "Yes" => &["ja", "yes", "include", "inclusief"],
+                    _ => &[],
+                };
+                anyhow::ensure!(value.is_null() || workflow.input.get(key) == Some(value) || (!normalize(&literal).is_empty() && normalize(&text).contains(&normalize(&literal))) || country_aliases.iter().any(|alias| normalize(&text).contains(&normalize(alias))), "Workflow value must be supplied by the user");
+            }
+            Ok(reply)
+        }).await
+    }
+
     pub async fn extract_invoice(&self, document: crate::documents::Content<'_>) -> anyhow::Result<Value> {
         use crate::documents::Content;
         use crate::invoice_document::{schema, PROMPT};

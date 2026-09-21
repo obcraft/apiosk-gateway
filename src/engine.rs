@@ -136,8 +136,8 @@ impl Engine {
         app_chat: bool,
         forced: Option<(crate::parser::Intent, crate::workflow_catalog::WorkflowContext)>,
     ) -> anyhow::Result<Response> {
-        let workflow = forced.as_ref().map(|(_, workflow)| workflow.clone());
-        let forced = forced.map(|(intent, _)| intent);
+        let mut workflow = forced.as_ref().map(|(_, workflow)| workflow.clone());
+        let mut forced = forced.map(|(intent, _)| intent);
         anyhow::ensure!(
             !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
             "invalid question length"
@@ -174,6 +174,7 @@ impl Engine {
             "existing execution must finish or reconcile before a new question"
         );
         self.prepare_conversation(p.owner, id, &mut task).await?;
+        let pending_workflow = task.workflow.clone().filter(|workflow| workflow.collecting || (task.proposal.is_some() && task.completed.is_empty() && task.active_results.is_empty() && task.analysis.is_none()));
         task.workflow = workflow.clone();
         for focus in &req.context_delta.requested_focus_refs {
             anyhow::ensure!(
@@ -193,6 +194,25 @@ impl Engine {
                 &f.semantic_type,
                 f.value.clone(),
             )?;
+        }
+        let selected_workflow = req.context_delta.workflow_slug.as_deref();
+        anyhow::ensure!(selected_workflow.is_none() || (app_chat && req.state.is_none()), "Start a workflow in a new App chat.");
+        let conversational_workflow = forced.is_none() && app_chat && (selected_workflow.is_some() || pending_workflow.is_some());
+        if conversational_workflow {
+            task.workflow = match selected_workflow {
+                Some(slug) => {
+                    let recipe = crate::workflow_catalog::recipe(slug).ok_or_else(|| anyhow::anyhow!("Unknown workflow."))?;
+                    Some(crate::workflow_catalog::WorkflowContext { collecting: true, slug: recipe.slug, title: recipe.name, input: Default::default(), limitations: recipe.limitations })
+                }
+                None => pending_workflow,
+            };
+            self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+            forced = self.collect_workflow(&req.question, &mut task, &catalog).await?;
+            workflow = task.workflow.clone();
+            if forced.is_none() {
+                self.store.save_intent(p.owner, id, revision, &task).await?;
+                return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
+            }
         }
         let mut chat_intent = None;
         // Invoice checks must not depend on the model recognising the wording.
@@ -219,7 +239,7 @@ impl Engine {
             self.store.save_intent(p.owner, id, revision, &task).await?;
             return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
         }
-        if app_chat && forced.is_some() {
+        if app_chat && forced.is_some() && !conversational_workflow {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, Some(if workflow.is_some() {
                 "I'll prepare the source checks and show the total price before you approve.".into()
