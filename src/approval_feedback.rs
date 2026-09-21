@@ -37,6 +37,16 @@ pub(crate) fn check_budget(
 }
 
 pub(crate) fn response(error: &anyhow::Error) -> (StatusCode, Response) {
+    if error
+        .downcast_ref::<crate::store::StoreAccessError>()
+        .is_some()
+        || error
+            .downcast_ref::<sqlx::Error>()
+            .is_some_and(crate::store::is_workspace_access_denied)
+    {
+        return (StatusCode::FORBIDDEN, Response::error(Uuid::new_v4(), Status::Failed,
+            "approval_refused", "You do not have spending access to this request's workspace. Open the correct workspace or ask its administrator for access."));
+    }
     if let Some(refusal) = error.downcast_ref::<BudgetRefusal>() {
         let (code, message) = match refusal.kind {
             "per_request" => ("approval_per_request_limit", "This request is above your connection's per-request spending limit. Increase it in Apiosk > Connections, or ask a smaller question. Nothing was purchased by this approval attempt."),
@@ -52,7 +62,7 @@ pub(crate) fn response(error: &anyhow::Error) -> (StatusCode, Response) {
     let reason = error.to_string();
     let message = match reason.as_str() {
         "quote changed or expired" => "This price has expired or changed. Use Check status, then Get new price and review the updated total before approving.",
-        "state changed; check status before approving" => "Your request was updated. Use Check status to see the current plan before approving.",
+        "state changed; check status before approving" | "state expired; recover task" | "invalid state version" | "invalid state signature" => "Your request needs to be refreshed. Use Check status to see the current plan before approving.",
         "set a positive per-request and daily limit in Connections, then reconnect if needed" => "Set a per-request limit and a daily limit in Apiosk > Connections before approving. Then return here and check status.",
         "purchases unavailable" => "Purchases are temporarily unavailable. Your request is saved; check status and try again later.",
         "workspace spending is not permitted" => "Your role cannot approve spending in this workspace. Ask a workspace administrator to update your access.",
@@ -112,5 +122,18 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("Get new price"));
+    }
+
+    #[test]
+    fn access_denial_is_not_reported_as_a_temporary_server_failure() {
+        let error = crate::store::StoreAccessError::WorkspaceUnavailable.into();
+        let (status, body) = response(&error);
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert!(body.errors[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("administrator"));
+        let (status, _) = response(&anyhow::anyhow!("invalid state signature"));
+        assert_eq!(status, StatusCode::FORBIDDEN);
     }
 }
