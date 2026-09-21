@@ -107,6 +107,24 @@ impl PlanningReview {
     }
 }
 impl Intent {
+    /// Copy an exact question span back into model strings that only changed
+    /// separators. No words may be added, dropped, reordered or inferred; the
+    /// original literal and the catalog schema are still validated afterwards.
+    fn restore_question_literals(&mut self, question: &str) {
+        for subject in &mut self.subjects {
+            if subject.entity_ref.is_none() {
+                if let Some(original) = question_literal(question, &subject.label) {
+                    subject.label = original.to_owned();
+                }
+            }
+            for value in subject.values.values_mut() {
+                if let Some(original) = value.as_str().and_then(|text| question_literal(question, text)) {
+                    *value = json!(original);
+                }
+            }
+        }
+    }
+
     pub fn validate(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.subjects.len() <= 8 && !self.goals.is_empty() && self.goals.len() <= 8,
@@ -154,6 +172,35 @@ impl Intent {
         }
         Ok(())
     }
+}
+
+fn question_literal<'a>(question: &'a str, literal: &str) -> Option<&'a str> {
+    if question.to_lowercase().contains(&literal.to_lowercase()) {
+        return None;
+    }
+    let words = |text: &str| -> Vec<(usize, usize, String)> {
+        let mut result = Vec::new();
+        let mut start = None;
+        for (index, ch) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+            if ch.is_alphanumeric() {
+                start.get_or_insert(index);
+            } else if let Some(begin) = start.take() {
+                result.push((begin, index, text[begin..index].to_lowercase()));
+            }
+        }
+        result
+    };
+    let needle = words(literal);
+    // Single tokens and identifiers need their existing literal match. This
+    // repair only joins words separated differently, e.g. a postcode and city.
+    if needle.len() < 2 {
+        return None;
+    }
+    let haystack = words(question);
+    let span = haystack.windows(needle.len()).find(|span| {
+        span.iter().zip(&needle).all(|(left, right)| left.2 == right.2)
+    })?;
+    Some(&question[span[0].0..span[span.len() - 1].1])
 }
 
 fn decode_intent(raw: &str) -> anyhow::Result<Intent> {
@@ -531,10 +578,11 @@ impl Parser {
             ]
         });
         self.completion("chat", &payload, |raw| {
-            let reply: ChatReply = serde_json::from_str(raw)?;
+            let mut reply: ChatReply = serde_json::from_str(raw)?;
             reply.validate()?;
-            if let Some(intent) = &reply.intent {
+            if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
+                intent.restore_question_literals(question);
                 intent.validate(question, task, catalog)?;
             }
             Ok(reply)
@@ -799,7 +847,8 @@ impl Parser {
                 "messages":[{"role":"system","content":system},{"role":"user","content":json!({"question":question,"context":context,"catalog":catalog.parser_view()}).to_string()}]
             });
             let intent=self.completion("intent", &payload, |raw| {
-                let intent=decode_intent(raw)?;
+                let mut intent=decode_intent(raw)?;
+                intent.restore_question_literals(question);
                 intent.validate(question,task,catalog)?;
                 Ok(intent)
             }).await?;
@@ -827,6 +876,49 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn separator_repair_copies_only_contiguous_words_from_the_question() {
+        let question = "Zoek nieuws voor 7521 BE, Enschede en café, München.";
+        assert_eq!(question_literal(question, "7521 BE Enschede"), Some("7521 BE, Enschede"));
+        assert_eq!(question_literal(question, "café München"), Some("café, München"));
+        for invented in ["7522 BE Enschede", "7521 BE Amsterdam", "Enschede 7521 BE", "7521 Enschede", "7521BE", "BE Enschede nieuws", "", ",;"] {
+            assert_eq!(question_literal(question, invented), None, "{invented}");
+        }
+        assert_eq!(question_literal("Bedrag 10,00", "10.00"), Some("10,00"), "restores the source, never the model's altered punctuation");
+    }
+
+    #[tokio::test]
+    async fn postcode_chat_restores_literal_search_text_without_a_second_model_call() {
+        let question = "Ik zoek informatie over deze postcode : 7521 BE, Enschede. Zoek nieuws items, overheids data etc";
+        let raw = include_str!("../tests/fixtures/postcode-chat-reply.json");
+        let mut catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        for kind in ["building.postcode", "government.publication.keyword", "web.query"] {
+            catalog.vocabulary.insert(kind.into(), serde_json::from_value(json!({"slug":kind,"value_schema":{"type":"string","minLength":1}})).unwrap());
+        }
+        for capability in ["area.demographics", "building.registry-search", "government.publication.search", "web.search"] {
+            catalog.by_capability.insert(capability.into(), vec![]);
+        }
+        let original: ChatReply = serde_json::from_str(raw).unwrap();
+        let original = original.intent.unwrap();
+        assert!(original.validate(question, &Task::default(), &catalog).is_err());
+        let (parser, calls, server) = model_fixture(vec![(200, json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]}))]).await;
+        let reply = parser.chat(question, &Task::default(), &catalog).await.unwrap();
+        let mut intent = reply.intent.unwrap();
+        assert_eq!(intent.subjects[0].values["web.query"], "7521 BE, Enschede");
+        assert_eq!(intent.subjects[0].values["building.postcode"], "7521 BE");
+        assert_eq!(serde_json::to_value(&intent.goals).unwrap(), serde_json::to_value(&original.goals).unwrap());
+        assert_eq!(intent.answer_operations, original.answer_operations);
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
+        catalog.vocabulary.get_mut("web.query").unwrap().value_schema = json!({"type":"string","pattern":"^[^,]+$"});
+        assert!(intent.validate(question, &Task::default(), &catalog).is_err(), "restored values must still satisfy the input schema");
+        catalog.vocabulary.get_mut("web.query").unwrap().value_schema = json!({"type":"string"});
+        intent.subjects[0].values.insert("web.query".into(), json!("7521 BE Amsterdam"));
+        intent.restore_question_literals(question);
+        assert!(intent.validate(question, &Task::default(), &catalog).is_err());
+        server.abort();
+    }
+
     #[test]
     fn chat_keeps_the_complete_catalog_once() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/supplier-check/catalog.json")).unwrap());
