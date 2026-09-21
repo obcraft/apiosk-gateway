@@ -327,6 +327,35 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
 mod analysis_tests {
     use super::*;
     #[tokio::test]
+    async fn analysis_repair_receives_the_rejected_answer_and_keeps_evidence_validation() {
+        use axum::{routing::post, Json, Router};
+        let invalid = json!({"observations":[{"text":"The fee is {{a}}.","evidence":[{"result_ref":"saved","pointer":"/data/text","quote":"€13 monthly"}]}],"limitations":[]}).to_string();
+        let rejected = invalid.clone();
+        let app = Router::new().route("/", post(move |Json(request): Json<Value>| {
+            let rejected = rejected.clone();
+            async move {
+                let messages = request["messages"].as_array().unwrap();
+                let answer = if messages.len() == 2 { rejected.clone() } else {
+                    assert_eq!(messages[2]["role"], "assistant");
+                    assert_eq!(messages[2]["content"], rejected);
+                    assert!(messages[3]["content"].as_str().unwrap().contains("quote_not_verbatim"));
+                    json!({"observations":[{"text":"The fee is {{a}}.","evidence":[{"result_ref":"saved","pointer":"/data/text","quote":"€12 monthly"}]}],"limitations":[]}).to_string()
+                };
+                Json(json!({"choices":[{"message":{"content":answer}}]}))
+            }
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+        let sources = vec![json!({"result_ref":"saved","document":{"data":{"text":"The plan costs €12 monthly."}}})];
+        assert!(validate_analysis(&invalid, &sources, false).is_err());
+        let answer = parser.analyze_with_scope(&json!(["Find the price"]), &sources, &BTreeMap::new(), true).await.unwrap();
+        assert_eq!(answer["observations"][0]["text"], "The fee is €12 monthly.");
+        server.abort();
+    }
+
+    #[tokio::test]
     async fn analysis_uses_portable_json_mode_and_resolves_saved_evidence() {
         use axum::{http::StatusCode, routing::post, Json, Router};
         let app = Router::new().route("/", post(|Json(request): Json<Value>| async move {
@@ -700,6 +729,11 @@ impl Parser {
                                                 if let Some(messages) =
                                                     attempt_payload["messages"].as_array_mut()
                                                 {
+                                                    // The repair must see what failed so it can fix the
+                                                    // cited field or quote, rather than regenerate blind.
+                                                    // This remains inside the bounded model request;
+                                                    // neither the answer nor source data is logged.
+                                                    messages.push(json!({"role":"assistant","content":raw}));
                                                     messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response.")}));
                                                 }
                                             }
