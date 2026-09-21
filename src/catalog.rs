@@ -321,9 +321,17 @@ impl CatalogCache {
         }
     }
     pub async fn fresh(&self) -> anyhow::Result<Arc<Catalog>> {
+        // Directory statistics can exceed the ordinary ten-second statement
+        // limit while the database is busy. Bound this read separately so a
+        // cold start does not crash-loop. Live execution checks keep the short
+        // limit and fetch only the selected contracts.
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SET TRANSACTION READ ONLY").execute(&mut *tx).await?;
+        sqlx::query("SET LOCAL statement_timeout='30s'").execute(&mut *tx).await?;
         let value: Value = sqlx::query_scalar(CATALOG_SQL)
-            .fetch_one(&self.pool)
+            .fetch_one(&mut *tx)
             .await?;
+        tx.commit().await?;
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }
     pub async fn fresh_execution(&self, service_ids: &[Uuid]) -> anyhow::Result<Arc<Catalog>> {
