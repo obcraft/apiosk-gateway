@@ -317,6 +317,32 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
 #[cfg(test)]
 mod analysis_tests {
     use super::*;
+    #[tokio::test]
+    async fn analysis_uses_portable_json_mode_and_resolves_saved_evidence() {
+        use axum::{http::StatusCode, routing::post, Json, Router};
+        let app = Router::new().route("/", post(|Json(request): Json<Value>| async move {
+            // Reproduce the provider's rejection of the old schema request.
+            if request["response_format"]["type"] != "json_object" {
+                return (StatusCode::BAD_REQUEST, Json(json!({"error":"unsupported schema"})));
+            }
+            let answer = json!({"observations":[{"text":"The company is {{a}}.",
+                "evidence":[{"result_ref":"saved-source","pointer":"/data/name"}]}],"limitations":[]});
+            (StatusCode::OK, Json(json!({"choices":[{"message":{"content":answer.to_string()}}]})))
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+        let sources = vec![json!({"result_ref":"saved-source","document":{"data":{"name":"Example B.V."}}})];
+        for workflow in [false, true] {
+            let answer = parser.analyze_with_scope(&json!(["Identify the company"]), &sources, &BTreeMap::new(), workflow).await.unwrap();
+            assert_eq!(answer["status"], "completed");
+            assert_eq!(answer["observations"][0]["text"], "The company is Example B.V..");
+            assert_eq!(answer["observations"][0]["evidence"][0]["value"], "Example B.V.");
+        }
+        server.abort();
+    }
+
     #[test]
     fn workflow_reports_can_cover_ten_checks_without_relaxing_evidence_validation() {
         let sources=vec![json!({"result_ref":"saved","document":{"data":{"name":"Example","year":2026}}})];
@@ -408,16 +434,12 @@ impl Parser {
         if workflow {
             prompt = prompt.replace("At most eight observations, four evidence fields each, and six limitations.", "At most twenty-four observations, four evidence fields each, and twelve limitations. Cover every requested check with a supported finding or an explicit unknown in limitations. For shortlists, name each candidate and explain its fit; for comparisons, group findings by company. A completed retrieval is not a passed check.");
         }
+        // Gemini rejects this analysis schema at the provider boundary. JSON mode
+        // is portable; validate_analysis_limits remains the authority on output
+        // shape, evidence pointers, bounds, and numeric claims.
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":if workflow {8192} else {4096},
             "reasoning":{"effort":"low","exclude":true},"provider":{"require_parameters":true},
-            "response_format":{"type":"json_schema","json_schema":{"name":"source_analysis","strict":true,"schema":{
-                "type":"object","additionalProperties":false,"required":["observations","limitations"],"properties":{
-                    "observations":{"type":"array","maxItems":max_observations,"items":{"type":"object","additionalProperties":false,"required":["text","evidence"],"properties":{
-                        "text":{"type":"string","description":"A direct answer sentence. Insert exact evidence values with {{a}}, {{b}}, {{c}}, {{d}} for the corresponding evidence item. No literal numeric characters or URLs."},
-                        "evidence":{"type":"array","minItems":1,"maxItems":4,"items":{"type":"object","additionalProperties":false,"required":["result_ref","pointer"],"properties":{"result_ref":{"type":"string"},"pointer":{"type":"string","description":"JSON pointer to an existing scalar under /data/ in this source document"}}}}
-                    }}},"limitations":{"type":"array","maxItems":max_limitations,"items":{"type":"string","description":"No numeric characters or URLs."}}
-                }
-            }}},"messages":[
+            "response_format":{"type":"json_object"},"messages":[
                 {"role":"system","content":prompt},
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| {
