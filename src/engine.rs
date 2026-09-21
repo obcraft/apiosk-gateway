@@ -608,6 +608,12 @@ impl Engine {
         }
         r.next_actions = actions.iter().map(Action::public).collect();
         if worker_active { r.next_actions.retain(|a| !matches!(a.kind.as_str(), "execute_quoted_step" | "poll")); }
+        if !worker_active {
+            for pending in &task.pending_dispatches {
+                r.next_actions.retain(|action| action.action_id != pending.action_id);
+                r.next_actions.push(Action::Poll { action_id: pending.action_id, execution_id: pending.action_id }.public());
+            }
+        }
         for result in task.result_refs.iter().rev().take(8) {
             r.next_actions.push(
                 Action::Read {

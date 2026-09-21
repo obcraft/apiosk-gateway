@@ -176,7 +176,7 @@
     ],
     "limitations": [
       "A sanctions name match needs review; no match is not a compliance certification.",
-      "VIES names and addresses depend on national availability. Domain age does not prove legitimacy."
+      "Domain age does not prove legitimacy."
     ],
     "output": "An onboarding checklist with company details, discrepancies, possible sanctions matches, and items for review.",
     "example": {
@@ -269,7 +269,12 @@
         "label": "Validate VAT details"
       }
     ],
-    "answer_instructions": "Return an onboarding checklist with supported findings, discrepancies, possible matches and items for manual review. Do not claim a legal compliance decision."
+    "answer_instructions": "Return an onboarding checklist with supported findings, discrepancies, possible matches and items for manual review. Do not claim a legal compliance decision.",
+    "source_limitations": {
+      "vies": [
+        "VIES names and addresses depend on national availability."
+      ]
+    }
   },
   {
     "slug": "competitor-comparison",
@@ -495,7 +500,6 @@
       "Application links and next questions"
     ],
     "limitations": [
-      "RVO searches only the first 50 public descriptions and can include historical schemes. No match does not mean no funding exists.",
       "EU records may be historical. Eligibility, deadlines and open status must be supported by current official evidence."
     ],
     "output": "A funding shortlist with programme details, source links, and eligibility questions to check.",
@@ -547,7 +551,12 @@
         "label": "Check supporting public information"
       }
     ],
-    "answer_instructions": "Return a funding shortlist with programme, fit reason, source links, available dates and eligibility questions. Explicitly label status unknown when it cannot be confirmed."
+    "answer_instructions": "Return a funding shortlist with programme, fit reason, source links, available dates and eligibility questions. Explicitly label status unknown when it cannot be confirmed.",
+    "source_limitations": {
+      "rvo": [
+        "RVO searches only the first 50 public descriptions and can include historical schemes. No match does not mean no funding exists."
+      ]
+    }
   },
   {
     "slug": "property-precheck",
@@ -692,7 +701,7 @@
       "Direct and ultimate parents when LEI provided"
     ],
     "limitations": [
-      "Companies House significant control and GLEIF corporate parents are different relationships; neither is a universal beneficial ownership register.",
+      "Companies House significant control is not a universal beneficial ownership register.",
       "Only the named company is screened against sanctions in this run; officers, controllers and parents are not individually screened.",
       "An absent relationship is not evidence that no parent exists."
     ],
@@ -772,7 +781,12 @@
         "label": "Read the ultimate corporate parent"
       }
     ],
-    "answer_instructions": "Return an ownership and control summary with relationship type, person or entity, current or ceased status and evidence. Separate the named-company sanctions result from ownership records."
+    "answer_instructions": "Return an ownership and control summary with relationship type, person or entity, current or ceased status and evidence. Separate the named-company sanctions result from ownership records.",
+    "source_limitations": {
+      "gleif": [
+        "GLEIF corporate parents and Companies House significant control describe different relationships."
+      ]
+    }
   },
   {
     "slug": "company-health",
@@ -1082,7 +1096,7 @@
       "US insider records when selected"
     ],
     "limitations": [
-      "CityFALCON uses a recent 30-day API window and bounded pages. Insider transaction coverage is US only.",
+      "CityFALCON uses a recent 30-day API window and bounded pages.",
       "Reuters search can be loosely matched and lack dates.",
       "Sentiment is a source-derived signal, not an investment recommendation."
     ],

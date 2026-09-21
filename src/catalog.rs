@@ -13,6 +13,15 @@ use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
 
 pub const CATALOG_SQL: &str = include_str!("catalog.sql");
+
+/// Execution needs current contracts, prices and source blocks, without the
+/// directory's endpoint statistics or recent-execution aggregation. Reuse the
+/// exact service/vocabulary SQL so the approval checks cannot drift.
+fn execution_catalog_sql() -> String {
+    let (_, services) = CATALOG_SQL.split_once(" 'vocabulary',")
+        .expect("catalog vocabulary boundary");
+    format!("SELECT jsonb_build_object('known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason')),'[]') FROM apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL), 'vocabulary',{services}")
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -314,6 +323,11 @@ impl CatalogCache {
         let value: Value = sqlx::query_scalar(CATALOG_SQL)
             .fetch_one(&self.pool)
             .await?;
+        Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
+    }
+    pub async fn fresh_execution(&self) -> anyhow::Result<Arc<Catalog>> {
+        let value: Value = sqlx::query_scalar(&execution_catalog_sql())
+            .fetch_one(&self.pool).await?;
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }
     pub async fn sources(&self) -> anyhow::Result<Arc<Vec<crate::sources::Source>>> {

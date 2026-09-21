@@ -195,7 +195,7 @@ impl Engine {
         let Some(auth) = auth else {
             return Ok(false);
         };
-        let catalog = self.catalog.fresh().await?;
+        let catalog = self.catalog.fresh_execution().await?;
         let queued = enqueue_ready(&mut task, &plan, &catalog)?;
         if task.pending_dispatches.is_empty() {
             self.advance(&mut task)?;

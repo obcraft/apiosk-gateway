@@ -51,6 +51,12 @@ impl Engine {
             }
         } else if req.action_id == id && task.proposal.is_some() {
             Action::Cancel { action_id: id }
+        } else if task.pending_dispatches.iter().any(|pending| pending.action_id == req.action_id) {
+            // A stopped worker can leave an already-journaled call outside the
+            // current action list. Recovery reads its receipt only, even after
+            // the quote expires; it never dispatches another source request.
+            anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
+            Action::Poll { action_id: req.action_id, execution_id: req.action_id }
         } else {
             task.actions
                 .iter()
@@ -148,6 +154,12 @@ impl Engine {
                         }
                     }
                 });
+                if let Some(workflow) = &mut task.workflow {
+                    let selected: Vec<_> = plan.steps.iter().map(|step| step.service.api_slug.as_str()).collect();
+                    if let Some(limitations) = crate::workflow_catalog::selected_limitations(&workflow.slug, &selected) {
+                        workflow.limitations = limitations;
+                    }
+                }
                 if let (Some(workflow),Some(analysis))=(&task.workflow,task.analysis.as_mut()) {
                     if let Some(limitations)=analysis.get_mut("limitations").and_then(Value::as_array_mut) {
                         for limitation in &workflow.limitations {
@@ -304,7 +316,7 @@ impl Engine {
                     .steps
                     .get(step)
                     .ok_or_else(|| anyhow::anyhow!("invalid step"))?;
-                let fresh = self.catalog.fresh().await?;
+                let fresh = self.catalog.fresh_execution().await?;
                 anyhow::ensure!(
                     fresh.services.iter().any(|s| s.id == selected.service.id
                         && s.version_hash() == selected.service.version_hash()),
@@ -354,16 +366,17 @@ impl Engine {
             Action::Poll { execution_id, .. } => {
                 anyhow::ensure!(req.input.is_null(), "unexpected poll input");
                 if let Some(body) = self.executor.poll(p, id, execution_id).await? {
+                    let pending_step = task.pending_dispatches.iter()
+                        .find(|pending| pending.action_id == execution_id).map(|pending| pending.step);
+                    task.pending_dispatches.retain(|pending| pending.action_id != execution_id);
                     if body["ok"] == true {
                         let plan: Plan = serde_json::from_value(
                             task.proposal
                                 .clone()
                                 .ok_or_else(|| anyhow::anyhow!("missing quote"))?,
                         )?;
-                        let step = plan
-                            .steps
-                            .iter()
-                            .find(|s| !task.step_finished(&s.key()))
+                        let step = pending_step.and_then(|index| plan.steps.get(index))
+                            .or_else(|| plan.steps.iter().find(|s| !task.step_finished(&s.key())))
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?
                             .clone();
                         let catalog = self.catalog.get().await?;
@@ -375,10 +388,8 @@ impl Engine {
                                 .clone()
                                 .ok_or_else(|| anyhow::anyhow!("missing quote"))?,
                         )?;
-                        let step = plan
-                            .steps
-                            .iter()
-                            .find(|s| !task.step_finished(&s.key()))
+                        let step = pending_step.and_then(|index| plan.steps.get(index))
+                            .or_else(|| plan.steps.iter().find(|s| !task.step_finished(&s.key())))
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?;
                         // Retry one confirmed, fully refunded KVK throttle under
                         // the original quote. Unknown payment outcomes never enter

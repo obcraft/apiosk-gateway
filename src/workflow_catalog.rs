@@ -37,6 +37,8 @@ pub struct Recipe {
     pub fields: Vec<Field>,
     pub checks: Vec<String>,
     pub limitations: Vec<String>,
+    #[serde(default)]
+    pub source_limitations: BTreeMap<String, Vec<String>>,
     pub output: String,
     pub answer_instructions: String,
     pub example: BTreeMap<String, Value>,
@@ -73,6 +75,14 @@ pub fn recipes() -> Vec<Recipe> {
 }
 pub fn recipe(slug: &str) -> Option<Recipe> {
     recipes().into_iter().find(|r| r.slug == slug)
+}
+pub fn selected_limitations(slug: &str, sources: &[&str]) -> Option<Vec<String>> {
+    let recipe = recipe(slug)?;
+    let mut limitations = recipe.limitations;
+    for (source, caveats) in recipe.source_limitations {
+        if sources.contains(&source.as_str()) { limitations.extend(caveats); }
+    }
+    Some(limitations)
 }
 pub fn known(slug: &str) -> bool {
     slug == crate::workflows::SUPPLIER_CHECK || recipe(slug).is_some()
@@ -288,12 +298,14 @@ pub fn prepare(
         .and_then(Value::as_str)
         .unwrap_or(&recipe.name)
         .to_owned();
+    let selected: Vec<_> = goals.iter().filter_map(|goal| goal.constraints.get("source").and_then(Value::as_str)).collect();
+    let limitations = selected_limitations(slug, &selected).unwrap_or_default();
     let context = WorkflowContext {
         collecting: false,
         slug: recipe.slug.clone(),
         title,
         input: input.clone(),
-        limitations: recipe.limitations.clone(),
+        limitations: limitations.clone(),
     };
     let question = format!(
         "{}: {}. {}",
@@ -316,7 +328,7 @@ pub fn prepare(
         question.len() <= crate::protocol::MAX_QUESTION,
         "Workflow details are too long."
     );
-    let intent=Intent {subjects,goals,answer_operations:vec![format!("{}. Address these checks: {}. Preserve these coverage limits: {}. Use only saved evidence; say unknown for missing checks, distinguish possible name matches from confirmed identities, and never describe a source retrieval as a passed verification. Return a concise, usable result in the user's language.",recipe.answer_instructions,recipe.checks.join("; "),recipe.limitations.join(" "))],unresolved_references:vec![]};
+    let intent=Intent {subjects,goals,answer_operations:vec![format!("{}. Address these checks: {}. Preserve these coverage limits: {}. Use only saved evidence; say unknown for missing checks, distinguish possible name matches from confirmed identities, and never describe a source retrieval as a passed verification. Return a concise, usable result in the user's language.",recipe.answer_instructions,recipe.checks.join("; "),limitations.join(" "))],unresolved_references:vec![]};
     Ok((intent, context, question))
 }
 
@@ -364,4 +376,17 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
         }).collect();
         json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"steps":steps,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
     }).collect()
+}
+
+#[cfg(test)]
+mod scope_tests {
+    #[test]
+    fn limitations_follow_selected_sources() {
+        let limits = super::selected_limitations("subsidy-finder", &["eu-funding-tenders", "linkup"]).unwrap();
+        assert!(!limits.iter().any(|limit| limit.contains("RVO")));
+        let recipe = super::recipe("subsidy-finder").unwrap();
+        let rvo = recipe.source_limitations.keys().next().unwrap();
+        assert!(super::selected_limitations("subsidy-finder", &[rvo]).unwrap().iter().any(|limit| limit.contains("RVO")));
+        assert!(!super::selected_limitations("customer-onboarding", &["kvk", "opensanctions"]).unwrap().iter().any(|limit| limit.contains("VIES")));
+    }
 }

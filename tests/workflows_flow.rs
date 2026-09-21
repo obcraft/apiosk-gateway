@@ -470,6 +470,53 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             .unwrap()["runs"][0]["status"],
         "cancelled"
     );
+    // A worker can stop after payment but before ingestion. Expired approval
+    // must still allow receipt recovery, with no replay of either source.
+    let r = workflow_catalog::recipe("competitor-comparison").unwrap();
+    let start = engine.start_workflow(&person, &r.slug, StartRequest {
+        request_id: Uuid::new_v4(), input: r.example,
+    }).await.unwrap();
+    let task_id = start.state.as_ref().unwrap().state_ref;
+    let quote = start.proposal.as_ref().unwrap();
+    let auth = engine.executor.approve(&person, task_id, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+    let (revision, mut saved, _) = engine.store.load(person.owner, task_id).await.unwrap();
+    let plan: apiosk_gateway_v2::resolver::Plan = serde_json::from_value(saved.proposal.clone().unwrap()).unwrap();
+    let catalog = engine.catalog.fresh_execution().await.unwrap();
+    for (index, step) in plan.steps.iter().enumerate() {
+        let action_id = Uuid::new_v4();
+        let inputs = step.service.inputs(&saved, step.entity_ref, &catalog.vocabulary).unwrap();
+        engine.executor.dispatch(&person, "fixture", task_id, revision, action_id, action_id, auth, &plan, step, &inputs).await.unwrap();
+        saved.pending_dispatches.push(apiosk_gateway_v2::state::PendingDispatch { step: index, action_id, inputs });
+    }
+    saved.actions.clear();
+    engine.store.save(person.owner, task_id, revision, &saved).await.unwrap();
+    sqlx::query("UPDATE authorizations SET expires_at=now()-interval '1 second' WHERE id=$1").bind(auth).execute(&pool).await.unwrap();
+    let before = state.count.load(Ordering::SeqCst);
+    let pending_id = saved.pending_dispatches[1].action_id;
+    sqlx::query("UPDATE executions SET status='unresolved' WHERE id=$1").bind(pending_id).execute(&pool).await.unwrap();
+    let mut recovered = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(recovered.billing.as_ref().unwrap()["authorization_active"], false);
+    // No completed call-run receipt exists yet: reading must remain pending.
+    let poll_request = |view: &Response, action_id| ExecuteRequest { request_id: Uuid::new_v4(), action_id,
+        state: view.state.clone().unwrap(), quote_ref: Some(quote.quote_ref), authorization_ref: None,
+        idempotency_key: action_id, input: Value::Null };
+    recovered = engine.execute(&person, "fixture", poll_request(&recovered, pending_id)).await.unwrap();
+    assert!(recovered.context_view["results"].as_array().unwrap().is_empty());
+    assert_eq!(state.count.load(Ordering::SeqCst), before);
+    sqlx::query("UPDATE executions SET status='succeeded' WHERE id=$1").bind(pending_id).execute(&pool).await.unwrap();
+    // Recover out of order to verify that each result keeps its own plan step.
+    for pending in saved.pending_dispatches.iter().rev() {
+        assert!(recovered.next_actions.iter().any(|a| a.kind == "poll" && a.action_id == pending.action_id));
+        recovered = engine.execute(&person, "fixture", poll_request(&recovered, pending.action_id)).await.unwrap();
+    }
+    assert_eq!(recovered.context_view["results"].as_array().unwrap().len(), 2);
+    let (_, final_task, _) = engine.store.load(person.owner, task_id).await.unwrap();
+    assert!(final_task.pending_dispatches.is_empty());
+    assert_eq!(state.count.load(Ordering::SeqCst), before, "recovery must not call a source");
+    for result in recovered.context_view["results"].as_array().unwrap() {
+        assert!(plan.steps.iter().any(|step| result["subject"]["entity_ref"] == json!(step.entity_ref)));
+    }
+
     // A source failure never turns into a complete or passed check.
     state.fail.store(1, Ordering::SeqCst);
     let r = workflow_catalog::recipe("vehicle-precheck").unwrap();
