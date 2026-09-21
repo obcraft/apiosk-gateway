@@ -108,18 +108,12 @@ impl Executor {
             return Ok(existing.get("id"));
         }
         anyhow::ensure!(row.get::<i64, _>("revision") == revision, "state changed; check status before approving");
-        anyhow::ensure!(
-            plan.cap_atomic >= 0 && plan.cap_atomic <= budget.get::<i64, _>("per_call_atomic"),
-            "plan exceeds this connection's per-request limit"
-        );
-        anyhow::ensure!(
-            plan.cap_atomic <= budget.get::<i64, _>("daily_remaining_atomic"),
-            "plan exceeds this connection's remaining daily limit"
-        );
-        anyhow::ensure!(
-            plan.cap_atomic <= budget.get::<i64, _>("balance_atomic"),
-            "insufficient Apiosk balance for this plan"
-        );
+        crate::approval_feedback::check_budget(
+            plan.cap_atomic,
+            budget.get("per_call_atomic"),
+            budget.get("daily_remaining_atomic"),
+            budget.get("balance_atomic"),
+        )?;
         let id = Uuid::new_v4();
         sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
             .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;

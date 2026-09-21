@@ -662,8 +662,8 @@ async fn approve_connection(
         },
         Err(error) => {
             tracing::warn!(error=%error,"connection approval refused");
-            failure(StatusCode::FORBIDDEN, "approval_refused",
-                "Approval could not be saved. Check the current plan, balance and connection spending limits, then try again. No new purchase was made by this approval request.")
+            let (status, body) = crate::approval_feedback::response(&error);
+            (status, Json(body)).into_response()
         }
     }
 }
