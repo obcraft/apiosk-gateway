@@ -395,6 +395,20 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             .unwrap();
         assert_eq!(recovered.status, Status::Succeeded);
         assert_eq!(state.count.load(Ordering::SeqCst), count);
+        if recipe.slug == "competitor-comparison" {
+            state.fail.store(4, Ordering::SeqCst);
+            let action = recovered.next_actions.iter().find(|action| action.kind == "retry_analysis").unwrap();
+            let retried = engine.execute(&person, "fixture", ExecuteRequest {
+                request_id: Uuid::new_v4(), action_id: action.action_id,
+                state: recovered.state.clone().unwrap(), quote_ref: Some(quote.quote_ref),
+                authorization_ref: None, idempotency_key: action.action_id, input: Value::Null,
+            }).await.unwrap();
+            assert_eq!(retried.context_view["analysis"]["observations"], recovered.context_view["analysis"]["observations"]);
+            assert_eq!(retried.context_view["analysis"]["status"], "completed");
+            assert!(retried.context_view["analysis"]["limitations"].as_array().unwrap().iter().any(|value| value.as_str().unwrap_or_default().contains("previously verified findings")));
+            assert_eq!(state.count.load(Ordering::SeqCst), count);
+            state.fail.store(0, Ordering::SeqCst);
+        }
         let history = engine
             .workflow_runs(&person, Some(&recipe.slug))
             .await

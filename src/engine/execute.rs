@@ -76,6 +76,9 @@ impl Engine {
         {
             anyhow::ensure!(!task.proposal.as_ref().and_then(|v|v["steps"].as_array()).is_some_and(|v|v.len()>1), "Multi-step research is paused. Read the existing result or start a single-call question.");
         }
+        let previous_analysis = if matches!(action, Action::RetryAnalysis { .. }) {
+            task.analysis.clone().filter(|analysis| matches!(analysis["status"].as_str(), Some("completed" | "partial")))
+        } else { None };
         match action {
             Action::Wait { until, .. } => {
                 anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid wait input");
@@ -160,7 +163,16 @@ impl Engine {
                     match answer {
                         Ok(analysis) => analysis,
                         Err(_) => {
-                            json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
+                            if let Some(mut previous) = previous_analysis {
+                                if !analysis_failures.is_empty() { previous["status"] = json!("partial"); }
+                                let notice = json!("The refreshed analysis is unavailable. The previously verified findings are shown; no additional source purchase was made.");
+                                if let Some(limitations) = previous["limitations"].as_array_mut() {
+                                    if !limitations.contains(&notice) { limitations.push(notice); }
+                                }
+                                previous
+                            } else {
+                                json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
+                            }
                         }
                     }
                 });

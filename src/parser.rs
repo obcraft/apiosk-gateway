@@ -275,7 +275,7 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
                 .pointer(pointer)
                 .filter(|v| v.is_string() || v.is_number() || v.is_boolean())
                 .ok_or_else(|| anyhow::anyhow!("missing source field"))?;
-            let value = if let Some(quote) = reference.get("quote") {
+            let value = if let Some(quote) = reference.get("quote").filter(|value| !value.is_null()) {
                 let quote = quote.as_str().filter(|quote| !quote.trim().is_empty() && quote.len() <= 1024)
                     .ok_or_else(|| anyhow::anyhow!("invalid evidence quote"))?;
                 anyhow::ensure!(field.as_str().is_some_and(|text| text.contains(quote)), "evidence quote is not in the saved source");
@@ -384,6 +384,8 @@ mod analysis_tests {
         let sources = vec![json!({"result_ref":"page","document":{"data":{"text":format!("{}Plan costs $12 per seat monthly.", "long page ".repeat(1000))}}})];
         let mut answer = json!({"observations":[{"text":"Pricing: {{a}}", "evidence":[{"result_ref":"page","pointer":"/data/text"}]}],"limitations":[]});
         assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+        answer["observations"][0]["evidence"][0]["quote"] = Value::Null;
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err(), "null cannot bypass the long-text bound");
         answer["observations"][0]["evidence"][0]["quote"] = json!("$12 per seat monthly");
         let checked = validate_analysis(&answer.to_string(), &sources, false).unwrap();
         assert_eq!(checked["observations"][0]["text"], "Pricing: $12 per seat monthly");
@@ -400,6 +402,8 @@ mod analysis_tests {
         let checked = validate_analysis(&answer.to_string(), &sources, true).unwrap();
         assert_eq!(checked["observations"][0]["evidence"][0]["value"], 123456);
         assert_eq!(checked["status"], "partial");
+        answer["observations"][0]["evidence"][0]["quote"] = Value::Null;
+        assert_eq!(validate_analysis(&answer.to_string(), &sources, true).unwrap()["observations"][0]["evidence"][0]["value"], 123456);
         answer["observations"][0]["text"] = json!("Assets are 999999.");
         assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
         answer["observations"][0]["text"] = json!("Reported assets.");
@@ -681,6 +685,10 @@ impl Parser {
                                                     "missing source field" => "non_scalar_or_missing_pointer",
                                                     "invented source" => "unknown_source_reference",
                                                     "invalid evidence count" => "evidence_count",
+                                                    "long source text needs a short exact evidence quote" => "exact_quote_required",
+                                                    "evidence quote is not in the saved source" => "quote_not_verbatim",
+                                                    "invalid evidence quote" => "quote_empty_or_too_long",
+                                                    "missing answer value" | "invalid answer value slot" => "invalid_value_placeholder",
                                                     _ => "schema_or_pointer",
                                                 };
                                                 tracing::warn!(
@@ -692,7 +700,7 @@ impl Parser {
                                                 if let Some(messages) =
                                                     attempt_payload["messages"].as_array_mut()
                                                 {
-                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response.")}));
+                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response.")}));
                                                 }
                                             }
                                             Err("invalid_output")
