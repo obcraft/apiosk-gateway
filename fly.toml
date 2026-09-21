@@ -22,6 +22,11 @@ kill_timeout = "120s"
   EMBEDDED_RESEARCH_WORKER_PORT = "8081"
   APIOSK_ENGINE_MODEL = "google/gemini-3.8-flash"
   RECONCILIATION_POLL_SECONDS = "300"
+  # Two embedded executor processes share the same 60-connection database.
+  # Each gets 4 request + 1 log + 2 telemetry connections; with v2 (16)
+  # and reconciliation (2), this app is capped at 32 connections in total.
+  GATEWAY_DB_POOL_SIZE = "4"
+  GATEWAY_LOG_POOL_SIZE = "1"
 
 [http_service]
   internal_port = 8082
