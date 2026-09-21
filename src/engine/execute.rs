@@ -51,7 +51,7 @@ impl Engine {
             }
         } else if req.action_id == id && task.proposal.is_some() {
             Action::Cancel { action_id: id }
-        } else if task.workflow.is_some() && task.analysis.is_some()
+        } else if task.workflow.is_some() && !task.active_results.is_empty()
             && task.proposal.as_ref().is_some_and(|plan| plan["quote_ref"] == json!(req.action_id)) {
             anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
             Action::RetryAnalysis { action_id: req.action_id }
@@ -130,7 +130,7 @@ impl Engine {
                     operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
                 }
                 let operations = json!(operations);
-                let direct = if task.failed_steps.is_empty() && task.supplier_check.is_none() {
+                let direct = if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
                     task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources))
                 } else { None };
                 task.analysis = Some(if let Some(answer) = direct {
@@ -146,10 +146,16 @@ impl Engine {
                         }
                     }
                 } else {
+                    let mut analysis_failures = task.failed_steps.clone();
+                    for pending in &task.pending_dispatches {
+                        if let Some(step) = plan.steps.get(pending.step) {
+                            analysis_failures.insert(step.key(), json!({"code":"source_result_pending", "source":step.service.name, "message":"This source result is still pending. Its outcome is unknown; do not infer a passed check or a negative match."}));
+                        }
+                    }
                     let answer = if task.workflow.is_some() {
-                        self.parser.analyze_workflow(&operations, &sources, &task.failed_steps).await
+                        self.parser.analyze_workflow(&operations, &sources, &analysis_failures).await
                     } else {
-                        self.parser.analyze(&operations, &sources, &task.failed_steps).await
+                        self.parser.analyze(&operations, &sources, &analysis_failures).await
                     };
                     match answer {
                         Ok(analysis) => analysis,

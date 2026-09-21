@@ -514,6 +514,14 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     for pending in saved.pending_dispatches.iter().rev() {
         assert!(recovered.next_actions.iter().any(|a| a.kind == "poll" && a.action_id == pending.action_id));
         recovered = engine.execute(&person, "fixture", poll_request(&recovered, pending.action_id)).await.unwrap();
+        if pending.action_id == pending_id {
+            let analysis = recovered.next_actions.iter().find(|action| action.kind == "retry_analysis").unwrap();
+            recovered = engine.execute(&person, "fixture", poll_request(&recovered, analysis.action_id)).await.unwrap();
+            assert_eq!(recovered.context_view["analysis"]["status"], "partial");
+            let (_, in_progress, _) = engine.store.load(person.owner, task_id).await.unwrap();
+            assert_eq!(in_progress.pending_dispatches.len(), 1);
+            assert_eq!(state.count.load(Ordering::SeqCst), before, "partial analysis must not call a source");
+        }
     }
     assert_eq!(recovered.context_view["results"].as_array().unwrap().len(), 2);
     let (_, final_task, _) = engine.store.load(person.owner, task_id).await.unwrap();
