@@ -391,7 +391,7 @@ impl ExecutionContract {
                 || binding
                     .wrap
                     .as_deref()
-                    .is_some_and(|w| w != "array" || location != "body")
+                    .is_some_and(|w| !matches!(w, "array" | "uk_vat_search") || location != "body")
             {
                 return Err(ContractError::InvalidInputs {
                     detail: "undeclared, duplicate or unsupported field mapping".into(),

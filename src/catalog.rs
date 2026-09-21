@@ -248,6 +248,10 @@ impl Catalog {
         })).collect();
         let mut capabilities: Vec<&str> = self.by_capability.keys().map(String::as_str).collect();
         let mut presets = vec![];
+        if crate::uk_supplier::available(self) {
+            capabilities.push(crate::uk_supplier::PRESET);
+            presets.push(json!({"capability":crate::uk_supplier::PRESET,"description":"UK supplier onboarding: Companies House ownership/PSC and accounts filing status, published VAT candidate search + UK validation, Sirenic active roster and OpenSanctions Person/Company director screening (complete boards up to five). One approval, saved PDF and summary; unavailable evidence stays unknown."}));
+        }
         if crate::supplier_check::available(self) {
             capabilities.push(crate::supplier_check::PRESET);
             presets.push(json!({"capability":crate::supplier_check::PRESET,"description":"Supplier payment safety check for one supplier/invoice: business register, VAT, sanctions, domain age, IBAN and earlier invoices. Code adds the individual checks."}));

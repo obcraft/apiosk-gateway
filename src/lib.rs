@@ -24,6 +24,7 @@ pub mod source_preview;
 pub mod state;
 pub mod store;
 pub mod supplier_check;
+pub mod uk_supplier;
 pub mod workflows;
 pub mod workflow_catalog;
 

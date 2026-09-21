@@ -293,6 +293,7 @@ impl Engine {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
         }
+        crate::uk_supplier::expand(&mut intent, &catalog);
         for subject in &mut intent.subjects {
             let entity = subject.entity_ref.unwrap_or_else(Uuid::new_v4);
             if subject.entity_ref.is_none() {
@@ -588,6 +589,10 @@ impl Engine {
         r.context_view["events_path"] = json!(format!("/v2/tasks/{id}/events?owner={}&expires={events_expires}&signature={events_signature}{}", p.owner,
             p.connection.map(|c| format!("&connection={c}")).unwrap_or_default()));
         if worker_active && r.status == Status::Ready { r.status = Status::Running; }
+        if task.intent.as_ref().is_some_and(|intent| intent["goals"].as_array().is_some_and(|goals|
+            goals.iter().any(|g| g["capability"] == crate::uk_supplier::screening_cap(0)))) {
+            r.context_view["coverage_notices"] = crate::uk_supplier::limitations();
+        }
         r.context_view["approval_mode"] = json!(if self.executor.connection_can_approve(p).await.unwrap_or(false) {
             "chatbot"
         } else { "app" });

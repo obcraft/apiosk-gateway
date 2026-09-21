@@ -163,6 +163,9 @@ impl Intent {
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
+            if g.capability == crate::uk_supplier::PRESET && crate::uk_supplier::available(catalog) {
+                continue;
+            }
             if g.capability == crate::supplier_check::PRESET && crate::supplier_check::available(catalog) {
                 continue;
             }
