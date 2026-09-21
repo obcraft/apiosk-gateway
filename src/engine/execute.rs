@@ -51,6 +51,10 @@ impl Engine {
             }
         } else if req.action_id == id && task.proposal.is_some() {
             Action::Cancel { action_id: id }
+        } else if task.workflow.is_some() && task.analysis.is_some()
+            && task.proposal.as_ref().is_some_and(|plan| plan["quote_ref"] == json!(req.action_id)) {
+            anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
+            Action::RetryAnalysis { action_id: req.action_id }
         } else if task.pending_dispatches.iter().any(|pending| pending.action_id == req.action_id) {
             // A stopped worker can leave an already-journaled call outside the
             // current action list. Recovery reads its receipt only, even after

@@ -275,7 +275,16 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
                 .pointer(pointer)
                 .filter(|v| v.is_string() || v.is_number() || v.is_boolean())
                 .ok_or_else(|| anyhow::anyhow!("missing source field"))?;
-            evidence.push(json!({"result_ref":reference["result_ref"],"pointer":pointer,"value":field,
+            let value = if let Some(quote) = reference.get("quote") {
+                let quote = quote.as_str().filter(|quote| !quote.trim().is_empty() && quote.len() <= 1024)
+                    .ok_or_else(|| anyhow::anyhow!("invalid evidence quote"))?;
+                anyhow::ensure!(field.as_str().is_some_and(|text| text.contains(quote)), "evidence quote is not in the saved source");
+                json!(quote)
+            } else {
+                anyhow::ensure!(field.as_str().is_none_or(|text| text.len() <= 1024), "long source text needs a short exact evidence quote");
+                field.clone()
+            };
+            evidence.push(json!({"result_ref":reference["result_ref"],"pointer":pointer,"value":value,"quote":reference.get("quote"),
                 "field":pointer.rsplit_once('/').and_then(|(parent, _)| source["document"].pointer(parent)).and_then(|parent|parent["key"].as_str()).unwrap_or(pointer),
                 "subject":source["document"]["subject"],"source":source["document"]["source"]}));
         }
@@ -368,6 +377,18 @@ mod analysis_tests {
         answer["observations"][0]["text"] = json!("Population {{d}}.");
         assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
         answer["observations"][0]["text"] = json!("Population {{invented}}.");
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+    }
+    #[test]
+    fn web_evidence_uses_only_short_exact_quotes_from_the_saved_page() {
+        let sources = vec![json!({"result_ref":"page","document":{"data":{"text":format!("{}Plan costs $12 per seat monthly.", "long page ".repeat(1000))}}})];
+        let mut answer = json!({"observations":[{"text":"Pricing: {{a}}", "evidence":[{"result_ref":"page","pointer":"/data/text"}]}],"limitations":[]});
+        assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
+        answer["observations"][0]["evidence"][0]["quote"] = json!("$12 per seat monthly");
+        let checked = validate_analysis(&answer.to_string(), &sources, false).unwrap();
+        assert_eq!(checked["observations"][0]["text"], "Pricing: $12 per seat monthly");
+        assert!(checked.to_string().len() < 1024);
+        answer["observations"][0]["evidence"][0]["quote"] = json!("$10 per seat monthly");
         assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
     }
     #[test]
