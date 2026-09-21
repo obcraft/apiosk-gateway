@@ -20,6 +20,7 @@ pub const CATALOG_SQL: &str = include_str!("catalog.sql");
 fn execution_catalog_sql() -> String {
     let (_, services) = CATALOG_SQL.split_once(" 'vocabulary',")
         .expect("catalog vocabulary boundary");
+    let services = services.replace("WHERE c.status='active' AND c.validated_at", "WHERE c.id=ANY($1) AND c.status='active' AND c.validated_at");
     format!("SELECT jsonb_build_object('known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason')),'[]') FROM apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL), 'vocabulary',{services}")
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -325,8 +326,9 @@ impl CatalogCache {
             .await?;
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }
-    pub async fn fresh_execution(&self) -> anyhow::Result<Arc<Catalog>> {
+    pub async fn fresh_execution(&self, service_ids: &[Uuid]) -> anyhow::Result<Arc<Catalog>> {
         let value: Value = sqlx::query_scalar(&execution_catalog_sql())
+            .bind(service_ids)
             .fetch_one(&self.pool).await?;
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }

@@ -481,7 +481,13 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     let auth = engine.executor.approve(&person, task_id, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
     let (revision, mut saved, _) = engine.store.load(person.owner, task_id).await.unwrap();
     let plan: apiosk_gateway_v2::resolver::Plan = serde_json::from_value(saved.proposal.clone().unwrap()).unwrap();
-    let catalog = engine.catalog.fresh_execution().await.unwrap();
+    let service_ids: Vec<_> = plan.steps.iter().map(|step| step.service.id).collect();
+    let catalog = engine.catalog.fresh_execution(&service_ids).await.unwrap();
+    assert!(!catalog.services.is_empty());
+    assert!(catalog.services.iter().all(|service| service_ids.contains(&service.id)));
+    for step in &plan.steps {
+        assert_eq!(catalog.services.iter().find(|service| service.id == step.service.id).unwrap().version_hash(), step.service.version_hash());
+    }
     for (index, step) in plan.steps.iter().enumerate() {
         let action_id = Uuid::new_v4();
         let inputs = step.service.inputs(&saved, step.entity_ref, &catalog.vocabulary).unwrap();

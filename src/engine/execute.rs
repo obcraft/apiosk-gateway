@@ -320,7 +320,7 @@ impl Engine {
                     .steps
                     .get(step)
                     .ok_or_else(|| anyhow::anyhow!("invalid step"))?;
-                let fresh = self.catalog.fresh_execution().await?;
+                let fresh = self.catalog.fresh_execution(&[selected.service.id]).await?;
                 anyhow::ensure!(
                     fresh.services.iter().any(|s| s.id == selected.service.id
                         && s.version_hash() == selected.service.version_hash()),
