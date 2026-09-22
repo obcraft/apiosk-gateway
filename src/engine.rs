@@ -1,4 +1,6 @@
 mod execute;
+mod input;
+pub use input::bind_subjects;
 mod followups;
 mod results;
 mod supplier;
@@ -138,6 +140,7 @@ impl Engine {
     ) -> anyhow::Result<Response> {
         let mut workflow = forced.as_ref().map(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
+        let started = std::time::Instant::now();
         anyhow::ensure!(
             !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
             "invalid question length"
@@ -293,20 +296,7 @@ impl Engine {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
         }
-        for subject in &mut intent.subjects {
-            let entity = subject.entity_ref.unwrap_or_else(Uuid::new_v4);
-            if subject.entity_ref.is_none() {
-                task.entities.push(Entity {
-                    entity_ref: entity,
-                    label: subject.label.clone(),
-                    selected: true,
-                })
-            }
-            subject.entity_ref = Some(entity);
-            for (kind, value) in &subject.values {
-                self.user_fact(&mut task, &catalog, entity, kind, value.clone())?;
-            }
-        }
+        bind_subjects(&mut task, &catalog, &mut intent)?;
         task.supplier_check = None;
         if let Some(expansion) = crate::supplier_check::expand(&req.question, &mut intent, &catalog) {
             for (kind, value) in &expansion.facts {
@@ -348,7 +338,11 @@ impl Engine {
             }
         }
         self.store.save_intent(p.owner, id, revision, &task).await?;
-        self.view(p, id, req.request_id, Some(status)).await
+        let response = self.view(p, id, req.request_id, Some(status)).await?;
+        tracing::info!(task = %id, quote = response.proposal.as_ref().map(|p| p.quote_ref.to_string()).unwrap_or_default(),
+            stage = "question_to_price", stage_ms = started.elapsed().as_millis() as u64,
+            price_ready = response.proposal.is_some(), "request stage completed");
+        Ok(response)
     }
     fn user_fact(
         &self,
@@ -358,33 +352,7 @@ impl Engine {
         kind: &str,
         value: Value,
     ) -> anyhow::Result<()> {
-        anyhow::ensure!(
-            task.entities.iter().any(|e| e.entity_ref == entity),
-            "unknown entity for explicit value"
-        );
-        let ft = catalog
-            .vocabulary
-            .get(kind)
-            .ok_or_else(|| anyhow::anyhow!("unknown fact type"))?;
-        catalog_core::facts::schema::validate(&ft.value_schema, &value)?;
-        if task.facts.iter().any(|f| {
-            f.entity_ref == entity
-                && f.semantic_type == kind
-                && f.value == value
-                && f.expires_at > Utc::now()
-        }) {
-            return Ok(());
-        }
-        task.facts.push(Fact {
-            entity_ref: entity,
-            semantic_type: kind.into(),
-            value,
-            provenance: json!({"kind":"user_input"}),
-            observed_at: Utc::now(),
-            expires_at: Utc::now() + chrono::Duration::hours(1),
-            verification: "user_asserted".into(),
-        });
-        Ok(())
+        input::user_fact(task, catalog, entity, kind, value)
     }
     fn plan(&self, task: &mut Task, catalog: &Catalog, intent: &Intent) -> anyhow::Result<Status> {
         task.actions.clear();
@@ -454,6 +422,19 @@ impl Engine {
         id: Uuid,
         request: Uuid,
         forced: Option<Status>,
+    ) -> anyhow::Result<Response> {
+        self.view_with_results(p, id, request, forced, &mut Default::default()).await
+    }
+
+    /// This cache belongs to one authorized task stream. Saved source documents
+    /// are immutable; task access and expiry are still checked on every view.
+    pub(crate) async fn view_with_results(
+        &self,
+        p: &Principal,
+        id: Uuid,
+        request: Uuid,
+        forced: Option<Status>,
+        documents: &mut std::collections::BTreeMap<Uuid, Value>,
     ) -> anyhow::Result<Response> {
         let started = std::time::Instant::now();
         let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
@@ -539,7 +520,11 @@ impl Engine {
             result_ids.extend(output.result_ref);
             result_ids.extend(&output.result_refs);
         }
-        let documents = self.store.results(p.owner, id, &result_ids).await?;
+        documents.retain(|id, _| result_ids.contains(id));
+        let missing: Vec<_> = result_ids.iter().copied().filter(|id| !documents.contains_key(id)).collect();
+        let fetched = self.store.results(p.owner, id, &missing).await?;
+        let fetched_count = fetched.len();
+        documents.extend(fetched);
         let sources = if documents.is_empty() { Default::default() } else { self.catalog.sources().await.unwrap_or_default() };
         let pages = documents.iter().map(|(result, document)| {
             Ok((*result, self.project_result_page(p.owner, id, *result, 0, document.clone(), &sources)?))
@@ -718,7 +703,8 @@ impl Engine {
             self.record_named_workflow_run(p,id,&task,&r).await?;
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
-        tracing::info!(task = %id, view_ms = started.elapsed().as_millis() as u64, result_documents = documents.len(), "task view completed");
+        tracing::info!(task = %id, view_ms = started.elapsed().as_millis() as u64,
+            result_documents = documents.len(), fetched_documents = fetched_count, "task view completed");
         Ok(r)
     }
 }

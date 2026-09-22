@@ -79,6 +79,8 @@ impl Engine {
         let previous_analysis = if matches!(action, Action::RetryAnalysis { .. }) {
             task.analysis.clone().filter(|analysis| matches!(analysis["status"].as_str(), Some("completed" | "partial")))
         } else { None };
+        let answering = matches!(action, Action::Analyze { .. } | Action::RetryAnalysis { .. });
+        let mut source_ready = None;
         match action {
             Action::Wait { until, .. } => {
                 anyhow::ensure!(req.input.is_null() && !task.cancelled, "invalid wait input");
@@ -133,6 +135,9 @@ impl Engine {
                     operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
                 }
                 let operations = json!(operations);
+                source_ready = Some(std::time::Instant::now());
+                tracing::info!(task = %id, quote = %plan.quote_ref, milestone = "sources_ready",
+                    complete = task.failed_steps.is_empty() && !sources.is_empty(), "request milestone");
                 let direct = if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
                     task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources))
                 } else { None };
@@ -435,7 +440,17 @@ impl Engine {
             }
         }
         self.store.save(p.owner, id, revision, &task).await?;
-        self.view(p, id, req.request_id, None).await
+        let response = self.view(p, id, req.request_id, None).await?;
+        if answering {
+            if let Some(started) = source_ready {
+                tracing::info!(task = %id,
+                    quote = task.proposal.as_ref().and_then(|p| p["quote_ref"].as_str()).unwrap_or_default(),
+                    stage = "sources_to_answer", stage_ms = started.elapsed().as_millis() as u64,
+                    success = task.analysis.as_ref().is_some_and(|a| a["status"] == "completed"),
+                    "request stage completed");
+            }
+        }
+        Ok(response)
     }
     pub(super) fn advance(&self, task: &mut Task) -> anyhow::Result<()> {
         let plan: Plan = serde_json::from_value(

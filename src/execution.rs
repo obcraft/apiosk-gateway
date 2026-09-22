@@ -124,6 +124,7 @@ impl Executor {
         sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
             .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
         tx.commit().await?;
+        tracing::info!(task = %task_id, quote = %quote, milestone = "approved", "request milestone");
         Ok(id)
     }
 
@@ -154,8 +155,12 @@ impl Executor {
             cap == plan.cap_atomic.to_string(),
             "approval amount must match displayed cap"
         );
+        let proposed_id = Uuid::new_v4();
         let id:Uuid=sqlx::query_scalar("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(task_id,quote_ref) DO UPDATE SET quote_ref=EXCLUDED.quote_ref RETURNING id")
-            .bind(Uuid::new_v4()).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
+            .bind(proposed_id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
+        if id == proposed_id {
+            tracing::info!(task = %task_id, quote = %quote, milestone = "approved", "request milestone");
+        }
         Ok(id)
     }
     #[allow(clippy::too_many_arguments)]

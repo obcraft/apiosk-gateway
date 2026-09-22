@@ -14,6 +14,7 @@ use std::{
 };
 use uuid::Uuid;
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Subject {
@@ -261,12 +262,17 @@ pub struct Parser {
     url: String,
     key: String,
     model: String,
+    analysis_model: String,
+    intent_provider_sort: Option<String>,
+    analysis_provider_sort: Option<String>,
+    typesafe: Option<crate::typesafe::Client>,
+    pub usage: crate::typesafe::Usage,
     cache: moka::future::Cache<String, Arc<Intent>>,
     pub calls: AtomicU64,
 }
 
 fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
-    json!({"surface":"ask-chat","question":question,"context":task.context_view(),"catalog":catalog.parser_view()})
+    json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":catalog.parser_view()})
 }
 
 pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
@@ -497,6 +503,17 @@ impl Parser {
         sources: &[Value],
         failures: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Value> {
+        if failures.is_empty() {
+            if let Some(client) = &self.typesafe {
+                if client.mode() == crate::typesafe::Mode::On {
+                    if let Some(answer) = client.analyze(operations, sources).await { return Ok(answer); }
+                } else {
+                    let (candidate, baseline) = tokio::join!(client.analyze(operations, sources), self.analyze_with_scope(operations, sources, failures, false));
+                    tracing::info!(surface = "analysis", candidate_available = candidate.is_some(), baseline_available = baseline.is_ok(), "typesafe shadow comparison");
+                    return baseline;
+                }
+            }
+        }
         self.analyze_with_scope(operations, sources, failures, false).await
     }
 
@@ -553,7 +570,12 @@ impl Parser {
             http,
             url,
             key,
+            analysis_model: model.clone(),
             model,
+            intent_provider_sort: None,
+            analysis_provider_sort: None,
+            typesafe: None,
+            usage: crate::typesafe::Usage::default(),
             cache: moka::future::Cache::builder()
                 .max_capacity(1024)
                 .time_to_live(Duration::from_secs(600))
@@ -561,12 +583,61 @@ impl Parser {
             calls: AtomicU64::new(0),
         }
     }
+    pub fn with_typesafe(mut self, config: Option<crate::typesafe::Config>) -> anyhow::Result<Self> {
+        self.typesafe = config.map(crate::typesafe::Client::new).transpose()?;
+        Ok(self)
+    }
+    pub fn typesafe_usage(&self) -> crate::typesafe::UsageSnapshot {
+        self.typesafe.as_ref().map(|client| client.usage.snapshot()).unwrap_or_default()
+    }
+    /// Explicit stage routing; defaults preserve the configured model. Provider
+    /// sorting is an OpenRouter extension and is never sent to other endpoints.
+    pub fn with_routing(mut self, analysis_model: Option<String>, intent_sort: Option<String>, analysis_sort: Option<String>) -> anyhow::Result<Self> {
+        if let Some(model) = analysis_model {
+            anyhow::ensure!(!model.trim().is_empty(), "empty analysis model");
+            self.analysis_model = model.trim().to_owned();
+        }
+        for sort in [&intent_sort, &analysis_sort].into_iter().flatten() {
+            anyhow::ensure!(matches!(sort.as_str(), "latency" | "throughput" | "price"), "invalid provider sort");
+        }
+        self.intent_provider_sort = intent_sort;
+        self.analysis_provider_sort = analysis_sort;
+        Ok(self)
+    }
+
+    fn routed_payload(&self, surface: &str, payload: &Value) -> Value {
+        let mut payload = payload.clone();
+        let analysis = surface == "analysis";
+        payload["model"] = json!(if analysis { &self.analysis_model } else { &self.model });
+        if url::Url::parse(&self.url).is_ok_and(|url| url.host_str() == Some("openrouter.ai")) {
+            let sort = if analysis { &self.analysis_provider_sort } else { &self.intent_provider_sort };
+            if let Some(sort) = sort {
+                payload["provider"]["sort"] = json!(sort);
+            }
+        }
+        payload
+    }
     pub async fn chat(
         &self,
         question: &str,
         task: &Task,
         catalog: &Catalog,
     ) -> anyhow::Result<ChatReply> {
+        if let Some(client) = &self.typesafe {
+            if client.mode() == crate::typesafe::Mode::On {
+                if let Some(decision) = client.parse(question, task, catalog).await {
+                    return Ok(ChatReply { message: decision.message, discover: true, intent: Some(decision.intent) });
+                }
+            } else {
+                let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.chat_baseline(question, task, catalog));
+                shadow_intent(candidate.as_ref().map(|d| &d.intent), baseline.as_ref().ok().and_then(|r| r.intent.as_ref()));
+                return baseline;
+            }
+        }
+        self.chat_baseline(question, task, catalog).await
+    }
+
+    async fn chat_baseline(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
         let payload = json!({
             "model": self.model, "temperature": 0, "max_tokens": 4096,
             "reasoning": {"effort":"minimal", "exclude":true},
@@ -660,7 +731,7 @@ impl Parser {
             "messages":[
                 {"role":"system","content":include_str!("../contracts/planning-prompt.txt")},
                 {"role":"user","content":json!({"surface":"planning-review","question":question,
-                    "context":task.context_view(),"intent":intent,"compiler_feedback":reason,
+                    "context":task.parser_context(),"intent":intent,"compiler_feedback":reason,
                     "available":catalog.planning_view(intent)}).to_string()}]});
         self.completion("planning", &payload, |raw| {
             let review: PlanningReview = serde_json::from_str(raw)?;
@@ -680,7 +751,8 @@ impl Parser {
         decode: impl Fn(&str) -> anyhow::Result<T>,
     ) -> anyhow::Result<T> {
         let started = std::time::Instant::now();
-        let input_bytes = serde_json::to_vec(payload)?.len();
+        let payload = self.routed_payload(surface, payload);
+        let input_bytes = serde_json::to_vec(&payload)?.len();
         if self.key.is_empty() {
             return Err(ModelFailure::Unavailable.into());
         }
@@ -694,6 +766,7 @@ impl Parser {
         let work = async {
             let mut attempt_payload = payload.clone();
             for attempt in 1..=2 {
+                self.usage.request();
                 let response = self
                     .http
                     .post(&self.url)
@@ -706,6 +779,7 @@ impl Parser {
                     Ok(response) if response.status().is_success() => {
                         match bounded_json(response, 65536).await {
                             Ok(body) => {
+                                self.usage.completion(&body);
                                 let choice = body.pointer("/choices/0");
                                 let finish = choice.and_then(|c| c["finish_reason"].as_str());
                                 let refused = choice.is_some_and(|c| {
@@ -724,7 +798,16 @@ impl Parser {
                                     Err("incomplete_response")
                                 } else if let Some(raw) = raw {
                                     match decode(raw) {
-                                        Ok(value) => return Ok(value),
+                                        Ok(value) => {
+                                            tracing::info!(surface, attempt,
+                                                model_ms = started.elapsed().as_millis() as u64, input_bytes,
+                                                model = payload["model"].as_str().unwrap_or_default(),
+                                                provider = body["provider"].as_str().unwrap_or_default(),
+                                                prompt_tokens = body["usage"]["prompt_tokens"].as_u64(),
+                                                completion_tokens = body["usage"]["completion_tokens"].as_u64(),
+                                                "model response validated");
+                                            return Ok(value);
+                                        },
                                         Err(error)
                                             if matches!(
                                                 error.downcast_ref::<ModelFailure>(),
@@ -815,7 +898,7 @@ impl Parser {
         let result = tokio::time::timeout(Duration::from_secs(total_seconds), work)
             .await
             .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()));
-        tracing::info!(surface, input_bytes, model_ms = started.elapsed().as_millis() as u64,
+        tracing::info!(surface, input_bytes, model = payload["model"].as_str().unwrap_or_default(), model_ms = started.elapsed().as_millis() as u64,
             success = result.is_ok(), "model stage completed");
         result
     }
@@ -826,17 +909,36 @@ impl Parser {
         task: &Task,
         catalog: &Catalog,
     ) -> anyhow::Result<Intent> {
-        let context = task.context_view();
+        let context = task.parser_context();
         let key = digest(&(
             owner,
             question.trim(),
             &context,
             &catalog.version,
             &self.model,
-            "parser-v2.2",
+            self.typesafe.as_ref().map(|client| client.fingerprint()),
+            "parser-v2.4",
         ));
         let intent=self.cache.try_get_with(key,async {
             self.calls.fetch_add(1,Ordering::Relaxed);
+            if let Some(client) = &self.typesafe {
+                if client.mode() == crate::typesafe::Mode::On {
+                    if let Some(decision) = client.parse(question, task, catalog).await {
+                        return Ok::<_,anyhow::Error>(Arc::new(decision.intent));
+                    }
+                } else {
+                    let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.parse_baseline(question, task, catalog));
+                    shadow_intent(candidate.as_ref().map(|d| &d.intent), baseline.as_ref().ok());
+                    return baseline.map(Arc::new);
+                }
+            }
+            self.parse_baseline(question, task, catalog).await.map(Arc::new)
+        }).await.map_err(|e| anyhow::Error::new(e.downcast_ref::<ModelFailure>().cloned().unwrap_or(ModelFailure::Unavailable)))?;
+        Ok((*intent).clone())
+    }
+
+    async fn parse_baseline(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<Intent> {
+            let context = task.parser_context();
             let started=std::time::Instant::now();
             let system=include_str!("../contracts/parser-prompt.txt");
             let payload=json!({
@@ -853,10 +955,13 @@ impl Parser {
                 Ok(intent)
             }).await?;
             tracing::info!(parser_ms=started.elapsed().as_millis() as u64,"intent parsed");
-            Ok::<_,anyhow::Error>(Arc::new(intent))
-        }).await.map_err(|e| anyhow::Error::new(e.downcast_ref::<ModelFailure>().cloned().unwrap_or(ModelFailure::Unavailable)))?;
-        Ok((*intent).clone())
+            Ok(intent)
     }
+}
+fn shadow_intent(candidate: Option<&Intent>, baseline: Option<&Intent>) {
+    let core = |intent: &Intent| digest(&(&intent.subjects, &intent.goals, &intent.unresolved_references));
+    let agreement = candidate.zip(baseline).map(|(left, right)| core(left) == core(right));
+    tracing::info!(surface = "intent", candidate_available = candidate.is_some(), baseline_available = baseline.is_some(), core_agreement = agreement, "typesafe shadow comparison");
 }
 pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyhow::Result<Value> {
     if let Some(n) = response.content_length() {
@@ -919,6 +1024,24 @@ mod tests {
         server.abort();
     }
 
+
+    #[test]
+    fn model_routes_preserve_parameters_and_scope_openrouter_extensions() {
+        let payload = json!({"provider":{"require_parameters":true},"response_format":{"type":"json_object"}});
+        for (url, routed) in [("https://openrouter.ai/api/v1/chat/completions", true), ("https://example.com/completions", false)] {
+            let parser = Parser::new(reqwest::Client::new(), url.into(), "fixture".into(), "fast-intent".into())
+                .with_routing(Some("analysis-model".into()), Some("latency".into()), Some("throughput".into())).unwrap();
+            for (surface, model, sort) in [("chat", "fast-intent", "latency"), ("intent", "fast-intent", "latency"), ("analysis", "analysis-model", "throughput")] {
+                let value = parser.routed_payload(surface, &payload);
+                assert_eq!(value["model"], model);
+                assert_eq!(value["provider"]["require_parameters"], true);
+                assert_eq!(value["response_format"], payload["response_format"]);
+                assert_eq!(value["provider"]["sort"], if routed { json!(sort) } else { Value::Null });
+            }
+        }
+        assert!(Parser::new(reqwest::Client::new(), "".into(), "".into(), "fixture".into())
+            .with_routing(None, Some("typo".into()), None).is_err());
+    }
     #[test]
     fn chat_keeps_the_complete_catalog_once() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/supplier-check/catalog.json")).unwrap());

@@ -233,6 +233,38 @@ impl Task {
         });
         self.last_archived_result_ref = Some(result_ref);
     }
+    /// Interpretation needs dialogue and identity, not rendered reports, prices,
+    /// repeated source evidence or complete answer payloads. Keep all entity references
+    /// so a smaller prompt cannot make an ambiguous pronoun appear unambiguous.
+    pub fn parser_context(&self) -> Value {
+        let answer = |analysis: &Value| {
+            serde_json::json!({
+                "status":analysis["status"],
+                "observations":analysis["observations"].as_array().map(|items| items.iter().filter_map(|item| item["text"].as_str()).collect::<Vec<_>>()).unwrap_or_default(),
+                "limitations":analysis["limitations"],
+                "verdict":analysis.get("verdict").map(|verdict| serde_json::json!({"decision":verdict["decision"],"headline":verdict["headline"],"reasons":verdict["reasons"]})),
+            })
+        };
+        let mut context = self.context_view();
+        let object = context.as_object_mut().expect("context object");
+        object.remove("analysis");
+        object.remove("result_refs");
+        if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
+            for turn in turns {
+                let summary = turn.pointer("/output/analysis").filter(|value| !value.is_null()).map(&answer);
+                let turn = turn.as_object_mut().expect("conversation turn");
+                turn.remove("output");
+                if let Some(summary) = summary { turn.insert("answer".into(), summary); }
+            }
+        }
+        // Follow-ups must retain the original retrieval requirements, even
+        // though the presentation of the old quote has been omitted.
+        object.insert("previous_intent".into(), self.intent.clone().unwrap_or(Value::Null));
+        // Values/years in the last answer resolve "that amount" or "the year
+        // before". Keep the validated prose, without repeating its evidence.
+        if let Some(analysis) = &self.analysis { object.insert("previous_answer".into(), answer(analysis)); }
+        context
+    }
     pub fn context_view(&self) -> Value {
         serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,
             "known_facts":self.facts.iter().filter(|f| f.expires_at > Utc::now() && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer" | "company.name")).collect::<Vec<_>>(),
@@ -250,6 +282,31 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn parser_context_omits_presentation_but_preserves_followup_requirements() {
+        let mut task = Task::default();
+        let entity = Uuid::new_v4();
+        task.entities.push(Entity { entity_ref: entity, label: "Example".into(), selected: true });
+        task.focus.entity_refs.push(entity);
+        task.intent = Some(serde_json::json!({"goals":[{"constraints":{"period":"2024","source":"kvk"}}]}));
+        task.record_turn("Compare Example in 2024", Some("Which filing?".into()));
+        task.conversation[0].output = Some(TurnOutput {
+            proposal: Some(serde_json::json!({"steps":["large saved quote".repeat(1000)]})),
+            result_ref: Some(Uuid::new_v4()), result_refs: vec![], analysis: task.intent.clone(),
+        });
+        task.analysis = Some(serde_json::json!({"status":"completed","observations":[{"text":"The filing reports EUR 500 in 2024.","evidence":[{"value":"large evidence".repeat(1000)}]}],"limitations":[]}));
+        let input = task.parser_context();
+        assert_eq!(input["conversation"][0]["reply"], "Which filing?");
+        assert_eq!(input["entities"][0]["entity_ref"], serde_json::json!(entity));
+        assert_eq!(input["previous_intent"], task.intent.clone().unwrap());
+        assert!(input["conversation"][0].get("output").is_none());
+        assert!(input.get("analysis").is_none());
+        assert!(input.get("result_refs").is_none());
+        assert_eq!(input["previous_answer"]["observations"][0], "The filing reports EUR 500 in 2024.");
+        assert!(!input.to_string().contains("large evidence"));
+        assert!(input.to_string().len() * 10 < task.context_view().to_string().len());
+        assert!(task.conversation[0].output.is_some(), "saved history is unchanged");
+    }
     #[test]
     fn legacy_order_requires_an_exact_saved_conversation_prefix() {
         let mut task = Task::default();

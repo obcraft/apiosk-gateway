@@ -142,7 +142,11 @@ async fn main() -> anyhow::Result<()> {
             )?,
             env::var("INTENT_API_KEY").unwrap_or_default(),
             intent_model,
-        ),
+        ).with_routing(
+            env::var("ANALYSIS_MODEL").ok(),
+            Some(env::var("INTENT_PROVIDER_SORT").unwrap_or_else(|_| "latency".into())),
+            env::var("ANALYSIS_PROVIDER_SORT").ok(),
+        )?,
         signer: Signer::new(required("STATE_SIGNING_KEY")?.into_bytes())?,
         executor: Executor {
             store,

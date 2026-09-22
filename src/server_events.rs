@@ -39,6 +39,37 @@ pub struct EventAccess {
     connection: Option<Uuid>,
     expires: i64,
     signature: String,
+    #[serde(default)]
+    compact: bool,
+}
+
+/// Shallow replacements keep null values and deletions distinct. The context
+/// is compared separately so unchanged history/results are not sent again.
+fn delta(previous: &serde_json::Value, next: &serde_json::Value) -> serde_json::Value {
+    use serde_json::{json, Map, Value};
+    let diff = |before: &Value, after: &Value, skip_context: bool| {
+        let before = before.as_object().expect("snapshot object");
+        let after = after.as_object().expect("snapshot object");
+        let set: Map<String, Value> = after.iter()
+            .filter(|(key, value)| !(skip_context && key.as_str() == "context_view") && before.get(*key) != Some(*value))
+            .map(|(key, value)| (key.clone(), value.clone())).collect();
+        let remove: Vec<_> = before.keys().filter(|key| !after.contains_key(*key)).collect();
+        (set, remove.into_iter().cloned().collect::<Vec<_>>())
+    };
+    let (set, remove) = diff(previous, next, true);
+    let (context_set, context_remove) = diff(&previous["context_view"], &next["context_view"], false);
+    json!({"state_ref":previous["state"]["state_ref"],"base_revision":previous["state"]["revision"],
+        "set":set,"remove":remove,"context_set":context_set,"context_remove":context_remove})
+}
+
+fn bound_cache(documents: &mut std::collections::BTreeMap<Uuid, serde_json::Value>) {
+    let mut remaining = 2 * 1024 * 1024;
+    documents.retain(|_, document| {
+        let size = serde_json::to_vec(document).map_or(usize::MAX, |bytes| bytes.len());
+        if size > remaining { return false; }
+        remaining -= size;
+        true
+    });
 }
 
 /// A short-lived, task-scoped read capability. It cannot approve or execute.
@@ -74,14 +105,17 @@ pub async fn task_events(
     let p = Principal {
         owner: access.owner,
         connection: access.connection, workspace: saved.workspace_id, };
-    let Ok(initial) = state.engine.view(&p, id, Uuid::new_v4(), None).await else {
+    let mut documents = Default::default();
+    let Ok(initial) = state.engine.view_with_results(&p, id, Uuid::new_v4(), None, &mut documents).await else {
         return StatusCode::NOT_FOUND.into_response();
     };
+    bound_cache(&mut documents);
     let (sender, receiver) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(2);
     tokio::spawn(async move {
         let _permit = permit;
         let mut next = initial;
         let mut previous = None;
+        let mut snapshot = None;
         while chrono::Utc::now().timestamp() < access.expires {
             let key = (
                 next.state.as_ref().map(|s| s.revision),
@@ -94,11 +128,18 @@ pub async fn task_events(
             if previous.as_ref() != Some(&key) {
                 let terminal = matches!(
                     next.status,
-                    Status::NeedsInput | Status::Succeeded | Status::Partial | Status::Cancelled | Status::Failed | Status::Unsupported
+                    Status::NeedsInput | Status::NeedsSelection | Status::Succeeded | Status::Partial | Status::Cancelled | Status::Failed | Status::Unsupported
                 ) && next.context_view["worker_active"] != true;
-                let Ok(event) = Event::default().event("task").json_data(&next) else {
-                    break;
+                let event = if access.compact {
+                    let Ok(full) = serde_json::to_value(&next) else { break; };
+                    let update = snapshot.as_ref().map(|previous| delta(previous, &full));
+                    let event = Event::default().event(if update.is_some() { "task_delta" } else { "task" }).json_data(update.as_ref().unwrap_or(&full));
+                    snapshot = Some(full);
+                    event
+                } else {
+                    Event::default().event("task").json_data(&next)
                 };
+                let Ok(event) = event else { break; };
                 if sender.send(Ok(event)).await.is_err() || terminal {
                     break;
                 }
@@ -126,8 +167,8 @@ pub async fn task_events(
                 Err(_) => break,
                 _ => {}
             }
-            match state.engine.view(&p, id, Uuid::new_v4(), None).await {
-                Ok(value) => next = value,
+            match state.engine.view_with_results(&p, id, Uuid::new_v4(), None, &mut documents).await {
+                Ok(value) => { next = value; bound_cache(&mut documents); },
                 Err(_) => break,
             }
         }
@@ -150,6 +191,26 @@ pub async fn task_events(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compact_updates_preserve_nulls_removals_and_same_revision_worker_changes() {
+        use serde_json::json;
+        let before = json!({"state":{"state_ref":"task","revision":4},"status":"running", "retry_after_ms":750,
+            "context_view":{"conversation":["large saved result".repeat(1000)],"worker_active":true,"cooldown":{"until":"later"},"analysis":null}});
+        let after = json!({"state":{"state_ref":"task","revision":4},"status":"succeeded",
+            "context_view":{"conversation":before["context_view"]["conversation"],"worker_active":false,"analysis":{"status":"completed"}}, "result":null});
+        let patch = delta(&before, &after);
+        assert!(patch["context_set"].get("conversation").is_none());
+        assert_eq!(patch["context_remove"], json!(["cooldown"]));
+        assert_eq!(patch["remove"], json!(["retry_after_ms"]));
+        assert_eq!(patch["set"]["result"], serde_json::Value::Null);
+        let mut rebuilt = before.clone();
+        for (key, value) in patch["set"].as_object().unwrap() { rebuilt[key] = value.clone(); }
+        for key in patch["remove"].as_array().unwrap() { rebuilt.as_object_mut().unwrap().remove(key.as_str().unwrap()); }
+        for (key, value) in patch["context_set"].as_object().unwrap() { rebuilt["context_view"][key] = value.clone(); }
+        for key in patch["context_remove"].as_array().unwrap() { rebuilt["context_view"].as_object_mut().unwrap().remove(key.as_str().unwrap()); }
+        assert_eq!(rebuilt, after);
+        assert!(patch.to_string().len() * 10 < after.to_string().len());
+    }
 
     #[tokio::test]
     async fn wakeups_filter_other_tasks_and_recover_lag() {
