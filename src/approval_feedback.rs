@@ -12,6 +12,13 @@ pub(crate) struct BudgetRefusal {
     available: i64,
 }
 
+impl BudgetRefusal {
+    /// Which ceiling refused, what the plan needed and what was left (micro-USD).
+    pub(crate) fn parts(&self) -> (&'static str, i64, i64) {
+        (self.kind, self.required, self.available.max(0))
+    }
+}
+
 pub(crate) fn check_budget(
     cap: i64,
     per_request: i64,

@@ -7,6 +7,7 @@ mod selection;
 mod supplier;
 mod workflows;
 mod worker;
+mod direct;
 use crate::{
     auth::Principal,
     catalog::{Catalog, CatalogCache},
@@ -131,15 +132,19 @@ impl Engine {
     ) -> anyhow::Result<Response> {
         self.intake(p, req, app_chat, None).await
     }
-    /// `forced`: a code-built intent (workflow pages) that skips interpretation.
+    /// `forced`: a code-built intent that skips interpretation — a workflow
+    /// page (with its workflow context) or a direct source call (without).
     pub(crate) async fn intake(
         &self,
         p: &Principal,
         req: &DiscoverRequest,
         app_chat: bool,
-        forced: Option<(crate::parser::Intent, crate::workflow_catalog::WorkflowContext)>,
+        forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
     ) -> anyhow::Result<Response> {
-        let mut workflow = forced.as_ref().map(|(_, workflow)| workflow.clone());
+        // A direct call names its source and operation; it is priced as asked
+        // or refused, never re-planned by the model.
+        let direct = forced.as_ref().is_some_and(|(_, workflow)| workflow.is_none());
+        let mut workflow = forced.as_ref().and_then(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
         anyhow::ensure!(
@@ -326,7 +331,7 @@ impl Engine {
         task.cancelled = false;
         task.execution_error = None;
         let mut status = self.plan(&mut task, &catalog, &intent)?;
-        if let Resolution::Unsupported(reason) = resolver::resolve(&catalog, &task, &intent) {
+        if let (false, Resolution::Unsupported(reason)) = (direct, resolver::resolve(&catalog, &task, &intent)) {
             let review = self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await?;
             if let Some(revised) = review.intent {
                 task.intent = Some(serde_json::to_value(&revised)?);

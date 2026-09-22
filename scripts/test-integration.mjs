@@ -10,6 +10,6 @@ const ready=new Promise((resolve,reject)=>{
 });
 try {
  await ready;
- const cargo=spawn('cargo',['test','--offline','--test','durable_flow','--test','latency_flow','--','--ignored','--nocapture'],{cwd,env:{...process.env,TEST_DATABASE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres?sslmode=disable`},stdio:'inherit'});
+ const cargo=spawn('cargo',['test','--offline','--test','durable_flow','--test','latency_flow','--test','public_api_flow','--','--ignored','--nocapture'],{cwd,env:{...process.env,TEST_DATABASE_URL:`postgresql://postgres@127.0.0.1:${port}/postgres?sslmode=disable`},stdio:'inherit'});
  const [code]=await once(cargo,'exit');process.exitCode=code ?? 1;
 } finally {db.kill('SIGTERM');}

@@ -27,10 +27,20 @@ CREATE TABLE public.capability_execution_contracts(id uuid primary key,endpoint_
 const fixtureHash=createHash('sha256').update('apk_access_local_fixture').digest('hex');
 await db.exec(`CREATE FUNCTION public.use_agent_token(text) RETURNS TABLE(status text,owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT 'ok'::text,'00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000002'::uuid WHERE $1='${fixtureHash}' $$;
 CREATE FUNCTION public.use_agent_connection(text) RETURNS TABLE(owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::uuid WHERE false $$;`);
+// Organisation API keys (App migration 20260922160000): a full-scope key, a
+// read-only key and an expired key, each a connection of account ...0001.
+const sha=value=>createHash('sha256').update(value).digest('hex');
+const orgKey=sha('apk_org_live_'+'a'.repeat(48)),readKey=sha('apk_org_live_'+'b'.repeat(48)),expiredKey=sha('apk_org_live_'+'c'.repeat(48));
+await db.exec(`CREATE FUNCTION public.use_organisation_api_key(text) RETURNS TABLE(status text,key_id uuid,organisation_id uuid,owner_id uuid,connection_id uuid,name text,provider text,scopes text[],per_call_limit_micro_usd bigint,daily_limit_micro_usd bigint,monthly_limit_micro_usd bigint,expires_at timestamptz) LANGUAGE sql AS $$
+ SELECT 'ok'::text,'00000000-0000-4000-8000-000000000011'::uuid,'00000000-0000-4000-8000-000000000012'::uuid,'00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000003'::uuid,'Nomi Production'::text,'apiosk-api'::text,ARRAY['sources:read','sources:execute','ask:create','ask:execute','billing:read'],1000000::bigint,2000000::bigint,2000000::bigint,now()+interval '1 day' WHERE $1='${orgKey}'
+ UNION ALL SELECT 'ok','00000000-0000-4000-8000-000000000013','00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000004','Read only','apiosk-api',ARRAY['sources:read'],1000000,2000000,2000000,now()+interval '1 day' WHERE $1='${readKey}'
+ UNION ALL SELECT 'expired','00000000-0000-4000-8000-000000000014',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,now()-interval '1 day' WHERE $1='${expiredKey}' $$;
+CREATE FUNCTION public.organisation_api_key_usage(uuid,integer) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('key_id',$1,'balance_micro_usd',(SELECT balance_micro_usd::text FROM public.user_balances WHERE user_id='00000000-0000-4000-8000-000000000001'),'month_start',date_trunc('month',now()),
+ 'month_spent_micro_usd',(SELECT coalesce(sum(charged_micro_usd),0)::text FROM public.balance_charges WHERE metadata->>'connection_id'='00000000-0000-4000-8000-000000000003' AND status<>'refunded'),'charges','[]'::jsonb) $$;`);
 await db.exec(await fs.readFile(new URL('../supabase/runtime-role.sql',import.meta.url),'utf8'));
 await db.exec('GRANT SELECT(account_id) ON public.user_balances TO gateway_v2_runtime');
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260908104136_gateway_v2_connection_approval.sql',import.meta.url),'utf8'));
-await db.exec("INSERT INTO agent_connections VALUES('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000); INSERT INTO user_balances(user_id,balance_micro_usd) VALUES('00000000-0000-4000-8000-000000000001',2000000);");
+await db.exec("INSERT INTO agent_connections VALUES('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000),('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000),('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000001',NULL,1000000,2000000); INSERT INTO user_balances(user_id,balance_micro_usd) VALUES('00000000-0000-4000-8000-000000000001',2000000);");
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907124538_gateway_v2_source_catalog.sql',import.meta.url),'utf8'));
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907125545_gateway_v2_source_identity.sql',import.meta.url),'utf8'));
 const snapshot=JSON.parse(await fs.readFile(new URL('./fixtures/integration-catalog.json',import.meta.url),'utf8'));

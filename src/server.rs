@@ -1,6 +1,6 @@
 use crate::{
     server_events::task_events,
-    auth::{Auth, AuthError, Principal},
+    auth::{Auth, AuthContext, AuthError, KeyRefusal, Principal},
     compat::ExecutorCompat,
     engine::Engine,
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
@@ -36,6 +36,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
             axum::http::header::AUTHORIZATION,
             axum::http::header::CONTENT_TYPE,
             axum::http::HeaderName::from_static("x-apiosk-workspace"),
+            axum::http::HeaderName::from_static("idempotency-key"),
         ])
         .max_age(Duration::from_secs(600));
     let compat = state.executor_compat.clone();
@@ -79,6 +80,15 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:task/reports/:quote/evidence.zip", get(research_evidence))
         .route("/v2/tasks/:id/authorize", post(authorize))
+        // The public API: every credential, one execution and billing path.
+        .route("/v2/sources/:source_id", get(crate::public_api::source))
+        .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
+        .route("/v2/ask", post(crate::public_api::ask))
+        .route("/v2/asks/:id", get(crate::public_api::run_status))
+        .route("/v2/asks/:id/run", post(crate::public_api::run_ask))
+        .route("/v2/runs/:id", get(crate::public_api::run_status))
+        .route("/v2/balance", get(crate::public_api::balance))
+        .route("/v2/usage", get(crate::public_api::usage))
         .layer(DefaultBodyLimit::max(64 * 1024))
         // A scanned invoice page image exceeds the default JSON limit.
         .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
@@ -219,7 +229,7 @@ async fn legacy_fallback(
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
-fn token(headers: &HeaderMap) -> anyhow::Result<&str> {
+pub(crate) fn token(headers: &HeaderMap) -> anyhow::Result<&str> {
     headers
         .get("authorization")
         .and_then(|h| h.to_str().ok())
@@ -244,8 +254,11 @@ async fn sources(
     let Ok(_permit) = state.permits.try_acquire() else {
         return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
     };
-    if let Err(r) = caller(&state, &headers).await {
-        return r;
+    match authenticated(&state, &headers).await {
+        Ok(ctx) if !ctx.allows("sources:read") => return crate::public_api::insufficient_scope("sources:read"),
+        Ok(_) => {}
+        Err(refusal) if is_api_key(&headers) => return crate::public_api::refused(refusal),
+        Err(refusal) => return failure(refusal.status, refusal.code, refusal.message),
     }
     if !query.valid() {
         return failure(
@@ -265,7 +278,7 @@ async fn sources(
         ),
     }
 }
-fn failure(status: StatusCode, code: &str, message: &str) -> HttpResponse {
+pub(crate) fn failure(status: StatusCode, code: &str, message: &str) -> HttpResponse {
     (
         status,
         Json(Response::error(
@@ -277,55 +290,86 @@ fn failure(status: StatusCode, code: &str, message: &str) -> HttpResponse {
     )
         .into_response()
 }
-async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, HttpResponse> {
+/// Why a request was refused before it reached the engine. Each surface
+/// renders it in its own error shape; the decision is made once, here.
+#[derive(Debug)]
+pub(crate) struct Refusal {
+    pub status: StatusCode,
+    pub code: &'static str,
+    pub message: &'static str,
+}
+const fn refusal(status: StatusCode, code: &'static str, message: &'static str) -> Refusal {
+    Refusal { status, code, message }
+}
+pub(crate) fn is_api_key(headers: &HeaderMap) -> bool {
+    token(headers).is_ok_and(|t| t.starts_with(crate::auth::ORGANISATION_KEY_PREFIX))
+}
+/// Every credential resolves here: extract, authenticate, then bind the
+/// workspace a person or connection may act in. An organisation key always
+/// spends from its organisation's main account and never names a workspace.
+pub(crate) async fn authenticated(state: &ServerState, headers: &HeaderMap) -> Result<AuthContext, Refusal> {
     let bearer = token(headers).map_err(|_| {
-        failure(
-            StatusCode::UNAUTHORIZED,
-            "unauthorized",
-            "Verbind je account om door te gaan.",
-        )
+        refusal(StatusCode::UNAUTHORIZED, "unauthorized", "Verbind je account om door te gaan.")
     })?;
-    let mut principal = state.auth.authenticate(bearer).await.map_err(|error| match error {
-        AuthError::Unauthorized => failure(
+    let mut ctx = state.auth.resolve(bearer).await.map_err(|error| match error {
+        AuthError::Unauthorized => refusal(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
             "The connection is invalid or expired.",
         ),
+        AuthError::Refused(KeyRefusal::Expired) => refusal(StatusCode::UNAUTHORIZED, "api_key_expired", "This API key has expired. Create a new key in Apiosk > Organisation > API keys."),
+        AuthError::Refused(KeyRefusal::Revoked) => refusal(StatusCode::UNAUTHORIZED, "api_key_revoked", "This API key was revoked. Create a new key in Apiosk > Organisation > API keys."),
+        AuthError::Refused(KeyRefusal::Unavailable) => refusal(StatusCode::FORBIDDEN, "organisation_unavailable", "This organisation cannot spend from its main balance right now. Ask an organisation owner to check Apiosk > Organisation."),
         AuthError::Unavailable(source) => {
             tracing::error!(error=%source, "authentication dependency unavailable");
-            failure(
+            refusal(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "authentication_unavailable",
                 "Authentication could not be confirmed. Your session may still be valid; try again shortly.",
             )
         }
     })?;
-    let selected = headers.get("x-apiosk-workspace").map(|h| h.to_str().ok().and_then(|s|s.parse::<Uuid>().ok()).ok_or_else(||failure(StatusCode::BAD_REQUEST,"invalid_workspace","Invalid workspace."))).transpose()?;
+    if ctx.api_key.is_some() {
+        if headers.contains_key("x-apiosk-workspace") {
+            return Err(refusal(StatusCode::BAD_REQUEST, "invalid_workspace", "Organisation API keys spend from the organisation's main balance; do not send a workspace."));
+        }
+        return Ok(ctx);
+    }
+    let principal = &mut ctx.principal;
+    let selected = headers.get("x-apiosk-workspace").map(|h| h.to_str().ok().and_then(|s|s.parse::<Uuid>().ok()).ok_or_else(||refusal(StatusCode::BAD_REQUEST,"invalid_workspace","Invalid workspace."))).transpose()?;
     let enabled = std::env::var("WORKSPACE_CONTEXT_ENABLED").as_deref() == Ok("true");
-    if selected.is_some() && !enabled { return Err(failure(StatusCode::FORBIDDEN,"workspace_unavailable","Workspace execution is not enabled.")); }
+    if selected.is_some() && !enabled { return Err(refusal(StatusCode::FORBIDDEN,"workspace_unavailable","Workspace execution is not enabled.")); }
+    let unconfirmed = || refusal(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.");
     if enabled && (selected.is_some() || principal.connection.is_some()) {
-        let ctx: serde_json::Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
+        let workspace: serde_json::Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
             .bind(principal.owner).bind(principal.connection).bind(selected).fetch_one(&state.engine.store.pool).await
             .map_err(|error| {
                 if crate::store::is_workspace_access_denied(&error) {
-                    failure(StatusCode::FORBIDDEN,"workspace_access_denied","You no longer have access to this workspace.")
+                    refusal(StatusCode::FORBIDDEN,"workspace_access_denied","You no longer have access to this workspace.")
                 } else {
                     tracing::error!(error=%error, "workspace lookup unavailable");
-                    failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")
+                    unconfirmed()
                 }
             })?;
-        principal.workspace = match ctx.get("workspace_id") {
+        principal.workspace = match workspace.get("workspace_id") {
             None | Some(serde_json::Value::Null) => None,
-            Some(serde_json::Value::String(value)) => Some(value.parse().map_err(|_| {
-                failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")
-            })?),
-            _ => return Err(failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.")),
+            Some(serde_json::Value::String(value)) => Some(value.parse().map_err(|_| unconfirmed())?),
+            _ => return Err(unconfirmed()),
         };
         if selected.is_some() && principal.workspace != selected {
-            return Err(failure(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly."));
+            return Err(unconfirmed());
         }
     }
-    Ok(principal)
+    Ok(ctx)
+}
+/// The App and MCP protocol routes. Organisation keys use the public API,
+/// where every route checks the key's scopes.
+async fn caller(state: &ServerState, headers: &HeaderMap) -> Result<Principal, HttpResponse> {
+    let ctx = authenticated(state, headers).await.map_err(|r| failure(r.status, r.code, r.message))?;
+    if ctx.api_key.is_some() {
+        return Err(failure(StatusCode::FORBIDDEN, "public_api_required", "Organisation API keys use the public API: GET /v2/sources, POST /v2/sources/{id}/run and POST /v2/ask."));
+    }
+    Ok(ctx.principal)
 }
 async fn discover(
     State(state): State<ServerState>,

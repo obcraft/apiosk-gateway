@@ -22,6 +22,7 @@ pub mod report_assets;
 mod report_visuals;
 mod report_layout;
 pub mod protocol;
+pub mod public_api;
 pub mod resolver;
 pub mod server;
 mod server_events;

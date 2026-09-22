@@ -93,7 +93,7 @@ impl Engine {
             if !matches!(crate::workflow_catalog::plan_preview(&catalog,&intent),Resolution::Plan(_)) {
                 return Ok(Response::error(request.request_id,Status::Unsupported,"workflow_unavailable","These details cannot currently be completed with the available source operations."));
             }
-            self.intake(p,&DiscoverRequest {request_id:request.request_id,question,state:None,context_delta:ContextDelta::default()},true,Some((intent,context))).await
+            self.intake(p,&DiscoverRequest {request_id:request.request_id,question,state:None,context_delta:ContextDelta::default()},true,Some((intent,Some(context)))).await
         }.await;
         Ok(self.complete(p,request.request_id,result).await)
     }
