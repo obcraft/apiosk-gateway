@@ -47,3 +47,5 @@ Additional isolated acceptance scenarios verify:
 - Previously saved findings remain readable during catalog changes, without provider calls.
 
 The Gateway regular suite, durable/latency integration, eleven workflow cases and separate UK supplier acceptance suite were rerun against an isolated checkout. This kept concurrent public-API/organisation-key changes out of the tested release. Model, billing and provider responses in these acceptance tests are fixtures; the paid live acceptance boundary above remains unchanged.
+
+Follow-up runtime commit `4425bac` is deployed as `deployment-01M34Z7SV26B9585QB0DN59SBB` on machine `891e969b6d4038` in Amsterdam. Rolling deployment, smoke checks, machine health and DNS verification passed. Post-deployment checks confirmed Gateway readiness, unauthenticated task reads returning 401, MCP's five tools/card v55 and App-only approval CORS; the App returned HTTP 200. The regular Gateway suite passed 211 tests with 32 explicitly ignored environment-dependent cases. These surface checks do not replace the pending paid live acceptance run.
