@@ -297,20 +297,7 @@ impl Engine {
             task.record_turn(&req.question, None);
         }
         crate::uk_supplier::expand(&mut intent, &catalog);
-        for subject in &mut intent.subjects {
-            let entity = subject.entity_ref.unwrap_or_else(Uuid::new_v4);
-            if subject.entity_ref.is_none() {
-                task.entities.push(Entity {
-                    entity_ref: entity,
-                    label: subject.label.clone(),
-                    selected: true,
-                })
-            }
-            subject.entity_ref = Some(entity);
-            for (kind, value) in &subject.values {
-                self.user_fact(&mut task, &catalog, entity, kind, value.clone())?;
-            }
-        }
+        input::bind_subjects(&mut task, &catalog, &mut intent)?;
         task.supplier_check = None;
         if let Some(expansion) = crate::supplier_check::expand(&req.question, &mut intent, &catalog) {
             for (kind, value) in &expansion.facts {
