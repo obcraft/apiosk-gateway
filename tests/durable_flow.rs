@@ -54,10 +54,12 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         );
     }
     if input["question"] == "Compare FirstCo and SecondCo" {
-        return Json(json!({"choices":[{"message":{"content":json!({"subjects":[
+        let intent = json!({"subjects":[
             {"entity_ref":null,"label":"FirstCo","values":{"company.name":"FirstCo"}},
             {"entity_ref":null,"label":"SecondCo","values":{"company.name":"SecondCo"}}],
-            "goals":[{"capability":"company.accounts","subject":0,"constraints":{}},{"capability":"company.accounts","subject":1,"constraints":{}}],"answer_operations":["Compare the reports"],"unresolved_references":[]}).to_string()}}]}));
+            "goals":[{"capability":"company.accounts","subject":0,"constraints":{}},{"capability":"company.accounts","subject":1,"constraints":{}}],"answer_operations":["Compare the reports"],"unresolved_references":[]});
+        let content = if input["surface"] == "ask-chat" { json!({"message":"Ik vergelijk beide jaarrekeningen.","discover":true,"intent":intent}) } else { intent };
+        return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
     }
     if input["surface"] == "planning-review" {
         assert!(input["available"]["requested_services"]
@@ -90,9 +92,13 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         }
         let greeting =
             input["question"] == "Hallo" || input["question"] == "Transient first question";
-        return Json(
-            json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":!greeting}).to_string()}}]}),
-        );
+        if greeting {
+            return Json(
+                json!({"choices":[{"message":{"content":json!({"message":"Hallo! Waar kan ik je mee helpen?","discover":false}).to_string()}}]}),
+            );
+        }
+        // A concrete request: like the real model, one chat pass returns the
+        // intent with the reply, for the App and every other surface alike.
     }
     let entity = input["context"]["entities"][0]["entity_ref"].clone();
     let label = if input["question"].as_str().unwrap().contains("Ambiguous") {
@@ -126,9 +132,13 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         Some(question) if question.starts_with("Named-source ") => json!({"source":"fixture"}),
         _ => json!({}),
     };
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"].as_str().is_some_and(|q| q.starts_with("Named-source ")) {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]}).to_string()}}]}),
-    )
+    let intent = json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"].as_str().is_some_and(|q| q.starts_with("Named-source ")) {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]});
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"Ik zoek het op en toon eerst de prijs.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
     assert_eq!(body["deterministic"], true);

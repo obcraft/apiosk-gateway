@@ -45,7 +45,13 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
     }
     let intent = json!({"subjects":[{"entity_ref":null,"label":"Example","values":{"company.name":"Example"}}],
         "goals":[{"capability":"company.search","subject":0,"constraints":{}}],"answer_operations":["Name the company identifier"],"unresolved_references":[]});
-    Json(json!({"choices":[{"message":{"content":intent.to_string()}}]}))
+    // Every surface now reads a question through the Ask chat pass.
+    let reply = if input["surface"] == "ask-chat" {
+        json!({"message":"I will look that up and show the price first.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":reply.to_string()}}]}))
 }
 
 /// The App's payment leg: settles in the ledger the way `agent-gateway/v1/run` does.
@@ -124,6 +130,7 @@ async fn organisation_key_public_api() {
         executor: Executor { store: store.clone(), http: http.clone(), supabase_url: base.clone(), enabled: true },
         app_url: "http://localhost:5173".into(),
     });
+    let shared = engine.clone();
     let state = ServerState {
         engine,
         auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base.clone(), publishable_key: "fixture".into() }),
@@ -253,6 +260,32 @@ async fn organisation_key_public_api() {
     assert_eq!((status, auto["status"].as_str()), (200, Some("completed")), "{auto}");
     assert_eq!(fixture.provider.load(Ordering::SeqCst), before_ask + 2);
     println!("PASS ask: plan then run, idempotent run, per-key isolation, auto within and above max_spend");
+
+    // ── Parity: the Ask page, a connected chatbot and the API plan alike ─
+    let plan_of = |steps: &Value| steps.as_array().unwrap().iter().map(|s| (s["source_id"].as_str().unwrap().to_owned(), s["operation"].as_str().unwrap().to_owned())).collect::<Vec<_>>();
+    let question = "Search only Example";
+    let (_, via_api) = api.post("/v2/ask", KEY, json!({"question": question}), None).await;
+    let person = apiosk_gateway_v2::auth::Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+    let chatbot = apiosk_gateway_v2::auth::Principal { owner: Uuid::parse_str(ACCOUNT).unwrap(), connection: Some(Uuid::parse_str("00000000-0000-4000-8000-000000000002").unwrap()), workspace: None };
+    let request = |q: &str| apiosk_gateway_v2::protocol::DiscoverRequest { request_id: Uuid::new_v4(), question: q.into(), state: None, context_delta: Default::default() };
+    let app = shared.chat(&person, request(question)).await.unwrap();
+    let mcp = shared.discover(&chatbot, request(question)).await.unwrap();
+    let steps = |r: &apiosk_gateway_v2::protocol::Response| r.proposal.as_ref().unwrap().step_details.iter().map(|d| (d["source"]["slug"].as_str().unwrap().to_owned(), d["capability"].as_str().unwrap().to_owned())).collect::<Vec<_>>();
+    assert_eq!(steps(&app), plan_of(&via_api["plan"]["steps"]), "the Ask page and the API plan the same question the same way");
+    assert_eq!(steps(&mcp), plan_of(&via_api["plan"]["steps"]), "a connected chatbot and the API plan the same question the same way");
+    assert_eq!(app.proposal.as_ref().unwrap().max_total_atomic, mcp.proposal.as_ref().unwrap().max_total_atomic, "one price on every surface");
+    println!("PASS parity: Ask page, chatbot connector and API produce the same plan and price");
+
+    // ── Result metadata: source, time, identifiers, link, cost ──────────
+    let (_, run) = api.post("/v1/execute/fixture/company.search", KEY, json!({"company.name": "Example"}), Some("metadata-1")).await;
+    let meta = &run["results"][0]["metadata"];
+    assert_eq!(meta["source_id"], "fixture", "{run}");
+    assert!(meta["retrieved_at"].is_string(), "{meta}");
+    assert!(meta["source_url"].is_string() || meta["source_url"].is_null(), "{meta}");
+    assert_eq!(meta["operation"], "company.search");
+    assert_eq!(cost(&meta["cost"]), 23);
+    assert_eq!(run["metadata"], *meta, "a single-result run surfaces its metadata at the top level");
+    println!("PASS metadata: every result names its source, time, operation, identifiers and cost");
 
     // ── Balance: the organisation's money, the key's limits ─────────────
     let (status, balance) = api.get("/v2/balance", KEY).await;

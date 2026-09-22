@@ -184,50 +184,76 @@ fn refused_by_engine(r: &Response) -> Option<HttpResponse> {
 // Sources
 // ---------------------------------------------------------------------------
 
-fn operation(service: &Service, catalog: &Catalog) -> Value {
-    json!({
-        "id": service.contract.capability_slug,
-        "name": service.name,
-        "input": service.contract.requires.iter().map(|r| json!({
-            "field": r.fact_type,
-            "required": !r.optional,
-            "schema": catalog.vocabulary.get(&r.fact_type).map(|f| &f.value_schema),
-        })).collect::<Vec<_>>(),
-        "output": service.contract.output_map.produces.keys().collect::<Vec<_>>(),
-        "pricing": { "model": "per_call", "price": money(service.total()) },
-        "freshness_seconds": service.freshness_seconds,
-    })
+fn inputs_json(service: &Service, catalog: &Catalog) -> Value {
+    json!(service.contract.requires.iter().map(|r| json!({
+        "field": r.fact_type,
+        "required": !r.optional,
+        "schema": catalog.vocabulary.get(&r.fact_type).map(|f| &f.value_schema),
+    })).collect::<Vec<_>>())
 }
-/// One entry per operation; the planner picks among a source's endpoints.
-fn operations<'a>(catalog: &'a Catalog, source: &str) -> Vec<&'a Service> {
-    let mut seen = std::collections::BTreeSet::new();
-    catalog
-        .services
-        .iter()
-        .filter(|s| s.api_slug == source && seen.insert(s.contract.capability_slug.clone()))
-        .collect()
-}
-
-/// The `{source}` and `{operation}` of a path, resolved leniently: a source by
-/// its id or its name, an operation by its id, its capability or its name.
-/// Machines copy these out of `GET /v2/sources`, and people type them.
-fn resolve<'a>(catalog: &'a Catalog, sources: &[crate::sources::Source], source: &str, operation: &str) -> Option<(String, &'a Service)> {
-    let matches = |a: &str, b: &str| a.eq_ignore_ascii_case(b);
-    let slug = catalog
-        .services
-        .iter()
-        .map(|s| s.api_slug.clone())
-        .find(|slug| matches(slug, source))
-        .or_else(|| sources.iter().find(|s| matches(&s.name, source)).map(|s| s.slug.clone()))?;
-    let service = operations(catalog, &slug).into_iter().find(|s| {
-        matches(&s.contract.capability_slug, operation)
-            || s.endpoint_id.to_string() == operation
-            || matches(&s.name, operation)
-    })?;
-    Some((slug, service))
+/// One operation as a client sees it. When a source offers the same
+/// operation through several endpoints — a lookup by KVK number or by branch
+/// number, a registry profile by SIREN or by EU national id — each is a
+/// variant with its own inputs and price, and a call runs the variant whose
+/// inputs it supplies.
+fn operation(variants: &[&Service], catalog: &Catalog) -> Value {
+    let first = variants[0];
+    let mut entry = json!({
+        "id": first.contract.capability_slug,
+        "source_id": first.api_slug,
+        "name": first.name,
+        "input": inputs_json(first, catalog),
+        "output": variants.iter().flat_map(|s| s.contract.output_map.produces.keys()).collect::<std::collections::BTreeSet<_>>(),
+        "pricing": { "model": "per_call", "price": money(first.total()) },
+        "freshness_seconds": first.freshness_seconds,
+    });
+    if variants.len() > 1 {
+        entry["variants"] = json!(variants.iter().map(|s| json!({
+            "input": inputs_json(s, catalog),
+            "pricing": { "model": "per_call", "price": money(s.total()) },
+        })).collect::<Vec<_>>());
+    }
+    entry
 }
 
-/// The request body of a direct call, bound to the fact types an operation
+/// The services a source id stands for. An id is a source's own id, a
+/// provider that groups several sources (`pulsenetwork`), or either one's
+/// name. `GET /v2/sources` lists a grouped provider once, so its id must work
+/// everywhere a source id does.
+fn members(catalog: &Catalog, sources: &[crate::sources::Source], id: &str) -> Option<(String, Vec<String>)> {
+    let same = |a: &str, b: &str| a.eq_ignore_ascii_case(b);
+    let executable: std::collections::BTreeSet<&str> = catalog.services.iter().map(|s| s.api_slug.as_str()).collect();
+    if let Some(slug) = executable.iter().find(|slug| same(slug, id)) {
+        return Some(((*slug).to_owned(), vec![(*slug).to_owned()]));
+    }
+    let group = |key: &str| -> Vec<String> {
+        sources.iter().filter(|s| crate::sources::directory_slug(s) == key && executable.contains(s.slug.as_str())).map(|s| s.slug.clone()).collect()
+    };
+    for source in sources {
+        let key = crate::sources::directory_slug(source);
+        if same(key, id) || same(crate::sources::directory_name(source), id) || same(&source.name, id) {
+            let slugs = if same(&source.name, id) && key == source.slug { vec![source.slug.clone()] } else { group(key) };
+            if !slugs.is_empty() {
+                return Some((if slugs.len() == 1 { slugs[0].clone() } else { key.to_owned() }, slugs));
+            }
+        }
+    }
+    None
+}
+
+/// Every operation of these sources, each with its variants, in catalogue order.
+fn operations<'a>(catalog: &'a Catalog, slugs: &[String]) -> Vec<Vec<&'a Service>> {
+    let mut grouped: Vec<Vec<&Service>> = Vec::new();
+    for service in catalog.services.iter().filter(|s| slugs.contains(&s.api_slug)) {
+        match grouped.iter_mut().find(|g| g[0].api_slug == service.api_slug && g[0].contract.capability_slug == service.contract.capability_slug) {
+            Some(group) => group.push(service),
+            None => grouped.push(vec![service]),
+        }
+    }
+    grouped
+}
+
+/// The request body of a direct call, bound to the fact types one variant
 /// takes. A caller may use the fact type (`company.name`), the name the
 /// source's own API uses (`naam`), or the unambiguous last word (`name`).
 fn bind_inputs(service: &Service, body: &serde_json::Map<String, Value>) -> Result<BTreeMap<String, Value>, HttpResponse> {
@@ -250,7 +276,52 @@ fn bind_inputs(service: &Service, body: &serde_json::Map<String, Value>) -> Resu
             return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` was given twice under different names."), json!({"field": field})));
         }
     }
+    let missing: Vec<&str> = service.contract.requires.iter().filter(|r| !r.optional && !bound.contains_key(&r.fact_type)).map(|r| r.fact_type.as_str()).collect();
+    if !missing.is_empty() {
+        return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", "Required inputs are missing. Nothing was charged.", json!({"missing": missing})));
+    }
     Ok(bound)
+}
+
+/// The variant a call runs: the one whose inputs the body supplies. One
+/// variant keeps its own precise refusal; several that fit none list what
+/// each would need; the same operation offered by two sources of a group is
+/// ambiguous and names them.
+fn choose<'a>(candidates: &[&'a Service], body: &serde_json::Map<String, Value>) -> Result<(&'a Service, BTreeMap<String, Value>), HttpResponse> {
+    let fitting: Vec<(&Service, BTreeMap<String, Value>)> = candidates.iter().filter_map(|s| bind_inputs(s, body).ok().map(|bound| (*s, bound))).collect();
+    let sources: std::collections::BTreeSet<&str> = fitting.iter().map(|(s, _)| s.api_slug.as_str()).collect();
+    if sources.len() > 1 {
+        return Err(problem_with(StatusCode::CONFLICT, "ambiguous_operation", "Several sources in this group offer this operation. Call one by its own source id.",
+            json!({"sources": sources})));
+    }
+    if let Some((service, bound)) = fitting.into_iter().next() {
+        return Ok((service, bound));
+    }
+    if let [only] = candidates {
+        return bind_inputs(only, body).map(|bound| (*only, bound));
+    }
+    Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", "The inputs match none of this operation's variants. Nothing was charged.",
+        json!({"variants": candidates.iter().map(|s| json!({
+            "source_id": s.api_slug,
+            "required": s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>()})))
+}
+
+/// Resolve `{source}` and `{operation}` leniently, then pick the variant. An
+/// operation is named by its id, its endpoint id or its name.
+fn resolve<'a>(catalog: &'a Catalog, sources: &[crate::sources::Source], source: &str, operation: &str, body: &serde_json::Map<String, Value>) -> Result<(&'a Service, BTreeMap<String, Value>), HttpResponse> {
+    let Some((_, slugs)) = members(catalog, sources, source) else {
+        return Err(problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id or name. List sources with GET /v2/sources."));
+    };
+    let same = |a: &str, b: &str| a.eq_ignore_ascii_case(b);
+    let candidates: Vec<&Service> = catalog.services.iter().filter(|s| slugs.contains(&s.api_slug) && (
+        same(&s.contract.capability_slug, operation) || s.endpoint_id.to_string() == operation || same(&s.name, operation)
+    )).collect();
+    if candidates.is_empty() {
+        return Err(problem_with(StatusCode::NOT_FOUND, "operation_not_found", &format!("This source has no operation `{operation}`."),
+            json!({"operations": operations(catalog, &slugs).iter().map(|v| json!({"id": v[0].contract.capability_slug, "source_id": v[0].api_slug})).collect::<Vec<_>>()})));
+    }
+    choose(&candidates, body)
 }
 
 /// `GET /v2/sources/{source_id}`: operations, input schemas and prices.
@@ -263,23 +334,29 @@ pub async fn source(State(state): State<ServerState>, headers: HeaderMap, Path(s
         Ok(both) => both,
         Err(error) => return unavailable("catalog", &error),
     };
-    let services = operations(&catalog, &source_id);
-    let Some(first) = services.first() else {
-        return problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id. List sources with GET /v2/sources.");
+    let Some((id, slugs)) = members(&catalog, &sources, &source_id) else {
+        return problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id or name. List sources with GET /v2/sources.");
     };
-    let meta = sources.iter().find(|s| s.slug == source_id);
-    Json(json!({
-        "id": source_id,
-        "name": meta.map_or(first.name.as_str(), |s| s.name.as_str()),
-        "description": meta.map(|s| &s.description),
+    let grouped = operations(&catalog, &slugs);
+    let first = grouped[0][0];
+    let meta = sources.iter().find(|s| s.slug == id).or_else(|| sources.iter().find(|s| crate::sources::directory_slug(s) == id));
+    let group = slugs.len() > 1;
+    let mut body = json!({
+        "id": id,
+        "name": if group { meta.map_or(id.as_str(), crate::sources::directory_name) } else { meta.map_or(first.name.as_str(), |s| s.name.as_str()) },
+        "description": if group { None } else { meta.map(|s| s.description.as_str()) },
         "category": meta.map(|s| &s.category),
         "tags": meta.map(|s| &s.tags),
         "sectors": meta.map(|s| &s.sectors),
         "logo_url": meta.and_then(|s| s.logo_url.as_deref()),
         "jurisdiction": first.jurisdiction,
-        "operations": services.iter().map(|s| operation(s, &catalog)).collect::<Vec<_>>(),
-    }))
-    .into_response()
+        "operations": grouped.iter().map(|variants| operation(variants, &catalog)).collect::<Vec<_>>(),
+    });
+    if group {
+        // A provider of several sources: each operation names the source that runs it.
+        body["sources"] = json!(slugs);
+    }
+    Json(body).into_response()
 }
 
 #[derive(Deserialize)]
@@ -302,7 +379,11 @@ async fn run_source_inner(state: &ServerState, headers: &HeaderMap, source_id: &
     let ctx = context(state, headers, &["sources:execute"]).await?;
     let req: SourceRun = parse(body)?;
     let max_spend = spend_limit(req.max_spend.as_ref())?;
-    direct(state, headers, &ctx, source_id, &req.operation, req.input, max_spend, wait_for(req.wait_seconds), None).await
+    let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("catalog", &e))?;
+    let sources = state.engine.catalog.sources().await.unwrap_or_default();
+    let values: serde_json::Map<String, Value> = req.input.into_iter().collect();
+    let (service, input) = resolve(&catalog, &sources, source_id, &req.operation, &values)?;
+    direct(state, headers, &ctx, service, input, max_spend, wait_for(req.wait_seconds), None).await
 }
 
 /// What a direct call may set besides its inputs. Query parameters, because
@@ -342,50 +423,24 @@ async fn execute_inner(state: &ServerState, headers: &HeaderMap, source: &str, o
     };
     let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("catalog", &e))?;
     let sources = state.engine.catalog.sources().await.unwrap_or_default();
-    let Some((slug, service)) = resolve(&catalog, &sources, source, operation) else {
-        return Err(source_or_operation_unknown(&catalog, &sources, source, operation));
-    };
-    let input = bind_inputs(service, values)?;
-    direct(state, headers, &ctx, &slug, &service.contract.capability_slug.clone(), input, max_spend, wait_for(query.wait_seconds), limit).await
-}
-
-fn source_or_operation_unknown(catalog: &Catalog, sources: &[crate::sources::Source], source: &str, operation: &str) -> HttpResponse {
-    let slug = catalog.services.iter().map(|s| s.api_slug.clone()).find(|slug| slug.eq_ignore_ascii_case(source))
-        .or_else(|| sources.iter().find(|s| s.name.eq_ignore_ascii_case(source)).map(|s| s.slug.clone()));
-    match slug {
-        Some(slug) => problem_with(StatusCode::NOT_FOUND, "operation_not_found", &format!("This source has no operation `{operation}`."),
-            json!({"operations": operations(catalog, &slug).iter().map(|s| &s.contract.capability_slug).collect::<Vec<_>>()})),
-        None => problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id or name. List sources with GET /v2/sources."),
-    }
+    let (service, input) = resolve(&catalog, &sources, source, operation, values)?;
+    direct(state, headers, &ctx, service, input, max_spend, wait_for(query.wait_seconds), limit).await
 }
 
 /// One direct call: validate against the contract, plan it, pay for it, run it.
 #[allow(clippy::too_many_arguments)]
-async fn direct(state: &ServerState, headers: &HeaderMap, ctx: &AuthContext, source_id: &str, operation: &str, input: BTreeMap<String, Value>, max_spend: Option<i64>, wait: Duration, limit: Option<usize>) -> Answer {
+async fn direct(state: &ServerState, headers: &HeaderMap, ctx: &AuthContext, service: &Service, input: BTreeMap<String, Value>, max_spend: Option<i64>, wait: Duration, limit: Option<usize>) -> Answer {
+    let (source_id, operation) = (service.api_slug.as_str(), service.contract.capability_slug.as_str());
     let request = request_id(headers, ctx, &format!("execute/{source_id}/{operation}"))?;
     let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("catalog", &e))?;
-    let services = operations(&catalog, source_id);
-    if services.is_empty() {
-        return Err(problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id. List sources with GET /v2/sources."));
-    }
-    let Some(service) = services.iter().find(|s| s.contract.capability_slug == operation) else {
-        return Err(problem_with(StatusCode::NOT_FOUND, "operation_not_found", "This source has no such operation.",
-            json!({"operations": services.iter().map(|s| &s.contract.capability_slug).collect::<Vec<_>>()})));
-    };
-    let fields: Vec<&str> = service.contract.requires.iter().map(|r| r.fact_type.as_str()).collect();
     for (field, value) in &input {
-        let Some(fact) = catalog.vocabulary.get(field).filter(|_| fields.contains(&field.as_str())) else {
-            return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` is not an input of this operation."),
-                json!({"field": field, "expected": fields})));
+        let Some(fact) = catalog.vocabulary.get(field) else {
+            return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` is not a known input."), json!({"field": field})));
         };
         if let Err(error) = catalog_core::facts::schema::validate(&fact.value_schema, value) {
             return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` does not match its schema: {error}."),
                 json!({"field": field, "schema": fact.value_schema})));
         }
-    }
-    let missing: Vec<&str> = service.contract.requires.iter().filter(|r| !r.optional && !input.contains_key(&r.fact_type)).map(|r| r.fact_type.as_str()).collect();
-    if !missing.is_empty() {
-        return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", "Required inputs are missing. Nothing was charged.", json!({"missing": missing})));
     }
     let response = {
         let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
@@ -668,6 +723,9 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
     if let Some(limit) = limit {
         results.truncate(limit);
     }
+    for result in &mut results {
+        result["metadata"] = result_metadata(result, &task, plan.as_ref());
+    }
     let usage = match &plan {
         Some(plan) => run_usage(state, ctx, id, plan).await?,
         None => json!({"sources": [], "cost": money(0), "held": money(0)}),
@@ -686,6 +744,7 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
     // A direct call asks one source one thing; its document is the answer.
     if let [single] = results.as_slice() {
         body["data"] = single["data"].clone();
+        body["metadata"] = single["metadata"].clone();
     }
     match status {
         "needs_input" => {
@@ -708,6 +767,43 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
         _ => {}
     }
     Ok(body)
+}
+
+/// Fact types that identify a subject rather than describe it.
+fn is_identifier(fact_type: &str) -> bool {
+    const MARKERS: [&str; 14] = ["kvk", "vestigingsnummer", "rsin", "lei", "siren", "siret", "national_id", "companies_house",
+        "vat", "publicatieid", "isin", "ticker", "registration", "cvr"];
+    let lower = fact_type.to_ascii_lowercase();
+    MARKERS.iter().any(|marker| lower.contains(marker))
+}
+
+/// Where a result came from, when, about what, and what it cost — in one
+/// fixed shape, so an agent never has to learn each source's own document.
+fn result_metadata(result: &Value, task: &crate::state::Task, plan: Option<&Plan>) -> Value {
+    let source = &result["source"];
+    let reference = result["result_ref"].as_str().unwrap_or_default();
+    let endpoint = source["endpoint_id"].as_str().and_then(|id| id.parse::<Uuid>().ok());
+    let step = plan.and_then(|plan| plan.steps.iter().find(|s| Some(s.service.endpoint_id) == endpoint));
+    let subject = result["subject"]["entity_ref"].as_str();
+    let mut identifiers = serde_json::Map::new();
+    for fact in &task.facts {
+        let from_this = fact.provenance["result_ref"].as_str() == Some(reference);
+        let asked_for = fact.provenance["kind"] == "user_input" && subject == Some(fact.entity_ref.to_string().as_str());
+        if (from_this || asked_for) && is_identifier(&fact.semantic_type) && fact.value.is_string() {
+            identifiers.entry(fact.semantic_type.clone()).or_insert_with(|| fact.value.clone());
+        }
+    }
+    json!({
+        "source_id": source["provider"],
+        "source_name": source["name"],
+        "operation": step.map(|s| s.service.contract.capability_slug.as_str()),
+        "retrieved_at": source["retrieved_at"],
+        "source_url": source["url"],
+        "subject": result["subject"]["label"],
+        "identifiers": identifiers,
+        "cost": micro(&result["charged_atomic"]).map(money),
+        "receipt_ref": result["receipt_ref"],
+    })
 }
 
 fn plan_json(plan: &Plan) -> Value {
@@ -881,6 +977,48 @@ mod tests {
         assert_ne!(request_id(&HeaderMap::new(), &ctx, "ask").unwrap(), request_id(&HeaderMap::new(), &ctx, "ask").unwrap());
         headers.insert("idempotency-key", "with space".parse().unwrap());
         assert_eq!(request_id(&headers, &ctx, "ask").unwrap_err().status(), StatusCode::BAD_REQUEST);
+    }
+
+    fn fixture() -> Catalog {
+        Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap())
+    }
+    fn source(slug: &str, provider: Option<&str>, name: &str) -> crate::sources::Source {
+        serde_json::from_value(json!({"slug": slug, "provider_slug": provider, "name": name, "description": "", "category": "", "tags": [], "sectors": [], "endpoint_count": 1})).unwrap()
+    }
+
+    #[test]
+    fn a_grouped_provider_is_a_source_id_like_any_other() {
+        let mut catalog = fixture();
+        catalog.services[0].api_slug = "signalpulse".into();
+        catalog.services[1].api_slug = "macropulse".into();
+        let sources = vec![source("signalpulse", Some("pulsenetwork"), "SignalPulse"), source("macropulse", Some("pulsenetwork"), "MacroPulse")];
+        let (id, slugs) = members(&catalog, &sources, "pulsenetwork").unwrap();
+        assert_eq!(id, "pulsenetwork");
+        assert_eq!(slugs.len(), 2);
+        assert_eq!(members(&catalog, &sources, "Pulse Network").unwrap().1.len(), 2);
+        assert_eq!(members(&catalog, &sources, "SignalPulse").unwrap(), ("signalpulse".to_owned(), vec!["signalpulse".to_owned()]));
+        assert!(members(&catalog, &sources, "nope").is_none());
+        // An operation of the group runs on the member that offers it.
+        let operation = catalog.services[0].contract.capability_slug.clone();
+        let input = catalog.services[0].contract.requires[0].fact_type.clone();
+        let body = serde_json::Map::from_iter([(input, json!("x"))]);
+        let (service, _) = resolve(&catalog, &sources, "pulsenetwork", &operation, &body).unwrap();
+        assert_eq!(service.api_slug, "signalpulse");
+    }
+
+    #[test]
+    fn a_call_runs_the_variant_whose_inputs_it_supplies() {
+        let catalog = fixture();
+        let (by_name, by_id) = (&catalog.services[0], &catalog.services[1]);
+        let mut id_variant = by_id.clone();
+        id_variant.contract.capability_slug = by_name.contract.capability_slug.clone();
+        let candidates = [by_name, &id_variant];
+        let id_field = id_variant.contract.requires[0].fact_type.clone();
+        let (chosen, bound) = choose(&candidates, &serde_json::Map::from_iter([(id_field.clone(), json!("123"))])).unwrap();
+        assert_eq!(chosen.endpoint_id, id_variant.endpoint_id);
+        assert!(bound.contains_key(&id_field));
+        let refused = choose(&candidates, &serde_json::Map::new()).unwrap_err();
+        assert_eq!(refused.status(), StatusCode::UNPROCESSABLE_ENTITY, "no variant fits: each one's inputs are listed");
     }
 
     #[test]

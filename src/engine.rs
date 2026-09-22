@@ -255,7 +255,12 @@ impl Engine {
                 "I'll prepare the source checks and show the total price before you approve.".into()
             } else { crate::supplier_check::routing_message(&req.question) }));
         }
-        if app_chat && forced.is_none() {
+        // One interpretation for every surface. The Ask page, a connected
+        // chatbot and the API read the same question with the same single
+        // model pass and the same catalogue, so they plan it the same way.
+        // App-only behaviour (workflow collection, invoice upload) stays above.
+        let interpreted = forced.is_none();
+        if interpreted {
             let mut reply = match (self.parser.chat(&req.question, &task, &catalog).await, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
@@ -266,7 +271,10 @@ impl Engine {
             }
             chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
-            task.record_turn(&req.question, Some(reply.message));
+            // The written reply belongs to the App conversation, and drives its
+            // written answer. Elsewhere a reply is kept only when it is a
+            // clarification; a plan runs exactly as its intent asks.
+            task.record_turn(&req.question, (app_chat || !reply.discover).then_some(reply.message));
             if !reply.discover {
                 task.intent = None;
                 task.proposal = None;
@@ -300,7 +308,7 @@ impl Engine {
         if workflow.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
             tracing::info!("invoice question routed to the supplier payment check");
         }
-        if !app_chat {
+        if !app_chat && !interpreted {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
         }
