@@ -458,11 +458,15 @@ impl Engine {
                 .clone()
                 .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
         )?;
+        let choice = selection::pending_choice(task, &plan);
         task.actions.clear();
         if !task.cancelled {
             let mut next_step = None;
             for (index, candidate) in plan.steps.iter().enumerate() {
                 if task.step_finished(&candidate.key()) {
+                    continue;
+                }
+                if choice.is_some() && selection::step_waits_for_choice(task, candidate) {
                     continue;
                 }
                 let missing: Vec<_> = candidate
@@ -506,7 +510,7 @@ impl Engine {
                     action_id: Uuid::new_v4(),
                     step,
                 })?);
-            } else if task.analysis.is_none()
+            } else if choice.is_none() && task.analysis.is_none()
                 && (task
                     .conversation
                     .last()
@@ -520,6 +524,9 @@ impl Engine {
                 task.actions.push(serde_json::to_value(Action::Analyze {
                     action_id: Uuid::new_v4(),
                 })?);
+            }
+            if let Some(choice) = choice {
+                task.actions.push(choice);
             }
         }
         Ok(())

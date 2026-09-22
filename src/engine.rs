@@ -3,6 +3,7 @@ mod input;
 pub use input::bind_subjects;
 mod followups;
 mod results;
+mod selection;
 mod supplier;
 mod workflows;
 mod worker;

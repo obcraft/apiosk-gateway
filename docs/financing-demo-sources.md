@@ -24,7 +24,9 @@ Provider documentation reviewed:
 - https://www.kadaster.nl/producten/akte-en-onderzoek/eigendomsakte-opvragen
 
 Recommended concise demo question:
-> Assess ASML Holding N.V. for financing: its finances, ownership, sanctions, public news and property risks. Find its address and provide a sourced report with maps, charts, supporting documents and information gaps.
+> Assess ASML Holding N.V. for financing: its finances, ownership, sanctions and property risks. Find its address and provide a sourced report with maps, charts, supporting documents and information gaps.
+
+News is excluded from the demo. Web research remains useful for official company publications and supporting documents.
 
 Read-only rehearsal with the production catalog, locally staged address contracts and configured model returned ready plans of nine to ten source calls. The final route inspection uses KVK for the profile required by the Dutch address goal, without adding an unrelated French profile. This is planning evidence, not purchased or successful source results. The actual quote must show the selected services and ceiling before the normal single approval.
 

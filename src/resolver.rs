@@ -205,7 +205,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     if !intent.unresolved_references.is_empty() {
         return Resolution::Unsupported(intent.unresolved_references.join("; "));
     }
-    let mut steps = Vec::new();
+    let mut steps: Vec<Step> = Vec::new();
     // Resolve the most constrained requests first. Their dependencies can
     // already satisfy a generic goal (e.g. KVK address context needs a profile).
     // Greedy generic-profile-first planning otherwise adds an unrelated cheap
@@ -220,6 +220,14 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         let Some(entity) = intent.subjects.get(goal.subject).and_then(|s| s.entity_ref) else {
             return Resolution::Unsupported("unresolved subject".into());
         };
+        // An already planned dependency satisfies this goal at zero extra cost.
+        // Do this before bounded alternative search, which may exhaust its
+        // budget before reaching the reusable service in a large catalog.
+        if steps.iter().any(|step| step.entity_ref == entity
+            && step.service.contract.capability_slug == goal.capability
+            && allows(&step.service, &goal.constraints, catalog)) {
+            continue;
+        }
         let candidates = catalog
             .by_capability
             .get(&goal.capability)

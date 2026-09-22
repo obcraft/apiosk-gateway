@@ -212,6 +212,24 @@ fn specific_goal_reuses_its_registry_profile_instead_of_buying_another_country()
     let Resolution::Plan(plan)=resolve(&catalog,&task,&intent) else {panic!("expected plan")};
     assert_eq!(plan.steps.len(),3);
     assert!(!plan.steps.iter().any(|s|s.service.api_slug=="fr-register"));
+    // A large alternative catalog must not exhaust the search budget before
+    // reusing the profile already required by the address check.
+    let mut crowded = catalog.clone();
+    let fr_index = crowded.services.iter().position(|s| s.api_slug == "fr-register").unwrap();
+    let nl_index = crowded.services.iter().position(|s| s.api_slug == "nl-register").unwrap();
+    let mut alternatives = Vec::new();
+    for _ in 0..300 {
+        let mut alternative = crowded.services[fr_index].clone();
+        alternative.id = Uuid::new_v4();
+        alternative.endpoint_id = Uuid::new_v4();
+        alternatives.push(crowded.services.len());
+        crowded.services.push(alternative);
+    }
+    alternatives.push(nl_index);
+    crowded.by_capability.insert("company.profile".into(), alternatives);
+    let Resolution::Plan(reused) = resolve(&crowded, &task, &intent) else { panic!("reuse must not need search budget") };
+    assert_eq!(reused.steps.len(), 3);
+    assert!(!reused.steps.iter().any(|s| s.service.api_slug == "fr-register"));
     intent.goals[0].constraints.insert("source".into(),json!("fr-register"));
     let Resolution::Plan(plan)=resolve(&catalog,&task,&intent) else {panic!("explicit source must remain")};
     assert!(plan.steps.iter().any(|s|s.service.api_slug=="fr-register"));

@@ -201,11 +201,12 @@ impl Engine {
                 .clone()
                 .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
         )?;
-        let needs_choice = ambiguous
-            && plan
-                .steps
-                .iter()
-                .any(|s| s.entity_ref == step.entity_ref && !task.completed.contains(&s.key()));
+        let candidate_types = extraction.subjects.iter()
+            .flat_map(|subject| subject.facts.iter().map(|fact| fact.fact_type.as_str()))
+            .collect();
+        let needs_choice = ambiguous && plan.steps.iter().any(|remaining| {
+            selection::needs_candidate_facts(task, remaining, step.entity_ref, &candidate_types)
+        });
         let mut candidate_ids = vec![];
         for (index, subject) in extraction.subjects.iter().enumerate() {
             if selected.is_some_and(|selected| selected != index) {
@@ -223,7 +224,7 @@ impl Engine {
                     .find(|f| {
                         matches!(
                             f.fact_type.as_str(),
-                            "company.name" | "location.address_label"
+                            "company.name" | "location.address_label" | "web.title" | "web_tools.title"
                         )
                     })
                     .and_then(|f| f.value.as_str())
@@ -235,7 +236,7 @@ impl Engine {
                                 .unwrap_or_else(|| v.to_string())
                         })
                     })
-                    .unwrap_or_else(|| format!("Kandidaat {}", subject.index + 1));
+                    .unwrap_or_else(|| format!("Result {}", subject.index + 1));
                 task.entities.push(Entity {
                     entity_ref: entity,
                     label: label.clone(),
