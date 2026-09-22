@@ -26,6 +26,6 @@ Provider documentation reviewed:
 Recommended concise demo question:
 > Assess ASML Holding N.V. for financing: its finances, ownership, sanctions, public news and property risks. Find its address and provide a sourced report with maps, charts, supporting documents and information gaps.
 
-Read-only rehearsal with the production catalog, locally staged address contracts and configured model returned a ready plan of ten source calls. This is planning evidence, not ten purchased or successful source results. The actual quote must show the selected services and ceiling before the normal single approval.
+Read-only rehearsal with the production catalog, locally staged address contracts and configured model returned ready plans of nine to ten source calls. The final route inspection uses KVK for the profile required by the Dutch address goal, without adding an unrelated French profile. This is planning evidence, not purchased or successful source results. The actual quote must show the selected services and ceiling before the normal single approval.
 
 Do not count KVK search/profile/filings as three independent providers or PDOK layers as unrelated registers. Preserve one source row per used source in the UI. Preserve the original underlying source URLs in the dossier and evidence manifest. Never count Tavily cited through a Pulse synthesis as independent corroboration from both providers.

@@ -206,7 +206,14 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         return Resolution::Unsupported(intent.unresolved_references.join("; "));
     }
     let mut steps = Vec::new();
-    for (goal_index, goal) in intent.goals.iter().enumerate() {
+    // Resolve the most constrained requests first. Their dependencies can
+    // already satisfy a generic goal (e.g. KVK address context needs a profile).
+    // Greedy generic-profile-first planning otherwise adds an unrelated cheap
+    // national registry before discovering the required registry dependency.
+    let mut goals: Vec<_> = intent.goals.iter().enumerate().collect();
+    goals.sort_by_key(|(_, goal)| catalog.by_capability.get(&goal.capability)
+        .into_iter().flatten().filter(|index| catalog.services.get(**index).is_some_and(|s| s.contract.capability_slug == goal.capability && allows(s, &goal.constraints, catalog))).count());
+    for (goal_index, goal) in goals {
         // Each requested goal gets the same bounded search budget. Exploring
         // alternatives for one company must not starve the next company.
         let mut expansions = 0;
@@ -221,7 +228,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         let mut best: Option<Vec<Step>> = None;
         let mut missing = None;
         for index in candidates {
-            let service = &catalog.services[index];
+            let Some(service) = catalog.services.get(index).filter(|s| s.contract.capability_slug == goal.capability) else { continue; };
             if !allows(service, &goal.constraints, catalog) {
                 continue;
             }
@@ -399,6 +406,15 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
         let title = match capability {
             "company.registry-search" | "company_registry.search" => "Find the company and its KVK number".to_owned(),
             "company.financial-statements" => "Retrieve financial statements".to_owned(),
+            "company.registered-address-context" => "Verify the registered address and locate the property".to_owned(),
+            "soil.bodemloket.feature-info" => "Check available soil information".to_owned(),
+            "planning.pdok.feature-info" => "Check the published spatial plan".to_owned(),
+            "company.sanctions-screen" | "company.sirenic-sanctions-check" => "Screen for sanctions matches".to_owned(),
+            "news.reuters-search" => "Find relevant public news".to_owned(),
+            "web.search" | "web.stableenrich-search" => "Find supporting public sources".to_owned(),
+            "company.enrich-by-name" | "company.enrich" => "Retrieve additional company information".to_owned(),
+            "company.lei-verification" => "Verify the Legal Entity Identifier".to_owned(),
+            "domain.registration" => "Check the website domain".to_owned(),
             "company.registry-profile" => "Retrieve the company profile".to_owned(),
             "company.uk-registry-search" => "Find the UK legal entity at Companies House".to_owned(),
             "company.significant-control" => "Check registered ownership and control".to_owned(),
@@ -421,7 +437,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             plan.steps[..index].iter().enumerate().rev().find(|(_, previous)|
                 previous.entity_ref == step.entity_ref && previous.service.contract.output_map.produces.contains_key(&required.fact_type)
             ).map(|(previous, _)| json!({"step":previous+1,"field":required.fact_type,
-                "label":if required.fact_type == "company_registry.kvknummer" {"KVK number".to_owned()} else {required.fact_type.replace(['.', '_', '-'], " ")}}))
+                "label":match required.fact_type.as_str() { "company_registry.kvknummer" => "KVK number".to_owned(), "company.name" => "Company name".to_owned(), "company.nl.main_establishment_addresses" => "Registered visiting address".to_owned(), "source.bodemloket.b_b_o_x" | "source.pdok_ruimtelijke_plannen.b_b_o_x" => "Location from the verified address".to_owned(), _ => required.fact_type.replace(['.', '_', '-'], " ") }}))
         }).collect();
         json!({"number":index+1,"title":title,"capability":capability,
             "source":{"name":service.name,"slug":service.api_slug,

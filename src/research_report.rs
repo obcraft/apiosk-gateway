@@ -277,12 +277,16 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
                 .context("unknown evidence source")?;
             let pointer = evidence["pointer"]
                 .as_str()
-                .filter(|p| p.starts_with("/data/"))
+                .filter(|p| crate::report_assets::evidence_pointer(p))
                 .context("invalid evidence pointer")?;
             let value = source["document"]
                 .pointer(pointer)
                 .context("missing evidence field")?;
-            ensure!(value == &evidence["value"], "evidence changed");
+            if let Some(quote)=evidence.get("quote").filter(|q|!q.is_null()) {
+                let quote=quote.as_str().filter(|q|!q.trim().is_empty() && q.len()<=1024).context("invalid saved quote")?;
+                ensure!(value.as_str().is_some_and(|text|text.contains(quote)) && evidence["value"]==quote,"evidence quote changed");
+            } else { ensure!(value == &evidence["value"], "evidence changed"); }
+            let value=&evidence["value"];
             let d = &source["document"];
             paragraph(
                 &mut doc,
@@ -406,4 +410,23 @@ pub fn evidence_bundle(document: &Value) -> anyhow::Result<Vec<u8>> {
     zip.start_file("README.txt", options)?;
     zip.write_all(b"Apiosk evidence bundle\n\nreport.pdf: source-backed research report.\nsources/: saved source results, not newly purchased data.\nevidence/: captured official maps and available original PDFs.\nmanifest.json: source URLs, retrieval dates, evidence pointers and SHA-256 file digests.\n\nMap outlines do not establish ownership or mortgage status. Missing soil records do not establish clean soil. Report limitations remain applicable. No new source calls occur on download.\n")?;
     Ok(zip.finish()?.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn quoted_source_and_pdf_excerpt_render_only_when_verbatim() {
+        for pointer in ["/data/text","/report_assets/assets/0/extracted_text"] {
+            let mut source=json!({"result_ref":"saved","document":{"data":{"text":"The company reported EUR 1200 in total assets."},"source":{"provider":"test"},"report_assets":{"assets":[{"extracted_text":"The company reported EUR 1200 in total assets."}]}}});
+            if pointer.starts_with("/data/") { source["document"]["report_assets"]=json!({"assets":[]}); }
+            let input=json!({"observations":[{"text":"Reported assets: {{a}}.","evidence":[{"result_ref":"saved","pointer":pointer,"quote":"EUR 1200"}]}],"limitations":[]});
+            let sources=vec![source];
+            let analysis=crate::parser::validate_analysis(&input.to_string(),&sources,false).unwrap();
+            let mut document=json!({"question":"Test excerpt report","analysis":analysis,"sources":sources});
+            assert!(render(&document).unwrap().starts_with(b"%PDF-"));
+            document["analysis"]["observations"][0]["evidence"][0]["value"]=json!("EUR 9999");
+            assert!(render(&document).is_err());
+        }
+    }
 }

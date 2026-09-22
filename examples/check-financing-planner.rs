@@ -90,6 +90,7 @@ async fn main() -> anyhow::Result<()> {
     println!("{}", serde_json::to_string_pretty(&intent)?);
     match resolver::resolve(&catalog, &task, &intent) {
         resolver::Resolution::Plan(plan) => {
+            for step in &plan.steps { println!("{}: {}", step.service.api_slug, step.service.contract.capability_slug); }
             println!("READY: {} source calls; no purchase", plan.steps.len())
         }
         other => anyhow::bail!("not ready: {other:?}"),

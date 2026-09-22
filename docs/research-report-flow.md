@@ -47,7 +47,10 @@ times and SHA-256 digests are persisted with that result. Capture failures remai
 explicit. The capture client has no redirects, fixed map hosts, bounded time,
 bytes and dimensions. Original PDF links in saved results are captured only from
 reviewed official domains, at most two files of 4 MiB per result. Unsupported links
-remain in the original source response. This is not interior floor-plan retrieval
+remain in the original source response. Captured PDFs also yield a bounded text
+excerpt (first twelve pages, at most twenty-four thousand bytes) through a timed
+Poppler subprocess. Exact excerpt citations are checked against saved text; scans
+and unreadable documents remain explicit reading gaps. This is not interior floor-plan retrieval
 or a comprehensive title/soil report service.
 
 Binary payloads are excluded from chatbot/model projections. Downloads use the

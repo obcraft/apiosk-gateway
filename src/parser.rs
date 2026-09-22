@@ -325,7 +325,7 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
                 .ok_or_else(|| anyhow::anyhow!("invented source"))?;
             let pointer = reference["pointer"]
                 .as_str()
-                .filter(|s| s.starts_with("/data/"))
+                .filter(|s| crate::report_assets::evidence_pointer(s))
                 .ok_or_else(|| anyhow::anyhow!("invalid source pointer"))?;
             let field = source["document"]
                 .pointer(pointer)

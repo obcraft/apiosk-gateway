@@ -20,7 +20,7 @@ RUN cargo build --locked --release \
     --bin reconciliation_worker
 
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/apiosk-gateway-v2 /usr/local/bin/apiosk-gateway-v2
 COPY --from=executor-builder /executor/target/release/apiosk-gateway /usr/local/bin/apiosk-payment-executor

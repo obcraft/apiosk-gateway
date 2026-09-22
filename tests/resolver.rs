@@ -194,3 +194,25 @@ fn related_services_need_fresh_unambiguous_inputs_and_exclude_repeats() {
         "completed endpoints are not resold"
     );
 }
+
+#[test]
+fn specific_goal_reuses_its_registry_profile_instead_of_buying_another_country() {
+    let (base, task, mut intent)=setup();
+    let mut nl=service("company.profile",json!([{"fact_type":"company.id"}]),json!({"company.nl.profile":{"path":"$.id"}}),50);
+    nl.api_slug="nl-register".into();
+    let mut fr=service("company.profile",json!([{"fact_type":"company.name"}]),json!({"company.fr.profile":{"path":"$.id"}}),1);
+    fr.api_slug="fr-register".into(); fr.jurisdiction=Some("FR".into());
+    let address=service("location.address",json!([{"fact_type":"company.nl.profile"}]),json!({"location.address":{"path":"$.id"}}),20);
+    let mut services=base.services.clone(); services.extend([nl,fr,address]);
+    let mut vocabulary:Vec<_>=base.vocabulary.values().cloned().collect();
+    for kind in ["company.nl.profile","company.fr.profile","location.address"] { vocabulary.push(FactType{slug:kind.into(),value_schema:json!({"type":"string"})}); }
+    let catalog=Catalog::build(Snapshot{services,vocabulary,known_sources:vec![]});
+    assert!(catalog.rejected.is_empty());
+    intent.goals=vec![Goal{capability:"company.profile".into(),subject:0,constraints:BTreeMap::new()},Goal{capability:"location.address".into(),subject:0,constraints:BTreeMap::new()}];
+    let Resolution::Plan(plan)=resolve(&catalog,&task,&intent) else {panic!("expected plan")};
+    assert_eq!(plan.steps.len(),3);
+    assert!(!plan.steps.iter().any(|s|s.service.api_slug=="fr-register"));
+    intent.goals[0].constraints.insert("source".into(),json!("fr-register"));
+    let Resolution::Plan(plan)=resolve(&catalog,&task,&intent) else {panic!("explicit source must remain")};
+    assert!(plan.steps.iter().any(|s|s.service.api_slug=="fr-register"));
+}

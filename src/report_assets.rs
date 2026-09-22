@@ -13,6 +13,41 @@ const MAX_FILE: usize = 4 * 1024 * 1024;
 const MAX_MAP: usize = 1024 * 1024;
 pub const KEY: &str = "report_assets";
 
+pub fn evidence_pointer(pointer: &str) -> bool {
+    pointer.starts_with("/data/") || pointer.strip_prefix("/report_assets/assets/")
+        .and_then(|s|s.strip_suffix("/extracted_text"))
+        .is_some_and(|index|!index.is_empty() && index.bytes().all(|c|c.is_ascii_digit()))
+}
+
+/// A separate, time-limited process reads a bounded excerpt. Never execute
+/// document instructions, follow embedded links, or interpret a scanned page as text.
+async fn pdf_text(bytes: &[u8]) -> anyhow::Result<String> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut child=tokio::process::Command::new("pdftotext")
+        .args(["-f","1","-l","12","-layout","-enc","UTF-8","-","-"])
+        .stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null()).kill_on_drop(true).spawn()?;
+    let mut input=child.stdin.take().context("missing document input")?;
+    let output=child.stdout.take().context("missing document output")?;
+    let (write,read)=tokio::time::timeout(Duration::from_secs(6),async {
+        tokio::join!(async move {input.write_all(bytes).await?;input.shutdown().await?;drop(input);Ok::<_,std::io::Error>(())},async {
+            let mut text=Vec::new();output.take(24001).read_to_end(&mut text).await?;
+            Ok::<_,std::io::Error>(text)
+        })
+    }).await?;
+    let mut raw=read?;
+    if raw.len()>24000 {
+        raw.truncate(24000);
+        let _=child.kill().await;
+    } else {
+        write?;
+        ensure!(tokio::time::timeout(Duration::from_secs(2),child.wait()).await??.success(),"PDF text extraction failed");
+    }
+    let text=String::from_utf8_lossy(&raw).trim().to_owned();
+    ensure!(!text.is_empty(),"PDF has no extractable text");
+    Ok(text)
+}
+
 pub fn requested(question: &str) -> bool {
     let q = question.to_lowercase();
     [
@@ -321,7 +356,15 @@ pub async fn capture(document: &Value) -> Value {
     pdf_links(&document["data"], "/data", &mut links);
     for (pointer, url) in links {
         match download(&http,url.clone(),MAX_FILE,"application/pdf").await {
-            Ok(bytes) => assets.push(asset("document","Original source document",&url,&pointer,&bytes,"application/pdf")),
+            Ok(bytes) => {
+                let mut a=asset("document","Original source document",&url,&pointer,&bytes,"application/pdf");
+                match pdf_text(&bytes).await {
+                    Ok(text)=>a["extracted_text"]=json!(text),
+                    Err(_)=>notices.push(format!("The original PDF was saved but its text could not be read automatically: {url}")),
+                }
+                a["text_scope"]=json!("Bounded text excerpt: at most the first twelve pages and twenty-four thousand bytes. Not a full-document review or OCR. Tables and units must be read in their original context.");
+                assets.push(a);
+            },
             Err(_) => notices.push(format!("Original document not captured (size, availability or file type); inspect the source link: {url}"))
         }
     }
@@ -415,6 +458,9 @@ mod tests {
         assert_eq!(a["kind"],"document");
         assert_eq!(a["evidence_pointer"],"/data/publication");
         assert!(bytes(a).unwrap().starts_with(b"%PDF-"));
+        assert!(a["extracted_text"].as_str().unwrap().contains("ASML"));
+        assert!(evidence_pointer("/report_assets/assets/0/extracted_text"));
+        assert!(!evidence_pointer("/report_assets/assets/0/data_base64"));
     }
     #[tokio::test]
     #[ignore = "free live PDOK map capture"]
