@@ -14,6 +14,7 @@ The [Companies House filing-history API reference](https://developer-specs.compa
 
 ## Verification
 
+- Gateway full regular suite: 211 passed, zero failures, 32 explicitly ignored environment-dependent cases; relevant isolated integration cases were run separately below.
 - Resolver regressions failed before the fix and passed afterwards, covering the cheaper reseller, reuse of optional identifiers, native-lookup failure, and the recorded Companies House contract fixture.
 - The isolated durable-flow test covers quote, refusal before approval, one approval, two dispatches to the named source, cited analysis, idempotent replay and saved-result recovery without extra source calls.
 - All eleven workflow acceptance cases and the separate UK supplier acceptance test pass with local model, provider and billing fixtures. Their empty-PSC failures were first reproduced on the unchanged `da94f66` baseline, then corrected without weakening their success assertions.
@@ -23,4 +24,11 @@ The [Companies House filing-history API reference](https://developer-specs.compa
 
 Local diagnostic evidence is in `output/source-routing-audit/`; `examples/audit-ask-planning.rs` can repeat App/connector planning against an explicit catalog snapshot without buying data or writing tasks.
 
-Production deployment and real paid execution are separate acceptance steps; the tests above do not certify every possible source combination or upstream availability.
+## Production verification
+
+Runtime commit `53f1413` was pushed to `origin/main` and deployed to Fly as `deployment-01M34Y2VE3F8J1CP4SS6FAV1RM`. Rolling deployment, smoke/health checks and DNS verification passed. The release checker confirmed the Gateway is ready, task reads require authentication, MCP exposes five tools, and approval CORS remains App-only.
+
+- Exact Revolut question: [saved App task](https://app.apiosk.com/gateway-v2?task=95bc3914-1958-4177-ac79-2c6cf65d9aad). The App displays Companies House only and a €0.10 ceiling. The persisted quote contains exactly Companies House company search and Companies House filing history, cap 108,696 USD micro. Zero executions at verification.
+- Broad professional-research question: [saved App task](https://app.apiosk.com/gateway-v2?task=c23935bd-22b3-4e99-a814-6f5285c2b6c1). The previous production attempt failed during interpretation; after deployment it produced a €0.216106 quote for StableEnrich domain resolution, Reuters news and Exa web search, cap 234,898 USD micro. Zero executions at verification.
+
+The paid live execution, answer-quality and saved-result acceptance checks are awaiting explicit approval for at most €0.35 combined. Earlier paid requests were not replayed. The tests and quotes above do not certify every source combination or upstream availability.
