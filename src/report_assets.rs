@@ -406,6 +406,17 @@ mod tests {
         assert!(context_map(&d).is_none());
     }
     #[tokio::test]
+    #[ignore = "free public ASML source document capture; no assessment of ASML"]
+    async fn live_original_pdf() {
+        let source=json!({"data":{"publication":"https://ourbrand.asml.com/asset/6ec62875-6d6a-4ec5-a4d7-43f59ce8e5c5/ASML-Press-Release-Financial-Results-Q1-2026.pdf"}});
+        let result=capture(&source).await;
+        assert_eq!(result["assets"].as_array().unwrap().len(),1,"{}",result["notices"]);
+        let a=&result["assets"][0];
+        assert_eq!(a["kind"],"document");
+        assert_eq!(a["evidence_pointer"],"/data/publication");
+        assert!(bytes(a).unwrap().starts_with(b"%PDF-"));
+    }
+    #[tokio::test]
     #[ignore = "free live PDOK map capture"]
     async fn live_maps() {
         let d = json!({"source":{"provider":"pdok"},"data":{"route":"company-address","coverage":{"complete":true},"items":[{"address":"Test location (fixture coordinate)","centroid_wgs84":"POINT(5.4 51.4)"}]}});

@@ -16,16 +16,16 @@ pub fn bind_subjects(
     intent: &mut Intent,
 ) -> anyhow::Result<()> {
     for (index, subject) in intent.subjects.iter_mut().enumerate() {
-        // A requested company web search can use the literal company name.
+        // A requested company web/news search can use the literal company name.
         // Do not ask the buyer to retype it as a search query, invent search
         // terms/identifiers, or overwrite a more specific supplied query.
         if let Some(name) = subject.values.get("company.name").cloned() {
-            for goal in intent.goals.iter().filter(|g| g.subject == index && g.capability.starts_with("web.")) {
+            for goal in intent.goals.iter().filter(|g| g.subject == index && (g.capability.starts_with("web.") || g.capability == "news.reuters-search")) {
                 for service in catalog.services.iter().filter(|s|
                     s.contract.capability_slug == goal.capability
                     && goal.constraints.get("source").is_none_or(|source| source.as_str() == Some(s.api_slug.as_str()))) {
                     for requirement in &service.contract.requires {
-                        if ["web.query", "web.source_search_query"].contains(&requirement.fact_type.as_str()) {
+                        if ["web.query", "web.source_search_query", "news.reuters_search_query"].contains(&requirement.fact_type.as_str()) {
                             subject.values.entry(requirement.fact_type.clone()).or_insert_with(|| name.clone());
                         }
                     }
@@ -121,6 +121,18 @@ mod tests {
         assert!(bind_subjects(&mut Task::default(), &catalog, &mut intent).is_err());
     }
 
+    #[test]
+    fn company_news_search_uses_name_without_requesting_it_again() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        for explicit in [None, Some("ASML export controls")] {
+            let mut intent: Intent = serde_json::from_value(json!({"subjects":[{"entity_ref":null,"label":"ASML Holding N.V.","values":{"company.name":"ASML Holding N.V."}}],"goals":[{"capability":"news.reuters-search","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]})).unwrap();
+            if let Some(query)=explicit { intent.subjects[0].values.insert("news.reuters_search_query".into(),json!(query)); }
+            let mut task=Task::default();
+            bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+            assert_eq!(intent.subjects[0].values["news.reuters_search_query"], explicit.unwrap_or("ASML Holding N.V."));
+            assert!(matches!(crate::resolver::resolve(&catalog,&task,&intent),crate::resolver::Resolution::Plan(_)));
+        }
+    }
     #[test]
     fn company_search_reuses_each_literal_name_without_overwriting_queries_or_identifiers() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
