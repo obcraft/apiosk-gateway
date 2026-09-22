@@ -200,6 +200,15 @@ fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Ca
         // This reviewed preset retrieves the complete annual construction series.
         // Keep the requested years/sector in the intent for source-backed analysis.
         "period" if construction_series(service) => annual_period(v),
+        // Filing-history records carry dates. A requested analysis window is
+        // applied to the returned records, not sent as an unsupported API
+        // parameter. Preserve the period in the intent and original question;
+        // exhaustive coverage and source-side filters remain separate limits.
+        "period" if service.api_slug == "companies-house"
+            && service.contract.capability_slug == "company.filing-history"
+            && service.method == "GET"
+            && service.path == "/company/{company_number}/filing-history" =>
+                v.as_str().is_some_and(|period| !period.trim().is_empty() && period.len() <= 250),
         "sector" if construction_series(service) => v.as_str().is_some_and(|s|
             ["bouw", "bouwsector", "nederlandse bouwsector", "bouwnijverheid", "construction", "dutch construction"].contains(&s.to_lowercase().as_str())),
         // No timestamp/filing-selection mapping yet: refusing preserves the

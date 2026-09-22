@@ -197,6 +197,35 @@ fn companies_house_fixture_quotes_its_native_search_and_filing_history() {
     assert_eq!(plan.steps[0].service.contract.capability_slug, "company.uk-registry-search");
     assert_eq!(plan.steps[1].service.contract.capability_slug, "company.filing-history");
 }
+
+#[test]
+fn filing_history_analysis_period_does_not_block_a_native_quote() {
+    let catalog = Catalog::build(serde_json::from_str(include_str!("fixtures/uk-supplier/catalog.json")).unwrap());
+    let (_, mut task, mut intent) = setup();
+    task.facts[0].value = json!("Revolut");
+    intent.subjects[0].label = "Revolut".into();
+    intent.goals[0].capability = "company.filing-history".into();
+    intent.goals[0].constraints.insert("source".into(), json!("companies-house"));
+    // This is the saved intent that produced the user's unnecessary question.
+    intent.answer_operations = vec!["List and summarize the most important corporate events over the last 3 years from the filing history in English.".into()];
+    for period in ["3 years", "last 3 years", "afgelopen drie jaar", "2023-09-22 to 2026-09-22"] {
+        intent.goals[0].constraints.insert("period".into(), json!(period));
+        let original = serde_json::to_value(&intent).unwrap();
+        let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("analysis period must not require clarification: {period}") };
+        assert_eq!(plan.steps.len(), 2);
+        assert!(plan.steps.iter().all(|step| step.service.api_slug == "companies-house"));
+        assert_eq!(plan.steps[1].service.contract.capability_slug, "company.filing-history");
+        assert_eq!(serde_json::to_value(&intent).unwrap(), original, "preserve the requested period for the answer");
+    }
+    for (key, value) in [("coverage", json!("complete")), ("source_period_filter", json!(true)), ("filing_selection", json!("latest_two"))] {
+        let mut strict = intent.clone();
+        strict.goals[0].constraints.insert(key.into(), value);
+        assert!(matches!(resolve(&catalog, &task, &strict), Resolution::Unsupported(_)), "{key} must not become a claim about one returned page");
+    }
+    let (catalog, task, mut accounts) = setup();
+    accounts.goals[0].constraints.insert("period".into(), json!("2024 and 2025"));
+    assert!(matches!(resolve(&catalog, &task, &accounts), Resolution::Unsupported(_)), "one available account is not two requested years");
+}
 #[test]
 fn conflicting_identifier_is_not_last_value_wins() {
     let (c, mut t, i) = setup();
