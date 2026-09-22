@@ -35,6 +35,37 @@ pub enum Dispatch {
     Pending { execution_id: Uuid },
 }
 impl Executor {
+    /// Read-only recovery of receipts whose source result has not been saved.
+    /// A lost UI action must never turn an existing purchase into another call.
+    pub async fn recoverable_receipts(&self, owner: Uuid, task: Uuid) -> anyhow::Result<Vec<Uuid>> {
+        Ok(sqlx::query_scalar("SELECT e.id FROM executions e JOIN tasks t ON t.id=e.task_id JOIN authorizations a ON a.id=e.authorization_id WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref::text=t.document #>> '{proposal,quote_ref}' AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))) ORDER BY e.created_at LIMIT 100")
+            .bind(owner).bind(task).fetch_all(&self.store.pool).await?)
+    }
+
+    pub async fn receipt_step(&self, owner: Uuid, task: Uuid, execution: Uuid, plan: &Plan, saved: &Task, catalog: &crate::catalog::Catalog) -> anyhow::Result<crate::state::PendingDispatch> {
+        let row = sqlx::query("SELECT e.action_id,e.payload_hash,s.candidate_id FROM executions e JOIN user_selected_apis s ON s.id=e.selection_id JOIN authorizations a ON a.id=e.authorization_id WHERE e.id=$1 AND e.owner_id=$2 AND e.task_id=$3 AND a.quote_ref=$4")
+            .bind(execution).bind(owner).bind(task).bind(plan.quote_ref).fetch_one(&self.store.pool).await?;
+        let action: Uuid = row.get("action_id");
+        let endpoint: Uuid = row.get("candidate_id");
+        let payload: String = row.get("payload_hash");
+        // Expired facts may reconstruct an OLD receipt only when its immutable
+        // payload hash matches exactly. Never persist refreshed timestamps or
+        // read broad selection metadata (which the runtime cannot access).
+        let mut historical = saved.clone();
+        for fact in &mut historical.facts { fact.expires_at = Utc::now() + chrono::Duration::minutes(1); }
+        for (index, step) in plan.steps.iter().enumerate().filter(|(_, step)| step.service.endpoint_id == endpoint) {
+            let inputs = saved.pending_dispatches.iter().find(|pending| pending.action_id == execution && pending.step == index)
+                .map(|pending| pending.inputs.clone())
+                .or_else(|| step.service.inputs(&historical, step.entity_ref, &catalog.vocabulary).ok());
+            if let Some(inputs) = inputs {
+                if digest(&(task, action, &step.service, step.entity_ref, &inputs)) == payload {
+                    return Ok(crate::state::PendingDispatch {step:index, action_id:execution, inputs});
+                }
+            }
+        }
+        anyhow::bail!("receipt does not match the saved quoted step")
+    }
+
     pub async fn connection_can_approve(&self, p: &Principal) -> anyhow::Result<bool> {
         let Some(connection) = p.connection else {
             return Ok(false);

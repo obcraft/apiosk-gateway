@@ -444,11 +444,27 @@ impl Engine {
             return Err(crate::store::StoreAccessError::TaskUnavailable.into());
         }
         self.prepare_conversation(p.owner, id, &mut task).await?;
+        if let Some(plan) = task.proposal.as_ref().map(|plan| serde_json::from_value::<Plan>(plan.clone())).transpose()? {
+            if selection::pending_choice(&mut task, &plan).is_none() {
+                task.actions.retain(|action| action["kind"] != "choose");
+            }
+        }
         let mut actions: Vec<Action> = task
             .actions
             .iter()
             .filter_map(|v| serde_json::from_value(v.clone()).ok())
             .collect();
+        let receipts = if task.proposal.is_some() {
+            self.executor.recoverable_receipts(p.owner, id).await?
+        } else { Vec::new() };
+        if !receipts.is_empty() {
+            actions.retain(|action| !matches!(action, Action::Run { .. } | Action::Analyze { .. }));
+            for execution_id in receipts {
+                if !actions.iter().any(|action| matches!(action, Action::Poll { execution_id: existing, .. } if *existing == execution_id)) {
+                    actions.push(Action::Poll { action_id: execution_id, execution_id });
+                }
+            }
+        }
         let single = single_call_mode();
         let paused_plan = single
             && task

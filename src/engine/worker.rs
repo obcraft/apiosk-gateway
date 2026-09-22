@@ -25,12 +25,12 @@ impl Engine {
         bearer: String,
         id: Uuid,
     ) -> anyhow::Result<()> {
-        let (_, task, connection) = self.store.load(p.owner, id).await?;
+        let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
         anyhow::ensure!(
             connection == p.connection,
             "task belongs to another connection"
         );
-        if task.cancelled || !task.pending_candidates.is_empty() || task.execution_error.is_some() {
+        if task.cancelled || task.execution_error.is_some() {
             return Ok(());
         }
         let Some(plan) = task
@@ -43,7 +43,23 @@ impl Engine {
         };
         let authorized: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE task_id=$1 AND owner_id=$2 AND quote_ref=$3 AND plan_hash=$4 AND revoked_at IS NULL AND expires_at>now())")
             .bind(id).bind(p.owner).bind(plan.quote_ref).bind(&plan.hash).fetch_one(&self.store.pool).await?;
-        if !authorized
+        if !authorized { return Ok(()); }
+        let had_candidates = task.pending_candidates.len();
+        selection::pending_choice(&mut task, &plan);
+        let mut repaired = task.pending_candidates.len() != had_candidates;
+        for execution in self.executor.recoverable_receipts(p.owner, id).await? {
+            if !task.pending_dispatches.iter().any(|pending| pending.action_id == execution) {
+                let catalog = self.catalog.get().await?;
+                let pending = self.executor.receipt_step(p.owner, id, execution, &plan, &task, &catalog).await?;
+                task.pending_dispatches.push(pending);
+                repaired = true;
+            }
+        }
+        if repaired {
+            self.advance(&mut task)?;
+            self.store.save(p.owner, id, revision, &task).await?;
+        }
+        if !task.pending_candidates.is_empty()
             || !task.actions.iter().any(|a| {
                 matches!(
                     a["kind"].as_str(),

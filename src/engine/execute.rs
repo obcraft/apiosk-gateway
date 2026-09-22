@@ -61,6 +61,9 @@ impl Engine {
             // the quote expires; it never dispatches another source request.
             anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
             Action::Poll { action_id: req.action_id, execution_id: req.action_id }
+        } else if self.executor.recoverable_receipts(p.owner, id).await?.contains(&req.action_id) {
+            anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
+            Action::Poll { action_id: req.action_id, execution_id: req.action_id }
         } else {
             task.actions
                 .iter()
@@ -315,6 +318,9 @@ impl Engine {
                 self.advance(&mut task)?;
             }
             Action::Run { step, .. } => {
+                if !self.executor.recoverable_receipts(p.owner, id).await?.is_empty() {
+                    return self.view(p, id, req.request_id, None).await;
+                }
                 anyhow::ensure!(
                     task.result_refs.len() < 100,
                     "task result capacity reached; start a new task"
@@ -343,6 +349,7 @@ impl Engine {
                     .steps
                     .get(step)
                     .ok_or_else(|| anyhow::anyhow!("invalid step"))?;
+                anyhow::ensure!(!task.step_finished(&selected.key()), "step already finished");
                 let fresh = self.catalog.fresh_execution(&[selected.service.id]).await?;
                 anyhow::ensure!(
                     fresh.services.iter().any(|s| s.id == selected.service.id
@@ -383,6 +390,9 @@ impl Engine {
                             .await?;
                     }
                     Dispatch::Pending { execution_id } => {
+                        task.pending_dispatches.push(crate::state::PendingDispatch {
+                            step, action_id: execution_id, inputs,
+                        });
                         task.actions = vec![serde_json::to_value(Action::Poll {
                             action_id: Uuid::new_v4(),
                             execution_id,
@@ -392,31 +402,23 @@ impl Engine {
             }
             Action::Poll { execution_id, .. } => {
                 anyhow::ensure!(req.input.is_null(), "unexpected poll input");
+                let plan: Plan = serde_json::from_value(task.proposal.clone().ok_or_else(|| anyhow::anyhow!("missing quote"))?)?;
+                selection::pending_choice(&mut task, &plan);
+                let catalog = self.catalog.get().await?;
+                let receipt = self.executor.receipt_step(p.owner, id, execution_id, &plan, &task, &catalog).await?;
+                if !task.pending_dispatches.iter().any(|pending| pending.action_id == execution_id) {
+                    task.pending_dispatches.push(receipt.clone());
+                }
                 if let Some(body) = self.executor.poll(p, id, execution_id).await? {
-                    let pending_step = task.pending_dispatches.iter()
-                        .find(|pending| pending.action_id == execution_id).map(|pending| pending.step);
                     task.pending_dispatches.retain(|pending| pending.action_id != execution_id);
                     if body["ok"] == true {
-                        let plan: Plan = serde_json::from_value(
-                            task.proposal
-                                .clone()
-                                .ok_or_else(|| anyhow::anyhow!("missing quote"))?,
-                        )?;
-                        let step = pending_step.and_then(|index| plan.steps.get(index))
-                            .or_else(|| plan.steps.iter().find(|s| !task.step_finished(&s.key())))
+                        let step = plan.steps.get(receipt.step)
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?
                             .clone();
-                        let catalog = self.catalog.get().await?;
                         self.ingest(p, id, &mut task, &step, execution_id, body, &catalog)
                             .await?;
                     } else {
-                        let plan: Plan = serde_json::from_value(
-                            task.proposal
-                                .clone()
-                                .ok_or_else(|| anyhow::anyhow!("missing quote"))?,
-                        )?;
-                        let step = pending_step.and_then(|index| plan.steps.get(index))
-                            .or_else(|| plan.steps.iter().find(|s| !task.step_finished(&s.key())))
+                        let step = plan.steps.get(receipt.step)
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?;
                         // Retry one confirmed, fully refunded KVK throttle under
                         // the original quote. Unknown payment outcomes never enter
@@ -466,6 +468,9 @@ impl Engine {
                 if task.step_finished(&candidate.key()) {
                     continue;
                 }
+                if task.pending_dispatches.iter().any(|pending| pending.step == index) {
+                    continue;
+                }
                 if choice.is_some() && selection::step_waits_for_choice(task, candidate) {
                     continue;
                 }
@@ -510,7 +515,7 @@ impl Engine {
                     action_id: Uuid::new_v4(),
                     step,
                 })?);
-            } else if choice.is_none() && task.analysis.is_none()
+            } else if choice.is_none() && task.pending_dispatches.is_empty() && task.analysis.is_none()
                 && (task
                     .conversation
                     .last()
@@ -527,6 +532,11 @@ impl Engine {
             }
             if let Some(choice) = choice {
                 task.actions.push(choice);
+            }
+            for pending in &task.pending_dispatches {
+                task.actions.push(serde_json::to_value(Action::Poll {
+                    action_id: pending.action_id, execution_id: pending.action_id,
+                })?);
             }
         }
         Ok(())

@@ -591,6 +591,16 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(journal.get::<String, _>("status"), "unresolved");
     assert_eq!(journal.get::<i64, _>("reserved_atomic"), 115);
     assert!(journal.get::<Option<i64>, _>("actual_atomic").is_none());
+    // A status update in another source must not lose the receipt or present a
+    // second paid execution. Recover from the journal with no source replay.
+    let (revision, mut lost, _) = engine.store.load(person.owner, timeout_task).await.unwrap();
+    lost.pending_dispatches.clear();
+    lost.actions = vec![json!({"kind":"run","step":0,"action_id":Uuid::new_v4()})];
+    engine.store.save(person.owner, timeout_task, revision, &lost).await.unwrap();
+    let pending = engine.view(&person, timeout_task, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(pending.status, Status::Running);
+    assert!(!pending.next_actions.iter().any(|a| a.kind == "execute_quoted_step"));
+    assert!(pending.next_actions.iter().any(|a| a.kind == "poll" && a.action_id == sent_id));
     let charge = Uuid::new_v4();
     sqlx::query("INSERT INTO public.balance_charges(id,user_id,idempotency_key,status,charged_micro_usd,actual_provider_micro_usd,provider_price_micro_usd,fee_micro_usd) VALUES($1,$2,$3,'charged',115,100,100,15)")
         .bind(charge)
