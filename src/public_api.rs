@@ -793,17 +793,39 @@ fn result_metadata(result: &Value, task: &crate::state::Task, plan: Option<&Plan
             identifiers.entry(fact.semantic_type.clone()).or_insert_with(|| fact.value.clone());
         }
     }
+    // The record's own addresses — an announcement, an article, a register
+    // profile — as the source published them inside its data.
+    let mut links: Vec<String> = Vec::new();
+    collect_links(&result["data"], &mut links);
     json!({
         "source_id": source["provider"],
         "source_name": source["name"],
         "operation": step.map(|s| s.service.contract.capability_slug.as_str()),
         "retrieved_at": source["retrieved_at"],
         "source_url": source["url"],
+        "links": links,
         "subject": result["subject"]["label"],
         "identifiers": identifiers,
         "cost": micro(&result["charged_atomic"]).map(money),
         "receipt_ref": result["receipt_ref"],
     })
+}
+
+/// Up to ten distinct http(s) links found in a source document, in order.
+fn collect_links(value: &Value, links: &mut Vec<String>) {
+    if links.len() >= 10 {
+        return;
+    }
+    match value {
+        Value::String(text) if (text.starts_with("https://") || text.starts_with("http://")) && text.len() <= 2048 && !text.contains(char::is_whitespace) => {
+            if !links.iter().any(|link| link == text) {
+                links.push(text.clone());
+            }
+        }
+        Value::Array(items) => items.iter().for_each(|item| collect_links(item, links)),
+        Value::Object(fields) => fields.values().for_each(|field| collect_links(field, links)),
+        _ => {}
+    }
 }
 
 fn plan_json(plan: &Plan) -> Value {
@@ -1019,6 +1041,17 @@ mod tests {
         assert!(bound.contains_key(&id_field));
         let refused = choose(&candidates, &serde_json::Map::new()).unwrap_err();
         assert_eq!(refused.status(), StatusCode::UNPROCESSABLE_ENTITY, "no variant fits: each one's inputs are listed");
+    }
+
+    #[test]
+    fn record_links_are_collected_once_and_bounded() {
+        let mut links = Vec::new();
+        collect_links(&json!({"a": "https://x.test/1", "b": [{"c": "https://x.test/2"}, "https://x.test/1", "not a link", "https://has space.test"]}), &mut links);
+        assert_eq!(links, vec!["https://x.test/1", "https://x.test/2"]);
+        let many = json!((0..30).map(|i| format!("https://x.test/{i}")).collect::<Vec<_>>());
+        let mut bounded = Vec::new();
+        collect_links(&many, &mut bounded);
+        assert_eq!(bounded.len(), 10);
     }
 
     #[test]
