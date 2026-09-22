@@ -58,6 +58,10 @@ pub fn public_error(body: &Value) -> Value {
             "price_changed",
             "This price has expired. Request a new quote.",
         ),
+        Some("quote_changed") => (
+            "quote_changed",
+            "A source or price in this request changed. This step was not purchased. Request a new quote; previously saved results remain available.",
+        ),
         Some("rate_limited") => (
             "rate_limited",
             "Please wait before requesting another quote.",

@@ -17,7 +17,7 @@ pub const CATALOG_SQL: &str = include_str!("catalog.sql");
 /// Execution needs current contracts, prices and source blocks, without the
 /// directory's endpoint statistics or recent-execution aggregation. Reuse the
 /// exact service/vocabulary SQL so the approval checks cannot drift.
-fn execution_catalog_sql() -> String {
+pub(crate) fn execution_catalog_sql() -> String {
     let (_, services) = CATALOG_SQL.split_once(" 'vocabulary',")
         .expect("catalog vocabulary boundary");
     let services = services.replace("WHERE c.status='active' AND c.validated_at", "WHERE c.id=ANY($1) AND c.status='active' AND c.validated_at");

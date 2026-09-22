@@ -260,15 +260,17 @@ impl Engine {
             let step = &plan.steps[pending.step];
             match outcome {
                 Dispatch::Done { execution_id, body } => {
+                    task.pending_dispatches
+                        .retain(|d| d.action_id != pending.action_id);
                     self.ingest(p, id, &mut task, step, execution_id, body, &catalog)
                         .await?;
-                    task.pending_dispatches
-                        .retain(|d| d.action_id != pending.action_id);
                 }
                 Dispatch::Failed { body } => {
-                    self.fail_step(&mut task, step, crate::billing::public_error(&body))?;
                     task.pending_dispatches
                         .retain(|d| d.action_id != pending.action_id);
+                    // Advance only after removing the settled call. Otherwise
+                    // it leaves a poll action for a refusal with no receipt.
+                    self.fail_step(&mut task, step, crate::billing::public_error(&body))?;
                 }
                 Dispatch::Waiting { until } => {
                     waiting_until = Some(
@@ -409,7 +411,8 @@ fn enqueue_ready(
         else {
             continue;
         };
-        anyhow::ensure!(catalog.services.iter().any(|s|s.id==step.service.id&&s.version_hash()==step.service.version_hash()),"catalog or price changed; request a new quote");
+        // Reservation validates all remaining services, including dependencies
+        // that cannot run yet. A refusal is ingested like other step outcomes.
         let existing = task
             .actions
             .iter()

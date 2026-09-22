@@ -99,6 +99,8 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         "Ambiguous"
     } else if input["question"].as_str().unwrap().contains("Partial") {
         "Partial"
+    } else if input["question"].as_str().unwrap().contains("Missing") {
+        "Missing"
     } else {
         "Example"
     };
@@ -121,11 +123,11 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     let constraints = match input["question"].as_str() {
         Some("Period Example 2024 en 2025") => json!({"period":"2024 en 2025"}),
         Some("Alias Example") => json!({"source":"Fixture registry"}),
-        Some("Named-source Example") => json!({"source":"fixture"}),
+        Some(question) if question.starts_with("Named-source ") => json!({"source":"fixture"}),
         _ => json!({}),
     };
     Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"] == "Named-source Example" {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]}).to_string()}}]}),
+        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"].as_str().is_some_and(|q| q.starts_with("Named-source ")) {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]}).to_string()}}]}),
     )
 }
 async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
@@ -145,6 +147,8 @@ async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Js
             json!({"companies":[{"id":"123"},{"id":"456"}]})
         } else if body["inputs"]["company.name"] == "Partial" {
             json!({"companies":[{"id":"partial"}]})
+        } else if body["inputs"]["company.name"] == "Missing" {
+            json!({"companies":[]})
         } else if body["inputs"]["company.name"] == "SecondCo" {
             json!({"companies":[{"id":"456"}]})
         } else {
@@ -2160,6 +2164,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(saved.context_view["analysis"], named.context_view["analysis"]);
     assert_eq!(counts.provider.load(Ordering::Relaxed), before + 2);
     println!("Named source: native identifier lookup, one approval, two source calls, cited analysis and saved recovery; no reseller dispatch.");
+    named_source_worker_acceptance(Arc::new(multi), &pool, &counts).await;
 
     api_server.abort();
     println!(
@@ -2168,6 +2173,106 @@ async fn durable_flow_and_authorization_boundary() {
     );
     server.abort();
     pool.close().await;
+}
+
+async fn worker_settled(engine: &Arc<Engine>, person: &Principal, task: Uuid) -> Response {
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while engine.worker_active(task).await.unwrap() {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        engine.view(person, task, Uuid::new_v4(), None).await.unwrap()
+    }).await.expect("backend worker must reach a saved outcome")
+}
+
+async fn named_source_worker_acceptance(engine: Arc<Engine>, pool: &sqlx::PgPool, counts: &Counters) {
+    let person = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+    let mut quote = engine.discover(&person, DiscoverRequest {
+        request_id: Uuid::new_v4(), question: "Named-source Ambiguous".into(), state: None, context_delta: Default::default(),
+    }).await.unwrap();
+    let task = quote.state.as_ref().unwrap().state_ref;
+    let proposal = quote.proposal.as_ref().unwrap();
+    let before = counts.provider.load(Ordering::Relaxed);
+    engine.executor.approve(&person, task, proposal.quote_ref, &proposal.max_total_atomic).await.unwrap();
+    engine.start_worker(person.clone(), "fixture".into(), task).await.unwrap();
+    quote = worker_settled(&engine, &person, task).await;
+    assert_eq!(quote.status, Status::NeedsSelection);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 1);
+    let pick = quote.next_actions.iter().find(|a| a.kind == "select_entity").unwrap();
+    let chosen = engine.execute(&person, "fixture", ExecuteRequest {
+        request_id: Uuid::new_v4(), action_id: pick.action_id, state: quote.state.clone().unwrap(),
+        quote_ref: None, authorization_ref: None, idempotency_key: pick.action_id,
+        input: json!({"entity_ref":quote.context_view["candidates"][1]["entity_ref"]}),
+    }).await.unwrap();
+    assert_eq!(chosen.status, Status::Ready);
+    engine.start_worker(person.clone(), "fixture".into(), task).await.unwrap();
+    let finished = worker_settled(&engine, &person, task).await;
+    assert_eq!(finished.status, Status::Succeeded, "{:?}", finished.errors);
+    assert!(!finished.context_view["analysis"]["observations"].as_array().unwrap().is_empty());
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 2);
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations WHERE task_id=$1")
+        .bind(task).fetch_one(pool).await.unwrap();
+    assert_eq!(approvals, 1);
+    let providers: Vec<String> = sqlx::query_scalar("SELECT s.api_slug FROM public.user_selected_apis s JOIN gateway_v2.executions e ON e.selection_id=s.id WHERE e.task_id=$1")
+        .bind(task).fetch_all(pool).await.unwrap();
+    assert_eq!(providers, vec!["fixture", "fixture"]);
+
+    let missing = engine.discover(&person, DiscoverRequest {
+        request_id: Uuid::new_v4(), question: "Named-source Missing".into(), state: None, context_delta: Default::default(),
+    }).await.unwrap();
+    let missing_task = missing.state.as_ref().unwrap().state_ref;
+    let proposal = missing.proposal.as_ref().unwrap();
+    let before = counts.provider.load(Ordering::Relaxed);
+    engine.executor.approve(&person, missing_task, proposal.quote_ref, &proposal.max_total_atomic).await.unwrap();
+    engine.start_worker(person.clone(), "fixture".into(), missing_task).await.unwrap();
+    let unavailable = worker_settled(&engine, &person, missing_task).await;
+    assert_eq!(unavailable.status, Status::Partial, "{unavailable:?}");
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 1, "no downstream purchase without a company identifier");
+    assert!(!unavailable.next_actions.iter().any(|a| matches!(a.kind.as_str(), "poll" | "execute_quoted_step")));
+    assert!(unavailable.proposal.as_ref().unwrap().step_details.iter().any(|step| step["status"] == "failed"));
+
+    // Withdraw or reprice only the dependent report after approval. Neither
+    // the direct action nor the backend worker may buy its still-valid search.
+    for worker in [false, true] {
+        let quote = engine.discover(&person, DiscoverRequest {
+            request_id: Uuid::new_v4(), question: "Named-source Example".into(), state: None, context_delta: Default::default(),
+        }).await.unwrap();
+        let task = quote.state.as_ref().unwrap().state_ref;
+        let proposal = quote.proposal.as_ref().unwrap();
+        engine.executor.approve(&person, task, proposal.quote_ref, &proposal.max_total_atomic).await.unwrap();
+        let (_, saved, _) = engine.store.load(person.owner, task).await.unwrap();
+        let plan: apiosk_gateway_v2::resolver::Plan = serde_json::from_value(saved.proposal.unwrap()).unwrap();
+        let report = plan.steps.iter().find(|s| s.service.contract.capability_slug == "company.accounts").unwrap();
+        let old_price: Value = sqlx::query_scalar("SELECT to_jsonb(price) FROM public.api_endpoints WHERE id=$1")
+            .bind(report.service.endpoint_id).fetch_one(pool).await.unwrap();
+        if worker {
+            sqlx::query("UPDATE public.api_endpoints SET price=price+0.001 WHERE id=$1")
+                .bind(report.service.endpoint_id).execute(pool).await.unwrap();
+        } else {
+            sqlx::query("UPDATE public.api_endpoints SET active=false WHERE id=$1")
+                .bind(report.service.endpoint_id).execute(pool).await.unwrap();
+        }
+        let before = counts.provider.load(Ordering::Relaxed);
+        if worker {
+            engine.start_worker(person.clone(), "fixture".into(), task).await.unwrap();
+            let stopped = worker_settled(&engine, &person, task).await;
+            assert_eq!(stopped.status, Status::Failed, "{stopped:?}");
+        } else {
+            engine.execute(&person, "fixture", execution(&quote)).await.unwrap();
+        }
+        let (_, stopped, _) = engine.store.load(person.owner, task).await.unwrap();
+        assert!(stopped.failed_steps.values().any(|failure| failure["code"] == "quote_changed"));
+        assert_eq!(counts.provider.load(Ordering::Relaxed), before, "no purchase for a broken quoted chain");
+        let reservations: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.executions WHERE task_id=$1")
+            .bind(task).fetch_one(pool).await.unwrap();
+        assert_eq!(reservations, 0);
+        // Saved results from earlier purchases remain readable during changes.
+        let recovered = engine.view(&person, finished.state.as_ref().unwrap().state_ref, Uuid::new_v4(), None).await.unwrap();
+        assert_eq!(recovered.context_view["analysis"], finished.context_view["analysis"]);
+        assert_eq!(counts.provider.load(Ordering::Relaxed), before);
+        sqlx::query("UPDATE public.api_endpoints SET active=true, price=($2::jsonb #>> '{}')::numeric WHERE id=$1")
+            .bind(report.service.endpoint_id).bind(old_price).execute(pool).await.unwrap();
+    }
+    println!("Backend acceptance: named-source ambiguity resumes after one approval; withdrawn/repriced downstream reports cause zero purchases and saved results remain readable.");
 }
 
 fn crate_followup_request(

@@ -353,11 +353,8 @@ impl Engine {
                     .ok_or_else(|| anyhow::anyhow!("invalid step"))?;
                 anyhow::ensure!(!task.step_finished(&selected.key()), "step already finished");
                 let fresh = self.catalog.fresh_execution(&[selected.service.id]).await?;
-                anyhow::ensure!(
-                    fresh.services.iter().any(|s| s.id == selected.service.id
-                        && s.version_hash() == selected.service.version_hash()),
-                    "catalog or price changed; request a new quote"
-                );
+                // The executor validates the entire remaining quote before
+                // reservation and returns a saved, user-visible refusal.
                 anyhow::ensure!(crate::browser_fallback::ready(&task, selected), "fallback is not eligible");
                 let inputs = crate::browser_fallback::inputs(selected, &task, &fresh.vocabulary)?;
                 match self

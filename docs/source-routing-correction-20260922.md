@@ -32,3 +32,18 @@ Runtime commit `53f1413` was pushed to `origin/main` and deployed to Fly as `dep
 - Broad professional-research question: [saved App task](https://app.apiosk.com/gateway-v2?task=c23935bd-22b3-4e99-a814-6f5285c2b6c1). The previous production attempt failed during interpretation; after deployment it produced a €0.216106 quote for StableEnrich domain resolution, Reuters news and Exa web search, cap 234,898 USD micro. Zero executions at verification.
 
 The paid live execution, answer-quality and saved-result acceptance checks are awaiting explicit approval for at most €0.35 combined. Earlier paid requests were not replayed. The tests and quotes above do not certify every source combination or upstream availability.
+
+## Execution-chain follow-up
+
+The reservation boundary now rechecks all unfinished primary services, including dependent calls whose identifiers are not available yet. If any quoted service or price has changed, the current step is refused before a selection, execution or payment reservation is created. Further calls under that invalidated quote are refused as well. Conditional fallback services are checked when eligible. Existing receipt replay precedes this validation, so catalog changes cannot turn recovery into another purchase or hide an existing receipt.
+
+A new backend-worker acceptance test exposed a second failure: a refused call was removed from the pending list only after the next action had been calculated. The saved action could therefore poll a receipt that did not exist, leaving the task running after the worker stopped. Settled calls are now removed before advancing, for both successful and failed outcomes.
+
+Additional isolated acceptance scenarios verify:
+
+- Native search pauses for an ambiguous company, resumes after selection under the original single approval, retrieves the report and produces a saved, cited answer. Exactly two native-provider calls occur.
+- A native search without a company identifier ends with explicit incomplete coverage after one search call; it does not buy the report or remain running.
+- Withdrawal of the dependent report blocks the direct execution path before buying the search. Repricing of that report blocks the background worker before any purchase, and reaches a terminal failed state.
+- Previously saved findings remain readable during catalog changes, without provider calls.
+
+The Gateway regular suite, durable/latency integration, eleven workflow cases and separate UK supplier acceptance suite were rerun against an isolated checkout. This kept concurrent public-API/organisation-key changes out of the tested release. Model, billing and provider responses in these acceptance tests are fixtures; the paid live acceptance boundary above remains unchanged.

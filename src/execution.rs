@@ -243,6 +243,33 @@ impl Executor {
                 .is_some_and(|total| total <= auth.get::<i64, _>("cap_atomic")),
             "budget exhausted"
         );
+        // Validate the whole remaining primary chain before reserving even its
+        // first lookup. A valid search is worthless if its quoted report has
+        // already been withdrawn or repriced. Do this inside the reservation
+        // transaction, after receipt replay, so saved purchases remain readable
+        // and resumed queued actions cannot bypass the same check.
+        let saved: Task = serde_json::from_value(task.get("document"))?;
+        if saved.failed_steps.values().any(|failure| failure["code"] == "quote_changed") {
+            return Ok(Dispatch::Failed { body: json!({
+                "ok":false,"error":"quote_changed","charged_micro_usd":0
+            }) });
+        }
+        let remaining: Vec<_> = plan.steps.iter().filter(|candidate| {
+            !saved.step_finished(&candidate.key())
+                && (candidate.browser_fallback.is_none()
+                    || crate::browser_fallback::ready(&saved, candidate))
+        }).collect();
+        let service_ids: Vec<_> = remaining.iter().map(|candidate| candidate.service.id).collect();
+        let snapshot: Value = sqlx::query_scalar(&crate::catalog::execution_catalog_sql())
+            .bind(&service_ids).fetch_one(&mut *tx).await?;
+        let catalog = crate::catalog::Catalog::build(serde_json::from_value(snapshot)?);
+        if remaining.iter().any(|candidate| !catalog.services.iter().any(|current|
+            current.id == candidate.service.id
+                && current.version_hash() == candidate.service.version_hash())) {
+            return Ok(Dispatch::Failed { body: json!({
+                "ok":false,"error":"quote_changed","charged_micro_usd":0
+            }) });
+        }
         let selection = Uuid::new_v4();
         if step.service.api_slug == kvk_accounts::PROVIDER
             && step.service.path == kvk_accounts::ENDPOINT
