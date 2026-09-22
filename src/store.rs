@@ -155,6 +155,7 @@ impl Store {
             for result in &progress.active_results { if !saved.active_results.contains(result) { saved.active_results.push(*result); } }
             for key in &progress.completed { if !saved.completed.contains(key) { saved.completed.push(key.clone()); } }
             saved.failed_steps.extend(progress.failed_steps.clone());
+            saved.skipped_steps.extend(progress.skipped_steps.clone());
             let plan: crate::resolver::Plan = serde_json::from_value(saved.proposal.clone().ok_or_else(||anyhow::anyhow!("missing plan"))?)?;
             let finished: Vec<_> = plan.steps.iter().enumerate().filter(|(_,step)|saved.step_finished(&step.key())).map(|(index,_)|index).collect();
             saved.pending_dispatches.retain(|d|!finished.contains(&d.step));

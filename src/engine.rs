@@ -231,6 +231,7 @@ impl Engine {
             task.proposal = None;
             task.completed.clear();
             task.failed_steps.clear();
+            task.skipped_steps.clear();
             task.active_results.clear();
             task.analysis = None;
             task.supplier_check = None;
@@ -267,6 +268,7 @@ impl Engine {
                 task.actions.clear();
                 task.completed.clear();
                 task.failed_steps.clear();
+            task.skipped_steps.clear();
                 task.active_results.clear();
                 task.analysis = None;
                 task.supplier_check = None;
@@ -316,6 +318,7 @@ impl Engine {
         task.completed.clear();
         task.pending_dispatches.clear();
         task.failed_steps.clear();
+            task.skipped_steps.clear();
         task.active_results.clear();
         task.analysis = None;
         task.pending_candidates.clear();
@@ -680,6 +683,7 @@ impl Engine {
                 detail["entity_ref"] = json!(plan.steps[i].entity_ref);
                 if let Some(error) = task.failed_steps.get(&plan.steps[i].key()) { detail["error"] = crate::billing::display_step_error(error); }
                 detail["status"] = json!(if task.failed_steps.contains_key(&plan.steps[i].key()) || (current == Some(i) && task.execution_error.is_some()) { "failed" }
+                    else if task.skipped_steps.contains(&plan.steps[i].key()) { "skipped" }
                     else if task.completed.contains(&plan.steps[i].key()) { "completed" }
                     else if current == Some(i) && actions.iter().any(|a|matches!(a, Action::Poll {..})) { "running" }
                     else if task.cancelled { "cancelled" } else if paused_plan { "paused" } else { "pending" });

@@ -1,6 +1,7 @@
 pub mod auth;
 mod approval_feedback;
 pub mod billing;
+pub mod browser_fallback;
 mod display_money;
 mod direct_answer;
 pub mod documents;

@@ -391,6 +391,7 @@ fn enqueue_ready(
     catalog: &Catalog,
 ) -> anyhow::Result<Vec<crate::state::PendingDispatch>> {
     let mut added = Vec::new();
+    crate::browser_fallback::settle_unused(task, plan);
     if task.cancelled || !task.pending_candidates.is_empty() {
         return Ok(added);
     }
@@ -399,13 +400,12 @@ fn enqueue_ready(
             break;
         }
         if task.step_finished(&step.key())
+            || !crate::browser_fallback::ready(task, step)
             || task.pending_dispatches.iter().any(|d| d.step == index)
         {
             continue;
         }
-        let Ok(inputs) = step
-            .service
-            .inputs(task, step.entity_ref, &catalog.vocabulary)
+        let Ok(inputs) = crate::browser_fallback::inputs(step, task, &catalog.vocabulary)
         else {
             continue;
         };
@@ -425,4 +425,44 @@ fn enqueue_ready(
         added.push(pending);
     }
     Ok(added)
+}
+
+#[cfg(test)]
+mod fallback_tests {
+    use super::*;
+
+    #[test]
+    fn dispatch_reserve_waits_skips_or_runs_once_under_the_original_plan() {
+        let (catalog, task, _, plan) = crate::browser_fallback::tests::fixture();
+        let last=plan.steps.len()-1;
+        let fallback=plan.steps[last].key();
+        // While primaries are unresolved, never enqueue the contingency.
+        let mut waiting=task.clone();
+        let queued=enqueue_ready(&mut waiting,&plan,&catalog).unwrap();
+        assert!(queued.iter().all(|pending|pending.step!=last));
+        for failed in [false,true] {
+            let mut task=task.clone();
+            for step in plan.steps.iter().filter(|s|s.browser_fallback.is_none()) {task.completed.push(step.key());}
+            if failed {
+                let primary=plan.steps.iter().find(|s|s.service.contract.capability_slug=="company.accounts").unwrap();
+                task.failed_steps.insert(primary.key(),json!({"code":"incomplete_source"}));
+            }
+            let original_cap=plan.cap_atomic;
+            let queued=enqueue_ready(&mut task,&plan,&catalog).unwrap();
+            if failed {
+                assert_eq!(queued.len(),1); assert_eq!(queued[0].step,last);
+                assert!(queued[0].inputs["query"].as_str().unwrap().contains("annual report"));
+                let action=queued[0].action_id;
+                assert!(enqueue_ready(&mut task,&plan,&catalog).unwrap().is_empty());
+                assert_eq!(task.pending_dispatches[0].action_id,action,"recovery retains one paid action");
+                task.pending_dispatches.clear(); task.completed.push(fallback.clone());
+                assert!(enqueue_ready(&mut task,&plan,&catalog).unwrap().is_empty());
+            } else {
+                assert!(queued.is_empty()); assert!(task.skipped_steps.contains(&fallback));
+            }
+            assert_eq!(plan.cap_atomic,original_cap);
+        }
+        let mut cancelled=task; cancelled.cancelled=true;
+        assert!(enqueue_ready(&mut cancelled,&plan,&catalog).unwrap().is_empty());
+    }
 }

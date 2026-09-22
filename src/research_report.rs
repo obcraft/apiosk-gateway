@@ -209,6 +209,7 @@ pub fn evidence_bundle(document: &Value) -> anyhow::Result<Vec<u8>> {
                 let ext = match a["mime_type"].as_str() {
                     Some("image/png") => "png",
                     Some("application/pdf") => "pdf",
+                    Some("text/html") => "html",
                     _ => anyhow::bail!("unsupported saved artifact"),
                 };
                 let name = format!("evidence/S{:02}-{:02}.{ext}", i + 1, n + 1);
@@ -222,7 +223,7 @@ pub fn evidence_bundle(document: &Value) -> anyhow::Result<Vec<u8>> {
     zip.start_file("manifest.json", options)?;
     zip.write_all(&serde_json::to_vec_pretty(&manifest)?)?;
     zip.start_file("README.txt", options)?;
-    zip.write_all(b"Apiosk evidence bundle\n\nreport.pdf: source-backed research report.\nsources/: saved source results, not newly purchased data.\nevidence/: captured official maps and available original PDFs.\nmanifest.json: source URLs, retrieval dates, evidence pointers and SHA-256 file digests.\n\nMap outlines do not establish ownership or mortgage status. Missing soil records do not establish clean soil. Report limitations remain applicable. No new source calls occur on download.\n")?;
+    zip.write_all(b"Apiosk evidence bundle\n\nreport.pdf: source-backed research report.\nsources/: saved source results, not newly purchased data.\nevidence/: captured official maps, web pages and available original PDFs.\nmanifest.json: source URLs, retrieval dates, evidence pointers and SHA-256 file digests.\n\nMap outlines do not establish ownership or mortgage status. Missing soil records do not establish clean soil. Report limitations remain applicable. No new source calls occur on download.\n")?;
     Ok(zip.finish()?.into_inner())
 }
 

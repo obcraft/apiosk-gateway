@@ -56,7 +56,7 @@ impl Executor {
         for (index, step) in plan.steps.iter().enumerate().filter(|(_, step)| step.service.endpoint_id == endpoint) {
             let inputs = saved.pending_dispatches.iter().find(|pending| pending.action_id == execution && pending.step == index)
                 .map(|pending| pending.inputs.clone())
-                .or_else(|| step.service.inputs(&historical, step.entity_ref, &catalog.vocabulary).ok());
+                .or_else(|| crate::browser_fallback::inputs(step, &historical, &catalog.vocabulary).ok());
             if let Some(inputs) = inputs {
                 if digest(&(task, action, &step.service, step.entity_ref, &inputs)) == payload {
                     return Ok(crate::state::PendingDispatch {step:index, action_id:execution, inputs});

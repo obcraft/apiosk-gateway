@@ -83,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
     let question = std::env::var("DEMO_QUESTION").unwrap_or(default_question.into());
     let question = question.as_str();
     let mut task = Task::default();
+    task.record_turn(question, None);
     let mut intent = parser
         .parse(uuid::Uuid::new_v4(), question, &task, &catalog)
         .await?;
@@ -90,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
     println!("{}", serde_json::to_string_pretty(&intent)?);
     match resolver::resolve(&catalog, &task, &intent) {
         resolver::Resolution::Plan(plan) => {
-            for step in &plan.steps { println!("{}: {}", step.service.api_slug, step.service.contract.capability_slug); }
+            for step in &plan.steps { println!("{}: {}{}", step.service.api_slug, step.service.contract.capability_slug, if step.browser_fallback.is_some() { " (conditional fallback, included in cap)" } else { "" }); }
             println!("READY: {} source calls; no purchase", plan.steps.len())
         }
         other => anyhow::bail!("not ready: {other:?}"),

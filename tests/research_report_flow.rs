@@ -28,8 +28,22 @@ struct TestState {
     http: reqwest::Client,
     count: Arc<AtomicUsize>,
 }
+fn fallback_case() -> bool { std::env::var("RESEARCH_FALLBACK_TEST").as_deref()==Ok("1") }
 fn fixture() -> Value {
-    serde_json::from_str(include_str!("fixtures/research-report-catalog.json")).unwrap()
+    let mut f:Value=serde_json::from_str(include_str!("fixtures/research-report-catalog.json")).unwrap();
+    if fallback_case() {
+        let mut browser=f["services"][0].clone();
+        browser["id"]=json!("918c4f18-ce21-4dfb-bf4c-0b4d03df7771"); browser["endpoint_id"]=json!("918c4f18-ce21-4dfb-bf4c-0b4d03df7772");
+        browser["api_slug"]=json!("browserbase"); browser["name"]=json!("Browserbase"); browser["path"]=json!("/search"); browser["method"]=json!("POST"); browser["list_atomic"]=json!(10000);
+        browser["optional_outputs"]=json!([]); browser["fixed_params"]=json!({}); browser["pagination"]=json!({});
+        browser["contract"]=json!({"capability_slug":"web.browserbase-search","version":1,"cardinality":"one","requires":[{"fact_type":"web.source_search_query","subject_role":"subject","optional":false}],"input_map":{"web.source_search_query":{"location":"body","name":"query"}},"output_map":{"base":"$","produces":{"web.browserbase_search_page":{"path":"$"}}},"max_fan_out":1});
+        browser["sample_payload"]=json!({"results":[{"title":"Mollie B.V. annual report","url":"https://example.test/annual-report","description":"Synthetic public report evidence"}]});
+        f["services"].as_array_mut().unwrap().push(browser);
+        for (slug,schema) in [("company.name",json!({"type":"string"})),("web.source_search_query",json!({"type":"string"})),("web.browserbase_search_page",json!({"type":"object"}))] {
+            if !f["vocabulary"].as_array().unwrap().iter().any(|v|v["slug"]==slug) {f["vocabulary"].as_array_mut().unwrap().push(json!({"slug":slug,"value_schema":schema}));}
+        }
+    }
+    f
 }
 async fn model(Json(body): Json<Value>) -> Json<Value> {
     let input: Value =
@@ -40,19 +54,20 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
             .unwrap()
             .contains("PDF"));
         let sources = input["sources"].as_array().unwrap();
-        assert_eq!(sources.len(), 3);
-        let observations:Vec<_>=sources.iter().map(|s| {
+        assert_eq!(sources.len(), if fallback_case() {4} else {3});
+        if fallback_case() {assert!(sources.iter().any(|s|s["document"]["source"]["provider"]=="browserbase"));}
+        let observations:Vec<_>=sources.iter().filter(|s|s["document"]["coverage"]!="empty" && s["document"]["coverage"]!="partial").map(|s| {
             let d=&s["document"]["data"];
-            let pointer=if d.get("opendataFields").is_some() {"/data/opendataFields/0/value"} else if d.get("_embedded").is_some() {"/data/_embedded/hoofdvestiging/adressen/0/postcode"} else {"/data/items/0/municipality"};
+            let pointer=if s["document"]["source"]["provider"]=="browserbase" {"/data/results/0/title"} else if d.get("opendataFields").is_some() {"/data/opendataFields/0/value"} else if d.get("_embedded").is_some() {"/data/_embedded/hoofdvestiging/adressen/0/postcode"} else {"/data/items/0/municipality"};
             json!({"text":"De bron onderbouwt dit onderdeel van het bedrijfsbeeld.","evidence":[{"result_ref":s["result_ref"],"pointer":pointer}]})
         }).collect();
         return Json(
             json!({"choices":[{"message":{"content":json!({"observations":observations,"limitations":["Locatiegegevens bewijzen geen eigendom van het bedrijf."]}).to_string()}}]}),
         );
     }
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[{"entity_ref":null,"label":"30204462","values":{"company_registry.kvknummer":"30204462"}}],"goals":[{"capability":"company.financial-statements","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registry-profile","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registered-address-context","subject":0,"constraints":{"source":"pdok"}}],"answer_operations":["Vat de jaarrekening, het profiel en de locaties samen en analyseer ze in een PDF."],"unresolved_references":[]}).to_string()}}]}),
-    )
+    let mut intent=json!({"subjects":[{"entity_ref":null,"label":"30204462","values":{"company_registry.kvknummer":"30204462"}}],"goals":[{"capability":"company.financial-statements","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registry-profile","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registered-address-context","subject":0,"constraints":{"source":"pdok"}}],"answer_operations":["Vat de jaarrekening, het profiel en de locaties samen en analyseer ze in een PDF."],"unresolved_references":[]});
+    if fallback_case() { intent["subjects"][0]["label"]=json!("Mollie B.V."); intent["subjects"][0]["values"]["company.name"]=json!("Mollie B.V."); intent["goals"][0]["constraints"]=json!({}); }
+    Json(json!({"choices":[{"message":{"content":intent.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();
@@ -77,7 +92,8 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
             f["services"][0]["sample_payload"]["_embedded"]["hoofdvestiging"]["adressen"]
         );
     }
-    let data = service["sample_payload"].clone();
+    let data = if fallback_case() && service["contract"]["capability_slug"]=="company.financial-statements" {json!({"filings":[]})} else { service["sample_payload"].clone() };
+    if source=="browserbase" { assert!(body["inputs"]["query"].as_str().unwrap().contains("Mollie B.V. official annual report")); }
     let provider = service["list_atomic"].as_i64().unwrap();
     let fee = (provider * 1500 + 9999) / 10000;
     Json(
@@ -238,11 +254,11 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
             .map(|s| &s.contract.capability_slug)
             .collect::<Vec<_>>()
     );
-    let start=engine.discover(&person,DiscoverRequest{request_id:Uuid::new_v4(),question:"Voor KVK 30204462: jaarrekening, bedrijfsprofiel en PDOK voor de profieladressen. Vat samen en analyseer in een PDF.".into(),state:None,context_delta:Default::default()}).await.unwrap();
+    let start=engine.discover(&person,DiscoverRequest{request_id:Uuid::new_v4(),question:"Voor Mollie B.V., KVK 30204462: jaarrekening, bedrijfsprofiel en PDOK voor de profieladressen. Vat samen en analyseer in een PDF.".into(),state:None,context_delta:Default::default()}).await.unwrap();
     assert_eq!(start.status, Status::Ready, "{start:?}");
     let quote = start.proposal.as_ref().unwrap();
-    assert_eq!(quote.steps.len(), 3);
-    assert_eq!(quote.max_total_atomic, "239131");
+    assert_eq!(quote.steps.len(), if fallback_case() {4} else {3});
+    assert_eq!(quote.max_total_atomic, if fallback_case() {"250631"} else {"239131"});
     let refusal = engine
         .execute(&person, "fixture", execute(&start))
         .await
@@ -260,7 +276,7 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
         .await
         .unwrap();
     let mut response = start.clone();
-    for _ in 0..3 {
+    for _ in 0..if fallback_case() {4} else {3} {
         let request = execute(&response);
         let next = engine
             .execute(&person, "fixture", request.clone())
@@ -295,10 +311,10 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
         )
         .await
         .unwrap();
-    assert_eq!(response.status, Status::Succeeded, "{response:?}");
+    assert_eq!(response.status, if fallback_case() {Status::Partial} else {Status::Succeeded}, "{response:?}");
     assert_eq!(
         response.context_view["results"].as_array().unwrap().len(),
-        3
+        if fallback_case() {4} else {3}
     );
     assert!(response.context_view["report"]["download_path"].is_string());
     let (_, saved, _) = engine
@@ -329,7 +345,7 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
         assert!(archive.by_name("sources/S01.json").is_ok());
     }
 
-    assert_eq!(state.count.load(Ordering::SeqCst), 3);
+    assert_eq!(state.count.load(Ordering::SeqCst), if fallback_case() {4} else {3});
     let authorizations: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations")
         .fetch_one(&pool)
         .await
@@ -350,7 +366,7 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
         serde_json::to_vec_pretty(&document).unwrap(),
     )
     .unwrap();
-    println!("Three-source flow: one approval, profile-address binding, saved filing, zero duplicate calls, analysis and combined PDF passed. Model/provider/billing are fixtures.");
+    println!("Research flow: one approval, profile-address binding, saved filing, zero duplicate calls, analysis and combined PDF passed. Model/provider/billing are fixtures.");
     server.abort();
     pool.close().await;
 }

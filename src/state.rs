@@ -162,6 +162,8 @@ pub struct Task {
     pub actions: Vec<Value>,
     pub proposal: Option<Value>,
     pub completed: Vec<String>,
+    #[serde(default)]
+    pub skipped_steps: std::collections::BTreeSet<String>,
     pub result_refs: Vec<Uuid>,
     pub pending_candidates: Vec<Value>,
     pub original_subject: Option<Uuid>,
@@ -188,7 +190,7 @@ pub struct PendingDispatch {
 }
 impl Task {
     pub fn step_finished(&self, key: &str) -> bool {
-        self.completed.iter().any(|done| done == key) || self.failed_steps.contains_key(key)
+        self.completed.iter().any(|done| done == key) || self.failed_steps.contains_key(key) || self.skipped_steps.contains(key)
     }
     pub fn record_turn(&mut self, question: &str, reply: Option<String>) {
         self.conversation_timeline_version = 1;

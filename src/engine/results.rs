@@ -81,6 +81,11 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
+        if let Some(fallback) = &step.browser_fallback {
+            document["source"]["fallback_for"] = json!(fallback.after.iter().filter(|key|task.failed_steps.contains_key(*key)).collect::<Vec<_>>());
+            document["source"]["search_query"] = json!(crate::browser_fallback::query(fallback, task));
+            document["coverage_note"] = json!("Browser search for alternative evidence. Search results do not establish official filing status, ownership title or completed screening.");
+        }
         if step.service.api_slug == "overheid-io"
             && step.service.path == "/bag"
             && data["_links"]["next"]["href"].is_string()
@@ -121,6 +126,8 @@ impl Engine {
             Err(_) => vec!["output_schema_mismatch".into()],
         };
         let missing_required = !missing.is_empty();
+        let empty_records = crate::browser_fallback::empty_records(step, &data);
+        if empty_records { document["coverage"] = json!("empty"); }
         if confirmed_empty_search(&step.service, &data) && !missing_required {
             document["coverage"] = json!("empty");
         }
@@ -164,6 +171,10 @@ impl Engine {
         if single_call_mode() {
             task.actions.clear();
             task.pending_candidates.clear();
+            return Ok(());
+        }
+        if empty_records {
+            self.fail_step(task, step, json!({"code":"empty_source","message":"The source returned no usable records for this check. Any quoted browser fallback can search for alternative evidence."}))?;
             return Ok(());
         }
         let extraction = match extraction {

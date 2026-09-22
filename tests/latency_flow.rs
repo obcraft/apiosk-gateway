@@ -109,6 +109,7 @@ async fn saved_lookup_and_batched_history_preserve_results() {
         service: service.clone(),
         entity_ref: entity,
         goal_index: 0,
+        browser_fallback: None,
     };
     task.completed.push(step.key());
     task.proposal = Some(

@@ -1,5 +1,5 @@
 //! Capture bounded public evidence during execution; never on a report download.
-//! Only fixed PDOK map services and source-linked official PDF hosts are contacted.
+//! Only fixed PDOK map services and source-linked allowlisted official hosts are contacted.
 use anyhow::{ensure, Context};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::Utc;
@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::{io::Cursor, time::Duration};
 use url::Url;
 
-const MAX_FILE: usize = 4 * 1024 * 1024;
+const MAX_FILE: usize = 8 * 1024 * 1024;
 const MAX_MAP: usize = 1024 * 1024;
 pub const KEY: &str = "report_assets";
 
@@ -161,13 +161,12 @@ pub fn map_urls(lon: f64, lat: f64) -> Vec<(&'static str, Url)> {
     .collect()
 }
 
-fn official_pdf(raw: &str) -> Option<Url> {
+fn official_url(raw: &str) -> Option<Url> {
     let u = Url::parse(raw).ok()?;
     if u.scheme() != "https"
         || !u.username().is_empty()
         || u.password().is_some()
         || u.port().is_some()
-        || !u.path().to_lowercase().ends_with(".pdf")
     {
         return None;
     }
@@ -183,6 +182,63 @@ fn official_pdf(raw: &str) -> Option<Url> {
     .iter()
     .any(|base| host == *base || host.ends_with(&format!(".{base}")))
     .then_some(u)
+}
+
+fn official_pdf(raw: &str) -> Option<Url> {
+    official_url(raw).filter(|u| u.path().to_lowercase().ends_with(".pdf"))
+}
+
+fn page_links(value: &Value, pointer: &str, links: &mut Vec<(String, Url)>) {
+    if links.len() >= 30 { return; }
+    match value {
+        Value::String(s) => for (start, _) in s.match_indices("https://") {
+            let rest = &s[start..];
+            let end = rest.find(|c: char| c.is_whitespace() || "\"'<>[]()".contains(c)).unwrap_or(rest.len());
+            if let Some(mut url) = official_url(rest[..end].trim_end_matches([',', ';'])) {
+                url.set_fragment(None);
+                let path = url.path().to_lowercase();
+                if !path.rsplit('/').next().unwrap_or("").contains('.') && !links.iter().any(|(_,u)|u==&url) {
+                    links.push((pointer.into(), url));
+                }
+            }
+            if links.len() >= 30 { break; }
+        },
+        Value::Object(o) => for (k,v) in o { page_links(v,&format!("{pointer}/{}",k.replace('~',"~0").replace('/',"~1")),links); },
+        Value::Array(a) => for (i,v) in a.iter().enumerate() { page_links(v,&format!("{pointer}/{i}"),links); },
+        _ => {}
+    }
+}
+
+fn html_evidence(bytes: &[u8], base: &Url) -> (String, String, Vec<Url>) {
+    use scraper::{Html, Selector};
+    let html = Html::parse_document(&String::from_utf8_lossy(bytes));
+    let selector = |s| Selector::parse(s).unwrap();
+    let title = html.select(&selector("title")).next().map(|n|n.text().collect::<String>()).unwrap_or_else(||"Official publication".into());
+    let root = html.select(&selector("main, article, [role=main]")).next().unwrap_or_else(||html.root_element());
+    fn visible_text(node: scraper::ElementRef<'_>) -> String {
+        node.descendants().filter(|child| !child.ancestors().filter_map(scraper::ElementRef::wrap).any(|n|
+            matches!(n.value().name(),"nav"|"footer"|"script"|"style") || n.value().attr("aria-hidden")==Some("true") || n.value().attr("hidden").is_some()))
+            .filter_map(|child|child.value().as_text()).map(|text|text.to_string()).collect::<Vec<_>>().join(" ")
+            .split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+    let mut text = String::new();
+    for node in root.select(&selector("h1,h2,h3,h4,p,li,tr")) {
+        if node.ancestors().filter_map(scraper::ElementRef::wrap).any(|n| matches!(n.value().name(),"nav"|"footer"|"script"|"style") || n.value().attr("aria-hidden")==Some("true") || n.value().attr("hidden").is_some()) { continue; }
+        let line = if node.value().name()=="tr" {
+            node.select(&selector("th,td")).map(|cell|visible_text(cell)).collect::<Vec<_>>().join(" | ")
+        } else { visible_text(node) };
+        if line.is_empty() { continue; }
+        text.push_str(&line); text.push('\n');
+        if text.len() > 24000 { let mut end=24000; while !text.is_char_boundary(end) { end-=1; } text.truncate(end); break; }
+    }
+    let mut documents=Vec::new();
+    for a in html.select(&selector("a[href]")) {
+        if let Some(url) = a.value().attr("href").and_then(|h|base.join(h).ok()).and_then(|u|official_pdf(u.as_str())) {
+            if !documents.contains(&url) { documents.push(url); }
+        }
+    }
+    documents.sort_by_key(|u| if u.path().contains("financial-performance") {0} else if u.path().contains("corporate-governance") {1} else if u.path().contains("annual-report") {2} else {3});
+    (title, text, documents)
 }
 
 /// Reuse the exact reviewed map layer and extent that produced a source result.
@@ -286,7 +342,7 @@ async fn download(
             .with_guessed_format()?
             .into_dimensions()?;
         ensure!(matches!(dimensions, (1000, 625) | (1000, 1000)), "unexpected map dimensions");
-    } else {
+    } else if mime == "application/pdf" {
         ensure!(bytes.starts_with(b"%PDF-"), "not a PDF");
     }
     Ok(bytes)
@@ -354,6 +410,30 @@ pub async fn capture(document: &Value) -> Value {
     }
     let mut links = Vec::new();
     pdf_links(&document["data"], "/data", &mut links);
+    let mut pages = Vec::new();
+    page_links(&document["data"], "/data", &mut pages);
+    pages.sort_by_key(|(_,u)| if u.path().contains("/shares") {0} else if u.path().contains("/financials") {1} else if u.path().contains("/downloads") {2} else if u.path().contains("annual-report") {3} else {4});
+    // A small public capture budget: two pages and two PDFs per purchased result.
+    // No browser session, payment, redirect, guessed URL or export-time refetch.
+    for (pointer, url) in pages.into_iter().take(2) {
+        match download(&http,url.clone(),2*1024*1024,"text/html").await {
+            Ok(bytes) => {
+                let (title, text, documents) = html_evidence(&bytes,&url);
+                let mut a=asset("web_page",&title,&url,&pointer,&bytes,"text/html");
+                a["extracted_text"]=json!(text);
+                a["text_scope"]=json!("Official page text and table rows, limited to twenty-four thousand bytes; scripts and navigation omitted. Public disclosures are not proof of registry filing, beneficial ownership or property title.");
+                let asset_index=assets.len();
+                assets.push(a);
+                for linked in documents {
+                    if links.len()>=2 { break; }
+                    if !links.iter().any(|(_,u)|*u==linked) {
+                        links.push((format!("/report_assets/assets/{asset_index}/source_url"),linked));
+                    }
+                }
+            },
+            Err(_)=>notices.push(format!("Official page could not be captured; inspect the source link: {url}")),
+        }
+    }
     for (pointer, url) in links {
         match download(&http,url.clone(),MAX_FILE,"application/pdf").await {
             Ok(bytes) => {
@@ -447,6 +527,44 @@ mod tests {
         assert!(context_map(&d).is_none());
         d=context_fixture(); d["data"]["source_url"]=json!("https://example.com/a");
         assert!(context_map(&d).is_none());
+    }
+    #[test]
+    fn official_html_keeps_table_context_and_observed_document_links() {
+        let page=br#"<html><title>Ownership</title><main><h1>Major holdings</h1><p>As of February 2026</p><table><tr><th>Holder</th><th>Voting rights</th></tr><tr><td>Example</td><td>5.09%</td></tr></table><script>ignore this</script><nav><p>ignore menu</p></nav><p hidden>hidden content</p><a href="/financial-performance.pdf">Financial report</a><a href="https://evil.test/title.pdf">Other</a></main></html>"#;
+        let (title,text,links)=html_evidence(page,&Url::parse("https://www.asml.com/en/investors/shares").unwrap());
+        assert_eq!(title,"Ownership");
+        assert!(text.contains("Holder | Voting rights")); assert!(text.contains("Example | 5.09%"));
+        assert!(!text.contains("ignore")); assert!(!text.contains("hidden content"));
+        assert_eq!(links.len(),1); assert_eq!(links[0].as_str(),"https://www.asml.com/financial-performance.pdf");
+        let mut pages=vec![];
+        page_links(&json!({"results":[{"url":"https://www.asml.com/en/investors/shares"},{"url":"https://asml.com.evil.test/fake"}]}),"/data",&mut pages);
+        assert_eq!(pages.len(),1); assert_eq!(pages[0].0,"/data/results/0/url");
+    }
+    #[tokio::test]
+    #[ignore = "free official public HTML capture; no paid provider call"]
+    async fn live_official_shareholder_page() {
+        let source=json!({"data":{"url":"https://www.asml.com/en/investors/shares"}});
+        let result=capture(&source).await;
+        let assets=result["assets"].as_array().unwrap();
+        let page=assets.iter().find(|a|a["mime_type"]=="text/html").expect("official page saved");
+        let text=page["extracted_text"].as_str().unwrap();
+        assert!(text.contains("BlackRock")); assert!(text.contains("Capital Research"));
+        assert!(!bytes(page).unwrap().is_empty());
+        assert!(public_document(&json!({KEY:result}))[KEY]["assets"][0].get("data_base64").is_none());
+    }
+    #[tokio::test]
+    #[ignore = "free official annual-report page and linked PDF capture; no paid provider call"]
+    async fn live_official_annual_report_links() {
+        let source=json!({"data":{"url":"https://www.asml.com/en/investors/annual-report/2025/downloads"}});
+        let result=capture(&source).await;
+        let assets=result["assets"].as_array().unwrap();
+        assert!(assets.iter().any(|a|a["mime_type"]=="text/html"));
+        for section in ["financial-performance", "corporate-governance"] {
+            let pdf=assets.iter().find(|a|a["source_url"].as_str().is_some_and(|u|u.contains(section))).expect("linked official PDF saved");
+            assert!(bytes(pdf).unwrap().starts_with(b"%PDF-"));
+            assert!(pdf["extracted_text"].as_str().is_some_and(|s|s.len()>100));
+            println!("Captured {section}: {} bytes, bounded text excerpt {} bytes",pdf["byte_length"],pdf["extracted_text"].as_str().unwrap().len());
+        }
     }
     #[tokio::test]
     #[ignore = "free public ASML source document capture; no assessment of ASML"]

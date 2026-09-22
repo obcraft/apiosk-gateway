@@ -81,6 +81,7 @@ impl Engine {
             service,
             entity_ref: req.entity_ref,
             goal_index: 0,
+        browser_fallback: None,
         }];
         let plan = Plan {
             quote_ref: Uuid::new_v4(),
@@ -97,6 +98,7 @@ impl Engine {
         task.active_results.clear();
         task.analysis = None;
         task.failed_steps.clear();
+        task.skipped_steps.clear();
         task.intent = Some(serde_json::to_value(intent)?);
         task.proposal = Some(serde_json::to_value(plan)?);
         task.focus.entity_refs = vec![req.entity_ref];

@@ -69,6 +69,7 @@ impl Engine {
         task.actions.clear();
         task.completed.clear();
         task.failed_steps.clear();
+        task.skipped_steps.clear();
         task.active_results.clear();
         task.analysis = None;
         task.supplier_check = None;

@@ -114,7 +114,9 @@ impl Engine {
                     if plan.steps.iter().any(|step| {
                         document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
                             && document["subject"]["entity_ref"] == json!(step.entity_ref)
-                            && (crate::uk_supplier::is_check(&intent) || intent.goals.iter().any(|goal| {
+                            && (step.browser_fallback.is_some()
+                                || task.conversation.last().is_some_and(|turn| crate::report_assets::requested(&turn.question))
+                                || crate::uk_supplier::is_check(&intent) || intent.goals.iter().any(|goal| {
                                 goal.capability == step.service.contract.capability_slug
                                     && intent
                                         .subjects
@@ -356,10 +358,8 @@ impl Engine {
                         && s.version_hash() == selected.service.version_hash()),
                     "catalog or price changed; request a new quote"
                 );
-                let inputs =
-                    selected
-                        .service
-                        .inputs(&task, selected.entity_ref, &fresh.vocabulary)?;
+                anyhow::ensure!(crate::browser_fallback::ready(&task, selected), "fallback is not eligible");
+                let inputs = crate::browser_fallback::inputs(selected, &task, &fresh.vocabulary)?;
                 match self
                     .executor
                     .dispatch(
@@ -460,6 +460,7 @@ impl Engine {
                 .clone()
                 .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
         )?;
+        crate::browser_fallback::settle_unused(task, &plan);
         // An expired spending window must not strand purchased evidence behind
         // another approval. Finish a partial report; pending receipts are still
         // recoverable, while unstarted sources are explicitly unavailable.
@@ -479,7 +480,7 @@ impl Engine {
         if !task.cancelled {
             let mut next_step = None;
             for (index, candidate) in plan.steps.iter().enumerate() {
-                if task.step_finished(&candidate.key()) {
+                if task.step_finished(&candidate.key()) || !crate::browser_fallback::ready(task, candidate) {
                     continue;
                 }
                 if task.pending_dispatches.iter().any(|pending| pending.step == index) {
@@ -487,6 +488,10 @@ impl Engine {
                 }
                 if choice.is_some() && selection::step_waits_for_choice(task, candidate) {
                     continue;
+                }
+                if candidate.browser_fallback.is_some() {
+                    next_step = Some(index);
+                    break;
                 }
                 let missing: Vec<_> = candidate
                     .service
@@ -571,7 +576,7 @@ impl Engine {
         // Skip only descendants of this failure. Independent companies and
         // goals remain executable under the original approved cap.
         for step in &plan.steps {
-            if task.step_finished(&step.key()) {
+            if task.step_finished(&step.key()) || step.browser_fallback.is_some() {
                 continue;
             }
             if plan.steps.iter().any(|parent| {

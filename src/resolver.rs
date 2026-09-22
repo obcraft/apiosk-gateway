@@ -15,6 +15,9 @@ pub struct Step {
     pub service: Service,
     pub entity_ref: Uuid,
     pub goal_index: usize,
+    /// Quoted contingency. It cannot add a service or increase the approved cap.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_fallback: Option<crate::browser_fallback::Fallback>,
 }
 impl Step {
     pub fn key(&self) -> String {
@@ -296,7 +299,8 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     }
     let mut layered: Vec<_> = steps.into_iter().zip(depths).collect();
     layered.sort_by_key(|(_, depth)| *depth);
-    let steps: Vec<_> = layered.into_iter().map(|(step, _)| step).collect();
+    let mut steps: Vec<_> = layered.into_iter().map(|(step, _)| step).collect();
+    crate::browser_fallback::reserve(catalog, task, intent, &mut steps);
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);
     Resolution::Plan(Plan {
@@ -401,6 +405,7 @@ fn add(
         service: service.clone(),
         entity_ref: entity,
         goal_index: goal,
+        browser_fallback: None,
     });
     Ok(())
 }
@@ -411,7 +416,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
         let service = &step.service;
         let source = sources.iter().find(|s| s.slug == service.api_slug);
         let capability = service.contract.capability_slug.as_str();
-        let title = match capability {
+        let title = if step.browser_fallback.is_some() { "Search the web if a source fails or returns no usable records".to_owned() } else { match capability {
             "company.registry-search" | "company_registry.search" => "Find the company and its KVK number".to_owned(),
             "company.financial-statements" => "Retrieve financial statements".to_owned(),
             "company.registered-address-context" => "Verify the registered address and locate the property".to_owned(),
@@ -440,6 +445,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "statistics.cbs-bankruptcy-sectors" => "Read the CBS sector definitions".to_owned(),
             "statistics.cbs-bankruptcy-entity-types" => "Read the CBS business-type definitions".to_owned(),
             _ => capability.replace(['.', '_', '-'], " "),
+        }
         };
         let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !r.optional).filter_map(|required| {
             plan.steps[..index].iter().enumerate().rev().find(|(_, previous)|
@@ -452,7 +458,8 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
                 "directory_slug":source.map(crate::sources::directory_slug).unwrap_or(&service.api_slug),
                 "directory_name":source.map(crate::sources::directory_name).unwrap_or(&service.name),
                 "logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url},
-            "dependencies":dependencies})
+            "dependencies":dependencies,"conditional":step.browser_fallback.is_some(),
+            "condition":step.browser_fallback.as_ref().map(|_|"Only if a quoted source fails or returns no usable records; unused fallback is not charged")})
     }).collect()
 }
 
@@ -482,7 +489,7 @@ mod presentation_tests {
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
         let entity = Uuid::new_v4();
-        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0 }).collect() };
+        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0, browser_fallback: None }).collect() };
         let details = describe_steps(&plan, &[]);
         assert_eq!(details[1]["dependencies"][0]["step"], 1);
         assert_eq!(details[1]["dependencies"][0]["field"], "company.id");
