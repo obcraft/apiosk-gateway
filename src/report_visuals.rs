@@ -232,6 +232,14 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
                 doc.push(PageBreak::new());
                 title(doc, a["name"].as_str().unwrap_or("Map"));
                 crate::report_layout::source_badge(doc, d, &format!("S{}", i + 1))?;
+                doc.push(Break::new(0.3));
+                doc.push(MarkedMap(
+                    Image::from_dynamic_image(image::DynamicImage::ImageRgb8(rgb))?
+                        .with_dpi(if dims.1 == 1000 { 175.0 } else { 150.0 })
+                        .with_alignment(genpdf::Alignment::Center),
+                    a["center"].is_array(),
+                ));
+                doc.push(Break::new(0.5));
                 text(doc, a["address"].as_str().unwrap_or(""));
                 small(
                     doc,
@@ -242,14 +250,7 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
                         crate::report_layout::date(a["retrieved_at"].as_str().unwrap_or(""))
                     ),
                 );
-                doc.push(Break::new(0.8));
-                doc.push(MarkedMap(
-                    Image::from_dynamic_image(image::DynamicImage::ImageRgb8(rgb))?
-                        .with_dpi(if dims.1 == 1000 { 175.0 } else { 150.0 })
-                        .with_alignment(genpdf::Alignment::Center),
-                    a["center"].is_array(),
-                ));
-                doc.push(Break::new(0.5));
+                doc.push(Break::new(0.4));
                 text(doc, a["scope"].as_str().unwrap_or(""));
                 small(doc,"The original map image, retrieval details and source link are included in the evidence bundle.");
             }

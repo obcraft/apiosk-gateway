@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
         std::env::var("INTENT_API_KEY")?,
         std::env::var("INTENT_MODEL")?,
     );
-    let default_question="Prepare a financing report on ASML Holding N.V. Find and verify its registered address, assess the company’s finances and property risks, and check property ownership. Include available maps, charts and reports, with a short sourced conclusion and any information gaps.";
+    let default_question="Create a company and location report on ASML Holding N.V. Check its registration, sanctions and website asml.com. Find its registered address and include building and parcel maps, available soil and planning information, and the latest five relevant news articles. Find the identifiers yourself and give a short sourced conclusion.";
     let question = std::env::var("DEMO_QUESTION").unwrap_or(default_question.into());
     let question = question.as_str();
     let mut task = Task::default();

@@ -94,10 +94,11 @@ fn logo(provider: &str, width: f64, height: f64) -> anyhow::Result<Option<Image>
     ))
 }
 pub fn source_badge(doc: &mut genpdf::Document, d: &Value, reference: &str) -> anyhow::Result<()> {
-    let mut row = TableLayout::new(vec![1, 22]);
+    doc.push(Break::new(0.6));
+    let mut row = TableLayout::new(vec![2, 23]);
     let mut cells = row.row();
     if let Some(image) = logo(d["source"]["provider"].as_str().unwrap_or(""), 6., 6.)? {
-        cells = cells.element(image);
+        cells = cells.element(image.padded(genpdf::Margins::trbl(1, 2, 2, 0)));
     } else {
         cells = cells.element(Paragraph::new(""));
     }
@@ -105,10 +106,11 @@ pub fn source_badge(doc: &mut genpdf::Document, d: &Value, reference: &str) -> a
         .element(
             Paragraph::new(format!("{}  |  {}", source_name(d), reference))
                 .styled(Style::new().with_font_size(8).with_color(MUTED))
-                .padded(genpdf::Margins::trbl(1, 0, 2, 2)),
+                .padded(genpdf::Margins::trbl(1.5, 0, 2, 1)),
         )
         .push()?;
     doc.push(row);
+    doc.push(Break::new(0.4));
     Ok(())
 }
 
@@ -197,9 +199,9 @@ pub fn table(doc: &mut genpdf::Document, rows: &[(String, String)]) -> anyhow::R
             .element(
                 Paragraph::new(clean(key))
                     .styled(Style::new().bold().with_font_size(9).with_color(MUTED))
-                    .padded(1.5),
+                    .padded(2.3),
             )
-            .element(lines.padded(1.5))
+            .element(lines.padded(2.3))
             .push()?;
     }
     doc.push(table);
@@ -219,7 +221,7 @@ fn grid(
         header = header.element(
             Paragraph::new(*label)
                 .styled(Style::new().bold().with_font_size(8).with_color(MUTED))
-                .padded(1.5),
+                .padded(2.3),
         );
     }
     header.push()?;
@@ -230,7 +232,7 @@ fn grid(
             for line in value.lines() {
                 lines.push(Paragraph::new(clean(line)).styled(Style::new().with_font_size(9)));
             }
-            cells = cells.element(lines.padded(1.5));
+            cells = cells.element(lines.padded(2.3));
         }
         cells.push()?;
     }
@@ -477,27 +479,7 @@ pub fn overview(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
     }
     grid(doc, &["Area", "Status", "Scope"], &[2, 1, 6], &rows)?;
     small(doc,"Open evidence gaps are listed under Gaps and next steps. Missing information is unresolved, not a negative finding.");
-    for (i, source) in sources(document)?.iter().enumerate().rev() {
-        let d = &source["document"];
-        if cited.contains(source["result_ref"].as_str().unwrap_or(""))
-            && d["source"]["provider"] == "kvk-dutch-business-register"
-            && d["data"]["_embedded"]["hoofdvestiging"].is_object()
-        {
-            doc.push(Break::new(0.5));
-            heading(doc, "Key facts", 17);
-            source_badge(doc, d, &format!("S{}", i + 1))?;
-            let mut facts = Vec::new();
-            row(&mut facts, "Registered name", &d["data"]["statutaireNaam"]);
-            row(&mut facts, "KVK number", &d["data"]["kvkNummer"]);
-            row(
-                &mut facts,
-                "Registered address",
-                &d["data"]["_embedded"]["hoofdvestiging"]["adressen"][0]["volledigAdres"],
-            );
-            table(doc, &facts)?;
-            break;
-        }
-    }
+    // Registry facts are presented once in the dedicated company section.
 
     Ok(())
 }
@@ -745,7 +727,7 @@ pub fn details(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<(
                 heading(doc, "What this establishes", 14);
                 text(doc,"The registry address has been located in BAG and linked to the parcel references above. This is the company's registered location, not confirmation of a proposed collateral property.");
                 doc.push(Break::new(0.6));
-                small(doc,"A linked parcel does not establish legal ownership, mortgages, current planning permission or soil condition. The maps on the following pages show geographic context; they are not interior floor plans.");
+                small(doc,"A linked parcel does not establish legal ownership, mortgages, current planning permission or soil condition. The maps in this report show geographic context; they are not interior floor plans.");
             }
         }
     }
@@ -770,17 +752,17 @@ pub fn register(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
         .element(
             Paragraph::new("Provider / references")
                 .styled(Style::new().bold().with_font_size(8))
-                .padded(1.5),
+                .padded(2.3),
         )
         .element(
             Paragraph::new("Use in report")
                 .styled(Style::new().bold().with_font_size(8))
-                .padded(1.5),
+                .padded(2.3),
         )
         .element(
             Paragraph::new("Retrieved (UTC)")
                 .styled(Style::new().bold().with_font_size(8))
-                .padded(1.5),
+                .padded(2.3),
         )
         .push()?;
     let mut urls = Vec::new();
@@ -793,7 +775,7 @@ pub fn register(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
         let d = &records[0].1["document"];
         let mut label = LinearLayout::vertical();
         if let Some(mark) = logo(d["source"]["provider"].as_str().unwrap_or(""), 5., 5.)? {
-            label.push(mark);
+            label.push(mark.padded(genpdf::Margins::trbl(1, 0, 2, 0)));
         }
         label.push(Paragraph::new(source_name(d)).styled(Style::new().with_font_size(9)));
         label.push(Paragraph::new(refs).styled(Style::new().with_font_size(8).with_color(ACCENT)));
@@ -844,9 +826,9 @@ pub fn register(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
         }
         table
             .row()
-            .element(label.padded(1.5))
-            .element(usage.padded(1.5))
-            .element(dates.padded(1.5))
+            .element(label.padded(2.3))
+            .element(usage.padded(2.3))
+            .element(dates.padded(2.3))
             .push()?;
         if let Some(url) = d["source"]["url"].as_str() {
             urls.push((source_name(d), url.into()));

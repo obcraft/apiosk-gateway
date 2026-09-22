@@ -2,12 +2,13 @@
 
 The research PDF follows the layout reference supplied as `asml-research-report.pdf` on 22 September 2026. It is a reusable projection of saved evidence, not a hardcoded ASML document.
 
-- Opening assessment, original request, coverage and key registry facts.
+- Opening assessment, original request and evidence coverage.
+- Captured building and parcel maps immediately after the overview, with address/date captions below the images.
 - Findings with validated source references and readable evidence-field tables.
-- Legal entity and location records, followed by original captured maps and eligible financial charts.
+- Legal entity and location records; eligible financial charts only when the saved evidence supports them.
 - Evidence gaps, suggested next steps, and data-quality notes for duplicates and uncited records.
 - One provider row in the source register, with brand, saved references, retrieval dates and links.
-- Subtle Apiosk wordmark, restrained typography, table rules, page numbers and a consistent footer.
+- Subtle Apiosk wordmark; source badges with horizontal and vertical breathing room; 1.25 line spacing and 2.3 mm table-cell padding; page numbers and a consistent footer.
 
 The uploaded example is a design reference, not a new data source. Its conclusions, confidence labels and figures are not copied. Saved findings and limitations remain unchanged. Missing evidence is never converted into a negative result. Charts require explicit comparable figures, currency and period. A linked parcel is not proof of ownership.
 

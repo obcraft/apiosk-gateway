@@ -23,8 +23,10 @@ Provider documentation reviewed:
 - https://www.kadaster.nl/zakelijk/producten/eigendom/eigendomsinformatie
 - https://www.kadaster.nl/producten/akte-en-onderzoek/eigendomsakte-opvragen
 
-Recommended concise demo question:
-> Assess ASML Holding N.V. for financing: its finances, ownership, sanctions and property risks. Find its address and provide a sourced report with maps, charts, supporting documents, the latest five relevant news articles and information gaps.
+Recommended demo question (registration and location, replacing financing/ownership checks):
+> Create a company and location report on ASML Holding N.V. Check its registration, sanctions and website asml.com. Find its registered address and include building and parcel maps, available soil and planning information, and the latest five relevant news articles. Find the identifiers yourself and give a short sourced conclusion.
+
+Finances, filed accounts, corporate ownership and property title are outside this revised demo question. Public maps and register context must not be presented as substitutes proving ownership or creditworthiness.
 
 News is included when requested: retain publication date, publisher, link and content scope; do not treat search snippets as full articles. Web research also locates official company publications and supporting documents.
 

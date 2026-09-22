@@ -168,12 +168,12 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         crate::report_layout::company_name(document)
     ));
     doc.set_font_size(10);
-    doc.set_line_spacing(1.15);
+    doc.set_line_spacing(1.25);
     crate::report_layout::decorate(&mut doc)?;
     crate::report_layout::overview(&mut doc, document)?;
+    crate::report_visuals::sections(&mut doc, document)?;
     crate::report_layout::findings(&mut doc, document)?;
     crate::report_layout::details(&mut doc, document)?;
-    crate::report_visuals::sections(&mut doc, document)?;
     crate::report_layout::gaps(&mut doc, document)?;
     crate::report_layout::register(&mut doc, document)?;
     let mut bytes = Vec::new();
