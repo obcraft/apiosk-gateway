@@ -219,7 +219,9 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
     };
     let person = Principal {
         owner: Uuid::new_v4(),
-        connection: None, workspace: None, };
+        connection: None,
+        workspace: None,
+    };
     println!(
         "catalog rejected: {:?}",
         engine.catalog.get().await.unwrap().rejected
@@ -315,6 +317,18 @@ async fn profile_accounts_addresses_analysis_and_pdf_share_one_approval() {
         .unwrap();
     let pdf = apiosk_gateway_v2::research_report::render(&document).unwrap();
     assert!(pdf.starts_with(b"%PDF-"));
+    assert!(response.context_view["report"]["evidence_download_path"].is_string());
+    assert!(!serde_json::to_string(&response)
+        .unwrap()
+        .contains("data_base64"));
+    for _ in 0..2 {
+        let bundle = apiosk_gateway_v2::research_report::evidence_bundle(&document).unwrap();
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bundle)).unwrap();
+        assert!(archive.by_name("report.pdf").is_ok());
+        assert!(archive.by_name("manifest.json").is_ok());
+        assert!(archive.by_name("sources/S01.json").is_ok());
+    }
+
     assert_eq!(state.count.load(Ordering::SeqCst), 3);
     let authorizations: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.authorizations")
         .fetch_one(&pool)

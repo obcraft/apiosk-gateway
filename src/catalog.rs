@@ -72,7 +72,9 @@ impl Service {
                 r.subject_role == "subject",
                 "unsupported multi-role binding"
             );
-            if let Some(value) = fact_value(&task.facts, entity, &r.fact_type)? {
+            let supplied = fact_value(&task.facts, entity, &r.fact_type)?;
+            let fallback = self.contract.input_map.get(&r.fact_type).and_then(|b| b.default.clone()).filter(|_| r.optional);
+            if let Some(value) = supplied.or(fallback) {
                 let ft = vocab
                     .get(&r.fact_type)
                     .ok_or_else(|| anyhow::anyhow!("unknown fact type"))?;
@@ -405,6 +407,27 @@ mod parser_catalog_tests {
             .contains(r#"jsonb_path_exists(e.query_params,'$.* ? (@.type() == "object")')"#));
         assert!(CATALOG_SQL
             .contains(r#"jsonb_path_exists(e.request_body,'$.* ? (@.type() == "object")')"#));
+    }
+    #[test]
+    fn optional_defaults_are_validated_and_explicit_facts_win() {
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let service = &mut snapshot.services[0];
+        service.contract.requires[0].optional = true;
+        service.contract.input_map.get_mut("company.name").unwrap().default = Some(json!("reviewed fallback"));
+        let catalog = Catalog::build(snapshot.clone());
+        assert!(catalog.rejected.is_empty());
+        let service = catalog.services.iter().find(|s| s.id == snapshot.services[0].id).unwrap();
+        let entity = Uuid::new_v4();
+        let mut task = Task::default();
+        assert_eq!(service.inputs(&task, entity, &catalog.vocabulary).unwrap()["company.name"], "reviewed fallback");
+        let mut intent: crate::parser::Intent = serde_json::from_value(json!({"subjects":[{"entity_ref":null,"label":"Explicit company","values":{"company.name":"Explicit company"}}],"goals":[],"answer_operations":[],"unresolved_references":[]})).unwrap();
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        assert_eq!(service.inputs(&task, intent.subjects[0].entity_ref.unwrap(), &catalog.vocabulary).unwrap()["company.name"], "Explicit company");
+        snapshot.services[0].contract.input_map.get_mut("company.name").unwrap().default = Some(json!(37));
+        assert_eq!(Catalog::build(snapshot.clone()).rejected.len(), 1);
+        snapshot.services[0].contract.input_map.get_mut("company.name").unwrap().default = Some(json!("valid string"));
+        snapshot.services[0].contract.requires[0].optional = false;
+        assert_eq!(Catalog::build(snapshot).rejected.len(), 1);
     }
     #[test]
     fn parser_receives_exact_source_identity_and_supported_capabilities() {

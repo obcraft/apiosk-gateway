@@ -35,7 +35,9 @@ dotenvy = "0.15"
 thiserror = "1"
 bigdecimal = "0.4"
 url = "2"
-genpdf = "0.2.0"
+genpdf = { version = "0.2.0", features = ["images"] }
+image = { version = "0.23", default-features = false, features = ["png", "jpeg"] }
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [profile.release]
 strip = true

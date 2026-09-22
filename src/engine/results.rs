@@ -14,9 +14,15 @@ impl Engine {
     }
 
     pub(super) fn project_result_page(
-        &self, owner: Uuid, task: Uuid, result_ref: Uuid, offset: usize,
-        mut data: Value, sources: &[crate::sources::Source],
+        &self,
+        owner: Uuid,
+        task: Uuid,
+        result_ref: Uuid,
+        offset: usize,
+        mut data: Value,
+        sources: &[crate::sources::Source],
     ) -> anyhow::Result<Value> {
+        data = crate::report_assets::public_document(&data);
         data["result_ref"] = json!(result_ref);
         if crate::annual_report::eligible(&data) {
             let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
@@ -134,6 +140,18 @@ impl Engine {
             document["coverage"] = json!("partial");
             document["missing_fields"] = json!(["automatic_fact_binding_capacity_exceeded"]);
         }
+        if task
+            .conversation
+            .last()
+            .is_some_and(|t| crate::report_assets::requested(&t.question))
+        {
+            let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM results WHERE execution_id=$1 AND owner_id=$2 AND task_id=$3)")
+                .bind(execution).bind(p.owner).bind(task_id).fetch_one(&self.store.pool).await?;
+            if !exists {
+                document[crate::report_assets::KEY] =
+                    Box::pin(crate::report_assets::capture(&document)).await;
+            }
+        }
         let result_ref:Uuid=sqlx::query_scalar("INSERT INTO results(id,owner_id,task_id,execution_id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(execution_id) DO UPDATE SET execution_id=EXCLUDED.execution_id RETURNING id")
             .bind(Uuid::new_v4()).bind(p.owner).bind(task_id).bind(execution).bind(&document).fetch_one(&self.store.pool).await?;
         if !task.result_refs.contains(&result_ref) {
@@ -202,7 +220,12 @@ impl Engine {
                 let label = subject
                     .facts
                     .iter()
-                    .find(|f| matches!(f.fact_type.as_str(), "company.name" | "location.address_label"))
+                    .find(|f| {
+                        matches!(
+                            f.fact_type.as_str(),
+                            "company.name" | "location.address_label"
+                        )
+                    })
                     .and_then(|f| f.value.as_str())
                     .map(str::to_owned)
                     .or_else(|| {

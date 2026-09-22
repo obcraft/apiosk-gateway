@@ -1851,6 +1851,39 @@ async fn durable_flow_and_authorization_boundary() {
         .as_str()
         .unwrap();
     let pdf_url = format!("{api_url}{download}");
+    let evidence_url = format!(
+        "{api_url}{}",
+        state.context_view["report"]["evidence_download_path"]
+            .as_str()
+            .unwrap()
+    );
+    for _ in 0..2 {
+        let response = client.get(&evidence_url).send().await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["content-type"], "application/zip");
+        let bytes = response.bytes().await.unwrap();
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
+        assert!(archive.by_name("report.pdf").is_ok());
+        assert!(archive.by_name("manifest.json").is_ok());
+    }
+    assert_eq!(
+        client
+            .get(format!("{evidence_url}bad"))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        client
+            .get(evidence_url.replace(&user.owner.to_string(), &Uuid::new_v4().to_string()))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
     for _ in 0..2 {
         let response = client.get(&pdf_url).send().await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);

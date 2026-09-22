@@ -68,6 +68,7 @@ mod tests {
             location: Some("body".into()),
             name: name.into(),
             wrap: wrap.map(str::to_owned),
+            default: None,
         }
     }
     #[test]

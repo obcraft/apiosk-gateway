@@ -132,12 +132,13 @@ impl Engine {
             .research_signature(owner, id, quote, &snapshot, expires);
         Ok(
             json!({"format":"pdf","filename":format!("analyse-{quote}.pdf"),"expires_at":expires,
-            "download_path":format!("/v2/tasks/{id}/reports/{quote}/report.pdf?owner={owner}&snapshot={snapshot}&expires={expires}&signature={signature}")}),
+            "download_path":format!("/v2/tasks/{id}/reports/{quote}/report.pdf?owner={owner}&snapshot={snapshot}&expires={expires}&signature={signature}"),
+            "evidence_download_path":format!("/v2/tasks/{id}/reports/{quote}/evidence.zip?owner={owner}&snapshot={snapshot}&expires={expires}&signature={signature}")}),
         )
     }
 }
 
-fn wrap(s: &str) -> String {
+pub(crate) fn wrap(s: &str) -> String {
     let mut run = 0;
     let mut text = String::new();
     for c in s.chars() {
@@ -239,25 +240,26 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         ))?,
     };
     let mut doc = genpdf::Document::new(family);
-    doc.set_title("Apiosk - Onderzoeksrapport");
+    doc.set_title("Apiosk - Research report");
     doc.set_font_size(10);
+    doc.set_line_spacing(1.15);
     let mut decorator = genpdf::SimplePageDecorator::new();
     decorator.set_margins(18);
     decorator.set_header(|p| {
         Paragraph::new(format!(
-            "APIOSK  /  ONDERZOEK                                            Pagina {p}"
+            "APIOSK  /  RESEARCH                                            Page {p}"
         ))
         .styled(Style::new().with_font_size(8))
         .padded(genpdf::Margins::trbl(0, 0, 6, 0))
     });
     doc.set_page_decorator(decorator);
-    heading(&mut doc, "Onderzoeksrapport", 24);
+    heading(&mut doc, "Research report", 24);
     paragraph(&mut doc, document["question"].as_str().unwrap_or(""));
-    paragraph(&mut doc,"Samengesteld uit opgeslagen brongegevens. Brondata en analyse worden hieronder afzonderlijk vermeld. Dit is geen accountantsverklaring of bewijs van eigendom; ontbrekende waarden zijn niet nul.");
+    paragraph(&mut doc,"Prepared from saved source evidence. Findings and underlying records are presented separately. Missing figures are not zero; this report is not an audit or a title certificate.");
     if document["analysis"]["status"] == "partial" {
-        heading(&mut doc, "Onvolledig onderzoek", 14);
+        heading(&mut doc, "Evidence gaps remain", 14);
     }
-    heading(&mut doc, "Samenvatting en analyse", 18);
+    heading(&mut doc, "Findings and conclusion", 18);
     for observation in document["analysis"]["observations"]
         .as_array()
         .context("missing observations")?
@@ -285,7 +287,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
             paragraph(
                 &mut doc,
                 &format!(
-                    "Bron: {} | {} | {}: {}",
+                    "Evidence: {} | {} | {}: {}",
                     source_name(d),
                     d["subject"]["label"].as_str().unwrap_or(""),
                     label(evidence["field"].as_str().unwrap_or(pointer)),
@@ -294,33 +296,36 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
             );
             doc.push(
                 Paragraph::new(wrap(&format!(
-                    "Opgehaald: {}",
+                    "Retrieved: {}",
                     d["source"]["retrieved_at"]
                         .as_str()
-                        .unwrap_or("Niet vermeld")
+                        .unwrap_or("Not recorded")
                 )))
                 .styled(Style::new().with_font_size(8)),
             );
         }
         doc.push(Break::new(0.5));
     }
-    heading(&mut doc, "Beperkingen", 16);
+    heading(&mut doc, "Information gaps and follow-up", 16);
     for item in document["analysis"]["limitations"]
         .as_array()
         .context("missing limitations")?
     {
         paragraph(&mut doc, item.as_str().unwrap_or(""));
     }
-    paragraph(&mut doc,"Eenheid, valuta, boekjaar en reikwijdte gelden uitsluitend zoals de bron ze vermeldt. Locatiegegevens beschrijven een adres of gebied en bewijzen geen eigendom of bedrijfsactiviteit ter plaatse.");
+    paragraph(&mut doc,"Units, currency, reporting year and scope are retained as supplied. Location records identify an address or area; they do not establish ownership or business activity at that site.");
+    crate::report_visuals::source_index(&mut doc, document)?;
+    crate::report_visuals::sections(&mut doc, document)?;
     doc.push(genpdf::elements::PageBreak::new());
-    heading(&mut doc, "Bronnen en onderliggende gegevens", 20);
-    paragraph(&mut doc,"Hieronder staat een selectie van bronvelden die het onderzoek onderbouwen. De volledige bronresponsen blijven beschikbaar in de opgeslagen taak.");
-    for source in document["sources"].as_array().context("missing sources")? {
+    heading(&mut doc, "Source records", 20);
+    paragraph(&mut doc,"Selected source fields are listed below. Complete saved responses and captured files are included in the evidence bundle.");
+    for (index, source) in document["sources"].as_array().context("missing sources")?.iter().enumerate() {
+        if index > 0 { doc.push(genpdf::elements::PageBreak::new()); }
         let d = &source["document"];
         heading(
             &mut doc,
             &format!(
-                "Brongegevens: {} - {}",
+                "Source: {} - {}",
                 source_name(d),
                 d["subject"]["label"].as_str().unwrap_or("")
             ),
@@ -333,13 +338,13 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
         }
         paragraph(
             &mut doc,
-            &format!("Resultaatreferentie: {}", scalar(&source["result_ref"])),
+            &format!("Result reference: {}", scalar(&source["result_ref"])),
         );
         if d["coverage"] == "partial" {
             paragraph(
                 &mut doc,
                 &format!(
-                    "Onvolledige bronrespons: {} {}",
+                    "Partial source response: {} {}",
                     d["missing_fields"], d["coverage_note"]
                 ),
             );
@@ -350,10 +355,55 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
             paragraph(&mut doc, &format!("{}: {value}", label(key)));
         }
         if rows.len() == 500 {
-            paragraph(&mut doc,"Deze bronbijlage toont maximaal vijfhonderd velden. De volledige bronrespons blijft beschikbaar in de opgeslagen taak.");
+            paragraph(&mut doc,"This appendix shows at most five hundred fields per source. Complete saved responses are available in the evidence bundle.");
         }
     }
     let mut bytes = Vec::new();
     doc.render(&mut bytes)?;
     Ok(bytes)
+}
+
+/// The same signed immutable snapshot as the PDF. No network calls or purchases.
+pub fn evidence_bundle(document: &Value) -> anyhow::Result<Vec<u8>> {
+    use std::io::{Cursor, Write};
+    let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    let options =
+        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    zip.start_file("report.pdf", options)?;
+    zip.write_all(&render(document)?)?;
+    let mut manifest = document.clone();
+    let sources = document["sources"].as_array().context("missing sources")?;
+    let mut total = 0;
+    for (i, source) in sources.iter().enumerate() {
+        let d = &source["document"];
+        let public = crate::report_assets::public_document(d);
+        manifest["sources"][i]["document"] = public.clone();
+        zip.start_file(format!("sources/S{:02}.json", i + 1), options)?;
+        zip.write_all(&serde_json::to_vec_pretty(&public)?)?;
+        if let Some(assets) = d[crate::report_assets::KEY]["assets"].as_array() {
+            for (n, a) in assets.iter().enumerate() {
+                let bytes = crate::report_assets::bytes(a)?;
+                total += bytes.len();
+                ensure!(
+                    total <= 64 * 1024 * 1024,
+                    "evidence bundle exceeds capacity"
+                );
+                let ext = match a["mime_type"].as_str() {
+                    Some("image/png") => "png",
+                    Some("application/pdf") => "pdf",
+                    _ => anyhow::bail!("unsupported saved artifact"),
+                };
+                let name = format!("evidence/S{:02}-{:02}.{ext}", i + 1, n + 1);
+                manifest["sources"][i]["document"][crate::report_assets::KEY]["assets"][n]
+                    ["bundle_path"] = json!(name);
+                zip.start_file(name, options)?;
+                zip.write_all(&bytes)?;
+            }
+        }
+    }
+    zip.start_file("manifest.json", options)?;
+    zip.write_all(&serde_json::to_vec_pretty(&manifest)?)?;
+    zip.start_file("README.txt", options)?;
+    zip.write_all(b"Apiosk evidence bundle\n\nreport.pdf: source-backed research report.\nsources/: saved source results, not newly purchased data.\nevidence/: captured official maps and available original PDFs.\nmanifest.json: source URLs, retrieval dates, evidence pointers and SHA-256 file digests.\n\nMap outlines do not establish ownership or mortgage status. Missing soil records do not establish clean soil. Report limitations remain applicable. No new source calls occur on download.\n")?;
+    Ok(zip.finish()?.into_inner())
 }

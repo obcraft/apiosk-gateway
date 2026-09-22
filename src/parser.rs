@@ -528,6 +528,7 @@ impl Parser {
         let (max_observations, max_limitations) = if workflow { (24, 12) } else { (8, 6) };
         let mut projected = sources.to_vec();
         for source in &mut projected {
+            source["document"] = crate::report_assets::public_document(&source["document"]);
             // Geometry dominates GeoJSON size but contributes no demographic
             // evidence. Preserve property paths and validate against originals.
             if let Some(features) = source

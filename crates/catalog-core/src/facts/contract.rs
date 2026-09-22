@@ -151,6 +151,9 @@ pub struct InputBinding {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrap: Option<String>,
+    /// Reviewed fallback for an optional input, never a subject identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
 }
 
 /// A fact this contract needs before its node can be scheduled.
@@ -382,6 +385,20 @@ impl ExecutionContract {
             let valid_location = matches!(location, "query" | "body" | "path" | "path_append");
             if location == "path_append" {
                 path_appends += 1;
+            }
+            if let Some(value) = &binding.default {
+                if !self
+                    .requires
+                    .iter()
+                    .any(|r| r.fact_type == *kind && r.optional)
+                    || types
+                        .get(kind)
+                        .is_none_or(|ft| schema::validate(&ft.value_schema, value).is_err())
+                {
+                    return Err(ContractError::InvalidInputs {
+                        detail: "invalid optional input default".into(),
+                    });
+                }
             }
             if !kinds.contains(kind)
                 || !valid_location
@@ -991,6 +1008,7 @@ mod tests {
                 location: Some("path".to_string()),
                 name: "lat".to_string(),
                 wrap: None,
+                default: None,
             },
         );
         named.input_map.insert(
@@ -999,6 +1017,7 @@ mod tests {
                 location: Some("path".to_string()),
                 name: "lon".to_string(),
                 wrap: None,
+                default: None,
             },
         );
         assert!(named.check(&vocabulary()).is_ok());

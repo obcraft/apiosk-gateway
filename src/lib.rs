@@ -17,6 +17,8 @@ pub mod parser;
 pub mod typesafe;
 pub mod annual_report;
 pub mod research_report;
+pub mod report_assets;
+mod report_visuals;
 pub mod protocol;
 pub mod resolver;
 pub mod server;
