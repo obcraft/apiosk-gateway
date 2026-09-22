@@ -70,7 +70,7 @@ mod tests {
         let plan = Plan {
             quote_ref: Uuid::new_v4(),
             steps: vec![resolver::Step {service, entity_ref: subject, goal_index: 0}],
-            cap_atomic: 100, expires_at: Utc::now(), hash: "fixture".into(),
+            cap_atomic: 100, expires_at: Utc::now() + chrono::Duration::minutes(10), hash: "fixture".into(),
             fee_bps: 1500, workflow_slug: None,
         };
         (task, plan)
@@ -153,5 +153,24 @@ mod tests {
         assert!(task.pending_candidates.is_empty());
         assert_eq!(task.actions.len(), 1);
         assert_eq!(task.actions[0]["kind"], "analyze");
+        // Expiry allows a free partial answer, never another paid call, while
+        // an already dispatched receipt remains pollable under its original ID.
+        let (mut expired, mut plan) = setup();
+        plan.expires_at = Utc::now() - chrono::Duration::minutes(1);
+        expired.proposal = Some(serde_json::to_value(&plan).unwrap());
+        expired.active_results.push(Uuid::new_v4());
+        expired.intent = Some(json!({"answer_operations":["Summarize saved evidence"]}));
+        expired.pending_dispatches.push(crate::state::PendingDispatch {
+            step:0, action_id:Uuid::new_v4(), inputs:json!({}),
+        });
+        engine.advance(&mut expired).unwrap();
+        assert!(expired.failed_steps.is_empty());
+        assert_eq!(expired.actions.len(),1);
+        assert_eq!(expired.actions[0]["kind"],"poll");
+        expired.pending_dispatches.clear();
+        engine.advance(&mut expired).unwrap();
+        assert_eq!(expired.failed_steps[&plan.steps[0].key()]["code"],"quote_expired");
+        assert_eq!(expired.actions.len(),1);
+        assert_eq!(expired.actions[0]["kind"],"analyze");
     }
 }

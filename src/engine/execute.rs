@@ -460,6 +460,20 @@ impl Engine {
                 .clone()
                 .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
         )?;
+        // An expired spending window must not strand purchased evidence behind
+        // another approval. Finish a partial report; pending receipts are still
+        // recoverable, while unstarted sources are explicitly unavailable.
+        if plan.expires_at <= Utc::now() && !task.active_results.is_empty() {
+            for (index, step) in plan.steps.iter().enumerate() {
+                if !task.step_finished(&step.key())
+                    && !task.pending_dispatches.iter().any(|pending| pending.step == index) {
+                    task.failed_steps.insert(step.key(), json!({
+                        "code":"quote_expired",
+                        "message":"This source was not requested before the approved spending window expired. The report uses saved results only."
+                    }));
+                }
+            }
+        }
         let choice = selection::pending_choice(task, &plan);
         task.actions.clear();
         if !task.cancelled {
