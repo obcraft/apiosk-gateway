@@ -126,6 +126,77 @@ fn source_requirement_is_never_silently_relaxed() {
         .insert("source".into(), json!("unavailable"));
     assert!(matches!(resolve(&c, &t, &i), Resolution::Unsupported(_)));
 }
+
+#[test]
+fn named_source_uses_its_own_identifier_search_before_a_cheaper_reseller() {
+    let (mut catalog, task, mut intent) = setup();
+    for s in &mut catalog.services { s.api_slug = "companies-house".into(); }
+    let mut reseller = catalog.services[0].clone();
+    reseller.id = Uuid::new_v4();
+    reseller.api_slug = "sirenic".into();
+    reseller.list_atomic = 1;
+    // Sirenic's EU search may return a GB ID, but not for every result.
+    reseller.optional_outputs = vec!["company.id".into()];
+    let index = catalog.services.len();
+    catalog.services.push(reseller);
+    catalog.by_output.get_mut("company.id").unwrap().insert(0, index);
+    intent.goals[0].constraints.insert("source".into(), json!("companies-house"));
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("expected source plan") };
+    assert_eq!(plan.steps.len(), 2);
+    assert!(plan.steps.iter().all(|s| s.service.api_slug == "companies-house"));
+}
+
+#[test]
+fn planned_optional_output_does_not_replace_the_named_sources_identifier_search() {
+    let (mut catalog, task, mut intent) = setup();
+    for s in &mut catalog.services { s.api_slug = "companies-house".into(); }
+    let mut reseller = catalog.services[0].clone();
+    reseller.id = Uuid::new_v4();
+    reseller.api_slug = "sirenic".into();
+    reseller.contract.capability_slug = "company.eu-search".into();
+    reseller.optional_outputs = vec!["company.id".into()];
+    let index = catalog.services.len();
+    catalog.services.push(reseller);
+    catalog.by_capability.insert("company.eu-search".into(), vec![index]);
+    catalog.by_output.get_mut("company.id").unwrap().push(index);
+    intent.goals.insert(0, Goal { subject: 0, capability: "company.eu-search".into(), constraints: BTreeMap::from([("source".into(), json!("sirenic"))]) });
+    intent.goals[1].constraints.insert("source".into(), json!("companies-house"));
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("expected source plan") };
+    assert_eq!(plan.steps.len(), 3);
+    assert_eq!(plan.steps.iter().filter(|s| s.service.api_slug == "companies-house").count(), 2);
+}
+
+#[test]
+fn unavailable_native_dependency_does_not_fall_back_to_another_source() {
+    let (mut catalog, task, mut intent) = setup();
+    for s in &mut catalog.services { s.api_slug = "companies-house".into(); }
+    let mut reseller = catalog.services[0].clone();
+    reseller.id = Uuid::new_v4();
+    reseller.api_slug = "sirenic".into();
+    reseller.list_atomic = 1;
+    let index = catalog.services.len();
+    catalog.services.push(reseller);
+    catalog.by_output.get_mut("company.id").unwrap().push(index);
+    catalog.services[0].contract.requires[0].fact_type = "missing.native.input".into();
+    intent.goals[0].constraints.insert("source".into(), json!("companies-house"));
+    assert!(!matches!(resolve(&catalog, &task, &intent), Resolution::Plan(_)));
+}
+
+#[test]
+fn companies_house_fixture_quotes_its_native_search_and_filing_history() {
+    let snapshot: Snapshot = serde_json::from_str(include_str!("fixtures/uk-supplier/catalog.json")).unwrap();
+    let catalog = Catalog::build(snapshot);
+    let (_, mut task, mut intent) = setup();
+    task.facts[0].value = json!("Revolut");
+    intent.subjects[0].label = "Revolut".into();
+    intent.goals[0].capability = "company.filing-history".into();
+    intent.goals[0].constraints.insert("source".into(), json!("companies-house"));
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("expected Companies House plan") };
+    assert_eq!(plan.steps.len(), 2);
+    assert!(plan.steps.iter().all(|s| s.service.api_slug == "companies-house"));
+    assert_eq!(plan.steps[0].service.contract.capability_slug, "company.uk-registry-search");
+    assert_eq!(plan.steps[1].service.contract.capability_slug, "company.filing-history");
+}
 #[test]
 fn conflicting_identifier_is_not_last_value_wins() {
     let (c, mut t, i) = setup();

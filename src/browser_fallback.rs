@@ -214,6 +214,17 @@ pub fn empty_records(step: &Step, data: &Value) -> bool {
     if data.is_null() {
         return true;
     }
+    // An empty Companies House PSC register is a valid register response,
+    // not a source failure or permission to buy a web fallback. It does not
+    // establish that the company has no owners.
+    if step.service.api_slug == "companies-house"
+        && step.service.contract.capability_slug == "company.significant-control"
+        && data["items"].as_array().is_some_and(Vec::is_empty)
+        && data["total_results"].as_u64() == Some(0)
+        && data["start_index"].as_u64() == Some(0)
+    {
+        return false;
+    }
     if let Some(rows) = data.as_array() {
         return rows.is_empty();
     }
@@ -377,5 +388,20 @@ pub(crate) mod tests {
         assert!(!empty_records(&step, &json!({"revenue":0})));
         step.service.contract.capability_slug = "company.sanctions-screen".into();
         assert!(!empty_records(&step, &json!({"results":[],"matches":0})));
+    }
+
+    #[test]
+    fn confirmed_empty_companies_house_psc_register_is_not_a_source_failure() {
+        let (_, _, _, plan) = fixture();
+        let mut step = plan.steps[0].clone();
+        step.service.api_slug = "companies-house".into();
+        step.service.contract.capability_slug = "company.significant-control".into();
+        let empty = json!({"items":[],"total_results":0,"start_index":0});
+        assert!(!empty_records(&step, &empty));
+        assert!(empty_records(&step, &json!({"items":[],"total_results":3,"start_index":0})));
+        assert!(empty_records(&step, &json!({"items":[]})));
+        assert!(empty_records(&step, &Value::Null));
+        step.service.api_slug = "other-source".into();
+        assert!(empty_records(&step, &empty));
     }
 }

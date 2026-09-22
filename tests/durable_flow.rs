@@ -121,10 +121,11 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
     let constraints = match input["question"].as_str() {
         Some("Period Example 2024 en 2025") => json!({"period":"2024 en 2025"}),
         Some("Alias Example") => json!({"source":"Fixture registry"}),
+        Some("Named-source Example") => json!({"source":"fixture"}),
         _ => json!({}),
     };
     Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
+        json!({"choices":[{"message":{"content":json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"] == "Named-source Example" {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]}).to_string()}}]}),
     )
 }
 async fn provider(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<Value> {
@@ -2113,6 +2114,52 @@ async fn durable_flow_and_authorization_boundary() {
         .unwrap();
     assert!(store.load_scoped(&scoped, scoped_id).await.is_err());
     println!("Workspace task mismatch, immutable saved payer, and removed-member reads refused.");
+
+    // A cheaper reseller must not displace the requested provider's own
+    // identifier lookup. Exercise quote -> one approval -> actual dispatch
+    // records -> cited analysis -> saved recovery against the isolated DB.
+    let reseller = Uuid::new_v4();
+    let reseller_endpoint = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.apis(id,slug,name,listing_type,status,active,is_verified,discoverable) VALUES($1,'reseller','Cheaper reseller','api','active',true,true,true)")
+        .bind(reseller).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.api_endpoints(id,api_id,method,path,price,active) VALUES($1,$2,'GET','/search',0.000001,true)")
+        .bind(reseller_endpoint).bind(reseller).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) SELECT $1,$2,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model FROM public.capability_execution_contracts WHERE capability_slug='company.search' LIMIT 1")
+        .bind(reseller).bind(reseller_endpoint).execute(&pool).await.unwrap();
+    multi.catalog.fresh().await.unwrap();
+    let named_person = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+    let before = counts.provider.load(Ordering::Relaxed);
+    let mut named = multi.discover(&named_person, DiscoverRequest {
+        request_id: Uuid::new_v4(), question: "Named-source Example".into(), state: None, context_delta: Default::default(),
+    }).await.unwrap();
+    assert_eq!(named.status, Status::Ready);
+    let named_task = named.state.as_ref().unwrap().state_ref;
+    let quote = named.proposal.as_ref().unwrap();
+    assert_eq!(quote.max_total_atomic, "138");
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before);
+    assert_eq!(multi.execute(&named_person, "fixture", execution(&named)).await.unwrap().status, Status::RequiresApproval);
+    multi.executor.approve(&named_person, named_task, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+    for _ in 0..8 {
+        if named.status == Status::Succeeded { break; }
+        let action = named.next_actions.iter().find(|a| matches!(a.kind.as_str(), "execute_quoted_step" | "poll")).unwrap();
+        let request = ExecuteRequest { request_id: Uuid::new_v4(), action_id: action.action_id,
+            state: named.state.clone().unwrap(), quote_ref: named.proposal.as_ref().map(|p| p.quote_ref),
+            authorization_ref: None, idempotency_key: action.action_id, input: Value::Null };
+        named = multi.execute(&named_person, "fixture", request.clone()).await.unwrap();
+        let dispatched = counts.provider.load(Ordering::Relaxed);
+        multi.execute(&named_person, "fixture", request).await.unwrap();
+        assert_eq!(counts.provider.load(Ordering::Relaxed), dispatched);
+    }
+    assert_eq!(named.status, Status::Succeeded, "{:?}", named.errors);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 2);
+    let providers: Vec<String> = sqlx::query_scalar("SELECT s.api_slug FROM public.user_selected_apis s JOIN gateway_v2.executions e ON e.selection_id=s.id WHERE e.task_id=$1")
+        .bind(named_task).fetch_all(&pool).await.unwrap();
+    assert_eq!(providers, vec!["fixture", "fixture"]);
+    assert!(!named.context_view["analysis"]["observations"].as_array().unwrap().is_empty());
+    let saved = multi.view(&named_person, named_task, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(saved.context_view["analysis"], named.context_view["analysis"]);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), before + 2);
+    println!("Named source: native identifier lookup, one approval, two source calls, cited analysis and saved recovery; no reseller dispatch.");
 
     api_server.abort();
     println!(

@@ -224,6 +224,29 @@ fn decode_intent(raw: &str) -> anyhow::Result<Intent> {
     }
     Ok(serde_json::from_value(value)?)
 }
+
+/// Fixed classifications only: model output and user values never enter logs.
+fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
+    match error.to_string().as_str() {
+        "parser invented a value" => "non_literal_input",
+        "subject label must be explicit in question" => "non_literal_subject",
+        "unknown entity reference" => "unknown_entity",
+        "unknown input type" => "unknown_input_type",
+        "explicit values must be scalar literals" => "non_scalar_input",
+        "invalid subject index" => "invalid_subject_index",
+        "invalid intent size" => "invalid_intent_size",
+        _ => "invalid_intent_schema",
+    }
+}
+
+fn intent_repair_message(surface: &str, reason: &str) -> String {
+    let shape = if surface == "chat" {
+        "Return the chat envelope with message, discover and intent; place the corrected intent inside intent."
+    } else {
+        "Return only the Intent object with subjects, goals, answer_operations and unresolved_references."
+    };
+    format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and eight goals.")
+}
 /// App-only conversational routing; never an executable action or approval.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -821,6 +844,14 @@ impl Parser {
                                             return Err(ModelFailure::Unsupported.into());
                                         }
                                         Err(error) => {
+                                            if surface == "intent" || surface == "chat" {
+                                                let reason = intent_validation_reason(&error);
+                                                tracing::warn!(surface, attempt, reason, "intent validation failed");
+                                                if let Some(messages) = attempt_payload["messages"].as_array_mut() {
+                                                    messages.push(json!({"role":"assistant","content":raw}));
+                                                    messages.push(json!({"role":"user","content":intent_repair_message(surface, reason)}));
+                                                }
+                                            }
                                             if surface == "planning" {
                                                 // Fixed diagnostics only; never log model text or user facts.
                                                 let reason = match error.to_string().as_str() {
@@ -921,7 +952,7 @@ impl Parser {
             &catalog.version,
             &self.model,
             self.typesafe.as_ref().map(|client| client.fingerprint()),
-            "parser-v2.4",
+            "parser-v2.6",
         ));
         let intent=self.cache.try_get_with(key,async {
             self.calls.fetch_add(1,Ordering::Relaxed);
@@ -1111,19 +1142,29 @@ mod tests {
     async fn model_fixture(
         responses: Vec<(u16, Value)>,
     ) -> (Parser, Arc<AtomicU64>, tokio::task::JoinHandle<()>) {
+        let (parser, calls, server, _) = model_fixture_with_requests(responses).await;
+        (parser, calls, server)
+    }
+
+    async fn model_fixture_with_requests(
+        responses: Vec<(u16, Value)>,
+    ) -> (Parser, Arc<AtomicU64>, tokio::task::JoinHandle<()>, Arc<std::sync::Mutex<Vec<Value>>>) {
         use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
         use std::{collections::VecDeque, sync::Mutex};
-        type ModelState = (Arc<Mutex<VecDeque<(u16, Value)>>>, Arc<AtomicU64>);
+        type ModelState = (Arc<Mutex<VecDeque<(u16, Value)>>>, Arc<AtomicU64>, Arc<Mutex<Vec<Value>>>);
         let calls = Arc::new(AtomicU64::new(0));
+        let requests = Arc::new(Mutex::new(Vec::new()));
         let state = (
             Arc::new(Mutex::new(VecDeque::from(responses))),
             calls.clone(),
+            requests.clone(),
         );
         let app = Router::new()
             .route(
                 "/",
-                post(|State((queue, calls)): State<ModelState>| async move {
+                post(|State((queue, calls, requests)): State<ModelState>, Json(request): Json<Value>| async move {
                     calls.fetch_add(1, Ordering::Relaxed);
+                    requests.lock().unwrap().push(request);
                     let (status, body) = queue
                         .lock()
                         .unwrap()
@@ -1145,7 +1186,50 @@ mod tests {
             ),
             calls,
             server,
+            requests,
         )
+    }
+
+    #[tokio::test]
+    async fn non_literal_intent_retries_with_feedback_without_relaxing_validation() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let question = "Find European fintech funding and expansion signals";
+        let task = Task::default();
+        let valid = json!({
+            "subjects":[{"entity_ref":null,"label":"European fintech funding and expansion signals","values":{"company.name":"European fintech funding and expansion signals"}}],
+            "goals":[{"subject":0,"capability":"company.accounts","constraints":{}}],
+            "answer_operations":[],"unresolved_references":[]
+        });
+        let mut invalid = valid.clone();
+        invalid["subjects"][0]["values"]["company.name"] = json!("European fintech funding expansion");
+        let envelope = |intent: &Value| json!({"choices":[{"finish_reason":"stop","message":{"content":intent.to_string()}}]});
+        for corrected in [true, false] {
+            let second = if corrected { &valid } else { &invalid };
+            let (parser, calls, server, requests) = model_fixture_with_requests(vec![
+                (200, envelope(&invalid)), (200, envelope(second)),
+            ]).await;
+            let result = parser.parse(Uuid::new_v4(), question, &task, &catalog).await;
+            assert_eq!(result.is_ok(), corrected);
+            assert_eq!(calls.load(Ordering::Relaxed), 2);
+            let requests = requests.lock().unwrap();
+            let messages = requests[1]["messages"].as_array().unwrap();
+            assert_eq!(messages[messages.len()-2]["content"], invalid.to_string());
+            let feedback = messages.last().unwrap()["content"].as_str().unwrap();
+            assert!(feedback.contains("non_literal_input"));
+            assert!(feedback.contains("exact contiguous text"));
+            assert!(feedback.contains("Preserve every requested retrieval"));
+            assert_eq!(requests[0]["messages"][1], requests[1]["messages"][1]);
+            server.abort();
+        }
+    }
+
+    #[test]
+    fn intent_diagnostics_are_fixed_and_chat_repair_preserves_envelope() {
+        let error = anyhow::anyhow!("secret user value from model output");
+        assert_eq!(intent_validation_reason(&error), "invalid_intent_schema");
+        let repair = intent_repair_message("chat", "non_literal_input");
+        assert!(repair.contains("message, discover and intent"));
+        assert!(!repair.contains("secret user value"));
     }
 
     #[tokio::test]

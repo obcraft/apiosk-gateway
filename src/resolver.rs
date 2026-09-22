@@ -185,11 +185,14 @@ fn annual_period(value: &Value) -> bool {
     let years: Vec<_> = normalized.split(|c: char| c=='-' || c=='–' || c==',' || c.is_whitespace()).filter(|s| !s.is_empty()).collect();
     !years.is_empty() && years.len() <= 2 && years.iter().all(|s| s.len()==4 && s.bytes().all(|b| b.is_ascii_digit()) && s.parse::<u16>().is_ok_and(|y| (2005..=2100).contains(&y)))
 }
+fn matches_source(service: &Service, source: &str, catalog: &Catalog) -> bool {
+    source == service.api_slug
+        || (source == "pulsenetwork" && catalog.known_sources.iter().any(|s|
+            s.slug == service.api_slug && s.metadata.provider_slug.as_deref() == Some(source)))
+}
 fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
     constraints.iter().all(|(k, v)| match k.as_str() {
-        "source" => v.as_str() == Some(service.api_slug.as_str())
-            || (v.as_str() == Some("pulsenetwork") && catalog.known_sources.iter().any(|s|
-                s.slug == service.api_slug && s.metadata.provider_slug.as_deref() == Some("pulsenetwork"))),
+        "source" => v.as_str().is_some_and(|source| matches_source(service, source, catalog)),
         "jurisdiction" => v
             .as_str()
             .zip(service.jurisdiction.as_deref())
@@ -251,6 +254,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
                 service,
                 entity,
                 goal_index,
+                goal.constraints.get("source").and_then(Value::as_str),
                 &mut trial,
                 &mut visiting,
                 0,
@@ -320,6 +324,7 @@ fn add(
     service: &Service,
     entity: Uuid,
     goal: usize,
+    requested_source: Option<&str>,
     steps: &mut Vec<Step>,
     visiting: &mut BTreeSet<Uuid>,
     depth: usize,
@@ -344,21 +349,33 @@ fn add(
             Err(e) => return Err(e.to_string()),
             _ => (),
         }
-        if steps.iter().any(|s| {
-            s.entity_ref == entity
-                && s.service
-                    .contract
-                    .output_map
-                    .produces
-                    .contains_key(&req.fact_type)
-        }) {
-            continue;
-        }
         let mut candidates = catalog
             .by_output
             .get(&req.fact_type)
             .cloned()
             .unwrap_or_default();
+        // A named source's native lookup must not be replaced by a cheaper
+        // reseller. Keep this restriction even if the native chain cannot be
+        // resolved: another provider is not an automatic fallback. Distinct
+        // cross-source bridges (e.g. registry address -> PDOK map) remain
+        // available where the named source has no producer for that input.
+        let native_source = requested_source.filter(|source| candidates.iter()
+            .any(|index| matches_source(&catalog.services[*index], source, catalog)));
+        candidates.retain(|index| native_source.is_none_or(|source|
+            matches_source(&catalog.services[*index], source, catalog)));
+        // Country-specific IDs in a pan-European response are conditional.
+        // They cannot displace a contract that actually returns the needed ID.
+        let guaranteed = candidates.iter().any(|index|
+            !catalog.services[*index].optional_outputs.contains(&req.fact_type));
+        if guaranteed {
+            candidates.retain(|index| !catalog.services[*index].optional_outputs.contains(&req.fact_type));
+        }
+        if steps.iter().any(|s| s.entity_ref == entity
+            && s.service.contract.output_map.produces.contains_key(&req.fact_type)
+            && !s.service.optional_outputs.contains(&req.fact_type)
+            && native_source.is_none_or(|source| matches_source(&s.service, source, catalog))) {
+            continue;
+        }
         // Try grounded bridges before circular name searches. Cheap but
         // unresolved alternatives must not exhaust the budget before a direct
         // lookup using an already-known identifier is considered.
@@ -380,6 +397,7 @@ fn add(
                 &catalog.services[index],
                 entity,
                 goal,
+                requested_source,
                 &mut trial,
                 &mut seen,
                 depth + 1,
