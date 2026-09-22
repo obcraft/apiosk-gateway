@@ -2,7 +2,7 @@
 use crate::report_assets;
 use anyhow::Context;
 use genpdf::{
-    elements::{Break, FrameCellDecorator, Image, PageBreak, Paragraph, TableLayout},
+    elements::{Break, Image, PageBreak, Paragraph},
     style::{Color, Style},
     Element,
 };
@@ -19,7 +19,7 @@ fn title(doc: &mut genpdf::Document, s: &str) {
             Style::new()
                 .bold()
                 .with_font_size(18)
-                .with_color(Color::Rgb(0, 80, 103)),
+                .with_color(Color::Rgb(29, 35, 48)),
         ),
     );
     doc.push(Break::new(0.5));
@@ -37,45 +37,6 @@ fn strv(v: &Value) -> String {
     v.as_str()
         .map(str::to_owned)
         .unwrap_or_else(|| v.to_string())
-}
-
-pub fn source_index(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<()> {
-    title(doc, "Evidence coverage");
-    let mut table = TableLayout::new(vec![1, 5, 3]);
-    table.set_cell_decorator(FrameCellDecorator::new(true, true, false));
-    table
-        .row()
-        .element(Paragraph::new("Ref").styled(Style::new().bold()))
-        .element(Paragraph::new("Source").styled(Style::new().bold()))
-        .element(Paragraph::new("Coverage").styled(Style::new().bold()))
-        .push()?;
-    for (i, s) in document["sources"]
-        .as_array()
-        .context("missing sources")?
-        .iter()
-        .enumerate()
-    {
-        let d = &s["document"];
-        let provider = d["source"]["provider"].as_str().unwrap_or("Source");
-        let status = match d["coverage"].as_str() {
-            Some("partial") => "Partial",
-            Some("empty") => "No records returned",
-            _ => "Source returned",
-        };
-        table
-            .row()
-            .element(Paragraph::new(format!("S{}", i + 1)).padded(2))
-            .element(Paragraph::new(provider.replace('-', " ")).padded(2))
-            .element(
-                Paragraph::new(status)
-                    .styled(Style::new().with_font_size(9))
-                    .padded(2),
-            )
-            .push()?;
-    }
-    doc.push(table);
-    small(doc,"A returned source is not a passed check. Missing title, mortgage, soil or sanctions evidence must remain unresolved.");
-    Ok(())
 }
 
 // Only unambiguous top-level filing facts with an explicit currency and year
@@ -194,7 +155,7 @@ impl Element for Bars {
             let color = if *v < 0.0 {
                 Color::Rgb(174, 63, 62)
             } else {
-                Color::Rgb(0, 104, 126)
+                Color::Rgb(96, 70, 218)
             };
             for line in 0..12 {
                 let yy = y + 8.0 + line as f64 * 0.3;
@@ -228,6 +189,7 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
         if let Some(chart) = financial_chart(&d["data"]) {
             doc.push(PageBreak::new());
             title(doc, "Financial position");
+            crate::report_layout::source_badge(doc, d, &format!("S{}", i + 1))?;
             text(
                 doc,
                 format!(
@@ -244,9 +206,15 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
                 values: chart.values,
                 done: false,
             });
-            small(doc,format!("Evidence: S{} /data/opendataFields. Currency, year and values are taken from the same filing.",i+1));
+            small(
+                doc,
+                format!(
+                    "Source S{}. Currency, year and values are taken from the same filing.",
+                    i + 1
+                ),
+            );
         } else if crate::annual_report::eligible(d) {
-            text(doc,format!("S{}: financial chart unavailable: the saved filing does not provide unambiguous comparable amounts, currency and period. See the source appendix for the original fields.",i+1));
+            text(doc,format!("S{}: financial chart unavailable: the saved filing does not provide unambiguous comparable amounts, currency and period. The original fields are retained in the evidence bundle.",i+1));
         }
         if let Some(assets) = d[report_assets::KEY]["assets"].as_array() {
             for a in assets {
@@ -256,10 +224,14 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
                 let bytes = report_assets::bytes(a)?;
                 let reader = image::io::Reader::new(Cursor::new(&bytes)).with_guessed_format()?;
                 let dims = reader.into_dimensions()?;
-                anyhow::ensure!(matches!(dims, (1000, 625) | (1000, 1000)), "invalid saved map dimensions");
+                anyhow::ensure!(
+                    matches!(dims, (1000, 625) | (1000, 1000)),
+                    "invalid saved map dimensions"
+                );
                 let rgb = image::load_from_memory(&bytes)?.to_rgb8();
                 doc.push(PageBreak::new());
                 title(doc, a["name"].as_str().unwrap_or("Map"));
+                crate::report_layout::source_badge(doc, d, &format!("S{}", i + 1))?;
                 text(doc, a["address"].as_str().unwrap_or(""));
                 small(
                     doc,
@@ -267,80 +239,23 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
                         "S{} | {} | {}",
                         i + 1,
                         a["attribution"].as_str().unwrap_or(""),
-                        a["retrieved_at"].as_str().unwrap_or("")
+                        crate::report_layout::date(a["retrieved_at"].as_str().unwrap_or(""))
                     ),
                 );
                 doc.push(Break::new(0.8));
                 doc.push(MarkedMap(
                     Image::from_dynamic_image(image::DynamicImage::ImageRgb8(rgb))?
-                        .with_dpi(if dims.1 == 1000 {175.0} else {150.0})
+                        .with_dpi(if dims.1 == 1000 { 175.0 } else { 150.0 })
                         .with_alignment(genpdf::Alignment::Center),
                     a["center"].is_array(),
                 ));
                 doc.push(Break::new(0.5));
                 text(doc, a["scope"].as_str().unwrap_or(""));
-                small(
-                    doc,
-                    format!(
-                        "Address-coordinate evidence: S{} {}",
-                        i + 1,
-                        a["evidence_pointer"].as_str().unwrap_or("")
-                    ),
-                );
-                small(
-                    doc,
-                    format!("SHA-256: {}", a["sha256"].as_str().unwrap_or("")),
-                );
-                small(doc,"The original PNG and its exact source URL are included in the evidence bundle.");
+                small(doc,"The original map image, retrieval details and source link are included in the evidence bundle.");
             }
         }
     }
-    doc.push(PageBreak::new());
-    title(doc, "Documents and evidence");
-    text(doc,"The evidence bundle contains the saved source responses, captured map images and available original PDF files. A missing file is not a completed investigation.");
-    for (i, s) in sources.iter().enumerate() {
-        let d = &s["document"];
-        text(
-            doc,
-            format!(
-                "S{} - {}",
-                i + 1,
-                d["source"]["name"].as_str().unwrap_or("Source")
-            ),
-        );
-        small(
-            doc,
-            format!(
-                "Retrieved: {}",
-                d["source"]["retrieved_at"]
-                    .as_str()
-                    .unwrap_or("Not recorded")
-            ),
-        );
-        if let Some(url) = d["source"]["url"].as_str() {
-            small(doc, url);
-        }
-        if let Some(a) = d[report_assets::KEY]["assets"].as_array() {
-            for asset in a.iter().filter(|a| a["kind"] == "document") {
-                text(
-                    doc,
-                    format!(
-                        "Original PDF captured: {}",
-                        asset["source_url"].as_str().unwrap_or("")
-                    ),
-                );
-                small(
-                    doc,
-                    format!("SHA-256: {}", asset["sha256"].as_str().unwrap_or("")),
-                );
-            }
-        }
-        if let Some(n) = d[report_assets::KEY]["notices"].as_array() {
-            for note in n {
-                small(doc, note.as_str().unwrap_or(""));
-            }
-        }
-    }
+
     Ok(())
 }
 

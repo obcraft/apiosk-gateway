@@ -19,6 +19,7 @@ pub mod annual_report;
 pub mod research_report;
 pub mod report_assets;
 mod report_visuals;
+mod report_layout;
 pub mod protocol;
 pub mod resolver;
 pub mod server;
