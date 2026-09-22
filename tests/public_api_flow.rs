@@ -198,7 +198,36 @@ async fn organisation_key_public_api() {
     assert_eq!((status, conflict["error"]["code"].as_str()), (409, Some("idempotency_conflict")));
     println!("PASS direct run: validation, max_spend, one charge per Idempotency-Key, usage sums to cost");
 
+    // ── The short call: POST /v1/execute/{source}/{operation} ───────────
+    let before = fixture.provider.load(Ordering::SeqCst);
+    let (status, quick) = api.post("/v1/execute/fixture/company.search", KEY, json!({"company.name": "Example"}), Some("short-call-1")).await;
+    assert_eq!((status, quick["status"].as_str()), (200, Some("completed")), "{quick}");
+    assert!(quick["data"].to_string().contains("123"), "one source, its document at the top level: {quick}");
+    assert_eq!(cost(&quick["usage"]["cost"]), 23);
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before + 1);
+    let (status, replay) = api.post("/v1/execute/fixture/company.search", KEY, json!({"company.name": "Example"}), Some("short-call-1")).await;
+    assert_eq!((status, &replay["id"]), (200, &quick["id"]));
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before + 1, "a retry is the same purchase");
+    // The source by its name, and the input by its unambiguous last word.
+    let by_name = format!("/v2/execute/{}/company.search?max_spend=1.00&wait_seconds=30", source["name"].as_str().unwrap().replace(' ', "%20"));
+    let (status, named) = api.post(&by_name, KEY, json!({"name": "Example"}), None).await;
+    assert_eq!((status, named["status"].as_str()), (200, Some("completed")), "{named}");
+    for (path, body, code, message) in [
+        ("/v1/execute/nope/company.search", json!({}), 404, "source_not_found"),
+        ("/v1/execute/fixture/nope", json!({}), 404, "operation_not_found"),
+        ("/v1/execute/fixture/company.search", json!({}), 422, "invalid_source_input"),
+        ("/v1/execute/fixture/company.search", json!({"unknown": "x"}), 422, "invalid_source_input"),
+        ("/v1/execute/fixture/company.search?max_spend=0.00001", json!({"company.name": "Example"}), 402, "spend_limit_exceeded"),
+    ] {
+        let (actual, answer) = api.post(path, KEY, body, None).await;
+        assert_eq!((actual, answer["error"]["code"].as_str()), (code, Some(message)), "{answer}");
+    }
+    let (status, scoped) = api.post("/v1/execute/fixture/company.search", READ_ONLY, json!({"company.name": "Example"}), None).await;
+    assert_eq!((status, scoped["error"]["required_scope"].as_str()), (403, Some("sources:execute")));
+    println!("PASS short call: path names the source and operation, body is the inputs, same price and idempotency");
+
     // ── Ask: plan, then run; auto within and above max_spend ─────────────
+    let before_ask = fixture.provider.load(Ordering::SeqCst);
     let (status, plan) = api.post("/v2/ask", KEY, json!({"question":"Search only Example"}), None).await;
     assert_eq!(status, 200, "{plan}");
     assert_eq!(plan["status"], "requires_approval", "{plan}");
@@ -210,7 +239,7 @@ async fn organisation_key_public_api() {
     assert_eq!(cost(&ran["usage"]["cost"]), 23);
     let (status, again) = api.post(&format!("/v2/asks/{id}/run"), KEY, json!({"max_spend":"1.00"}), None).await;
     assert_eq!((status, again["status"].as_str()), (200, Some("completed")));
-    assert_eq!(fixture.provider.load(Ordering::SeqCst), 2, "running an ask twice is one run");
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before_ask + 1, "running an ask twice is one run");
     let (status, read) = api.get(&format!("/v2/runs/{id}"), READ_ONLY).await;
     assert_eq!(status, 404, "another key cannot read this run: {read}");
     let (status, read) = api.get(&format!("/v2/runs/{id}"), KEY).await;
@@ -222,15 +251,16 @@ async fn organisation_key_public_api() {
     assert_eq!(status, 400, "auto mode needs max_spend");
     let (status, auto) = api.post("/v2/ask", KEY, json!({"question":"Search only Example","execution_mode":"auto","max_spend":1}), None).await;
     assert_eq!((status, auto["status"].as_str()), (200, Some("completed")), "{auto}");
-    assert_eq!(fixture.provider.load(Ordering::SeqCst), 3);
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before_ask + 2);
     println!("PASS ask: plan then run, idempotent run, per-key isolation, auto within and above max_spend");
 
     // ── Balance: the organisation's money, the key's limits ─────────────
     let (status, balance) = api.get("/v2/balance", KEY).await;
     assert_eq!(status, 200, "{balance}");
     assert_eq!(cost(&balance["limits"]["per_request"]), 1_000_000);
-    assert_eq!(cost(&balance["limits"]["month_spent"]), 69);
-    assert_eq!(cost(&balance["limits"]["month_remaining"]), 2_000_000 - 69);
+    let spent = 23 * (fixture.provider.load(Ordering::SeqCst) as i64);
+    assert_eq!(cost(&balance["limits"]["month_spent"]), spent, "every charge this key made, from the ledger");
+    assert_eq!(cost(&balance["limits"]["month_remaining"]), 2_000_000 - spent);
     let (status, body) = api.get("/v2/balance", READ_ONLY).await;
     assert_eq!((status, body["error"]["required_scope"].as_str()), (403, Some("billing:read")));
     println!("PASS balance: organisation balance, per-request and monthly limits, scope");

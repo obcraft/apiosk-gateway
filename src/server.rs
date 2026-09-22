@@ -61,6 +61,9 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
                         Json(json!({
                             "service":"apiosk-gateway-v2",
                             "protocol_version":"2",
+                            // The commit this image was built from, so a
+                            // deploy can be matched to a branch at a glance.
+                            "version":std::env::var("GATEWAY_GIT_SHA").unwrap_or_else(|_| "unknown".into()),
                             "payment_executor":executor
                         })),
                     )
@@ -83,6 +86,10 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         // The public API: every credential, one execution and billing path.
         .route("/v2/sources/:source_id", get(crate::public_api::source))
         .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
+        // The shortest paid call: the key pays, the path names the source and
+        // operation, and the body is the input values themselves.
+        .route("/v1/execute/:source/:operation", post(crate::public_api::execute))
+        .route("/v2/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/ask", post(crate::public_api::ask))
         .route("/v2/asks/:id", get(crate::public_api::run_status))
         .route("/v2/asks/:id/run", post(crate::public_api::run_ask))

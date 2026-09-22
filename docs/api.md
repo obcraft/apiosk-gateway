@@ -41,7 +41,7 @@ Authorization: Bearer apk_org_live_…
 | Scope | Allows |
 |---|---|
 | `sources:read` | `GET /v2/sources`, `GET /v2/sources/{id}` |
-| `sources:execute` | `POST /v2/sources/{id}/run` |
+| `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{id}/run` |
 | `ask:create` | `POST /v2/ask` with `execution_mode: "plan"` |
 | `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask` with `execution_mode: "auto"` |
 | `billing:read` | `GET /v2/balance`, `GET /v2/usage` |
@@ -53,20 +53,20 @@ including runs it has not started yet.
 
 ## 2. Quickstart
 
-Operation ids and input fields come from `GET /v2/sources/{id}`. The ones below
-are examples.
+One call pays for one source. The path names the source and the operation; the
+body is the input values themselves.
 
 ```bash
-curl https://gateway.apiosk.com/v2/sources/kvk/run \
+curl https://gateway.apiosk.com/v1/execute/kvk/company_registry.search \
   -H "Authorization: Bearer $APIOSK_KEY" \
   -H "Idempotency-Key: nomi-request-983472" \
   -H "Content-Type: application/json" \
-  -d '{"operation":"company_registry.search","input":{"company.name":"Mollie B.V."}}'
+  -d '{"company.name":"Mollie B.V."}'
 ```
 
-The call waits up to `wait_seconds` (default 25, at most 55) for the result. It
-returns `200` when the run is done, or `202` with the run id while it is still
-going.
+It answers when the source does, with the result, what it cost and the balance
+left. Operation ids and input fields come from `GET /v2/sources/{id}`; the ones
+above are examples.
 
 ## 3. List sources
 
@@ -101,6 +101,29 @@ and its price per call.
 
 ## 4. Call a source
 
+### The short call
+
+```http
+POST /v1/execute/{source}/{operation}
+POST /v2/execute/{source}/{operation}
+```
+
+The body is the operation's inputs and nothing else:
+
+```json
+{ "company.name": "Mollie B.V." }
+```
+
+Everything optional is a query parameter: `?max_spend=1.00&wait_seconds=25&limit=5`.
+
+- **The path is lenient.** A source by its id (`kvk`) or its name; an operation
+  by its capability (`company_registry.search`), its endpoint id, or its name.
+- **Inputs are lenient too.** Use the fact type (`company.name`), the name the
+  source's own API uses (`naam`), or the unambiguous last word (`name`).
+- **One source document comes back as `data`**, beside the full `results`.
+
+### The explicit call
+
 ```http
 POST /v2/sources/{source_id}/run
 ```
@@ -108,6 +131,11 @@ POST /v2/sources/{source_id}/run
 ```json
 { "operation": "company_registry.search", "input": { "company.name": "Mollie B.V." }, "max_spend": 1.00, "wait_seconds": 25 }
 ```
+
+Same engine, same price, same response; the envelope is spelled out. Use it
+when a client generates requests from the catalogue.
+
+### Both forms
 
 - **No model interprets anything.** You name the source, the operation and the inputs.
 - **Inputs are checked before anything is priced.** Unknown fields, missing
@@ -215,6 +243,8 @@ Every run, direct or Ask, has one shape:
 - **`usage.held`** is money reserved for calls that are not settled yet.
 - **Nothing extra is charged.** The Apiosk fee is included in each source's price.
 - **`limit`** caps how many result documents are returned.
+- **`data`** is present when a run produced exactly one source document, which
+  is what a direct call normally is.
 
 ## 7. Balance and billing
 
@@ -283,8 +313,8 @@ Every refusal before a purchase says **"Nothing was charged."**
 
 ## 9. Idempotency
 
-Send `Idempotency-Key` (1–255 visible ASCII characters) on `POST /v2/ask` and
-`POST /v2/sources/{id}/run`.
+Send `Idempotency-Key` (1–255 visible ASCII characters) on `POST /v2/ask`,
+`POST /v1/execute/{source}/{operation}` and `POST /v2/sources/{id}/run`.
 
 - **A retry with the same key and body** returns the same ask or run, and pays at most once.
 - **The same key with a different body** returns `409 idempotency_conflict`.

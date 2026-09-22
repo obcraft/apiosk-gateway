@@ -208,6 +208,51 @@ fn operations<'a>(catalog: &'a Catalog, source: &str) -> Vec<&'a Service> {
         .collect()
 }
 
+/// The `{source}` and `{operation}` of a path, resolved leniently: a source by
+/// its id or its name, an operation by its id, its capability or its name.
+/// Machines copy these out of `GET /v2/sources`, and people type them.
+fn resolve<'a>(catalog: &'a Catalog, sources: &[crate::sources::Source], source: &str, operation: &str) -> Option<(String, &'a Service)> {
+    let matches = |a: &str, b: &str| a.eq_ignore_ascii_case(b);
+    let slug = catalog
+        .services
+        .iter()
+        .map(|s| s.api_slug.clone())
+        .find(|slug| matches(slug, source))
+        .or_else(|| sources.iter().find(|s| matches(&s.name, source)).map(|s| s.slug.clone()))?;
+    let service = operations(catalog, &slug).into_iter().find(|s| {
+        matches(&s.contract.capability_slug, operation)
+            || s.endpoint_id.to_string() == operation
+            || matches(&s.name, operation)
+    })?;
+    Some((slug, service))
+}
+
+/// The request body of a direct call, bound to the fact types an operation
+/// takes. A caller may use the fact type (`company.name`), the name the
+/// source's own API uses (`naam`), or the unambiguous last word (`name`).
+fn bind_inputs(service: &Service, body: &serde_json::Map<String, Value>) -> Result<BTreeMap<String, Value>, HttpResponse> {
+    let fields: Vec<&str> = service.contract.requires.iter().map(|r| r.fact_type.as_str()).collect();
+    let mut bound = BTreeMap::new();
+    for (key, value) in body {
+        let wire = service.contract.input_map.iter().find(|(fact, binding)| fields.contains(&fact.as_str()) && binding.name.eq_ignore_ascii_case(key)).map(|(fact, _)| fact.as_str());
+        let tail: Vec<&str> = fields.iter().copied().filter(|fact| fact.rsplit('.').next().is_some_and(|last| last.eq_ignore_ascii_case(key))).collect();
+        let field = fields
+            .iter()
+            .copied()
+            .find(|fact| fact.eq_ignore_ascii_case(key))
+            .or(wire)
+            .or_else(|| (tail.len() == 1).then(|| tail[0]));
+        let Some(field) = field else {
+            return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{key}` is not an input of this operation."),
+                json!({"field": key, "expected": fields})));
+        };
+        if bound.insert(field.to_owned(), value.clone()).is_some() {
+            return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` was given twice under different names."), json!({"field": field})));
+        }
+    }
+    Ok(bound)
+}
+
 /// `GET /v2/sources/{source_id}`: operations, input schemas and prices.
 pub async fn source(State(state): State<ServerState>, headers: HeaderMap, Path(source_id): Path<String>) -> HttpResponse {
     if let Err(r) = context(&state, &headers, &["sources:read"]).await {
@@ -257,18 +302,78 @@ async fn run_source_inner(state: &ServerState, headers: &HeaderMap, source_id: &
     let ctx = context(state, headers, &["sources:execute"]).await?;
     let req: SourceRun = parse(body)?;
     let max_spend = spend_limit(req.max_spend.as_ref())?;
-    let request = request_id(headers, &ctx, &format!("sources/{source_id}/run"))?;
+    direct(state, headers, &ctx, source_id, &req.operation, req.input, max_spend, wait_for(req.wait_seconds), None).await
+}
+
+/// What a direct call may set besides its inputs. Query parameters, because
+/// the body of `/v1/execute` is the source's own inputs and nothing else.
+#[derive(Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct ExecuteQuery {
+    #[serde(default)]
+    max_spend: Option<String>,
+    #[serde(default)]
+    wait_seconds: Option<u64>,
+    #[serde(default)]
+    limit: Option<usize>,
+}
+
+/// `POST /v1/execute/{source}/{operation}` (also `/v2/execute/{source}/{operation}`):
+/// the shortest paid call. The key says who pays, the path says what to run,
+/// and the body is the input values themselves.
+///
+/// ```text
+/// POST /v1/execute/kvk/company_registry.search
+/// {"company.name": "Mollie B.V."}
+/// ```
+///
+/// The same registry, prices, ceilings and ledger as every other call; only
+/// the envelope is gone.
+pub async fn execute(State(state): State<ServerState>, headers: HeaderMap, Path((source, operation)): Path<(String, String)>, Query(query): Query<ExecuteQuery>, body: Bytes) -> HttpResponse {
+    execute_inner(&state, &headers, &source, &operation, query, &body).await.unwrap_or_else(|r| r)
+}
+async fn execute_inner(state: &ServerState, headers: &HeaderMap, source: &str, operation: &str, query: ExecuteQuery, body: &[u8]) -> Answer {
+    let ctx = context(state, headers, &["sources:execute"]).await?;
+    let max_spend = spend_limit(query.max_spend.map(Value::String).as_ref())?;
+    let limit = limit(query.limit)?;
+    let values: Value = if body.is_empty() { json!({}) } else { parse(body)? };
+    let Some(values) = values.as_object() else {
+        return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "The body must be a JSON object of input values, for example {\"company.name\":\"Mollie B.V.\"}."));
+    };
+    let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("catalog", &e))?;
+    let sources = state.engine.catalog.sources().await.unwrap_or_default();
+    let Some((slug, service)) = resolve(&catalog, &sources, source, operation) else {
+        return Err(source_or_operation_unknown(&catalog, &sources, source, operation));
+    };
+    let input = bind_inputs(service, values)?;
+    direct(state, headers, &ctx, &slug, &service.contract.capability_slug.clone(), input, max_spend, wait_for(query.wait_seconds), limit).await
+}
+
+fn source_or_operation_unknown(catalog: &Catalog, sources: &[crate::sources::Source], source: &str, operation: &str) -> HttpResponse {
+    let slug = catalog.services.iter().map(|s| s.api_slug.clone()).find(|slug| slug.eq_ignore_ascii_case(source))
+        .or_else(|| sources.iter().find(|s| s.name.eq_ignore_ascii_case(source)).map(|s| s.slug.clone()));
+    match slug {
+        Some(slug) => problem_with(StatusCode::NOT_FOUND, "operation_not_found", &format!("This source has no operation `{operation}`."),
+            json!({"operations": operations(catalog, &slug).iter().map(|s| &s.contract.capability_slug).collect::<Vec<_>>()})),
+        None => problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id or name. List sources with GET /v2/sources."),
+    }
+}
+
+/// One direct call: validate against the contract, plan it, pay for it, run it.
+#[allow(clippy::too_many_arguments)]
+async fn direct(state: &ServerState, headers: &HeaderMap, ctx: &AuthContext, source_id: &str, operation: &str, input: BTreeMap<String, Value>, max_spend: Option<i64>, wait: Duration, limit: Option<usize>) -> Answer {
+    let request = request_id(headers, ctx, &format!("execute/{source_id}/{operation}"))?;
     let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("catalog", &e))?;
     let services = operations(&catalog, source_id);
     if services.is_empty() {
         return Err(problem(StatusCode::NOT_FOUND, "source_not_found", "No executable source has this id. List sources with GET /v2/sources."));
     }
-    let Some(service) = services.iter().find(|s| s.contract.capability_slug == req.operation) else {
+    let Some(service) = services.iter().find(|s| s.contract.capability_slug == operation) else {
         return Err(problem_with(StatusCode::NOT_FOUND, "operation_not_found", "This source has no such operation.",
             json!({"operations": services.iter().map(|s| &s.contract.capability_slug).collect::<Vec<_>>()})));
     };
     let fields: Vec<&str> = service.contract.requires.iter().map(|r| r.fact_type.as_str()).collect();
-    for (field, value) in &req.input {
+    for (field, value) in &input {
         let Some(fact) = catalog.vocabulary.get(field).filter(|_| fields.contains(&field.as_str())) else {
             return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", &format!("`{field}` is not an input of this operation."),
                 json!({"field": field, "expected": fields})));
@@ -278,13 +383,13 @@ async fn run_source_inner(state: &ServerState, headers: &HeaderMap, source_id: &
                 json!({"field": field, "schema": fact.value_schema})));
         }
     }
-    let missing: Vec<&str> = service.contract.requires.iter().filter(|r| !r.optional && !req.input.contains_key(&r.fact_type)).map(|r| r.fact_type.as_str()).collect();
+    let missing: Vec<&str> = service.contract.requires.iter().filter(|r| !r.optional && !input.contains_key(&r.fact_type)).map(|r| r.fact_type.as_str()).collect();
     if !missing.is_empty() {
         return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_source_input", "Required inputs are missing. Nothing was charged.", json!({"missing": missing})));
     }
     let response = {
         let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
-        state.engine.direct(&ctx.principal, request, source_id, &req.operation, &req.input).await.map_err(|e| unavailable("direct run", &e))?
+        state.engine.direct(&ctx.principal, request, source_id, operation, &input).await.map_err(|e| unavailable("direct run", &e))?
     };
     if let Some(refusal) = refused_by_engine(&response) {
         return Err(refusal);
@@ -305,8 +410,8 @@ async fn run_source_inner(state: &ServerState, headers: &HeaderMap, source_id: &
         }
     }
     let bearer = token(headers).map_err(|_| no_bearer())?;
-    authorize_and_run(state, &ctx, bearer, id, max_spend).await?;
-    finish(state, &ctx, id, wait_for(req.wait_seconds), None, None).await
+    authorize_and_run(state, ctx, bearer, id, max_spend).await?;
+    finish(state, ctx, id, wait, limit, None).await
 }
 
 // ---------------------------------------------------------------------------
@@ -530,28 +635,30 @@ fn public_status(r: &Response, authorized: bool) -> &'static str {
     }
 }
 
-/// Wait up to `wait` for the run to leave `running`, then describe it. A run
-/// still going answers `202` with its id to poll; a failed one `502`.
+/// Wait for the run to finish, then describe it once.
+///
+/// The wait watches the execution lease, which is one small query, rather
+/// than rebuilding the whole view each time: a direct call answers as soon as
+/// its source does, instead of on the next poll tick. A run still going
+/// answers `202` with its id to poll; a failed one `502`.
 async fn finish(state: &ServerState, ctx: &AuthContext, id: Uuid, wait: Duration, limit: Option<usize>, note: Option<Value>) -> Answer {
     let deadline = Instant::now() + wait;
-    loop {
-        let response = state.engine.view(&ctx.principal, id, Uuid::new_v4(), None).await.map_err(|e| not_found(&e))?;
-        let authorized = authorized(state, ctx, id).await.map_err(|e| unavailable("authorization", &e))?;
-        let status = public_status(&response, authorized);
-        if status != "running" || Instant::now() >= deadline {
-            let mut body = describe(state, ctx, id, &response, status, limit).await.map_err(|e| unavailable("describe", &e))?;
-            if let Some(note) = note {
-                body["approval_required_reason"] = note;
-            }
-            let code = match status {
-                "running" => StatusCode::ACCEPTED,
-                "failed" => StatusCode::BAD_GATEWAY,
-                _ => StatusCode::OK,
-            };
-            return Ok((code, Json(body)).into_response());
-        }
-        tokio::time::sleep(Duration::from_millis(750)).await;
+    while Instant::now() < deadline && state.engine.worker_active(id).await.unwrap_or(false) {
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
+    let response = state.engine.view(&ctx.principal, id, Uuid::new_v4(), None).await.map_err(|e| not_found(&e))?;
+    let authorized = authorized(state, ctx, id).await.map_err(|e| unavailable("authorization", &e))?;
+    let status = public_status(&response, authorized);
+    let mut body = describe(state, ctx, id, &response, status, limit).await.map_err(|e| unavailable("describe", &e))?;
+    if let Some(note) = note {
+        body["approval_required_reason"] = note;
+    }
+    let code = match status {
+        "running" => StatusCode::ACCEPTED,
+        "failed" => StatusCode::BAD_GATEWAY,
+        _ => StatusCode::OK,
+    };
+    Ok((code, Json(body)).into_response())
 }
 
 async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response, status: &str, limit: Option<usize>) -> anyhow::Result<Value> {
@@ -576,6 +683,10 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
         "balance": { "remaining": r.billing.as_ref().and_then(|b| micro(&b["balance_available"])).map(money) },
         "errors": r.errors,
     });
+    // A direct call asks one source one thing; its document is the answer.
+    if let [single] = results.as_slice() {
+        body["data"] = single["data"].clone();
+    }
     match status {
         "needs_input" => {
             body["needs_input"] = json!(r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply" | "upload")).map(|a| json!({"label": a.label, "schema": a.input_schema})).collect::<Vec<_>>())

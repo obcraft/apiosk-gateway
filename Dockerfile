@@ -20,6 +20,9 @@ RUN cargo build --locked --release \
     --bin reconciliation_worker
 
 FROM debian:bookworm-slim
+# Stamped at deploy time: `fly deploy --build-arg GIT_SHA=$(git rev-parse --short HEAD)`.
+ARG GIT_SHA=unknown
+ENV GATEWAY_GIT_SHA=$GIT_SHA
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /build/target/release/apiosk-gateway-v2 /usr/local/bin/apiosk-gateway-v2
