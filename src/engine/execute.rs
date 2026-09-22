@@ -111,13 +111,13 @@ impl Engine {
                     if plan.steps.iter().any(|step| {
                         document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
                             && document["subject"]["entity_ref"] == json!(step.entity_ref)
-                            && intent.goals.iter().any(|goal| {
+                            && (crate::uk_supplier::is_check(&intent) || intent.goals.iter().any(|goal| {
                                 goal.capability == step.service.contract.capability_slug
                                     && intent
                                         .subjects
                                         .get(goal.subject)
                                         .is_some_and(|s| s.entity_ref == Some(step.entity_ref))
-                            })
+                            }))
                     }) {
                         sources.push(json!({"result_ref":result,"document":document}));
                     }
@@ -160,7 +160,7 @@ impl Engine {
                             analysis_failures.insert(step.key(), json!({"code":"source_result_pending", "source":step.service.name, "message":"This source result is still pending. Its outcome is unknown; do not infer a passed check or a negative match."}));
                         }
                     }
-                    let answer = if task.workflow.is_some() {
+                    let answer = if task.workflow.is_some() || crate::uk_supplier::is_check(&intent) {
                         self.parser.analyze_workflow(&operations, &sources, &analysis_failures).await
                     } else {
                         self.parser.analyze(&operations, &sources, &analysis_failures).await
@@ -491,6 +491,10 @@ impl Engine {
                     .map(|r| r.fact_type.clone())
                     .collect();
                 if !missing.is_empty() {
+                    if crate::uk_supplier::unused_screening_slot(task, candidate) {
+                        task.completed.push(candidate.key());
+                        continue;
+                    }
                     task.failed_steps.insert(candidate.key(), json!({"code":"missing_source_fact","message":"Not requested because the required source identifier is unavailable.","fields":missing}));
                     continue;
                 }

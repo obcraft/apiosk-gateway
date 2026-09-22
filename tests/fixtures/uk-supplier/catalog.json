@@ -1,0 +1,3899 @@
+{
+  "description": "UK supplier contract tests. UK VAT sample from free live check 2026-09-21; roster, search and screening samples are explicitly synthetic. No paid E2E claim.",
+  "vocabulary": [
+    {
+      "slug": "company.domain",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]*\\.[A-Za-z]{2,63}$",
+        "maxLength": 253
+      }
+    },
+    {
+      "slug": "company.enriched_profile",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "domain"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "employees": {
+            "type": "string"
+          },
+          "revenue": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.gleif_direct_children",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "company.gleif_direct_parent_relationship",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "company.gleif_record",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "attributes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "attributes": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.gleif_ultimate_children",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "company.gleif_ultimate_parent_relationship",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "slug": "company.name",
+      "name": "company.name",
+      "description": "Company name",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.prospect_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "companies"
+        ],
+        "properties": {
+          "companies": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.registration.gb.companies_house",
+      "name": "Official GB company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official GB company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]{8}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.lei",
+      "name": "Legal Entity Identifier from the official GLEIF register; never infer from a ticker.",
+      "description": "Legal Entity Identifier from the official GLEIF register; never infer from a ticker.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]{18}[0-9]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.screening_result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.search.country_code",
+      "name": "company.search.country_code",
+      "description": "Country filter explicitly supplied for a search",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.search.cursor",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    {
+      "slug": "company.search.headcount_max",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000000
+      }
+    },
+    {
+      "slug": "company.search.headcount_min",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000000
+      }
+    },
+    {
+      "slug": "company.search.headquarters_location",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    {
+      "slug": "company.search.industry",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "Abrasives and Nonmetallic Minerals Manufacturing",
+          "Accessible Architecture and Design",
+          "Accessible Hardware Manufacturing",
+          "Accommodation and Food Services",
+          "Accounting",
+          "Administration of Justice",
+          "Administrative and Support Services",
+          "Advertising Services",
+          "Agricultural Chemical Manufacturing",
+          "Agriculture, Construction, Mining Machinery Manufacturing",
+          "Air, Water, and Waste Program Management",
+          "Airlines and Aviation",
+          "Alternative Dispute Resolution",
+          "Alternative Fuel Vehicle Manufacturing",
+          "Alternative Medicine",
+          "Ambulance Services",
+          "Amusement Parks and Arcades",
+          "Animal Feed Manufacturing",
+          "Animation",
+          "Animation and Post-production",
+          "Apparel & Fashion",
+          "Apparel Manufacturing",
+          "Appliances, Electrical, and Electronics Manufacturing",
+          "Architectural and Structural Metal Manufacturing",
+          "Architecture and Planning",
+          "Armed Forces",
+          "Artificial Rubber and Synthetic Fiber Manufacturing",
+          "Artists and Writers",
+          "Arts & Crafts",
+          "Audio and Video Equipment Manufacturing",
+          "Automation Machinery Manufacturing",
+          "Automotive",
+          "Aviation & Aerospace",
+          "Aviation and Aerospace Component Manufacturing",
+          "Baked Goods Manufacturing",
+          "Banking",
+          "Bars, Taverns, and Nightclubs",
+          "Bed-and-Breakfasts, Hostels, Homestays",
+          "Beverage Manufacturing",
+          "Biomass Electric Power Generation",
+          "Biotechnology",
+          "Biotechnology Research",
+          "Blockchain Services",
+          "Blogs",
+          "Boilers, Tanks, and Shipping Container Manufacturing",
+          "Book Publishing",
+          "Book and Periodical Publishing",
+          "Breweries",
+          "Broadcast Media Production and Distribution",
+          "Building Construction",
+          "Building Equipment Contractors",
+          "Building Finishing Contractors",
+          "Building Materials",
+          "Building Structure and Exterior Contractors",
+          "Business Consulting and Services",
+          "Business Content",
+          "Business Intelligence Platforms",
+          "Business Supplies & Equipment",
+          "Cable and Satellite Programming",
+          "Capital Markets",
+          "Caterers",
+          "Chemical Manufacturing",
+          "Chemical Raw Materials Manufacturing",
+          "Child Day Care Services",
+          "Chiropractors",
+          "Circuses and Magic Shows",
+          "Civic and Social Organizations",
+          "Civil Engineering",
+          "Claims Adjusting, Actuarial Services",
+          "Clay and Refractory Products Manufacturing",
+          "Climate Data and Analytics",
+          "Climate Technology Product Manufacturing",
+          "Coal Mining",
+          "Collection Agencies",
+          "Commercial Real Estate",
+          "Commercial and Industrial Equipment Rental",
+          "Commercial and Industrial Machinery Maintenance",
+          "Commercial and Service Industry Machinery Manufacturing",
+          "Communications Equipment Manufacturing",
+          "Community Development and Urban Planning",
+          "Community Services",
+          "Computer Games",
+          "Computer Hardware",
+          "Computer Hardware Manufacturing",
+          "Computer Networking",
+          "Computer Networking Products",
+          "Computer and Network Security",
+          "Computers and Electronics Manufacturing",
+          "Conservation Programs",
+          "Construction",
+          "Construction Hardware Manufacturing",
+          "Consumer Electronics",
+          "Consumer Goods",
+          "Consumer Goods Rental",
+          "Consumer Services",
+          "Correctional Institutions",
+          "Cosmetics",
+          "Cosmetology and Barber Schools",
+          "Courts of Law",
+          "Credit Intermediation",
+          "Cutlery and Handtool Manufacturing",
+          "Dairy",
+          "Dairy Product Manufacturing",
+          "Dance Companies",
+          "Data Infrastructure and Analytics",
+          "Data Security Software Products",
+          "Death Care Services",
+          "Defense & Space",
+          "Defense and Space Manufacturing",
+          "Dentists",
+          "Design",
+          "Design Services",
+          "Desktop Computing Software Products",
+          "Digital Accessibility Services",
+          "Distilleries",
+          "E-Learning Providers",
+          "E-learning",
+          "Economic Programs",
+          "Education",
+          "Education Administration Programs",
+          "Education Management",
+          "Electric Lighting Equipment Manufacturing",
+          "Electric Power Generation",
+          "Electric Power Transmission, Control, and Distribution",
+          "Electrical Equipment Manufacturing",
+          "Electronic and Precision Equipment Maintenance",
+          "Embedded Software Products",
+          "Emergency and Relief Services",
+          "Energy Technology",
+          "Engineering Services",
+          "Engines and Power Transmission Equipment Manufacturing",
+          "Entertainment",
+          "Entertainment Providers",
+          "Environmental Quality Programs",
+          "Environmental Services",
+          "Equipment Rental Services",
+          "Events Services",
+          "Executive Offices",
+          "Executive Search Services",
+          "Fabricated Metal Products",
+          "Facilities Services",
+          "Family Planning Centers",
+          "Farming",
+          "Farming, Ranching, Forestry",
+          "Fashion Accessories Manufacturing",
+          "Financial Services",
+          "Fine Art",
+          "Fine Arts Schools",
+          "Fire Protection",
+          "Fisheries",
+          "Flight Training",
+          "Food & Beverages",
+          "Food Production",
+          "Food and Beverage Manufacturing",
+          "Food and Beverage Retail",
+          "Food and Beverage Services",
+          "Footwear Manufacturing",
+          "Footwear and Leather Goods Repair",
+          "Forestry and Logging",
+          "Fossil Fuel Electric Power Generation",
+          "Freight and Package Transportation",
+          "Fruit and Vegetable Preserves Manufacturing",
+          "Fuel Cell Manufacturing",
+          "Fundraising",
+          "Funds and Trusts",
+          "Funeral Services",
+          "Furniture",
+          "Furniture and Home Furnishings Manufacturing",
+          "Gambling Facilities and Casinos",
+          "Geothermal Electric Power Generation",
+          "Glass Product Manufacturing",
+          "Glass, Ceramics and Concrete Manufacturing",
+          "Golf Courses and Country Clubs",
+          "Government Administration",
+          "Government Relations",
+          "Government Relations Services",
+          "Graphic Design",
+          "Ground Passenger Transportation",
+          "HVAC and Refrigeration Equipment Manufacturing",
+          "Health and Human Services",
+          "Health, Wellness & Fitness",
+          "Higher Education",
+          "Highway, Street, and Bridge Construction",
+          "Historical Sites",
+          "Holding Companies",
+          "Home Health Care Services",
+          "Horticulture",
+          "Hospitality",
+          "Hospitals",
+          "Hospitals and Health Care",
+          "Hotels and Motels",
+          "Household Appliance Manufacturing",
+          "Household Services",
+          "Household and Institutional Furniture Manufacturing",
+          "Housing Programs",
+          "Housing and Community Development",
+          "Human Resources",
+          "Human Resources Services",
+          "Hydroelectric Power Generation",
+          "IT Services and IT Consulting",
+          "IT System Custom Software Development",
+          "IT System Data Services",
+          "IT System Design Services",
+          "IT System Installation and Disposal",
+          "IT System Operations and Maintenance",
+          "IT System Testing and Evaluation",
+          "IT System Training and Support",
+          "Import & Export",
+          "Individual and Family Services",
+          "Industrial Automation",
+          "Industrial Machinery Manufacturing",
+          "Industry Associations",
+          "Information Services",
+          "Information Technology & Services",
+          "Insurance",
+          "Insurance Agencies and Brokerages",
+          "Insurance Carriers",
+          "Insurance and Employee Benefit Funds",
+          "Interior Design",
+          "International Affairs",
+          "International Trade and Development",
+          "Internet Marketplace Platforms",
+          "Internet News",
+          "Internet Publishing",
+          "Interurban and Rural Bus Services",
+          "Investment Advice",
+          "Investment Banking",
+          "Investment Management",
+          "Janitorial Services",
+          "Landscaping Services",
+          "Language Schools",
+          "Laundry and Drycleaning Services",
+          "Law Enforcement",
+          "Law Practice",
+          "Leasing Non-residential Real Estate",
+          "Leasing Residential Real Estate",
+          "Leather Product Manufacturing",
+          "Legal Services",
+          "Legislative Offices",
+          "Leisure, Travel & Tourism",
+          "Libraries",
+          "Lime and Gypsum Products Manufacturing",
+          "Loan Brokers",
+          "Luxury Goods & Jewelry",
+          "Machinery Manufacturing",
+          "Magnetic and Optical Media Manufacturing",
+          "Manufacturing",
+          "Maritime",
+          "Maritime Transportation",
+          "Market Research",
+          "Marketing Services",
+          "Mattress and Blinds Manufacturing",
+          "Measuring and Control Instrument Manufacturing",
+          "Meat Products Manufacturing",
+          "Mechanical Or Industrial Engineering",
+          "Media Production",
+          "Media and Telecommunications",
+          "Medical Device",
+          "Medical Equipment Manufacturing",
+          "Medical Practices",
+          "Medical and Diagnostic Laboratories",
+          "Mental Health Care",
+          "Metal Ore Mining",
+          "Metal Treatments",
+          "Metal Valve, Ball, and Roller Manufacturing",
+          "Metalworking Machinery Manufacturing",
+          "Military and International Affairs",
+          "Mining",
+          "Mobile Computing Software Products",
+          "Mobile Food Services",
+          "Mobile Gaming Apps",
+          "Motor Vehicle Manufacturing",
+          "Motor Vehicle Parts Manufacturing",
+          "Movies and Sound Recording",
+          "Movies, Videos, and Sound",
+          "Museums",
+          "Museums, Historical Sites, and Zoos",
+          "Music",
+          "Musicians",
+          "Nanotechnology Research",
+          "Natural Gas Distribution",
+          "Natural Gas Extraction",
+          "Newspaper Publishing",
+          "Non-profit Organization Management",
+          "Non-profit Organizations",
+          "Nonmetallic Mineral Mining",
+          "Nonresidential Building Construction",
+          "Nuclear Electric Power Generation",
+          "Nursing Homes and Residential Care Facilities",
+          "Office Administration",
+          "Office Furniture and Fixtures Manufacturing",
+          "Oil Extraction",
+          "Oil and Coal Product Manufacturing",
+          "Oil and Gas",
+          "Oil, Gas, and Mining",
+          "Online Audio and Video Media",
+          "Online Media",
+          "Online and Mail Order Retail",
+          "Operations Consulting",
+          "Optometrists",
+          "Outpatient Care Centers",
+          "Outsourcing and Offshoring Consulting",
+          "Outsourcing/Offshoring",
+          "Packaging & Containers",
+          "Packaging and Containers Manufacturing",
+          "Paint, Coating, and Adhesive Manufacturing",
+          "Paper & Forest Products",
+          "Paper and Forest Product Manufacturing",
+          "Pension Funds",
+          "Performing Arts",
+          "Performing Arts and Spectator Sports",
+          "Periodical Publishing",
+          "Personal Care Product Manufacturing",
+          "Personal Care Services",
+          "Personal and Laundry Services",
+          "Pet Services",
+          "Pharmaceutical Manufacturing",
+          "Philanthropic Fundraising Services",
+          "Philanthropy",
+          "Photography",
+          "Physical, Occupational and Speech Therapists",
+          "Physicians",
+          "Pipeline Transportation",
+          "Plastics Manufacturing",
+          "Plastics and Rubber Product Manufacturing",
+          "Political Organizations",
+          "Postal Services",
+          "Primary Metal Manufacturing",
+          "Primary and Secondary Education",
+          "Printing Services",
+          "Professional Organizations",
+          "Professional Services",
+          "Professional Training and Coaching",
+          "Program Development",
+          "Public Assistance Programs",
+          "Public Health",
+          "Public Policy",
+          "Public Policy Offices",
+          "Public Relations and Communications Services",
+          "Public Safety",
+          "Racetracks",
+          "Radio and Television Broadcasting",
+          "Rail Transportation",
+          "Railroad Equipment Manufacturing",
+          "Ranching",
+          "Ranching and Fisheries",
+          "Real Estate",
+          "Real Estate Agents and Brokers",
+          "Real Estate and Equipment Rental Services",
+          "Recreational Facilities",
+          "Regenerative Design",
+          "Religious Institutions",
+          "Renewable Energy Equipment Manufacturing",
+          "Renewable Energy Power Generation",
+          "Renewable Energy Semiconductor Manufacturing",
+          "Renewables & Environment",
+          "Repair and Maintenance",
+          "Research",
+          "Research Services",
+          "Residential Building Construction",
+          "Restaurants",
+          "Retail",
+          "Retail Apparel and Fashion",
+          "Retail Appliances, Electrical, and Electronic Equipment",
+          "Retail Art Dealers",
+          "Retail Art Supplies",
+          "Retail Books and Printed News",
+          "Retail Building Materials and Garden Equipment",
+          "Retail Florists",
+          "Retail Furniture and Home Furnishings",
+          "Retail Gasoline",
+          "Retail Groceries",
+          "Retail Health and Personal Care Products",
+          "Retail Luxury Goods and Jewelry",
+          "Retail Motor Vehicles",
+          "Retail Musical Instruments",
+          "Retail Office Equipment",
+          "Retail Office Supplies and Gifts",
+          "Retail Pharmacies",
+          "Retail Recyclable Materials & Used Merchandise",
+          "Reupholstery and Furniture Repair",
+          "Robot Manufacturing",
+          "Robotics Engineering",
+          "Rubber Products Manufacturing",
+          "Satellite Telecommunications",
+          "Savings Institutions",
+          "School and Employee Bus Services",
+          "Seafood Product Manufacturing",
+          "Secretarial Schools",
+          "Securities and Commodity Exchanges",
+          "Security Guards and Patrol Services",
+          "Security Systems Services",
+          "Security and Investigations",
+          "Semiconductor Manufacturing",
+          "Semiconductors",
+          "Services for Renewable Energy",
+          "Services for the Elderly and Disabled",
+          "Sheet Music Publishing",
+          "Shipbuilding",
+          "Shuttles and Special Needs Transportation Services",
+          "Sightseeing Transportation",
+          "Skiing Facilities",
+          "Smart Meter Manufacturing",
+          "Soap and Cleaning Product Manufacturing",
+          "Social Networking Platforms",
+          "Software Development",
+          "Solar Electric Power Generation",
+          "Sound Recording",
+          "Space Research and Technology",
+          "Specialty Trade Contractors",
+          "Spectator Sports",
+          "Sporting Goods",
+          "Sporting Goods Manufacturing",
+          "Sports Teams and Clubs",
+          "Sports and Recreation Instruction",
+          "Spring and Wire Product Manufacturing",
+          "Staffing and Recruiting",
+          "Steam and Air-Conditioning Supply",
+          "Strategic Management Services",
+          "Subdivision of Land",
+          "Sugar and Confectionery Product Manufacturing",
+          "Surveying and Mapping Services",
+          "Taxi and Limousine Services",
+          "Technical and Vocational Training",
+          "Technology, Information and Internet",
+          "Technology, Information and Media",
+          "Telecommunications",
+          "Telecommunications Carriers",
+          "Telephone Call Centers",
+          "Temporary Help Services",
+          "Textile Manufacturing",
+          "Theater Companies",
+          "Think Tanks",
+          "Tobacco",
+          "Tobacco Manufacturing",
+          "Translation and Localization",
+          "Transportation Equipment Manufacturing",
+          "Transportation Programs",
+          "Transportation, Logistics, Supply Chain and Storage",
+          "Transportation/Trucking/Railroad",
+          "Travel Arrangements",
+          "Truck Transportation",
+          "Trusts and Estates",
+          "Turned Products and Fastener Manufacturing",
+          "Urban Transit Services",
+          "Utilities",
+          "Utilities Administration",
+          "Utility System Construction",
+          "Vehicle Repair and Maintenance",
+          "Venture Capital and Private Equity Principals",
+          "Veterinary",
+          "Veterinary Services",
+          "Vocational Rehabilitation Services",
+          "Warehousing",
+          "Warehousing and Storage",
+          "Waste Collection",
+          "Waste Treatment and Disposal",
+          "Water Supply and Irrigation Systems",
+          "Water, Waste, Steam, and Air Conditioning Services",
+          "Wellness and Fitness Services",
+          "Wholesale",
+          "Wholesale Alcoholic Beverages",
+          "Wholesale Apparel and Sewing Supplies",
+          "Wholesale Appliances, Electrical, and Electronics",
+          "Wholesale Building Materials",
+          "Wholesale Chemical and Allied Products",
+          "Wholesale Computer Equipment",
+          "Wholesale Drugs and Sundries",
+          "Wholesale Food and Beverage",
+          "Wholesale Footwear",
+          "Wholesale Furniture and Home Furnishings",
+          "Wholesale Hardware, Plumbing, Heating Equipment",
+          "Wholesale Import and Export",
+          "Wholesale Luxury Goods and Jewelry",
+          "Wholesale Machinery",
+          "Wholesale Metals and Minerals",
+          "Wholesale Motor Vehicles and Parts",
+          "Wholesale Paper Products",
+          "Wholesale Petroleum and Petroleum Products",
+          "Wholesale Photography Equipment and Supplies",
+          "Wholesale Raw Farm Products",
+          "Wholesale Recyclable Materials",
+          "Wind Electric Power Generation",
+          "Wine & Spirits",
+          "Wineries",
+          "Wireless Services",
+          "Women's Handbag Manufacturing",
+          "Wood Product Manufacturing",
+          "Writing and Editing",
+          "Zoos and Botanical Gardens"
+        ]
+      }
+    },
+    {
+      "slug": "company.search.keyword",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    {
+      "slug": "company.uk_filing_history",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.uk_officers",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.uk_persons_with_significant_control",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.uk_registry_record",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "company_name",
+          "company_number"
+        ]
+      }
+    },
+    {
+      "slug": "company.watchlist_entity",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "schema",
+          "properties"
+        ]
+      }
+    },
+    {
+      "slug": "company.watchlist_entity_id",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    {
+      "slug": "company.watchlist_search_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "results",
+          "total"
+        ],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.watchlist_statements",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.registration.fr.siren",
+      "name": "company.registration.fr.siren",
+      "description": "Nine-digit French SIREN; resolve from the French company search, never guess.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{9}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.country_code",
+      "name": "company.country_code",
+      "description": "Country of the company register",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.national_id",
+      "name": "company.registration.eu.national_id",
+      "description": "National company identifier, meaningful only together with company.country_code",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.eu.identity",
+      "name": "company.registration.eu.identity",
+      "description": "Composite identity: country plus national identifier. Equal IDs in different countries are different companies.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "country",
+          "id"
+        ],
+        "properties": {
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9.-]{1,20}$"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_registry_record",
+      "name": "company.fr_registry_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_financial_record",
+      "name": "company.fr_financial_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "exercices"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.fr_kyb_record",
+      "name": "company.fr_kyb_record",
+      "description": "Complete Sirenic response, including provenance, quality, missing data and coverage. Nulls are unpublished, not zero.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "identite"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.eu_registry_record",
+      "name": "company.eu_registry_record",
+      "description": "Sirenic European register profile with provenance, register link, freshness and coverage.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.be.national_id",
+      "name": "Official BE company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official BE company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "BE",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.fi.national_id",
+      "name": "Official FI company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official FI company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "FI",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.no.national_id",
+      "name": "Official NO company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official NO company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "NO",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.lv.national_id",
+      "name": "Official LV company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official LV company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.ee.national_id",
+      "name": "Official EE company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official EE company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "EE",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.se.national_id",
+      "name": "Official SE company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official SE company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "SE",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.dk.national_id",
+      "name": "Official DK company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official DK company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "DK",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.cz.national_id",
+      "name": "Official CZ company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official CZ company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "CZ",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.pl.national_id",
+      "name": "Official PL company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official PL company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "PL",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.sk.national_id",
+      "name": "Official SK company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official SK company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "SK",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.registration.es.national_id",
+      "name": "Official ES company register identifier. Obtain from that country register search or explicit user i",
+      "description": "Official ES company register identifier. Obtain from that country register search or explicit user input; never use another country identifier.",
+      "subject_kind": "company",
+      "jurisdiction": "ES",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9.-]{1,20}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_etablissements",
+      "name": "Complete List establishments (SIRET) of a company. Preserve source, coverage, missing values, docume",
+      "description": "Complete List establishments (SIRET) of a company. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_alertes",
+      "name": "Complete Legal alerts from BODACC (insolvency, deregistration, business sales). Preserve source, cov",
+      "description": "Complete Legal alerts from BODACC (insolvency, deregistration, business sales). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_contentieux",
+      "name": "Complete Commercial-court decisions linked to the company (Judilibre open data). Preserve source, co",
+      "description": "Complete Commercial-court decisions linked to the company (Judilibre open data). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_marches_publics",
+      "name": "Complete Public procurement contracts won (official DECP data). Preserve source, coverage, missing v",
+      "description": "Complete Public procurement contracts won (official DECP data). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "nombre_marches"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.marches_expirations.cpv",
+      "name": "CPV prefix (45 = construction works). Supply explicitly; do not invent identifiers or dates.",
+      "description": "CPV prefix (45 = construction works). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{2,8}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.marches_expirations.departement",
+      "name": "French department code (01-95, 2A, 2B, 971-978, 984-988). Supply explicitly; do not invent identifie",
+      "description": "French department code (01-95, 2A, 2B, 971-978, 984-988). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^(?:0[1-9]|1\\d|2[1-9]|[3-8]\\d|9[0-5]|2[AB]|97[1-8]|98[4-8])$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.marches_expirations.fenetre_mois",
+      "name": "Window in months (default 12). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Window in months (default 12). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 24
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.marches_expirations.page",
+      "name": "50 contracts per page. Supply explicitly; do not invent identifiers or dates.",
+      "description": "50 contracts per page. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.marches_expirations",
+      "name": "Complete Tender anticipation: French public contracts expiring within a window. Preserve source, cov",
+      "description": "Complete Tender anticipation: French public contracts expiring within a window. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "filtres",
+          "total_marches"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.acheteur_siret_profil.siret",
+      "name": "14-digit SIRET of the buyer (Luhn-checked). Supply explicitly; do not invent identifiers or dates.",
+      "description": "14-digit SIRET of the buyer (Luhn-checked). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{14}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.acheteur_siret_profil",
+      "name": "Complete Procurement profile of a French public buyer. Preserve source, coverage, missing values, do",
+      "description": "Complete Procurement profile of a French public buyer. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "acheteur",
+          "nombre_marches"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_concurrents_marches",
+      "name": "Complete Rival contractors on the same CPV segments (public procurement). Preserve source, coverage,",
+      "description": "Complete Rival contractors on the same CPV segments (public procurement). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "segments_cpv"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_entreprise_es_hoja_actes.hoja",
+      "name": "Hoja registral (register-sheet key, e.g. VI-23141) — get it from /v1/eu/recherche?pays=ES. The BORME",
+      "description": "Hoja registral (register-sheet key, e.g. VI-23141) — get it from /v1/eu/recherche?pays=ES. The BORME does not publish the NIF; the hoja is the native key.. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "ES",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9 .-]{1,24}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_es_hoja_actes",
+      "name": "Complete Spanish company acts from the BORME gazette (Registro Mercantil, section A), by hoja regist",
+      "description": "Complete Spanish company acts from the BORME gazette (Registro Mercantil, section A), by hoja registral. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "ES",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "hoja"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_no_id_comptes",
+      "name": "Complete Norwegian annual accounts (Regnskapsregisteret) — latest year live + every year accumulated",
+      "description": "Complete Norwegian annual accounts (Regnskapsregisteret) — latest year live + every year accumulated since 2026-07. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "NO",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_no_id_evenements",
+      "name": "Complete Norwegian legal events (Enhetsregisteret) — bankruptcy, winding-up, strike-off. Preserve so",
+      "description": "Complete Norwegian legal events (Enhetsregisteret) — bankruptcy, winding-up, strike-off. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "NO",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_gb_company_number_dirigeants",
+      "name": "Complete UK company officers (Companies House, live) — active directors and secretaries. Preserve so",
+      "description": "Complete UK company officers (Companies House, live) — active directors and secretaries. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "company_number"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_entreprise_gb_company_number_beneficiaires_effectifs.inclure_cesses",
+      "name": "Also return ceased PSCs (with their ceased_on date). Supply explicitly; do not invent identifiers or",
+      "description": "Also return ceased PSCs (with their ceased_on date). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "true"
+        ],
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_gb_company_number_beneficiaires_effectifs",
+      "name": "Complete UK beneficial owners (PSC register, Companies House, live). Preserve source, coverage, miss",
+      "description": "Complete UK beneficial owners (PSC register, Companies House, live). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "company_number"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_gb_company_number_insolvabilite",
+      "name": "Complete UK company insolvency record (Companies House, live). Preserve source, coverage, missing va",
+      "description": "Complete UK company insolvency record (Companies House, live). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "company_number"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_comptes",
+      "name": "Complete Latvian annual accounts (Uzņēmumu reģistrs / VID filings) — every filed fiscal year in one ",
+      "description": "Complete Latvian annual accounts (Uzņēmumu reģistrs / VID filings) — every filed fiscal year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_insolvabilite",
+      "name": "Complete Latvian company insolvency record (Uzņēmumu reģistrs, daily national photo). Preserve sourc",
+      "description": "Complete Latvian company insolvency record (Uzņēmumu reģistrs, daily national photo). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_dirigeants",
+      "name": "Complete Latvian company officers (Uzņēmumu reģistrs, refreshed daily). Preserve source, coverage, m",
+      "description": "Complete Latvian company officers (Uzņēmumu reģistrs, refreshed daily). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_beneficiaires_effectifs",
+      "name": "Complete Latvian beneficial owners (patiesie labuma guvēji, open national UBO register). Preserve so",
+      "description": "Complete Latvian beneficial owners (patiesie labuma guvēji, open national UBO register). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_evenements",
+      "name": "Complete Latvian company legal events (Uzņēmumu reģistrs — liquidations, reorganisations, VID suspen",
+      "description": "Complete Latvian company legal events (Uzņēmumu reģistrs — liquidations, reorganisations, VID suspensions, securing measures). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_associes",
+      "name": "Complete Latvian company members and shareholders (Uzņēmumu reģistrs — corporate holders named, natu",
+      "description": "Complete Latvian company members and shareholders (Uzņēmumu reģistrs — corporate holders named, natural persons counted). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_ee_registrikood_comptes",
+      "name": "Complete Estonian annual-report key figures (e-Business Register open data) — every published year i",
+      "description": "Complete Estonian annual-report key figures (e-Business Register open data) — every published year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "EE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_ee_registrikood_evenements",
+      "name": "Complete Estonian registry rulings (määrused) — striking-off and dissolution warnings, fines, entrie",
+      "description": "Complete Estonian registry rulings (määrused) — striking-off and dissolution warnings, fines, entries. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "EE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_se_orgnr_comptes",
+      "name": "Complete Swedish annual accounts (Bolagsverket iXBRL filings) — every digitally filed fiscal year in",
+      "description": "Complete Swedish annual accounts (Bolagsverket iXBRL filings) — every digitally filed fiscal year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "SE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_se_orgnr_evenements",
+      "name": "Complete Swedish company registry events (Bolagsverket weekly national file). Preserve source, cover",
+      "description": "Complete Swedish company registry events (Bolagsverket weekly national file). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "SE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_entreprise_dk_cvr_dirigeants.inclure_anciens",
+      "name": "Also return ended mandates, each with its end date. Supply explicitly; do not invent identifiers or ",
+      "description": "Also return ended mandates, each with its end date. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "DK",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "true"
+        ],
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_dk_cvr_dirigeants",
+      "name": "Complete Danish company officers (CVR, Erhvervsstyrelsen, live) — management bodies and mandates. Pr",
+      "description": "Complete Danish company officers (CVR, Erhvervsstyrelsen, live) — management bodies and mandates. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "DK",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_cz_ico_insolvabilite",
+      "name": "Complete Czech company insolvency record (ISIR — Insolvenční rejstřík, since 2008). Preserve source,",
+      "description": "Complete Czech company insolvency record (ISIR — Insolvenční rejstřík, since 2008). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "CZ",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pl_krs_evenements",
+      "name": "Complete Polish company registry events (KRS daily bulletin) — liquidation, bankruptcy, filings, cha",
+      "description": "Complete Polish company registry events (KRS daily bulletin) — liquidation, bankruptcy, filings, changes. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "PL",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "krs"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_comptes_be",
+      "name": "Complete Company filings list — Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, ",
+      "description": "Complete Company filings list — Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "BE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_comptes_fi",
+      "name": "Complete Company filings list — Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, ",
+      "description": "Complete Company filings list — Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FI",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_dk_id_comptes",
+      "name": "Complete Danish company filings list — fiscal years decoded from XBRL annual reports (Erhvervsstyrel",
+      "description": "Complete Danish company filings list — fiscal years decoded from XBRL annual reports (Erhvervsstyrelsen). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "DK",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_sk_ico_comptes",
+      "name": "Complete Slovak company filings list — fiscal years decoded from structured statements (RÚZ, CC0). P",
+      "description": "Complete Slovak company filings list — fiscal years decoded from structured statements (RÚZ, CC0). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "SK",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_gb_company_number_comptes",
+      "name": "Complete UK company accounts filings list — financial years decoded from iXBRL accounts (Companies H",
+      "description": "Complete UK company accounts filings list — financial years decoded from iXBRL accounts (Companies House). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.intelligence_siren",
+      "name": "Complete Company intelligence report — every block cross-referenced, closed-list signals, rule-based",
+      "description": "Complete Company intelligence report — every block cross-referenced, closed-list signals, rule-based verdict. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "type_rapport"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_documents",
+      "name": "Complete List official documents filed at the INPI RNE registry. Preserve source, coverage, missing ",
+      "description": "Complete List official documents filed at the INPI RNE registry. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.naf",
+      "name": "NAF/APE code or prefix (62, 62.01, 62.01Z). Supply explicitly; do not invent identifiers or dates.",
+      "description": "NAF/APE code or prefix (62, 62.01, 62.01Z). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.departement",
+      "name": "French departement (75, 2A, 971…) — exclusive with code_postal. Supply explicitly; do not invent ide",
+      "description": "French departement (75, 2A, 971…) — exclusive with code_postal. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.code_postal",
+      "name": "Postal-code prefix (2 to 5 digits). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Postal-code prefix (2 to 5 digits). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.forme_juridique",
+      "name": "INSEE legal-category prefix (e.g. 54, 5499). Supply explicitly; do not invent identifiers or dates.",
+      "description": "INSEE legal-category prefix (e.g. 54, 5499). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.effectif_min",
+      "name": "Minimum workforce (mapped to INSEE brackets). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Minimum workforce (mapped to INSEE brackets). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.effectif_max",
+      "name": "effectif_max. Supply explicitly; do not invent identifiers or dates.",
+      "description": "effectif_max. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.age_min",
+      "name": "Minimum company age in years. Supply explicitly; do not invent identifiers or dates.",
+      "description": "Minimum company age in years. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.age_max",
+      "name": "age_max. Supply explicitly; do not invent identifiers or dates.",
+      "description": "age_max. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.rge",
+      "name": "true = active RGE certification. Supply explicitly; do not invent identifiers or dates.",
+      "description": "true = active RGE certification. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "boolean"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.egapro_min",
+      "name": "Minimum gender-equality index (0-100). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Minimum gender-equality index (0-100). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.prospection.page",
+      "name": "Page number — each page is one payment. Supply explicitly; do not invent identifiers or dates.",
+      "description": "Page number — each page is one payment. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.prospection",
+      "name": "Complete Multi-criteria prospecting over the full registry (100 active companies per paid page). Pre",
+      "description": "Complete Multi-criteria prospecting over the full registry (100 active companies per paid page). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "criteres",
+          "nombre_resultats"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_sante",
+      "name": "Complete Business-health risk read-out (FR + EN, closed grid, official data only). Preserve source, ",
+      "description": "Complete Business-health risk read-out (FR + EN, closed grid, official data only). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "synthese"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.score_defaillance_siren",
+      "name": "Complete Company default-risk score (transparent scorecard + BODACC override). Preserve source, cove",
+      "description": "Complete Company default-risk score (transparent scorecard + BODACC override). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.secteur_code_naf_benchmarks.code_naf",
+      "name": "NAF code, any level: division (68), groupe (68.2), classe (68.20), sous-classe (68.20B). Supply expl",
+      "description": "NAF code, any level: division (68), groupe (68.2), classe (68.20), sous-classe (68.20B). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{2}(\\.\\d{0,2}[A-Z]?)?$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.secteur_code_naf_benchmarks",
+      "name": "Complete Sector benchmarks by NAF activity code (medians vs peers). Preserve source, coverage, missi",
+      "description": "Complete Sector benchmarks by NAF activity code (medians vs peers). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "code_naf",
+          "niveau"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_capital",
+      "name": "Complete Capital / ownership extracted by AI from public INPI articles of association. Preserve sour",
+      "description": "Complete Capital / ownership extracted by AI from public INPI articles of association. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "modele"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_pi",
+      "name": "Complete Industrial-property portfolio (trademarks, patents, designs) from INPI open data. Preserve ",
+      "description": "Complete Industrial-property portfolio (trademarks, patents, designs) from INPI open data. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "marques"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.entreprise_siren_changements.depuis",
+      "name": "List announcements published on or after this date (YYYY-MM-DD). Supply explicitly; do not invent id",
+      "description": "List announcements published on or after this date (YYYY-MM-DD). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_changements",
+      "name": "Complete New BODACC announcements since a date (poll-mode surveillance). Preserve source, coverage, ",
+      "description": "Complete New BODACC announcements since a date (poll-mode surveillance). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.facture_verifier.tva",
+      "name": "VAT number printed on the invoice — cross-checked against the one computed from the SIREN AND live a",
+      "description": "VAT number printed on the invoice — cross-checked against the one computed from the SIREN AND live against VIES. At least one of tva/iban is required (400 otherwise). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 20,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.facture_verifier.iban",
+      "name": "IBAN printed on the invoice — ISO form + key digits + bank identification (never a holder-name check",
+      "description": "IBAN printed on the invoice — ISO form + key digits + bank identification (never a holder-name check). At least one of tva/iban is required. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 40,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.facture_verifier",
+      "name": "Complete Invoice verification — cross-check the identifiers printed on a French invoice. Preserve so",
+      "description": "Complete Invoice verification — cross-check the identifiers printed on a French invoice. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "etat_administratif"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.facturation_dossier.iban",
+      "name": "Optional supplier IBAN — form check (structure + key) and bank identification before the first payme",
+      "description": "Optional supplier IBAN — form check (structure + key) and bank identification before the first payment. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 40,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.facturation_dossier",
+      "name": "Complete Verify a supplier before payment — France (e-invoicing mandate, 1 September 2026). Preserve",
+      "description": "Complete Verify a supplier before payment — France (e-invoicing mandate, 1 September 2026). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "destinataire"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_facturation_prep",
+      "name": "Complete Prepare an e-invoice for a French recipient (mandate of 1 September 2026). Preserve source,",
+      "description": "Complete Prepare an e-invoice for a French recipient (mandate of 1 September 2026). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "statut_diffusion"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.bodacc_recherche.famille",
+      "name": "Announcement family (closed list — these are the upstream BODACC codes, not translations): `collecti",
+      "description": "Announcement family (closed list — these are the upstream BODACC codes, not translations): `collective` = insolvency/collective proceedings, `dpc` = accounts filings (the largest family, 26M), `retablissement_professionnel` = professional recovery. Note that `retablissement_professionnel` targets SOLE TRADERS, so this endpoint serves almost nothing for it and reports them under `exclues_personnes_physiques`.. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "dpc",
+          "modification",
+          "creation",
+          "radiation",
+          "collective",
+          "vente",
+          "immatriculation",
+          "divers",
+          "conciliation",
+          "retablissement_professionnel"
+        ],
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.bodacc_recherche.depuis",
+      "name": "Start of the publication window (YYYY-MM-DD). Required: there is no unbounded search.. Supply explic",
+      "description": "Start of the publication window (YYYY-MM-DD). Required: there is no unbounded search.. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.bodacc_recherche.jusqu_a",
+      "name": "Optional end of the window (YYYY-MM-DD). The window may not exceed 366 days.. Supply explicitly; do ",
+      "description": "Optional end of the window (YYYY-MM-DD). The window may not exceed 366 days.. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.bodacc_recherche.departement",
+      "name": "Optional French department code: 01-95, 2A, 2B, 971-978.. Supply explicitly; do not invent identifie",
+      "description": "Optional French department code: 01-95, 2A, 2B, 971-978.. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.bodacc_recherche",
+      "name": "Complete Search BODACC legal announcements by criteria (family, date window, department). Preserve s",
+      "description": "Complete Search BODACC legal announcements by criteria (family, date window, department). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "criteres",
+          "annonces"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.dirigeant_recherche.nom",
+      "name": "Director surname — unsupported characters are stripped rather than rejected; 400 only when nothing s",
+      "description": "Director surname — unsupported characters are stripped rather than rejected; 400 only when nothing searchable is left (1 to 100 characters once cleaned up).. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.dirigeant_recherche",
+      "name": "Complete Reverse director search by surname. Preserve source, coverage, missing values, document sco",
+      "description": "Complete Reverse director search by surname. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "nombre_resultats",
+          "tronque"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_risques_industriels",
+      "name": "Complete Industrial-risk profile: classified ICPE facilities, Seveso status, risk synthesis. Preserv",
+      "description": "Complete Industrial-risk profile: classified ICPE facilities, Seveso status, risk synthesis. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "synthese"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_emploi",
+      "name": "Complete Hiring signals: actively hiring, posting volume, ROME families, pay-range share, Egapro ind",
+      "description": "Complete Hiring signals: actively hiring, posting volume, ROME families, pay-range share, Egapro index. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_facturation_dossier.iban",
+      "name": "Payee IBAN — optional; form check (structure + key) plus bank identification, and in Poland it unloc",
+      "description": "Payee IBAN — optional; form check (structure + key) plus bank identification, and in Poland it unlocks the White List account check. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_facturation_dossier",
+      "name": "Complete Verify a supplier before payment — Belgium & Poland (incl. the White List account check). P",
+      "description": "Complete Verify a supplier before payment — Belgium & Poland (incl. the White List account check). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_entreprise_pays_id_transactions_dirigeants_be.depuis",
+      "name": "Start date (default: rolling 12 months). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Start date (default: rolling 12 months). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "BE",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_transactions_dirigeants_be",
+      "name": "Complete Belgian and German insider dealing (FSMA / BaFin, Art. 19 MAR): issuer-level aggregate, nob",
+      "description": "Complete Belgian and German insider dealing (FSMA / BaFin, Art. 19 MAR): issuer-level aggregate, nobody named. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "BE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.eu_entreprise_pays_id_transactions_dirigeants_de.depuis",
+      "name": "Start date (default: rolling 12 months). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Start date (default: rolling 12 months). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "DE",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_transactions_dirigeants_de",
+      "name": "Complete Belgian and German insider dealing (FSMA / BaFin, Art. 19 MAR): issuer-level aggregate, nob",
+      "description": "Complete Belgian and German insider dealing (FSMA / BaFin, Art. 19 MAR): issuer-level aggregate, nobody named. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "DE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_agrements",
+      "name": "Complete Regulatory authorisations: payment/e-money (EBA), insurance (EIOPA), telecom (ARCEP). Prese",
+      "description": "Complete Regulatory authorisations: payment/e-money (EBA), insurance (EIOPA), telecom (ARCEP). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "denomination"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.association_rna.rna",
+      "name": "RNA number (W + 9, e.g. W751004076) or legacy RNA id as published. Supply explicitly; do not invent ",
+      "description": "RNA number (W + 9, e.g. W751004076) or legacy RNA id as published. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 14
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.association_rna",
+      "name": "Complete French association (loi 1901) profile by RNA number. Preserve source, coverage, missing val",
+      "description": "Complete French association (loi 1901) profile by RNA number. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "rna",
+          "titre"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.associations_recherche.code_postal",
+      "name": "Postal code or prefix (2-5 digits). Supply explicitly; do not invent identifiers or dates.",
+      "description": "Postal code or prefix (2-5 digits). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{2,5}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.associations_recherche.departement",
+      "name": "01-95, 2A, 2B or 971-989. Supply explicitly; do not invent identifiers or dates.",
+      "description": "01-95, 2A, 2B or 971-989. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.associations_recherche.position",
+      "name": "Position filter. Supply explicitly; do not invent identifiers or dates.",
+      "description": "Position filter. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "active",
+          "dissoute",
+          "supprimee"
+        ],
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.associations_recherche",
+      "name": "Complete Search French associations by name (RNA, top 20). Preserve source, coverage, missing values",
+      "description": "Complete Search French associations by name (RNA, top 20). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q",
+          "filtres"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.association_rna_annonces.rna",
+      "name": "RNA number (W + 9, e.g. W011006690). Supply explicitly; do not invent identifiers or dates.",
+      "description": "RNA number (W + 9, e.g. W011006690). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 14
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.association_rna_annonces",
+      "name": "Complete JOAFE notices of a French association (creations, modifications, dissolutions). Preserve so",
+      "description": "Complete JOAFE notices of a French association (creations, modifications, dissolutions). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "rna",
+          "association"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_marches_publics_ue",
+      "name": "Complete European public-procurement awards won (TED, identifier-matched). Preserve source, coverage",
+      "description": "Complete European public-procurement awards won (TED, identifier-matched). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "nombre_avis"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_lobbying",
+      "name": "Complete Lobbying profile from the official HATVP interest-representative register. Preserve source,",
+      "description": "Complete Lobbying profile from the official HATVP interest-representative register. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "inscrit"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.regulateurs_fr_alertes",
+      "name": "Complete French regulator (AMF) alerts: blacklists, PSAN registrations, licensed SGP. Preserve sourc",
+      "description": "Complete French regulator (AMF) alerts: blacklists, PSAN registrations, licensed SGP. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "requete",
+          "correspondances_liste_noire"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_agrements",
+      "name": "Complete EU financial authorisations (ESMA Registers, all EU/EEA countries). Preserve source, covera",
+      "description": "Complete EU financial authorisations (ESMA Registers, all EU/EEA countries). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "requete",
+          "nombre_total"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.sanctions_check.birth_year",
+      "name": "Optional birth year to refine person matches. Supply explicitly; do not invent identifiers or dates.",
+      "description": "Optional birth year to refine person matches. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^\\d{4}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.sanctions_check",
+      "name": "Complete Sanctions screening against the 6 official lists (UN, EU, OFAC, UK, FR, CH). Preserve sourc",
+      "description": "Complete Sanctions screening against the 6 official lists (UN, EU, OFAC, UK, FR, CH). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "requete",
+          "nombre_correspondances"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.iban_verifier_iban.iban",
+      "name": "IBAN (spaces and dashes tolerated). Supply explicitly; do not invent identifiers or dates.",
+      "description": "IBAN (spaces and dashes tolerated). Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "minLength": 15,
+        "maxLength": 42
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.iban_verifier_iban",
+      "name": "Complete IBAN form check (structure + key) and bank identification from official registries — NOT a ",
+      "description": "Complete IBAN form check (structure + key) and bank identification from official registries — NOT a payee verification. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "iban_normalise",
+          "valide"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.input.tva_verifier_numero.numero",
+      "name": "Full VAT number with country prefix, e.g. FR27552032534. Supply explicitly; do not invent identifier",
+      "description": "Full VAT number with country prefix, e.g. FR27552032534. Supply explicitly; do not invent identifiers or dates.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}[A-Za-z0-9+*]{2,12}$",
+        "maxLength": 500,
+        "minLength": 1
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.tva_verifier_numero",
+      "name": "Complete Validate an EU intra-community VAT number (VIES) before invoicing or paying. Preserve sourc",
+      "description": "Complete Validate an EU intra-community VAT number (VIES) before invoicing or paying. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "numero",
+          "pays"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "vat.uk.candidate_number",
+      "name": "Published or supplied UK VAT candidate, not an identity assertion",
+      "description": "Published or supplied UK VAT candidate, not an identity assertion",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^GB[0-9]{9}$"
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "vat.uk.search_evidence",
+      "name": "Published UK VAT candidate evidence with source links; absence is not non-registration",
+      "description": "Published UK VAT candidate evidence with source links; absence is not non-registration",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "candidates",
+          "distinct_candidates",
+          "notice"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "vat.uk.validation_result",
+      "name": "HMRC-derived UK VAT validity via Ask Merlin, registered identity, checkedAt and source/cache status",
+      "description": "HMRC-derived UK VAT validity via Ask Merlin, registered identity, checkedAt and source/cache status",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_screening.coverage",
+      "name": "Whether a complete active board fits the five-director screening ceiling",
+      "description": "Whether a complete active board fits the five-director screening ceiling",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "complete",
+          "active_directors",
+          "screening_limit"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_1.screening_query",
+      "name": "Source-derived screening query for active director 1; Person or corporate director Company",
+      "description": "Source-derived screening query for active director 1; Person or corporate director Company",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q1"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_1.screening_result",
+      "name": "OpenSanctions watchlist response for active director 1; possible matches need review",
+      "description": "OpenSanctions watchlist response for active director 1; possible matches need review",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array"
+          },
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_2.screening_query",
+      "name": "Source-derived screening query for active director 2; Person or corporate director Company",
+      "description": "Source-derived screening query for active director 2; Person or corporate director Company",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q1"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_2.screening_result",
+      "name": "OpenSanctions watchlist response for active director 2; possible matches need review",
+      "description": "OpenSanctions watchlist response for active director 2; possible matches need review",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array"
+          },
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_3.screening_query",
+      "name": "Source-derived screening query for active director 3; Person or corporate director Company",
+      "description": "Source-derived screening query for active director 3; Person or corporate director Company",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q1"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_3.screening_result",
+      "name": "OpenSanctions watchlist response for active director 3; possible matches need review",
+      "description": "OpenSanctions watchlist response for active director 3; possible matches need review",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array"
+          },
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_4.screening_query",
+      "name": "Source-derived screening query for active director 4; Person or corporate director Company",
+      "description": "Source-derived screening query for active director 4; Person or corporate director Company",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q1"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_4.screening_result",
+      "name": "OpenSanctions watchlist response for active director 4; possible matches need review",
+      "description": "OpenSanctions watchlist response for active director 4; possible matches need review",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array"
+          },
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_5.screening_query",
+      "name": "Source-derived screening query for active director 5; Person or corporate director Company",
+      "description": "Source-derived screening query for active director 5; Person or corporate director Company",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "q1"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.uk_director_5.screening_result",
+      "name": "OpenSanctions watchlist response for active director 5; possible matches need review",
+      "description": "OpenSanctions watchlist response for active director 5; possible matches need review",
+      "subject_kind": "company",
+      "jurisdiction": "GB",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "properties": {
+          "status": {
+            "type": "integer",
+            "enum": [
+              200
+            ]
+          },
+          "results": {
+            "type": "array"
+          },
+          "query": {
+            "type": "object"
+          }
+        }
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    }
+  ],
+  "services": [
+    {
+      "id": "9d88c9ff-537b-5b3e-b7a5-c3684b884808",
+      "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+      "api_slug": "companies-house",
+      "name": "Companies House — UK Company Register",
+      "source_url": "https://developer.company-information.service.gov.uk",
+      "method": "GET",
+      "path": "/search/companies",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 10
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "items": [
+          {
+            "kind": "searchresults#company",
+            "company_status": "active",
+            "company_number": "00445790",
+            "title": "TESCO PLC",
+            "description": "00445790 - Incorporated on 27 November 1947",
+            "links": {
+              "self": "/company/00445790"
+            }
+          },
+          {
+            "kind": "searchresults#company",
+            "company_status": "active",
+            "company_number": "09384423",
+            "title": "KFORD TYRES (GORNAL) LTD",
+            "description": "09384423 - Incorporated on 12 January 2015",
+            "links": {
+              "self": "/company/09384423"
+            }
+          }
+        ],
+        "kind": "search#companies",
+        "page_number": 1,
+        "items_per_page": 2,
+        "total_results": 356,
+        "start_index": 0
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-registry-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "q",
+            "in": "query"
+          }
+        },
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.title"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "cardinality": "many",
+        "identifies": "company.registration.gb.companies_house",
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "Live Companies House capture on 2026-09-08; unnecessary personal fields omitted from fixture"
+    },
+    {
+      "id": "ea445fe2-10d8-5892-bba5-8158cd6b3368",
+      "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+      "api_slug": "companies-house",
+      "name": "Companies House — UK Company Register",
+      "source_url": "https://developer.company-information.service.gov.uk",
+      "method": "GET",
+      "path": "/company",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "accounts": {
+          "accounting_reference_date": {
+            "day": "26",
+            "month": "02"
+          },
+          "last_accounts": {
+            "made_up_to": "2026-02-28",
+            "period_end_on": "2026-02-28",
+            "period_start_on": "2025-02-27",
+            "type": "group"
+          },
+          "next_accounts": {
+            "due_on": "2027-08-26",
+            "overdue": false,
+            "period_end_on": "2027-02-26",
+            "period_start_on": "2026-03-01"
+          },
+          "next_due": "2027-08-26",
+          "next_made_up_to": "2027-02-26",
+          "overdue": false
+        },
+        "can_file": true,
+        "company_name": "TESCO PLC",
+        "company_number": "00445790",
+        "company_status": "active",
+        "confirmation_statement": {
+          "last_made_up_to": "2026-06-18",
+          "next_due": "2027-07-02",
+          "next_made_up_to": "2027-06-18",
+          "overdue": false
+        },
+        "date_of_creation": "1947-11-27",
+        "etag": "b0711fe6fc8e9936a50a1e14e40ef9367f46bbf6",
+        "has_been_liquidated": false,
+        "has_charges": false,
+        "has_insolvency_history": false,
+        "jurisdiction": "england-wales",
+        "last_full_members_list_date": "2013-06-07",
+        "links": {
+          "self": "/company/00445790",
+          "charges": "/company/00445790/charges",
+          "filing_history": "/company/00445790/filing-history",
+          "officers": "/company/00445790/officers",
+          "exemptions": "/company/00445790/exemptions"
+        },
+        "previous_company_names": [
+          {
+            "ceased_on": "1983-08-25",
+            "effective_from": "1981-12-14",
+            "name": "TESCO STORES (HOLDINGS) PUBLIC LIMITED COMPANY"
+          },
+          {
+            "ceased_on": "1981-12-14",
+            "effective_from": "1947-11-27",
+            "name": "TESCO STORES (HOLDINGS) LIMITED"
+          }
+        ],
+        "registered_office_address": {
+          "address_line_1": "Tesco House, Shire Park",
+          "address_line_2": "Kestrel Way",
+          "country": "United Kingdom",
+          "locality": "Welwyn Garden City",
+          "postal_code": "AL7 1GA"
+        },
+        "registered_office_is_in_dispute": false,
+        "sic_codes": [
+          "47110"
+        ],
+        "type": "plc",
+        "undeliverable_registered_office_address": false,
+        "has_super_secure_pscs": false
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "name": "company_number",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_registry_record": {
+              "path": "$"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.gb.companies_house",
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "Live Companies House capture on 2026-09-08; unnecessary personal fields omitted from fixture"
+    },
+    {
+      "id": "d84d8b21-e074-5132-8bfb-0bd906e45a4a",
+      "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+      "api_slug": "companies-house",
+      "name": "Companies House — UK Company Register",
+      "source_url": "https://developer.company-information.service.gov.uk",
+      "method": "GET",
+      "path": "/company/{company_number}/persons-with-significant-control",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 100
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "items_per_page": 2,
+        "items": [],
+        "start_index": 0,
+        "total_results": 0,
+        "active_count": 0,
+        "ceased_count": 0,
+        "links": {
+          "self": "/company/00445790/persons-with-significant-control",
+          "exemptions": "/company/00445790/exemptions"
+        }
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.significant-control",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "name": "company_number",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_persons_with_significant_control": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "Live Companies House capture on 2026-09-08; unnecessary personal fields omitted from fixture"
+    },
+    {
+      "id": "4105e2ce-4650-5c93-9aed-aa014f958392",
+      "endpoint_id": "0b3e1b4e-b857-53fc-85de-f5f456bedb21",
+      "api_slug": "companies-house",
+      "name": "Companies House — UK Company Register",
+      "source_url": "https://developer.company-information.service.gov.uk",
+      "method": "GET",
+      "path": "/company/{company_number}/filing-history",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 100
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "filing_history_status": "filing-history-available",
+        "items": [
+          {
+            "transaction_id": "MzUzOTMzNzQ1OWFkaXF6a2N4",
+            "type": "SH06",
+            "date": "2026-08-26",
+            "description": "capital-cancellation-shares",
+            "links": {
+              "self": "/company/00445790/filing-history/MzUzOTMzNzQ1OWFkaXF6a2N4",
+              "document_metadata": "https://document-api.company-information.service.gov.uk/document/hSRySSiDDwOxswzyFngzgNfv1XcOZl3J25cacnI0UtY"
+            }
+          },
+          {
+            "transaction_id": "MzUzOTMzNzMyN2FkaXF6a2N4",
+            "type": "SH06",
+            "date": "2026-08-26",
+            "description": "capital-cancellation-shares",
+            "links": {
+              "self": "/company/00445790/filing-history/MzUzOTMzNzMyN2FkaXF6a2N4",
+              "document_metadata": "https://document-api.company-information.service.gov.uk/document/IU91WlsG-EVEL9cd1KQ1Az7VsbbKG8MzsKIk25kjQc8"
+            }
+          }
+        ],
+        "items_per_page": 2,
+        "start_index": 0,
+        "total_count": 8371
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.filing-history",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "name": "company_number",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_filing_history": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "Live Companies House capture on 2026-09-08; unnecessary personal fields omitted from fixture"
+    },
+    {
+      "id": "f3227f8a-3776-42c8-8182-321eef185351",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "responses": {
+          "q1": {
+            "query": {
+              "schema": "Person",
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              }
+            },
+            "status": 200,
+            "results": [],
+            "total": {
+              "value": 0,
+              "relation": "eq"
+            }
+          }
+        },
+        "fixture_notice": "Synthetic response, not live screening"
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-1",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.uk_director_1.screening_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.uk_director_1.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_1.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "live upstream capture on 2026-09-08; sample omits unrelated entity properties",
+      "optional_outputs": []
+    },
+    {
+      "id": "48bd8593-21fb-4190-80f3-da5deafe3000",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "responses": {
+          "q1": {
+            "query": {
+              "schema": "Person",
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              }
+            },
+            "status": 200,
+            "results": [],
+            "total": {
+              "value": 0,
+              "relation": "eq"
+            }
+          }
+        },
+        "fixture_notice": "Synthetic response, not live screening"
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-2",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.uk_director_2.screening_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.uk_director_2.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_2.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "live upstream capture on 2026-09-08; sample omits unrelated entity properties",
+      "optional_outputs": []
+    },
+    {
+      "id": "dd115e36-ff82-41e8-8b34-3c253fe26658",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "responses": {
+          "q1": {
+            "query": {
+              "schema": "Person",
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              }
+            },
+            "status": 200,
+            "results": [],
+            "total": {
+              "value": 0,
+              "relation": "eq"
+            }
+          }
+        },
+        "fixture_notice": "Synthetic response, not live screening"
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-3",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.uk_director_3.screening_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.uk_director_3.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_3.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "live upstream capture on 2026-09-08; sample omits unrelated entity properties",
+      "optional_outputs": []
+    },
+    {
+      "id": "75d76cbd-0b13-4ee5-854b-44c7d0f776da",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "responses": {
+          "q1": {
+            "query": {
+              "schema": "Person",
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              }
+            },
+            "status": 200,
+            "results": [],
+            "total": {
+              "value": 0,
+              "relation": "eq"
+            }
+          }
+        },
+        "fixture_notice": "Synthetic response, not live screening"
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-4",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.uk_director_4.screening_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.uk_director_4.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_4.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "live upstream capture on 2026-09-08; sample omits unrelated entity properties",
+      "optional_outputs": []
+    },
+    {
+      "id": "c1b707dc-fdae-4e2e-809b-97139566e7e6",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "responses": {
+          "q1": {
+            "query": {
+              "schema": "Person",
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              }
+            },
+            "status": 200,
+            "results": [],
+            "total": {
+              "value": 0,
+              "relation": "eq"
+            }
+          }
+        },
+        "fixture_notice": "Synthetic response, not live screening"
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-5",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.uk_director_5.screening_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.uk_director_5.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_5.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "live upstream capture on 2026-09-08; sample omits unrelated entity properties",
+      "optional_outputs": []
+    },
+    {
+      "id": "c7bd8bef-42ef-4d3c-826d-76b784a8543a",
+      "endpoint_id": "b535c580-b983-5c83-a58a-796360e6df74",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/GB/{company_number}/dirigeants",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "GB",
+      "sample_payload": {
+        "pays": "GB",
+        "company_number": "00000006",
+        "nombre_actifs": 2,
+        "tronque": false,
+        "dirigeants": [
+          {
+            "nom": "Example Director One",
+            "fonction": "director",
+            "naissance": {
+              "year": 1961,
+              "month": 5
+            }
+          },
+          {
+            "nom": "Example Director Two",
+            "fonction": "director",
+            "naissance": null
+          }
+        ],
+        "fixture_notice": "Synthetic shape test; not a live company screening result"
+      },
+      "contract": {
+        "capability_slug": "company.uk-director-roster",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "name": "company_number",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_screening.coverage": {
+              "adapter": "roster.active-director",
+              "key": "coverage"
+            },
+            "company.uk_director_1.screening_query": {
+              "adapter": "roster.active-director",
+              "key": "0.query"
+            },
+            "company.uk_director_2.screening_query": {
+              "adapter": "roster.active-director",
+              "key": "1.query"
+            },
+            "company.uk_director_3.screening_query": {
+              "adapter": "roster.active-director",
+              "key": "2.query"
+            },
+            "company.uk_director_4.screening_query": {
+              "adapter": "roster.active-director",
+              "key": "3.query"
+            },
+            "company.uk_director_5.screening_query": {
+              "adapter": "roster.active-director",
+              "key": "4.query"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "company_number": "00102498"
+      },
+      "optional_outputs": [
+        "company.uk_director_1.screening_query",
+        "company.uk_director_2.screening_query",
+        "company.uk_director_3.screening_query",
+        "company.uk_director_4.screening_query",
+        "company.uk_director_5.screening_query"
+      ]
+    },
+    {
+      "endpoint_id": "22144f16-e658-49a7-94f8-2dc6edbf7e88",
+      "api_slug": "tavily",
+      "name": "Tavily",
+      "method": "POST",
+      "path": "/search",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "source_url": "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+      "id": "b96988b5-da17-46fe-8975-2b3387d085fe",
+      "contract": {
+        "capability_slug": "company.uk-vat-candidate-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "in": "body",
+            "name": "query",
+            "wrap": "uk_vat_search"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "vat.uk.candidate_number": {
+              "adapter": "search.uk-vat-candidates",
+              "key": "number"
+            },
+            "vat.uk.search_evidence": {
+              "adapter": "search.uk-vat-candidates",
+              "key": "evidence"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "search_depth": "advanced",
+        "max_results": 5,
+        "include_answer": false,
+        "include_images": false,
+        "include_raw_content": false
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "GB",
+      "sample_payload": {
+        "results": [
+          {
+            "url": "https://example.test/legal",
+            "title": "Example UK company",
+            "content": "VAT number GB220430231"
+          }
+        ],
+        "fixture_notice": "Synthetic search response"
+      },
+      "optional_outputs": [
+        "vat.uk.candidate_number"
+      ]
+    },
+    {
+      "endpoint_id": "056c56b0-777e-4692-8bd4-ea3ec5f54560",
+      "api_slug": "ask-merlin",
+      "name": "Ask Merlin UK VAT",
+      "method": "GET",
+      "path": "/api/lookup",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://askmerlin.com/api",
+      "id": "4f71d5df-d480-436c-807a-aa54778e07f0",
+      "contract": {
+        "capability_slug": "vat.uk.validate",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "vat.uk.candidate_number",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "vat.uk.candidate_number": {
+            "in": "query",
+            "name": "q"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "vat.uk.validation_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "max_age": 3600
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "GB",
+      "sample_payload": {
+        "data": {
+          "vatNumber": "GB220430231",
+          "countryCode": "GB",
+          "valid": true,
+          "status": "valid",
+          "name": "TESCO PLC",
+          "address": "CIRRUS A, SHIRE PARK KESTREL WAY, WELWYN GARDEN CITY, AL7 1GA, GB",
+          "source": "live",
+          "checkedAt": "2026-09-21T22:44:06Z",
+          "stale": false,
+          "consultationNumber": null
+        },
+        "source_url": "https://askmerlin.com/api/lookup?q=GB220430231&max_age=3600",
+        "coverage": {
+          "complete": true,
+          "scope": "One supplied GB VAT number, HMRC-derived response via Ask Merlin, at the recorded check time."
+        },
+        "notice": "Match the registered name/address; no consultation reference. An invalid candidate does not prove no other registration."
+      },
+      "optional_outputs": []
+    }
+  ]
+}

@@ -12,6 +12,13 @@ pub fn insert(
     let value = match binding.wrap.as_deref() {
         None => value,
         Some("array") if binding.location.as_deref() == Some("body") => Value::Array(vec![value]),
+        Some("uk_vat_search") if binding.location.as_deref() == Some("body") => {
+            if value.is_null() { value } else {
+                let name = value.as_str().context("VAT search needs a company name")?;
+                ensure!(!name.trim().is_empty() && name.len() <= 200, "Invalid VAT search company");
+                Value::String(format!("{name} UK company VAT registration number GB"))
+            }
+        },
         _ => anyhow::bail!("unsupported input wrapping"),
     };
     if !binding.name.starts_with('/') {

@@ -38,10 +38,12 @@
 //! their common synonyms — which describe the shape, not who serves it.
 
 use serde_json::Value;
+#[path = "uk_supplier.rs"]
+mod uk_supplier;
 
 /// Every adapter a contract may name. A contract naming anything else fails
 /// its check and never reaches `validated`.
-pub const KNOWN: &[&str] = &["tree.key-value", "record.country-identifier", "point.rd-extent"];
+pub const KNOWN: &[&str] = &["tree.key-value", "record.country-identifier", "point.rd-extent", "roster.active-director", "search.uk-vat-candidates"];
 
 /// Field names that carry the NAME half of a pair. Shape vocabulary, not a
 /// vendor list: a provider is free to say `name` where another says `key`.
@@ -58,6 +60,8 @@ pub fn run(adapter: &str, key: &str, body: &Value) -> Option<Value> {
         "tree.key-value" => key_value_tree(body, key),
         "record.country-identifier" => country_identifier(body, key),
         "point.rd-extent" => rd_extent(body, key),
+        "roster.active-director" => uk_supplier::directors(body, key),
+        "search.uk-vat-candidates" => uk_supplier::vat_candidates(body, key),
         _ => None,
     }
 }
