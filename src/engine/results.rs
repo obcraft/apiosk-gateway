@@ -81,6 +81,10 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
+        if step.service.is_document_retrieval() {
+            document["coverage_note"] = json!("Document returned by the named source. Provider assertions and generated summaries are not independently verified; cite original filings/records only when the returned evidence identifies them. This retrieval does not establish exhaustive historical coverage.");
+            document["source"]["output_kind"] = json!("source_document");
+        }
         if let Some(fallback) = &step.browser_fallback {
             document["source"]["fallback_for"] = json!(fallback.after.iter().filter(|key|task.failed_steps.contains_key(*key)).collect::<Vec<_>>());
             document["source"]["search_query"] = json!(crate::browser_fallback::query(fallback, task));

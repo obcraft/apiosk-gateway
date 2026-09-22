@@ -338,8 +338,8 @@
     },
     "steps": [
       {
-        "source": "linkup",
-        "capability": "web.linkup-fetch",
+        "source": "",
+        "capability": "web.source-fetch",
         "subject": "Vendor 1",
         "inputs": {
           "web.source_page_url": "{url1}"
@@ -348,8 +348,8 @@
         "label": "Read the first pricing page"
       },
       {
-        "source": "linkup",
-        "capability": "web.linkup-fetch",
+        "source": "",
+        "capability": "web.source-fetch",
         "subject": "Vendor 2",
         "inputs": {
           "web.source_page_url": "{url2}"
@@ -358,8 +358,8 @@
         "label": "Read the second pricing page"
       },
       {
-        "source": "linkup",
-        "capability": "web.linkup-fetch",
+        "source": "",
+        "capability": "web.source-fetch",
         "subject": "Vendor 3",
         "inputs": {
           "web.source_page_url": "{url3}"
@@ -1028,8 +1028,8 @@
         "label": "Check registered company details"
       },
       {
-        "source": "linkup",
-        "capability": "web.linkup-fetch",
+        "source": "",
+        "capability": "web.source-fetch",
         "subject": "Advertisement",
         "inputs": {
           "web.source_page_url": "{url1}"

@@ -187,7 +187,7 @@ fn annual_period(value: &Value) -> bool {
 }
 fn matches_source(service: &Service, source: &str, catalog: &Catalog) -> bool {
     source == service.api_slug
-        || (source == "pulsenetwork" && catalog.known_sources.iter().any(|s|
+        || (catalog.known_sources.iter().any(|s|
             s.slug == service.api_slug && s.metadata.provider_slug.as_deref() == Some(source)))
 }
 fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
@@ -471,7 +471,9 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "statistics.cbs-bankruptcy-measures" => "Read the CBS measures and units".to_owned(),
             "statistics.cbs-bankruptcy-sectors" => "Read the CBS sector definitions".to_owned(),
             "statistics.cbs-bankruptcy-entity-types" => "Read the CBS business-type definitions".to_owned(),
-            _ => capability.replace(['.', '_', '-'], " "),
+            _ => service.description.as_deref().filter(|_|service.is_document_retrieval())
+                .map(|text| text.split(". ").next().unwrap_or(text).chars().take(180).collect())
+                .unwrap_or_else(||capability.replace(['.', '_', '-'], " ")),
         }
         };
         let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !r.optional).filter_map(|required| {

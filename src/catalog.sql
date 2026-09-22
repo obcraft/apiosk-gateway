@@ -52,7 +52,7 @@ SELECT jsonb_build_object(
  'vocabulary',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'value_schema',value_schema) ORDER BY slug),'[]') FROM fact_types WHERE status='active'),
  'services',(SELECT coalesce(jsonb_agg(s.obj ORDER BY s.id),'[]') FROM (
  SELECT c.id,jsonb_build_object(
-  'id',c.id,'endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'source_url',coalesce(a.docs_url,a.website_url),
+  'id',c.id,'endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'description',left(cap.description,400),'source_url',coalesce(a.docs_url,a.website_url),
   'method',e.method,'path',e.path,'listing_type',coalesce(a.listing_type::text,'api'),
   'list_atomic',ceil(e.price*1000000)::bigint,
   'optional_outputs',(SELECT coalesce(jsonb_agg(p->>'fact_type' ORDER BY p->>'fact_type'),'[]') FROM jsonb_array_elements(c.produces) p WHERE p->>'optional'='true'),

@@ -25,6 +25,8 @@ pub(crate) fn execution_catalog_sql() -> String {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub optional_outputs: Vec<String>,
     #[serde(default)]
@@ -46,6 +48,10 @@ pub struct Service {
     pub jurisdiction: Option<String>,
 }
 impl Service {
+    pub fn is_document_retrieval(&self) -> bool {
+        self.contract.output_map.produces.values().any(|extract| matches!(extract,
+            catalog_core::facts::contract::Extract::Adapter { adapter, .. } if adapter == "document.response"))
+    }
     pub fn total(&self) -> i64 {
         fees::quote(
             self.list_atomic.into(),
@@ -246,7 +252,9 @@ impl Catalog {
             .map(|f| json!({"type":f.slug,"schema":f.value_schema}))
             .collect();
         let bindings: Vec<_> = self.services.iter().map(|s| json!({
-            "source":s.api_slug,"capability":s.contract.capability_slug,"inputs":s.contract.requires
+            "source":s.api_slug,"capability":s.contract.capability_slug,"inputs":s.contract.requires,
+            "input_names":s.contract.input_map.iter().map(|(fact,binding)| (fact,&binding.name)).collect::<BTreeMap<_,_>>(),
+            "output_kind":if s.is_document_retrieval() {"source_document"} else {"mapped_facts"}
         })).collect();
         let mut capabilities: Vec<&str> = self.by_capability.keys().map(String::as_str).collect();
         let mut presets = vec![];
@@ -260,6 +268,65 @@ impl Catalog {
         }
         json!({"capabilities":capabilities,"workflow_presets":presets,"sources":sources,
             "input_types":inputs,"input_definitions":definitions,"service_inputs":bindings})
+    }
+
+    /// A compact index gives every executable operation the same opportunity
+    /// to be selected before its full input schemas enter the model context.
+    pub fn operation_index(&self) -> Value {
+        let mut operations = BTreeMap::new();
+        for s in &self.services {
+            let known=self.known_sources.iter().find(|k|k.slug==s.api_slug);
+            let description=s.description.as_deref().or_else(||known.and_then(|k|k.metadata.capability_descriptions.get(&s.contract.capability_slug))
+                .and_then(Value::as_str)).unwrap_or(&s.contract.capability_slug);
+            operations.entry(s.contract.capability_slug.clone()).or_insert_with(Vec::new).push(json!({
+                "source":s.api_slug,"provider":known.and_then(|k|k.metadata.provider_slug.as_deref()),
+                "description":description,"inputs":s.contract.input_map.values().map(|b|&b.name).collect::<Vec<_>>()
+            }));
+        }
+        json!(operations)
+    }
+
+    pub fn selected_parser_view(&self, selected: &std::collections::BTreeSet<String>) -> Value {
+        let mut view=self.parser_view();
+        let mut needed=selected.clone();
+        // Dependencies are also executable operations. Retain every candidate
+        // producer rather than introducing a vendor preference here.
+        loop {
+            let before=needed.len();
+            for s in &self.services {
+                if !needed.contains(&s.contract.capability_slug) {continue;}
+                for requirement in s.contract.requires.iter().filter(|r|!r.optional) {
+                    if let Some(indices)=self.by_output.get(&requirement.fact_type) {
+                        for index in indices {needed.insert(self.services[*index].contract.capability_slug.clone());}
+                    }
+                }
+            }
+            if before==needed.len(){break;}
+        }
+        // Existing composite presets need their authored dependency vocabulary.
+        // They remain explicit options, not preferred providers.
+        if selected.contains(crate::uk_supplier::PRESET)||selected.contains(crate::supplier_check::PRESET) {
+            return view;
+        }
+        view["capabilities"].as_array_mut().unwrap().retain(|v|v.as_str().is_some_and(|s|needed.contains(s)));
+        view["workflow_presets"].as_array_mut().unwrap().retain(|v|v["capability"].as_str().is_some_and(|s|needed.contains(s)));
+        view["service_inputs"].as_array_mut().unwrap().retain(|v|v["capability"].as_str().is_some_and(|s|needed.contains(s)));
+        let types: std::collections::BTreeSet<_>=self.services.iter().filter(|s|needed.contains(&s.contract.capability_slug))
+            .flat_map(|s|s.contract.requires.iter().map(|r|r.fact_type.as_str())).collect();
+        view["input_types"].as_array_mut().unwrap().retain(|v|v.as_str().is_some_and(|s|types.contains(s)));
+        view["input_definitions"].as_array_mut().unwrap().retain(|v|v["type"].as_str().is_some_and(|s|types.contains(s)));
+        for source in view["sources"].as_array_mut().unwrap() {
+            source["capabilities"].as_array_mut().unwrap().retain(|v|v.as_str().is_some_and(|s|needed.contains(s)));
+            if let Some(descriptions)=source["capability_descriptions"].as_object_mut(){descriptions.retain(|key,_|needed.contains(key));}
+            if source["capabilities"].as_array().is_some_and(|caps|caps.is_empty()) {
+                // The index already supplied relevance metadata. Keep source
+                // identity/restrictions so named unavailable sources are still
+                // reported honestly, without repeating hundreds of tag lists.
+                source.as_object_mut().unwrap().retain(|key,_|matches!(key.as_str(),"slug"|"name"|"provider_slug"|"capabilities"|"available"|"reason"|"readiness"));
+                if let Some(readiness)=source["readiness"].as_object_mut(){readiness.retain(|key,_|matches!(key.as_str(),"status"|"restrictions"|"coverage_notices"));}
+            }
+        }
+        view
     }
 
     /// Reviewed API contracts for semantic planning. No credentials, payloads

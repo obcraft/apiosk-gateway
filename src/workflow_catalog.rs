@@ -47,6 +47,8 @@ pub struct Recipe {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RecipeStep {
     pub label: String,
+    /// Empty means any admitted source for the exact same capability.
+    #[serde(default)]
     pub source: String,
     pub capability: String,
     pub subject: String,
@@ -238,7 +240,7 @@ pub fn prepare(
         }) {
             continue;
         }
-        anyhow::ensure!(catalog.services.iter().any(|s| s.api_slug == step.source && s.contract.capability_slug == step.capability), "{} is temporarily unavailable for this workflow.", step.source);
+        anyhow::ensure!(catalog.services.iter().any(|s| (step.source.is_empty()||s.api_slug == step.source) && s.contract.capability_slug == step.capability), "{} is temporarily unavailable for this workflow.", step.label);
         let index = if let Some(i) = keys.iter().position(|k| k == &step.subject) {
             i
         } else {
@@ -281,7 +283,7 @@ pub fn prepare(
         goals.push(Goal {
             capability: step.capability.clone(),
             subject: index,
-            constraints: BTreeMap::from([("source".into(), json!(step.source))]),
+            constraints: if step.source.is_empty(){BTreeMap::new()}else{BTreeMap::from([("source".into(), json!(step.source))])},
         });
     }
     anyhow::ensure!(
@@ -365,14 +367,15 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
             crate::resolver::Resolution::Plan(_)=>Ok(()), _=>anyhow::bail!("The required source operations are temporarily unavailable."),
         });
         let mut sources=BTreeMap::new();
-        for s in &r.steps { if let Some(service)=catalog.services.iter().find(|v|v.api_slug==s.source) { sources.insert(s.source.clone(),service.name.clone()); } }
+        for step in &r.steps { for service in catalog.services.iter().filter(|s|s.contract.capability_slug==step.capability&&(step.source.is_empty()||s.api_slug==step.source)) { sources.insert(service.api_slug.clone(),service.name.clone()); } }
         let steps:Vec<_>=r.steps.iter().enumerate().map(|(i,step)| {
             let condition=step.when.iter().map(|(key,value)| {
                 let label=r.fields.iter().find(|f|f.key==*key).map(|f|f.label.as_str()).unwrap_or(key);
                 let value=value.as_str().or_else(||value.as_array().and_then(|options|options.first()).and_then(Value::as_str)).unwrap_or_default();
                 if value=="*" {format!("When {} is provided",label.to_lowercase())} else {format!("When {} is {}",label.to_lowercase(),value)}
             }).collect::<Vec<_>>().join(" and ");
-            json!({"id":format!("step-{i}"),"label":step.label,"sources":[{"slug":step.source,"name":sources.get(&step.source).unwrap_or(&step.source)}],"when":step.when,"condition":condition})
+            let candidates: BTreeMap<_,_>=catalog.services.iter().filter(|s|s.contract.capability_slug==step.capability&&(step.source.is_empty()||s.api_slug==step.source)).map(|s|(&s.api_slug,&s.name)).collect();
+            json!({"id":format!("step-{i}"),"label":step.label,"sources":candidates.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"when":step.when,"condition":condition})
         }).collect();
         json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"steps":steps,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
     }).collect()

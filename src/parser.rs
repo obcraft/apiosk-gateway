@@ -665,6 +665,8 @@ impl Parser {
     }
 
     async fn chat_baseline(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
+        let mut input=chat_input(question, task, catalog);
+        input["catalog"]=self.planning_view(question,task,catalog).await?;
         let payload = json!({
             "model": self.model, "temperature": 0, "max_tokens": 4096,
             "reasoning": {"effort":"minimal", "exclude":true},
@@ -672,7 +674,7 @@ impl Parser {
             "response_format": {"type":"json_object"},
             "messages": [
                 {"role":"system","content":format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.",include_str!("../contracts/ask-chat-prompt.txt"),include_str!("../contracts/parser-prompt.txt"))},
-                {"role":"user","content":chat_input(question, task, catalog).to_string()}
+                {"role":"user","content":input.to_string()}
             ]
         });
         self.completion("chat", &payload, |raw| {
@@ -976,12 +978,13 @@ impl Parser {
             let context = task.parser_context();
             let started=std::time::Instant::now();
             let system=include_str!("../contracts/parser-prompt.txt");
+            let view=self.planning_view(question,task,catalog).await?;
             let payload=json!({
                 "model":self.model,"temperature":0,"max_tokens":4096,
                 "reasoning":{"effort":"minimal","exclude":true},
                 "provider":{"require_parameters":true},
                 "response_format":{"type":"json_object"},
-                "messages":[{"role":"system","content":system},{"role":"user","content":json!({"question":question,"context":context,"catalog":catalog.parser_view()}).to_string()}]
+                "messages":[{"role":"system","content":system},{"role":"user","content":json!({"question":question,"context":context,"catalog":view}).to_string()}]
             });
             let intent=self.completion("intent", &payload, |raw| {
                 let mut intent=decode_intent(raw)?;
@@ -991,6 +994,30 @@ impl Parser {
             }).await?;
             tracing::info!(parser_ms=started.elapsed().as_millis() as u64,"intent parsed");
             Ok(intent)
+    }
+
+    async fn planning_view(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<Value> {
+        if catalog.services.len()<=400 {return Ok(catalog.parser_view());}
+        let presets=catalog.parser_view()["workflow_presets"].clone();
+        let payload=json!({"model":self.model,"temperature":0,"max_tokens":4096,
+            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_object"},"messages":[
+                {"role":"system","content":include_str!("../contracts/catalog-selection-prompt.txt")},
+                {"role":"user","content":json!({"question":question,"context":task.parser_context(),"operations":catalog.operation_index(),"workflow_presets":presets}).to_string()}
+            ]});
+        let selected=self.completion("catalog-selection",&payload,|raw| {
+            let value:Value=serde_json::from_str(raw)?;
+            let choices=value["capabilities"].as_array().ok_or_else(||anyhow::anyhow!("missing catalog choices"))?;
+            anyhow::ensure!(choices.len()<=32,"too many catalog choices");
+            let mut selected=std::collections::BTreeSet::new();
+            for choice in choices {
+                let cap=choice.as_str().ok_or_else(||anyhow::anyhow!("invalid catalog choice"))?;
+                anyhow::ensure!(catalog.by_capability.contains_key(cap)||presets.as_array().is_some_and(|rows|rows.iter().any(|v|v["capability"]==cap)),"unknown catalog choice");
+                selected.insert(cap.to_owned());
+            }
+            Ok(selected)
+        }).await?;
+        Ok(catalog.selected_parser_view(&selected))
     }
 }
 fn shadow_intent(candidate: Option<&Intent>, baseline: Option<&Intent>) {

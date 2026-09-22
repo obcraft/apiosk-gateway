@@ -105,7 +105,7 @@ pub fn related_services(catalog: &Catalog, task: &Task) -> Vec<RelatedService> {
                 })
         })
         .collect();
-    candidates.sort_by_key(|s| (s.api_slug != last.api_slug, s.total(), s.id));
+    candidates.sort_by_key(|s| (s.total(), s.id));
     let mut seen = BTreeSet::new();
     candidates
         .into_iter()

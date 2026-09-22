@@ -40,10 +40,13 @@
 use serde_json::Value;
 #[path = "uk_supplier.rs"]
 mod uk_supplier;
+#[path = "document.rs"]
+mod document;
 
 /// Every adapter a contract may name. A contract naming anything else fails
 /// its check and never reaches `validated`.
 pub const KNOWN: &[&str] = &[
+    "document.response",
     "tree.key-value",
     "record.country-identifier",
     "point.rd-extent",
@@ -63,6 +66,7 @@ const VALUE_FIELDS: &[&str] = &["value", "val", "amount", "content"];
 /// data, not an error.
 pub fn run(adapter: &str, key: &str, body: &Value) -> Option<Value> {
     match adapter {
+        "document.response" if key == "document" => document::response(body),
         "tree.key-value" => key_value_tree(body, key),
         "record.country-identifier" => country_identifier(body, key),
         "point.rd-extent" => rd_extent(body, key),
@@ -335,6 +339,9 @@ mod tests {
                 adapter.starts_with("tree.")
                     || adapter.starts_with("list.")
                     || adapter.starts_with("point.")
+                    || adapter.starts_with("document.")
+                    || adapter.starts_with("roster.")
+                    || adapter.starts_with("search.")
                     || adapter.starts_with("record."),
                 "{adapter} looks like a vendor name, not a shape"
             );

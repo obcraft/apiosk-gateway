@@ -32,7 +32,8 @@ pub fn assess(catalog: &Catalog, slugs: &[&str]) -> Value {
     let services: Vec<_> = catalog.services.iter().filter(|s| slugs.contains(&s.api_slug.as_str())).collect();
     let total: usize = rows.iter().map(|s| s.metadata.endpoint_count).sum();
     let covered = services.iter().map(|s| s.endpoint_id).collect::<BTreeSet<_>>().len();
-    let sampled = services.iter().filter(|s| s.sample_payload.is_some()).map(|s| s.endpoint_id).collect::<BTreeSet<_>>().len();
+    let sampled = services.iter().filter(|s| s.sample_payload.is_some() && !s.is_document_retrieval()).map(|s| s.endpoint_id).collect::<BTreeSet<_>>().len();
+    let documents = services.iter().filter(|s|s.is_document_retrieval()).map(|s|s.endpoint_id).collect::<BTreeSet<_>>().len();
     let blocks: Vec<_> = rows.iter().filter_map(|s| s.block_reason.as_ref().map(|r| format!("{}: {}",s.name,r))).collect();
     let identity = !rows.is_empty() && rows.iter().all(|s| s.metadata.identity_documented
         && !["x402 endpoints", "x402 seller", "unknown", "unnamed", "api provider", "data provider"].contains(&s.name.trim().to_lowercase().as_str()));
@@ -54,10 +55,11 @@ pub fn assess(catalog: &Catalog, slugs: &[&str]) -> Value {
     if !complete { reasons.push("Endpoint metadata is incomplete, inferred, or lacks provenance.".into()); }
     if covered == 0 && blocks.is_empty() { reasons.push("No executable capability is available to the v2 planner.".into()); }
     if execution_concern { reasons.push("Recent v2 executions are unresolved or have failures without a recorded success.".into()); }
+    if documents>0 {reasons.push(format!("{documents} endpoints retrieve opaque source documents using documented inputs. Their adapter fixtures are not provider samples or proof of live success; no normalized facts are promised."));}
     json!({"status":status,"available_in_v2":covered>0,"reasons":reasons,
         "identity":{"documented":identity},
         "metadata":{"complete":complete,"described_endpoints":described,"tagged_endpoints":tagged,"categorized_endpoints":categorized,"documented_input_endpoints":inputs,"inferred_endpoints":inferred,"unknown_provenance_endpoints":unknown},
-        "contracts":{"registered_endpoints":total,"supported_endpoints":covered,"accepted_contracts":services.len(),"sample_checked_endpoints":sampled},
+        "contracts":{"registered_endpoints":total,"supported_endpoints":covered,"accepted_contracts":services.len(),"sample_checked_endpoints":sampled,"document_retrieval_endpoints":documents},
         "execution_evidence":{"window_days":30,"state":if successes+failures+unresolved==0 {"unmeasured"} else {"recorded"},"successful_executions":successes,"failed_executions":failures,"unresolved_executions":unresolved,"scope":"Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test."},
         "restrictions":blocks,"coverage_notices":rows.iter().filter_map(|s| s.metadata.coverage_notice.as_ref()).collect::<Vec<_>>()})
 }

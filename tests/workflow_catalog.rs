@@ -6,9 +6,11 @@ use apiosk_gateway_v2::{
 use serde_json::{json, Value};
 
 fn catalog() -> Catalog {
-    Catalog::build(
-        serde_json::from_str::<Snapshot>(include_str!("fixtures/workflows/catalog.json")).unwrap(),
-    )
+    let mut snapshot=serde_json::from_str::<Snapshot>(include_str!("fixtures/workflows/catalog.json")).unwrap();
+    let added:Snapshot=serde_json::from_str(include_str!("fixtures/source-operations/catalog.json")).unwrap();
+    snapshot.services.extend(added.services.into_iter().filter(|s|s.contract.capability_slug=="web.source-fetch"));
+    for word in added.vocabulary {if !snapshot.vocabulary.iter().any(|w|w.slug==word.slug){snapshot.vocabulary.push(word);}}
+    Catalog::build(snapshot)
 }
 
 #[test]
@@ -178,7 +180,7 @@ fn recipes_only_quote_relevant_country_and_optional_steps() {
     assert!(!prospects.iter().any(|(source,_)|source=="linkup"));
     let comparison=planned("competitor-comparison",&[]);
     assert_eq!(comparison.len(),2);
-    assert!(comparison.iter().all(|(source,cap)|source=="linkup" && cap=="web.linkup-fetch"));
+    assert!(comparison.iter().all(|(_,cap)|cap=="web.source-fetch"));
     assert_eq!(planned("competitor-comparison",&[("url3",json!("https://example.com/pricing"))]).len(),3);
     let onboarding=planned("customer-onboarding",&[("country",json!("GB")),("registration",json!("09446231")),("vat_number",Value::Null),("vat_country",Value::Null)]);
     assert_eq!(onboarding.len(),4);
@@ -202,7 +204,8 @@ fn recipes_only_quote_relevant_country_and_optional_steps() {
         assert_eq!(steps.len(),recipe.steps.len());
         for (public,actual) in steps.iter().zip(&recipe.steps) {
             assert_eq!(public["when"],serde_json::to_value(&actual.when).unwrap());
-            assert_eq!(public["sources"][0]["slug"],actual.source);
+            if actual.source.is_empty(){assert_eq!(public["sources"].as_array().unwrap().len(),2);}
+            else {assert_eq!(public["sources"][0]["slug"],actual.source);}
             assert!(!public["label"].as_str().unwrap().is_empty());
         }
     }
