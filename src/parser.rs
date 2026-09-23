@@ -605,9 +605,6 @@ impl Parser {
         failures: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Value> {
         if failures.is_empty() {
-            if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
-        }
-        if failures.is_empty() {
             if let Some(client) = &self.typesafe {
                 if client.mode() == crate::typesafe::Mode::On {
                     if let Some(answer) = client.analyze(operations, sources).await { return Ok(answer); }
@@ -617,6 +614,9 @@ impl Parser {
                     return baseline;
                 }
             }
+        }
+        if failures.is_empty() && self.typesafe.is_none() {
+            if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
         }
         self.analyze_with_scope(operations, sources, failures, false).await
     }
