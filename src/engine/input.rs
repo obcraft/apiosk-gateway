@@ -48,7 +48,7 @@ pub fn bind_subjects(
     Ok(())
 }
 
-pub(super) fn user_fact(
+pub(crate) fn user_fact(
     task: &mut Task,
     catalog: &Catalog,
     entity: Uuid,

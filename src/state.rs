@@ -244,6 +244,7 @@ impl Task {
                 "status":analysis["status"],
                 "observations":analysis["observations"].as_array().map(|items| items.iter().filter_map(|item| item["text"].as_str()).collect::<Vec<_>>()).unwrap_or_default(),
                 "limitations":analysis["limitations"],
+                "follow_up_question":analysis["follow_up_question"],
                 "verdict":analysis.get("verdict").map(|verdict| serde_json::json!({"decision":verdict["decision"],"headline":verdict["headline"],"reasons":verdict["reasons"]})),
             })
         };
@@ -296,7 +297,7 @@ mod tests {
             proposal: Some(serde_json::json!({"steps":["large saved quote".repeat(1000)]})),
             result_ref: Some(Uuid::new_v4()), result_refs: vec![], analysis: task.intent.clone(),
         });
-        task.analysis = Some(serde_json::json!({"status":"completed","observations":[{"text":"The filing reports EUR 500 in 2024.","evidence":[{"value":"large evidence".repeat(1000)}]}],"limitations":[]}));
+        task.analysis = Some(serde_json::json!({"status":"completed","observations":[{"text":"The filing reports EUR 500 in 2024.","evidence":[{"value":"large evidence".repeat(1000)}]}],"limitations":[],"follow_up_question":"Which filing topic do you mean?"}));
         let input = task.parser_context();
         assert_eq!(input["conversation"][0]["reply"], "Which filing?");
         assert_eq!(input["entities"][0]["entity_ref"], serde_json::json!(entity));
@@ -305,6 +306,7 @@ mod tests {
         assert!(input.get("analysis").is_none());
         assert!(input.get("result_refs").is_none());
         assert_eq!(input["previous_answer"]["observations"][0], "The filing reports EUR 500 in 2024.");
+        assert_eq!(input["previous_answer"]["follow_up_question"], "Which filing topic do you mean?");
         assert!(!input.to_string().contains("large evidence"));
         assert!(input.to_string().len() * 10 < task.context_view().to_string().len());
         assert!(task.conversation[0].output.is_some(), "saved history is unchanged");

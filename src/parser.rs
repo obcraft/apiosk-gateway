@@ -164,6 +164,18 @@ impl Intent {
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
+            // A US-style issuer name alone is not evidence of a UK registered
+            // company. Prevent a generic filing request from buying a UK-only
+            // lookup when the person never asked for Companies House.
+            if g.capability == "company.filing-history"
+                && g.constraints.get("source").and_then(Value::as_str).is_none_or(|source| source == "companies-house")
+                && (self.subjects[g.subject].label.trim_end_matches('.').to_ascii_lowercase().ends_with(" inc")
+                    || question.to_ascii_lowercase().contains(" inc."))
+                && !["companies house", "uk filing", "british filing", "united kingdom filing"]
+                    .iter().any(|term| question.to_ascii_lowercase().contains(term))
+            {
+                anyhow::bail!("Companies House covers UK entities; this request names an Inc issuer without asking for UK filings. Select an applicable US filing operation or ask for the jurisdiction.");
+            }
             if g.capability == crate::uk_supplier::PRESET && crate::uk_supplier::available(catalog) {
                 continue;
             }
@@ -176,6 +188,26 @@ impl Intent {
         }
         Ok(())
     }
+}
+
+/// A company name alone does not tell us whether the buyer wants a filing
+/// index, a form, or a disclosure topic. None of the connected SEC operations
+/// is a complete filing index, so this shape must not reach a paid quote.
+pub(crate) fn broad_filing_subject(question: &str) -> Option<&str> {
+    let trimmed = question.trim().trim_end_matches(['.', '?', '!']).trim();
+    let lower = trimmed.to_ascii_lowercase();
+    let prefixes = ["i need filings from ", "show me filings from ", "get filings from ",
+        "find filings from ", "give me filings from ", "i want filings from ",
+        "filings from ", "filings for ", "filings of "];
+    let prefix = prefixes.iter().find(|prefix| lower.starts_with(**prefix))?;
+    let subject = trimmed[prefix.len()..].trim();
+    if subject.eq_ignore_ascii_case("companies house") { return None; }
+    let words: Vec<_> = subject.split_whitespace().collect();
+    if words.is_empty() || words.len() > 6 || words.iter().any(|word| {
+        word.chars().any(|ch| ch.is_ascii_digit())
+            || ["about", "on", "since", "last", "latest", "recent", "between", "in", "from", "at", "uk", "sec"].contains(&word.to_ascii_lowercase().as_str())
+    }) { return None; }
+    Some(subject)
 }
 
 fn question_literal<'a>(question: &'a str, literal: &str) -> Option<&'a str> {
@@ -397,14 +429,46 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
         );
     }
     anyhow::ensure!(!checked.is_empty() || !caveats.is_empty(), "empty analysis");
-    Ok(
-        json!({"status":if partial {"partial"} else {"completed"},"observations":checked,"limitations":caveats}),
-    )
+    let follow_up_question = (partial || checked.is_empty() || !caveats.is_empty()).then(|| value["follow_up_question"].as_str()
+        .and_then(|text| valid_follow_up(text).ok())).flatten();
+    Ok(json!({"status":if partial || checked.is_empty() || follow_up_question.is_some() {"partial"} else {"completed"},
+        "observations":checked,"limitations":caveats,"follow_up_question":follow_up_question}))
+}
+
+fn valid_follow_up(message: &str) -> anyhow::Result<String> {
+    let message = message.trim();
+    anyhow::ensure!(message.len() <= 350 && !message.is_empty() && !message.contains("://")
+        && message.matches('?').count() + message.matches('？').count() == 1,
+        "invalid clarification");
+    Ok(message.to_owned())
+}
+
+fn missing_context_message(raw: &str) -> anyhow::Result<String> {
+    let value: Value = serde_json::from_str(raw)?;
+    let message = value["message"].as_str().ok_or_else(|| anyhow::anyhow!("missing clarification"))?.trim();
+    valid_follow_up(message)
 }
 
 #[cfg(test)]
 mod analysis_tests {
     use super::*;
+    #[tokio::test]
+    async fn missing_context_question_comes_from_model_without_a_source_call() {
+        use axum::{routing::post, Json, Router};
+        let app = Router::new().route("/", post(|Json(request): Json<Value>| async move {
+            let input: Value = serde_json::from_str(request["messages"][1]["content"].as_str().unwrap()).unwrap();
+            assert_eq!(input["question"], "Filings from Apple Inc");
+            assert_eq!(input["gap"]["stage"], "before_quote");
+            Json(json!({"choices":[{"message":{"content":"{\"message\":\"Are you after a complete filing list or a particular filing topic for Apple Inc?\"}"}}]}))
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+        let reply = parser.ask_for_missing_context("Filings from Apple Inc", &Task::default(), &json!({"stage":"before_quote"})).await.unwrap();
+        assert_eq!(reply, "Are you after a complete filing list or a particular filing topic for Apple Inc?");
+        server.abort();
+    }
     #[tokio::test]
     async fn analysis_repair_receives_the_rejected_answer_and_keeps_evidence_validation() {
         use axum::{routing::post, Json, Router};
@@ -523,12 +587,26 @@ mod analysis_tests {
     }
 }
 impl Parser {
+    /// Conversational clarification only. It cannot create a plan or source call.
+    pub async fn ask_for_missing_context(&self, question: &str, task: &Task, gap: &Value) -> anyhow::Result<String> {
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":240,
+            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_object"},"messages":[
+                {"role":"system","content":include_str!("../contracts/missing-context-prompt.txt")},
+                {"role":"user","content":json!({"question":question,"context":task.parser_context(),"gap":gap}).to_string()}
+            ]});
+        self.completion("clarification", &payload, missing_context_message).await
+    }
+
     pub async fn analyze(
         &self,
         operations: &Value,
         sources: &[Value],
         failures: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Value> {
+        if failures.is_empty() {
+            if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
+        }
         if failures.is_empty() {
             if let Some(client) = &self.typesafe {
                 if client.mode() == crate::typesafe::Mode::On {
@@ -544,6 +622,9 @@ impl Parser {
     }
 
     pub async fn analyze_workflow(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
+        if failures.is_empty() {
+            if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
+        }
         self.analyze_with_scope(operations, sources, failures, true).await
     }
 
@@ -787,7 +868,9 @@ impl Parser {
         }
         // Analysing saved multi-source documents takes longer than intent parsing.
         // Keep both retries bounded and below the app's 80-second request limit.
-        let (attempt_seconds, total_seconds) = if surface == "analysis" || surface == "invoice" {
+        let (attempt_seconds, total_seconds) = if surface == "clarification" {
+            (6, 12)
+        } else if surface == "analysis" || surface == "invoice" {
             (30, 65)
         } else {
             (12, 25)
@@ -1017,8 +1100,25 @@ impl Parser {
             }
             Ok(selected)
         }).await?;
+        let mut selected = selected;
+        // FilingPulse is a member of Pulse Network. Its operation slugs are
+        // opaque, so a first-pass selector can miss the relevant member. Keep
+        // the filing alternatives in the second-pass view for filing questions;
+        // the parser still decides which operation actually fits.
+        if question.to_ascii_lowercase().contains("filing") {
+            selected.extend(catalog.services.iter()
+                .filter(|s| s.api_slug == "filingspulse")
+                .map(|s| s.contract.capability_slug.clone()));
+        }
         Ok(catalog.selected_parser_view(&selected))
     }
+}
+
+fn empty_source_analysis(sources: &[Value]) -> Option<Value> {
+    (!sources.is_empty() && sources.iter().all(|source| source["document"]["coverage"] == "empty"))
+        .then(|| json!({"status":"partial","observations":[],"limitations":[
+            "The returned source response contains no usable records for this question. No finding can be supported from it."
+        ]}))
 }
 fn shadow_intent(candidate: Option<&Intent>, baseline: Option<&Intent>) {
     let core = |intent: &Intent| digest(&(&intent.subjects, &intent.goals, &intent.unresolved_references));
@@ -1043,6 +1143,65 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_context_must_be_one_conversational_question() {
+        assert_eq!(missing_context_message(r#"{"message":"I found a different UK company. Which Apple filing topic do you mean?"}"#).unwrap(),
+            "I found a different UK company. Which Apple filing topic do you mean?");
+        assert!(missing_context_message(r#"{"message":"No data. Try again."}"#).is_err());
+        assert!(missing_context_message(r#"{"message":"Which form? Which year?"}"#).is_err());
+    }
+
+    #[test]
+    fn no_supported_observations_remain_partial() {
+        let answer = validate_analysis(r#"{"observations":[],"limitations":["The record belongs to a different company."],"follow_up_question":"Which Apple filing topic should I check?"}"#, &[], false).unwrap();
+        assert_eq!(answer["status"], "partial");
+        assert_eq!(answer["follow_up_question"], "Which Apple filing topic should I check?");
+    }
+
+    #[test]
+    fn partly_supported_answer_keeps_model_follow_up() {
+        let source = json!({"result_ref":"saved","document":{"data":{"name":"Apple Inc"}}});
+        let answer = json!({"observations":[{"text":"The named issuer is {{a}}.",
+            "evidence":[{"result_ref":"saved","pointer":"/data/name"}]}],
+            "limitations":["The source did not provide the requested filing form."],
+            "follow_up_question":"Which filing form should I look for?"});
+        let checked = validate_analysis(&answer.to_string(), &[source], false).unwrap();
+        assert_eq!(checked["status"], "partial");
+        assert_eq!(checked["observations"][0]["text"], "The named issuer is Apple Inc.");
+        assert_eq!(checked["follow_up_question"], "Which filing form should I look for?");
+    }
+
+    #[test]
+    fn broad_filing_question_requires_scope_before_any_quote() {
+        assert_eq!(broad_filing_subject("i need filings from apple inc"), Some("apple inc"));
+        assert_eq!(broad_filing_subject("Filings from Apple Inc."), Some("Apple Inc"));
+        assert_eq!(broad_filing_subject("Filings from Apple Inc last year"), None);
+        assert_eq!(broad_filing_subject("Filings from Companies House"), None);
+        assert_eq!(broad_filing_subject("What do Apple Inc filings say about China supply chain risk?"), None);
+    }
+
+    #[test]
+    fn us_issuer_filing_request_cannot_quote_companies_house_without_uk_scope() {
+        let snapshot = serde_json::from_str(include_str!("../tests/fixtures/company-sources/catalog.json")).unwrap();
+        let catalog = Catalog::build(snapshot);
+        let intent = Intent {
+            subjects: vec![Subject { entity_ref: None, label: "Apple Inc".into(), values: BTreeMap::new() }],
+            goals: vec![Goal { capability: "company.filing-history".into(), subject: 0, constraints: BTreeMap::new() }],
+            answer_operations: vec![], unresolved_references: vec![],
+        };
+        assert!(intent.validate("Filings from Apple Inc", &Task::default(), &catalog).is_err());
+        assert!(intent.validate("Companies House filings from Apple Inc", &Task::default(), &catalog).is_ok());
+    }
+
+    #[test]
+    fn explicitly_empty_source_skips_slow_analysis_and_cannot_support_findings() {
+        let source = json!({"document":{"coverage":"empty","source":{"provider":"companies-house"},"data":{"items":[]}}});
+        let answer = empty_source_analysis(&[source]).unwrap();
+        assert_eq!(answer["status"], "partial");
+        assert_eq!(answer["observations"], json!([]));
+        assert!(empty_source_analysis(&[json!({"document":{"coverage":"source_response","data":{"items":[{"date":"2026-01-01"}]}}})]).is_none());
+    }
 
     #[test]
     fn separator_repair_copies_only_contiguous_words_from_the_question() {

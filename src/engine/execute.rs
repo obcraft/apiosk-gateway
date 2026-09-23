@@ -200,6 +200,39 @@ impl Engine {
                         }
                     }
                 }
+                if task.workflow.is_none() && task.supplier_check.is_none()
+                    && task.analysis.as_ref().is_some_and(|a| a["status"] != "unavailable"
+                        && (a["observations"].as_array().is_some_and(Vec::is_empty)
+                            || (a["status"] == "partial" && a["limitations"].as_array().is_some_and(|notes| !notes.is_empty())))) {
+                    if let Some(question) = task.conversation.last().map(|turn| turn.question.clone()).filter(|q| !q.is_empty()) {
+                        let gap = json!({"stage":"after_source_result",
+                            "limitations":task.analysis.as_ref().map(|a| &a["limitations"]),
+                            "source_outcomes":sources.iter().map(|source| json!({
+                                "provider":source["document"]["source"]["provider"],
+                                "subject":source["document"]["subject"]["label"],
+                                "coverage":source["document"]["coverage"],
+                                "coverage_note":source["document"]["coverage_note"]
+                            })).collect::<Vec<_>>(),
+                            "failed_checks":task.failed_steps.values().take(4).map(|failure| json!({
+                                "code":failure["code"],"message":failure["message"]
+                            })).collect::<Vec<_>>()});
+                        let fallback = if question.to_ascii_lowercase().contains("filing") {
+                            "Which filing form or disclosure topic should I check next?"
+                        } else {
+                            "What detail can you add to narrow down the result you need?"
+                        };
+                        let existing = task.analysis.as_ref().and_then(|a| a["follow_up_question"].as_str()).map(str::to_owned);
+                        let follow_up = if let Some(question) = existing { question }
+                            else if source_ready.as_ref().is_some_and(|started| started.elapsed() < std::time::Duration::from_secs(45)) {
+                                self.parser.ask_for_missing_context(&question, &task, &gap).await
+                                    .unwrap_or_else(|_| fallback.to_owned())
+                            } else { fallback.to_owned() };
+                        if let Some(analysis) = task.analysis.as_mut() {
+                            analysis["status"] = json!("partial");
+                            analysis["follow_up_question"] = json!(follow_up);
+                        }
+                    }
+                }
                 task.actions.clear();
                 if task
                     .analysis

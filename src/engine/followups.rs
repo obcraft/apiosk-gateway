@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    followups::related_services,
+    followups::{bind_filing_question, related_services},
     parser::{Goal, Subject},
     state::Envelope,
 };
@@ -62,6 +62,7 @@ impl Engine {
             .find(|s| s.id == selected.service_ref)
             .unwrap()
             .clone();
+        bind_filing_question(&catalog, &mut task, &service, req.entity_ref)?;
         service.inputs(&task, req.entity_ref, &catalog.vocabulary)?;
         let intent = Intent {
             subjects: vec![Subject {

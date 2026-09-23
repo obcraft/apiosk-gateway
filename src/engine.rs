@@ -1,5 +1,5 @@
 mod execute;
-mod input;
+pub(crate) mod input;
 pub use input::bind_subjects;
 mod followups;
 mod results;
@@ -219,6 +219,35 @@ impl Engine {
             forced = self.collect_workflow(&req.question, &mut task, &catalog).await?;
             workflow = task.workflow.clone();
             if forced.is_none() {
+                self.store.save_intent(p.owner, id, revision, &task).await?;
+                return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
+            }
+        }
+        if forced.is_none() {
+            if let Some(company) = crate::parser::broad_filing_subject(&req.question) {
+                // This request has no form or topic. The connected filing
+                // operations cannot return a complete filing index, and a
+                // guessed full-text search would create a paid empty result.
+                let gap = json!({"stage":"before_quote","missing":"filing scope: complete list, form, reported figures, or disclosure topic",
+                    "known_subject":company,"available_operations":"FilingPulse can search disclosure text or retrieve quarterly figures; the connected operations do not list every filing. Companies House covers UK companies."});
+                let message = self.parser.ask_for_missing_context(&req.question, &task, &gap).await
+                    .unwrap_or_else(|_| format!("Are you looking for a complete list of {company} filings, a particular form, or disclosures on a topic?"));
+                self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
+                task.record_turn(&req.question, Some(message));
+                task.intent = None;
+                task.proposal = None;
+                task.actions.clear();
+                task.completed.clear();
+                task.failed_steps.clear();
+                task.skipped_steps.clear();
+                task.active_results.clear();
+                task.analysis = None;
+                task.supplier_check = None;
+                task.pending_candidates.clear();
+                task.original_subject = None;
+                task.execution_error = None;
+                task.cancelled = false;
+                task.focus.goal_refs.clear();
                 self.store.save_intent(p.owner, id, revision, &task).await?;
                 return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
             }
@@ -636,7 +665,11 @@ impl Engine {
                 r.next_actions.retain(|action| action.action_id != pending.action_id);
                 r.next_actions.push(Action::Poll { action_id: pending.action_id, execution_id: pending.action_id }.public());
             }
-            if task.workflow.is_some() && !task.active_results.is_empty() && !task.cancelled
+            if (task.workflow.is_some() && !task.active_results.is_empty()
+                || p.is_person() && task.analysis.as_ref().is_some_and(|analysis|
+                    analysis["observations"].as_array().is_some_and(Vec::is_empty)
+                    && !analysis["follow_up_question"].is_string()) && !task.active_results.is_empty())
+                && !task.cancelled
                 && !r.next_actions.iter().any(|action| action.kind == "retry_analysis") {
                 if let Some(quote) = task.proposal.as_ref().and_then(|plan| plan["quote_ref"].as_str()).and_then(|id| id.parse().ok()) {
                     r.next_actions.push(Action::RetryAnalysis { action_id: quote }.public());
