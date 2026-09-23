@@ -677,6 +677,43 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(refund.billing.as_ref().unwrap()["status"], "refunded");
     assert_eq!(refund.billing.as_ref().unwrap()["total_charged"], "0");
     assert_eq!(counts.provider.load(Ordering::Relaxed), before);
+    // A real failure receipt must survive reconciliation and saved-task
+    // recovery. The model must not turn a purchase limit into a request for
+    // different search terms, and reading it must never buy the source again.
+    let policy_task = store.create(person.owner, None).await.unwrap();
+    let mut policy_state = timeout_state.clone();
+    policy_state.record_turn("Which tenders mention charging stations?", Some("I will check the source.".into()));
+    for action in &mut policy_state.actions { action["action_id"] = json!(Uuid::new_v4()); }
+    store.save(person.owner, policy_task, 0, &policy_state).await.unwrap();
+    let initial = engine.view(&person, policy_task, Uuid::new_v4(), None).await.unwrap();
+    let quote = initial.proposal.as_ref().unwrap();
+    engine.executor.approve(&person, policy_task, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+    let request = execution(&initial);
+    let execution_id = request.idempotency_key;
+    let pending = engine.execute(&person, "fixture", request).await.unwrap();
+    assert_eq!(pending.status, Status::Running);
+    let policy_charge = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.balance_charges(id,user_id,idempotency_key,status,charged_micro_usd) VALUES($1,$2,$3,'refunded',0)")
+        .bind(policy_charge).bind(person.owner).bind(execution_id.to_string()).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.call_runs(id,charge_id,user_id,status,output,output_truncated) VALUES($1,$2,$3,'failed',$4,false)")
+        .bind(Uuid::new_v4()).bind(policy_charge).bind(person.owner)
+        .bind(json!({"execution":{"paid":false,"status":403,"body":{"error":"policy_denied","message":"200 purchases already today; internal rule"}}}))
+        .execute(&pool).await.unwrap();
+    let provider_before = counts.provider.load(Ordering::Relaxed);
+    let model_before = counts.parser.load(Ordering::Relaxed);
+    engine.start_worker(person.clone(), "fixture".into(), policy_task).await.unwrap();
+    let denied = worker_settled(&engine, &person, policy_task).await;
+    assert_eq!(denied.billing.as_ref().unwrap()["status"], "refunded");
+    assert_eq!(denied.billing.as_ref().unwrap()["total_charged"], "0");
+    let analysis = &denied.context_view["analysis"];
+    assert!(analysis["limitations"][0].as_str().unwrap().contains("purchase rule or limit"));
+    assert!(analysis["follow_up_question"].is_null());
+    assert!(!denied.next_actions.iter().any(|action| matches!(action.kind.as_str(), "poll" | "execute_quoted_step")));
+    let saved = engine.view(&person, policy_task, Uuid::new_v4(), None).await.unwrap();
+    assert_eq!(saved.context_view["analysis"], *analysis);
+    assert_eq!(counts.provider.load(Ordering::Relaxed), provider_before);
+    assert_eq!(counts.parser.load(Ordering::Relaxed), model_before);
+    let before = provider_before;
     // A lower authorization cap cannot cause a partial overspend.
     let empty_task = store.create(person.owner, None).await.unwrap();
     let mut empty_state = timeout_state.clone();

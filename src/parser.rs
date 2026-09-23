@@ -652,8 +652,22 @@ impl Parser {
             "analysis input too large"
         );
         if sources.is_empty() {
+            // These messages have already been projected through billing::public_error.
+            // Keep operational failures visible instead of making them look like
+            // an empty search result that the buyer should refine.
+            let mut limitations: Vec<Value> = Vec::new();
+            for failure in failures.values() {
+                if let Some(message) = failure["message"].as_str().filter(|message| !message.is_empty()) {
+                    let note = json!(message);
+                    if !limitations.contains(&note) { limitations.push(note); }
+                    if limitations.len() == max_limitations { break; }
+                }
+            }
+            if limitations.is_empty() {
+                limitations.push(json!("No source result is available to support an analysis."));
+            }
             return Ok(
-                json!({"status":"partial","observations":[],"limitations":["No source result is available to support an analysis."]}),
+                json!({"status":"partial","observations":[],"limitations":limitations}),
             );
         }
         let mut prompt = include_str!("../contracts/analysis-prompt.txt").to_owned();
@@ -1143,6 +1157,23 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn a_blocked_purchase_without_sources_keeps_its_reason_without_a_model_call() {
+        let parser = Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "unused".into(), "unused".into());
+        let failure = crate::billing::public_error(&crate::billing::refunded_failure(&json!({
+            "execution":{"paid":false,"status":403,"body":{"error":"policy_denied","message":"private policy details"}}
+        })));
+        let failures = BTreeMap::from([("first".into(), failure.clone()), ("second".into(), failure.clone())]);
+        let answer = parser.analyze(&json!(["Find charging stations"]), &[], &failures).await.unwrap();
+        assert_eq!(answer["status"], "partial");
+        assert_eq!(answer["observations"], json!([]));
+        assert_eq!(answer["limitations"], json!([failure["message"]]));
+        assert!(answer["follow_up_question"].is_null());
+        assert!(!answer.to_string().contains("private policy"));
+        let empty = parser.analyze(&json!([]), &[], &BTreeMap::new()).await.unwrap();
+        assert_eq!(empty["limitations"], json!(["No source result is available to support an analysis."]));
+    }
 
     #[test]
     fn missing_context_must_be_one_conversational_question() {

@@ -248,6 +248,7 @@ impl Engine {
                     }
                 }
                 if task.workflow.is_none() && task.supplier_check.is_none()
+                    && !crate::billing::purchase_policy_blocked(&task.failed_steps)
                     && task.analysis.as_ref().is_some_and(|a| a["status"] != "unavailable"
                         && (a["observations"].as_array().is_some_and(Vec::is_empty)
                             || (a["status"] == "partial" && a["limitations"].as_array().is_some_and(|notes| !notes.is_empty())))) {

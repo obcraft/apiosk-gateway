@@ -94,6 +94,14 @@ pub fn public_error(body: &Value) -> Value {
             "source_schema_refunded",
             "The source response could not be processed. The full amount, including the fee, was refunded.",
         ),
+        Some("policy_denied_refunded") => (
+            "purchase_policy_denied",
+            "An Apiosk purchase rule or limit blocked this request before the source was called. The full amount, including the fee, was refunded. The rule or limit must be resolved before retrying; changing the search query will not resolve it.",
+        ),
+        Some("policy_unavailable_refunded") => (
+            "purchase_policy_unavailable",
+            "Apiosk could not check the purchase rules, so the source was not called. The full amount, including the fee, was refunded. Please try again once the purchase rules are available.",
+        ),
         _ => (
             "execution_refused",
             "Execution was refused. Check the payment status before continuing.",
@@ -107,6 +115,8 @@ pub fn refunded_failure(output: &Value) -> Value {
     let execution = &output["execution"];
     let error = if execution["paid"] == false {
         match (execution["status"].as_u64(), execution["body"]["error"].as_str()) {
+            (Some(403), Some("policy_denied")) => "policy_denied_refunded",
+            (_, Some("policy_unavailable")) => "policy_unavailable_refunded",
             (Some(429), _) => "rate_limited_refunded",
             (Some(404), _) => "source_not_found_refunded",
             (_, Some("invalid_source_query")) => "source_input_refunded",
@@ -115,6 +125,12 @@ pub fn refunded_failure(output: &Value) -> Value {
         }
     } else { "refunded" };
     json!({"ok":false,"charged_micro_usd":0,"error":error,"message":"The payment ledger confirms this execution was refunded."})
+}
+
+/// A purchase restriction needs an operational change, not a narrower query.
+pub fn purchase_policy_blocked(failures: &std::collections::BTreeMap<String, Value>) -> bool {
+    failures.values().any(|failure| matches!(failure["code"].as_str(),
+        Some("purchase_policy_denied" | "purchase_policy_unavailable")))
 }
 
 pub fn display_step_error(error: &Value) -> Value {
@@ -128,6 +144,33 @@ pub fn display_step_error(error: &Value) -> Value {
 #[cfg(test)]
 mod refunded_error_tests {
     use super::*;
+    #[test]
+    fn refunded_policy_denial_keeps_the_reason_and_does_not_expose_internal_rules() {
+        let output = json!({"execution":{"paid":false,"status":403,"body":{
+            "error":"policy_denied","message":"200 purchases already today; private rule identifier"
+        }}});
+        let failure = refunded_failure(&output);
+        assert_eq!(failure["charged_micro_usd"], 0);
+        assert_eq!(failure["error"], "policy_denied_refunded");
+        let shown = public_error(&failure);
+        assert_eq!(shown["code"], "purchase_policy_denied");
+        assert!(shown["message"].as_str().unwrap().contains("before the source was called"));
+        assert!(!shown.to_string().contains("private rule"));
+        assert!(purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), shown)])));
+
+        // An upstream 403 alone does not prove an Apiosk purchase restriction.
+        assert_eq!(refunded_failure(&json!({"execution":{"paid":false,"status":403,"body":{"error":"forbidden"}}}))["error"], "refunded");
+        assert_eq!(refunded_failure(&json!({"execution":{"paid":true,"status":403,"body":{"error":"policy_denied"}}}))["error"], "refunded");
+        assert!(!purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), public_error(&json!({"error":"source_input_refunded"})))])));
+    }
+
+    #[test]
+    fn unavailable_purchase_rules_remain_a_separate_refunded_failure() {
+        let failure = refunded_failure(&json!({"execution":{"paid":false,"status":503,"body":{"error":"policy_unavailable"}}}));
+        let shown = public_error(&failure);
+        assert_eq!(shown["code"], "purchase_policy_unavailable");
+        assert!(purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), shown)])));
+    }
     #[test]
     fn refund_keeps_safe_input_failure_without_exposing_upstream_body() {
         let failure = refunded_failure(&json!({"execution":{"paid":false,"status":400,"body":{"error":"invalid_source_query","message":"Missing addresses","private":"not for display"}}}));
