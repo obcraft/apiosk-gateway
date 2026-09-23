@@ -431,8 +431,9 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
     anyhow::ensure!(!checked.is_empty() || !caveats.is_empty(), "empty analysis");
     let follow_up_question = (partial || checked.is_empty() || !caveats.is_empty()).then(|| value["follow_up_question"].as_str()
         .and_then(|text| valid_follow_up(text).ok())).flatten();
+    let presentation = crate::answer_presentation::validate(&value["presentation"], sources)?;
     Ok(json!({"status":if partial || checked.is_empty() || follow_up_question.is_some() {"partial"} else {"completed"},
-        "observations":checked,"limitations":caveats,"follow_up_question":follow_up_question}))
+        "observations":checked,"limitations":caveats,"follow_up_question":follow_up_question,"presentation":presentation}))
 }
 
 fn valid_follow_up(message: &str) -> anyhow::Result<String> {

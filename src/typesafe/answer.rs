@@ -95,6 +95,6 @@ impl Client {
         for guard in ["complete", "context_correct"] {
             verified.yes(guard, self.config.verification_probability)?;
         }
-        validate_analysis(&json!({"observations":[{"text":text,"evidence":[{"result_ref":source["result_ref"],"pointer":field["pointer"]}]}],"limitations":[]}).to_string(), sources, false)
+        validate_analysis(&json!({"observations":[{"text":text,"evidence":[{"result_ref":source["result_ref"],"pointer":field["pointer"]}]}],"limitations":[],"presentation":{"kind":"text"}}).to_string(), sources, false)
     }
 }

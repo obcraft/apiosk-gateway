@@ -49,8 +49,12 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
                 json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The source reports company identifier {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":"/data/companies/0/id"}]}],"limitations":[]}).to_string()}}]}),
             );
         }
+        let mut columns = vec![json!({"label":"Field"})];
+        columns.extend(reports.iter().map(|s| json!({"label":s["document"]["subject"]["label"]})));
+        let mut row = vec![json!({"label":"Accounts"})];
+        row.extend(reports.iter().map(|s| json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})));
         return Json(
-            json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."]}).to_string()}}]}),
+            json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The filings cover different reporting years; this is not a like-for-like comparison.","evidence":reports.iter().map(|s|json!({"result_ref":s["result_ref"],"pointer":"/data/accounts"})).collect::<Vec<_>>()}],"limitations":["Different reporting periods limit comparability."],"presentation":{"kind":"comparison","title":"Filing comparison","columns":columns,"rows":[row]}}).to_string()}}]}),
         );
     }
     if input["question"] == "Compare FirstCo and SecondCo" {
@@ -1884,6 +1888,8 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(state.status, Status::Succeeded, "{state:?}");
     assert_eq!(state.context_view["results"].as_array().unwrap().len(), 4);
     assert_eq!(state.context_view["analysis"]["status"], "completed");
+    assert_eq!(state.context_view["analysis"]["presentation"]["kind"], "comparison");
+    assert!(state.context_view["analysis"]["presentation"]["rows"][0][1]["pointer"].is_string());
     let evidence = &state.context_view["analysis"]["observations"][0]["evidence"];
     assert_eq!(evidence[0]["subject"]["label"], "FirstCo");
     assert_eq!(evidence[0]["value"], "2025");

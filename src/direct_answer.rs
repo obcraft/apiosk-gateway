@@ -111,7 +111,7 @@ pub(crate) fn compose(question: &str, intent: &Intent, sources: &[Value]) -> Opt
     validate_analysis(
         &json!({"observations":[{"text":text,"evidence":[{
         "result_ref":source["result_ref"],"pointer":pointer
-    }]}],"limitations":[]})
+    }]}],"limitations":[],"presentation":{"kind":"text"}})
         .to_string(),
         sources,
         false,
