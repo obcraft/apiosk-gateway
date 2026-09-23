@@ -187,7 +187,8 @@ plan. The plan uses the same registry as direct calls.
 
 Other statuses:
 
-- **`needs_input`**: the question lacks something. `needs_input` lists what, with a schema.
+- **`needs_input`**: the question lacks something. `needs_input` lists what, with a schema;
+  when the planner asks a clarifying question instead, `message` holds it.
 - **`needs_selection`**: several entities matched. `candidates` lists them. Ask
   again with a precise identifier, or call the source directly.
 - **`unsupported`**: no source can answer the question.

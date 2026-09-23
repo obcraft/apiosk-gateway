@@ -748,7 +748,9 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
     }
     match status {
         "needs_input" => {
-            body["needs_input"] = json!(r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply" | "upload")).map(|a| json!({"label": a.label, "schema": a.input_schema})).collect::<Vec<_>>())
+            body["needs_input"] = json!(r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply" | "upload")).map(|a| json!({"label": a.label, "schema": a.input_schema})).collect::<Vec<_>>());
+            // A clarification has no form to fill; its question is the reply.
+            body["message"] = json!(task.conversation.last().and_then(|turn| turn.reply.as_deref()));
         }
         "needs_selection" => body["candidates"] = r.context_view["candidates"].clone(),
         "running" => body["retry_after_ms"] = json!(r.retry_after_ms.unwrap_or(2000)),
