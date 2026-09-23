@@ -49,8 +49,14 @@ async fn main() -> anyhow::Result<()> {
     ) {
         database_options = database_options.ssl_mode(PgSslMode::VerifyFull);
     }
+    // The Supabase session pooler admits at most 15 clients for this role and
+    // refuses the 16th outright instead of queueing it. A pool that may grow
+    // past that turns a burst of parallel API calls into 503s at
+    // authentication; below it, a burst waits for a free connection instead.
+    // The headroom is for migrations and operator sessions on the same role.
+    let pool_size = env::var("DATABASE_POOL_SIZE").ok().and_then(|v| v.parse::<u32>().ok()).filter(|n| (1..=14).contains(n)).unwrap_or(12);
     let pool = PgPoolOptions::new()
-        .max_connections(16)
+        .max_connections(pool_size)
         .acquire_timeout(Duration::from_secs(5))
         .after_connect(|conn, _| {
             Box::pin(async move {
