@@ -124,7 +124,10 @@ for (const c of [...staged].sort((a, b) => a.list_atomic - b.list_atomic || a.id
   // Refused at service authentication (e.g. the database is restarting): the
   // request never reached payment. Forget the attempt and stop the run; the
   // endpoint is tried again next time. Any other outcome stays recorded.
-  if (r.status === 401 && r.body?.did !== true && !r.body?.execution) {
+  // The treasury token's own rules (e.g. 200 purchases per day) refuse before
+  // anything is paid or called: not the source's failure either.
+  const policyDenied = r.body?.did !== true && JSON.stringify(r.body?.execution?.body ?? r.body ?? '').includes('policy_denied');
+  if ((r.status === 401 && r.body?.did !== true && !r.body?.execution) || policyDenied) {
     await fs.rm(paidFile);
     spent -= cap;
     console.log(JSON.stringify({stopped: 'gateway refused service authentication', error: r.body?.error ?? null, source: c.source, path: c.path}));
