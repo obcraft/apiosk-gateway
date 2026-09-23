@@ -1,6 +1,34 @@
 use super::*;
 
+/// The provider's own response, trimmed to its shape: three items per array,
+/// 600 characters per string, 60 keys per object, nine levels.
+fn evidence(value: &Value, depth: usize) -> Value {
+    match value {
+        Value::String(s) if s.chars().count() > 600 => Value::String(s.chars().take(600).collect()),
+        Value::Array(items) if depth <= 8 => Value::Array(items.iter().take(3).map(|v| evidence(v, depth + 1)).collect()),
+        Value::Array(_) => json!([]),
+        Value::Object(map) if depth <= 8 => Value::Object(map.iter().take(60).map(|(k, v)| (k.clone(), evidence(v, depth + 1))).collect()),
+        Value::Object(_) => json!({}),
+        other => other.clone(),
+    }
+}
+
 impl Engine {
+    /// A first live call to an unverified source settles it: a usable
+    /// response promotes the contract with that response as evidence; a
+    /// failure is counted, and the second one withdraws it. Never fails the run.
+    async fn settle_unverified(&self, service: &crate::catalog::Service, usable: Option<&Value>) {
+        let outcome = match usable {
+            Some(data) => sqlx::query("SELECT catalog.promote_source_operation($1,$2)")
+                .bind(service.id).bind(evidence(data, 0)).execute(&self.store.pool).await,
+            None => sqlx::query("SELECT catalog.record_source_operation_failure($1)")
+                .bind(service.id).execute(&self.store.pool).await,
+        };
+        if let Err(error) = outcome {
+            tracing::warn!(contract = %service.id, error = %error, "unverified source outcome not recorded");
+        }
+    }
+
     pub(super) async fn result_page(
         &self,
         owner: Uuid,
@@ -60,6 +88,9 @@ impl Engine {
         body: Value,
         catalog: &Catalog,
     ) -> anyhow::Result<()> {
+        if step.service.unverified && body["ok"] != true {
+            self.settle_unverified(&step.service, None).await;
+        }
         anyhow::ensure!(
             body["ok"] == true,
             "provider did not return a complete result"
@@ -72,6 +103,13 @@ impl Engine {
             )
             && crate::source_preview::sirenic_search_incomplete(&data);
         let extraction = step.service.contract.extract(&data, &catalog.vocabulary);
+        if step.service.unverified {
+            // The document adapter yields its fact only for a usable body: not
+            // an upstream error, a pending job or an empty response.
+            let usable = extraction.as_ref().is_ok_and(|e| e.rejected.is_empty()
+                && e.subjects.iter().any(|s| !s.facts.is_empty()));
+            self.settle_unverified(&step.service, usable.then_some(&data)).await;
+        }
         let capacity_exceeded = extraction.as_ref().is_ok_and(|e| {
             task.entities.len() + e.subjects.len() > 100
                 || task.facts.len() + e.subjects.iter().map(|s| s.facts.len()).sum::<usize>() > 1000

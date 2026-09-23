@@ -84,6 +84,10 @@ const server=net.createServer(socket=>{
 const port=Number(process.env.PGTEST_PORT || 54329);
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260912181441_request_execution_lease.sql',import.meta.url),'utf8'));
 await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN produces jsonb NOT NULL DEFAULT '[]'::jsonb; GRANT SELECT(produces) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
+// sources.sql lists each source's offered capabilities, as production does.
+await db.exec(`CREATE SCHEMA IF NOT EXISTS catalog; CREATE TABLE catalog.capability_offers(api_id uuid, endpoint_id uuid, capability_slug text, source text); GRANT USAGE ON SCHEMA catalog TO gateway_v2_runtime; GRANT SELECT(api_id, capability_slug) ON catalog.capability_offers TO gateway_v2_runtime;`);
+// catalog.sql also loads staged source-document contracts by adapter version.
+await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN adapter_version text; GRANT SELECT(adapter_version) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915150000_supplier_invoice_checks.sql',import.meta.url),'utf8'));
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915160000_workflow_runs_and_document_uploads.sql',import.meta.url),'utf8'));
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));

@@ -20,11 +20,16 @@ pub const CATALOG_SQL: &str = include_str!("catalog.sql");
 pub(crate) fn execution_catalog_sql() -> String {
     let (_, services) = CATALOG_SQL.split_once(" 'vocabulary',")
         .expect("catalog vocabulary boundary");
-    let services = services.replace("WHERE c.status='active' AND c.validated_at", "WHERE c.id=ANY($1) AND c.status='active' AND c.validated_at");
+    let services = services.replace("WHERE (c.status='active' OR", "WHERE c.id=ANY($1) AND (c.status='active' OR");
     format!("SELECT jsonb_build_object('known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason')),'[]') FROM apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL), 'vocabulary',{services}")
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
+    /// A staged source-document contract without a live response yet. It is
+    /// chosen only when no verified service fits, never in auto mode, and a
+    /// usable first response promotes it (see engine::results).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub unverified: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -178,6 +183,12 @@ impl Catalog {
                         .is_some_and(|v| v.is_empty()),
                     "unimplemented preconditions"
                 );
+                if service.unverified {
+                    // No provider evidence yet: only an opaque document
+                    // contract may wait for its first live response.
+                    anyhow::ensure!(service.is_document_retrieval(), "unverified contract must retrieve a source document");
+                    return Ok(());
+                }
                 let sample = service
                     .sample_payload
                     .as_ref()
@@ -277,8 +288,36 @@ impl Catalog {
     /// A compact index gives every executable operation the same opportunity
     /// to be selected before its full input schemas enter the model context.
     pub fn operation_index(&self) -> Value {
+        self.index_of(self.services.iter())
+    }
+
+    /// The selection index for one question: every verified operation, plus
+    /// the unverified ones whose words best match the question. Unverified
+    /// operations only fill gaps, so a cheap lexical shortlist keeps the index
+    /// (and every Ask) about as small as the verified catalogue alone.
+    pub fn operation_index_for(&self, question: &str) -> Value {
+        const UNVERIFIED: usize = 150;
+        let lowered = question.to_lowercase();
+        let words: Vec<&str> = lowered
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| w.chars().count() >= 3)
+            .collect();
+        let mut scored: Vec<(usize, &Service)> = self.services.iter()
+            .filter(|s| s.unverified)
+            .map(|s| {
+                let text = format!("{} {} {} {}", s.api_slug, s.contract.capability_slug, s.name, s.description.as_deref().unwrap_or("")).to_lowercase();
+                (words.iter().filter(|w| text.contains(**w)).count(), s)
+            })
+            .filter(|(score, _)| *score > 0)
+            .collect();
+        scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.total().cmp(&b.1.total())));
+        self.index_of(self.services.iter().filter(|s| !s.unverified)
+            .chain(scored.into_iter().take(UNVERIFIED).map(|(_, s)| s)))
+    }
+
+    fn index_of<'a>(&'a self, services: impl Iterator<Item = &'a Service>) -> Value {
         let mut operations = BTreeMap::new();
-        for s in &self.services {
+        for s in services {
             let known=self.known_sources.iter().find(|k|k.slug==s.api_slug);
             let description=s.description.as_deref().or_else(||known.and_then(|k|k.metadata.capability_descriptions.get(&s.contract.capability_slug))
                 .and_then(Value::as_str)).unwrap_or(&s.contract.capability_slug);
@@ -499,6 +538,27 @@ mod parser_catalog_tests {
         snapshot.services[0].contract.input_map.get_mut("company.name").unwrap().default = Some(json!("valid string"));
         snapshot.services[0].contract.requires[0].optional = false;
         assert_eq!(Catalog::build(snapshot).rejected.len(), 1);
+    }
+    #[test]
+    fn unverified_document_contract_waits_for_its_first_response() {
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/source-document-service.json")).unwrap();
+        let mut service: Service = serde_json::from_value(fixture["service"].clone()).unwrap();
+        let vocabulary: Vec<FactType> = serde_json::from_value(fixture["vocabulary"].clone()).unwrap();
+        // Without evidence a verified contract is rejected.
+        let verified = Catalog::build(Snapshot { services: vec![service.clone()], vocabulary: vocabulary.clone(), known_sources: vec![] });
+        assert!(verified.services.is_empty());
+        // Staged and unverified, the same document contract is selectable.
+        service.unverified = true;
+        let staged = Catalog::build(Snapshot { services: vec![service.clone()], vocabulary: vocabulary.clone(), known_sources: vec![] });
+        assert_eq!(staged.services.len(), 1);
+        assert!(staged.services[0].unverified);
+        // An unverified contract that maps facts, not a document, never is.
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        snapshot.services[0].unverified = true;
+        snapshot.services[0].sample_payload = None;
+        let id = snapshot.services[0].id;
+        let mapped = Catalog::build(snapshot);
+        assert!(mapped.rejected.iter().any(|(candidate, reason)| *candidate == id && reason.contains("source document")));
     }
     #[test]
     fn synthetic_document_adapter_cannot_enter_the_runtime_catalog() {

@@ -1,0 +1,80 @@
+{
+ "service": {
+  "id": "4f2b58db-f199-4d24-8fd0-37cf2ba6772f",
+  "endpoint_id": "0126a7a6-e242-43db-8a6e-426cb4be023f",
+  "api_slug": "gamepulse",
+  "name": "GamePulse",
+  "description": "Trading card deal finder for card-investor and card-collector agents. Returns eBay sold-vs-listed gap analysis to surface underpriced listings for arbitrage.",
+  "source_url": "https://gamepulse.theaslangroupllc.com/llms.txt",
+  "method": "GET",
+  "path": "/api/cards/deal",
+  "listing_type": "api",
+  "list_atomic": 150000,
+  "fixed_params": {},
+  "preconditions": {},
+  "pagination": {},
+  "freshness_seconds": 3600,
+  "jurisdiction": null,
+  "contract": {
+   "capability_slug": "operation.gamepulse.get-api-cards-deal-0126a7a6",
+   "version": 1,
+   "requires": [
+    {
+     "fact_type": "source_input.e0126a7a6e24243db8a6e426cb4be023f.card",
+     "subject_role": "subject",
+     "optional": false
+    },
+    {
+     "fact_type": "source_input.e0126a7a6e24243db8a6e426cb4be023f.game",
+     "subject_role": "subject",
+     "optional": true
+    }
+   ],
+   "input_map": {
+    "source_input.e0126a7a6e24243db8a6e426cb4be023f.card": {
+     "in": "query",
+     "name": "card"
+    },
+    "source_input.e0126a7a6e24243db8a6e426cb4be023f.game": {
+     "in": "query",
+     "name": "game"
+    }
+   },
+   "output_map": {
+    "base": "$",
+    "produces": {
+     "source_document.e0126a7a6e24243db8a6e426cb4be023f.response": {
+      "adapter": "document.response",
+      "key": "document"
+     }
+    }
+   },
+   "cardinality": "one",
+   "identifies": null,
+   "max_fan_out": 1
+  }
+ },
+ "vocabulary": [
+  {
+   "slug": "source_input.e0126a7a6e24243db8a6e426cb4be023f.card",
+   "value_schema": {
+    "type": "string"
+   }
+  },
+  {
+   "slug": "source_input.e0126a7a6e24243db8a6e426cb4be023f.game",
+   "value_schema": {
+    "type": "string"
+   }
+  },
+  {
+   "slug": "source_document.e0126a7a6e24243db8a6e426cb4be023f.response",
+   "value_schema": {
+    "type": "object",
+    "required": [
+     "document"
+    ]
+   }
+  }
+ ]
+}

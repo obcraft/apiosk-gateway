@@ -1086,7 +1086,7 @@ impl Parser {
             "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
             "response_format":{"type":"json_object"},"messages":[
                 {"role":"system","content":include_str!("../contracts/catalog-selection-prompt.txt")},
-                {"role":"user","content":json!({"question":question,"context":task.parser_context(),"operations":catalog.operation_index(),"workflow_presets":presets}).to_string()}
+                {"role":"user","content":json!({"question":question,"context":task.parser_context(),"operations":catalog.operation_index_for(question),"workflow_presets":presets}).to_string()}
             ]});
         let selected=self.completion("catalog-selection",&payload,|raw| {
             let value:Value=serde_json::from_str(raw)?;

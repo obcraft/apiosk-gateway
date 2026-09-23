@@ -532,6 +532,12 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
                 let note = json!({"code": "max_spend", "message": "The plan's maximum cost is above max_spend, so it was not run. Nothing was charged."});
                 return finish(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
             }
+            // Auto mode never buys from a source that has not answered a live
+            // call yet. The caller sees the plan and may run it explicitly.
+            (Some(_), _) if !authorized(state, &ctx, id).await.unwrap_or(false) && plan_unverified(state, &ctx, id).await => {
+                let note = json!({"code": "unverified_source", "message": "The plan uses a source that has not been verified by a live call yet, so auto mode did not run it. Review the plan and run it with POST /v2/asks/{id}/run. Nothing was charged."});
+                return finish(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
+            }
             (Some(_), _) => {
                 let bearer = token(headers).map_err(|_| no_bearer())?;
                 authorize_and_run(state, &ctx, bearer, id, max_spend).await?;
@@ -611,6 +617,14 @@ async fn authorized(state: &ServerState, ctx: &AuthContext, id: Uuid) -> anyhow:
         .bind(ctx.principal.owner)
         .fetch_one(&state.engine.store.pool)
         .await?)
+}
+
+/// Whether the task's current plan buys from a source without a live response yet.
+async fn plan_unverified(state: &ServerState, ctx: &AuthContext, id: Uuid) -> bool {
+    let Ok((_, task, _)) = state.engine.store.load_scoped(&ctx.principal, id).await else { return false };
+    task.proposal
+        .and_then(|p| serde_json::from_value::<Plan>(p).ok())
+        .is_some_and(|plan| plan.steps.iter().any(|s| s.service.unverified))
 }
 
 /// Approve the task's current plan, then hand it to the server worker.
@@ -839,6 +853,9 @@ fn plan_json(plan: &Plan) -> Value {
             "operation": step.service.contract.capability_slug,
             "name": step.service.name,
             "conditional": step.browser_fallback.is_some(),
+            // false: the source has not answered a live call yet; auto mode
+            // will not run it, an explicit run may.
+            "verified": !step.service.unverified,
             "estimated_cost": money(plan.step_total(step)),
         })).collect::<Vec<_>>(),
         "estimated_total": money(plan.cap_atomic),

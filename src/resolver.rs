@@ -394,7 +394,8 @@ fn add(
                 .filter(|r| !fact_value(&task.facts, entity, &r.fact_type).is_ok_and(|v| v.is_some())
                     && !steps.iter().any(|s| s.entity_ref == entity && s.service.contract.output_map.produces.contains_key(&r.fact_type)))
                 .count();
-            (missing, candidate.total())
+            // A verified service always goes first; an unverified one fills a gap.
+            (missing, candidate.unverified, candidate.total())
         });
         let mut found = None;
         for index in candidates {
