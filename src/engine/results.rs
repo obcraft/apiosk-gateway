@@ -60,6 +60,17 @@ impl Engine {
             data["report"] = json!({"format":"pdf", "filename":format!("jaarrekening-{result_ref}.pdf"), "expires_at":expires,
                 "download_path":format!("/v2/tasks/{task}/results/{result_ref}/report.pdf?owner={owner}&expires={expires}&signature={signature}")});
         }
+        // Captured maps are shown inline in chat; the bytes stay server-side
+        // behind a scoped, expiring link, like the PDF report.
+        let expires = (Utc::now() + chrono::Duration::hours(24)).timestamp();
+        if let Some(assets) = data[crate::report_assets::KEY]["assets"].as_array_mut() {
+            for (index, asset) in assets.iter_mut().enumerate() {
+                if asset["kind"] == "map" && asset["mime_type"] == "image/png" {
+                    let signature = self.signer.asset_signature(owner, task, result_ref, index, expires);
+                    asset["download_path"] = json!(format!("/v2/tasks/{task}/results/{result_ref}/assets/{index}?owner={owner}&expires={expires}&signature={signature}"));
+                }
+            }
+        }
         crate::sources::brand_result(&mut data, sources);
         let serialized = serde_json::to_string(&data)?;
         if serialized.len() <= MAX_INLINE {

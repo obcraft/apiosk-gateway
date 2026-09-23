@@ -167,10 +167,33 @@ fn mark_available(result: &mut Value, catalog: &Catalog) {
     let available: BTreeSet<_> = catalog.services.iter().map(|s| s.endpoint_id.to_string()).collect();
     if let Some(items) = result["items"].as_array_mut() {
         for item in items {
-            let accepted = item["endpoint"]["candidate_id"].as_str().is_some_and(|id| available.contains(id));
-            item["endpoint"]["planner_available"] = json!(accepted);
+            let id = item["endpoint"]["candidate_id"].as_str().unwrap_or_default().to_owned();
+            item["endpoint"]["planner_available"] = json!(available.contains(&id));
+            item["endpoint"]["inputs"] = json!(endpoint_inputs(catalog, &id));
         }
     }
+}
+
+/// What a runnable endpoint needs, so the buyer can supply known values up
+/// front. Every accepted contract on the endpoint contributes; a fact any
+/// contract requires is required. Unrunnable endpoints have no contract to ask from.
+fn endpoint_inputs(catalog: &Catalog, endpoint_id: &str) -> Vec<Value> {
+    let mut inputs: BTreeMap<(String, String), bool> = BTreeMap::new();
+    for service in catalog.services.iter().filter(|s| s.endpoint_id.to_string() == endpoint_id) {
+        for r in &service.contract.requires {
+            let optional = inputs.entry((r.fact_type.clone(), r.subject_role.clone())).or_insert(true);
+            *optional &= r.optional;
+        }
+    }
+    let mut rows: Vec<_> = inputs.into_iter().map(|((fact_type, role), optional)| {
+        let schema = catalog.vocabulary.get(&fact_type).map(|f| &f.value_schema);
+        json!({"fact_type": fact_type, "subject_role": role, "optional": optional,
+            "type": schema.and_then(|s| s["type"].as_str()),
+            "enum": schema.and_then(|s| s["enum"].as_array()),
+            "description": schema.and_then(|s| s["description"].as_str())})
+    }).collect();
+    rows.sort_by_key(|r| r["optional"].as_bool());
+    rows
 }
 fn selected(filter: &Option<String>, values: impl IntoIterator<Item = impl AsRef<str>>) -> bool {
     filter.as_ref().is_none_or(|f| {
@@ -178,6 +201,34 @@ fn selected(filter: &Option<String>, values: impl IntoIterator<Item = impl AsRef
             || values
                 .into_iter()
                 .any(|v| v.as_ref().eq_ignore_ascii_case(f.trim()))
+    })
+}
+/// Capability slugs are per-contract, so one question ("tell me about this
+/// company") is spread over several: StableEnrich enriches by domain, KVK and
+/// Companies House serve a registry profile, Pulse services a company lookup.
+/// Filtering on any member lists every source in its family. Browse only: the
+/// planner still quotes the exact contracted slug. Mirrors the app's
+/// `capabilityMatches` in source-directory.ts.
+const CAPABILITY_FAMILIES: &[&[&str]] = &[&[
+    "company.enrich",
+    "company.enrich-by-name",
+    "company.registry-profile",
+    "company_registry.lookup",
+    "company_intel.lookup",
+    "company.fr-kyb",
+]];
+fn capability_selected(filter: &Option<String>, values: impl IntoIterator<Item = impl AsRef<str>>) -> bool {
+    let Some(wanted) = filter.as_deref().map(str::trim).filter(|f| !f.is_empty()) else {
+        return true;
+    };
+    let family = CAPABILITY_FAMILIES
+        .iter()
+        .find(|members| members.iter().any(|m| m.eq_ignore_ascii_case(wanted)))
+        .copied()
+        .unwrap_or(&[]);
+    values.into_iter().any(|v| {
+        let v = v.as_ref();
+        v.eq_ignore_ascii_case(wanted) || family.iter().any(|m| m.eq_ignore_ascii_case(v))
     })
 }
 /// Pulse's listings are services of one registered provider, not independent
@@ -299,7 +350,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
                     && selected(&query.category, source.categories.iter().chain(std::iter::once(&source.category)))
                     && selected(&query.tag, &source.tags)
                     && selected(&query.sector, &source.sectors)
-                    && selected(&query.capability, capabilities_for(source)))
+                    && capability_selected(&query.capability, capabilities_for(source)))
                 .then_some((score, *index, *source))
             })
             .collect();
@@ -506,6 +557,40 @@ mod tests {
         assert_eq!(result["sources"][0]["slug"], sources[0].slug);
         assert_eq!(result["sources"][0]["capabilities"], json!(["filings.sec-search"]));
         assert_eq!(result["sources"][0]["executable_capabilities"], json!([]));
+    }
+    #[test]
+    fn runnable_endpoints_list_their_contract_inputs_required_first() {
+        let catalog = catalog();
+        let service = catalog.services.iter().find(|s| !s.contract.requires.is_empty()).unwrap();
+        let mut page = json!({"items":[
+            {"endpoint":{"candidate_id":service.endpoint_id.to_string()}},
+            {"endpoint":{"candidate_id":"00000000-0000-0000-0000-000000000000"}}
+        ]});
+        mark_available(&mut page, &catalog);
+        let inputs = page["items"][0]["endpoint"]["inputs"].as_array().unwrap();
+        let required = service.contract.requires.iter().find(|r| !r.optional).unwrap();
+        assert!(inputs.iter().any(|i| i["fact_type"] == required.fact_type.as_str() && i["optional"] == false));
+        let flags: Vec<_> = inputs.iter().map(|i| i["optional"].as_bool().unwrap()).collect();
+        assert!(flags.windows(2).all(|w| w[0] <= w[1]), "required inputs come first");
+        assert_eq!(page["items"][1]["endpoint"]["inputs"], json!([]));
+    }
+    #[test]
+    fn capability_filter_matches_the_whole_company_profile_family() {
+        let mut sources = rows();
+        sources[0].offered_capabilities = vec!["company.registry-profile".into()];
+        sources[1].offered_capabilities = vec!["company.sanctions-screen".into()];
+        let catalog = catalog();
+        let result = browse(&sources, &catalog, &SourceQuery {
+            capability: Some("company.enrich".into()), ..Default::default()
+        });
+        assert_eq!(result["total"], 1);
+        assert_eq!(result["sources"][0]["slug"], sources[0].slug);
+        // Outside a family the filter stays exact.
+        let exact = browse(&sources, &catalog, &SourceQuery {
+            capability: Some("company.sanctions-screen".into()), ..Default::default()
+        });
+        assert_eq!(exact["total"], 1);
+        assert_eq!(exact["sources"][0]["slug"], sources[1].slug);
     }
     #[test]
     fn source_query_prefers_the_listings_own_logo() {

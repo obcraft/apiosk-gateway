@@ -81,6 +81,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks", get(tasks))
         .route("/v2/tasks/:id", get(task))
         .route("/v2/tasks/:task/results/:result/report.pdf", get(annual_report))
+        .route("/v2/tasks/:task/results/:result/assets/:index", get(result_asset))
         .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:task/reports/:quote/evidence.zip", get(research_evidence))
         .route("/v2/tasks/:id/authorize", post(authorize))
@@ -189,6 +190,31 @@ async fn research_evidence(
         _ => failure(StatusCode::INTERNAL_SERVER_ERROR,"evidence_unavailable","Evidence export failed. Saved source results remain available; no new purchase is needed."),
     }
 }
+/// A map captured while the result was bought, served for an inline <img>.
+/// Same scoped, expiring capability and owner/workspace checks as the PDF.
+async fn result_asset(
+    State(state): State<ServerState>,
+    Path((task, result, index)): Path<(Uuid, Uuid, usize)>,
+    Query(query): Query<ReportDownload>,
+) -> HttpResponse {
+    if state.engine.signer.verify_asset(query.owner, task, result, index, query.expires, &query.signature).is_err() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let Ok((_,saved,_))=state.engine.store.load(query.owner,task).await else {return StatusCode::NOT_FOUND.into_response()};
+    if state.engine.store.check_workspace(&Principal {owner:query.owner,connection:None,workspace:saved.workspace_id}).await.is_err(){return StatusCode::NOT_FOUND.into_response()};
+    let Ok(document) = state.engine.store.result(query.owner, task, result).await else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let asset = &document[crate::report_assets::KEY]["assets"][index];
+    if asset["kind"] != "map" { return StatusCode::NOT_FOUND.into_response(); }
+    // bytes() re-checks the digest, PNG signature and map dimensions.
+    let Ok(png) = crate::report_assets::bytes(asset) else { return StatusCode::NOT_FOUND.into_response() };
+    ([("content-type", "image/png"),
+      ("cache-control", "private, max-age=3600"),
+      ("referrer-policy", "no-referrer"),
+      ("x-content-type-options", "nosniff")], png).into_response()
+}
+
 async fn annual_report(
     State(state): State<ServerState>,
     Path((task, result)): Path<(Uuid, Uuid)>,

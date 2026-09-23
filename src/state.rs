@@ -61,6 +61,19 @@ impl Signer {
         mac.update(&serde_json::to_vec(&("annual-report-v1", owner, task, result, expires)).unwrap());
         mac.verify_slice(&hex::decode(signature)?).map_err(|_| anyhow::anyhow!("invalid report signature"))
     }
+    /// A result's captured map image, for an inline <img>. Its own domain, so a
+    /// report link cannot be replayed as an asset link or the other way round.
+    pub fn asset_signature(&self, owner: Uuid, task: Uuid, result: Uuid, index: usize, expires: i64) -> String {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("result-asset-v1", owner, task, result, index, expires)).unwrap());
+        hex::encode(mac.finalize().into_bytes())
+    }
+    pub fn verify_asset(&self, owner: Uuid, task: Uuid, result: Uuid, index: usize, expires: i64, signature: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(expires > Utc::now().timestamp(), "asset link expired");
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(&serde_json::to_vec(&("result-asset-v1", owner, task, result, index, expires)).unwrap());
+        mac.verify_slice(&hex::decode(signature)?).map_err(|_| anyhow::anyhow!("invalid asset signature"))
+    }
     pub fn new(key: Vec<u8>) -> anyhow::Result<Self> {
         anyhow::ensure!(
             key.len() >= 32,
@@ -285,6 +298,20 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn asset_links_are_scoped_to_one_image_and_never_accept_a_report_signature() {
+        let signer = Signer::new(vec![7; 32]).unwrap();
+        let (owner, task, result) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let expires = Utc::now().timestamp() + 60;
+        let signature = signer.asset_signature(owner, task, result, 0, expires);
+        assert!(signer.verify_asset(owner, task, result, 0, expires, &signature).is_ok());
+        assert!(signer.verify_asset(owner, task, result, 1, expires, &signature).is_err());
+        assert!(signer.verify_report(owner, task, result, expires, &signature).is_err());
+        let report = signer.report_signature(owner, task, result, expires);
+        assert!(signer.verify_asset(owner, task, result, 0, expires, &report).is_err());
+        let expired = signer.asset_signature(owner, task, result, 0, Utc::now().timestamp() - 1);
+        assert!(signer.verify_asset(owner, task, result, 0, Utc::now().timestamp() - 1, &expired).is_err());
+    }
     #[test]
     fn parser_context_omits_presentation_but_preserves_followup_requirements() {
         let mut task = Task::default();
