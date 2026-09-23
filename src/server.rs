@@ -92,8 +92,10 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v1/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/ask", post(crate::public_api::ask))
+        .route("/v2/ask/workflows", get(crate::public_api::ask_workflows))
         .route("/v2/asks/:id", get(crate::public_api::run_status))
         .route("/v2/asks/:id/run", post(crate::public_api::run_ask))
+        .route("/v2/asks/:id/continue", post(crate::public_api::continue_ask))
         .route("/v2/runs/:id", get(crate::public_api::run_status))
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
@@ -593,7 +595,8 @@ async fn workflows(State(state): State<ServerState>, headers: HeaderMap, Query(q
 }
 
 async fn start_workflow(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(request): Json<crate::workflow_catalog::StartRequest>) -> HttpResponse {
-    let p = match app_person(&state, &headers).await { Ok(p) => p, Err(r) => return r };
+    let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
+    let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
     match state.engine.start_workflow(&p, &slug, request).await {
         Ok(response) => Json(response).into_response(),
         Err(error) => {

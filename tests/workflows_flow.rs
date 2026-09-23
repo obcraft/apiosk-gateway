@@ -12,6 +12,7 @@ use apiosk_gateway_v2::{
     workflow_catalog::{self, StartRequest},
 };
 use axum::{extract::State, routing::post, Json, Router};
+use base64::Engine as _;
 use serde_json::{json, Value};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::{
@@ -28,6 +29,26 @@ struct TestState {
 }
 fn fixture() -> Value {
     serde_json::from_str(include_str!("fixtures/workflows/catalog.json")).unwrap()
+}
+// Explicit loopback-only browser fixture. Never compiled into the Gateway binary.
+async fn browser_stats(State(s): State<TestState>) -> Json<Value> {
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations").fetch_one(&s.pool).await.unwrap();
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM balance_charges WHERE status='charged'").fetch_one(&s.pool).await.unwrap();
+    Json(json!({"provider_calls":s.count.load(Ordering::SeqCst),"approvals":approvals,"settled_charges":charges,"fixture_only":true}))
+}
+async fn browser_fixture(request: axum::extract::Request) -> Json<Value> {
+    let user = json!({"id":"00000000-0000-4000-8000-000000000001","aud":"authenticated","role":"authenticated","email":"dossier@example.test","email_confirmed_at":"2026-09-23T10:00:00Z","created_at":"2026-09-23T10:00:00Z","app_metadata":{"provider":"email"},"user_metadata":{"onboarded_at":"2026-09-23T10:00:00Z"}});
+    let path = request.uri().path();
+    if path == "/auth/v1/user" { return Json(user); }
+    if path == "/auth/v1/token" {
+        let expiry = chrono::Utc::now().timestamp() + 7200;
+        let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+        let jwt = format!("{}.{}.fixture", b64.encode(r#"{"alg":"HS256","typ":"JWT"}"#), b64.encode(json!({"sub":user["id"],"role":"authenticated","exp":expiry}).to_string()));
+        return Json(json!({"access_token":jwt,"refresh_token":"local-browser-fixture","expires_at":expiry,"expires_in":7200,"token_type":"bearer","user":user}));
+    }
+    if path.ends_with("/workspaces") {return Json(json!({"enabled":true,"spending_enabled":true,"organisations":[],"workspaces":[]}));}
+    if path.ends_with("/balance_summary") {return Json(json!({"available_micro_usd":2000000,"held_micro_usd":0}));}
+    Json(json!([]))
 }
 fn scalar(value: &Value, path: String) -> Option<String> {
     match value {
@@ -88,6 +109,17 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
     assert!(workflow_catalog::known(
         metadata["workflow"].as_str().unwrap()
     ));
+    if cap == "company.sanctions-screen" && matches!(metadata["workflow"].as_str(), Some("european-company-dossier" | "tender-company-dossier")) {
+        let country = body["inputs"]["queries"]["q1"]["properties"]["country"][0].as_str().unwrap();
+        let (source, path, name_field) = match country {
+            "NL" => ("kvk-dutch-business-register", "/api/v1/basisprofielen", "statutaireNaam"),
+            "GB" => ("companies-house", "/company", "company_name"),
+            "FR" => ("sirenic", "/v1/entreprise/{siren}", "denomination"),
+            _ => ("sirenic", "/v1/eu/entreprise/{pays}/{id}", "denomination"),
+        };
+        let expected = f["services"].as_array().unwrap().iter().find(|s|s["api_slug"] == source && s["path"] == path && s["contract"]["capability_slug"] == "company.registry-profile").unwrap()["sample_payload"][name_field].clone();
+        assert_eq!(body["inputs"]["queries"]["q1"]["properties"]["name"][0], expected, "the actual screening request must use the registry-returned name");
+    }
     let list = service["list_atomic"].as_i64().unwrap();
     assert_eq!(charged, list + (list * 2000 + 9999) / 10000);
     s.count.fetch_add(1, Ordering::SeqCst);
@@ -96,6 +128,10 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
    .bind(Uuid::new_v4()).bind(body["idempotency_key"].as_str().unwrap()).bind(id).execute(&s.pool).await.unwrap();
         return Json(json!({"ok":false,"error":"source_unavailable","charged_micro_usd":0}));
     }
+    // Settle the local ledger as the production payment adapter does. A source
+    // payload alone must not leave a successful browser run with held funds.
+    sqlx::query("INSERT INTO balance_charges(id,user_id,idempotency_key,status,charged_micro_usd,actual_provider_micro_usd,provider_price_micro_usd,fee_micro_usd,metadata) SELECT $1,user_id,$2,'charged',$3,$4,$4,$5,metadata FROM user_selected_apis WHERE id=$6")
+        .bind(Uuid::new_v4()).bind(body["idempotency_key"].as_str().unwrap()).bind(charged).bind(list).bind(charged-list).bind(id).execute(&s.pool).await.unwrap();
     let mut data = service["sample_payload"].clone();
     // Stored source examples describe unrelated real companies. Keep the fixture
     // identity consistent with this request; production rejects conflicting IDs.
@@ -203,11 +239,14 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     // Exercise the whole migration twice against the fixture catalog, including
     // creating the new property contract. These public compatibility views match
     // the schema layout used by production's catalog query.
-    sqlx::raw_sql("CREATE SCHEMA catalog; ALTER TABLE public.capabilities ADD COLUMN name text NOT NULL DEFAULT 'Fixture'; ALTER TABLE public.capabilities SET SCHEMA catalog; CREATE VIEW public.capabilities AS SELECT * FROM catalog.capabilities; ALTER TABLE public.capability_execution_contracts SET SCHEMA catalog; CREATE VIEW public.capability_execution_contracts AS SELECT * FROM catalog.capability_execution_contracts; DELETE FROM catalog.capability_execution_contracts WHERE capability_slug='location.property-search';").execute(&pool).await.unwrap();
+    sqlx::raw_sql("CREATE SCHEMA IF NOT EXISTS catalog; ALTER TABLE public.capabilities ADD COLUMN name text NOT NULL DEFAULT 'Fixture'; ALTER TABLE public.capabilities SET SCHEMA catalog; CREATE VIEW public.capabilities AS SELECT * FROM catalog.capabilities; ALTER TABLE public.capability_execution_contracts SET SCHEMA catalog; CREATE VIEW public.capability_execution_contracts AS SELECT * FROM catalog.capability_execution_contracts; DELETE FROM catalog.capability_execution_contracts WHERE capability_slug='location.property-search';").execute(&pool).await.unwrap();
     let migration =
         include_str!("../supabase/migrations/20260920222320_eleven_workflow_catalog.sql");
     sqlx::raw_sql(migration).execute(&pool).await.unwrap();
     sqlx::raw_sql(migration).execute(&pool).await.unwrap();
+    let dossier_migration = include_str!("../supabase/migrations/20260923162344_registry_names_for_european_dossiers.sql");
+    sqlx::raw_sql(dossier_migration).execute(&pool).await.unwrap();
+    sqlx::raw_sql(dossier_migration).execute(&pool).await.unwrap();
     sqlx::raw_sql("CREATE ROLE service_role").execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20260912111106_kvk_annual_accounts_queue.sql")).execute(&pool).await.unwrap();
     let account=f["services"].as_array().unwrap().iter().find(|s|s["contract"]["capability_slug"]=="company.financial-statements").unwrap()["sample_payload"].clone();
@@ -224,8 +263,13 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     let mock = Router::new()
         .route("/chat", post(model))
         .route("/functions/v1/use-selection", post(provider))
+        .route("/functions/v1/agent-gateway/v1/run", post(provider))
+        .route("/__fixture/stats", axum::routing::get(browser_stats))
+        .fallback(browser_fixture)
+        .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state.clone());
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let fixture_address = if std::env::var("WORKFLOWS_BROWSER").as_deref() == Ok("true") {"127.0.0.1:5284"} else {"127.0.0.1:0"};
+    let listener = tokio::net::TcpListener::bind(fixture_address).await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     let server = tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
     let http = reqwest::Client::new();
@@ -253,6 +297,18 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         "{:?}",
         engine.catalog.get().await.unwrap().rejected
     );
+    if std::env::var("WORKFLOWS_BROWSER").as_deref() == Ok("true") {
+        let engine = Arc::new(engine);
+        let api_state = apiosk_gateway_v2::server::ServerState {
+            engine: engine.clone(),
+            auth: Arc::new(apiosk_gateway_v2::auth::Auth {pool:pool.clone(), http:reqwest::Client::new(), supabase_url:engine.executor.supabase_url.clone(), publishable_key:"fixture".into()}),
+            permits: Arc::new(tokio::sync::Semaphore::new(8)), executor_compat:None,
+        };
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:5283").await.unwrap();
+        println!("BROWSER READY: real gateway http://127.0.0.1:5283; fixture auth/providers http://127.0.0.1:5284; no live charges");
+        axum::serve(listener, apiosk_gateway_v2::server::router(api_state, "http://127.0.0.1:5282").unwrap()).await.unwrap();
+        return;
+    }
     let person = Principal {
         owner: Uuid::new_v4(),
         connection: None,
@@ -690,5 +746,68 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         .unwrap(),
     )
     .unwrap();
+    // Partner API uses the same deterministic recipe and one saved quote.
+    state.fail.store(0, Ordering::SeqCst);
+    let engine = Arc::new(engine);
+    let api_state = apiosk_gateway_v2::server::ServerState {
+        engine: engine.clone(),
+        auth: Arc::new(apiosk_gateway_v2::auth::Auth { pool: pool.clone(), http: reqwest::Client::new(), supabase_url: engine.executor.supabase_url.clone(), publishable_key: "fixture".into() }),
+        permits: Arc::new(tokio::sync::Semaphore::new(8)), executor_compat: None,
+    };
+    let api_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let api_url = format!("http://{}", api_listener.local_addr().unwrap());
+    let app = apiosk_gateway_v2::server::router(api_state, "http://localhost:5173").unwrap();
+    let api_server = tokio::spawn(async move { axum::serve(api_listener, app).await.unwrap() });
+    let client = reqwest::Client::new();
+    let key = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let before = state.count.load(Ordering::SeqCst);
+    let catalog_response = client.get(format!("{api_url}/v2/ask/workflows")).bearer_auth(key).send().await.unwrap();
+    assert_eq!(catalog_response.status(), 200);
+    let available: Value = catalog_response.json().await.unwrap();
+    let dossier = available["workflows"].as_array().unwrap().iter().find(|r|r["slug"] == "european-company-dossier").unwrap();
+    assert_eq!(dossier["country_coverage"].as_array().unwrap().len(), 11);
+    let body = json!({"workflow":{"slug":"tender-company-dossier","input":{"name":"User supplied label","country":"NL","registration":"30204462"}}});
+    let response = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&body).send().await.unwrap();
+    assert_eq!(response.status(), 200);
+    let planned: Value = response.json().await.unwrap();
+    assert_eq!(planned["status"], "requires_approval", "{planned}");
+    assert_eq!(state.count.load(Ordering::SeqCst), before, "planning cannot buy data");
+    let id = planned["id"].as_str().unwrap();
+    let saved_id = Uuid::parse_str(id).unwrap();
+    let (_, saved, _) = engine.store.load(Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap(), saved_id).await.unwrap();
+    let plan: apiosk_gateway_v2::resolver::Plan = serde_json::from_value(saved.proposal.clone().unwrap()).unwrap();
+    assert_eq!(plan.steps.len(), 5);
+    assert_eq!(plan.fee_bps, 2000);
+    let ceiling = plan.cap_atomic;
+    assert!(!saved.facts.iter().any(|fact|fact.semantic_type == "company.name"));
+    let replay: Value = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&body).send().await.unwrap().json().await.unwrap();
+    assert_eq!(replay["id"], planned["id"]);
+    let conflict = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&json!({"question":"different request"})).send().await.unwrap();
+    assert_eq!(conflict.status(), 409);
+    for invalid in [json!({}), json!({"question":"both","workflow":body["workflow"]})] {
+        assert_eq!(client.post(format!("{api_url}/v2/ask")).bearer_auth(key).json(&invalid).send().await.unwrap().status(), 400);
+    }
+    let denied = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).json(&json!({"workflow":{"slug":"tender-company-dossier","input":{"name":"Example","country":"GB","registration":"09446231"}}})).send().await.unwrap();
+    assert_eq!(denied.status(), 422);
+    let response = client.post(format!("{api_url}/v2/asks/{id}/run")).bearer_auth(key).json(&json!({"max_spend":ceiling as f64 / 1e6,"wait_seconds":20})).send().await.unwrap();
+    assert!(response.status().is_success());
+    let mut completed: Value = response.json().await.unwrap();
+    for _ in 0..100 {
+        if completed["status"] != "running" { break; }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        completed = client.get(format!("{api_url}/v2/asks/{id}")).bearer_auth(key).send().await.unwrap().json().await.unwrap();
+    }
+    assert_eq!(completed["status"], "completed", "{completed}");
+    assert_eq!(state.count.load(Ordering::SeqCst) - before, 5);
+    let (_, saved, _) = engine.store.load(Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap(), saved_id).await.unwrap();
+    let registered = saved.facts.iter().find(|fact|fact.semantic_type == "company.name").unwrap();
+    assert_ne!(registered.value, "User supplied label");
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations WHERE task_id=$1").bind(saved_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(approvals, 1);
+    let replay: Value = client.post(format!("{api_url}/v2/asks/{id}/run")).bearer_auth(key).json(&json!({"wait_seconds":0})).send().await.unwrap().json().await.unwrap();
+    assert_eq!(replay["id"], planned["id"]);
+    assert_eq!(state.count.load(Ordering::SeqCst) - before, 5, "replay must not buy again");
+    println!("PASS partner tender dossier: fixed recipe, registry-bound screening, one quote/approval, five purchases, replay safe");
+    api_server.abort();
     server.abort();
 }

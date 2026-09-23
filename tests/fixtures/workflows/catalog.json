@@ -1034,6 +1034,9 @@
             },
             "company.registration.fr.siren": {
               "path": "$.siren"
+            },
+            "company.name": {
+              "path": "$.denomination"
             }
           }
         },
@@ -4832,6 +4835,9 @@
             },
             "company.registration.gb.companies_house": {
               "path": "$.company_number"
+            },
+            "company.name": {
+              "path": "$.company_name"
             }
           }
         },
@@ -6238,6 +6244,2512 @@
         "source_url": "https://www.swift.com/standards/data-standards/iban-international-bank-account-number"
       },
       "jurisdiction": null
+    },
+    {
+      "id": "cd2916c7-05f6-50e9-a2f3-31bcbf2f0195",
+      "endpoint_id": "17c8e095-cbf3-52bd-868f-3dd2c0c8757f",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/entreprise/{siren}/marches-publics",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "siren": "130031487",
+        "nombre_marches": 26,
+        "montant_total": 4943495.5,
+        "nombre_accords_cadres": 18,
+        "montant_plafonds_accords_cadres": 4162376,
+        "montant_hors_accords_cadres": 781119.5,
+        "nombre_montants_enveloppe": 20,
+        "nombre_modalites_connues": 26,
+        "montant_enveloppes": 4234476,
+        "montant_prix_fermes": 709019.5,
+        "nombre_sous_traitance_connue": 26,
+        "nombre_sous_traitance_declaree": 16,
+        "nombre_sous_traitants": 2,
+        "montant_sous_traite": 20910.24,
+        "premier_marche": "2023-06-07",
+        "dernier_marche": "2026-06-01",
+        "marches_en_cours": 18,
+        "prochaine_echeance": "2026-12-17",
+        "marches": [
+          {
+            "id": "20262026100",
+            "objet": "ACTIONS DE FORMATION POUR LA SOUS SPECIALITE E1D ESPACES VERTS LOT 7 POUR LE COMPTE DE LA DELEGATION PAYS DE LA LOIRE DU CNFPT",
+            "montant": 100000,
+            "montant_modifie": null,
+            "lot_numero": 7,
+            "co_traitance": false,
+            "nombre_titulaires": 1,
+            "groupement": null,
+            "date_notification": "2026-06-01",
+            "duree_mois": 24,
+            "duree_mois_modifiee": null,
+            "date_fin_estimee": "2028-06-01",
+            "regime": "2022",
+            "accord_cadre": true,
+            "montant_est_enveloppe": true,
+            "modalites_execution": "Bons de commande",
+            "ccag": "Fournitures courantes et services",
+            "types_prix": "D\u00e9finitif r\u00e9visable",
+            "marche_innovant": false,
+            "avance": {
+              "attribuee": false,
+              "taux": 0
+            },
+            "origine": {
+              "ue": 0,
+              "france": 0
+            },
+            "plateforme_source": "DGFIP \u2013 PES MARCH\u00c9",
+            "avenant": null,
+            "sous_traitance": {
+              "declaree": false,
+              "acte_id": null,
+              "montant": null,
+              "part_du_montant": null,
+              "duree_mois": null,
+              "date_notification": null,
+              "variation_prix": null,
+              "sous_traitant": null
+            },
+            "offres_recues": 1,
+            "acheteur": {
+              "siret": "18001404502245",
+              "nom": "CENTRE NATIONAL DE LA FONCTION PUBLIQUE TERRITORIALE"
+            },
+            "nature": "March\u00e9",
+            "procedure": "Proc\u00e9dure adapt\u00e9e",
+            "code_cpv": "80530000-8",
+            "lieu_execution": "49000"
+          }
+        ],
+        "liste_tronquee": false,
+        "source": "Donn\u00e9es essentielles de la commande publique (DECP consolid\u00e9es) via data.economie.gouv.fr, licence ouverte 2.0"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-entreprise-siren-marches-publics",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fr.siren",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fr.siren": {
+            "name": "siren",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.entreprise_siren_marches_publics": {
+              "path": "$"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "siren": "552032534"
+      }
+    },
+    {
+      "id": "c8075159-e2c0-5f66-b57c-ae2a127d5fa1",
+      "endpoint_id": "ade61e90-e0a2-53d4-9267-7e41fa925022",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/NO/{id}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 20000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "NO",
+      "sample_payload": {
+        "pays": "NO",
+        "id_national": "923609016",
+        "nombre_exercices": 1,
+        "exercices": [
+          {
+            "date_cloture": "2024-12-31",
+            "debut_exercice": "2024-01-01",
+            "devise": "USD",
+            "oppstillingsplan": "store",
+            "petite_entreprise": false,
+            "bilan": {
+              "total_actif": 109150000000,
+              "capitaux_propres": 41090000000,
+              "dettes": 68060000000
+            },
+            "resultat": {
+              "produits_exploitation": 72543000000,
+              "resultat_net": 8141000000
+            },
+            "collecte_le": "2026-07-29"
+          }
+        ],
+        "source": "Data from Br\u00f8nn\u00f8ysundregistrene \u2014 Regnskapsregisteret (data.brreg.no), licence NLOD 2.0",
+        "licence": "Data from Br\u00f8nn\u00f8ysundregistrene, NLOD 2.0",
+        "disclaimer": "Le Regnskapsregisteret ouvert ne sert que le DERNIER exercice d\u00e9pos\u00e9",
+        "score_defaillance": {
+          "statut": "non_evaluable",
+          "pays": "NO",
+          "version": "evaluabilite-v1",
+          "raisons": [
+            "axes_hors_d_atteinte",
+            "historique_a_la_demande",
+            "bareme_non_calibre_pour_le_pays"
+          ],
+          "postes_normalises": [
+            "produits_exploitation"
+          ],
+          "ratios_hors_d_atteinte": [
+            "marge_ebe"
+          ],
+          "flux_insolvabilite": "stock",
+          "lecture": "Aucun score pour cette entit\u00e9 : `raisons` dit, en liste ferm\u00e9e, ce qui manque au bar\u00e8me pour ce pays. Ni score bas, ni signal, ni absence de risque : aucune bande, aucun classement. / No score for this entity: `raisons` lists, closed, what the scorecard lacks for this country. Neither a low score, nor a signal, nor an absence of risk: no band, no ranking."
+        }
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-no-id-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.no.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.no.national_id": {
+            "name": "id",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_no_id_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "id": "923609016"
+      }
+    },
+    {
+      "id": "feab8764-068b-5aab-970e-d37ed5795476",
+      "endpoint_id": "6a033043-c81d-53c7-98f2-e6f91976f135",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/LV/{regnr}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 30000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "LV",
+      "sample_payload": {
+        "pays": "LV",
+        "id_national": "40003032949",
+        "nombre_exercices": 2,
+        "exercices": [
+          {
+            "date_cloture": "2025-12-31",
+            "exercice": 2025,
+            "perimetre": "statutaire",
+            "devise": "EUR",
+            "arrondi": "THOUSANDS",
+            "employes": 1389,
+            "bilan": {
+              "total_actif": 4189397
+            },
+            "compte_resultat": {
+              "chiffre_affaires": 949824
+            },
+            "flux_tresorerie": {
+              "flux_exploitation": 376739
+            }
+          }
+        ],
+        "source": "Uz\u0146\u0113mumu re\u0123istrs / VID \u2014 open data data.gov.lv",
+        "licence": "Uz\u0146\u0113mumu re\u0123istrs / VID, data.gov.lv, CC0 1.0",
+        "disclaimer": "Postes cl\u00e9s des rapports annuels d\u00e9pos\u00e9s au VID, tels que publi\u00e9s par l'Uz\u0146\u0113mumu re\u0123istrs (CC0)"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-lv-regnr-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.lv.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.lv.national_id": {
+            "name": "regnr",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_lv_regnr_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "regnr": "40003032065"
+      }
+    },
+    {
+      "id": "8e9617f2-c816-5838-a397-99b4e8d87c59",
+      "endpoint_id": "3fd6a166-f340-5878-b92d-d39a754ccedc",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/EE/{registrikood}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 20000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "EE",
+      "sample_payload": {
+        "pays": "EE",
+        "id_national": "10003666",
+        "devise": "EUR",
+        "nombre_exercices": 2,
+        "exercices": [
+          {
+            "debut_exercice": "2024-08-01",
+            "date_cloture": "2025-07-31",
+            "perimetre": "statutaire",
+            "forme": "O\u00dc",
+            "depose_le": "2026-01-30",
+            "audite": true,
+            "auditeur_code": "16080550",
+            "bilan": {
+              "total_actif": 5952649
+            },
+            "compte_resultat": {
+              "chiffre_affaires": 10475906,
+              "charges_personnel": -1614840
+            }
+          }
+        ],
+        "source": "e-\u00e4riregister (Registre du commerce estonien) \u2014 open data avaandmed.ariregister.rik.ee",
+        "licence": "Registrite ja Infos\u00fcsteemide Keskus (RIK) \u2014 e-\u00e4riregistri avaandmed, CC BY 4.0",
+        "disclaimer": "Chiffres cl\u00e9s des rapports annuels tels que publi\u00e9s par le e-\u00e4riregister (RIK, CC BY 4.0), mill\u00e9simes 2019 et suivants"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-ee-registrikood-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.ee.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.ee.national_id": {
+            "name": "registrikood",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_ee_registrikood_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "registrikood": "10003666"
+      }
+    },
+    {
+      "id": "09bcd5f2-dba9-5b05-a6dc-66f474978041",
+      "endpoint_id": "f886611d-cbe2-5200-8e6e-d07bea63bce1",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/SE/{orgnr}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 30000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "SE",
+      "sample_payload": {
+        "pays": "SE",
+        "id_national": "5560401977",
+        "nombre_exercices": 4,
+        "exercices": [
+          {
+            "date_cloture": "2025-12-31",
+            "denomination": "Research Premises Scandinavia Aktiebolag",
+            "devise": "SEK",
+            "chiffre_affaires": 891571,
+            "resultat_net": 15721,
+            "total_actif": 351010,
+            "capitaux_propres": 263724
+          }
+        ],
+        "source": "Bolagsverket \u2014 v\u00e4rdefulla datam\u00e4ngder (bulkfil des organisations et rapports annuels iXBRL), vardefulla-datamangder.bolagsverket.se"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-se-orgnr-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.se.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.se.national_id": {
+            "name": "orgnr",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_se_orgnr_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "orgnr": "5560401977"
+      }
+    },
+    {
+      "id": "3900dda8-b539-5b10-bfa1-60d205197235",
+      "endpoint_id": "527bd5a4-09f8-5d8f-98e9-10fa7e9e4bf9",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/{pays}/{id}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "pays": "BE"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "BE",
+      "sample_payload": {
+        "pays": "BE",
+        "id_national": "0400378485",
+        "nombre_depots": 93,
+        "depots": [
+          {
+            "reference": "2025-00539072",
+            "detail": {
+              "DepositDate": "2025-10-07",
+              "ExerciseDates": {
+                "startDate": "2024-04-01",
+                "endDate": "2025-03-31"
+              },
+              "Currency": "EUR",
+              "EnterpriseName": "Colruyt Group",
+              "AccountingDataURL": "https://ws.cbso.nbb.be/authentic/deposit/2025-00539072/accountingData"
+            }
+          }
+        ],
+        "telechargement": "GET /v1/eu/entreprise/BE/{id}/comptes/{reference}",
+        "source": "Banque nationale de Belgique \u2014 Centrale des bilans (CBSO), webservice Authentic Data",
+        "disclaimer": "Comptes annuels tels que d\u00e9pos\u00e9s et publi\u00e9s par la Centrale des bilans de la BNB (d\u00e9p\u00f4ts immuables)",
+        "data_freshness": "BNB CBSO temps r\u00e9el, liste en cache 24 h"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-pays-id-comptes-be",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.be.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.be.national_id": {
+            "name": "id",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_pays_id_comptes_be": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "pays": "BE",
+        "id": "0403170701"
+      }
+    },
+    {
+      "id": "d5319bf7-429b-5257-a24d-ad0f7aaac2d4",
+      "endpoint_id": "527bd5a4-09f8-5d8f-98e9-10fa7e9e4bf9",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/{pays}/{id}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "pays": "FI"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FI",
+      "sample_payload": {
+        "pays": "BE",
+        "id_national": "0400378485",
+        "nombre_depots": 93,
+        "depots": [
+          {
+            "reference": "2025-00539072",
+            "detail": {
+              "DepositDate": "2025-10-07",
+              "ExerciseDates": {
+                "startDate": "2024-04-01",
+                "endDate": "2025-03-31"
+              },
+              "Currency": "EUR",
+              "EnterpriseName": "Colruyt Group",
+              "AccountingDataURL": "https://ws.cbso.nbb.be/authentic/deposit/2025-00539072/accountingData"
+            }
+          }
+        ],
+        "telechargement": "GET /v1/eu/entreprise/BE/{id}/comptes/{reference}",
+        "source": "Banque nationale de Belgique \u2014 Centrale des bilans (CBSO), webservice Authentic Data",
+        "disclaimer": "Comptes annuels tels que d\u00e9pos\u00e9s et publi\u00e9s par la Centrale des bilans de la BNB (d\u00e9p\u00f4ts immuables)",
+        "data_freshness": "BNB CBSO temps r\u00e9el, liste en cache 24 h"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-pays-id-comptes-fi",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fi.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fi.national_id": {
+            "name": "id",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_pays_id_comptes_fi": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "pays": "FI",
+        "id": "0103396-3"
+      }
+    },
+    {
+      "id": "3e49290b-0f75-5710-bdb9-9d91b1c24906",
+      "endpoint_id": "faabb85b-d6d3-5b65-8bbd-7c3780876aa1",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/DK/{id}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "DK",
+      "sample_payload": {
+        "pays": "DK",
+        "id_national": "41235292",
+        "nombre_depots": 1,
+        "depots": [
+          {
+            "date_cloture": "2025-12-31",
+            "debut_exercice": "2025-01-01",
+            "fin_exercice": "2025-12-31",
+            "denomination": "Nielsen Media Denmark ApS",
+            "devise": "DKK"
+          }
+        ],
+        "telechargement": "GET /v1/eu/entreprise/DK/{cvr}/comptes/{date_cloture} \u2014 l'exercice d\u00e9cod\u00e9 ($0.05)",
+        "source": "Erhvervsstyrelsen (Danish Business Authority) \u2014 offentligg\u00f8relser, distribution.virk.dk",
+        "disclaimer": "Extraits d\u00e9cod\u00e9s des d\u00e9p\u00f4ts XBRL danois en taxonomie \u00ab regnskab \u00bb (fsa) tels que publi\u00e9s",
+        "data_freshness": "stock XBRL pr\u00e9-ing\u00e9r\u00e9 depuis l'index officiel virk.dk"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-dk-id-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.dk.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.dk.national_id": {
+            "name": "id",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_dk_id_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "id": "41235292"
+      }
+    },
+    {
+      "id": "add01f59-9d66-5f77-8c2c-b0878e4634f4",
+      "endpoint_id": "7af57a46-c7f8-5333-8b35-4e5082baea7c",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/eu/entreprise/SK/{ico}/comptes",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "SK",
+      "sample_payload": {
+        "pays": "SK",
+        "id_national": "36417475",
+        "nombre_depots": 2,
+        "depots": [
+          {
+            "date_cloture": "2025-12-31",
+            "debut_exercice": "2025-01-01",
+            "denomination": "PODLAHY RK, s. r. o.",
+            "perimetre": "statutaire",
+            "type_depot": "Riadna",
+            "modele": "\u00da\u010d POD",
+            "nb_postes": 16,
+            "source_url": "https://www.registeruz.sk/cruz-public/domain/financialreport/show/7073209"
+          }
+        ],
+        "telechargement": "GET /v1/eu/entreprise/SK/{ico}/comptes/{date_cloture} ($0.03)",
+        "source": "Register \u00fa\u010dtovn\u00fdch z\u00e1vierok (R\u00daZ) \u2014 Ministerstvo financi\u00ed SR, registeruz.sk, open API publique",
+        "licence": "CC0 (R\u00daZ Open API, Ministerstvo financi\u00ed SR)",
+        "disclaimer": "Postes cl\u00e9s normalis\u00e9s extraits des \u00e9tats financiers STRUCTUR\u00c9S d\u00e9pos\u00e9s au R\u00daZ"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-eu-entreprise-sk-ico-comptes",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.sk.national_id",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.sk.national_id": {
+            "name": "ico",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.eu_entreprise_sk_ico_comptes": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "ico": "36417475"
+      }
+    },
+    {
+      "id": "dda4e710-c9eb-5eeb-8774-fe44bc608165",
+      "endpoint_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/entreprise/{siren}/marches-publics-ue",
+      "listing_type": "federated",
+      "list_atomic": 20000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "siren": "428634356",
+        "nombre_avis": 1,
+        "nombre_retourne": 1,
+        "tronque": false,
+        "avis": [
+          {
+            "reference_ted": "425760-2026",
+            "date_publication": "2026-06-22",
+            "type_avis": "can-standard",
+            "objet": "\u00c9tudes pr\u00e9liminaires usines d'eau potable",
+            "acheteur": {
+              "nom": "SYNDICAT EAU47",
+              "pays": "FRA"
+            },
+            "montant_avis": {
+              "valeur": 1250000,
+              "devise": "EUR",
+              "portee": "avis entier (tous lots/titulaires)"
+            },
+            "codes_cpv": [
+              "71241000"
+            ],
+            "co_titulaires": [
+              "CABINET MERLIN"
+            ],
+            "identifiants_gagnants": [
+              "42863435600532"
+            ],
+            "lien_ted": "https://ted.europa.eu/fr/notice/425760-2026/pdf",
+            "correspondance": {
+              "methode": "identifiant",
+              "confiance": "haute"
+            }
+          }
+        ],
+        "source": "TED \u2014 Tenders Electronic Daily (ted.europa.eu), Office des publications de l'UE ; r\u00e9utilisation libre, \u00a9 Union europ\u00e9enne",
+        "data_freshness": "interrogation TED en direct, cache 24 h"
+      },
+      "contract": {
+        "capability_slug": "company.sirenic-entreprise-siren-marches-publics-ue",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.registration.fr.siren",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.registration.fr.siren": {
+            "name": "siren",
+            "in": "path"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.sirenic.record.entreprise_siren_marches_publics_ue": {
+              "path": "$"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      },
+      "check_inputs": {
+        "siren": "428634356"
+      }
+    },
+    {
+      "id": "1006fdb8-bc37-4c2e-8212-8af7f856ca9f",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "naam": "Mollie B.V.",
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+          },
+          {
+            "rel": "vestigingen",
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "815839091",
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "links": [
+              {
+                "rel": "self",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging"
+              },
+              {
+                "rel": "vestigingen",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+              },
+              {
+                "rel": "basisprofiel",
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+              },
+              {
+                "rel": "vestigingsprofiel",
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188"
+              }
+            ],
+            "adressen": [
+              {
+                "land": "Nederland",
+                "type": "bezoekadres",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "huisnummer": 126,
+                "straatnaam": "Keizersgracht",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam",
+                "indAfgeschermd": "Nee"
+              }
+            ],
+            "kvkNummer": "30204462",
+            "vestigingsnummer": "000020495188",
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indHoofdvestiging": "Ja",
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "indCommercieleVestiging": "Ja"
+          }
+        },
+        "kvkNummer": "30204462",
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "statutaireNaam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer",
+            "indHoofdactiviteit": "Ja"
+          },
+          {
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma\u2019s",
+            "indHoofdactiviteit": "Nee"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "totaalWerkzamePersonen": 110
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 7,
+        "cardinality": "one",
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.profile": {
+              "fields": {
+                "sbi_codes": {
+                  "path": "$.sbiActiviteiten[*].sbiCode",
+                  "collect": true
+                },
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "trade_names": {
+                  "path": "$.handelsnamen[*].naam",
+                  "collect": true
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "optional_outputs": [
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.sbi_activities"
+      ]
+    },
+    {
+      "id": "89c4e3a8-e88b-455c-8f7f-1afde76d90c2",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "api_slug": "tenderned",
+      "name": "TenderNed",
+      "method": "GET",
+      "path": "/v2/publicaties",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "page": 0,
+        "size": 20
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "last": false,
+        "size": 10,
+        "first": true,
+        "number": 0,
+        "content": [
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/330128",
+              "title": "self"
+            },
+            "score": 27.810678,
+            "kenmerk": 458244,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NA"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/80221",
+            "tsenderNaam": "Mercell",
+            "publicatieId": "330128",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "EF04",
+              "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+            },
+            "typePublicatie": {
+              "code": "VAK",
+              "omschrijving": "Vooraankondiging"
+            },
+            "publicatieDatum": "2024-03-23",
+            "aanbestedingNaam": "Marktconsultatie Laadpalen gemeente Nijmegen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "gemeente Nijmegen",
+            "opdrachtBeschrijving": "Gemeente Nijmegen heeft circa 430 laadpalen in de openbare ruimte staan middels verschillende concessies. Daarnaast hebben we 42 semi publieke laadpalen op eigen terreinen staan. Deze laadpalen hebben we in eigen beheer. Voor vervanging en uitbreiding van de laadpalen op eigen terreinen (parkeergarages, P&R en deelvoertuigen in de openbare ruimte) gaan wij op zoek naar een aanbieder. Wij zoeken hierbij een aanbieder die de laadpalen levert, 2elijns onderhoud doet aan de laadpalen en de benodigde software kan leveren. Wij willen hierbij niet afhankelijk zijn van een CPO, zodat we zelf de controle hebben.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/376218",
+              "title": "self"
+            },
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "digitaal": true,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieId": "376218",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2025-04-24",
+            "aanbestedingNaam": "Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -566
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/361435",
+              "title": "self"
+            },
+            "score": 26.835663,
+            "kenmerk": 499200,
+            "digitaal": true,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieId": "361435",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "sluitingsDatum": "2025-02-20T10:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2024-12-18",
+            "aanbestedingNaam": "Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+            "opdrachtBeschrijving": "HHKS wenst een Raamovereenkomst af te sluiten voor het leveren, installeren, beheren, hosten en onderhouden van nieuw te plaatsen laadinfrastructuur en beheren, hosten en onderhouden van de bestaande laadpalen. Er zijn laadpalen gewenst in verband met de elektrificatie van het wagenpark van HHSK.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -566
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307391",
+              "title": "self"
+            },
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "307391",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "SF14",
+              "omschrijving": "Kennisgeving van aanvullende informatie, informatie over een onvolledige procedure of rectificatie"
+            },
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            },
+            "publicatieDatum": "2023-08-15",
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": true,
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte.\u00a0\nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie\u00a0van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1076
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/307240",
+              "title": "self"
+            },
+            "score": 25.971382,
+            "kenmerk": 425833,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/30597",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "307240",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2023-09-29T09:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-08-13",
+            "aanbestedingNaam": "Overname en plaatsing publieke laadinfrastructuur gemeente Utrecht",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Gemeente Utrecht",
+            "opdrachtBeschrijving": "Het doel van de aanbesteding is een toekomstbestendige laadinfrastructuur voor de elektrisch rijders (bewoners en bezoekers) in Utrecht te verzorgen. Dit gaat om zowel het functionerend houden van de bestaande publieke laadpalen als het plaatsen van nieuwe laadinfrastructuur in lijn met de verwachte behoefte.\u00a0\nOm dit te realiseren kopen we het beheer, onderhoud en exploitatie van circa 700 bestaande laadpalen, en de plaatsing, beheer, onderhoud en exploitatie\u00a0van circa 1.000 nieuwe publieke laadpalen in lijn met de verwachte behoefte in.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1076
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/296385",
+              "title": "self"
+            },
+            "score": 25.64547,
+            "kenmerk": 410073,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NA"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/36835",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "296385",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "publicatiecode": {
+              "code": "SF07",
+              "omschrijving": "Erkenningsregeling - speciale sectoren"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-04-27",
+            "aanbestedingNaam": "Openbaar bod publieke EV laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Alliander N.V.",
+            "opdrachtBeschrijving": "Middels een openbaar bod Publieke EV laadpalen (open house) kunnen Inschrijvers zich aanmelden om het werkpakket Publieke EV laadpalen in het verzorgingsgebied van Alliander N.V. uit te voeren.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/326177",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 452537,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "tsenderNaam": "Mercell",
+            "publicatieId": "326177",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2024-02-16",
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Politie",
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isVroegtijdigeBeeindiging": false
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/301746",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 417912,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "tsenderLink": "https://s2c.mercell.com/today/41551",
+            "tsenderNaam": "Mercell Source-to-Contract",
+            "publicatieId": "301746",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2023-10-05T12:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2023-06-24",
+            "aanbestedingNaam": "Laadinfrastructuur",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Politie",
+            "opdrachtBeschrijving": "De Opdracht omvat de levering van Laadpalen en het implementeren van een Laadbeheersysteem.",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1070
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/278739",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "tsenderNaam": "Negometrix3",
+            "publicatieId": "278739",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF06",
+              "omschrijving": "Aankondiging van een gegunde opdracht - speciale sectoren"
+            },
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            },
+            "publicatieDatum": "2022-11-10",
+            "aanbestedingNaam": "EV Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "opdrachtBeschrijving": "Doel van de aanbesteding: de Opdracht\nAangezien Schiphol\u00a0CO2\u00a0reductie\u00a0doelstellingen wil verwezenlijken de komende jaren, waarbij\u00a0electrification\u00a0een centraal thema is,\u00a0verwachten we\u00a0de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens\u00a0hiervoor\u00a0middels\u00a0een\u00a0aanbesteding tot een tweetal\u00a0raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen.\u00a0\nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de \u00a0Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies\u00a0over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1675
+          },
+          {
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/248112",
+              "title": "self"
+            },
+            "score": 25.529152,
+            "kenmerk": 342557,
+            "digitaal": false,
+            "europees": true,
+            "procedure": {
+              "code": "NOP",
+              "omschrijving": "Niet-openbaar"
+            },
+            "tsenderLink": "https://platform.negometrix.com/PublishedTenders.aspx?tenderId=191260",
+            "tsenderNaam": "Negometrix3",
+            "publicatieId": "248112",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "publicatiecode": {
+              "code": "SF02",
+              "omschrijving": "Aankondiging van een opdracht"
+            },
+            "sluitingsDatum": "2022-02-07T10:00:00",
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            },
+            "publicatieDatum": "2021-12-25",
+            "aanbestedingNaam": "EV Laadpalen",
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "isEformsWijziging": false,
+            "opdrachtgeverNaam": "Schiphol Nederland BV",
+            "opdrachtBeschrijving": "Aangezien Schiphol\u00a0CO2\u00a0reductie\u00a0doelstellingen wil verwezenlijken de komende jaren, waarbij\u00a0electrification\u00a0een centraal thema is,\u00a0verwachten we\u00a0de komende jaren flink uit te breiden qua laadfaciliteiten. Daarom is Schiphol voornemens om voor Schiphol en de regionale luchthavens\u00a0hiervoor\u00a0middels\u00a0een\u00a0aanbesteding tot een tweetal\u00a0raamovereenkomsten te komen met Gegadigde(n) / Inschrijver(s). Deze raamovereenkomsten zien toe op de levering van verschillende typen AC EV laadpalen.\u00a0\nAanbestedingsreglement Nutssectoren 2016\nOp deze aanbestedingsprocedure is de \u00a0Aanbestedingsreglement Nutssectoren 2016 (ARN2016) van toepassing.\nNegometrix\nDeze aanbesteding zal volledig digitaal via Negometrix geschieden. Voor instructies\u00a0over het digitaal aanbieden in Negometrix wordt verwezen naar de volgende instructies:\nInstructie Registreren op Negometrix\nInstructie Vraag & Antwoord\nInstructie Digitaal Aanbieden\n\u00a0",
+            "isVroegtijdigeBeeindiging": false,
+            "aantalDagenTotSluitingsDatum": -1675
+          }
+        ],
+        "totalPages": 23,
+        "totalElements": 221,
+        "numberOfElements": 10
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "procurement.company-name-mentions",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.nl.registered_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.nl.registered_name": {
+            "in": "query",
+            "name": "search"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "tenderned.publication_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "a20e55cf-300c-4465-8bf5-56b72d9b92d7",
+      "endpoint_id": "47da5710-1102-47ae-87c3-2f6dbb782a8a",
+      "api_slug": "ted",
+      "name": "TED",
+      "method": "GET",
+      "path": "/apiosk/organisation-notices",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "coverage": {
+          "complete": false,
+          "scope": "Exact numeric identifier in TED buyer or winner fields; returned page only. Identifier scheme, country and legal-entity identity still need confirmation."
+        },
+        "items": [
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0438 \u043c\u043e\u043d\u0442\u0430\u0436\u043d\u0438 \u0440\u0430\u0431\u043e\u0442\u0438 \u043f\u043e \u043e\u0431\u0449\u043e \u0438\u0437\u0433\u0440\u0430\u0436\u0434\u0430\u043d\u0435 \u043d\u0430 \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0441\u044a\u043e\u0440\u044a\u0436\u0435\u043d\u0438\u044f",
+              "ces": "Nizozemsko-Heerhugowaard: Konstruk\u010dn\u00ed a stavebn\u00ed pr\u00e1ce",
+              "dan": "Nederlandene-Heerhugowaard: Ingeni\u00f8rarbejder og bygv\u00e6rker",
+              "deu": "die Niederlande-Heerhugowaard: Ingenieur- und Hochbauarbeiten",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0395\u03c1\u03b3\u03b1\u03c3\u03af\u03b5\u03c2 \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd \u03ba\u03b1\u03b9 \u03b4\u03bf\u03bc\u03b9\u03ba\u03ad\u03c2 \u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b5\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Engineering works and construction works",
+              "est": "Madalmaad-Heerhugowaard: Insenertehnilised t\u00f6\u00f6d ja ehitust\u00f6\u00f6d",
+              "fin": "Alankomaat-Heerhugowaard: Rakennelmiin ja teknisiin rakenteisiin liittyv\u00e4t ty\u00f6t",
+              "fra": "Pays-Bas-Heerhugowaard: Ouvrages d'art et de g\u00e9nie civil",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Engineering works and construction works",
+              "hrv": "Nizozemska-Heerhugowaard: Radovi na niskogradnji i radovi na visokogradnji",
+              "hun": "Hollandia-Heerhugowaard: M\u00e9rn\u00f6ki \u00e9s \u00e9p\u00edt\u00e9si munk\u00e1k",
+              "ita": "Paesi Bassi-Heerhugowaard: Opere d'arte e strutture",
+              "lav": "N\u012bderlande-Heerhugowaard: In\u017eeniertehniskie un celtniec\u012bbas darbi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: In\u017einerijos ir statybos darbai",
+              "mlt": "in-Netherlands-Heerhugowaard: Xog\u0127lijiet ta\u2019 l-in\u0121inerija u xog\u0127olijiet tal-kostruzzjoni",
+              "nld": "Nederland-Heerhugowaard: Civieltechnische en bouwwerkzaamheden",
+              "pol": "Niderlandy-Heerhugowaard: Roboty in\u017cynieryjne i budowlane",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Obras de engenharia civil e constru\u00e7\u00e3o de estruturas",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Lucr\u0103ri de inginerie \u015fi de construc\u0163ii",
+              "slk": "Holandsko-Heerhugowaard: In\u017einierske pr\u00e1ce a stavebn\u00e9 pr\u00e1ce",
+              "slv": "Nizozemska-Heerhugowaard: Dela na in\u017eenirskih in visokih gradnjah",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Obras de ingenier\u00eda y trabajos de construcci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: V\u00e4g- och vattenbyggnad samt byggnadsverk"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-09-16+02:00",
+            "publication-number": "321697-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/321697-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0423\u0441\u043b\u0443\u0433\u0438, \u0441\u0432\u044a\u0440\u0437\u0430\u043d\u0438 \u0441 \u043e\u0442\u043f\u0430\u0434\u044a\u0447\u043d\u0438 \u0432\u043e\u0434\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Kanalizace",
+              "dan": "Nederlandene-Heerhugowaard: Kloakv\u00e6sen",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen in der Abwasserbeseitigung",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03b1\u03c0\u03bf\u03c7\u03ad\u03c4\u03b5\u03c5\u03c3\u03b7\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Sewage services",
+              "est": "Madalmaad-Heerhugowaard: Reoveeteenused",
+              "fin": "Alankomaat-Heerhugowaard: Viem\u00e4r\u00f6inti",
+              "fra": "Pays-Bas-Heerhugowaard: Services des eaux us\u00e9es",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Sewage services",
+              "hrv": "Nizozemska-Heerhugowaard: Usluge u podru\u010dju otpadnih voda",
+              "hun": "Hollandia-Heerhugowaard: Szennyv\u00edzzel kapcsolatos szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi fognari",
+              "lav": "N\u012bderlande-Heerhugowaard: Notek\u016bde\u0146u pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Nuotek\u0173 paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi tad-drena\u0121\u0121",
+              "nld": "Nederland-Heerhugowaard: Diensten in verband met afvalwater",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi utylizacji nieczysto\u015bci",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os relacionados com \u00e1guas residuais",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii privind apele reziduale",
+              "slk": "Holandsko-Heerhugowaard: Kanaliza\u010dn\u00e9 slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: Storitve v zvezi z odplakami",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de alcantarillado",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Avloppshantering"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-09-27+02:00",
+            "publication-number": "334756-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/334756-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0410\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u0438, \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438, \u0438\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u0438 \u0438 \u0438\u043d\u0441\u043f\u0435\u043a\u0446\u0438\u043e\u043d\u043d\u0438 \u0443\u0441\u043b\u0443\u0433\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Architektonick\u00e9, stavebn\u00ed, technick\u00e9 a inspek\u010dn\u00ed slu\u017eby",
+              "dan": "Nederlandene-Heerhugowaard: Arkitekt-, konstruktions-, ingeni\u00f8r- og inspektionsvirksomhed",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Architektur-, Konstruktions- und Ingenieurb\u00fcros und Pr\u00fcfstellen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03b1\u03c1\u03c7\u03b9\u03c4\u03b5\u03ba\u03c4\u03bf\u03bd\u03b9\u03ba\u03ae\u03c2, \u03ba\u03b1\u03c4\u03b1\u03c3\u03ba\u03b5\u03c5\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03ad\u03c1\u03b3\u03c9\u03bd, \u03ad\u03c1\u03b3\u03c9\u03bd \u03c0\u03bf\u03bb\u03b9\u03c4\u03b9\u03ba\u03bf\u03cd \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd \u03ba\u03b1\u03b9 \u03b5\u03c0\u03af\u03b2\u03bb\u03b5\u03c8\u03b7\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Architectural, construction, engineering and inspection services",
+              "est": "Madalmaad-Heerhugowaard: Arhitektuuri-, ehitus-, inseneri- ja ehitusj\u00e4relevalveteenused",
+              "fin": "Alankomaat-Heerhugowaard: Arkkitehti-, rakennus-, insin\u00f6\u00f6ri- ja tarkastuspalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services d'architecture, services de construction, services d'ing\u00e9nierie et services d'inspection",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Architectural, construction, engineering and inspection services",
+              "hrv": "Nizozemska-Heerhugowaard: Arhitektonske, gra\u0111evne, tehni\u010dke i inspekcije usluge",
+              "hun": "Hollandia-Heerhugowaard: \u00c9p\u00edt\u00e9szeti, \u00e9p\u00edt\u00e9si, m\u00e9rn\u00f6ki \u00e9s vizsg\u00e1lati szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi architettonici, di costruzione, ingegneria e ispezione",
+              "lav": "N\u012bderlande-Heerhugowaard: Arhitekt\u016bras, b\u016bvniec\u012bbas, in\u017eeniertehniskie un p\u0101rbaudes pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Architekt\u016bros, statyb\u0173, in\u017einerijos ir inspektavimo paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' perizja, kostruzzjoni, in\u0121inerija u spezzjoni",
+              "nld": "Nederland-Heerhugowaard: Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi architektoniczne, budowlane, in\u017cynieryjne i kontrolne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de arquitectura, constru\u00e7\u00e3o, engenharia e inspec\u00e7\u00e3o",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de arhitectur\u0103, de construc\u0163ii, de inginerie \u015fi de inspec\u0163ie",
+              "slk": "Holandsko-Heerhugowaard: Architektonick\u00e9, stavebn\u00e9, in\u017einierske a in\u0161pek\u010dn\u00e9 slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: Arhitekturne, gradbeni\u0161ke, in\u017eenirske in in\u0161pekcijske storitve",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de arquitectura, construcci\u00f3n, ingenier\u00eda e inspecci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Arkitekt-, bygg-, ingenj\u00f6rs- och besiktningstj\u00e4nster"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-10-04+02:00",
+            "publication-number": "344367-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/344367-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0438 \u043c\u043e\u043d\u0442\u0430\u0436\u043d\u0438 \u0440\u0430\u0431\u043e\u0442\u0438 \u043d\u0430 \u0445\u0438\u0434\u0440\u043e\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438 \u0441\u044a\u043e\u0440\u044a\u0436\u0435\u043d\u0438\u044f",
+              "ces": "Nizozemsko-Heerhugowaard: V\u00fdstavba vodn\u00edch d\u011bl",
+              "dan": "Nederlandene-Heerhugowaard: Arbejder i forbindelse med udf\u00f8relse af vandbygningsanl\u00e6g",
+              "deu": "die Niederlande-Heerhugowaard: Wasserbauarbeiten",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u039a\u03b1\u03c4\u03b1\u03c3\u03ba\u03b5\u03c5\u03b1\u03c3\u03c4\u03b9\u03ba\u03ad\u03c2 \u03b5\u03c1\u03b3\u03b1\u03c3\u03af\u03b5\u03c2 \u03b3\u03b9\u03b1 \u03c5\u03b4\u03c1\u03b1\u03c5\u03bb\u03b9\u03ba\u03ac \u03ad\u03c1\u03b3\u03b1",
+              "eng": "Netherlands-Heerhugowaard: Construction work for water projects",
+              "est": "Madalmaad-Heerhugowaard: Vesiehitust\u00f6\u00f6d",
+              "fin": "Alankomaat-Heerhugowaard: Vesirakennusty\u00f6t",
+              "fra": "Pays-Bas-Heerhugowaard: Travaux de construction d'ouvrages hydrauliques",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Construction work for water projects",
+              "hrv": "Nizozemska-Heerhugowaard: Gra\u0111evinski radovi na hidrogra\u0111evnim objektima",
+              "hun": "Hollandia-Heerhugowaard: V\u00edzi l\u00e9tes\u00edtm\u00e9nyek \u00e9p\u00edt\u00e9se",
+              "ita": "Paesi Bassi-Heerhugowaard: Lavori di costruzione per opere idrauliche",
+              "lav": "N\u012bderlande-Heerhugowaard: \u016adens projektu b\u016bvdarbi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Vandens objekt\u0173 statybos darbai",
+              "mlt": "in-Netherlands-Heerhugowaard: Xog\u0127ol tal-kostruzzjoni g\u0127al pro\u0121etti ta\u2019 l-ilma",
+              "nld": "Nederland-Heerhugowaard: Waterbouwwerkzaamheden",
+              "pol": "Niderlandy-Heerhugowaard: Budowa obiekt\u00f3w in\u017cynierii wodnej",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Constru\u00e7\u00e3o relacionada com projectos de engenharia hidr\u00e1ulica",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Lucr\u0103ri de construc\u0163ii de lucr\u0103ri hidraulice",
+              "slk": "Holandsko-Heerhugowaard: V\u00fdstavba vodn\u00fdch diel",
+              "slv": "Nizozemska-Heerhugowaard: Gradbena dela na vodnih objektih",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Trabajos de construcci\u00f3n para proyectos hidr\u00e1ulicos",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Anl\u00e4ggningsarbete f\u00f6r vattenprojekt"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-10-14+02:00",
+            "publication-number": "359202-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/359202-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0438 \u043c\u043e\u043d\u0442\u0430\u0436\u043d\u0438 \u0440\u0430\u0431\u043e\u0442\u0438 \u043d\u0430 \u0441\u044a\u043e\u0440\u044a\u0436\u0435\u043d\u0438\u044f \u0437\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043d\u0430 \u0431\u0440\u0435\u0433\u043e\u0432\u0430\u0442\u0430 \u0438\u0432\u0438\u0446\u0430",
+              "ces": "Nizozemsko-Heerhugowaard: Pr\u00e1ce na ochran\u011b pob\u0159e\u017e\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Kystsikringsarbejder",
+              "deu": "die Niederlande-Heerhugowaard: Bauarbeiten f\u00fcr K\u00fcstenschutzanlagen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a0\u03b1\u03c1\u03ac\u03ba\u03c4\u03b9\u03b1 \u03b1\u03bc\u03c5\u03bd\u03c4\u03b9\u03ba\u03ac \u03ad\u03c1\u03b3\u03b1",
+              "eng": "Netherlands-Heerhugowaard: Coastal-defence works",
+              "est": "Madalmaad-Heerhugowaard: Rannikukaitset\u00f6\u00f6d",
+              "fin": "Alankomaat-Heerhugowaard: Rannikon suojarakenteiden rakennusty\u00f6t",
+              "fra": "Pays-Bas-Heerhugowaard: Ouvrages de d\u00e9fense des c\u00f4tes",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Coastal-defence works",
+              "hrv": "Nizozemska-Heerhugowaard: Radovi na za\u0161titi obale",
+              "hun": "Hollandia-Heerhugowaard: Parti v\u00e9dm\u0171vek",
+              "ita": "Paesi Bassi-Heerhugowaard: Lavori di protezione costiera",
+              "lav": "N\u012bderlande-Heerhugowaard: Piekrastes aizsardz\u012bbas darbi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Kranto apsaugos darbai",
+              "mlt": "in-Netherlands-Heerhugowaard: Xog\u0127lijiet ta\u2019 lqug\u0127 tax-xtut",
+              "nld": "Nederland-Heerhugowaard: Kustverdedigingswerken",
+              "pol": "Niderlandy-Heerhugowaard: Roboty w zakresie ochrony przybrze\u017cnej",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Obras relacionadas com a defesa costeira",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Lucr\u0103ri de ap\u0103rare de coast\u0103",
+              "slk": "Holandsko-Heerhugowaard: Diela pobre\u017enej ochrany",
+              "slv": "Nizozemska-Heerhugowaard: Dela na objektih za za\u0161\u010dito obale",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Obras de defensa costera",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Kustf\u00f6rsvarsverk"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-10-22+02:00",
+            "publication-number": "370131-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/370131-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0438 \u043c\u043e\u043d\u0442\u0430\u0436\u043d\u0438 \u0440\u0430\u0431\u043e\u0442\u0438 \u043d\u0430 \u0441\u044a\u043e\u0440\u044a\u0436\u0435\u043d\u0438\u044f \u0437\u0430 \u0437\u0430\u0449\u0438\u0442\u0430 \u043d\u0430 \u0431\u0440\u0435\u0433\u043e\u0432\u0430\u0442\u0430 \u0438\u0432\u0438\u0446\u0430",
+              "ces": "Nizozemsko-Heerhugowaard: Pr\u00e1ce na ochran\u011b pob\u0159e\u017e\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Kystsikringsarbejder",
+              "deu": "die Niederlande-Heerhugowaard: Bauarbeiten f\u00fcr K\u00fcstenschutzanlagen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a0\u03b1\u03c1\u03ac\u03ba\u03c4\u03b9\u03b1 \u03b1\u03bc\u03c5\u03bd\u03c4\u03b9\u03ba\u03ac \u03ad\u03c1\u03b3\u03b1",
+              "eng": "Netherlands-Heerhugowaard: Coastal-defence works",
+              "est": "Madalmaad-Heerhugowaard: Rannikukaitset\u00f6\u00f6d",
+              "fin": "Alankomaat-Heerhugowaard: Rannikon suojarakenteiden rakennusty\u00f6t",
+              "fra": "Pays-Bas-Heerhugowaard: Ouvrages de d\u00e9fense des c\u00f4tes",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Coastal-defence works",
+              "hrv": "Nizozemska-Heerhugowaard: Radovi na za\u0161titi obale",
+              "hun": "Hollandia-Heerhugowaard: Parti v\u00e9dm\u0171vek",
+              "ita": "Paesi Bassi-Heerhugowaard: Lavori di protezione costiera",
+              "lav": "N\u012bderlande-Heerhugowaard: Piekrastes aizsardz\u012bbas darbi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Kranto apsaugos darbai",
+              "mlt": "in-Netherlands-Heerhugowaard: Xog\u0127lijiet ta\u2019 lqug\u0127 tax-xtut",
+              "nld": "Nederland-Heerhugowaard: Kustverdedigingswerken",
+              "pol": "Niderlandy-Heerhugowaard: Roboty w zakresie ochrony przybrze\u017cnej",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Obras relacionadas com a defesa costeira",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Lucr\u0103ri de ap\u0103rare de coast\u0103",
+              "slk": "Holandsko-Heerhugowaard: Diela pobre\u017enej ochrany",
+              "slv": "Nizozemska-Heerhugowaard: Dela na objektih za za\u0161\u010dito obale",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Obras de defensa costera",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Kustf\u00f6rsvarsverk"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-10-25+02:00",
+            "publication-number": "372557-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/372557-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438 \u0440\u0430\u0431\u043e\u0442\u0438 \u043f\u043e \u0440\u0435\u043c\u043e\u043d\u0442 \u0438 \u043f\u043e\u0434\u0434\u044a\u0440\u0436\u0430\u043d\u0435 \u043d\u0430 \u043f\u0440\u0435\u0447\u0438\u0441\u0442\u0432\u0430\u0442\u0435\u043b\u043d\u0438 \u0441\u0442\u0430\u043d\u0446\u0438\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Opravy a \u00fadr\u017eba \u010distic\u00edch stanic",
+              "dan": "Nederlandene-Heerhugowaard: Reparation og vedligeholdelse af rensningsanl\u00e6g",
+              "deu": "die Niederlande-Heerhugowaard: Reparatur und Wartung von Reinigungsanlagen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0395\u03c0\u03b9\u03c3\u03ba\u03b5\u03c5\u03ae \u03ba\u03b1\u03b9 \u03c3\u03c5\u03bd\u03c4\u03ae\u03c1\u03b7\u03c3\u03b7 \u03b5\u03b3\u03ba\u03b1\u03c4\u03b1\u03c3\u03c4\u03ac\u03c3\u03b5\u03c9\u03bd \u03ba\u03b1\u03b8\u03b1\u03c1\u03b9\u03c3\u03bc\u03bf\u03cd",
+              "eng": "Netherlands-Heerhugowaard: Purification-plant repair and maintenance work",
+              "est": "Madalmaad-Heerhugowaard: Puhastusseadmete remont ja hooldus",
+              "fin": "Alankomaat-Heerhugowaard: Vedenpuhdistamon koneiston korjaus ja huolto",
+              "fra": "Pays-Bas-Heerhugowaard: R\u00e9paration et entretien de station de purification",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Purification-plant repair and maintenance work",
+              "hrv": "Nizozemska-Heerhugowaard: Popravak i odr\u017eavanje ure\u0111aja za pro\u010di\u0161\u0107ivanje",
+              "hun": "Hollandia-Heerhugowaard: Szennyv\u00edztiszt\u00edt\u00f3 telep jav\u00edt\u00e1si \u00e9s karbantart\u00e1si munk\u00e1ja",
+              "ita": "Paesi Bassi-Heerhugowaard: Riparazione e manutenzione di impianti di depurazione",
+              "lav": "N\u012bderlande-Heerhugowaard: Att\u012br\u012b\u0161anas iek\u0101rtu remonta un uztur\u0113\u0161anas darbi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Valymo \u012frengini\u0173 remonto ir prie\u017ei\u016bros darbai",
+              "mlt": "in-Netherlands-Heerhugowaard: Xog\u0127ol ta\u2019 tiswija u manutenzjoni ta\u2019 l-impjant tal-purifikazzjoni",
+              "nld": "Nederland-Heerhugowaard: Reparatie en onderhoud van zuiveringsinstallatie",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi remont\u00f3w i konserwacji zak\u0142ad\u00f3w oczyszczania",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Repara\u00e7\u00e3o e manuten\u00e7\u00e3o de esta\u00e7\u00f5es depuradoras",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Reparare \u015fi \u00eentre\u0163inere a sta\u0163iilor de purificare",
+              "slk": "Holandsko-Heerhugowaard: Opravy a \u00fadr\u017eba \u010distiacich stan\u00edc",
+              "slv": "Nizozemska-Heerhugowaard: Popravilo in vzdr\u017eevanje \u010distilnih naprav",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Reparaci\u00f3n y mantenimiento de planta de depuraci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Reparation och underh\u00e5ll av reningsverk"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-10-28+02:00",
+            "publication-number": "377826-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/377826-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0423\u0441\u043b\u0443\u0433\u0438 \u043f\u043e \u0440\u0435\u043c\u043e\u043d\u0442 \u0438 \u043f\u043e\u0434\u0434\u044a\u0440\u0436\u0430\u043d\u0435 \u043d\u0430 \u0435\u043b\u0435\u043a\u0442\u0440\u0438\u0447\u0435\u0441\u043a\u0438 \u0438\u043d\u0441\u0442\u0430\u043b\u0430\u0446\u0438\u0438 \u043d\u0430 \u0441\u0433\u0440\u0430\u0434\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Opravy a \u00fadr\u017eba elektrick\u00fdch stavebn\u00edch za\u0159\u00edzen\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Reparation og vedligeholdelse af elektriske installationer i bygninger",
+              "deu": "die Niederlande-Heerhugowaard: Reparatur und Wartung von elektrischen Einrichtungen in Geb\u00e4uden",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03b5\u03c0\u03b9\u03c3\u03ba\u03b5\u03c5\u03ae\u03c2 \u03ba\u03b1\u03b9 \u03c3\u03c5\u03bd\u03c4\u03ae\u03c1\u03b7\u03c3\u03b7\u03c2 \u03b7\u03bb\u03b5\u03ba\u03c4\u03c1\u03bf\u03bb\u03bf\u03b3\u03b9\u03ba\u03ce\u03bd \u03b5\u03b3\u03ba\u03b1\u03c4\u03b1\u03c3\u03c4\u03ac\u03c3\u03b5\u03c9\u03bd \u03ba\u03c4\u03b9\u03c1\u03af\u03bf\u03c5",
+              "eng": "Netherlands-Heerhugowaard: Repair and maintenance services of electrical building installations",
+              "est": "Madalmaad-Heerhugowaard: Elektriliste ehitusseadmete remondi- ja hooldusteenused",
+              "fin": "Alankomaat-Heerhugowaard: Rakennuksen s\u00e4hk\u00f6laitteiden korjaus ja huolto",
+              "fra": "Pays-Bas-Heerhugowaard: Services de r\u00e9paration et d'entretien d'installations \u00e9lectriques de b\u00e2timent",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Repair and maintenance services of electrical building installations",
+              "hrv": "Nizozemska-Heerhugowaard: Usluge popravaka i odr\u017eavanja elektri\u010dnih instalacija u zgradama",
+              "hun": "Hollandia-Heerhugowaard: \u00c9p\u00fcletek villamos k\u00e9sz\u00fcl\u00e9keivel kapcsolatos jav\u00edt\u00e1si \u00e9s karbantart\u00e1si szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di riparazione e manutenzione di impianti elettrici di edifici",
+              "lav": "N\u012bderlande-Heerhugowaard: \u0112ku elektrotehnisko iek\u0101rtu remonta un uztur\u0113\u0161anas pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Pastat\u0173 elektros \u012frangos remonto ir prie\u017ei\u016bros paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta\u2019 tiswija u tal-manutenzjoni ta\u2019 l-istallazzjoni elettri\u010bi tal-bini",
+              "nld": "Nederland-Heerhugowaard: Reparatie en onderhoud van elektrische uitrusting in gebouwen",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi w zakresie napraw i konserwacji elektrycznych instalacji budynkowych",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de repara\u00e7\u00e3o e manuten\u00e7\u00e3o de equipamento el\u00e9ctrico em edif\u00edcios",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de reparare \u015fi de \u00eentre\u0163inere a instala\u0163iilor electrice de construc\u0163ii",
+              "slk": "Holandsko-Heerhugowaard: Opravy a \u00fadr\u017eba elektrick\u00fdch zariaden\u00ed budov",
+              "slv": "Nizozemska-Heerhugowaard: Storitve popravila in vzdr\u017eevanja elektri\u010dnih in\u0161talacij pri gradnjah",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de reparaci\u00f3n y mantenimiento de equipos el\u00e9ctricos de edificios",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Reparation och underh\u00e5ll av elektrisk utrustning i byggnader"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-10-29+02:00",
+            "publication-number": "381505-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/381505-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0418\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u0438 \u0443\u0441\u043b\u0443\u0433\u0438 \u0432 \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u0441\u0442\u0432\u043e\u0442\u043e",
+              "ces": "Nizozemsko-Heerhugowaard: Technicko-in\u017een\u00fdrsk\u00e9 slu\u017eby",
+              "dan": "Nederlandene-Heerhugowaard: Ingeni\u00f8rvirksomhed",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurb\u00fcros",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd",
+              "eng": "Netherlands-Heerhugowaard: Engineering services",
+              "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+              "fin": "Alankomaat-Heerhugowaard: Insin\u00f6\u00f6ripalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services d'ing\u00e9nierie",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Engineering services",
+              "hrv": "Nizozemska-Heerhugowaard: Tehni\u010dke usluge",
+              "hun": "Hollandia-Heerhugowaard: M\u00e9rn\u00f6ki szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+              "lav": "N\u012bderlande-Heerhugowaard: In\u017eeniertehniskie pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: In\u017einerijos paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-in\u0121inerija",
+              "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi in\u017cynieryjne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de engenharia",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de inginerie",
+              "slk": "Holandsko-Heerhugowaard: In\u017einierske slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: In\u017eenirske storitve",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de ingenier\u00eda",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Ingenj\u00f6rstj\u00e4nster"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-11-19+01:00",
+            "publication-number": "408399-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/408399-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041c\u043e\u0442\u043e\u0440\u043d\u0438 \u043f\u0440\u0435\u0432\u043e\u0437\u043d\u0438 \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u0437\u0430 \u043f\u0440\u0435\u0432\u043e\u0437 \u043d\u0430 \u0441\u0442\u043e\u043a\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Motorov\u00e1 vozidla pro p\u0159epravu zbo\u017e\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Motork\u00f8ret\u00f8jer til godstransport",
+              "deu": "die Niederlande-Heerhugowaard: Kraftfahrzeuge f\u00fcr den G\u00fctertransport",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0391\u03c5\u03c4\u03bf\u03ba\u03af\u03bd\u03b7\u03c4\u03b1 \u03bf\u03c7\u03ae\u03bc\u03b1\u03c4\u03b1 \u03b3\u03b9\u03b1 \u03c4\u03b7 \u03bc\u03b5\u03c4\u03b1\u03c6\u03bf\u03c1\u03ac \u03b5\u03bc\u03c0\u03bf\u03c1\u03b5\u03c5\u03bc\u03ac\u03c4\u03c9\u03bd",
+              "eng": "Netherlands-Heerhugowaard: Motor vehicles for the transport of goods",
+              "est": "Madalmaad-Heerhugowaard: Mootors\u00f5idukid kaubaveoks",
+              "fin": "Alankomaat-Heerhugowaard: Tavarakuljetuksiin tarkoitetut moottoriajoneuvot",
+              "fra": "Pays-Bas-Heerhugowaard: V\u00e9hicules \u00e0 moteur servant au transport de marchandises",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Motor vehicles for the transport of goods",
+              "hrv": "Nizozemska-Heerhugowaard: Motorna vozila za prijevoz robe",
+              "hun": "Hollandia-Heerhugowaard: \u00c1rusz\u00e1ll\u00edt\u00f3 g\u00e9pj\u00e1rm\u0171vek",
+              "ita": "Paesi Bassi-Heerhugowaard: Veicoli a motore per trasporto merci",
+              "lav": "N\u012bderlande-Heerhugowaard: Meh\u0101niskie transportl\u012bdzek\u013ci kravu p\u0101rvad\u0101\u0161anai",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Motorin\u0117s transporto priemon\u0117s, skirtos kroviniams ve\u017eti",
+              "mlt": "in-Netherlands-Heerhugowaard: Vetturi bil-magna g\u0127at-trasport ta' merkanzija",
+              "nld": "Nederland-Heerhugowaard: Motorvoertuigen voor goederenvervoer",
+              "pol": "Niderlandy-Heerhugowaard: Pojazdy silnikowe do transportu towar\u00f3w",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Ve\u00edculos a motor para o transporte de mercadorias",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Autovehicule pentru transportul de m\u0103rfuri",
+              "slk": "Holandsko-Heerhugowaard: Motorov\u00e9 vozidl\u00e1 na prepravu tovaru",
+              "slv": "Nizozemska-Heerhugowaard: Motorna vozila za prevoz blaga",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Veh\u00edculos de motor para el transporte de mercanc\u00edas",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Motorfordon f\u00f6r godstransport"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-11-24+01:00",
+            "publication-number": "413185-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/413185-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041f\u0435\u0447\u0430\u0442\u043d\u0438 \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u0438 \u0438 \u0441\u0432\u044a\u0440\u0437\u0430\u043d\u0438 \u0441 \u0442\u044f\u0445 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Tiska\u0159sk\u00e9 v\u00fdrobky a souvisej\u00edc\u00ed produkty",
+              "dan": "Nederlandene-Heerhugowaard: Tryksager og besl\u00e6gtede produkter",
+              "deu": "die Niederlande-Heerhugowaard: Drucksachen und zugeh\u00f6rige Erzeugnisse",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0388\u03bd\u03c4\u03c5\u03c0\u03bf \u03c5\u03bb\u03b9\u03ba\u03cc \u03ba\u03b1\u03b9 \u03c3\u03c5\u03bd\u03b1\u03c6\u03ae \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03b1",
+              "eng": "Netherlands-Heerhugowaard: Printed matter and related products",
+              "est": "Madalmaad-Heerhugowaard: Tr\u00fckised ja seonduvad tooted",
+              "fin": "Alankomaat-Heerhugowaard: Painotuotteet ja vastaavat tuotteet",
+              "fra": "Pays-Bas-Heerhugowaard: Imprim\u00e9s et produits connexes",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Printed matter and related products",
+              "hrv": "Nizozemska-Heerhugowaard: Tiskani materijal i srodni proizvodi",
+              "hun": "Hollandia-Heerhugowaard: Nyomtatott anyagok \u00e9s kapcsol\u00f3d\u00f3 term\u00e9kek",
+              "ita": "Paesi Bassi-Heerhugowaard: Stampati e prodotti affini",
+              "lav": "N\u012bderlande-Heerhugowaard: Iespieddarbi un saist\u012btie izdevumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Spaudiniai ir susij\u0119 produktai",
+              "mlt": "in-Netherlands-Heerhugowaard: Materjal stampat u prodotti relatati",
+              "nld": "Nederland-Heerhugowaard: Drukwerk en aanverwante producten",
+              "pol": "Niderlandy-Heerhugowaard: Druki i produkty podobne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Material impresso e afins",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Imprimate \u015fi produse conexe",
+              "slk": "Holandsko-Heerhugowaard: Tla\u010den\u00e9 v\u00fdrobky a pr\u00edbuzn\u00e9 produkty",
+              "slv": "Nizozemska-Heerhugowaard: Tiskano gradivo in z njim povezani izdelki",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Impresos y productos relacionados",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Trycksaker och tillh\u00f6rande produkter"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-11-24+01:00",
+            "publication-number": "413656-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/413656-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041f\u043e\u0441\u0440\u0435\u0434\u043d\u0438\u0447\u0435\u0441\u043a\u0438 \u0443\u0441\u043b\u0443\u0433\u0438 \u043f\u043e \u043f\u0440\u0435\u0434\u043e\u0441\u0442\u0430\u0432\u044f\u043d\u0435 \u043d\u0430 \u043f\u0435\u0440\u0441\u043e\u043d\u0430\u043b, \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u0435\u043b\u043d\u043e \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u0430 \u0440\u0430\u0431\u043e\u0442\u043d\u0430 \u0440\u044a\u043a\u0430",
+              "ces": "Nizozemsko-Heerhugowaard: Zabezpe\u010dov\u00e1n\u00ed person\u00e1lu v\u010detn\u011b person\u00e1lu na dobu ur\u010ditou",
+              "dan": "Nederlandene-Heerhugowaard: Personaleformidling, herunder midlertidigt ansatte",
+              "deu": "die Niederlande-Heerhugowaard: \u00dcberlassung von Personal einschlie\u00dflich Zeitarbeitskr\u00e4fte",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03b4\u03b9\u03ac\u03b8\u03b5\u03c3\u03b7\u03c2 \u03c0\u03c1\u03bf\u03c3\u03c9\u03c0\u03b9\u03ba\u03bf\u03cd \u03cc\u03c0\u03bf\u03c5 \u03c0\u03b5\u03c1\u03b9\u03bb\u03b1\u03bc\u03b2\u03ac\u03bd\u03b5\u03c4\u03b1\u03b9 \u03c0\u03c1\u03bf\u03c3\u03c9\u03c1\u03b9\u03bd\u03cc \u03c0\u03c1\u03bf\u03c3\u03c9\u03c0\u03b9\u03ba\u03cc",
+              "eng": "Netherlands-Heerhugowaard: Supply services of personnel including temporary staff",
+              "est": "Madalmaad-Heerhugowaard: Personali (sh ajutiste t\u00f6\u00f6tajate) v\u00e4rbamise teenused",
+              "fin": "Alankomaat-Heerhugowaard: Henkil\u00f6st\u00f6n hankintapalvelut tilap\u00e4isty\u00f6ntekij\u00e4t mukaan luettuna",
+              "fra": "Pays-Bas-Heerhugowaard: Services de mise \u00e0 disposition de personnel, y compris de personnel temporaire",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Supply services of personnel including temporary staff",
+              "hrv": "Nizozemska-Heerhugowaard: Usluge pribavljanja osoblja uklju\u010duju\u0107i osoblje za rad na odre\u0111eno vrijeme",
+              "hun": "Hollandia-Heerhugowaard: Szem\u00e9lyzettel \u00e9s ideiglenes szem\u00e9lyzettel val\u00f3 ell\u00e1t\u00e1si szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di fornitura di personale, compreso personale temporaneo",
+              "lav": "N\u012bderlande-Heerhugowaard: Person\u0101la, tostarp pagaidu person\u0101la, nodro\u0161in\u0101\u0161anas pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Apr\u016bpinimo personalu, \u012fskaitant laikinus darbuotojus, paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' provvista ta' persunal inklu\u017c impjegati temporanji",
+              "nld": "Nederland-Heerhugowaard: Diensten voor de terbeschikkingstelling van personeel, met inbegrip van tijdelijk personeel",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi w zakresie pozyskiwania personelu, w tym pracownik\u00f3w sezonowych",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de fornecimento de pessoal, inclusive tempor\u00e1rio",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de asigurare de personal, inclusiv personal angajat temporar",
+              "slk": "Holandsko-Heerhugowaard: Slu\u017eby v oblasti zabezpe\u010dovania person\u00e1lu, vr\u00e1tane zabezpe\u010dovania pracovn\u00edkov na \u010das ur\u010dit\u00fd",
+              "slv": "Nizozemska-Heerhugowaard: Storitve zagotavljanja osebja vklju\u010dno z za\u010dasnim osebjem",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de suministro de personal, incluido personal temporal",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: F\u00f6rmedling av personal, \u00e4ven tillf\u00e4lligt anst\u00e4llda"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-11-24+01:00",
+            "publication-number": "413660-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/413660-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041c\u043e\u0442\u043e\u0440\u043d\u0438 \u043f\u0440\u0435\u0432\u043e\u0437\u043d\u0438 \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u0437\u0430 \u043f\u0440\u0435\u0432\u043e\u0437 \u043d\u0430 \u0441\u0442\u043e\u043a\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Motorov\u00e1 vozidla pro p\u0159epravu zbo\u017e\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Motork\u00f8ret\u00f8jer til godstransport",
+              "deu": "die Niederlande-Heerhugowaard: Kraftfahrzeuge f\u00fcr den G\u00fctertransport",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0391\u03c5\u03c4\u03bf\u03ba\u03af\u03bd\u03b7\u03c4\u03b1 \u03bf\u03c7\u03ae\u03bc\u03b1\u03c4\u03b1 \u03b3\u03b9\u03b1 \u03c4\u03b7 \u03bc\u03b5\u03c4\u03b1\u03c6\u03bf\u03c1\u03ac \u03b5\u03bc\u03c0\u03bf\u03c1\u03b5\u03c5\u03bc\u03ac\u03c4\u03c9\u03bd",
+              "eng": "Netherlands-Heerhugowaard: Motor vehicles for the transport of goods",
+              "est": "Madalmaad-Heerhugowaard: Mootors\u00f5idukid kaubaveoks",
+              "fin": "Alankomaat-Heerhugowaard: Tavarakuljetuksiin tarkoitetut moottoriajoneuvot",
+              "fra": "Pays-Bas-Heerhugowaard: V\u00e9hicules \u00e0 moteur servant au transport de marchandises",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Motor vehicles for the transport of goods",
+              "hrv": "Nizozemska-Heerhugowaard: Motorna vozila za prijevoz robe",
+              "hun": "Hollandia-Heerhugowaard: \u00c1rusz\u00e1ll\u00edt\u00f3 g\u00e9pj\u00e1rm\u0171vek",
+              "ita": "Paesi Bassi-Heerhugowaard: Veicoli a motore per trasporto merci",
+              "lav": "N\u012bderlande-Heerhugowaard: Meh\u0101niskie transportl\u012bdzek\u013ci kravu p\u0101rvad\u0101\u0161anai",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Motorin\u0117s transporto priemon\u0117s, skirtos kroviniams ve\u017eti",
+              "mlt": "in-Netherlands-Heerhugowaard: Vetturi bil-magna g\u0127at-trasport ta' merkanzija",
+              "nld": "Nederland-Heerhugowaard: Motorvoertuigen voor goederenvervoer",
+              "pol": "Niderlandy-Heerhugowaard: Pojazdy silnikowe do transportu towar\u00f3w",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Ve\u00edculos a motor para o transporte de mercadorias",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Autovehicule pentru transportul de m\u0103rfuri",
+              "slk": "Holandsko-Heerhugowaard: Motorov\u00e9 vozidl\u00e1 na prepravu tovaru",
+              "slv": "Nizozemska-Heerhugowaard: Motorna vozila za prevoz blaga",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Veh\u00edculos de motor para el transporte de mercanc\u00edas",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Motorfordon f\u00f6r godstransport"
+            },
+            "notice-type": "corr",
+            "publication-date": "2016-11-30+01:00",
+            "publication-number": "420842-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/420842-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0418\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u0438 \u0443\u0441\u043b\u0443\u0433\u0438 \u0432 \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u0441\u0442\u0432\u043e\u0442\u043e",
+              "ces": "Nizozemsko-Heerhugowaard: Technicko-in\u017een\u00fdrsk\u00e9 slu\u017eby",
+              "dan": "Nederlandene-Heerhugowaard: Ingeni\u00f8rvirksomhed",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurb\u00fcros",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd",
+              "eng": "Netherlands-Heerhugowaard: Engineering services",
+              "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+              "fin": "Alankomaat-Heerhugowaard: Insin\u00f6\u00f6ripalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services d'ing\u00e9nierie",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Engineering services",
+              "hrv": "Nizozemska-Heerhugowaard: Tehni\u010dke usluge",
+              "hun": "Hollandia-Heerhugowaard: M\u00e9rn\u00f6ki szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+              "lav": "N\u012bderlande-Heerhugowaard: In\u017eeniertehniskie pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: In\u017einerijos paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-in\u0121inerija",
+              "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi in\u017cynieryjne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de engenharia",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de inginerie",
+              "slk": "Holandsko-Heerhugowaard: In\u017einierske slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: In\u017eenirske storitve",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de ingenier\u00eda",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Ingenj\u00f6rstj\u00e4nster"
+            },
+            "notice-type": "pin-only",
+            "publication-date": "2016-12-16+01:00",
+            "publication-number": "443364-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/443364-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0418\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u0438 \u0443\u0441\u043b\u0443\u0433\u0438 \u0432 \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u0441\u0442\u0432\u043e\u0442\u043e",
+              "ces": "Nizozemsko-Heerhugowaard: Technicko-in\u017een\u00fdrsk\u00e9 slu\u017eby",
+              "dan": "Nederlandene-Heerhugowaard: Ingeni\u00f8rvirksomhed",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Ingenieurb\u00fcros",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd",
+              "eng": "Netherlands-Heerhugowaard: Engineering services",
+              "est": "Madalmaad-Heerhugowaard: Insener-tehnilised teenused",
+              "fin": "Alankomaat-Heerhugowaard: Insin\u00f6\u00f6ripalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services d'ing\u00e9nierie",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Engineering services",
+              "hrv": "Nizozemska-Heerhugowaard: Tehni\u010dke usluge",
+              "hun": "Hollandia-Heerhugowaard: M\u00e9rn\u00f6ki szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di ingegneria",
+              "lav": "N\u012bderlande-Heerhugowaard: In\u017eeniertehniskie pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: In\u017einerijos paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' l-in\u0121inerija",
+              "nld": "Nederland-Heerhugowaard: Dienstverlening door ingenieurs",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi in\u017cynieryjne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de engenharia",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de inginerie",
+              "slk": "Holandsko-Heerhugowaard: In\u017einierske slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: In\u017eenirske storitve",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de ingenier\u00eda",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Ingenj\u00f6rstj\u00e4nster"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-12-17+01:00",
+            "publication-number": "445593-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/445593-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0423\u0441\u043b\u0443\u0433\u0438 \u043f\u043e \u043e\u0431\u0443\u0447\u0435\u043d\u0438\u0435",
+              "ces": "Nizozemsko-Heerhugowaard: \u0160kolen\u00ed",
+              "dan": "Nederlandene-Heerhugowaard: Uddannelsestilbud",
+              "deu": "die Niederlande-Heerhugowaard: Ausbildung",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03ba\u03b1\u03c4\u03ac\u03c1\u03c4\u03b9\u03c3\u03b7\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Training services",
+              "est": "Madalmaad-Heerhugowaard: Koolitusteenused",
+              "fin": "Alankomaat-Heerhugowaard: Ammattikoulutuspalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services de formation",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Training services",
+              "hrv": "Nizozemska-Heerhugowaard: Usluge izobrazbe",
+              "hun": "Hollandia-Heerhugowaard: K\u00e9pz\u00e9si szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi di formazione",
+              "lav": "N\u012bderlande-Heerhugowaard: M\u0101c\u012bbu pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Apmokymo paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Fa\u010bilitajjiet tat-ta\u0127ri\u0121",
+              "nld": "Nederland-Heerhugowaard: Opleidingsdiensten",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi szkoleniowe",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de forma\u00e7\u00e3o",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de formare",
+              "slk": "Holandsko-Heerhugowaard: \u0160koliace (v\u00fdcvikov\u00e9) slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: Storitve usposabljanja",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de formaci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Utbildningstj\u00e4nster"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-12-21+01:00",
+            "publication-number": "449855-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/449855-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041f\u0435\u0447\u0430\u0442\u043d\u0438 \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u0438 \u0438 \u0441\u0432\u044a\u0440\u0437\u0430\u043d\u0438 \u0441 \u0442\u044f\u0445 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Tiska\u0159sk\u00e9 v\u00fdrobky a souvisej\u00edc\u00ed produkty",
+              "dan": "Nederlandene-Heerhugowaard: Tryksager og besl\u00e6gtede produkter",
+              "deu": "die Niederlande-Heerhugowaard: Drucksachen und zugeh\u00f6rige Erzeugnisse",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u0388\u03bd\u03c4\u03c5\u03c0\u03bf \u03c5\u03bb\u03b9\u03ba\u03cc \u03ba\u03b1\u03b9 \u03c3\u03c5\u03bd\u03b1\u03c6\u03ae \u03c0\u03c1\u03bf\u03ca\u03cc\u03bd\u03c4\u03b1",
+              "eng": "Netherlands-Heerhugowaard: Printed matter and related products",
+              "est": "Madalmaad-Heerhugowaard: Tr\u00fckised ja seonduvad tooted",
+              "fin": "Alankomaat-Heerhugowaard: Painotuotteet ja vastaavat tuotteet",
+              "fra": "Pays-Bas-Heerhugowaard: Imprim\u00e9s et produits connexes",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Printed matter and related products",
+              "hrv": "Nizozemska-Heerhugowaard: Tiskani materijal i srodni proizvodi",
+              "hun": "Hollandia-Heerhugowaard: Nyomtatott anyagok \u00e9s kapcsol\u00f3d\u00f3 term\u00e9kek",
+              "ita": "Paesi Bassi-Heerhugowaard: Stampati e prodotti affini",
+              "lav": "N\u012bderlande-Heerhugowaard: Iespieddarbi un saist\u012btie izdevumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Spaudiniai ir susij\u0119 produktai",
+              "mlt": "in-Netherlands-Heerhugowaard: Materjal stampat u prodotti relatati",
+              "nld": "Nederland-Heerhugowaard: Drukwerk en aanverwante producten",
+              "pol": "Niderlandy-Heerhugowaard: Druki i produkty podobne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Material impresso e afins",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Imprimate \u015fi produse conexe",
+              "slk": "Holandsko-Heerhugowaard: Tla\u010den\u00e9 v\u00fdrobky a pr\u00edbuzn\u00e9 produkty",
+              "slv": "Nizozemska-Heerhugowaard: Tiskano gradivo in z njim povezani izdelki",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Impresos y productos relacionados",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Trycksaker och tillh\u00f6rande produkter"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-12-21+01:00",
+            "publication-number": "449860-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/449860-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0410\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u0438, \u0441\u0442\u0440\u043e\u0438\u0442\u0435\u043b\u043d\u0438, \u0438\u043d\u0436\u0435\u043d\u0435\u0440\u043d\u0438 \u0438 \u0438\u043d\u0441\u043f\u0435\u043a\u0446\u0438\u043e\u043d\u043d\u0438 \u0443\u0441\u043b\u0443\u0433\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Architektonick\u00e9, stavebn\u00ed, technick\u00e9 a inspek\u010dn\u00ed slu\u017eby",
+              "dan": "Nederlandene-Heerhugowaard: Arkitekt-, konstruktions-, ingeni\u00f8r- og inspektionsvirksomhed",
+              "deu": "die Niederlande-Heerhugowaard: Dienstleistungen von Architektur-, Konstruktions- und Ingenieurb\u00fcros und Pr\u00fcfstellen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a5\u03c0\u03b7\u03c1\u03b5\u03c3\u03af\u03b5\u03c2 \u03b1\u03c1\u03c7\u03b9\u03c4\u03b5\u03ba\u03c4\u03bf\u03bd\u03b9\u03ba\u03ae\u03c2, \u03ba\u03b1\u03c4\u03b1\u03c3\u03ba\u03b5\u03c5\u03b1\u03c3\u03c4\u03b9\u03ba\u03ce\u03bd \u03ad\u03c1\u03b3\u03c9\u03bd, \u03ad\u03c1\u03b3\u03c9\u03bd \u03c0\u03bf\u03bb\u03b9\u03c4\u03b9\u03ba\u03bf\u03cd \u03bc\u03b7\u03c7\u03b1\u03bd\u03b9\u03ba\u03bf\u03cd \u03ba\u03b1\u03b9 \u03b5\u03c0\u03af\u03b2\u03bb\u03b5\u03c8\u03b7\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Architectural, construction, engineering and inspection services",
+              "est": "Madalmaad-Heerhugowaard: Arhitektuuri-, ehitus-, inseneri- ja ehitusj\u00e4relevalveteenused",
+              "fin": "Alankomaat-Heerhugowaard: Arkkitehti-, rakennus-, insin\u00f6\u00f6ri- ja tarkastuspalvelut",
+              "fra": "Pays-Bas-Heerhugowaard: Services d'architecture, services de construction, services d'ing\u00e9nierie et services d'inspection",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Architectural, construction, engineering and inspection services",
+              "hrv": "Nizozemska-Heerhugowaard: Arhitektonske, gra\u0111evne, tehni\u010dke i inspekcije usluge",
+              "hun": "Hollandia-Heerhugowaard: \u00c9p\u00edt\u00e9szeti, \u00e9p\u00edt\u00e9si, m\u00e9rn\u00f6ki \u00e9s vizsg\u00e1lati szolg\u00e1ltat\u00e1sok",
+              "ita": "Paesi Bassi-Heerhugowaard: Servizi architettonici, di costruzione, ingegneria e ispezione",
+              "lav": "N\u012bderlande-Heerhugowaard: Arhitekt\u016bras, b\u016bvniec\u012bbas, in\u017eeniertehniskie un p\u0101rbaudes pakalpojumi",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Architekt\u016bros, statyb\u0173, in\u017einerijos ir inspektavimo paslaugos",
+              "mlt": "in-Netherlands-Heerhugowaard: Servizzi ta' perizja, kostruzzjoni, in\u0121inerija u spezzjoni",
+              "nld": "Nederland-Heerhugowaard: Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
+              "pol": "Niderlandy-Heerhugowaard: Us\u0142ugi architektoniczne, budowlane, in\u017cynieryjne i kontrolne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Servi\u00e7os de arquitectura, constru\u00e7\u00e3o, engenharia e inspec\u00e7\u00e3o",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Servicii de arhitectur\u0103, de construc\u0163ii, de inginerie \u015fi de inspec\u0163ie",
+              "slk": "Holandsko-Heerhugowaard: Architektonick\u00e9, stavebn\u00e9, in\u017einierske a in\u0161pek\u010dn\u00e9 slu\u017eby",
+              "slv": "Nizozemska-Heerhugowaard: Arhitekturne, gradbeni\u0161ke, in\u017eenirske in in\u0161pekcijske storitve",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Servicios de arquitectura, construcci\u00f3n, ingenier\u00eda e inspecci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Arkitekt-, bygg-, ingenj\u00f6rs- och besiktningstj\u00e4nster"
+            },
+            "notice-type": "can-standard",
+            "publication-date": "2016-12-23+01:00",
+            "publication-number": "454991-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/454991-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u041a\u043e\u043c\u043f\u044e\u0442\u044a\u0440\u043d\u0438 \u0438 \u043e\u0444\u0438\u0441 \u043c\u0430\u0448\u0438\u043d\u0438, \u043e\u0431\u043e\u0440\u0443\u0434\u0432\u0430\u043d\u0435 \u0438 \u043f\u0440\u0438\u043d\u0430\u0434\u043b\u0435\u0436\u043d\u043e\u0441\u0442\u0438, \u0441 \u0438\u0437\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043d\u0430 \u043c\u0435\u0431\u0435\u043b\u0438 \u0438 \u0441\u043e\u0444\u0442\u0443\u0435\u0440\u043d\u0438 \u043f\u0430\u043a\u0435\u0442\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Kancel\u00e1\u0159sk\u00e9 a po\u010d\u00edtac\u00ed stroje, za\u0159\u00edzen\u00ed a pot\u0159eby mimo n\u00e1bytek a bal\u00edky program\u016f",
+              "dan": "Nederlandene-Heerhugowaard: Kontor- og edb-maskiner, -udstyr og -artikler, herunder ikke m\u00f8bler og softwarepakker",
+              "deu": "die Niederlande-Heerhugowaard: Maschinen, Material und Zubeh\u00f6r f\u00fcr B\u00fcro und Computer, au\u00dfer M\u00f6beln und Softwarepaketen",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u039c\u03b7\u03c7\u03b1\u03bd\u03ae\u03bc\u03b1\u03c4\u03b1 \u03b3\u03c1\u03b1\u03c6\u03b5\u03af\u03bf\u03c5 \u03ba\u03b1\u03b9 \u03c5\u03c0\u03bf\u03bb\u03bf\u03b3\u03b9\u03c3\u03c4\u03ad\u03c2, \u03b5\u03be\u03bf\u03c0\u03bb\u03b9\u03c3\u03bc\u03cc\u03c2 \u03ba\u03b1\u03b9 \u03c0\u03c1\u03bf\u03bc\u03ae\u03b8\u03b5\u03b9\u03b5\u03c2 \u03b5\u03ba\u03c4\u03cc\u03c2 \u03b1\u03c0\u03cc \u03ad\u03c0\u03b9\u03c0\u03bb\u03b1 \u03ba\u03b1\u03b9 \u03c0\u03b1\u03ba\u03ad\u03c4\u03b1 \u03bb\u03bf\u03b3\u03b9\u03c3\u03bc\u03b9\u03ba\u03ce\u03bd",
+              "eng": "Netherlands-Heerhugowaard: Office and computing machinery, equipment and supplies except furniture and software packages",
+              "est": "Madalmaad-Heerhugowaard: Kontorimasinad ja arvutid, nende seadmed ja tarvikud, v.a m\u00f6\u00f6bel ja tarkvarapaketid",
+              "fin": "Alankomaat-Heerhugowaard: Toimisto- ja atk-laitteet ja -tarvikkeet, lukuun ottamatta kalusteita ja tietokoneohjelmatuotteita",
+              "fra": "Pays-Bas-Heerhugowaard: Machines, mat\u00e9riel et fourniture informatique et de bureau, except\u00e9 les meubles et logiciels",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Office and computing machinery, equipment and supplies except furniture and software packages",
+              "hrv": "Nizozemska-Heerhugowaard: Uredski i ra\u010dunalni strojevi, oprema i potrep\u0161tine osim namje\u0161taja i paketa programske podr\u0161ke",
+              "hun": "Hollandia-Heerhugowaard: Irodai \u00e9s sz\u00e1m\u00edt\u00e1stechnikai g\u00e9pek, berendez\u00e9sek \u00e9s kell\u00e9kek, a b\u00fatorzat \u00e9s a szoftvercsomagok kiv\u00e9tel\u00e9vel",
+              "ita": "Paesi Bassi-Heerhugowaard: Macchine per ufficio ed elaboratori elettronici, attrezzature e forniture, esclusi i mobili e i pacchetti software",
+              "lav": "N\u012bderlande-Heerhugowaard: Biroja un skait\u013co\u0161anas tehnika, apr\u012bkojums un piederumi, iz\u0146emot m\u0113beles un programmat\u016bru",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Biuro ir skai\u010diavimo ma\u0161inos, \u012frenginiai ir reikmenys, i\u0161skyrus baldus ir programin\u0117s \u012frangos paketus",
+              "mlt": "in-Netherlands-Heerhugowaard: Tag\u0127mir ta' l-uffi\u010b\u010bju u tal-kompjuter, tag\u0127mir u provvisti g\u0127ajr g\u0127amara u pakketti tas-softwer",
+              "nld": "Nederland-Heerhugowaard: Kantoormachines en gegevensverwerkende apparatuur, kantooruitrusting en -benodigdheden, uitgez. meubilair en softwarepakketten",
+              "pol": "Niderlandy-Heerhugowaard: Maszyny biurowe i licz\u0105ce, sprz\u0119t i materia\u0142y, z wyj\u0105tkiem mebli i pakiet\u00f3w oprogramowania",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: M\u00e1quinas, equipamento e material de escrit\u00f3rio e de inform\u00e1tica, excepto mobili\u00e1rio e pacotes de programas (software)",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Echipament informatic \u015fi accesorii de birou, cu excep\u0163ia mobilierului \u015fi a pachetelor software",
+              "slk": "Holandsko-Heerhugowaard: Kancel\u00e1rske a po\u010d\u00edtacie stroje, vybavenie a spotrebn\u00fd materi\u00e1l s v\u00fdnimkou n\u00e1bytku a softv\u00e9rov\u00fdch bal\u00edkov",
+              "slv": "Nizozemska-Heerhugowaard: Pisarni\u0161ki in ra\u010dunski stroji, oprema in potreb\u0161\u010dine, razen pohi\u0161tva in programskih paketov",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: M\u00e1quinas, equipo y art\u00edculos de oficina y de inform\u00e1tica, excepto mobiliario y paquetes de software",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Kontorsmaskiner, datorer samt kontors- och datorutrustning, utom m\u00f6bler och programvara"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-12-24+01:00",
+            "publication-number": "458241-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/458241-2016"
+          },
+          {
+            "buyer-identifier": [
+              "58668320"
+            ],
+            "buyer-name": {
+              "nld": [
+                "Hoogheemraadschap Hollands Noorderkwartier"
+              ]
+            },
+            "identifier_match": {
+              "buyer": true,
+              "scheme_and_legal_entity_confirmed": false,
+              "winner": false
+            },
+            "notice-title": {
+              "bul": "\u0425\u043e\u043b\u0430\u043d\u0434\u0438\u044f-Heerhugowaard: \u0421\u043e\u0444\u0442\u0443\u0435\u0440\u043d\u0438 \u043f\u0430\u043a\u0435\u0442\u0438 \u0438 \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u043e\u043d\u043d\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u0438",
+              "ces": "Nizozemsko-Heerhugowaard: Bal\u00edky program\u016f a informa\u010dn\u00ed syst\u00e9my",
+              "dan": "Nederlandene-Heerhugowaard: Programpakker og informationssystemer",
+              "deu": "die Niederlande-Heerhugowaard: Softwarepaket und Informationssysteme",
+              "ell": "\u039a\u03ac\u03c4\u03c9 \u03a7\u03ce\u03c1\u03b5\u03c2-Heerhugowaard: \u03a0\u03b1\u03ba\u03ad\u03c4\u03b1 \u03bb\u03bf\u03b3\u03b9\u03c3\u03bc\u03b9\u03ba\u03bf\u03cd \u03ba\u03b1\u03b9 \u03c3\u03c5\u03c3\u03c4\u03ae\u03bc\u03b1\u03c4\u03b1 \u03c0\u03bb\u03b7\u03c1\u03bf\u03c6\u03bf\u03c1\u03b9\u03ba\u03ae\u03c2",
+              "eng": "Netherlands-Heerhugowaard: Software package and information systems",
+              "est": "Madalmaad-Heerhugowaard: Tarkvarapaketid ja infos\u00fcsteemid",
+              "fin": "Alankomaat-Heerhugowaard: Ohjelmatuotteet ja tietoj\u00e4rjestelm\u00e4t",
+              "fra": "Pays-Bas-Heerhugowaard: Logiciels et syst\u00e8mes d'information",
+              "gle": "\u00cdsilt\u00edr, an-Heerhugowaard: Software package and information systems",
+              "hrv": "Nizozemska-Heerhugowaard: Programski paketi i informacijski sustavi",
+              "hun": "Hollandia-Heerhugowaard: Szoftvercsomag \u00e9s inform\u00e1ci\u00f3s rendszerek",
+              "ita": "Paesi Bassi-Heerhugowaard: Pacchetti software e sistemi di informazione",
+              "lav": "N\u012bderlande-Heerhugowaard: Programmat\u016bras pakotne un inform\u0101cijas sist\u0113mas",
+              "lit": "Nyderlandai, Olandija-Heerhugowaard: Programin\u0117s \u012frangos paketai ir informacin\u0117s sistemos",
+              "mlt": "in-Netherlands-Heerhugowaard: Pakketti tas-softwer u sistemi ta' informazzjoni",
+              "nld": "Nederland-Heerhugowaard: Software en informatiesystemen",
+              "pol": "Niderlandy-Heerhugowaard: Pakiety oprogramowania i systemy informatyczne",
+              "por": "Pa\u00edses Baixos-Heerhugowaard: Pacotes de software e sistemas de informa\u00e7\u00e3o",
+              "ron": "\u0162\u0103rile de Jos-Heerhugowaard: Pachete software \u015fi sisteme informatice",
+              "slk": "Holandsko-Heerhugowaard: Softv\u00e9rov\u00e9 bal\u00edky a informa\u010dn\u00e9 syst\u00e9my",
+              "slv": "Nizozemska-Heerhugowaard: Programski paketi in informacijski sistemi",
+              "spa": "Pa\u00edses Bajos-Heerhugowaard: Paquetes de software y sistemas de informaci\u00f3n",
+              "swe": "Nederl\u00e4nderna-Heerhugowaard: Programvara och informationssystem"
+            },
+            "notice-type": "cn-standard",
+            "publication-date": "2016-12-24+01:00",
+            "publication-number": "458294-2016",
+            "url": "https://ted.europa.eu/en/notice/-/detail/458294-2016"
+          }
+        ],
+        "next_page": 2,
+        "notice": "Includes historic notices and corrections. Matching an identifier does not by itself prove a current award, contract revenue or subsidy receipt. Pagination is capped at 15,000 notices.",
+        "page": 1,
+        "requested_identifier": "58668320",
+        "source_url": "https://api.ted.europa.eu/v3/notices/search",
+        "total": 611
+      },
+      "jurisdiction": "NL",
+      "contract": {
+        "capability_slug": "procurement.ted-kvk-notices",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "query",
+            "name": "identifier"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "procurement.ted.identifier_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "69b06c75-d540-499b-8def-9263e822c9b0",
+      "endpoint_id": "729403e8-2655-4dd3-992d-211269f10b11",
+      "api_slug": "linkup",
+      "name": "Linkup",
+      "description": "Retrieve the content of one public web page.",
+      "source_url": "https://docs.linkup.so/pages/documentation/api-reference/endpoint/post-search",
+      "method": "POST",
+      "path": "/v1/fetch",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "mode": "standard"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "jurisdiction": null,
+      "sample_payload": {
+        "images": [],
+        "favicon": "https://favicons.linkup.so?domain=example.com",
+        "markdown": "# Example Domain\n\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\n\n[Learn more](https://iana.org/domains/example)"
+      },
+      "optional_outputs": [],
+      "contract": {
+        "capability_slug": "web.source-fetch",
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "web.source_page_url",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "web.source_page_url": {
+            "name": "url",
+            "location": "body"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.linkup_fetch_page": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "6b866095-18c3-4b4e-8215-57d13b442da3",
+      "endpoint_id": "7fa0e7be-5fd9-4870-ba67-b4d7d42fa160",
+      "api_slug": "browserbase",
+      "name": "Browserbase",
+      "description": "Retrieve the content of one public web page.",
+      "source_url": "https://x402.browserbase.com/",
+      "method": "POST",
+      "path": "/fetch",
+      "listing_type": "federated",
+      "list_atomic": 10000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "jurisdiction": null,
+      "sample_payload": {
+        "id": "55f20e58-2c19-4f24-bccd-84d7c18ce019",
+        "content": "<!doctype html><html lang=\"en\"><head><title>Example Domain</title><link rel=\"icon\" href=\"data:,\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div></body></html>\n",
+        "headers": {
+          "Age": "1975",
+          "Date": "Sun, 13 Sep 2026 09:22:49 GMT",
+          "Allow": "GET, HEAD",
+          "Cf-Ray": "a3a616f5482d90db-SEA",
+          "Server": "cloudflare",
+          "Content-Type": "text/html",
+          "Last-Modified": "Fri, 11 Sep 2026 17:42:00 GMT",
+          "Cf-Cache-Status": "HIT",
+          "Content-Encoding": "br"
+        },
+        "encoding": "utf-8",
+        "statusCode": 200,
+        "contentType": "text/html"
+      },
+      "optional_outputs": [],
+      "contract": {
+        "capability_slug": "web.source-fetch",
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "web.source_page_url",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "web.source_page_url": {
+            "name": "url",
+            "location": "body"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.browserbase_fetch_page": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      }
     }
   ],
   "vocabulary": [
@@ -9021,6 +11533,224 @@
       "value_schema": {
         "type": "string"
       }
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_marches_publics",
+      "name": "Complete Public procurement contracts won (official DECP data). Preserve source, coverage, missing v",
+      "description": "Complete Public procurement contracts won (official DECP data). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "nombre_marches"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_no_id_comptes",
+      "name": "Complete Norwegian annual accounts (Regnskapsregisteret) \u2014 latest year live + every year accumulated",
+      "description": "Complete Norwegian annual accounts (Regnskapsregisteret) \u2014 latest year live + every year accumulated since 2026-07. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "NO",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_lv_regnr_comptes",
+      "name": "Complete Latvian annual accounts (Uz\u0146\u0113mumu re\u0123istrs / VID filings) \u2014 every filed fiscal year in one ",
+      "description": "Complete Latvian annual accounts (Uz\u0146\u0113mumu re\u0123istrs / VID filings) \u2014 every filed fiscal year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "LV",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_ee_registrikood_comptes",
+      "name": "Complete Estonian annual-report key figures (e-Business Register open data) \u2014 every published year i",
+      "description": "Complete Estonian annual-report key figures (e-Business Register open data) \u2014 every published year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "EE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_se_orgnr_comptes",
+      "name": "Complete Swedish annual accounts (Bolagsverket iXBRL filings) \u2014 every digitally filed fiscal year in",
+      "description": "Complete Swedish annual accounts (Bolagsverket iXBRL filings) \u2014 every digitally filed fiscal year in one call. Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "SE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_comptes_be",
+      "name": "Complete Company filings list \u2014 Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, ",
+      "description": "Complete Company filings list \u2014 Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "BE",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_pays_id_comptes_fi",
+      "name": "Complete Company filings list \u2014 Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, ",
+      "description": "Complete Company filings list \u2014 Belgium (NBB CBSO) and Finland (PRH XBRL filings). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FI",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_dk_id_comptes",
+      "name": "Complete Danish company filings list \u2014 fiscal years decoded from XBRL annual reports (Erhvervsstyrel",
+      "description": "Complete Danish company filings list \u2014 fiscal years decoded from XBRL annual reports (Erhvervsstyrelsen). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "DK",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.eu_entreprise_sk_ico_comptes",
+      "name": "Complete Slovak company filings list \u2014 fiscal years decoded from structured statements (R\u00daZ, CC0). P",
+      "description": "Complete Slovak company filings list \u2014 fiscal years decoded from structured statements (R\u00daZ, CC0). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "SK",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "pays",
+          "id_national"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "company.sirenic.record.entreprise_siren_marches_publics_ue",
+      "name": "Complete European public-procurement awards won (TED, identifier-matched). Preserve source, coverage",
+      "description": "Complete European public-procurement awards won (TED, identifier-matched). Preserve source, coverage, missing values, document scope and quality notes.",
+      "subject_kind": "company",
+      "jurisdiction": "FR",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "siren",
+          "nombre_avis"
+        ]
+      },
+      "status": "active",
+      "freshness_seconds": 3600
+    },
+    {
+      "slug": "procurement.ted.identifier_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items",
+          "coverage",
+          "requested_identifier"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "coverage": {
+            "type": "object"
+          },
+          "requested_identifier": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "TED notice page matching an exact numeric buyer/winner identifier. Scheme and legal-entity identity unconfirmed; not subsidy receipts.",
+      "subject_kind": "dataset"
+    },
+    {
+      "slug": "web.browserbase_fetch_page",
+      "name": "Read a web page via Browserbase",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "contentType",
+          "statusCode"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "number"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        }
+      },
+      "freshness_seconds": 300,
+      "match_hints": {},
+      "status": "active",
+      "created_at": "2026-09-13T09:26:15.236945+00:00",
+      "updated_at": "2026-09-13T09:26:15.236945+00:00"
     }
   ],
   "known_sources": []

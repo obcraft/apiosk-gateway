@@ -8,18 +8,18 @@ use serde_json::{json, Value};
 fn catalog() -> Catalog {
     let mut snapshot=serde_json::from_str::<Snapshot>(include_str!("fixtures/workflows/catalog.json")).unwrap();
     let added:Snapshot=serde_json::from_str(include_str!("fixtures/source-operations/catalog.json")).unwrap();
-    snapshot.services.extend(added.services.into_iter().filter(|s|s.contract.capability_slug=="web.source-fetch"));
+    for service in added.services.into_iter().filter(|s|s.contract.capability_slug=="web.source-fetch") { if !snapshot.services.iter().any(|s|s.id == service.id) { snapshot.services.push(service); } }
     for word in added.vocabulary {if !snapshot.vocabulary.iter().any(|w|w.slug==word.slug){snapshot.vocabulary.push(word);}}
     Catalog::build(snapshot)
 }
 
 #[test]
-fn all_eleven_workflows_are_available_and_each_recipe_prices_its_needed_sources() {
+fn all_workflows_are_available_and_each_recipe_prices_its_needed_sources() {
     let c = catalog();
     assert!(c.rejected.is_empty(), "{:?}", c.rejected);
     let definitions =
         apiosk_gateway_v2::workflows::definitions(&c, &json!({"currency":"EUR","rate":"0.92"}));
-    assert_eq!(definitions["workflows"].as_array().unwrap().len(), 11);
+    assert_eq!(definitions["workflows"].as_array().unwrap().len(), 13);
     let legacy = apiosk_gateway_v2::workflows::definitions_for_client(&c, &json!({}), false);
     assert_eq!(legacy["workflows"].as_array().unwrap().len(), 1);
     assert_eq!(legacy["workflows"][0]["slug"], "supplier-payment-check");
@@ -209,4 +209,43 @@ fn recipes_only_quote_relevant_country_and_optional_steps() {
             assert!(!public["label"].as_str().unwrap().is_empty());
         }
     }
+}
+
+#[test]
+fn european_dossiers_quote_exact_country_coverage_and_registry_bound_screening() {
+    let c = catalog();
+    for slug in ["european-company-dossier", "tender-company-dossier"] {
+        let recipe = workflow_catalog::recipe(slug).unwrap();
+        assert_eq!(recipe.country_coverage.len(), if slug == "european-company-dossier" {11} else {2});
+        for country in &recipe.country_coverage {
+            let mut input = recipe.example.clone();
+            input.extend(country.example.clone());
+            input.insert("country".into(), json!(country.country));
+            let (intent, _, _) = workflow_catalog::prepare(slug, &input, &c).unwrap();
+            assert!(!intent.subjects[0].values.contains_key("company.name"), "screen the registry-returned name, not the supplied label");
+            let Resolution::Plan(plan) = workflow_catalog::plan_preview(&c, &intent) else { panic!("{slug} {}", country.country) };
+            assert_eq!(plan.steps.len(), if slug == "european-company-dossier" {3} else {5}, "{slug} {}", country.country);
+            let profile = plan.steps.iter().position(|s|s.service.contract.capability_slug == "company.registry-profile").unwrap();
+            let screening = plan.steps.iter().position(|s|s.service.contract.capability_slug == "company.sanctions-screen").unwrap();
+            assert!(profile < screening, "registered identity must precede screening");
+            assert!(!plan.steps.iter().any(|s|["linkup", "exa", "reuters"].contains(&s.service.api_slug.as_str())));
+        }
+        let mut unsupported = recipe.example.clone();
+        unsupported.insert("country".into(), json!("DE"));
+        assert!(workflow_catalog::prepare(slug, &unsupported, &c).is_err());
+    }
+    let mut outage = c.clone();
+    outage.services.retain(|s|s.api_slug != "kvk-dutch-business-register");
+    let outage = Catalog::build(Snapshot { services: outage.services, vocabulary: outage.vocabulary.into_values().collect(), known_sources: outage.known_sources });
+    let definitions = workflow_catalog::definitions(&outage);
+    let dossier = definitions.iter().find(|d|d["slug"] == "european-company-dossier").unwrap();
+    assert_eq!(dossier["available"], true, "an NL outage must not disable FR/GB");
+    for country in dossier["country_coverage"].as_array().unwrap() {
+        assert_eq!(country["available"], country["country"] != "NL", "{country}");
+    }
+    let mut screening_outage = c;
+    screening_outage.services.retain(|s|s.api_slug != "opensanctions");
+    let screening_outage = Catalog::build(Snapshot { services: screening_outage.services, vocabulary: screening_outage.vocabulary.into_values().collect(), known_sources: screening_outage.known_sources });
+    let definitions = workflow_catalog::definitions(&screening_outage);
+    assert_eq!(definitions.iter().find(|d|d["slug"] == "european-company-dossier").unwrap()["available"], false);
 }

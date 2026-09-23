@@ -17,7 +17,7 @@
 use crate::{
     auth::AuthContext,
     catalog::{Catalog, Service},
-    protocol::{DiscoverRequest, Response, Status, MAX_QUESTION},
+    protocol::{DiscoverRequest, ExecuteRequest, Response, Status, MAX_QUESTION},
     resolver::Plan,
     server::{authenticated, token, Refusal, ServerState},
 };
@@ -173,6 +173,8 @@ fn refused_by_engine(r: &Response) -> Option<HttpResponse> {
         "request_pending" => problem_with(StatusCode::CONFLICT, "request_in_progress", "The first request with this Idempotency-Key is still running. Retry shortly with the same key.", json!({"retry_after_ms": 2000})),
         "question_unavailable" => problem(StatusCode::SERVICE_UNAVAILABLE, "planner_unavailable", "The question could not be interpreted right now. Retry shortly; nothing was charged."),
         "unsupported_request" => problem(StatusCode::UNPROCESSABLE_ENTITY, "unsupported", "Apiosk has no sources that can answer this question. Nothing was charged."),
+        "invalid_workflow_input" => problem(StatusCode::UNPROCESSABLE_ENTITY, code, r.errors.first().and_then(|e|e["message"].as_str()).unwrap_or("Check the workflow fields.")),
+        "workflow_unavailable" => problem(StatusCode::UNPROCESSABLE_ENTITY, code, "The required source operations are unavailable for these workflow inputs. Nothing was charged."),
         _ => {
             tracing::warn!(errors = ?r.errors, "public api request refused by the engine");
             problem(StatusCode::SERVICE_UNAVAILABLE, "service_unavailable", "The request could not be prepared. Retry with the same Idempotency-Key; nothing was charged.")
@@ -485,7 +487,10 @@ enum Mode {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AskRequest {
-    question: String,
+    #[serde(default)]
+    question: Option<String>,
+    #[serde(default)]
+    workflow: Option<WorkflowInput>,
     #[serde(default)]
     execution_mode: Mode,
     #[serde(default)]
@@ -496,6 +501,23 @@ struct AskRequest {
     wait_seconds: Option<u64>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WorkflowInput {
+    slug: String,
+    input: BTreeMap<String, Value>,
+}
+
+/// Free discovery of the same code-built recipes used by the App. Availability
+/// means a plan can be built, not that a country or company has complete data.
+pub async fn ask_workflows(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
+    if let Err(response) = context(&state, &headers, &["sources:read"]).await { return response; }
+    match state.engine.catalog.get().await {
+        Ok(catalog) => Json(json!({"workflows":crate::workflow_catalog::definitions(&catalog),"notice":"Country availability checks planning only. Review the exact source calls and total ceiling before running; records vary by entity and period."})).into_response(),
+        Err(error) => unavailable("workflow catalog", &error),
+    }
+}
+
 /// `POST /v2/ask`: a question in, a priced plan (and in `auto` mode, results) out.
 pub async fn ask(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
     ask_inner(&state, &headers, &body).await.unwrap_or_else(|r| r)
@@ -504,8 +526,11 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
     let req: AskRequest = parse(body)?;
     let scopes: &[&str] = if req.execution_mode == Mode::Auto { &["ask:create", "ask:execute"] } else { &["ask:create"] };
     let ctx = context(state, headers, scopes).await?;
-    let question = req.question.trim();
-    if question.is_empty() || question.len() > MAX_QUESTION {
+    if req.question.is_some() == req.workflow.is_some() {
+        return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "Supply exactly one of question or workflow."));
+    }
+    let question = req.question.as_deref().unwrap_or_default().trim();
+    if req.question.is_some() && (question.is_empty() || question.len() > MAX_QUESTION) {
         return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "question must be 1 to 4000 characters."));
     }
     let max_spend = spend_limit(req.max_spend.as_ref())?;
@@ -516,8 +541,12 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
     let request = request_id(headers, &ctx, "ask")?;
     let response = {
         let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
-        let discover = DiscoverRequest { request_id: request, question: question.to_owned(), state: None, context_delta: Default::default() };
-        state.engine.discover(&ctx.principal, discover).await.map_err(|e| unavailable("ask", &e))?
+        if let Some(workflow) = req.workflow {
+            state.engine.start_workflow(&ctx.principal, &workflow.slug, crate::workflow_catalog::StartRequest { request_id: request, input: workflow.input }).await.map_err(|e| unavailable("workflow ask", &e))?
+        } else {
+            let discover = DiscoverRequest { request_id: request, question: question.to_owned(), state: None, context_delta: Default::default() };
+            state.engine.discover(&ctx.principal, discover).await.map_err(|e| unavailable("ask", &e))?
+        }
     };
     if let Some(refusal) = refused_by_engine(&response) {
         return Err(refusal);
@@ -572,6 +601,73 @@ async fn run_ask_inner(state: &ServerState, headers: &HeaderMap, id: Uuid, body:
     let limit = limit(req.limit)?;
     let bearer = token(headers).map_err(|_| no_bearer())?;
     authorize_and_run(state, &ctx, bearer, id, max_spend).await?;
+    finish(state, &ctx, id, wait_for(req.wait_seconds), limit, None).await
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContinueRequest {
+    state: crate::state::Envelope,
+    action_id: Uuid,
+    input: Value,
+    #[serde(default)]
+    limit: Option<usize>,
+    #[serde(default)]
+    wait_seconds: Option<u64>,
+}
+
+/// Continue a saved choice or structured input. The only spending authority
+/// available here is the run's existing authorization; a new quote stays unrun.
+pub async fn continue_ask(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, body: Bytes) -> HttpResponse {
+    continue_ask_inner(&state, &headers, id, &body).await.unwrap_or_else(|r| r)
+}
+async fn continue_ask_inner(state: &ServerState, headers: &HeaderMap, id: Uuid, body: &[u8]) -> Answer {
+    let ctx = context(state, headers, &["ask:execute"]).await?;
+    let req: ContinueRequest = parse(body)?;
+    let limit = limit(req.limit)?;
+    if req.state.state_ref != id {
+        return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "The continuation state must belong to the ask in the URL."));
+    }
+    // Check current task access even when replaying a saved request receipt.
+    let (_, _, connection) = state.engine.store.load_scoped(&ctx.principal, id).await.map_err(|e| not_found(&e))?;
+    if connection != ctx.principal.connection {
+        return Err(problem(StatusCode::NOT_FOUND, "run_not_found", "No ask or run with this id belongs to this caller."));
+    }
+    state.engine.signer.verify(ctx.principal.owner, &req.state, true)
+        .map_err(|_| problem(StatusCode::BAD_REQUEST, "invalid_continuation_state", "Copy the continuation state unchanged from this run."))?;
+    if !headers.contains_key("idempotency-key") {
+        return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "Idempotency-Key is required when continuing a run."));
+    }
+    let request = request_id(headers, &ctx, &format!("asks/{id}/continue"))?;
+    let bearer = token(headers).map_err(|_| no_bearer())?;
+    let response = {
+        let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
+        state.engine.continue_task(&ctx.principal, bearer, ExecuteRequest {
+            request_id: request, action_id: req.action_id, state: req.state,
+            quote_ref: None, authorization_ref: None, idempotency_key: request, input: req.input,
+        }).await.map_err(|e| unavailable("continue", &e))?
+    };
+    if let Some(error) = response.errors.first() {
+        match error["code"].as_str() {
+            Some("invalid_continuation_input") => return Err(problem(StatusCode::UNPROCESSABLE_ENTITY, "invalid_continuation_input", "Input must match the returned action schema and candidate identifiers.")),
+            Some("run_cancelled") => return Err(problem(StatusCode::CONFLICT, "run_cancelled", "This run was cancelled and cannot be continued.")),
+            Some("plan_expired") => return Err(problem(StatusCode::CONFLICT, "plan_expired", "The original quote expired. Saved results remain available; no source call was repeated.")),
+            Some("continuation_busy" | "continuation_not_available") => return Err(problem(StatusCode::CONFLICT, "continuation_changed", "Read the run and use its current continuation state and action.")),
+            _ => {}
+        }
+    }
+    if response.status == Status::StateConflict {
+        return Err(problem(StatusCode::CONFLICT, "continuation_changed", "The state expired or the run changed. Read the run and use its current continuation."));
+    }
+    if let Some(refusal) = refused_by_engine(&response) {
+        return Err(refusal);
+    }
+    // This reuses the original authorization and journal, including on retry.
+    // Supply may have generated a new quote: start_worker refuses it until
+    // the caller explicitly approves through /run.
+    if let Err(error) = state.engine.start_worker(ctx.principal.clone(), bearer.to_owned(), id).await {
+        tracing::warn!(task = %id, error = %error, "continued public api run could not resume");
+    }
     finish(state, &ctx, id, wait_for(req.wait_seconds), limit, None).await
 }
 
@@ -762,7 +858,7 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
     }
     match status {
         "needs_input" => {
-            body["needs_input"] = json!(r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply" | "upload")).map(|a| json!({"label": a.label, "schema": a.input_schema})).collect::<Vec<_>>());
+            body["needs_input"] = json!(r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply_input" | "upload_document")).map(|a| json!({"label": a.label, "schema": a.input_schema})).collect::<Vec<_>>());
             // A clarification has no form to fill; its question is the reply.
             body["message"] = json!(task.conversation.last().and_then(|turn| turn.reply.as_deref()));
         }
@@ -781,6 +877,12 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
             body["error"] = json!({"code": code.unwrap_or("source_error"), "message": "The source could not complete this run. Anything not delivered was refunded or is held until reconciled; see usage."});
         }
         _ => {}
+    }
+    if matches!(status, "needs_input" | "needs_selection") {
+        let actions: Vec<_> = r.next_actions.iter().filter(|a| matches!(a.kind.as_str(), "supply_input" | "select_entity")).collect();
+        if !actions.is_empty() {
+            body["continuation"] = json!({"state": r.state, "actions": actions});
+        }
     }
     Ok(body)
 }

@@ -1,6 +1,53 @@
 use super::*;
 
 impl Engine {
+    /// Buyer API continuation only accepts the saved choice/input actions.
+    /// Claim before checking current actions so a retry can recover its receipt
+    /// after the action has already been consumed. Never approves a new plan.
+    pub async fn continue_task(
+        &self,
+        p: &Principal,
+        bearer: &str,
+        req: ExecuteRequest,
+    ) -> anyhow::Result<Response> {
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("continue", p.connection, &req))).await? {
+            return Ok(response);
+        }
+        let result = async {
+            self.signer.verify(p.owner, &req.state, true)?;
+            let id = req.state.state_ref;
+            let (revision, task, connection) = self.store.load_scoped(p, id).await?;
+            anyhow::ensure!(connection == p.connection, "task belongs to another connection");
+            if task.cancelled {
+                return Ok(Response::error(req.request_id, Status::Cancelled, "run_cancelled", "This run was cancelled."));
+            }
+            if revision != req.state.revision || req.state.expires_at <= Utc::now() {
+                return self.view(p, id, req.request_id, Some(Status::StateConflict)).await;
+            }
+            if self.worker_active(id).await? {
+                return Ok(Response::error(req.request_id, Status::StateConflict, "continuation_busy", "The run is still updating. Read its status before continuing."));
+            }
+            if task.proposal.as_ref().map(|v| serde_json::from_value::<Plan>(v.clone())).transpose()?
+                .is_some_and(|plan| plan.expires_at <= Utc::now()) {
+                return Ok(Response::error(req.request_id, Status::StateConflict, "plan_expired", "The original quote expired. Saved results remain available; no source call was repeated."));
+            }
+            let action = task.actions.iter().filter_map(|v| serde_json::from_value::<Action>(v.clone()).ok())
+                .find(|action| action.id() == req.action_id);
+            let Some(action @ (Action::Choose { .. } | Action::Supply { .. })) = action else {
+                return Ok(Response::error(req.request_id, Status::StateConflict, "continuation_not_available", "Use a current select_entity or supply_input action returned by this run."));
+            };
+            if catalog_core::facts::schema::validate(&action.public().input_schema, &req.input).is_err() {
+                return Ok(Response::error(req.request_id, Status::NeedsInput, "invalid_continuation_input", "Input must match the returned action schema and candidate identifiers."));
+            }
+            self.execute_inner(p, bearer, &req).await
+        }.await;
+        let result = match result {
+            Err(error) if error.to_string() == "state_conflict" => Ok(Response::error(req.request_id, Status::StateConflict, "continuation_changed", "Another request changed this run. Read its current state.")),
+            result => result,
+        };
+        Ok(self.complete(p, req.request_id, result).await)
+    }
+
     pub async fn execute(
         &self,
         p: &Principal,

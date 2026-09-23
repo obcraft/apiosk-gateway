@@ -43,6 +43,19 @@ pub struct Recipe {
     pub answer_instructions: String,
     pub example: BTreeMap<String, Value>,
     pub steps: Vec<RecipeStep>,
+    #[serde(default)]
+    pub country_coverage: Vec<CountryCoverage>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CountryCoverage {
+    pub country: String,
+    pub identity: String,
+    pub screening: String,
+    pub filings: String,
+    pub procurement: String,
+    /// Representative identifiers for a no-purchase planner check, not proof
+    /// that every company in this jurisdiction has source records.
+    pub example: BTreeMap<String, Value>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RecipeStep {
@@ -275,7 +288,11 @@ pub fn prepare(
                 .get(kind)
                 .ok_or_else(|| anyhow::anyhow!("Workflow input {} is unavailable.", kind))?;
             catalog_core::facts::schema::validate(&fact.value_schema, &value)
-                .map_err(|_| anyhow::anyhow!("Invalid value for {}.", kind))?;
+                .map_err(|_| {
+                    let label = recipe.fields.iter().find(|field| template.as_str() == Some(format!("{{{}}}", field.key).as_str()))
+                        .map(|field| field.label.as_str()).unwrap_or(step.label.as_str());
+                    anyhow::anyhow!("{} has an invalid format. Check the required format and selected country.", label)
+                })?;
             if let Some(existing) = subjects[index].values.insert(kind.clone(), value.clone()) {
                 anyhow::ensure!(existing == value, "Conflicting workflow values.");
             }
@@ -330,7 +347,10 @@ pub fn prepare(
         question.len() <= crate::protocol::MAX_QUESTION,
         "Workflow details are too long."
     );
-    let intent=Intent {subjects,goals,answer_operations:vec![format!("{}. Address these checks: {}. Preserve these coverage limits: {}. Use only saved evidence; say unknown for missing checks, distinguish possible name matches from confirmed identities, and never describe a source retrieval as a passed verification. Return a concise, usable result in the user's language.",recipe.answer_instructions,recipe.checks.join("; "),limitations.join(" "))],unresolved_references:vec![]};
+    let country_scope = recipe.country_coverage.iter().find(|coverage| values.get("country").and_then(Value::as_str) == Some(coverage.country.as_str()))
+        .map(|coverage| format!("Country {}. Identity: {}. Screening: {}. Filings: {}. Procurement: {}.", coverage.country, coverage.identity, coverage.screening, coverage.filings, coverage.procurement))
+        .unwrap_or_default();
+    let intent=Intent {subjects,goals,answer_operations:vec![format!("{}. Address these checks: {}. Preserve these coverage limits: {} {} Use only saved evidence; say unknown for missing checks, distinguish possible name matches from confirmed identities, and never describe a source retrieval as a passed verification. Return a concise, usable result in the user's language.",recipe.answer_instructions,recipe.checks.join("; "),limitations.join(" "),country_scope)],unresolved_references:vec![]};
     Ok((intent, context, question))
 }
 
@@ -366,6 +386,19 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
         let available=prepare(&r.slug,&r.example,catalog).and_then(|(intent,_,_)| match plan_preview(catalog,&intent) {
             crate::resolver::Resolution::Plan(_)=>Ok(()), _=>anyhow::bail!("The required source operations are temporarily unavailable."),
         });
+        let coverage: Vec<_> = r.country_coverage.iter().map(|country| {
+            let mut input = r.example.clone();
+            input.extend(country.example.clone());
+            input.insert("country".into(), json!(country.country));
+            let available = prepare(&r.slug, &input, catalog).and_then(|(intent, _, _)| {
+                match plan_preview(catalog, &intent) {
+                    crate::resolver::Resolution::Plan(_) => Ok(()),
+                    _ => anyhow::bail!("The required source operations are temporarily unavailable."),
+                }
+            });
+            json!({"country":country.country,"identity":country.identity,"screening":country.screening,"filings":country.filings,"procurement":country.procurement,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
+        }).collect();
+        let any_available = if coverage.is_empty() { available.is_ok() } else { coverage.iter().any(|c| c["available"] == true) };
         let mut sources=BTreeMap::new();
         for step in &r.steps { for service in catalog.services.iter().filter(|s|s.contract.capability_slug==step.capability&&(step.source.is_empty()||s.api_slug==step.source)) { sources.insert(service.api_slug.clone(),service.name.clone()); } }
         let steps:Vec<_>=r.steps.iter().enumerate().map(|(i,step)| {
@@ -377,7 +410,7 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
             let candidates: BTreeMap<_,_>=catalog.services.iter().filter(|s|s.contract.capability_slug==step.capability&&(step.source.is_empty()||s.api_slug==step.source)).map(|s|(&s.api_slug,&s.name)).collect();
             json!({"id":format!("step-{i}"),"label":step.label,"sources":candidates.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"when":step.when,"condition":condition})
         }).collect();
-        json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"steps":steps,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"available":available.is_ok(),"unavailable_reason":available.err().map(|e|e.to_string())})
+        json!({"slug":r.slug,"name":r.name,"description":r.description,"category":r.category,"input":{"kind":"fields"},"fields":r.fields,"steps":steps,"checks":r.checks.iter().enumerate().map(|(i,label)|json!({"id":format!("check-{i}"),"label":label})).collect::<Vec<_>>(),"sources":sources.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"price":null,"output":r.output,"limitations":r.limitations,"country_coverage":coverage,"available":any_available,"unavailable_reason":if any_available {None}else{available.err().map(|e|e.to_string())}})
     }).collect()
 }
 

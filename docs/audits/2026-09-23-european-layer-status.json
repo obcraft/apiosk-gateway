@@ -1,0 +1,510 @@
+{
+  "audited_at": "2026-09-23T15:32:15.455Z",
+  "runtime_readiness_at": "2026-09-23T15:32:24.242095860Z",
+  "scope": "Selected European official and intermediary data sources; not a complete inventory of European registries. Read-only audit; no new paid calls.",
+  "gateway_runtime_commit": "351f8cc",
+  "repositories": {
+    "gateway": "3a5270358873c7a0cbf6450df0990c0c78e61996",
+    "app": "da6578eb4c40aa74a5fd7748a3d8d1bfd484f1e4",
+    "mcp": "5323ff8876c278f4b8f16542ca98caf124c83cc1",
+    "website": "e3e0f49c74b0252a87922ddbaae1e20440faa1a1",
+    "docs": "db446523f0cb73e4dd1ad503682cccce5074cc5a"
+  },
+  "catalog_totals": {
+    "grouped_sources": 37,
+    "listings": 112,
+    "endpoints": 1476,
+    "active": 435,
+    "staged": 783,
+    "uncontracted": 258
+  },
+  "runtime_totals": {
+    "supported_endpoints": 1218,
+    "sample_checked_endpoints": 271,
+    "document_retrieval_endpoints": 947,
+    "accepted_contracts": 1268
+  },
+  "sources": [
+    {
+      "source": "bodemloket",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 1,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 1,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Query soil-investigation map layers and geographic data availability. Does not supply full soil reports; no returned feature does not establish clean soil."
+      ]
+    },
+    {
+      "source": "cbs-statline",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 19,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 23,
+        "sample_checked_endpoints": 17,
+        "supported_endpoints": 17
+      },
+      "execution_evidence": {
+        "failed_executions": 3,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 6,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "companies-house",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 15,
+        "document_retrieval_endpoints": 10,
+        "registered_endpoints": 15,
+        "sample_checked_endpoints": 5,
+        "supported_endpoints": 15
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 26,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "data-overheid-nl",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 3,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 3,
+        "sample_checked_endpoints": 3,
+        "supported_endpoints": 3
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "unmeasured",
+        "successful_executions": 0,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "eodhd",
+      "readiness": "blocked",
+      "contracts": {
+        "accepted_contracts": 0,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 60,
+        "sample_checked_endpoints": 0,
+        "supported_endpoints": 0
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "unmeasured",
+        "successful_executions": 0,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [
+        "EODHD Market Data: EODHD resale authorization is not recorded. Source is visible for reference but cannot be purchased through the planner."
+      ],
+      "coverage_notices": []
+    },
+    {
+      "source": "eu-funding-tenders",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 1,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 1,
+        "unresolved_executions": 1,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Search EU funding and tender records by keyword and language, excluding FAQ records. Includes historical calls; eligibility and current application status are not inferred."
+      ]
+    },
+    {
+      "source": "eurlex-cellar",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 2,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 2,
+        "sample_checked_endpoints": 2,
+        "supported_endpoints": 2
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "unmeasured",
+        "successful_executions": 0,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text."
+      ]
+    },
+    {
+      "source": "eurostat",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 4,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 10,
+        "sample_checked_endpoints": 2,
+        "supported_endpoints": 2
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "unmeasured",
+        "successful_executions": 0,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "gleif",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 6,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 17,
+        "sample_checked_endpoints": 5,
+        "supported_endpoints": 5
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "unmeasured",
+        "successful_executions": 0,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "koop",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 5,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 2,
+        "sample_checked_endpoints": 2,
+        "supported_endpoints": 2
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 3,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents."
+      ]
+    },
+    {
+      "source": "kvk-dutch-business-register",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 9,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 5,
+        "sample_checked_endpoints": 5,
+        "supported_endpoints": 5
+      },
+      "execution_evidence": {
+        "failed_executions": 4,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 53,
+        "unresolved_executions": 2,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "opensanctions",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 12,
+        "document_retrieval_endpoints": 3,
+        "registered_endpoints": 7,
+        "sample_checked_endpoints": 4,
+        "supported_endpoints": 7
+      },
+      "execution_evidence": {
+        "failed_executions": 1,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 9,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "overheid-io",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 10,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 10,
+        "sample_checked_endpoints": 10,
+        "supported_endpoints": 10
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 2,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "pdok",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 20,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 27,
+        "sample_checked_endpoints": 19,
+        "supported_endpoints": 19
+      },
+      "execution_evidence": {
+        "failed_executions": 1,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 12,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "pdok-ruimtelijke-plannen",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 1,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 1,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Query spatial-plan map features at a pixel in an RD-coordinate map extent. Check the original plan documents for current legal effect."
+      ]
+    },
+    {
+      "source": "rdw",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 1,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 1,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Direct official RDW technical vehicle lookup by exact Dutch registration plate. Includes make, model, APK expiry and available register fields. No owner identity, fleet ownership or separate fuel/emissions dataset."
+      ]
+    },
+    {
+      "source": "rvo",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 1,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 0,
+        "unresolved_executions": 1,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Keyword discovery within the first 50 public RVO subsidy descriptions only. Includes historical schemes. Later-page access is unverified; no-match does not mean no subsidy exists. Current application status, deadlines and eligibility are unknown."
+      ]
+    },
+    {
+      "source": "sirenic",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 66,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 63,
+        "sample_checked_endpoints": 63,
+        "supported_endpoints": 63
+      },
+      "execution_evidence": {
+        "failed_executions": 1,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 11,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "63 fixed-price JSON routes (65 planner operations) verified with paid results and treasury receipts. Availability varies by register, company and filing. Variable-price batches, binary documents, subscriptions and unverified operations are excluded. Source coverage notes and missing values are preserved."
+      ]
+    },
+    {
+      "source": "ted",
+      "readiness": "planner-ready",
+      "contracts": {
+        "accepted_contracts": 2,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 1,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 1,
+        "unresolved_executions": 0,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Search TED notices by exact numeric KVK/RSIN in buyer or winner identifier fields. Identifier scheme and legal-entity identity require confirmation. Includes historical notices; no subsidy or current revenue inference."
+      ]
+    },
+    {
+      "source": "tenderned",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 4,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 3,
+        "sample_checked_endpoints": 1,
+        "supported_endpoints": 1
+      },
+      "execution_evidence": {
+        "failed_executions": 1,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 6,
+        "unresolved_executions": 1,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": []
+    },
+    {
+      "source": "vies",
+      "readiness": "partially-supported",
+      "contracts": {
+        "accepted_contracts": 3,
+        "document_retrieval_endpoints": 0,
+        "registered_endpoints": 3,
+        "sample_checked_endpoints": 3,
+        "supported_endpoints": 3
+      },
+      "execution_evidence": {
+        "failed_executions": 0,
+        "scope": "Recorded v2 execution outcomes; not a data-accuracy certification or an exhaustive live endpoint test.",
+        "state": "recorded",
+        "successful_executions": 4,
+        "unresolved_executions": 1,
+        "window_days": 30
+      },
+      "restrictions": [],
+      "coverage_notices": [
+        "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability."
+      ]
+    }
+  ],
+  "verification": {
+    "gateway_focused": {
+      "passed": 26,
+      "failed": 3,
+      "ignored": 3,
+      "failed_suite": "source_operations",
+      "failure": "Synthetic document-adapter fixture is not provider response evidence"
+    },
+    "app_focused": {
+      "passed": 56
+    },
+    "mcp_focused": {
+      "passed": 33
+    },
+    "live_app": "Unauthenticated browser redirected to login; no authenticated UI purchase verified.",
+    "migrations": "Production migration history includes 20260923190000; runtime commit differs only by that SQL migration.",
+    "new_paid_calls": 0
+  }
+}

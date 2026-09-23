@@ -82,7 +82,6 @@ impl Engine {
     }
 
     pub async fn start_workflow(&self, p: &Principal, slug: &str, request: crate::workflow_catalog::StartRequest) -> anyhow::Result<Response> {
-        anyhow::ensure!(p.is_person(), "Workflow forms require an App account");
         if let Some(response)=self.request_claim(p,request.request_id,&digest(&("start-workflow",slug,&request))).await? { return Ok(response); }
         let result=async {
             let catalog=self.catalog.get().await?;
@@ -93,7 +92,7 @@ impl Engine {
             if !matches!(crate::workflow_catalog::plan_preview(&catalog,&intent),Resolution::Plan(_)) {
                 return Ok(Response::error(request.request_id,Status::Unsupported,"workflow_unavailable","These details cannot currently be completed with the available source operations."));
             }
-            self.intake(p,&DiscoverRequest {request_id:request.request_id,question,state:None,context_delta:ContextDelta::default()},true,Some((intent,Some(context)))).await
+            self.intake(p,&DiscoverRequest {request_id:request.request_id,question,state:None,context_delta:ContextDelta::default()},p.is_person(),Some((intent,Some(context)))).await
         }.await;
         Ok(self.complete(p,request.request_id,result).await)
     }
@@ -105,8 +104,8 @@ impl Engine {
         input["workflow_title"]=json!(workflow.title);
         let question=task.conversation.last().map(|t|t.question.as_str()).unwrap_or("");
         let status=if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {"failed"} else if response.status==Status::Partial {"partial"} else {run_status(&response.status,None)};
-        sqlx::query("INSERT INTO workflow_runs(id,owner_id,workspace_id,workflow_slug,surface,status,task_id,quote_ref,input,question,result) VALUES($1,$2,$3,$4,'workflows',$5,$6,$7,$8,$9,$10) ON CONFLICT(task_id,quote_ref) DO UPDATE SET status=EXCLUDED.status,result=EXCLUDED.result,updated_at=now() WHERE (workflow_runs.status,workflow_runs.result) IS DISTINCT FROM (EXCLUDED.status,EXCLUDED.result)")
-            .bind(Uuid::new_v4()).bind(p.owner).bind(task.workspace_id).bind(&workflow.slug).bind(status).bind(task_id).bind(quote_ref).bind(input).bind(question).bind(named_run_summary(task)).execute(&self.store.pool).await?;
+        sqlx::query("INSERT INTO workflow_runs(id,owner_id,workspace_id,workflow_slug,surface,status,task_id,quote_ref,input,question,result) VALUES($1,$2,$3,$4,$11,$5,$6,$7,$8,$9,$10) ON CONFLICT(task_id,quote_ref) DO UPDATE SET status=EXCLUDED.status,result=EXCLUDED.result,updated_at=now() WHERE (workflow_runs.status,workflow_runs.result) IS DISTINCT FROM (EXCLUDED.status,EXCLUDED.result)")
+            .bind(Uuid::new_v4()).bind(p.owner).bind(task.workspace_id).bind(&workflow.slug).bind(status).bind(task_id).bind(quote_ref).bind(input).bind(question).bind(named_run_summary(task)).bind(if p.is_person() {"workflows"} else {"connected_agent"}).execute(&self.store.pool).await?;
         Ok(())
     }
     pub async fn workflow_runs(&self, p: &Principal, workflow: Option<&str>) -> anyhow::Result<Value> {

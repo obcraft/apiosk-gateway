@@ -1156,5 +1156,654 @@
       }
     ],
     "answer_instructions": "Return a dated company briefing with key developments, reported sentiment, investor events, selected insider records and source links. Separate broad market context and exclude unrelated name matches."
+  },
+  {
+    "slug": "european-company-dossier",
+    "name": "European company dossier",
+    "description": "Registered identity, company screening and available filings, with explicit country coverage.",
+    "category": "compliance",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Mollie B.V.",
+        "help": "Use the legal name associated with this registration number. A mismatch must be reviewed.",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Register country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "GB",
+          "FR",
+          "BE",
+          "FI",
+          "NO",
+          "LV",
+          "EE",
+          "SE",
+          "DK",
+          "SK"
+        ]
+      },
+      {
+        "key": "registration",
+        "label": "Company registration number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "30204462",
+        "help": "Use the national registration identifier, preserving leading zeros. KVK: 8 digits; UK: 8 characters; France: 9-digit SIREN.",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Registered name, identifier and country",
+      "Discrepancies with the supplied company name",
+      "Potential company sanctions matches",
+      "Available filings, reporting periods and source limitations"
+    ],
+    "limitations": [
+      "Screening uses the company name returned by the registered profile, with the selected country as a matching hint. Review any discrepancy with the supplied label.",
+      "Only the named company is screened. Officers, owners and subsidiaries are not individually screened.",
+      "No match is not a compliance certification. Missing financial records do not prove non-filing, inactivity or solvency.",
+      "A filing index or deposit reference is not a downloaded document. Availability varies by country, entity and reporting period."
+    ],
+    "output": "A sourced company dossier with identity, screening candidates, available filings and explicit unknowns.",
+    "answer_instructions": "Return sections for registered identity, identity discrepancies, company screening, available filings and coverage gaps. Preserve national identifiers, source URLs, observation dates, reporting periods and currency. Screening uses the registry-returned name. Highlight discrepancies between the supplied label and the registered name. Never turn missing data into a passed check or filing metadata into document contents.",
+    "example": {
+      "name": "Mollie B.V.",
+      "country": "NL",
+      "registration": "30204462"
+    },
+    "steps": [
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {
+          "country": "NL"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.financial-statements",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL"
+        },
+        "label": "Read available financial statements"
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.gb.companies_house": "{registration}"
+        },
+        "when": {
+          "country": "GB"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.filing-history",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB"
+        },
+        "label": "Read filing history"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fr.siren": "{registration}"
+        },
+        "when": {
+          "country": "FR"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.fr-financials",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        },
+        "label": "Read available financial figures"
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "BE"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-pays-id-comptes-be",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.be.national_id": "{registration}"
+        },
+        "when": {
+          "country": "BE"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "FI"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-pays-id-comptes-fi",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fi.national_id": "{registration}"
+        },
+        "when": {
+          "country": "FI"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "NO"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-no-id-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.no.national_id": "{registration}"
+        },
+        "when": {
+          "country": "NO"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "LV"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-lv-regnr-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.lv.national_id": "{registration}"
+        },
+        "when": {
+          "country": "LV"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "EE"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-ee-registrikood-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.ee.national_id": "{registration}"
+        },
+        "when": {
+          "country": "EE"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "SE"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-se-orgnr-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.se.national_id": "{registration}"
+        },
+        "when": {
+          "country": "SE"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "DK"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-dk-id-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.dk.national_id": "{registration}"
+        },
+        "when": {
+          "country": "DK"
+        }
+      },
+      {
+        "label": "Read registered company identity",
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.country_code": "{country}",
+          "company.registration.eu.national_id": "{registration}"
+        },
+        "when": {
+          "country": "SK"
+        }
+      },
+      {
+        "label": "Read available accounts or filing references",
+        "source": "sirenic",
+        "capability": "company.sirenic-eu-entreprise-sk-ico-comptes",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.sk.national_id": "{registration}"
+        },
+        "when": {
+          "country": "SK"
+        }
+      },
+      {
+        "label": "Screen the registered company name",
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "subject": "{name}",
+        "inputs": {
+          "company.search.country_code": "{country}"
+        },
+        "when": {}
+      }
+    ],
+    "country_coverage": [
+      {
+        "country": "NL",
+        "example": {
+          "name": "Mollie B.V.",
+          "registration": "30204462"
+        },
+        "identity": "KVK registered profile",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available KVK XBRL financial statements; not every deposited account or company.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "GB",
+        "example": {
+          "name": "MONZO BANK LIMITED",
+          "registration": "09446231"
+        },
+        "identity": "Companies House registered profile",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Companies House filing-history metadata; document contents are not downloaded.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "FR",
+        "example": {
+          "name": "DANONE",
+          "registration": "552032534"
+        },
+        "identity": "French registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available filed annual financial figures via Sirenic; periods and confidentiality gaps remain explicit.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "BE",
+        "example": {
+          "name": "UMICORE",
+          "registration": "0401574852"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual-account deposits and source references via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "FI",
+        "example": {
+          "name": "Nokia Oyj",
+          "registration": "0112038-9"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual-account records via Sirenic; source completeness varies.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "NO",
+        "example": {
+          "name": "Equinor ASA",
+          "registration": "923609016"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual accounts and reporting years via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "LV",
+        "example": {
+          "name": "Latvenergo",
+          "registration": "40003032949"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual accounts via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "EE",
+        "example": {
+          "name": "Tallink Grupp",
+          "registration": "10238429"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual-account records via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "SE",
+        "example": {
+          "name": "Volvo",
+          "registration": "5560125790"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available annual accounts via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "DK",
+        "example": {
+          "name": "Novo Nordisk",
+          "registration": "24256790"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available account deposits and source references via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      },
+      {
+        "country": "SK",
+        "example": {
+          "name": "Example company",
+          "registration": "36417475"
+        },
+        "identity": "National registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available account deposits and source references via Sirenic.",
+        "procurement": "Not included in this company dossier."
+      }
+    ]
+  },
+  {
+    "slug": "tender-company-dossier",
+    "name": "Tender counterparty dossier",
+    "description": "Check one tender buyer or supplier: official notice links, registered identity, screening and available filings.",
+    "category": "procurement",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Mollie B.V.",
+        "help": "Use the legal name associated with this registration number. A mismatch must be reviewed.",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Register country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "FR"
+        ]
+      },
+      {
+        "key": "registration",
+        "label": "Company registration number",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "30204462",
+        "help": "Use the national registration identifier, preserving leading zeros. KVK: 8 digits; UK: 8 characters; France: 9-digit SIREN.",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Registered name, identifier and country",
+      "Discrepancies with the supplied company name",
+      "Potential company sanctions matches",
+      "Available filings, reporting periods and source limitations",
+      "Buyer/winner role only where explicitly reported",
+      "Notice identifier, publication date, link and identity-match basis"
+    ],
+    "limitations": [
+      "Screening uses the company name returned by the registered profile, with the selected country as a matching hint. Review any discrepancy with the supplied label.",
+      "Only the named company is screened. Officers, owners and subsidiaries are not individually screened.",
+      "No match is not a compliance certification. Missing financial records do not prove non-filing, inactivity or solvency.",
+      "A filing index or deposit reference is not a downloaded document. Availability varies by country, entity and reporting period.",
+      "Coverage is currently NL and FR counterparties. European notices do not imply all-country counterparty coverage.",
+      "TenderNed name mentions and TED identifier matches are candidates. They do not confirm a legal-entity link, award, revenue or complete procurement history.",
+      "This checks one supplied counterparty. It does not automatically screen every company in a tender search. Bounded source pages may omit records."
+    ],
+    "output": "A counterparty dossier connecting notice candidates with registered identity, company screening and available filings, while separating confirmed facts from unresolved links.",
+    "answer_instructions": "Return sections for registered identity, identity discrepancies, company screening, available filings and coverage gaps. Preserve national identifiers, source URLs, observation dates, reporting periods and currency. Screening uses the registry-returned name. Highlight discrepancies between the supplied label and the registered name. Never turn missing data into a passed check or filing metadata into document contents. Add procurement records with notice link, identifier, date, role and match basis. Keep name-only matches, numeric identifier matches and source-asserted links distinct. Only report an award or amount when explicitly supported by the notice, preserving lot, currency and date; never sum notice values into company revenue.",
+    "example": {
+      "name": "Mollie B.V.",
+      "country": "NL",
+      "registration": "30204462"
+    },
+    "steps": [
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {
+          "country": "NL"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.financial-statements",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL"
+        },
+        "label": "Read available financial statements"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fr.siren": "{registration}"
+        },
+        "when": {
+          "country": "FR"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.fr-financials",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        },
+        "label": "Read available financial figures"
+      },
+      {
+        "label": "Screen the registered company name",
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "subject": "{name}",
+        "inputs": {
+          "company.search.country_code": "{country}"
+        },
+        "when": {}
+      },
+      {
+        "label": "Find TenderNed name mentions",
+        "source": "tenderned",
+        "capability": "procurement.company-name-mentions",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL"
+        }
+      },
+      {
+        "label": "Find TED identifier matches",
+        "source": "ted",
+        "capability": "procurement.ted-kvk-notices",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL"
+        }
+      },
+      {
+        "label": "Read French public-contract records",
+        "source": "sirenic",
+        "capability": "company.sirenic-entreprise-siren-marches-publics",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        }
+      },
+      {
+        "label": "Read European notice links for this French company",
+        "source": "sirenic",
+        "capability": "company.sirenic-entreprise-siren-marches-publics-ue",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR"
+        }
+      }
+    ],
+    "country_coverage": [
+      {
+        "country": "NL",
+        "example": {
+          "name": "Mollie B.V.",
+          "registration": "30204462"
+        },
+        "identity": "KVK registered profile",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available KVK XBRL financial statements; not every deposited account or company.",
+        "procurement": "TenderNed name mentions and one bounded TED page matching the KVK digits. Identifier scheme and legal-entity match still require review."
+      },
+      {
+        "country": "FR",
+        "example": {
+          "name": "DANONE",
+          "registration": "552032534"
+        },
+        "identity": "French registry profile via Sirenic",
+        "screening": "OpenSanctions matches the registry-returned company name with a country hint; possible matches require review.",
+        "filings": "Available filed annual financial figures via Sirenic; periods and confidentiality gaps remain explicit.",
+        "procurement": "French public-contract records and European notice links via Sirenic, limited to the returned company records."
+      }
+    ]
   }
 ]
