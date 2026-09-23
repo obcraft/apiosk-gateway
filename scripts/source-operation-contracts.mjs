@@ -27,7 +27,10 @@ export function buildOperations(snapshot) {
     if(/exploit|penetration|pentest|intrusion|payload|offensive|vulnerability.?scan|attack.surface|open ports|credential.dump|initial.access.broker/i.test(`${e.path} ${e.description}`))stop('specialized_review_required');
     if(/pending job|asynchronous|async job/i.test(e.description))stop('asynchronous_result_review_required');
     if(!Number.isFinite(Number(e.price))||Number(e.price)<0)stop('missing_fixed_price');
-    if(!snapshot.offers.some(o=>o.endpoint_id===e.id&&['curated','declared'].includes(o.source)))stop('missing_reviewed_offer');
+    // A reviewed input decision (snapshot.reviewed_inputs) stands in for a
+    // curated offer and names which optional inputs a question must supply.
+    const review=snapshot.reviewed_inputs?.[e.id]?.decision==='contract'?snapshot.reviewed_inputs[e.id]:null;
+    if(!review&&!snapshot.offers.some(o=>o.endpoint_id===e.id&&['curated','declared'].includes(o.source)))stop('missing_reviewed_offer');
     // Existing authored contracts keep priority and identity. Never rewrite
     // their mappings, limits, dependencies or optional input behavior.
     if(snapshot.contracts.some(c=>c.endpoint_id===e.id&&c.status==='active'&&c.validated_at&&c.effect==='read'&&c.price_model==='per_call'))stop('already_mapped');
@@ -44,7 +47,7 @@ export function buildOperations(snapshot) {
       if(shape.required!=null&&!Array.isArray(shape.required)){stop('unsupported_required_schema');continue;}
       for(const name of shape.required??[])if(!Object.hasOwn(shape.properties,name))stop('undeclared_required_input');
       for(const [name,spec]of Object.entries(shape.properties)) {
-        const required=(shape.required??[]).includes(name)||spec.required===true;
+        const required=(shape.required??[]).includes(name)||spec.required===true||!!review?.required?.includes(name);
         const schema=scalarSchema(spec);
         const variableCost=/\b(credits?|extra cost|additional cost|surcharge)\b|\+\s*\d/.test(spec.description??'');
         if(!schema||variableCost) {if(required)stop('unsupported_required_input');else row.omitted_optional_inputs.push(name);continue;}
@@ -64,7 +67,9 @@ export function buildOperations(snapshot) {
     if(pathNames.some(name=>!Object.values(input_map).some(b=>b.in==='path'&&b.name===name)))stop('unbound_path_input');
     // Optional-only input sets often mean undocumented alternatives (company
     // OR ticker). Keep them for review rather than charging an empty request.
-    if(!requires.some(r=>!r.optional))stop('required_input_alternatives_need_review');
+    // A review may also state that the operation needs no input at all.
+    if(!requires.some(r=>!r.optional)&&!(review&&review.required?.length===0&&review.no_input_reason))stop('required_input_alternatives_need_review');
+    if(review?.required?.some(name=>!names.has(name)))stop('reviewed_input_not_bound');
     if(row.blockers.length)continue;
     const cap=`operation.${slug(a.slug)}.${e.method.toLowerCase()}-${slug(e.path)}-${e.id.slice(0,8)}`;
     const output=`source_document.e${e.id.replaceAll('-','')}.response`;

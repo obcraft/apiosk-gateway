@@ -121,6 +121,15 @@ for (const c of [...staged].sort((a, b) => a.list_atomic - b.list_atomic || a.id
   spent += cap;
   let r;
   try { r = await doCall(c, inputs, false, idempotency); } catch (e) { r = {status: 0, body: {error: String(e)}}; }
+  // Refused at service authentication (e.g. the database is restarting): the
+  // request never reached payment. Forget the attempt and stop the run; the
+  // endpoint is tried again next time. Any other outcome stays recorded.
+  if (r.status === 401 && r.body?.did !== true && !r.body?.execution) {
+    await fs.rm(paidFile);
+    spent -= cap;
+    console.log(JSON.stringify({stopped: 'gateway refused service authentication', error: r.body?.error ?? null, source: c.source, path: c.path}));
+    break;
+  }
   const execution = r.body?.execution ?? {};
   record.status = 'response';
   record.http_status = r.status;
