@@ -40,7 +40,7 @@ Authorization: Bearer apk_org_live_…
 
 | Scope | Allows |
 |---|---|
-| `sources:read` | `GET /v2/sources`, `GET /v2/sources/{id}` |
+| `sources:read` | `GET /v2/sources`, `GET /v2/sources/{id}`, `GET /v2/sources/{id}/endpoints` |
 | `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{id}/run` |
 | `ask:create` | `POST /v2/ask` with `execution_mode: "plan"` |
 | `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask` with `execution_mode: "auto"` |
@@ -74,7 +74,13 @@ above are examples.
 GET /v2/sources?search=tenders&category=…&tag=…&sector=…&capability=company.search&offset=0&limit=20
 ```
 
-This returns the same catalogue the app and MCP show, grouped by source and paginated.
+This returns all active, verified, discoverable listings grouped by source and paginated. Pulse Network is one source containing its published services. Categories, tags and offered capabilities include endpoint metadata; `available_in_v2` and `executable_capabilities` describe the Gateway's accepted planner catalog.
+
+```http
+GET /v2/sources/{source_id}/endpoints?search=filings&offset=0&limit=40
+```
+
+This compact index pages through every active endpoint in a source, including every Pulse service. Each item has a `planner_available` flag. Only `true` means the current Gateway catalog accepts an execution contract; browsing and asking about other endpoints is free.
 
 ```http
 GET /v2/sources/{source_id}

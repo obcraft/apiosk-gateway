@@ -182,6 +182,10 @@ impl Catalog {
                     .sample_payload
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("missing validation sample"))?;
+                anyhow::ensure!(
+                    !sample.to_string().contains("Synthetic document-adapter fixture"),
+                    "synthetic document-adapter fixture is not provider response evidence"
+                );
                 let extraction = service.contract.extract(sample, &vocabulary)?;
                 anyhow::ensure!(
                     extraction.rejected.is_empty(),
@@ -495,6 +499,15 @@ mod parser_catalog_tests {
         snapshot.services[0].contract.input_map.get_mut("company.name").unwrap().default = Some(json!("valid string"));
         snapshot.services[0].contract.requires[0].optional = false;
         assert_eq!(Catalog::build(snapshot).rejected.len(), 1);
+    }
+    #[test]
+    fn synthetic_document_adapter_cannot_enter_the_runtime_catalog() {
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        snapshot.services[0].sample_payload = Some(json!({"data":"Synthetic document-adapter fixture; not a provider response or live execution."}));
+        let id = snapshot.services[0].id;
+        let catalog = Catalog::build(snapshot);
+        assert!(catalog.services.iter().all(|s| s.id != id));
+        assert!(catalog.rejected.iter().any(|(candidate, reason)| *candidate == id && reason.contains("synthetic document-adapter")));
     }
     #[test]
     fn parser_receives_exact_source_identity_and_supported_capabilities() {

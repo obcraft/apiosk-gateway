@@ -1,0 +1,634 @@
+[
+  {
+    "source": "agentbodega",
+    "services": 1,
+    "endpoints": 71,
+    "inactive_endpoints": 0,
+    "active": 0,
+    "staged": 13,
+    "uncontracted": 58,
+    "without_response_example": 71,
+    "without_capability_link": 7,
+    "blocked_services": [],
+    "service_slugs": [
+      "agentbodega"
+    ]
+  },
+  {
+    "source": "ask-merlin",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "ask-merlin"
+    ]
+  },
+  {
+    "source": "bloomberg",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 5,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "bloomberg"
+    ]
+  },
+  {
+    "source": "bodemloket",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "bodemloket"
+    ]
+  },
+  {
+    "source": "browserbase",
+    "services": 1,
+    "endpoints": 6,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 4,
+    "without_response_example": 4,
+    "without_capability_link": 4,
+    "blocked_services": [],
+    "service_slugs": [
+      "browserbase"
+    ]
+  },
+  {
+    "source": "cbs-statline",
+    "services": 1,
+    "endpoints": 23,
+    "inactive_endpoints": 0,
+    "active": 17,
+    "staged": 0,
+    "uncontracted": 6,
+    "without_response_example": 0,
+    "without_capability_link": 6,
+    "blocked_services": [],
+    "service_slugs": [
+      "cbs-statline"
+    ]
+  },
+  {
+    "source": "cityfalcon-financial-api",
+    "services": 1,
+    "endpoints": 4,
+    "inactive_endpoints": 0,
+    "active": 4,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "cityfalcon-financial-api"
+    ]
+  },
+  {
+    "source": "companies-house",
+    "services": 1,
+    "endpoints": 15,
+    "inactive_endpoints": 0,
+    "active": 5,
+    "staged": 10,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "companies-house"
+    ]
+  },
+  {
+    "source": "crowdpull",
+    "services": 1,
+    "endpoints": 28,
+    "inactive_endpoints": 0,
+    "active": 0,
+    "staged": 0,
+    "uncontracted": 28,
+    "without_response_example": 28,
+    "without_capability_link": 8,
+    "blocked_services": [],
+    "service_slugs": [
+      "crowdpull"
+    ]
+  },
+  {
+    "source": "data-overheid-nl",
+    "services": 1,
+    "endpoints": 3,
+    "inactive_endpoints": 0,
+    "active": 3,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "data-overheid-nl"
+    ]
+  },
+  {
+    "source": "domain-intelligence",
+    "services": 1,
+    "endpoints": 2,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "domain-intelligence"
+    ]
+  },
+  {
+    "source": "eodhd",
+    "services": 1,
+    "endpoints": 60,
+    "inactive_endpoints": 0,
+    "active": 0,
+    "staged": 0,
+    "uncontracted": 60,
+    "without_response_example": 18,
+    "without_capability_link": 60,
+    "blocked_services": [
+      "eodhd"
+    ],
+    "service_slugs": [
+      "eodhd"
+    ]
+  },
+  {
+    "source": "eu-funding-tenders",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "eu-funding-tenders"
+    ]
+  },
+  {
+    "source": "eurlex-cellar",
+    "services": 1,
+    "endpoints": 2,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "eurlex-cellar"
+    ]
+  },
+  {
+    "source": "eurostat",
+    "services": 1,
+    "endpoints": 10,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 8,
+    "without_response_example": 2,
+    "without_capability_link": 1,
+    "blocked_services": [],
+    "service_slugs": [
+      "eurostat"
+    ]
+  },
+  {
+    "source": "exa",
+    "services": 1,
+    "endpoints": 2,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "exa"
+    ]
+  },
+  {
+    "source": "gleif",
+    "services": 1,
+    "endpoints": 17,
+    "inactive_endpoints": 1,
+    "active": 5,
+    "staged": 0,
+    "uncontracted": 12,
+    "without_response_example": 5,
+    "without_capability_link": 12,
+    "blocked_services": [],
+    "service_slugs": [
+      "gleif"
+    ]
+  },
+  {
+    "source": "iban-check",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "iban-check"
+    ]
+  },
+  {
+    "source": "koop",
+    "services": 1,
+    "endpoints": 2,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "koop"
+    ]
+  },
+  {
+    "source": "kvk-dutch-business-register",
+    "services": 1,
+    "endpoints": 5,
+    "inactive_endpoints": 1,
+    "active": 5,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "kvk-dutch-business-register"
+    ]
+  },
+  {
+    "source": "linkup",
+    "services": 1,
+    "endpoints": 2,
+    "inactive_endpoints": 0,
+    "active": 2,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "linkup"
+    ]
+  },
+  {
+    "source": "opensanctions",
+    "services": 1,
+    "endpoints": 7,
+    "inactive_endpoints": 0,
+    "active": 4,
+    "staged": 1,
+    "uncontracted": 2,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "opensanctions"
+    ]
+  },
+  {
+    "source": "overheid-io",
+    "services": 1,
+    "endpoints": 10,
+    "inactive_endpoints": 0,
+    "active": 10,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "overheid-io"
+    ]
+  },
+  {
+    "source": "pdok",
+    "services": 1,
+    "endpoints": 27,
+    "inactive_endpoints": 0,
+    "active": 19,
+    "staged": 0,
+    "uncontracted": 8,
+    "without_response_example": 0,
+    "without_capability_link": 8,
+    "blocked_services": [],
+    "service_slugs": [
+      "pdok"
+    ]
+  },
+  {
+    "source": "pdok-ruimtelijke-plannen",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "pdok-ruimtelijke-plannen"
+    ]
+  },
+  {
+    "source": "pixelforge-x402-data-services",
+    "services": 1,
+    "endpoints": 5,
+    "inactive_endpoints": 0,
+    "active": 0,
+    "staged": 0,
+    "uncontracted": 5,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "pixelforge-x402-data-services"
+    ]
+  },
+  {
+    "source": "pulsenetwork",
+    "services": 76,
+    "endpoints": 980,
+    "inactive_endpoints": 0,
+    "active": 34,
+    "staged": 557,
+    "uncontracted": 389,
+    "without_response_example": 895,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "airdroppulse",
+      "alphapulse",
+      "arbipulse",
+      "autopulse",
+      "biopulse",
+      "buildpulse",
+      "careerpulse",
+      "chronicapulse",
+      "citepulse",
+      "clearcarepulse",
+      "climatepulse",
+      "clinicalintelpulse",
+      "collectablespulse",
+      "compliancepulse",
+      "cryptopulse",
+      "cyberpulse",
+      "dealpulse",
+      "debtpulse",
+      "econsignalpulse",
+      "edupulse",
+      "esgpulse",
+      "fanpulse",
+      "fieldpulse",
+      "filingspulse",
+      "findpulse",
+      "fitpulse",
+      "footballpulse",
+      "franchisepulse",
+      "gamepulse",
+      "geopoliticalpulse",
+      "glowpulse",
+      "govspendpulse",
+      "grantpulse",
+      "gridpulse",
+      "harvestpulse",
+      "herbapulse",
+      "homepulse",
+      "immigrationpulse",
+      "insurepulse",
+      "legalpulse",
+      "longevitypulse",
+      "macropulse",
+      "mailpulse",
+      "marketpulse",
+      "mealpulse",
+      "mindpulse",
+      "nutripulse",
+      "onchainpulse",
+      "parentpulse",
+      "patentpulse",
+      "petpulse",
+      "policypulse",
+      "proppulse",
+      "prospectpulse",
+      "racingpulse",
+      "remittancepulse",
+      "riskpulse",
+      "safepulse",
+      "scentpulse",
+      "scholarpulse",
+      "seniorpulse",
+      "shopperpulse",
+      "signalpulse",
+      "stablecoinpulse",
+      "stateedge",
+      "tablepulse",
+      "talentpulse",
+      "taxpulse",
+      "tradepulse",
+      "transitpulse",
+      "travelpulse",
+      "truthpulse",
+      "venturepulse",
+      "vetpulse",
+      "waterpulse",
+      "wealthpulse"
+    ]
+  },
+  {
+    "source": "rdw",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "rdw"
+    ]
+  },
+  {
+    "source": "reuters",
+    "services": 1,
+    "endpoints": 4,
+    "inactive_endpoints": 1,
+    "active": 4,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "reuters"
+    ]
+  },
+  {
+    "source": "rvo",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "rvo"
+    ]
+  },
+  {
+    "source": "sirenic",
+    "services": 1,
+    "endpoints": 63,
+    "inactive_endpoints": 39,
+    "active": 63,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "sirenic"
+    ]
+  },
+  {
+    "source": "stableenrich",
+    "services": 1,
+    "endpoints": 36,
+    "inactive_endpoints": 0,
+    "active": 4,
+    "staged": 21,
+    "uncontracted": 11,
+    "without_response_example": 35,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "stableenrich"
+    ]
+  },
+  {
+    "source": "tavily",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 1,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "tavily"
+    ]
+  },
+  {
+    "source": "ted",
+    "services": 1,
+    "endpoints": 1,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "ted"
+    ]
+  },
+  {
+    "source": "tenderned",
+    "services": 1,
+    "endpoints": 3,
+    "inactive_endpoints": 0,
+    "active": 1,
+    "staged": 0,
+    "uncontracted": 2,
+    "without_response_example": 1,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "tenderned"
+    ]
+  },
+  {
+    "source": "vies",
+    "services": 1,
+    "endpoints": 3,
+    "inactive_endpoints": 0,
+    "active": 3,
+    "staged": 0,
+    "uncontracted": 0,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "vies"
+    ]
+  },
+  {
+    "source": "webbersites",
+    "services": 1,
+    "endpoints": 76,
+    "inactive_endpoints": 0,
+    "active": 66,
+    "staged": 0,
+    "uncontracted": 10,
+    "without_response_example": 0,
+    "without_capability_link": 0,
+    "blocked_services": [],
+    "service_slugs": [
+      "webbersites"
+    ]
+  }
+]

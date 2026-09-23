@@ -73,6 +73,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
         .route("/v2/sources", get(sources))
+        .route("/v2/sources/:source_id/endpoints", get(source_endpoints))
         .route("/v1/source-readiness", get(source_readiness))
         .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
@@ -283,6 +284,32 @@ async fn sources(
             "catalog_unavailable",
             "Sources are temporarily unavailable. Try again shortly.",
         ),
+    }
+}
+async fn source_endpoints(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(source_id): Path<String>,
+    Query(query): Query<crate::sources::EndpointQuery>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    match authenticated(&state, &headers).await {
+        Ok(ctx) if !ctx.allows("sources:read") => return crate::public_api::insufficient_scope("sources:read"),
+        Ok(_) => {}
+        Err(refusal) if is_api_key(&headers) => return crate::public_api::refused(refusal),
+        Err(refusal) => return failure(refusal.status, refusal.code, refusal.message),
+    }
+    if !query.valid() || source_id.len() > 100 || !source_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+        return failure(StatusCode::BAD_REQUEST, "invalid_query", "Use a source slug, up to 200 search characters, and a limit from 1 to 100.");
+    }
+    match state.engine.catalog.get().await {
+        Ok(catalog) => match crate::sources::endpoint_page(&state.engine.store.pool, &catalog, &source_id, &query).await {
+            Ok(page) => Json(page).into_response(),
+            Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Source endpoints are temporarily unavailable."),
+        },
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Source endpoints are temporarily unavailable."),
     }
 }
 pub(crate) fn failure(status: StatusCode, code: &str, message: &str) -> HttpResponse {

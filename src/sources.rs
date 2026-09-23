@@ -1,6 +1,7 @@
 use crate::catalog::Catalog;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sqlx::PgPool;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -15,6 +16,10 @@ pub struct Source {
     pub name: String,
     pub description: String,
     pub category: String,
+    #[serde(default, deserialize_with = "labels")]
+    pub categories: Vec<String>,
+    #[serde(default, deserialize_with = "labels")]
+    pub offered_capabilities: Vec<String>,
     #[serde(deserialize_with = "labels")]
     pub tags: Vec<String>,
     #[serde(deserialize_with = "labels")]
@@ -70,7 +75,7 @@ fn labels<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Erro
         .into_iter()
         .filter_map(|v| v.as_str().map(str::to_owned))
         .filter(|s| !s.is_empty() && s.chars().count() <= 80)
-        .take(32)
+        .take(256)
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect())
@@ -100,6 +105,73 @@ impl SourceQuery {
             && self.limit.is_none_or(|n| (1..=50).contains(&n))
     }
 }
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EndpointQuery {
+    pub search: Option<String>,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
+}
+impl EndpointQuery {
+    pub fn valid(&self) -> bool {
+        self.search.as_ref().is_none_or(|s| s.chars().count() <= 200)
+            && self.limit.is_none_or(|n| (1..=100).contains(&n))
+            && self.offset.is_none_or(|n| n <= 10_000)
+    }
+}
+
+/// Compact, paged endpoint index for the Ask picker. The v1 provider route
+/// embeds full request/response schemas and examples in every listing; Pulse
+/// alone has hundreds of endpoints, so fetching it all delays the picker.
+pub async fn endpoint_page(pool: &PgPool, catalog: &Catalog, source_id: &str, query: &EndpointQuery) -> anyhow::Result<Value> {
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(40);
+    let search = query.search.as_deref().unwrap_or("").trim();
+    let mut result: Value = sqlx::query_scalar(r#"
+WITH matched AS (
+ SELECT a.slug, a.name, e.id, e.method, e.path, e.description,
+        e.endpoint_category, e.tags, e.use_cases
+ FROM providers.apis a
+ LEFT JOIN providers.provider_profiles p ON p.id=a.owner_id
+ JOIN providers.api_endpoints e ON e.api_id=a.id AND e.active=true
+ WHERE a.status='active' AND coalesce(a.active,true) AND a.is_verified=true
+   AND coalesce(a.discoverable,true) AND a.suspended_at IS NULL
+   AND (($1='pulsenetwork' AND p.username='pulsenetwork') OR ($1<>'pulsenetwork' AND a.slug=$1))
+   AND ($2='' OR concat_ws(' ',a.name,a.slug,e.method,e.path,e.description,e.endpoint_category,
+        array_to_string(e.tags,' '),array_to_string(e.use_cases,' ')) ILIKE '%' || $2 || '%')
+), page AS (
+ SELECT * FROM matched ORDER BY lower(name),path,id LIMIT $3 OFFSET $4
+)
+SELECT jsonb_build_object(
+ 'total',(SELECT count(*) FROM matched),
+ 'items',coalesce((SELECT jsonb_agg(jsonb_build_object(
+   'slug',slug,'listing',name,'endpoint',jsonb_build_object(
+     'candidate_id',id,'method',method,'path',path,'description',description,
+     'category',endpoint_category,'tags',coalesce(tags,'{}'::text[]),
+     'use_cases',coalesce(use_cases,'{}'::text[]))) ORDER BY lower(name),path,id)
+   FROM page),'[]'::jsonb))
+"#)
+        .bind(source_id)
+        .bind(search)
+        .bind(limit as i64)
+        .bind(offset as i64)
+        .fetch_one(pool).await?;
+    mark_available(&mut result, catalog);
+    let count = result["items"].as_array().map(Vec::len).unwrap_or(0);
+    let total = result["total"].as_u64().unwrap_or(0) as usize;
+    result["next_offset"] = json!((offset + count < total).then_some(offset + count));
+    Ok(result)
+}
+
+fn mark_available(result: &mut Value, catalog: &Catalog) {
+    let available: BTreeSet<_> = catalog.services.iter().map(|s| s.endpoint_id.to_string()).collect();
+    if let Some(items) = result["items"].as_array_mut() {
+        for item in items {
+            let accepted = item["endpoint"]["candidate_id"].as_str().is_some_and(|id| available.contains(id));
+            item["endpoint"]["planner_available"] = json!(accepted);
+        }
+    }
+}
 fn selected(filter: &Option<String>, values: impl IntoIterator<Item = impl AsRef<str>>) -> bool {
     filter.as_ref().is_none_or(|f| {
         f.trim().is_empty()
@@ -126,23 +198,19 @@ pub fn directory_name(source: &Source) -> &str {
     }
 }
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
-    // The buyer directory only offers sources the current runtime can execute.
-    // Filter before facets, grouping and pagination so counts and searches never
-    // advertise a blocked listing or a source without an accepted contract.
+    // Keep every verified listing in the directory. Readiness and executable
+    // capabilities remain separate: a discovery-only source is visible, but
+    // cannot be quoted by the planner.
     let executable: BTreeSet<&str> = catalog.services.iter().map(|s| s.api_slug.as_str()).collect();
     let restricted: BTreeSet<&str> = catalog.known_sources.iter()
         .filter(|s| s.block_reason.is_some()).map(|s| s.slug.as_str()).collect();
-    let sources: Vec<&Source> = sources.iter()
-        .filter(|s| executable.contains(s.slug.as_str()) && !restricted.contains(s.slug.as_str()))
-        .collect();
-    let categories: BTreeSet<_> = sources
-        .iter()
-        .map(|s| &s.category)
-        .filter(|s| !s.is_empty())
-        .collect();
+    let sources: Vec<&Source> = sources.iter().collect();
+    let categories: BTreeSet<_> = sources.iter()
+        .flat_map(|s| s.categories.iter().chain(std::iter::once(&s.category)))
+        .filter(|s| !s.is_empty()).collect();
     let tags: BTreeSet<_> = sources.iter().flat_map(|s| &s.tags).collect();
     let sectors: BTreeSet<_> = sources.iter().flat_map(|s| &s.sectors).collect();
-    let capabilities_for = |slug: &str| {
+    let executable_capabilities_for = |slug: &str| {
         catalog
             .services
             .iter()
@@ -150,9 +218,14 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             .map(|s| s.contract.capability_slug.clone())
             .collect::<BTreeSet<_>>()
     };
+    let capabilities_for = |source: &Source| {
+        source.offered_capabilities.iter().cloned()
+            .chain(executable_capabilities_for(&source.slug))
+            .collect::<BTreeSet<_>>()
+    };
     let capabilities: BTreeSet<_> = sources
         .iter()
-        .flat_map(|s| capabilities_for(&s.slug))
+        .flat_map(|s| capabilities_for(s))
         .collect();
     let mut groups: BTreeMap<&str, Vec<(usize, &Source)>> = BTreeMap::new();
     for (index, source) in sources.iter().enumerate() {
@@ -201,16 +274,17 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             .iter()
             .filter_map(|(index, source)| {
                 let haystack = format!(
-                    "{} {} {} {} {} {} {} {} {}",
+                    "{} {} {} {} {} {} {} {} {} {}",
                     directory_name(source),
                     key,
                     source.name,
                     source.slug,
                     source.description,
                     source.category,
+                    source.categories.join(" "),
                     source.tags.join(" "),
                     source.sectors.join(" "),
-                    capabilities_for(&source.slug)
+                    capabilities_for(source)
                         .into_iter()
                         .collect::<Vec<_>>()
                         .join(" ")
@@ -222,10 +296,10 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
                     .filter(|term| haystack.contains(**term))
                     .count();
                 ((terms.is_empty() || score > 0)
-                    && selected(&query.category, [&source.category])
+                    && selected(&query.category, source.categories.iter().chain(std::iter::once(&source.category)))
                     && selected(&query.tag, &source.tags)
                     && selected(&query.sector, &source.sectors)
-                    && selected(&query.capability, capabilities_for(&source.slug)))
+                    && selected(&query.capability, capabilities_for(source)))
                 .then_some((score, *index, *source))
             })
             .collect();
@@ -253,18 +327,22 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         let first = members[0].1;
         let slugs: Vec<_> = members.iter().map(|(_, s)| s.slug.as_str()).collect();
         let services: Vec<_> = catalog.services.iter().filter(|s| slugs.contains(&s.api_slug.as_str())).collect();
-        let capabilities: BTreeSet<_> = services.iter().map(|s| &s.contract.capability_slug).collect();
+        let executable_capabilities: BTreeSet<_> = services.iter().map(|s| &s.contract.capability_slug).collect();
+        let capabilities: BTreeSet<_> = members.iter().flat_map(|(_,s)| capabilities_for(s)).collect();
         let inputs: BTreeSet<_> = services.iter().flat_map(|s| s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type)).collect();
         let grouped = *key == "pulsenetwork";
         let tags: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.tags).collect();
         let sectors: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.sectors).collect();
-        let categories: BTreeSet<_> = members.iter().map(|(_,s)| &s.category).filter(|s| !s.is_empty()).collect();
+        let categories: BTreeSet<_> = members.iter()
+            .flat_map(|(_,s)| s.categories.iter().chain(std::iter::once(&s.category)))
+            .filter(|s| !s.is_empty()).collect();
         let mut row = json!({"slug":key,"provider_slug":first.provider_slug,"logo_url":if grouped {first.provider_logo_url.as_ref().or(first.logo_url.as_ref())} else {first.logo_url.as_ref()},
             "name":directory_name(first),"description":if grouped {"Data services published by Pulse Network."} else {&first.description},
             "category":if grouped {"intelligence"} else {&first.category},"categories":categories,
             "tags":tags,"sectors":sectors,"endpoint_count":members.iter().map(|(_,s)|s.endpoint_count).sum::<i64>(),
             "readiness":crate::readiness::assess(catalog, &slugs),
-            "available_in_v2":!services.is_empty(),"capabilities":capabilities,"input_types":inputs});
+            "available_in_v2":members.iter().any(|(_,s)| !restricted.contains(s.slug.as_str()) && executable.contains(s.slug.as_str())),
+            "capabilities":capabilities,"executable_capabilities":executable_capabilities,"input_types":inputs});
         if grouped {
             row["service_count"] = json!(members.len());
             row["matching_service_count"] = json!(matching.len());
@@ -276,7 +354,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
         "offset":offset,"next_offset":if end < matches.len() {Some(end)} else {None},
         "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
-        "notice":"Browsing is free. Only purchasable sources with executable capabilities are listed. Each source is counted once; services under Pulse Network are not separate sources. Apiosk checks the exact question and price before any purchase."})
+        "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under Pulse Network are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."})
 }
 
 #[cfg(test)]
@@ -369,10 +447,10 @@ mod tests {
         ])).unwrap()
     }
     #[test]
-    fn unavailable_sources_are_removed_before_search_facets_and_pagination() {
+    fn all_verified_sources_are_visible_without_making_uncontracted_calls_purchasable() {
         let mut catalog = catalog();
-        // Everything the runtime can execute belongs to "two". "one" is listed
-        // first in the catalog but must not appear in the buyer directory.
+        // Everything the runtime can execute belongs to "two". "one" is
+        // still discoverable, with its purchase restriction intact.
         for service in &mut catalog.services {
             service.api_slug = "two".into();
         }
@@ -384,11 +462,13 @@ mod tests {
         }];
         let listed = browse(&rows(), &catalog, &SourceQuery::default());
         assert_eq!(listed["sources"][0]["slug"], "two");
-        assert_eq!(listed["sources"].as_array().unwrap().len(), 1);
-        assert_eq!(listed["total"], 1);
-        assert_eq!(listed["catalog_total"], 1);
-        assert_eq!(listed["categories"], json!(["weather"]));
-        assert_eq!(listed["tags"], json!([]));
+        assert_eq!(listed["sources"].as_array().unwrap().len(), 2);
+        assert_eq!(listed["sources"][1]["slug"], "one");
+        assert_eq!(listed["sources"][1]["available_in_v2"], false);
+        assert_eq!(listed["total"], 2);
+        assert_eq!(listed["catalog_total"], 2);
+        assert_eq!(listed["categories"], json!(["finance", "weather"]));
+        assert_eq!(listed["tags"], json!(["registry"]));
         assert!(listed["next_offset"].is_null());
         let searched = browse(
             &rows(),
@@ -398,17 +478,34 @@ mod tests {
                 ..Default::default()
             },
         );
-        assert_eq!(searched["sources"], json!([]));
-        assert_eq!(searched["total"], 0);
+        assert_eq!(searched["sources"][0]["slug"], "one");
+        assert_eq!(searched["total"], 1);
         // An accepted service cannot override an explicit purchase restriction.
         let mut blocked_service = catalog.services[0].clone();
         blocked_service.api_slug = "one".into();
         catalog.services.push(blocked_service);
-        assert_eq!(browse(&rows(), &catalog, &SourceQuery::default())["total"], 1);
+        let restricted = browse(&rows(), &catalog, &SourceQuery::default());
+        assert_eq!(restricted["total"], 2);
+        assert_eq!(restricted["sources"][1]["available_in_v2"], false);
         // Removing the restriction alone does not make an unimplemented source usable.
         catalog.known_sources.clear();
         catalog.services.retain(|s| s.api_slug == "two");
-        assert_eq!(browse(&rows(), &catalog, &SourceQuery::default())["total"], 1);
+        let discovery = browse(&rows(), &catalog, &SourceQuery::default());
+        assert_eq!(discovery["total"], 2);
+        assert_eq!(discovery["sources"][1]["available_in_v2"], false);
+    }
+    #[test]
+    fn offered_capability_is_browsable_without_becoming_executable() {
+        let mut sources = rows();
+        sources[0].offered_capabilities = vec!["filings.sec-search".into()];
+        let catalog = catalog();
+        let result = browse(&sources, &catalog, &SourceQuery {
+            capability: Some("filings.sec-search".into()), ..Default::default()
+        });
+        assert_eq!(result["total"], 1);
+        assert_eq!(result["sources"][0]["slug"], sources[0].slug);
+        assert_eq!(result["sources"][0]["capabilities"], json!(["filings.sec-search"]));
+        assert_eq!(result["sources"][0]["executable_capabilities"], json!([]));
     }
     #[test]
     fn source_query_prefers_the_listings_own_logo() {
@@ -547,5 +644,19 @@ mod tests {
             ..Default::default()
         }
         .valid());
+    }
+    #[test]
+    fn endpoint_index_marks_only_runtime_accepted_contracts_as_selectable() {
+        let catalog = catalog();
+        let accepted = catalog.services[0].endpoint_id;
+        let mut page = json!({"items":[
+            {"endpoint":{"candidate_id":accepted}},
+            {"endpoint":{"candidate_id":uuid::Uuid::new_v4()}}
+        ]});
+        mark_available(&mut page, &catalog);
+        assert_eq!(page["items"][0]["endpoint"]["planner_available"], true);
+        assert_eq!(page["items"][1]["endpoint"]["planner_available"], false);
+        assert!(EndpointQuery {limit:Some(100),..Default::default()}.valid());
+        assert!(!EndpointQuery {limit:Some(101),..Default::default()}.valid());
     }
 }
