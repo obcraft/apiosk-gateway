@@ -97,7 +97,10 @@ pub(crate) fn validate(value: &Value, sources: &[Value]) -> anyhow::Result<Value
             }
         })
         .collect::<anyhow::Result<Vec<_>>>()?;
-    ensure!(headers.iter().all(|header| !header["value"].is_null()), "missing presentation heading");
+    ensure!(
+        headers.iter().all(|header| !header["value"].is_null()),
+        "missing presentation heading"
+    );
     let mut out = json!({"kind":kind,"title":title,"columns":headers});
     let rows = if let Some(pointer) = value["rows_pointer"].as_str() {
         ensure!(
@@ -109,20 +112,17 @@ pub(crate) fn validate(value: &Value, sources: &[Value]) -> anyhow::Result<Value
             .pointer(pointer)
             .and_then(Value::as_array)
             .context("missing presentation records")?;
-        let indices = if let Some(indices) = value.get("row_indices") {
-            indices
-                .as_array()
-                .context("invalid selected rows")?
-                .iter()
-                .map(|i| {
-                    i.as_u64()
-                        .and_then(|i| usize::try_from(i).ok())
-                        .context("invalid row index")
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?
-        } else {
-            (0..records.len().min(200)).collect()
-        };
+        // Absence of a relevance selection must never mean "show the source".
+        let indices = value["row_indices"]
+            .as_array()
+            .context("table requires explicit relevant row_indices")?
+            .iter()
+            .map(|i| {
+                i.as_u64()
+                    .and_then(|i| usize::try_from(i).ok())
+                    .context("invalid row index")
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
         ensure!(
             indices.len() <= 200 && indices.iter().all(|i| *i < records.len()),
             "invalid selected rows"
@@ -206,7 +206,7 @@ mod tests {
     }
     #[test]
     fn overview_selects_saved_rows_and_preserves_missing_values() {
-        let p = json!({"kind":"table","title":"Overview","result_ref":"saved","rows_pointer":"/data/items","columns":[{"label":"Name","pointer":"/name"},{"label":"Amount","pointer":"/amount"},{"label":"Source","pointer":"/url"}]});
+        let p = json!({"kind":"table","title":"Overview","result_ref":"saved","rows_pointer":"/data/items","row_indices":[0,1],"columns":[{"label":"Name","pointer":"/name"},{"label":"Amount","pointer":"/amount"},{"label":"Source","pointer":"/url"}]});
         let output = validate(&p, &sources()).unwrap();
         assert_eq!(output["rows"][0][1]["value"], 12);
         assert_eq!(output["rows"][0][2]["pointer"], "/data/items/0/url");
@@ -219,6 +219,25 @@ mod tests {
         );
         selected["row_indices"] = json!([2]);
         assert!(validate(&selected, &sources()).is_err());
+    }
+    #[test]
+    fn large_source_never_defaults_to_unfiltered_rows_or_columns() {
+        let sources = vec![
+            json!({"result_ref":"saved","document":{"data":{"items":(0..2000).map(|i| json!({"name":format!("Record {i}"),"irrelevant":"internal boilerplate"})).collect::<Vec<_>>()}}}),
+        ];
+        let mut p = json!({"kind":"table","title":"Relevant records","result_ref":"saved","rows_pointer":"/data/items","columns":[{"label":"Name","pointer":"/name"},{"label":"Missing fact","pointer":"/missing"}]});
+        assert!(
+            validate(&p, &sources).is_err(),
+            "a cap on the first rows is not relevance selection"
+        );
+        p["row_indices"] = json!([1999, 42]);
+        let answer = validate(&p, &sources).unwrap();
+        assert_eq!(answer["returned_count"], 2000);
+        assert_eq!(answer["rows"].as_array().unwrap().len(), 2);
+        assert_eq!(answer["rows"][0][0]["value"], "Record 1999");
+        assert!(!answer.to_string().contains("internal boilerplate"));
+        p["row_indices"] = json!([]);
+        assert_eq!(validate(&p, &sources).unwrap()["rows"], json!([]));
     }
     #[test]
     fn comparisons_and_charts_require_saved_values() {

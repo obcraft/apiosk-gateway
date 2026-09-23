@@ -73,5 +73,35 @@ async fn saved_results_choose_the_requested_answer_form() -> anyhow::Result<()> 
                 .is_empty());
         }
     }
+    // A relevance check, not just a row-count cap: the only matching record is
+    // at the end of a large, entirely synthetic source response.
+    let source = json!({"result_ref":"synthetic-large","document":{"source":{"name":"Synthetic test data"},"data":{"items":(0..2000).map(|i| json!({"title":format!("Record {i}"),"topic":if i == 1999 {"charging stations"} else {"office supplies"},"url":format!("https://example.com/{i}"),"debug":"omit"})).collect::<Vec<_>>()}}});
+    let question =
+        "Which records are about charging stations? Show only their title and source link.";
+    let answer = parser
+        .analyze(&json!([question]), &[source.clone()], &BTreeMap::new())
+        .await?;
+    std::fs::write(
+        output.join("selective-large.json"),
+        serde_json::to_vec_pretty(
+            &json!({"question":question,"analysis":answer,"input_records":2000}),
+        )?,
+    )?;
+    assert_eq!(answer["presentation"]["kind"], "table");
+    let rows = answer["presentation"]["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 1, "only the relevant record should be selected");
+    assert_eq!(
+        rows[0].as_array().unwrap().len(),
+        2,
+        "only requested title and source link"
+    );
+    assert!(rows[0]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|cell| cell["pointer"]
+            .as_str()
+            .unwrap()
+            .starts_with("/data/items/1999/")));
     Ok(())
 }
