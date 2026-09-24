@@ -8,12 +8,14 @@
 //! slugs passed through [`label`]: question text, answers, credentials and
 //! error messages cannot enter a telemetry line.
 
+mod classify;
 mod client;
 mod cost;
 mod journey;
 mod names;
 mod persist;
 
+pub use classify::classify;
 pub use client::{Beacon, MAX_BYTES as BEACON_MAX_BYTES};
 pub use cost::{ModelAttempt, Settlement, SourceCall};
 pub use journey::{answer, execution_ended, fully_answered, question, question_failed};

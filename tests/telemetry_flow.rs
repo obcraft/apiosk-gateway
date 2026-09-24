@@ -197,6 +197,7 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     assert_eq!(price["task"], task.as_str());
     assert_eq!(price["steps"], 2);
     assert_eq!(price["parser_cache"], "miss");
+    assert_eq!(price["query_class"], "simple_lookup", "the identifier search only serves the asked lookup");
     let unknown: Vec<_> = ours.iter().filter(|line| line["kind"] != "request" && line["phase"] != "gw.auth" && line["surface"] != "app").collect();
     assert!(unknown.is_empty(), "the App surface is known after auth: {unknown:?}");
     assert!(ours.iter().any(|line| line["kind"] == "client" && line["phases"]["find_to_price"] == 900));
@@ -239,6 +240,7 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     assert_eq!(question.get::<String, _>("segment"), "question");
     assert_eq!(question.get::<String, _>("outcome"), "price_ready");
     assert_eq!(question.get::<String, _>("surface"), "app");
+    assert_eq!(question.get::<String, _>("query_class"), "simple_lookup");
     assert_eq!(question.get::<Option<i16>, _>("source_count"), Some(1));
     assert_eq!(question.get::<Option<i32>, _>("model_calls"), Some(1));
     assert_eq!(question.get::<Option<i64>, _>("model_cost_nanousd"), None, "unpriced, not free");

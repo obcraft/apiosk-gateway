@@ -401,6 +401,7 @@ impl Engine {
             }
         }
         planning.finish(telemetry::Outcome::Ok);
+        telemetry::set_query_class(telemetry::classify(&task));
         self.store.save_intent(p.owner, id, revision, &task).await?;
         let response = self.view(p, id, req.request_id, Some(status)).await?;
         tracing::info!(trace = telemetry::id(), task = %id, quote = response.proposal.as_ref().map(|p| p.quote_ref.to_string()).unwrap_or_default(),
