@@ -8,6 +8,8 @@
 //! steps, cap and order; an answer is its cited facts and presentation
 //! cells. Equal shapes with different content are a regression.
 
+pub mod score;
+
 use crate::{
     catalog::Catalog,
     parser::{Intent, Parser},

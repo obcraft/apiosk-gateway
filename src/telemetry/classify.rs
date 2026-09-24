@@ -16,8 +16,9 @@ const DOSSIER_WORKFLOWS: [&str; 6] = [
     "customer-onboarding",
     crate::workflows::SUPPLIER_CHECK,
 ];
-/// Capability words that return a list of matches rather than one record.
-const LIST_WORDS: [&str; 7] = ["search", "list", "browse", "mentions", "notices", "datasets", "calls"];
+/// Words in a capability or a required input that mark a list of matches
+/// rather than one record: a search, a browse or a free-text query.
+const LIST_WORDS: [&str; 10] = ["search", "list", "browse", "mentions", "notices", "datasets", "calls", "keyword", "query", "q"];
 
 pub fn classify(task: &Task) -> QueryClass {
     let plan = task.proposal.as_ref().and_then(|plan| serde_json::from_value::<Plan>(plan.clone()).ok());
@@ -50,10 +51,12 @@ fn of(intent: &Intent, plan: &Plan, workflow: Option<&str>) -> QueryClass {
     // lookup does not make the question a list; the asked steps decide.
     let asked: Vec<_> = plan.steps.iter().filter(|step| intent.goals.iter().any(|goal| goal.capability == step.service.contract.capability_slug)).collect();
     let steps = if asked.is_empty() { plan.steps.iter().collect() } else { asked };
+    let listing_words = |text: &str| text.split(['.', '-', '_']).any(|word| LIST_WORDS.contains(&word));
     let listing = steps.iter().any(|step| {
         let contract = &step.service.contract;
         contract.cardinality == Cardinality::Many
-            || contract.capability_slug.split(['.', '-', '_']).any(|word| LIST_WORDS.contains(&word))
+            || listing_words(&contract.capability_slug)
+            || contract.requires.iter().any(|input| listing_words(&input.fact_type))
     });
     if listing { QueryClass::SearchList } else { QueryClass::SimpleLookup }
 }
