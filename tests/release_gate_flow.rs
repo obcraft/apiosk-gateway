@@ -45,7 +45,17 @@ struct Fake {
     provider: AtomicU64,
     replayed: AtomicU64,
     /// Calls whose connection dropped before the Edge function settled.
-    parked: Mutex<Vec<(Uuid, String, Value, i64, i64, i64)>>,
+    parked: Mutex<Vec<Parked>>,
+}
+
+/// A paid call the Edge function has not settled yet.
+struct Parked {
+    owner: Uuid,
+    key: String,
+    result: Value,
+    charged: i64,
+    cost: i64,
+    fee: i64,
 }
 
 impl Fake {
@@ -55,8 +65,8 @@ impl Fake {
     /// The Edge function finishes a parked call and writes its ledger entry.
     async fn settle_parked(&self) {
         let parked = std::mem::take(&mut *self.parked.lock().unwrap());
-        for (owner, key, result, charged, cost, fee) in parked {
-            record(&self.pool, owner, &key, &result, charged, cost, fee).await;
+        for call in parked {
+            record(&self.pool, call.owner, &call.key, &call.result, call.charged, call.cost, call.fee).await;
         }
     }
 }
@@ -136,7 +146,7 @@ async fn provider(State(fake): State<Arc<Fake>>, headers: HeaderMap, Json(body):
     match company.as_str() {
         // The connection drops while the upstream call is still running.
         "vanished" => {
-            fake.parked.lock().unwrap().push((owner, key, result, charged, cost, fee));
+            fake.parked.lock().unwrap().push(Parked { owner, key, result, charged, cost, fee });
             cut_off()
         }
         // The call is paid and saved, then the response is lost.
