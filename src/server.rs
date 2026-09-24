@@ -4,6 +4,7 @@ use crate::{
     compat::ExecutorCompat,
     engine::Engine,
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
+    telemetry::Phase,
 };
 use axum::{
     body::Bytes,
@@ -105,6 +106,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         // A scanned invoice page image exceeds the default JSON limit.
         .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
         .route("/v2/documents/:id/read", post(read_document_again).layer(DefaultBodyLimit::max(64 * 1024)))
+        .route("/v2/telemetry", post(telemetry_beacon).layer(DefaultBodyLimit::max(crate::telemetry::BEACON_MAX_BYTES)))
         .route("/v2/workflows", get(workflows))
         .route("/v2/workflows/:slug/start", post(start_workflow))
         .route("/v2/workflows/runs", get(workflow_runs))
@@ -375,7 +377,7 @@ pub(crate) async fn authenticated(state: &ServerState, headers: &HeaderMap) -> R
     let bearer = token(headers).map_err(|_| {
         refusal(StatusCode::UNAUTHORIZED, "unauthorized", "Verbind je account om door te gaan.")
     })?;
-    let mut ctx = state.auth.resolve(bearer).await.map_err(|error| match error {
+    let mut ctx = crate::telemetry::timed(Phase::Auth, crate::auth::credential_kind(bearer), state.auth.resolve(bearer)).await.map_err(|error| match error {
         AuthError::Unauthorized => refusal(
             StatusCode::UNAUTHORIZED,
             "unauthorized",
@@ -393,6 +395,7 @@ pub(crate) async fn authenticated(state: &ServerState, headers: &HeaderMap) -> R
             )
         }
     })?;
+    crate::telemetry::set_surface(crate::telemetry::Surface::of(&ctx));
     if ctx.api_key.is_some() {
         if headers.contains_key("x-apiosk-workspace") {
             return Err(refusal(StatusCode::BAD_REQUEST, "invalid_workspace", "Organisation API keys spend from the organisation's main balance; do not send a workspace."));
@@ -405,8 +408,8 @@ pub(crate) async fn authenticated(state: &ServerState, headers: &HeaderMap) -> R
     if selected.is_some() && !enabled { return Err(refusal(StatusCode::FORBIDDEN,"workspace_unavailable","Workspace execution is not enabled.")); }
     let unconfirmed = || refusal(StatusCode::SERVICE_UNAVAILABLE,"workspace_service_unavailable","Workspace access could not be confirmed. Try again shortly.");
     if enabled && (selected.is_some() || principal.connection.is_some()) {
-        let workspace: serde_json::Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
-            .bind(principal.owner).bind(principal.connection).bind(selected).fetch_one(&state.engine.store.pool).await
+        let workspace: serde_json::Value = crate::telemetry::timed(Phase::Workspace, "gateway_context", sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
+            .bind(principal.owner).bind(principal.connection).bind(selected).fetch_one(&state.engine.store.pool)).await
             .map_err(|error| {
                 if crate::store::is_workspace_access_denied(&error) {
                     refusal(StatusCode::FORBIDDEN,"workspace_access_denied","You no longer have access to this workspace.")
@@ -790,6 +793,19 @@ fn task_view_failure(id: Uuid, error: anyhow::Error) -> HttpResponse {
         )
     }
 }
+/// The App's timings for one question: logged as one line, never stored.
+async fn telemetry_beacon(State(state): State<ServerState>, headers: HeaderMap, Json(beacon): Json<crate::telemetry::Beacon>) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    if let Err(refusal) = app_person(&state, &headers).await {
+        return refusal;
+    }
+    match beacon.record() {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(message) => failure(StatusCode::BAD_REQUEST, "invalid_beacon", message),
+    }
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Approval {
@@ -810,8 +826,8 @@ async fn approve_connection(
     let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
     let result = async {
         state.engine.signer.verify(p.owner, &req.state, false)?;
-        state.engine.executor.approve_connection(&p, req.state.state_ref, req.state.revision,
-            req.quote_ref, &req.max_total_atomic).await?;
+        crate::telemetry::timed(Phase::Approve, "connection", state.engine.executor.approve_connection(&p, req.state.state_ref, req.state.revision,
+            req.quote_ref, &req.max_total_atomic)).await?;
         Ok::<(), anyhow::Error>(())
     }.await;
     match result {
@@ -841,10 +857,10 @@ async fn authorize(
         Ok(p) => p,
         Err(r) => return r,
     };
-    match state
+    match crate::telemetry::timed(Phase::Approve, "app", state
         .engine
         .executor
-        .approve(&p, id, req.quote_ref, &req.max_total_atomic)
+        .approve(&p, id, req.quote_ref, &req.max_total_atomic))
         .await
     {
         Ok(reference) => {

@@ -1,9 +1,10 @@
 use crate::{
     auth::Principal,
-    parser::bounded_json,
+    parser::bounded_json_sized,
     resolver::{Plan, Step},
     state::{digest, Task},
     store::Store,
+    telemetry::{self, Classify, ErrorClass, Milestone, Outcome, Phase, Settlement, SourceStatus},
 };
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -20,6 +21,33 @@ fn selection_metadata(plan: &Plan, task_id: Uuid, action_id: Uuid, inputs: &Valu
         metadata["workflow"] = json!(plan.workflow_slug.as_deref().unwrap_or(crate::workflows::SUPPLIER_CHECK));
     }
     metadata
+}
+
+/// Reports one Edge hop. Money legs are known only when the outcome settles
+/// them: a capture reports its legs, a refusal before reservation is zero.
+fn report_source_call(task: Uuid, step: &Step, status: SourceStatus, edge: Duration, body: Option<&Value>, bytes: Option<usize>, error_class: Option<ErrorClass>) {
+    let leg = |key: &str| match status {
+        SourceStatus::Succeeded => body.and_then(|body| body[key].as_i64()),
+        SourceStatus::RefusedBeforeReservation => Some(0),
+        _ => None,
+    };
+    telemetry::source_call(telemetry::SourceCall {
+        task, api_slug: &step.service.api_slug, capability: &step.service.contract.capability_slug, status,
+        edge_ms: Some(edge.as_millis() as u64), provider_ms: body.and_then(|body| body["duration_ms"].as_u64()),
+        charged_micro_usd: leg("charged_micro_usd"), provider_micro_usd: leg("provider_micro_usd"), fee_micro_usd: leg("fee_micro_usd"),
+        bytes, replayed: body.is_some_and(|body| body["replayed"] == true), error_class,
+    });
+}
+
+/// Why the executor refused a call before reserving any money.
+fn refusal_class(body: &Value) -> ErrorClass {
+    match body["error"].as_str() {
+        Some("insufficient_funds" | "limit_exceeded") => ErrorClass::Budget,
+        Some("rate_limited") => ErrorClass::Busy,
+        Some("unauthorized") => ErrorClass::Unauthorized,
+        Some("invalid_input") => ErrorClass::Validation,
+        _ => ErrorClass::Unsupported,
+    }
 }
 
 pub struct Executor {
@@ -149,7 +177,8 @@ impl Executor {
         sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_budget',$8)")
             .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
         tx.commit().await?;
-        tracing::info!(task = %task_id, quote = %quote, milestone = "approved", "request milestone");
+        tracing::info!(trace = telemetry::id(), task = %task_id, quote = %quote, milestone = "approved", "request milestone");
+        telemetry::milestone(Milestone::Approved, task_id, Some(quote), Default::default());
         Ok(id)
     }
 
@@ -184,7 +213,8 @@ impl Executor {
         let id:Uuid=sqlx::query_scalar("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(task_id,quote_ref) DO UPDATE SET quote_ref=EXCLUDED.quote_ref RETURNING id")
             .bind(proposed_id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
         if id == proposed_id {
-            tracing::info!(task = %task_id, quote = %quote, milestone = "approved", "request milestone");
+            tracing::info!(trace = telemetry::id(), task = %task_id, quote = %quote, milestone = "approved", "request milestone");
+            telemetry::milestone(Milestone::Approved, task_id, Some(quote), Default::default());
         }
         Ok(id)
     }
@@ -207,10 +237,12 @@ impl Executor {
             "paid execution disabled until deployment verification"
         );
         let payload_hash = digest(&(task_id, action_id, &step.service, step.entity_ref, inputs));
+        let reserve = telemetry::span(Phase::DispatchReserve).task(task_id);
         let mut tx = self.store.pool.begin().await?;
         let task=sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE").bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
         if let Some(row)=sqlx::query("SELECT id,payload_hash,status,response FROM executions WHERE owner_id=$1 AND (action_id=$2 OR id=$3)").bind(p.owner).bind(action_id).bind(idempotency).fetch_optional(&mut *tx).await? {
             anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
+            reserve.tag("result", "receipt_replayed").finish(Outcome::Ok);
             let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
         }
         anyhow::ensure!(task.get::<Value, _>("document")["workspace_id"] == json!(p.workspace), "task belongs to another workspace");
@@ -250,6 +282,7 @@ impl Executor {
         // and resumed queued actions cannot bypass the same check.
         let saved: Task = serde_json::from_value(task.get("document"))?;
         if saved.failed_steps.values().any(|failure| failure["code"] == "quote_changed") {
+            reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
             return Ok(Dispatch::Failed { body: json!({
                 "ok":false,"error":"quote_changed","charged_micro_usd":0
             }) });
@@ -266,6 +299,7 @@ impl Executor {
         if remaining.iter().any(|candidate| !catalog.services.iter().any(|current|
             current.id == candidate.service.id
                 && current.version_hash() == candidate.service.version_hash())) {
+            reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
             return Ok(Dispatch::Failed { body: json!({
                 "ok":false,"error":"quote_changed","charged_micro_usd":0
             }) });
@@ -285,10 +319,12 @@ impl Executor {
                 kvk_accounts::Lookup::Ready(_) => {}
                 kvk_accounts::Lookup::Pending { until } => {
                     tx.commit().await?;
+                    reserve.tag("result", "provider_queue").finish(Outcome::Ok);
                     return Ok(Dispatch::Waiting { until });
                 }
                 kvk_accounts::Lookup::Failed { code } => {
                     tx.commit().await?;
+                    reserve.finish(Outcome::Failed(ErrorClass::Unsupported));
                     return Ok(Dispatch::Failed {
                         body: json!({"ok":false,"error":code,"charged_micro_usd":0,
                         "message":"KVK could not supply this annual account. No payment was reserved."}),
@@ -309,18 +345,21 @@ impl Executor {
         sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'dispatching')")
             .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(payload_hash).bind(selection).bind(plan.step_total(step)).execute(&mut *tx).await?;
         tx.commit().await?;
+        reserve.finish(Outcome::Ok);
         let path = if p.connection.is_some() {
             "agent-gateway/v1/run"
         } else {
             "use-selection"
         };
+        let edge = std::time::Instant::now();
         let result=async {
             let r=self.http.post(format!("{}/functions/v1/{path}",self.supabase_url)).bearer_auth(bearer).timeout(Duration::from_secs(8)).json(&json!({"selection_id":selection,"inputs":inputs,"idempotency_key":idempotency,"deterministic":true})).send().await?;
-            bounded_json(r,4*1024*1024).await
+            bounded_json_sized(r,4*1024*1024).await
         }.await;
-        let body = match result {
-            Ok(body) => body,
-            Err(_) => {
+        let (body, edge_bytes) = match result {
+            Ok(received) => received,
+            Err(error) => {
+                report_source_call(task_id, step, SourceStatus::Unresolved, edge.elapsed(), None, None, Some(error.error_class()));
                 sqlx::query("UPDATE executions SET status='unresolved',updated_at=now() WHERE id=$1").bind(idempotency).execute(&self.store.pool).await?;
                 return Ok(Dispatch::Pending {
                     execution_id: idempotency,
@@ -331,6 +370,7 @@ impl Executor {
         if crate::billing::refused_before_reservation(&body) {
             let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM balance_charges WHERE user_id=$1 AND idempotency_key=$2)").bind(p.owner).bind(idempotency.to_string()).fetch_one(&self.store.pool).await?;
             if !exists {
+                report_source_call(task_id, step, SourceStatus::RefusedBeforeReservation, edge.elapsed(), Some(&body), Some(edge_bytes), Some(refusal_class(&body)));
                 sqlx::query("UPDATE executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(idempotency).bind(&body).execute(&self.store.pool).await?;
                 return Ok(Dispatch::Failed { body });
             }
@@ -339,6 +379,8 @@ impl Executor {
         // Unknown failures retain allocation. Only the ledger can prove zero
         // spent. Poll/reconciliation reads that ledger; never redispatch here.
         let status = if succeeded { "succeeded" } else { "unresolved" };
+        report_source_call(task_id, step, if succeeded { SourceStatus::Succeeded } else { SourceStatus::Unresolved }, edge.elapsed(), Some(&body), Some(edge_bytes),
+            (!succeeded).then_some(if body["ok"] == true { ErrorClass::Validation } else { ErrorClass::Upstream5xx }));
         anyhow::ensure!(
             actual.is_none_or(|n| n >= 0 && n <= plan.step_total(step)),
             "executor returned invalid cost; reconcile before continuing"
@@ -356,6 +398,7 @@ impl Executor {
         }
     }
     pub async fn poll(&self, p: &Principal, task: Uuid, id: Uuid) -> anyhow::Result<Option<Value>> {
+        telemetry::poll();
         let row=sqlx::query("SELECT status,response FROM executions WHERE id=$1 AND owner_id=$2 AND task_id=$3").bind(id).bind(p.owner).bind(task).fetch_one(&self.store.pool).await?;
         if row.get::<String, _>("status") == "succeeded" {
             return Ok(row.get("response"));
@@ -379,6 +422,7 @@ impl Executor {
                         "ledger price breakdown requires reconciliation"
                     );
                     sqlx::query("UPDATE executions SET status='succeeded',actual_atomic=$2,response=$3,updated_at=now() WHERE id=$1").bind(id).bind(actual).bind(&body).execute(&self.store.pool).await?;
+                    telemetry::settled(Settlement::Charged { charged_micro_usd: actual, provider_micro_usd: body["provider_micro_usd"].as_i64(), fee_micro_usd: body["fee_micro_usd"].as_i64() });
                     return Ok(Some(body));
                 }
             }
@@ -387,6 +431,7 @@ impl Executor {
                     .bind(c.get::<Uuid,_>("id")).bind(p.owner).fetch_optional(&self.store.pool).await?.flatten();
                 let body = crate::billing::refunded_failure(&failed.unwrap_or(Value::Null));
                 sqlx::query("UPDATE executions SET status='failed',actual_atomic=0,response=$2,updated_at=now() WHERE id=$1").bind(id).bind(&body).execute(&self.store.pool).await?;
+                telemetry::settled(Settlement::Refunded { refunded_micro_usd: c.get::<Option<i64>, _>("charged_micro_usd") });
                 return Ok(Some(body));
             }
         }

@@ -195,6 +195,7 @@ impl Store {
         quote: Option<Uuid>,
         cap: i64,
     ) -> anyhow::Result<Value> {
+        let _db = crate::telemetry::db("billing");
         let rows=sqlx::query("SELECT e.id,e.status execution_status,e.reserved_atomic,e.response,c.id receipt_ref,c.status ledger_status,c.charged_micro_usd,c.actual_provider_micro_usd,c.provider_price_micro_usd,c.fee_micro_usd FROM executions e JOIN authorizations a ON a.id=e.authorization_id LEFT JOIN balance_charges c ON c.user_id=e.owner_id AND c.idempotency_key=e.id::text WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref=$3 ORDER BY e.created_at,e.id")
             .bind(owner).bind(task).bind(quote).fetch_all(&self.pool).await?;
         // The existing balance projection already deducts held reservations.

@@ -38,12 +38,14 @@ pub enum Claim {
 impl Store {
     pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> { self.list_tasks_scoped(owner,None).await }
     pub async fn list_tasks_scoped(&self, owner: Uuid, workspace: Option<Uuid>) -> anyhow::Result<Vec<Value>> {
+        let _db = crate::telemetry::db("tasks.list");
         // Summaries only, bounded and ordered through tasks_owner_recent.
         Ok(sqlx::query_scalar(
             "SELECT jsonb_build_object('id',id,'title',left(coalesce(nullif(document #>> '{conversation,0,question}',''),nullif(document #>> '{proposal,label}',''),'Untitled chat'),160),'updated_at',updated_at) FROM tasks WHERE owner_id=$1 AND (document->>'workspace_id')::uuid IS NOT DISTINCT FROM $2 AND expires_at>now() AND (jsonb_array_length(coalesce(document->'conversation','[]'::jsonb))>0 OR document->'intent' <> 'null'::jsonb) ORDER BY updated_at DESC,id DESC LIMIT 100",
         ).bind(owner).bind(workspace).fetch_all(&self.pool).await?)
     }
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
+        let _db = crate::telemetry::db("requests.claim");
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))")
             .bind(owner.to_string())
@@ -67,6 +69,7 @@ impl Store {
         Ok(Claim::New)
     }
     pub async fn finish(&self, owner: Uuid, response: &Response) -> anyhow::Result<()> {
+        let _db = crate::telemetry::db("requests.finish");
         sqlx::query(
             "UPDATE requests SET response=$3 WHERE owner_id=$1 AND request_id=$2",
         )
@@ -81,6 +84,7 @@ impl Store {
         self.create_scoped(owner, connection, None).await
     }
     pub async fn create_scoped(&self, owner: Uuid, connection: Option<Uuid>, workspace: Option<Uuid>) -> anyhow::Result<Uuid> {
+        let _db = crate::telemetry::db("tasks.create");
         let id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO tasks(id,owner_id,connection_id,document) VALUES($1,$2,$3,$4)",
@@ -95,6 +99,7 @@ impl Store {
     }
     pub async fn check_workspace(&self, p: &crate::auth::Principal) -> anyhow::Result<()> {
         if p.workspace.is_some() {
+            let _db = crate::telemetry::db("workspace_ctx");
             let _: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
                 .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await.map_err(workspace_error)?;
         }
@@ -102,6 +107,7 @@ impl Store {
     }
     pub async fn check_spending(&self, p: &crate::auth::Principal) -> anyhow::Result<()> {
         if p.workspace.is_some() {
+            let _db = crate::telemetry::db("workspace_ctx");
             let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)")
                 .bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.pool).await?;
             anyhow::ensure!(ctx["can_spend"] == true, "workspace spending is not permitted");
@@ -117,6 +123,7 @@ impl Store {
         Ok(row)
     }
     pub async fn load(&self, owner: Uuid, id: Uuid) -> anyhow::Result<(i64, Task, Option<Uuid>)> {
+        let _db = crate::telemetry::db("tasks.load");
         let row=sqlx::query("SELECT revision,document,connection_id FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now()")
             .bind(id).bind(owner).fetch_optional(&self.pool).await?.ok_or(StoreAccessError::TaskUnavailable)?;
         Ok((
@@ -132,6 +139,7 @@ impl Store {
         revision: i64,
         task: &Task,
     ) -> anyhow::Result<i64> {
+        let _db = crate::telemetry::db("tasks.save");
         anyhow::ensure!(task.bounded(), "task capacity reached; start a new task");
         let n=sqlx::query("UPDATE tasks SET document=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$3 AND (document->>'workspace_id') IS NOT DISTINCT FROM ($4::jsonb->>'workspace_id') AND expires_at>now()")
             .bind(id).bind(owner).bind(revision).bind(serde_json::to_value(task)?).execute(&self.pool).await?.rows_affected();
@@ -142,6 +150,7 @@ impl Store {
     /// Attach paid outcomes even when cancellation wins a race with a worker.
     /// Other state changes still conflict; cancellation never discards receipts.
     pub async fn save_progress(&self, owner: Uuid, id: Uuid, revision: i64, progress: &Task) -> anyhow::Result<i64> {
+        let _db = crate::telemetry::db("tasks.save_progress");
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
             .bind(id).bind(owner).fetch_one(&mut *tx).await?;
@@ -176,6 +185,7 @@ impl Store {
         revision: i64,
         task: &Task,
     ) -> anyhow::Result<i64> {
+        let _db = crate::telemetry::db("tasks.save_intent");
         anyhow::ensure!(task.bounded(), "task capacity reached");
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT id FROM tasks WHERE id=$1 AND owner_id=$2 FOR UPDATE")
@@ -196,6 +206,7 @@ impl Store {
         Ok(revision + 1)
     }
     pub async fn result(&self, owner: Uuid, task: Uuid, id: Uuid) -> anyhow::Result<Value> {
+        let _db = crate::telemetry::db("results.one");
         Ok(sqlx::query_scalar("SELECT r.document FROM results r JOIN tasks t ON t.id=r.task_id WHERE r.id=$1 AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
             .bind(id).bind(owner).bind(task).fetch_one(&self.pool).await?)
     }
@@ -203,6 +214,7 @@ impl Store {
     /// as `result`. A missing reference fails instead of hiding a saved result.
     pub async fn results(&self, owner: Uuid, task: Uuid, ids: &[Uuid]) -> anyhow::Result<BTreeMap<Uuid, Value>> {
         if ids.is_empty() { return Ok(BTreeMap::new()); }
+        let _db = crate::telemetry::db("results.batch");
         let ids: Vec<_> = ids.iter().copied().collect::<BTreeSet<_>>().into_iter().collect();
         let rows: Vec<(Uuid, Value)> = sqlx::query_as("SELECT r.id,r.document FROM results r JOIN tasks t ON t.id=r.task_id WHERE r.id=ANY($1) AND r.owner_id=$2 AND r.task_id=$3 AND t.expires_at>now()")
             .bind(&ids).bind(owner).bind(task).fetch_all(&self.pool).await?;
@@ -212,6 +224,7 @@ impl Store {
     /// Compatibility lookup for pre-timeline tasks. Uses requests_owner_time
     /// and the task's creation bound; returns only presentation metadata.
     pub async fn original_result_turn(&self, owner: Uuid, task: Uuid, result: Uuid) -> anyhow::Result<Option<Value>> {
+        let _db = crate::telemetry::db("requests.legacy_turn");
         Ok(sqlx::query_scalar("SELECT jsonb_build_object('conversation',r.response->'context_view'->'conversation','proposal',r.response->'proposal') FROM requests r WHERE r.owner_id=$1 AND r.created_at >= (SELECT created_at FROM tasks WHERE id=$2 AND owner_id=$1 AND expires_at>now()) AND r.response->'state'->>'state_ref'=$2::text AND (r.response->'context_view'->'result_refs') ? $3 ORDER BY r.created_at LIMIT 1")
             .bind(owner).bind(task).bind(result.to_string()).fetch_optional(&self.pool).await?)
     }

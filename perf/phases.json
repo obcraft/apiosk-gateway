@@ -57,8 +57,8 @@
     "provider_wait": { "server": ["gw.edge_hop:provider_ms", "gw.cooldown_wait:ms"], "kind": "provider", "budgeted": false }
   },
   "client_phases": {
-    "ui.session": { "from": "find_click", "to": "session_ready" },
-    "ui.workspace": { "from": "session_ready", "to": "workspace_ready" },
+    "ui.workspace": { "from": "find_click", "to": "workspace_ready" },
+    "ui.session": { "from": "workspace_ready", "to": "session_ready" },
     "ui.chat_request": { "from": "chat_sent", "to": "chat_received" },
     "ui.price_render": { "from": "chat_received", "to": "price_painted" },
     "ui.authorize_request": { "from": "approve_click", "to": "authorize_received" },

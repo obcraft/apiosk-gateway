@@ -275,12 +275,11 @@ impl Client {
     async fn evaluate(&self, surface: &'static str, request: Value) -> anyhow::Result<Answers> {
         let payload = json!({"model":self.config.model,"state":request["state"],"questions":request["questions"]});
         // Byte limits are conservative transport bounds, not tokenizer estimates.
-        anyhow::ensure!(
-            serde_json::to_vec(&payload)?.len() <= 96 * 1024,
-            "request_too_large"
-        );
+        let input_bytes = serde_json::to_vec(&payload)?.len();
+        anyhow::ensure!(input_bytes <= 96 * 1024, "request_too_large");
         let started = std::time::Instant::now();
         self.usage.request();
+        let mut call = crate::telemetry::model_call(surface, 1, &self.config.model, input_bytes);
         let response = self
             .http
             .post(&self.config.url)
@@ -294,9 +293,11 @@ impl Client {
             "typesafe_http_status: {}",
             response.status().as_u16()
         );
-        let body = crate::parser::bounded_json(response, 128 * 1024).await?;
+        let (body, output_bytes) = crate::parser::bounded_json_sized(response, 128 * 1024).await?;
         self.usage.typesafe(&body);
+        call.received(&body, output_bytes);
         let answers = validate_answers(&body, &payload["questions"])?;
+        call.finish(crate::telemetry::Outcome::Ok, "validated");
         tracing::info!(
             surface,
             model = body["model"].as_str().unwrap_or_default(),

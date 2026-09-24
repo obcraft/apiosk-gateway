@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 impl Store {
     pub async fn money_display(&self, owner: Uuid) -> Value {
+        let _db = crate::telemetry::db("money_display");
         let row: Result<Value, sqlx::Error> = async {
             let mut tx = self.pool.begin().await?;
             // Transaction-local RLS identity cannot leak to another pooled request.

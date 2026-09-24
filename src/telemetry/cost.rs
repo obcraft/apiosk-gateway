@@ -69,7 +69,7 @@ counters!(
     source_refunds, refunded_micro_usd, source_retries, polls, replayed,
     charged_reported, provider_reported, fee_reported,
     customer_charged_micro_usd, provider_micro_usd, fee_micro_usd,
-    db_calls, db_ms, db_bytes_read, edge_bytes, sse_events, sse_bytes,
+    db_calls, db_ms, edge_bytes, sse_events, sse_bytes,
 );
 
 fn add(counter: &AtomicU64, value: u64) {
@@ -129,8 +129,23 @@ impl CostRecord {
         add_money(&self.fee_micro_usd, &self.fee_reported, call.fee_micro_usd);
         add(&self.edge_bytes, call.bytes.unwrap_or(0) as u64);
     }
-    pub(crate) fn refund(&self, micro_usd: i64) {
-        add(&self.refunded_micro_usd, micro_usd.max(0) as u64);
+    /// A call that was unresolved at dispatch and settled later by a ledger
+    /// poll: its money legs become known, or it was refunded.
+    pub(crate) fn settle(&self, settlement: &Settlement) {
+        match settlement {
+            Settlement::Charged { charged_micro_usd, provider_micro_usd, fee_micro_usd } => {
+                add_money(&self.customer_charged_micro_usd, &self.charged_reported, Some(*charged_micro_usd));
+                add_money(&self.provider_micro_usd, &self.provider_reported, *provider_micro_usd);
+                add_money(&self.fee_micro_usd, &self.fee_reported, *fee_micro_usd);
+            }
+            Settlement::Refunded { refunded_micro_usd } => {
+                add(&self.source_refunds, 1);
+                add(&self.refunded_micro_usd, refunded_micro_usd.unwrap_or(0).max(0) as u64);
+                add(&self.charged_reported, 1);
+                add(&self.provider_reported, 1);
+                add(&self.fee_reported, 1);
+            }
+        }
     }
     pub(crate) fn source_retry(&self) {
         add(&self.source_retries, 1);
@@ -138,10 +153,9 @@ impl CostRecord {
     pub(crate) fn poll(&self) {
         add(&self.polls, 1);
     }
-    pub(crate) fn db(&self, elapsed: Duration, bytes: usize) {
+    pub(crate) fn db(&self, elapsed: Duration) {
         add(&self.db_calls, 1);
         add(&self.db_ms, elapsed.as_millis() as u64);
-        add(&self.db_bytes_read, bytes as u64);
     }
     pub(crate) fn sse(&self, bytes: usize) {
         add(&self.sse_events, 1);
@@ -149,7 +163,15 @@ impl CostRecord {
     }
 }
 
-/// The numeric usage fields of an OpenAI-compatible envelope.
+/// How an unresolved paid call settled when the ledger was polled.
+pub enum Settlement {
+    Charged { charged_micro_usd: i64, provider_micro_usd: Option<i64>, fee_micro_usd: Option<i64> },
+    /// Nothing is charged after a refund; the refunded amount, when known.
+    Refunded { refunded_micro_usd: Option<i64> },
+}
+
+/// The numeric usage fields of an OpenAI-compatible envelope, or of the
+/// typesafe endpoint's `input_tokens`/`output_tokens`.
 pub(crate) struct Usage {
     pub prompt: Option<u64>,
     pub completion: Option<u64>,
@@ -161,8 +183,8 @@ impl Usage {
     pub(crate) fn read(body: &Value) -> Self {
         let usage = &body["usage"];
         Self {
-            prompt: usage["prompt_tokens"].as_u64(),
-            completion: usage["completion_tokens"].as_u64(),
+            prompt: usage["prompt_tokens"].as_u64().or_else(|| usage["input_tokens"].as_u64()),
+            completion: usage["completion_tokens"].as_u64().or_else(|| usage["output_tokens"].as_u64()),
             cached: usage["prompt_tokens_details"]["cached_tokens"].as_u64(),
             reasoning: usage["completion_tokens_details"]["reasoning_tokens"].as_u64(),
             cost_nanousd: usage["cost"].as_f64().filter(|cost| cost.is_finite() && *cost >= 0.0).map(|cost| (cost * 1e9).round() as u64),
@@ -184,7 +206,7 @@ impl CostSnapshot {
     /// Anything a cost line should report. Infrastructure counters alone are
     /// carried by the request line.
     pub(crate) fn has_cost(&self) -> bool {
-        self.model_attempts + self.source_calls + self.source_retries + self.polls + self.refunded_micro_usd > 0
+        self.model_attempts + self.source_calls + self.source_retries + self.polls + self.source_refunds + self.charged_reported > 0
     }
     pub(crate) fn model_json(&self) -> Value {
         let attempts = self.model_attempts;
@@ -221,7 +243,7 @@ impl CostSnapshot {
         })
     }
     pub(crate) fn infra_json(&self) -> Value {
-        json!({"db_calls": self.db_calls, "db_ms": self.db_ms, "db_bytes_read": self.db_bytes_read,
+        json!({"db_calls": self.db_calls, "db_ms": self.db_ms,
             "edge_bytes": self.edge_bytes, "sse_events": self.sse_events, "sse_bytes": self.sse_bytes})
     }
 }
@@ -300,14 +322,21 @@ mod tests {
             fee_micro_usd: fee, bytes: Some(2048), replayed: false, error_class: None };
         record.source(&call(SourceStatus::Succeeded, Some(54_348), Some(47_259), Some(7_089)));
         record.source(&call(SourceStatus::Unresolved, None, None, None));
-        record.refund(12);
+        record.source(&call(SourceStatus::Unresolved, None, None, None));
+        record.settle(&Settlement::Refunded { refunded_micro_usd: Some(12) });
         let sources = record.take().source_json();
         assert_eq!(sources["customer_charged_micro_usd"], 54_348);
         assert_eq!(sources["provider_micro_usd"], 47_259);
         assert_eq!(sources["fee_micro_usd"], 7_089);
-        assert_eq!(sources["source_unresolved"], 1);
+        assert_eq!(sources["source_unresolved"], 2);
+        assert_eq!(sources["source_refunds"], 1);
         assert_eq!(sources["refunded_micro_usd"], 12);
-        assert_eq!(sources["charged_complete"], false, "the unresolved call's charge is unknown");
+        assert_eq!(sources["charged_complete"], false, "one unresolved call's charge is still unknown");
+        record.source(&call(SourceStatus::Unresolved, None, None, None));
+        record.settle(&Settlement::Charged { charged_micro_usd: 100, provider_micro_usd: Some(87), fee_micro_usd: Some(13) });
+        let settled = record.take().source_json();
+        assert_eq!(settled["customer_charged_micro_usd"], 100);
+        assert_eq!(settled["charged_complete"], true, "the poll made the charge known");
         assert_eq!(source_line(&call(SourceStatus::Succeeded, None, None, None))["overhead_ms"], 200);
     }
 

@@ -1,4 +1,4 @@
-use crate::{auth::Principal, protocol::Status, server::ServerState};
+use crate::{auth::Principal, protocol::Status, server::ServerState, telemetry::{self, Outcome, Phase}};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -92,6 +92,8 @@ pub async fn task_events(
     {
         return StatusCode::FORBIDDEN.into_response();
     }
+    telemetry::set_surface(if access.connection.is_some() { telemetry::Surface::ConnectedAgent } else { telemetry::Surface::App });
+    telemetry::bind(id, None);
     let Ok(permit) = STREAMS
         .get_or_init(|| std::sync::Arc::new(tokio::sync::Semaphore::new(128)))
         .clone()
@@ -111,8 +113,10 @@ pub async fn task_events(
     };
     bound_cache(&mut documents);
     let (sender, receiver) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(2);
-    crate::telemetry::spawn(async move {
+    telemetry::spawn(async move {
         let _permit = permit;
+        let stream = telemetry::span(Phase::SseStream).task(id);
+        let (mut events, mut deltas, mut probes) = (0u64, 0u64, 0u64);
         let mut next = initial;
         let mut previous = None;
         let mut snapshot = None;
@@ -130,16 +134,20 @@ pub async fn task_events(
                     next.status,
                     Status::NeedsInput | Status::NeedsSelection | Status::Succeeded | Status::Partial | Status::Cancelled | Status::Failed | Status::Unsupported
                 ) && next.context_view["worker_active"] != true;
-                let event = if access.compact {
+                let (kind, data) = if access.compact {
                     let Ok(full) = serde_json::to_value(&next) else { break; };
                     let update = snapshot.as_ref().map(|previous| delta(previous, &full));
-                    let event = Event::default().event(if update.is_some() { "task_delta" } else { "task" }).json_data(update.as_ref().unwrap_or(&full));
+                    let data = serde_json::to_string(update.as_ref().unwrap_or(&full));
                     snapshot = Some(full);
-                    event
+                    (if update.is_some() { "task_delta" } else { "task" }, data)
                 } else {
-                    Event::default().event("task").json_data(&next)
+                    ("task", serde_json::to_string(&next))
                 };
-                let Ok(event) = event else { break; };
+                let Ok(data) = data else { break; };
+                telemetry::sse(data.len());
+                events += 1;
+                deltas += u64::from(kind == "task_delta");
+                let event = Event::default().event(kind).data(data);
                 if sender.send(Ok(event)).await.is_err() || terminal {
                     break;
                 }
@@ -153,8 +161,9 @@ pub async fn task_events(
                 _ = tokio::time::sleep(Duration::from_millis(750)) => {},
             }
             if state.engine.store.check_workspace(&p).await.is_err() { break; }
-            let version: Result<serde_json::Value,_> = sqlx::query_scalar("SELECT jsonb_build_array(t.revision,EXISTS(SELECT 1 FROM execution_leases l WHERE l.task_id=t.id AND l.expires_at>now()),EXISTS(SELECT 1 FROM authorizations a WHERE a.task_id=t.id AND a.owner_id=t.owner_id AND a.quote_ref::text=t.document#>>'{proposal,quote_ref}' AND a.revoked_at IS NULL AND a.expires_at>now())) FROM tasks t WHERE t.id=$1 AND t.owner_id=$2 AND t.expires_at>now()")
-                .bind(id).bind(p.owner).fetch_one(&state.engine.store.pool).await;
+            probes += 1;
+            let version: Result<serde_json::Value,_> = telemetry::timed_db("sse_probe", sqlx::query_scalar("SELECT jsonb_build_array(t.revision,EXISTS(SELECT 1 FROM execution_leases l WHERE l.task_id=t.id AND l.expires_at>now()),EXISTS(SELECT 1 FROM authorizations a WHERE a.task_id=t.id AND a.owner_id=t.owner_id AND a.quote_ref::text=t.document#>>'{proposal,quote_ref}' AND a.revoked_at IS NULL AND a.expires_at>now())) FROM tasks t WHERE t.id=$1 AND t.owner_id=$2 AND t.expires_at>now()")
+                .bind(id).bind(p.owner).fetch_one(&state.engine.store.pool)).await;
             let current = serde_json::json!([
                 next.state.as_ref().map(|s| s.revision),
                 next.context_view["worker_active"],
@@ -172,6 +181,8 @@ pub async fn task_events(
                 Err(_) => break,
             }
         }
+        stream.measure("events", events).measure("delta_events", deltas).measure("probes", probes).finish(Outcome::Ok);
+        telemetry::flush();
     });
     let mut response = Sse::new(ReceiverStream::new(receiver))
         .keep_alive(KeepAlive::new().interval(Duration::from_secs(15)))

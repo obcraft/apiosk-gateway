@@ -422,17 +422,25 @@ impl CatalogCache {
         }
     }
     pub async fn get(&self) -> anyhow::Result<Arc<Catalog>> {
+        use crate::telemetry::{Cache, ErrorClass, Outcome};
+        let state = if self.cache.contains_key(&0) { Cache::Hit } else if self.last_catalog.read().unwrap().is_some() { Cache::RefreshWait } else { Cache::FirstLoad };
+        let read = crate::telemetry::catalog(state);
         match self.cache.try_get_with(0, self.fresh()).await {
             Ok(catalog) => {
                 *self.last_catalog.write().unwrap() = Some(catalog.clone());
+                read.finish(Outcome::Ok);
                 Ok(catalog)
             }
             Err(error) => match self.last_catalog.read().unwrap().clone() {
                 Some(stale) => {
+                    read.stale();
                     tracing::warn!(error = %error, "catalog refresh failed; serving the last loaded catalog");
                     Ok(stale)
                 }
-                None => Err(anyhow::anyhow!("catalog unavailable: {error}")),
+                None => {
+                    read.finish(Outcome::Failed(ErrorClass::Db));
+                    Err(anyhow::anyhow!("catalog unavailable: {error}"))
+                }
             },
         }
     }

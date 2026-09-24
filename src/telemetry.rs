@@ -8,10 +8,14 @@
 //! slugs passed through [`label`]: question text, answers, credentials and
 //! error messages cannot enter a telemetry line.
 
+mod client;
 mod cost;
+mod journey;
 mod names;
 
-pub use cost::{ModelAttempt, SourceCall};
+pub use client::{Beacon, MAX_BYTES as BEACON_MAX_BYTES};
+pub use cost::{ModelAttempt, Settlement, SourceCall};
+pub use journey::{answer, fully_answered, question, question_failed};
 pub use names::{label, Cache, ErrorClass, Milestone, Phase, QueryClass, Segment, SourceStatus, Surface};
 
 use axum::{
@@ -81,6 +85,7 @@ pub struct Trace {
     segment: Slot,
     catalog_cache: Slot,
     parser_cache: Slot,
+    query_class: Slot,
     task: Mutex<Option<Uuid>>,
     quote: Mutex<Option<Uuid>>,
     db: Mutex<BTreeMap<&'static str, (u64, u64)>>,
@@ -95,6 +100,7 @@ impl Trace {
             segment: Slot::new(),
             catalog_cache: Slot::new(),
             parser_cache: Slot::new(),
+            query_class: Slot::new(),
             task: Mutex::new(None),
             quote: Mutex::new(None),
             db: Mutex::new(BTreeMap::new()),
@@ -112,6 +118,9 @@ impl Trace {
     }
     pub fn parser_cache(&self) -> Option<Cache> {
         self.parser_cache.get(Cache::ALL)
+    }
+    pub fn query_class(&self) -> Option<QueryClass> {
+        self.query_class.get(QueryClass::ALL)
     }
     pub fn task(&self) -> Option<Uuid> {
         *self.task.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -161,11 +170,41 @@ pub fn set_surface(surface: Surface) {
 pub fn set_segment(segment: Segment) {
     with(|trace| trace.segment.set(Segment::ALL, segment));
 }
+/// Records how the catalog answered. A hit never hides an earlier wait in
+/// the same request, so the trace keeps its first non-hit state.
 pub fn set_catalog_cache(cache: Cache) {
-    with(|trace| trace.catalog_cache.set(Cache::ALL, cache));
+    with(|trace| {
+        let current = trace.catalog_cache();
+        if matches!(current, None | Some(Cache::Hit)) || cache == Cache::StaleServed {
+            trace.catalog_cache.set(Cache::ALL, cache);
+        }
+    });
+}
+
+/// One catalog read. A hit only marks the trace; waiting for a load, or
+/// serving the last catalog after a failed refresh, is also a span.
+pub fn catalog(state: Cache) -> CatalogRead {
+    set_catalog_cache(state);
+    CatalogRead((state != Cache::Hit).then(|| span(Phase::Catalog).tag("catalog_cache", state.as_str())))
+}
+pub struct CatalogRead(Option<Span>);
+impl CatalogRead {
+    pub fn finish(self, outcome: Outcome) {
+        if let Some(span) = self.0 {
+            span.finish(outcome);
+        }
+    }
+    /// The refresh failed and the last loaded catalog was served instead.
+    pub fn stale(self) {
+        set_catalog_cache(Cache::StaleServed);
+        self.0.unwrap_or_else(|| span(Phase::Catalog)).tag("catalog_cache", Cache::StaleServed.as_str()).finish(Outcome::Failed(ErrorClass::Db));
+    }
 }
 pub fn set_parser_cache(cache: Cache) {
     with(|trace| trace.parser_cache.set(Cache::ALL, cache));
+}
+pub fn set_query_class(class: QueryClass) {
+    with(|trace| trace.query_class.set(QueryClass::ALL, class));
 }
 /// Joins the trace's later lines to a task and, once priced, its quote.
 pub fn bind(task: Uuid, quote: Option<Uuid>) {
@@ -209,6 +248,28 @@ impl Classify for reqwest::Error {
             Some(status) => ErrorClass::upstream(status.as_u16()),
             None if self.is_timeout() => ErrorClass::Timeout,
             None => ErrorClass::Transport,
+        }
+    }
+}
+impl Classify for crate::auth::AuthError {
+    fn error_class(&self) -> ErrorClass {
+        use crate::auth::AuthError;
+        match self {
+            AuthError::Unauthorized => ErrorClass::Unauthorized,
+            AuthError::Refused(_) => ErrorClass::Forbidden,
+            AuthError::Unavailable(_) => ErrorClass::Upstream5xx,
+        }
+    }
+}
+impl Surface {
+    /// The surface an authenticated caller reached the gateway through.
+    pub fn of(ctx: &crate::auth::AuthContext) -> Self {
+        if ctx.api_key.is_some() {
+            Surface::PublicApi
+        } else if ctx.principal.is_person() {
+            Surface::App
+        } else {
+            Surface::ConnectedAgent
         }
     }
 }
@@ -270,8 +331,11 @@ impl Span {
         self.fields.insert(key.to_owned(), json!(value));
         self
     }
-    pub fn elapsed(&self) -> Duration {
-        self.started.elapsed()
+    /// Measures from an earlier instant, for a phase that began before the
+    /// code that can report it.
+    pub fn since(mut self, started: Instant) -> Self {
+        self.started = started;
+        self
     }
     pub fn finish(mut self, outcome: Outcome) {
         self.emit(outcome);
@@ -306,23 +370,73 @@ pub async fn timed<T, E: Classify>(phase: Phase, label: &'static str, work: impl
     result
 }
 
-/// Adds one instrumented database call to the trace. Reported per request
-/// (`db_calls`, `db_ms`, per label), as a lower bound of all database time.
-pub fn db(label: &'static str, elapsed: Duration, bytes: usize) {
+fn record_db(label: &'static str, elapsed: Duration) {
     with(|trace| {
-        trace.cost.db(elapsed, bytes);
+        trace.cost.db(elapsed);
         let mut labels = trace.db.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         let entry = labels.entry(label).or_default();
         entry.0 += 1;
         entry.1 += elapsed.as_millis() as u64;
     });
 }
-/// Times one database call for [`db`].
+/// Times one instrumented database operation until the guard drops: bind it
+/// for the whole store method, `let _db = telemetry::db("tasks.load");`.
+/// Reported per request (`db_calls`, `db_ms`, per label) as a lower bound of
+/// all database time, never per call.
+pub fn db(label: &'static str) -> DbCall {
+    DbCall { label, started: Instant::now() }
+}
+pub struct DbCall {
+    label: &'static str,
+    started: Instant,
+}
+impl Drop for DbCall {
+    fn drop(&mut self) {
+        record_db(self.label, self.started.elapsed());
+    }
+}
+/// Times one inline database query for [`db`].
 pub async fn timed_db<T>(label: &'static str, work: impl Future<Output = T>) -> T {
-    let started = Instant::now();
-    let result = work.await;
-    db(label, started.elapsed(), 0);
-    result
+    let _db = db(label);
+    work.await
+}
+
+/// Starts one model HTTP attempt. Record the response envelope when it
+/// arrives and finish with the outcome. An attempt abandoned at a stage
+/// deadline reports on drop as failed with unknown usage, so the trace's
+/// token totals stay marked incomplete instead of missing a billed call.
+pub fn model_call(surface: &'static str, attempt: u8, model: &str, input_bytes: usize) -> ModelCall {
+    ModelCall { surface, attempt, model: label(model).to_owned(), input_bytes, envelope: None, output_bytes: 0, started: Instant::now(), finished: false }
+}
+pub struct ModelCall {
+    surface: &'static str,
+    attempt: u8,
+    model: String,
+    input_bytes: usize,
+    envelope: Option<Value>,
+    output_bytes: usize,
+    started: Instant,
+    finished: bool,
+}
+impl ModelCall {
+    /// Keeps only the response's usage and provider slug, never its content.
+    pub fn received(&mut self, body: &Value, output_bytes: usize) {
+        self.envelope = Some(json!({"usage": body["usage"], "provider": body["provider"]}));
+        self.output_bytes = output_bytes;
+    }
+    /// Reports the attempt once; later calls are ignored.
+    pub fn finish(&mut self, outcome: Outcome, reason: &'static str) {
+        if std::mem::replace(&mut self.finished, true) {
+            return;
+        }
+        model_attempt(ModelAttempt { surface: self.surface, attempt: self.attempt, model: &self.model, body: self.envelope.as_ref(),
+            input_bytes: self.input_bytes, output_bytes: self.output_bytes, elapsed: self.started.elapsed(), outcome, reason });
+    }
+}
+impl Drop for ModelCall {
+    fn drop(&mut self) {
+        self.finish(Outcome::Failed(ErrorClass::Dropped), "abandoned");
+    }
 }
 
 /// One model HTTP attempt: a `gw.model` span plus the trace's model cost.
@@ -359,9 +473,9 @@ pub fn source_call(call: SourceCall) {
     fields.insert("error_class".into(), json!(call.error_class.map(ErrorClass::as_str)));
     emit("span", trace.as_deref(), Some(call.task), None, fields);
 }
-/// A refund recorded against an earlier charge of this trace.
-pub fn refund(micro_usd: i64) {
-    with(|trace| trace.cost.refund(micro_usd));
+/// The ledger settled a call that was unresolved when it was dispatched.
+pub fn settled(settlement: Settlement) {
+    with(|trace| trace.cost.settle(&settlement));
 }
 /// A source call repeated after a provider refusal that refunded the first.
 pub fn source_retry() {
@@ -390,6 +504,7 @@ pub struct MilestoneFields {
     pub evidence_refs: Option<usize>,
     pub failed_steps: Option<usize>,
     pub pending: Option<usize>,
+    pub error_class: Option<ErrorClass>,
 }
 impl MilestoneFields {
     fn into_map(self) -> Map<String, Value> {
@@ -411,12 +526,16 @@ impl MilestoneFields {
         put("evidence_refs", json!(self.evidence_refs));
         put("failed_steps", json!(self.failed_steps));
         put("pending", json!(self.pending));
+        put("error_class", json!(self.error_class.map(ErrorClass::as_str)));
         fields
     }
 }
 
 pub fn milestone(milestone: Milestone, task: Uuid, quote: Option<Uuid>, details: MilestoneFields) {
     bind(task, quote);
+    emit_milestone(milestone, Some(task), quote, details);
+}
+pub(crate) fn emit_milestone(milestone: Milestone, task: Option<Uuid>, quote: Option<Uuid>, details: MilestoneFields) {
     let trace = current();
     let mut fields = details.into_map();
     fields.insert("milestone".into(), json!(milestone.as_str()));
@@ -425,16 +544,16 @@ pub fn milestone(milestone: Milestone, task: Uuid, quote: Option<Uuid>, details:
         fields.insert("catalog_cache".into(), json!(trace.and_then(Trace::catalog_cache).map(Cache::as_str)));
         fields.insert("parser_cache".into(), json!(trace.and_then(Trace::parser_cache).map(Cache::as_str)));
     }
-    emit("milestone", trace.as_deref(), Some(task), quote, fields);
+    emit("milestone", trace.as_deref(), task, quote, fields);
 }
 
-/// Emits the trace's cost and infrastructure counters accrued outside a
-/// request line, such as a server worker's execution.
-pub fn flush(segment: Segment) {
+/// Emits the trace's cost and infrastructure counters accrued after its
+/// request line: a server worker's execution or an event stream.
+pub fn flush() {
     if let Some(trace) = current() {
         let snapshot = trace.cost.take();
         let mut fields = Map::new();
-        fields.insert("segment".into(), json!(segment.as_str()));
+        fields.insert("segment".into(), json!(trace.segment().map(Segment::as_str)));
         for part in [snapshot.model_json(), snapshot.source_json(), snapshot.infra_json()] {
             if let Value::Object(part) = part {
                 fields.extend(part);
@@ -459,11 +578,15 @@ fn emit(kind: &'static str, trace: Option<&Trace>, task: Option<Uuid>, quote: Op
     tracing::info!(target: TARGET, telemetry = %line, "telemetry");
 }
 
-/// A client trace id: a version 4 UUID, otherwise none.
-fn client_trace(headers: &HeaderMap) -> Option<Uuid> {
-    headers
-        .get(TRACE_HEADER)
-        .and_then(|value| value.to_str().ok())
+/// A client trace id: a version 4 UUID from the header or, for EventSource,
+/// which cannot send headers, from an unsigned `trace` query parameter.
+fn client_trace(request: &Request) -> Option<Uuid> {
+    let header = request.headers().get(TRACE_HEADER).and_then(|value| value.to_str().ok());
+    let query = || {
+        request.uri().query()?.split('&').find_map(|pair| pair.strip_prefix("trace="))
+    };
+    header
+        .or_else(query)
         .and_then(|value| Uuid::parse_str(value.trim()).ok())
         .filter(|id| id.get_version_num() == 4)
 }
@@ -478,7 +601,7 @@ pub async fn middleware(State(pool): State<sqlx::PgPool>, request: Request, next
     if request.method() == Method::OPTIONS {
         return next.run(request).await;
     }
-    let trace = Arc::new(match client_trace(request.headers()) {
+    let trace = Arc::new(match client_trace(&request) {
         Some(id) => Trace::new(id, Origin::Client),
         None => Trace::new(Uuid::new_v4(), Origin::Generated),
     });
@@ -579,7 +702,7 @@ mod tests {
             .route("/probe/:id", get(|| async {
                 let inner = spawn(async { id().map(|id| id.to_string()) }).await.unwrap();
                 let span = span(Phase::View).label("probe").task(Uuid::nil());
-                db("tasks.load", Duration::from_millis(3), 0);
+                drop(db("tasks.load"));
                 span.finish(Outcome::Ok);
                 inner.unwrap_or_default()
             }))
@@ -613,6 +736,14 @@ mod tests {
         assert_eq!(request["db"]["tasks.load"]["calls"], 1);
         assert_eq!(request["bytes_in"], Value::Null, "unmeasured, not zero");
         assert!(!lines.text().contains("Quokka"), "the concrete path never reaches telemetry");
+    }
+
+    #[tokio::test]
+    async fn an_event_stream_passes_its_trace_as_a_query_parameter() {
+        let client = Uuid::new_v4();
+        let request = axum::http::Request::get(format!("/probe/task?owner=x&trace={client}")).body(Body::empty()).unwrap();
+        let response = app().oneshot(request).await.unwrap();
+        assert_eq!(response.headers()[TRACE_HEADER].to_str().unwrap(), client.to_string());
     }
 
     #[tokio::test]
@@ -655,7 +786,8 @@ mod tests {
             spawn(async {
                 model_attempt(ModelAttempt { surface: "analysis", attempt: 1, model: "fixture", body: Some(&json!({"usage":{"prompt_tokens":5,"completion_tokens":1}})),
                     input_bytes: 10, output_bytes: 2, elapsed: Duration::from_millis(4), outcome: Outcome::Ok, reason: "validated" });
-                flush(Segment::Execution);
+                set_segment(Segment::Execution);
+                flush();
             }).await.unwrap();
         }).await;
         let telemetry = lines.telemetry();

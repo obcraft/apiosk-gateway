@@ -1,6 +1,7 @@
 use crate::{
     catalog::Catalog,
     state::{digest, Task},
+    telemetry::{Cache, ErrorClass, Outcome},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -761,6 +762,8 @@ impl Parser {
     }
 
     async fn chat_baseline(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
+        // The chat route has no interpretation cache: every question is read anew.
+        crate::telemetry::set_parser_cache(Cache::Miss);
         let mut input=chat_input(question, task, catalog);
         input["catalog"]=self.planning_view(question,task,catalog).await?;
         let payload = json!({
@@ -894,6 +897,7 @@ impl Parser {
             let mut attempt_payload = payload.clone();
             for attempt in 1..=2 {
                 self.usage.request();
+                let mut call = crate::telemetry::model_call(surface, attempt, payload["model"].as_str().unwrap_or_default(), input_bytes);
                 let response = self
                     .http
                     .post(&self.url)
@@ -904,9 +908,10 @@ impl Parser {
                     .await;
                 let outcome: Result<(), &str> = match response {
                     Ok(response) if response.status().is_success() => {
-                        match bounded_json(response, 65536).await {
-                            Ok(body) => {
+                        match bounded_json_sized(response, 65536).await {
+                            Ok((body, output_bytes)) => {
                                 self.usage.completion(&body);
+                                call.received(&body, output_bytes);
                                 let choice = body.pointer("/choices/0");
                                 let finish = choice.and_then(|c| c["finish_reason"].as_str());
                                 let refused = choice.is_some_and(|c| {
@@ -915,6 +920,7 @@ impl Parser {
                                         .is_some_and(|v| !v.is_empty())
                                 }) || finish == Some("content_filter");
                                 if refused {
+                                    call.finish(Outcome::Failed(ErrorClass::Validation), "refused");
                                     return Err(ModelFailure::Unavailable.into());
                                 }
                                 let raw = body
@@ -926,13 +932,14 @@ impl Parser {
                                 } else if let Some(raw) = raw {
                                     match decode(raw) {
                                         Ok(value) => {
-                                            tracing::info!(surface, attempt,
+                                            tracing::info!(trace = crate::telemetry::id(), surface, attempt,
                                                 model_ms = started.elapsed().as_millis() as u64, input_bytes,
                                                 model = payload["model"].as_str().unwrap_or_default(),
                                                 provider = body["provider"].as_str().unwrap_or_default(),
                                                 prompt_tokens = body["usage"]["prompt_tokens"].as_u64(),
                                                 completion_tokens = body["usage"]["completion_tokens"].as_u64(),
                                                 "model response validated");
+                                            call.finish(Outcome::Ok, "validated");
                                             return Ok(value);
                                         },
                                         Err(error)
@@ -941,6 +948,7 @@ impl Parser {
                                                 Some(ModelFailure::Unsupported)
                                             ) =>
                                         {
+                                            call.finish(Outcome::Failed(ErrorClass::Unsupported), "unsupported");
                                             return Err(ModelFailure::Unsupported.into());
                                         }
                                         Err(error) => {
@@ -1016,6 +1024,7 @@ impl Parser {
                     Ok(response) => {
                         let status = response.status().as_u16();
                         tracing::warn!(surface, attempt, status, "model HTTP failure");
+                        call.finish(Outcome::Failed(ErrorClass::upstream(status)), "http_status");
                         if status != 408 && status != 429 && status < 500 {
                             return Err(ModelFailure::Unavailable.into());
                         }
@@ -1026,6 +1035,7 @@ impl Parser {
                 if let Err(reason) = outcome {
                     // No prompt, answer, reasoning or credentials in diagnostics.
                     tracing::warn!(surface, attempt, reason, "model response unavailable");
+                    call.finish(Outcome::Failed(if reason == "transport_failure" { ErrorClass::Transport } else { ErrorClass::Validation }), reason);
                 }
             }
             Err(ModelFailure::Unavailable.into())
@@ -1033,7 +1043,7 @@ impl Parser {
         let result = tokio::time::timeout(Duration::from_secs(total_seconds), work)
             .await
             .unwrap_or_else(|_| Err(ModelFailure::Unavailable.into()));
-        tracing::info!(surface, input_bytes, model = payload["model"].as_str().unwrap_or_default(), model_ms = started.elapsed().as_millis() as u64,
+        tracing::info!(trace = crate::telemetry::id(), surface, input_bytes, model = payload["model"].as_str().unwrap_or_default(), model_ms = started.elapsed().as_millis() as u64,
             success = result.is_ok(), "model stage completed");
         result
     }
@@ -1054,6 +1064,7 @@ impl Parser {
             self.typesafe.as_ref().map(|client| client.fingerprint()),
             "parser-v2.6",
         ));
+        crate::telemetry::set_parser_cache(if self.cache.contains_key(&key) { Cache::Hit } else { Cache::Miss });
         let intent=self.cache.try_get_with(key,async {
             self.calls.fetch_add(1,Ordering::Relaxed);
             if let Some(client) = &self.typesafe {
@@ -1140,7 +1151,11 @@ fn shadow_intent(candidate: Option<&Intent>, baseline: Option<&Intent>) {
     let agreement = candidate.zip(baseline).map(|(left, right)| core(left) == core(right));
     tracing::info!(surface = "intent", candidate_available = candidate.is_some(), baseline_available = baseline.is_some(), core_agreement = agreement, "typesafe shadow comparison");
 }
-pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyhow::Result<Value> {
+pub async fn bounded_json(response: reqwest::Response, limit: usize) -> anyhow::Result<Value> {
+    Ok(bounded_json_sized(response, limit).await?.0)
+}
+/// [`bounded_json`] plus the body's size in bytes.
+pub async fn bounded_json_sized(mut response: reqwest::Response, limit: usize) -> anyhow::Result<(Value, usize)> {
     if let Some(n) = response.content_length() {
         anyhow::ensure!(n <= limit as u64, "response exceeds size limit");
     }
@@ -1152,7 +1167,7 @@ pub async fn bounded_json(mut response: reqwest::Response, limit: usize) -> anyh
         );
         bytes.extend_from_slice(&chunk);
     }
-    Ok(serde_json::from_slice(&bytes)?)
+    Ok((serde_json::from_slice(&bytes)?, bytes.len()))
 }
 
 #[cfg(test)]

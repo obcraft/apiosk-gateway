@@ -1,4 +1,5 @@
 use super::*;
+use crate::telemetry::{Classify, Milestone, Outcome, Segment};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use std::{
     sync::{Arc, OnceLock},
@@ -25,6 +26,7 @@ impl Engine {
         bearer: String,
         id: Uuid,
     ) -> anyhow::Result<()> {
+        let queued = std::time::Instant::now();
         let (revision, mut task, connection) = self.store.load(p.owner, id).await?;
         anyhow::ensure!(
             connection == p.connection,
@@ -81,9 +83,13 @@ impl Engine {
         }
         crate::server_events::task_changed(id);
         let engine = self.clone();
-        crate::telemetry::spawn(async move {
+        telemetry::spawn(async move {
             let started = std::time::Instant::now();
             let _permit = permit;
+            telemetry::set_segment(Segment::Execution);
+            telemetry::span(Phase::WorkerQueue).task(id).since(queued).finish(Outcome::Ok);
+            telemetry::milestone(Milestone::WorkerStarted, id, Some(plan.quote_ref), Default::default());
+            let lifetime = telemetry::span(Phase::Worker).task(id);
             let result: anyhow::Result<()> = {
                 let renew = async {
                     let mut interval = tokio::time::interval(Duration::from_secs(15));
@@ -102,8 +108,12 @@ impl Engine {
                     _ = tokio::time::sleep(Duration::from_secs(900)) => Err(anyhow::anyhow!("execution time limit reached")),
                 }
             };
+            lifetime.finish(match &result {
+                Ok(()) => Outcome::Ok,
+                Err(error) => Outcome::Failed(error.error_class()),
+            });
             if let Err(error) = result {
-                tracing::warn!(task=%id, error=%error, "server execution stopped; recover saved task");
+                tracing::warn!(trace = telemetry::id(), task=%id, error=%error, "server execution stopped; recover saved task");
             }
             let _ = sqlx::query("DELETE FROM execution_leases WHERE task_id=$1 AND worker_id=$2")
                 .bind(id)
@@ -111,12 +121,15 @@ impl Engine {
                 .execute(&engine.store.pool)
                 .await;
             crate::server_events::task_changed(id);
-            tracing::info!(task = %id, worker_ms = started.elapsed().as_millis() as u64, "server execution finished");
+            tracing::info!(trace = telemetry::id(), task = %id, worker_ms = started.elapsed().as_millis() as u64, "server execution finished");
+            telemetry::flush();
         });
         Ok(())
     }
 
     async fn drive(self: &Arc<Self>, p: &Principal, bearer: &str, id: Uuid) -> anyhow::Result<()> {
+        // One span per provider cooldown, however many short sleeps it takes.
+        let mut cooldown = None;
         loop {
             let (revision, task, _) = self.store.load(p.owner, id).await?;
             if task.cancelled
@@ -151,12 +164,16 @@ impl Engine {
             };
             if let Action::Wait { until, .. } = action {
                 if until > Utc::now() {
+                    cooldown.get_or_insert_with(|| telemetry::span(Phase::CooldownWait).task(id));
                     tokio::time::sleep(Duration::from_millis(
                         (until - Utc::now()).num_milliseconds().clamp(50, 1000) as u64,
                     ))
                     .await;
                     continue;
                 }
+            }
+            if let Some(wait) = cooldown.take() {
+                wait.finish(Outcome::Ok);
             }
             let polling = matches!(action, Action::Poll { .. });
             let req = ExecuteRequest {
@@ -264,6 +281,9 @@ impl Engine {
                         .retain(|d| d.action_id != pending.action_id);
                     self.ingest(p, id, &mut task, step, execution_id, body, &catalog)
                         .await?;
+                    if task.active_results.len() == 1 {
+                        telemetry::milestone(Milestone::FirstData, id, Some(plan.quote_ref), Default::default());
+                    }
                 }
                 Dispatch::Failed { body } => {
                     task.pending_dispatches
@@ -331,7 +351,7 @@ impl Engine {
         plan: Plan,
     ) -> tokio::task::JoinHandle<(crate::state::PendingDispatch, anyhow::Result<Dispatch>)> {
         let engine = self.clone();
-        crate::telemetry::spawn(async move {
+        telemetry::spawn(async move {
             engine
                 .dispatch_pending(&p, &bearer, id, revision, pending, auth, &plan)
                 .await

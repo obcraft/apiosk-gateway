@@ -17,6 +17,7 @@ use crate::{
     resolver::{self, Action, Plan, Resolution},
     state::{digest, Entity, Fact, Signer, Task},
     store::{Claim, Store},
+    telemetry::{self, Phase},
 };
 use chrono::Utc;
 pub use followups::FollowupRequest;
@@ -51,7 +52,7 @@ impl Engine {
     ) -> anyhow::Result<Option<Response>> {
         self.store.check_workspace(p).await?;
         let scoped_hash = p.workspace.map(|w|digest(&(w,hash)));
-        Ok(match self.store.claim(p.owner, id, scoped_hash.as_deref().unwrap_or(hash)).await? {
+        Ok(match telemetry::timed(Phase::Claim, "request", self.store.claim(p.owner, id, scoped_hash.as_deref().unwrap_or(hash))).await? {
             Claim::New => None,
             Claim::Replay(r) => Some(*r),
             Claim::Conflict => Some(Response::error(
@@ -132,9 +133,23 @@ impl Engine {
     ) -> anyhow::Result<Response> {
         self.intake(p, req, app_chat, None).await
     }
+    /// One question from any surface. Its trace reports how it ended:
+    /// priced, waiting for the person, or without a price.
+    pub(crate) async fn intake(
+        &self,
+        p: &Principal,
+        req: &DiscoverRequest,
+        app_chat: bool,
+        forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
+    ) -> anyhow::Result<Response> {
+        telemetry::set_segment(telemetry::Segment::Question);
+        let result = self.intake_question(p, req, app_chat, forced).await;
+        telemetry::question(&result);
+        result
+    }
     /// `forced`: a code-built intent that skips interpretation — a workflow
     /// page (with its workflow context) or a direct source call (without).
-    pub(crate) async fn intake(
+    async fn intake_question(
         &self,
         p: &Principal,
         req: &DiscoverRequest,
@@ -177,7 +192,7 @@ impl Engine {
                 .view(p, id, req.request_id, Some(Status::StateConflict))
                 .await;
         }
-        let in_flight:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool).await?;
+        let in_flight:bool=telemetry::timed_db("inflight_check", sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool)).await?;
         anyhow::ensure!(
             !in_flight,
             "existing execution must finish or reconcile before a new question"
@@ -367,6 +382,7 @@ impl Engine {
         task.original_subject = None;
         task.cancelled = false;
         task.execution_error = None;
+        let planning = telemetry::span(Phase::Plan).task(id);
         let mut status = self.plan(&mut task, &catalog, &intent)?;
         if let (false, Resolution::Unsupported(reason)) = (direct, resolver::resolve(&catalog, &task, &intent)) {
             let review = self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await?;
@@ -384,9 +400,10 @@ impl Engine {
                 task.record_turn(&req.question, Some(review.message));
             }
         }
+        planning.finish(telemetry::Outcome::Ok);
         self.store.save_intent(p.owner, id, revision, &task).await?;
         let response = self.view(p, id, req.request_id, Some(status)).await?;
-        tracing::info!(task = %id, quote = response.proposal.as_ref().map(|p| p.quote_ref.to_string()).unwrap_or_default(),
+        tracing::info!(trace = telemetry::id(), task = %id, quote = response.proposal.as_ref().map(|p| p.quote_ref.to_string()).unwrap_or_default(),
             stage = "question_to_price", stage_ms = started.elapsed().as_millis() as u64,
             price_ready = response.proposal.is_some(), "request stage completed");
         Ok(response)
@@ -470,7 +487,7 @@ impl Engine {
         request: Uuid,
         forced: Option<Status>,
     ) -> anyhow::Result<Response> {
-        self.view_with_results(p, id, request, forced, &mut Default::default()).await
+        telemetry::timed(Phase::View, "task", self.view_with_results(p, id, request, forced, &mut Default::default())).await
     }
 
     /// This cache belongs to one authorized task stream. Saved source documents
@@ -710,7 +727,7 @@ impl Engine {
             billing["pricing_rule"] = json!(if plan.fee_bps == 2000 { "provider_cost_plus_20_v1" } else { "provider_cost_plus_15_v1" });
         }
         if p.workspace.is_some() {
-            let ctx: Value = sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool).await?;
+            let ctx: Value = telemetry::timed_db("workspace_ctx", sqlx::query_scalar("SELECT public.workspace_gateway_context($1,$2,$3)").bind(p.owner).bind(p.connection).bind(p.workspace).fetch_one(&self.store.pool)).await?;
             r.context_view["execution_enabled"] = json!(ctx["can_spend"] == true && self.executor.enabled);
             r.context_view["workspace"] = ctx.clone();
             if let Some(b) = &mut r.billing { b["funding_source"] = json!("workspace_balance"); b["workspace"] = ctx; }
@@ -775,7 +792,7 @@ impl Engine {
             self.record_named_workflow_run(p,id,&task,&r).await?;
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
-        tracing::info!(task = %id, view_ms = started.elapsed().as_millis() as u64,
+        tracing::info!(trace = telemetry::id(), task = %id, view_ms = started.elapsed().as_millis() as u64,
             result_documents = documents.len(), fetched_documents = fetched_count, "task view completed");
         Ok(r)
     }

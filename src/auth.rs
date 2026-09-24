@@ -9,6 +9,17 @@ pub const ORGANISATION_KEY_PREFIX: &str = "apk_org_live_";
 /// Every permission an organisation key can carry.
 pub const API_KEY_SCOPES: [&str; 5] = ["sources:read", "sources:execute", "ask:create", "ask:execute", "billing:read"];
 
+/// The kind of credential presented, for telemetry: never the credential.
+pub fn credential_kind(bearer: &str) -> &'static str {
+    if bearer.starts_with(ORGANISATION_KEY_PREFIX) {
+        "org_key"
+    } else if bearer.starts_with("apk_access_") || bearer.starts_with("apk_live_") {
+        "agent_token"
+    } else {
+        "jwt_remote"
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("unauthorized")]

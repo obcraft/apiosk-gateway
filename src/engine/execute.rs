@@ -188,11 +188,14 @@ impl Engine {
                 }
                 let operations = json!(operations);
                 source_ready = Some(std::time::Instant::now());
-                tracing::info!(task = %id, quote = %plan.quote_ref, milestone = "sources_ready",
+                tracing::info!(trace = telemetry::id(), task = %id, quote = %plan.quote_ref, milestone = "sources_ready",
                     complete = task.failed_steps.is_empty() && !sources.is_empty(), "request milestone");
+                telemetry::milestone(telemetry::Milestone::SourcesReady, id, Some(plan.quote_ref), telemetry::MilestoneFields {
+                    sources: Some(sources.len()), failed_steps: Some(task.failed_steps.len()), pending: Some(task.pending_dispatches.len()), ..Default::default() });
                 let direct = if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
                     task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources))
                 } else { None };
+                let answering_span = telemetry::span(if direct.is_some() { Phase::DirectAnswer } else { Phase::Analysis }).task(id);
                 task.analysis = Some(if let Some(answer) = direct {
                     tracing::info!(task = %id, "saved source answered directly");
                     answer
@@ -233,6 +236,7 @@ impl Engine {
                         }
                     }
                 });
+                answering_span.finish(telemetry::Outcome::Ok);
                 if let Some(workflow) = &mut task.workflow {
                     let selected: Vec<_> = plan.steps.iter().map(|step| step.service.api_slug.as_str()).collect();
                     if let Some(limitations) = crate::workflow_catalog::selected_limitations(&workflow.slug, &selected) {
@@ -512,6 +516,7 @@ impl Engine {
                                 action_id: Uuid::new_v4(),
                                 until: Utc::now() + chrono::Duration::seconds(65),
                             })?];
+                            telemetry::source_retry();
                         } else {
                             self.fail_step(&mut task, step, crate::billing::public_error(&body))?;
                         }
@@ -523,7 +528,8 @@ impl Engine {
         let response = self.view(p, id, req.request_id, None).await?;
         if answering {
             if let Some(started) = source_ready {
-                tracing::info!(task = %id,
+                telemetry::answer(id, task.proposal.as_ref().and_then(|p| p["quote_ref"].as_str()).and_then(|q| q.parse().ok()), &task);
+                tracing::info!(trace = telemetry::id(), task = %id,
                     quote = task.proposal.as_ref().and_then(|p| p["quote_ref"].as_str()).unwrap_or_default(),
                     stage = "sources_to_answer", stage_ms = started.elapsed().as_millis() as u64,
                     success = task.analysis.as_ref().is_some_and(|a| a["status"] == "completed"),
