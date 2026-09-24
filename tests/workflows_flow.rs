@@ -268,8 +268,12 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         .fallback(browser_fixture)
         .layer(tower_http::cors::CorsLayer::permissive())
         .with_state(state.clone());
-    let fixture_address = if std::env::var("WORKFLOWS_BROWSER").as_deref() == Ok("true") {"127.0.0.1:5284"} else {"127.0.0.1:0"};
-    let listener = tokio::net::TcpListener::bind(fixture_address).await.unwrap();
+    // Browser mode serves fixed loopback ports the App's dev server points at;
+    // the environment may move them so parallel runs do not collide.
+    let browser = std::env::var("WORKFLOWS_BROWSER").as_deref() == Ok("true");
+    let browser_env = |key: &str, default: &str| std::env::var(key).unwrap_or_else(|_| default.into());
+    let fixture_address = if browser {browser_env("WORKFLOWS_FIXTURE_ADDRESS", "127.0.0.1:5284")} else {"127.0.0.1:0".into()};
+    let listener = tokio::net::TcpListener::bind(&fixture_address).await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     let server = tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
     let http = reqwest::Client::new();
@@ -297,16 +301,17 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         "{:?}",
         engine.catalog.get().await.unwrap().rejected
     );
-    if std::env::var("WORKFLOWS_BROWSER").as_deref() == Ok("true") {
+    if browser {
         let engine = Arc::new(engine);
         let api_state = apiosk_gateway_v2::server::ServerState {
             engine: engine.clone(),
             auth: Arc::new(apiosk_gateway_v2::auth::Auth {pool:pool.clone(), http:reqwest::Client::new(), supabase_url:engine.executor.supabase_url.clone(), publishable_key:"fixture".into()}),
             permits: Arc::new(tokio::sync::Semaphore::new(8)), executor_compat:None,
         };
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:5283").await.unwrap();
-        println!("BROWSER READY: real gateway http://127.0.0.1:5283; fixture auth/providers http://127.0.0.1:5284; no live charges");
-        axum::serve(listener, apiosk_gateway_v2::server::router(api_state, "http://127.0.0.1:5282").unwrap()).await.unwrap();
+        let gateway_address = browser_env("WORKFLOWS_GATEWAY_ADDRESS", "127.0.0.1:5283");
+        let listener = tokio::net::TcpListener::bind(&gateway_address).await.unwrap();
+        println!("BROWSER READY: real gateway http://{gateway_address}; fixture auth/providers http://{fixture_address}; no live charges");
+        axum::serve(listener, apiosk_gateway_v2::server::router(api_state, &browser_env("WORKFLOWS_UI_URL", "http://127.0.0.1:5282")).unwrap()).await.unwrap();
         return;
     }
     let person = Principal {

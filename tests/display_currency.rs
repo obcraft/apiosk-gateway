@@ -3,10 +3,10 @@ use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 
 #[tokio::test]
-#[ignore = "requires isolated support-db on 54329; never uses a live database"]
+#[ignore = "requires isolated support-db (TEST_DATABASE_URL, default port 54329); never uses a live database"]
 async fn display_currency_is_owner_scoped_and_uses_only_published_rates() {
     let pool = PgPoolOptions::new().max_connections(1)
-        .connect("postgresql://postgres@127.0.0.1:54329/postgres?sslmode=disable").await.unwrap();
+        .connect(&std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| "postgresql://postgres@127.0.0.1:54329/postgres?sslmode=disable".into())).await.unwrap();
     sqlx::raw_sql("CREATE SCHEMA identity; CREATE SCHEMA billing;
         CREATE TABLE identity.user_preferences(user_id uuid PRIMARY KEY,display_currency text);
         CREATE TABLE billing.fx_rates(quote_currency text,as_of_date date,rate numeric);

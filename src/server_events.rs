@@ -111,7 +111,7 @@ pub async fn task_events(
     };
     bound_cache(&mut documents);
     let (sender, receiver) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(2);
-    tokio::spawn(async move {
+    crate::telemetry::spawn(async move {
         let _permit = permit;
         let mut next = initial;
         let mut previous = None;

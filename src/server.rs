@@ -37,6 +37,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
             axum::http::header::CONTENT_TYPE,
             axum::http::HeaderName::from_static("x-apiosk-workspace"),
             axum::http::HeaderName::from_static("idempotency-key"),
+            axum::http::HeaderName::from_static(crate::telemetry::TRACE_HEADER),
         ])
         .max_age(Duration::from_secs(600));
     let compat = state.executor_compat.clone();
@@ -117,7 +118,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
     if compat.is_some() {
         app = app.fallback(legacy_fallback);
     }
-    Ok(app.with_state(state))
+    let telemetry = axum::middleware::from_fn_with_state(state.engine.store.pool.clone(), crate::telemetry::middleware);
+    Ok(app.layer(telemetry).with_state(state))
 }
 
 #[derive(Deserialize)]
@@ -707,7 +709,7 @@ async fn execute(
     // The bounded server task survives a client disconnect. No credentials
     // are persisted; after a process crash the execution journal reconciles.
     let engine = state.engine.clone();
-    match tokio::spawn(async move {
+    match crate::telemetry::spawn(async move {
         let _permit = permit;
         let id = req.state.state_ref;
         let (_, saved, _) = engine.store.load_scoped(&p, id).await?;

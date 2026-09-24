@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "pending_baseline",
+  "baseline_ref": null,
+  "percentile_method": "nearest_rank",
+  "min_samples": 30,
+  "dimensions": {
+    "query_class": ["simple_lookup", "search_list", "comparison", "dossier"],
+    "cache": ["cold", "warm"],
+    "device": ["desktop", "mobile"],
+    "sources": ["one", "multiple"]
+  },
+  "cache_rule": "cold if catalog_cache in (refresh_wait, first_load) or process_age_s < 60 or browser first navigation; else warm",
+  "budgets": {
+    "simple_lookup": {
+      "find_to_price": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_first_data": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_answer": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.model": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.auth": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.edge_hop": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "ui.answer_render": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null }
+    },
+    "search_list": {
+      "find_to_price": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_first_data": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_answer": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.model": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.auth": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.edge_hop": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "ui.answer_render": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null }
+    },
+    "comparison": {
+      "find_to_price": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_first_data": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_answer": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.model": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.auth": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.edge_hop": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "ui.answer_render": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null }
+    },
+    "dossier": {
+      "find_to_price": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_first_data": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "approve_to_answer": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.model": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.auth": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "gw.edge_hop": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null },
+      "ui.answer_render": { "cold": { "p50_ms": null, "p95_ms": null }, "warm": { "p50_ms": null, "p95_ms": null }, "max_error_rate": null }
+    }
+  },
+  "overrides": [
+    { "query_class": "dossier", "device": "mobile", "sources": "multiple", "phase": "approve_to_answer", "p50_ms": null, "p95_ms": null }
+  ],
+  "unit_costs": { "db_call_usd": null, "egress_gb_usd": null }
+}

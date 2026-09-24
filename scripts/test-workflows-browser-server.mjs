@@ -1,7 +1,7 @@
 // Real Gateway + temporary SQL state, recorded providers/model/auth. Loopback only.
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-const cwd=new URL('../',import.meta.url), port='54422';
+const cwd=new URL('../',import.meta.url), port=process.env.PGTEST_PORT||'54422';
 const children=[];
 const stop=()=>{for(const child of children)child.kill('SIGTERM');};
 process.on('SIGINT',stop);process.on('SIGTERM',stop);

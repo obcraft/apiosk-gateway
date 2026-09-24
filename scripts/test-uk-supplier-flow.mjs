@@ -1,6 +1,6 @@
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-const cwd=new URL('../',import.meta.url),port='54348';
+const cwd=new URL('../',import.meta.url),port=process.env.PGTEST_PORT||'54348';
 const dbScript=process.env.APIOSK_TEST_DB_SCRIPT||new URL('tests/support-db.mjs',cwd).pathname;
 const db=spawn(process.execPath,[dbScript],{cwd,env:{...process.env,PGTEST_PORT:port},stdio:['ignore','pipe','inherit']});
 try{

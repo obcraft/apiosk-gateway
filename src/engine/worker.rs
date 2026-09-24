@@ -81,7 +81,7 @@ impl Engine {
         }
         crate::server_events::task_changed(id);
         let engine = self.clone();
-        tokio::spawn(async move {
+        crate::telemetry::spawn(async move {
             let started = std::time::Instant::now();
             let _permit = permit;
             let result: anyhow::Result<()> = {
@@ -331,7 +331,7 @@ impl Engine {
         plan: Plan,
     ) -> tokio::task::JoinHandle<(crate::state::PendingDispatch, anyhow::Result<Dispatch>)> {
         let engine = self.clone();
-        tokio::spawn(async move {
+        crate::telemetry::spawn(async move {
             engine
                 .dispatch_pending(&p, &bearer, id, revision, pending, auth, &plan)
                 .await
