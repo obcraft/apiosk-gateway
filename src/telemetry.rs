@@ -12,11 +12,13 @@ mod client;
 mod cost;
 mod journey;
 mod names;
+mod persist;
 
 pub use client::{Beacon, MAX_BYTES as BEACON_MAX_BYTES};
 pub use cost::{ModelAttempt, Settlement, SourceCall};
-pub use journey::{answer, fully_answered, question, question_failed};
-pub use names::{label, Cache, ErrorClass, Milestone, Phase, QueryClass, Segment, SourceStatus, Surface};
+pub use journey::{answer, execution_ended, fully_answered, question, question_failed};
+pub use names::{label, Cache, ErrorClass, Milestone, Phase, QueryClass, Segment, SegmentOutcome, SourceStatus, Surface};
+pub use persist::enabled as persisting;
 
 use axum::{
     extract::{MatchedPath, Request, State},
@@ -89,6 +91,7 @@ pub struct Trace {
     task: Mutex<Option<Uuid>>,
     quote: Mutex<Option<Uuid>>,
     db: Mutex<BTreeMap<&'static str, (u64, u64)>>,
+    summary: Mutex<persist::Summary>,
     cost: CostRecord,
 }
 impl Trace {
@@ -104,6 +107,7 @@ impl Trace {
             task: Mutex::new(None),
             quote: Mutex::new(None),
             db: Mutex::new(BTreeMap::new()),
+            summary: Mutex::new(persist::Summary::default()),
             cost: CostRecord::default(),
         }
     }
@@ -127,6 +131,26 @@ impl Trace {
     }
     pub fn quote(&self) -> Option<Uuid> {
         *self.quote.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+    /// A new segment of the same trace, with its own counters: work that
+    /// outlives the request which started it reports its own costs.
+    fn child(&self, segment: Segment) -> Self {
+        let child = Self::new(self.id, self.origin);
+        child.surface.set(Surface::ALL, self.surface());
+        child.segment.set(Segment::ALL, segment);
+        if let Some(cache) = self.catalog_cache() {
+            child.catalog_cache.set(Cache::ALL, cache);
+        }
+        if let Some(cache) = self.parser_cache() {
+            child.parser_cache.set(Cache::ALL, cache);
+        }
+        if let Some(class) = self.query_class() {
+            child.query_class.set(QueryClass::ALL, class);
+        }
+        *child.task.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = self.task();
+        *child.quote.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = self.quote();
+        *child.summary.lock().unwrap_or_else(|poisoned| poisoned.into_inner()) = self.summary.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).clone();
+        child
     }
     fn take_db(&self) -> Value {
         let labels = std::mem::take(&mut *self.db.lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
@@ -162,6 +186,24 @@ where
         Some(trace) => tokio::spawn(TRACE.scope(trace, work)),
         None => tokio::spawn(work),
     }
+}
+
+/// Spawns work that outlives its request, such as a server worker, as a
+/// new segment of the current trace with its own cost counters.
+pub fn spawn_segment<F>(segment: Segment, work: F) -> tokio::task::JoinHandle<F::Output>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    let trace = Arc::new(match current() {
+        Some(parent) => parent.child(segment),
+        None => {
+            let trace = Trace::new(Uuid::new_v4(), Origin::Generated);
+            trace.segment.set(Segment::ALL, segment);
+            trace
+        }
+    });
+    tokio::spawn(TRACE.scope(trace, work))
 }
 
 pub fn set_surface(surface: Surface) {
@@ -537,6 +579,9 @@ pub fn milestone(milestone: Milestone, task: Uuid, quote: Option<Uuid>, details:
 }
 pub(crate) fn emit_milestone(milestone: Milestone, task: Option<Uuid>, quote: Option<Uuid>, details: MilestoneFields) {
     let trace = current();
+    if let Some(trace) = &trace {
+        trace.summary.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).record(milestone, &details);
+    }
     let mut fields = details.into_map();
     fields.insert("milestone".into(), json!(milestone.as_str()));
     if milestone == Milestone::PriceReady {
@@ -548,20 +593,34 @@ pub(crate) fn emit_milestone(milestone: Milestone, task: Option<Uuid>, quote: Op
 }
 
 /// Emits the trace's cost and infrastructure counters accrued after its
-/// request line: a server worker's execution or an event stream.
+/// request line, as from an event stream.
 pub fn flush() {
     if let Some(trace) = current() {
-        let snapshot = trace.cost.take();
-        let mut fields = Map::new();
-        fields.insert("segment".into(), json!(trace.segment().map(Segment::as_str)));
-        for part in [snapshot.model_json(), snapshot.source_json(), snapshot.infra_json()] {
-            if let Value::Object(part) = part {
-                fields.extend(part);
-            }
-        }
-        fields.insert("db".into(), trace.take_db());
-        emit("cost", Some(&trace), None, None, fields);
+        flush_trace(&trace);
     }
+}
+/// Ends a server worker's segment: its cost line and, when persistence is
+/// on, its row.
+pub fn finish_worker(pool: &sqlx::PgPool, elapsed: Duration) {
+    if let Some(trace) = current() {
+        let snapshot = flush_trace(&trace);
+        if let Some(segment @ (Segment::Execution | Segment::RetryAnalysis)) = trace.segment() {
+            persist::record(pool, &trace, segment, &snapshot, elapsed, None);
+        }
+    }
+}
+fn flush_trace(trace: &Trace) -> cost::CostSnapshot {
+    let snapshot = trace.cost.take();
+    let mut fields = Map::new();
+    fields.insert("segment".into(), json!(trace.segment().map(Segment::as_str)));
+    for part in [snapshot.model_json(), snapshot.source_json(), snapshot.infra_json()] {
+        if let Value::Object(part) = part {
+            fields.extend(part);
+        }
+    }
+    fields.insert("db".into(), trace.take_db());
+    emit("cost", Some(trace), None, None, fields);
+    snapshot
 }
 
 fn emit(kind: &'static str, trace: Option<&Trace>, task: Option<Uuid>, quote: Option<Uuid>, fields: Map<String, Value>) {
@@ -615,6 +674,7 @@ pub async fn middleware(State(pool): State<sqlx::PgPool>, request: Request, next
     let (pool_size, pool_idle) = (pool.size(), pool.num_idle());
     let started = Instant::now();
     let mut response = TRACE.scope(trace.clone(), next.run(request)).await;
+    let elapsed = started.elapsed();
     if let Ok(value) = HeaderValue::from_str(&trace.id.to_string()) {
         response.headers_mut().insert(TRACE_HEADER, value);
     }
@@ -626,11 +686,12 @@ pub async fn middleware(State(pool): State<sqlx::PgPool>, request: Request, next
     fields.insert("route".into(), json!(route));
     fields.insert("method".into(), json!(method));
     fields.insert("status".into(), json!(status));
-    fields.insert("ms".into(), json!(started.elapsed().as_millis() as u64));
+    let bytes_out = content_length(response.headers());
+    fields.insert("ms".into(), json!(elapsed.as_millis() as u64));
     fields.insert("ok".into(), json!(class.is_none()));
     fields.insert("error_class".into(), json!(class.map(ErrorClass::as_str)));
     fields.insert("bytes_in".into(), json!(bytes_in));
-    fields.insert("bytes_out".into(), json!(content_length(response.headers())));
+    fields.insert("bytes_out".into(), json!(bytes_out));
     fields.insert("pool_size".into(), json!(pool_size));
     fields.insert("pool_idle".into(), json!(pool_idle));
     if let Value::Object(infra) = snapshot.infra_json() {
@@ -647,6 +708,11 @@ pub async fn middleware(State(pool): State<sqlx::PgPool>, request: Request, next
             }
         }
         emit("cost", Some(&trace), None, None, cost);
+    }
+    // A question or follow-up is priced inside its request; a worker owns
+    // the execution segment's row.
+    if let Some(segment @ (Segment::Question | Segment::FollowUp)) = trace.segment() {
+        persist::record(&pool, &trace, segment, &snapshot, elapsed, Some((bytes_in, bytes_out)));
     }
     response
 }
@@ -772,6 +838,28 @@ mod tests {
         assert_eq!(telemetry[0]["trace"], Value::Null);
         assert_eq!(telemetry[1]["error_class"], "busy");
         assert!(!lines.text().contains("pool timed out"), "error messages never reach telemetry");
+    }
+
+    #[tokio::test]
+    async fn a_spawned_segment_keeps_the_trace_but_counts_its_own_costs() {
+        let parent = Arc::new(Trace::new(Uuid::new_v4(), Origin::Client));
+        let task = Uuid::new_v4();
+        let (parent_id, child_id, child_segment, child_task) = scope(parent.clone(), async move {
+            set_surface(Surface::App);
+            bind(task, None);
+            drop(db("tasks.load"));
+            let child = spawn_segment(Segment::Execution, async {
+                drop(db("tasks.save"));
+                let trace = current().unwrap();
+                (trace.id, trace.segment(), trace.task(), trace.surface())
+            }).await.unwrap();
+            (current().unwrap().id, child.0, child.1, (child.2, child.3))
+        }).await;
+        assert_eq!(parent_id, child_id);
+        assert_eq!(child_segment, Some(Segment::Execution));
+        assert_eq!(child_task, (Some(task), Surface::App));
+        assert_eq!(parent.segment(), None, "the request keeps its own segment");
+        assert_eq!(parent.cost.take().db_calls, 1, "the child's calls are not the request's");
     }
 
     #[tokio::test]

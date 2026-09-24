@@ -1,7 +1,9 @@
 //! One question, end to end through the real router, with every log line
 //! captured: a client trace follows the question from Find to the answer,
 //! including the server worker, and no line carries the question, the answer
-//! or a credential. Run by scripts/test-telemetry.mjs on a fresh PGlite.
+//! or a credential. With TELEMETRY_PERSIST=1 each segment leaves one cost
+//! row that the runtime role may insert but never rewrite. Run by
+//! scripts/test-telemetry.mjs on a fresh PGlite.
 
 use apiosk_gateway_v2::{
     auth::Auth,
@@ -15,7 +17,7 @@ use apiosk_gateway_v2::{
 };
 use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post}, Json, Router};
 use serde_json::{json, Value};
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, Row};
 use std::{
     io::Write,
     sync::{atomic::{AtomicU64, Ordering}, Arc, Mutex},
@@ -85,6 +87,7 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 #[tokio::test]
 #[ignore = "requires an isolated support-db (scripts/test-telemetry.mjs); no live database"]
 async fn one_trace_follows_a_question_without_content_or_credentials() {
+    std::env::set_var("TELEMETRY_PERSIST", "1");
     let lines = Lines::default();
     let writer = lines.clone();
     let _logging = tracing::subscriber::set_default(
@@ -220,4 +223,58 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     let requests: Vec<_> = ours.iter().filter(|line| line["kind"] == "request").collect();
     assert!(requests.iter().any(|line| line["route"] == "/v2/tasks/:id/authorize" && line["status"] == 200));
     assert!(requests.iter().all(|line| !line["route"].as_str().unwrap().contains(&task)), "routes are templates");
+
+    // One durable row per segment, written in the background.
+    let trace_id: Uuid = trace.parse().unwrap();
+    let mut rows = Vec::new();
+    for _ in 0..50 {
+        rows = sqlx::query("SELECT segment,outcome,fully_answered,surface,query_class,source_count,cache_state,model_calls,model_cost_nanousd,model_cost_complete,cached_prompt_tokens,source_calls,customer_charged_micro_usd,provider_micro_usd,fee_micro_usd,customer_cap_micro_usd,bytes_in,db_calls FROM gateway_v2.request_costs WHERE trace_id=$1 ORDER BY segment DESC")
+            .bind(trace_id).fetch_all(&pool).await.unwrap();
+        if rows.len() == 2 { break; }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    assert_eq!(rows.len(), 2, "a question row and an execution row");
+    let cap: i64 = proposal["max_total_atomic"].as_str().unwrap().parse().unwrap();
+    let question = &rows[0];
+    assert_eq!(question.get::<String, _>("segment"), "question");
+    assert_eq!(question.get::<String, _>("outcome"), "price_ready");
+    assert_eq!(question.get::<String, _>("surface"), "app");
+    assert_eq!(question.get::<Option<i16>, _>("source_count"), Some(1));
+    assert_eq!(question.get::<Option<i32>, _>("model_calls"), Some(1));
+    assert_eq!(question.get::<Option<i64>, _>("model_cost_nanousd"), None, "unpriced, not free");
+    assert_eq!(question.get::<Option<bool>, _>("model_cost_complete"), Some(false));
+    assert_eq!(question.get::<Option<i64>, _>("customer_cap_micro_usd"), Some(cap));
+    assert!(question.get::<Option<i64>, _>("bytes_in").is_some());
+    let execution = &rows[1];
+    assert_eq!(execution.get::<String, _>("segment"), "execution");
+    assert_eq!(execution.get::<String, _>("outcome"), "answered");
+    assert!(execution.get::<bool, _>("fully_answered"));
+    assert_eq!(execution.get::<Option<i64>, _>("model_cost_nanousd"), Some(210_000));
+    assert_eq!(execution.get::<Option<i64>, _>("cached_prompt_tokens"), Some(512));
+    assert_eq!(execution.get::<Option<i32>, _>("source_calls"), Some(2));
+    assert_eq!(execution.get::<Option<i64>, _>("customer_charged_micro_usd"), Some(138));
+    assert_eq!(execution.get::<Option<i64>, _>("provider_micro_usd"), Some(120));
+    assert_eq!(execution.get::<Option<i64>, _>("fee_micro_usd"), Some(18));
+    assert_eq!(execution.get::<Option<i64>, _>("customer_cap_micro_usd"), Some(cap));
+    assert!(execution.get::<Option<i32>, _>("db_calls").unwrap() > 0);
+    assert_eq!(execution.get::<Option<i64>, _>("bytes_in"), None, "a worker has no request body");
+
+    // The runtime role may insert once and prune, never rewrite a row.
+    let mut runtime = pool.begin().await.unwrap();
+    sqlx::query("SET LOCAL ROLE gateway_v2_runtime").execute(&mut *runtime).await.unwrap();
+    sqlx::query("INSERT INTO gateway_v2.request_costs(id,trace_id,segment,task_id,surface,query_class,cache_state,outcome) VALUES($1,$2,'follow_up',$3,'app','unclassified','unknown','failed')")
+        .bind(Uuid::new_v4()).bind(Uuid::new_v4()).bind(Uuid::new_v4()).execute(&mut *runtime).await.unwrap();
+    let rewrite = sqlx::query("UPDATE gateway_v2.request_costs SET outcome='answered' WHERE trace_id=$1").bind(trace_id).execute(&mut *runtime).await;
+    assert!(rewrite.is_err(), "UPDATE is not granted");
+    runtime.rollback().await.unwrap();
+    let mut runtime = pool.begin().await.unwrap();
+    sqlx::query("SET LOCAL ROLE gateway_v2_runtime").execute(&mut *runtime).await.unwrap();
+    sqlx::query("DELETE FROM gateway_v2.request_costs WHERE expires_at<now()").execute(&mut *runtime).await.unwrap();
+    runtime.rollback().await.unwrap();
+    for role in ["anon", "authenticated"] {
+        let mut client = pool.begin().await.unwrap();
+        sqlx::query(&format!("SET LOCAL ROLE {role}")).execute(&mut *client).await.unwrap();
+        assert!(sqlx::query("SELECT 1 FROM gateway_v2.request_costs LIMIT 1").execute(&mut *client).await.is_err(), "{role} cannot read cost rows");
+        client.rollback().await.unwrap();
+    }
 }

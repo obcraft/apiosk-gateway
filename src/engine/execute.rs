@@ -130,6 +130,9 @@ impl Engine {
             task.analysis.clone().filter(|analysis| matches!(analysis["status"].as_str(), Some("completed" | "partial")))
         } else { None };
         let answering = matches!(action, Action::Analyze { .. } | Action::RetryAnalysis { .. });
+        if matches!(action, Action::RetryAnalysis { .. }) {
+            telemetry::set_segment(telemetry::Segment::RetryAnalysis);
+        }
         let mut source_ready = None;
         match action {
             Action::Wait { until, .. } => {

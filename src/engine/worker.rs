@@ -83,10 +83,9 @@ impl Engine {
         }
         crate::server_events::task_changed(id);
         let engine = self.clone();
-        telemetry::spawn(async move {
+        telemetry::spawn_segment(Segment::Execution, async move {
             let started = std::time::Instant::now();
             let _permit = permit;
-            telemetry::set_segment(Segment::Execution);
             telemetry::span(Phase::WorkerQueue).task(id).since(queued).finish(Outcome::Ok);
             telemetry::milestone(Milestone::WorkerStarted, id, Some(plan.quote_ref), Default::default());
             let lifetime = telemetry::span(Phase::Worker).task(id);
@@ -112,6 +111,7 @@ impl Engine {
                 Ok(()) => Outcome::Ok,
                 Err(error) => Outcome::Failed(error.error_class()),
             });
+            let failed = result.is_err();
             if let Err(error) = result {
                 tracing::warn!(trace = telemetry::id(), task=%id, error=%error, "server execution stopped; recover saved task");
             }
@@ -122,7 +122,9 @@ impl Engine {
                 .await;
             crate::server_events::task_changed(id);
             tracing::info!(trace = telemetry::id(), task = %id, worker_ms = started.elapsed().as_millis() as u64, "server execution finished");
-            telemetry::flush();
+            let saved = engine.store.load(p.owner, id).await.ok().map(|(_, task, _)| task);
+            telemetry::execution_ended(id, saved.as_ref(), failed);
+            telemetry::finish_worker(&engine.store.pool, started.elapsed());
         });
         Ok(())
     }

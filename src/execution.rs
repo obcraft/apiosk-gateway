@@ -4,7 +4,7 @@ use crate::{
     resolver::{Plan, Step},
     state::{digest, Task},
     store::Store,
-    telemetry::{self, Classify, ErrorClass, Milestone, Outcome, Phase, Settlement, SourceStatus},
+    telemetry::{self, Classify, ErrorClass, Milestone, MilestoneFields, Outcome, Phase, Settlement, SourceStatus},
 };
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -178,7 +178,7 @@ impl Executor {
             .bind(id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
         tx.commit().await?;
         tracing::info!(trace = telemetry::id(), task = %task_id, quote = %quote, milestone = "approved", "request milestone");
-        telemetry::milestone(Milestone::Approved, task_id, Some(quote), Default::default());
+        telemetry::milestone(Milestone::Approved, task_id, Some(quote), MilestoneFields { cap_micro_usd: Some(plan.cap_atomic), ..Default::default() });
         Ok(id)
     }
 
@@ -214,7 +214,7 @@ impl Executor {
             .bind(proposed_id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
         if id == proposed_id {
             tracing::info!(trace = telemetry::id(), task = %task_id, quote = %quote, milestone = "approved", "request milestone");
-            telemetry::milestone(Milestone::Approved, task_id, Some(quote), Default::default());
+            telemetry::milestone(Milestone::Approved, task_id, Some(quote), MilestoneFields { cap_micro_usd: Some(plan.cap_atomic), ..Default::default() });
         }
         Ok(id)
     }

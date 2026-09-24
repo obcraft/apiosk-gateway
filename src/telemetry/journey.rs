@@ -60,6 +60,19 @@ pub fn question_failed(error: &anyhow::Error) {
     emit_milestone(Milestone::Terminal, None, None, MilestoneFields { status: Some(status), error_class: Some(class), ..Default::default() });
 }
 
+/// How a server execution ended when it saved no answer: cancelled, waiting
+/// for the person's choice or input, or stopped by a failure.
+pub fn execution_ended(task_id: Uuid, task: Option<&Task>, failed: bool) {
+    let status = match task {
+        Some(_) if failed => "failed",
+        Some(task) if task.cancelled => "cancelled",
+        Some(task) if !task.pending_candidates.is_empty() || task.actions.iter().any(|action| action["kind"] == "supply") => "needs_input",
+        Some(task) if task.analysis.is_some() => return,
+        _ => "failed",
+    };
+    emit_milestone(Milestone::Terminal, Some(task_id), None, MilestoneFields { status: Some(status), ..Default::default() });
+}
+
 /// v1: analysis completed with no failed or pending source and no follow-up
 /// question. Extend with the answer-coverage check (#42) once it exists.
 pub fn fully_answered(task: &Task) -> bool {
@@ -106,6 +119,23 @@ mod tests {
         task.analysis = Some(json!({"status":"completed"}));
         task.failed_steps.insert("step".into(), json!({"code":"incomplete_source"}));
         assert!(!fully_answered(&task));
+    }
+
+    #[test]
+    fn an_execution_without_an_answer_reports_why_it_stopped() {
+        let lines = capture::Lines::default();
+        let _guard = lines.install();
+        let id = Uuid::new_v4();
+        let cancelled = Task { cancelled: true, ..Task::default() };
+        let choosing = Task { pending_candidates: vec![json!({})], ..Task::default() };
+        let answered = Task { analysis: Some(json!({"status":"completed"})), ..Task::default() };
+        execution_ended(id, Some(&cancelled), false);
+        execution_ended(id, Some(&choosing), false);
+        execution_ended(id, Some(&answered), false);
+        execution_ended(id, None, false);
+        execution_ended(id, Some(&answered), true);
+        let statuses: Vec<_> = lines.telemetry().iter().map(|line| line["status"].clone()).collect();
+        assert_eq!(statuses, [json!("cancelled"), json!("needs_input"), json!("failed"), json!("failed")]);
     }
 
     #[test]

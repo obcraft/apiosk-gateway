@@ -91,6 +91,7 @@
   "cache_states": ["hit", "miss", "refresh_wait", "stale_served", "first_load"],
   "source_statuses": ["succeeded", "failed", "unresolved", "refused_before_reservation", "refunded"],
   "query_classes": ["simple_lookup", "search_list", "comparison", "dossier", "unclassified"],
+  "segment_outcomes": ["price_ready", "needs_input", "unsupported", "failed", "answered", "partial", "unavailable", "cancelled"],
   "definitions": {
     "fully_answered": "v1: analysis status completed, no failed steps, no pending dispatches and no follow-up question. Extend with the answer-coverage check (#42) once it exists.",
     "cache": "cold if catalog_cache is refresh_wait or first_load, or the process is younger than 60 s, or the browser's first navigation; otherwise warm.",

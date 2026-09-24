@@ -130,6 +130,20 @@ names!(
     }
 );
 
+names!(
+    /// How a persisted segment ended.
+    SegmentOutcome {
+        PriceReady => "price_ready",
+        NeedsInput => "needs_input",
+        Unsupported => "unsupported",
+        Failed => "failed",
+        Answered => "answered",
+        Partial => "partial",
+        Unavailable => "unavailable",
+        Cancelled => "cancelled",
+    }
+);
+
 impl ErrorClass {
     /// The class of an HTTP status the gateway returned itself.
     pub fn from_status(status: u16) -> Option<Self> {
@@ -195,6 +209,7 @@ mod tests {
         assert_eq!(names(Cache::ALL, Cache::as_str), listed("cache_states"));
         assert_eq!(names(SourceStatus::ALL, SourceStatus::as_str), listed("source_statuses"));
         assert_eq!(names(QueryClass::ALL, QueryClass::as_str), listed("query_classes"));
+        assert_eq!(names(SegmentOutcome::ALL, SegmentOutcome::as_str), listed("segment_outcomes"));
     }
 
     #[test]

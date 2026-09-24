@@ -28,7 +28,9 @@ impl Engine {
         {
             return Ok(r);
         }
+        telemetry::set_segment(telemetry::Segment::FollowUp);
         let result = self.followup_inner(p, &req).await;
+        telemetry::question(&result);
         Ok(self.complete(p, req.request_id, result).await)
     }
     async fn followup_inner(

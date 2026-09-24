@@ -8,6 +8,11 @@ impl Store {
         sqlx::query("DELETE FROM workflow_runs WHERE id IN (SELECT id FROM workflow_runs WHERE expires_at<now() ORDER BY expires_at LIMIT 500)").execute(&self.pool).await?;
         sqlx::query("DELETE FROM supplier_invoice_checks WHERE id IN (SELECT id FROM supplier_invoice_checks WHERE expires_at<now() ORDER BY expires_at LIMIT 500)").execute(&self.pool).await?;
         sqlx::query("DELETE FROM tasks WHERE id IN (SELECT t.id FROM tasks t WHERE expires_at<now() AND NOT EXISTS(SELECT 1 FROM executions e WHERE e.task_id=t.id AND e.status IN ('dispatching','unresolved')) ORDER BY expires_at LIMIT 50)").execute(&self.pool).await?;
+        // Cost rows (TELEMETRY_PERSIST) exist once their migration is applied.
+        let costs: bool = sqlx::query_scalar("SELECT to_regclass('gateway_v2.request_costs') IS NOT NULL").fetch_one(&self.pool).await?;
+        if costs {
+            sqlx::query("DELETE FROM gateway_v2.request_costs WHERE id IN (SELECT id FROM gateway_v2.request_costs WHERE expires_at<now() ORDER BY expires_at LIMIT 500)").execute(&self.pool).await?;
+        }
         Ok(())
     }
 
