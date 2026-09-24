@@ -2,6 +2,7 @@
   "services": [
     {
       "id": "df69b687-6199-4a83-8189-8f540b2bc5c5",
+      "unverified": true,
       "endpoint_id": "005ad11b-bff8-4abd-9727-31e4c5953cc3",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -60,6 +61,7 @@
     },
     {
       "id": "51c30f2a-ca7f-495e-8d6a-c70347554894",
+      "unverified": true,
       "endpoint_id": "006f24e3-04b4-4554-bf57-de97b2ac2cad",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -127,6 +129,7 @@
     },
     {
       "id": "56a43d79-355b-4301-86f3-74cb9a6783f8",
+      "unverified": true,
       "endpoint_id": "00ca9c59-6e0e-49c1-bab9-2ad27dac5a3b",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -230,6 +233,7 @@
     },
     {
       "id": "2101728e-ef9c-4a7f-8fd6-fafe78d99ffe",
+      "unverified": true,
       "endpoint_id": "01528558-c1c1-49e8-a595-57865bbf340d",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -306,6 +310,7 @@
     },
     {
       "id": "61be9951-0fa4-4ee0-8180-6f700d92f6a4",
+      "unverified": true,
       "endpoint_id": "02ca53a5-059a-4673-b8aa-0c2adb3a791b",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -382,6 +387,7 @@
     },
     {
       "id": "66ed1fe2-9020-419b-87d3-4928c8d4d7e4",
+      "unverified": true,
       "endpoint_id": "02f2628d-c09c-4a68-a184-bab7ba6de609",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -440,6 +446,7 @@
     },
     {
       "id": "3b44f100-b1e9-475b-8ee5-4b6269fff913",
+      "unverified": true,
       "endpoint_id": "0313da3e-0228-4f00-96aa-7ddf0833eeb1",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -534,6 +541,7 @@
     },
     {
       "id": "e24cb6c9-f871-426e-8f1d-bc846e7246ed",
+      "unverified": true,
       "endpoint_id": "04a937d5-f078-4536-a4c3-f95fb873421f",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -601,6 +609,7 @@
     },
     {
       "id": "dcfa3752-0b89-4d68-874c-c3d3e70f30f8",
+      "unverified": true,
       "endpoint_id": "0623c5e9-ee0a-45a0-a589-18b0d4f9a86d",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -668,6 +677,7 @@
     },
     {
       "id": "493d7cdd-7868-4eb0-8fe7-6032eb08a4b2",
+      "unverified": true,
       "endpoint_id": "064001de-697e-41d3-b13e-f3e72fdb56a6",
       "api_slug": "alphapulse",
       "name": "AlphaPulse",
@@ -735,6 +745,7 @@
     },
     {
       "id": "1cf2a453-f73c-4979-8230-bd14ce0c1318",
+      "unverified": true,
       "endpoint_id": "0656e4e2-61fb-4972-a042-35f2b4534dd6",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -784,6 +795,7 @@
     },
     {
       "id": "771374f3-99b7-4917-8248-6a8616ef8e15",
+      "unverified": true,
       "endpoint_id": "0928cb10-dfe6-49bf-b257-808e4793ec4b",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -869,6 +881,7 @@
     },
     {
       "id": "0b101cf7-5f99-49a7-8126-41f888571def",
+      "unverified": true,
       "endpoint_id": "09c32d63-3ab1-49a7-8095-4186bb6bc12a",
       "api_slug": "clinicalintelpulse",
       "name": "ClinicalIntelPulse",
@@ -918,6 +931,7 @@
     },
     {
       "id": "20566c4c-1511-4d75-80b8-3743be45ac15",
+      "unverified": true,
       "endpoint_id": "0a33edd4-463a-4203-a4ca-d80a2d83a178",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -976,6 +990,7 @@
     },
     {
       "id": "1779bba4-3994-4096-8966-f2868915485e",
+      "unverified": true,
       "endpoint_id": "0af76ff9-8ae2-40e8-a8cd-51db347c6de9",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -1052,6 +1067,7 @@
     },
     {
       "id": "bb47b6bb-d88c-44af-8e80-f4a35bc3ed74",
+      "unverified": true,
       "endpoint_id": "0b03da5b-e90e-4590-8c30-d18366dc9a69",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -1119,6 +1135,7 @@
     },
     {
       "id": "5001b0c7-2d78-4649-89b9-b753570cce7c",
+      "unverified": true,
       "endpoint_id": "0b142a34-be89-4411-9c66-4b1a847e5858",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -1186,6 +1203,7 @@
     },
     {
       "id": "9ea619a0-5f7b-4c31-8630-0209bdf87316",
+      "unverified": true,
       "endpoint_id": "0b30444c-f67c-4cea-b458-81bfc06da2ce",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -1262,6 +1280,7 @@
     },
     {
       "id": "4e85ddc2-581c-4f77-8f79-e3f775c94457",
+      "unverified": true,
       "endpoint_id": "0cefb60d-63c4-47df-a34b-393f9bc98156",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -1356,6 +1375,7 @@
     },
     {
       "id": "8bf76276-7809-440c-877d-f2f49a0fff1d",
+      "unverified": true,
       "endpoint_id": "0d0532fa-2606-4c12-bc5f-adf370dae8bb",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -1558,6 +1578,7 @@
     },
     {
       "id": "73fb95da-ad0d-4624-8dae-fa816ec7aec6",
+      "unverified": true,
       "endpoint_id": "0d4783fd-2c6a-46f2-82db-00b48812a8b4",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -1616,6 +1637,7 @@
     },
     {
       "id": "f56f7207-b996-4017-8233-4f743d4c51fb",
+      "unverified": true,
       "endpoint_id": "0dfa3376-ef12-44f5-9e82-4a9f14623252",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -1692,6 +1714,7 @@
     },
     {
       "id": "fb5014c2-25d3-4eb2-8352-1a8f5927cd85",
+      "unverified": true,
       "endpoint_id": "0e41722c-81fd-4f64-ad08-bdf8945948e9",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -1759,6 +1782,7 @@
     },
     {
       "id": "80ac93ec-cdce-46ea-8c2f-1bd738d9edc3",
+      "unverified": true,
       "endpoint_id": "0f9973fc-c19b-4612-939d-928c9828966f",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -1826,6 +1850,7 @@
     },
     {
       "id": "4b6b44d5-def4-439c-8326-67fd90cca565",
+      "unverified": true,
       "endpoint_id": "10130a77-7c81-4cdb-981e-7efa1d6926ef",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -1893,6 +1918,7 @@
     },
     {
       "id": "23921c72-c920-4bb3-8288-81f8d6eebef3",
+      "unverified": true,
       "endpoint_id": "1044d815-dfb7-453a-9403-f72157ddbf05",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -1960,6 +1986,7 @@
     },
     {
       "id": "c1865859-5109-423e-8633-45de432ecc24",
+      "unverified": true,
       "endpoint_id": "117058cb-6502-4342-bdbe-0d50372a2a01",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -2018,6 +2045,7 @@
     },
     {
       "id": "0b62908f-4a89-408c-8146-c5a84c4f9c3b",
+      "unverified": true,
       "endpoint_id": "12bb3503-f384-486b-b240-39ac53a3f115",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -2085,6 +2113,7 @@
     },
     {
       "id": "8ab074f4-093a-403c-8bee-85e99104ee78",
+      "unverified": true,
       "endpoint_id": "13249239-5067-44d4-bc04-b7c9ec35bed8",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -2179,6 +2208,7 @@
     },
     {
       "id": "cc79d461-d263-45d5-8391-3c3fff7334d2",
+      "unverified": true,
       "endpoint_id": "1357c2b8-df41-4811-bfd7-706893be5abe",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -2246,6 +2276,7 @@
     },
     {
       "id": "52a5e845-9eeb-4935-8654-654562c67180",
+      "unverified": true,
       "endpoint_id": "13c42954-0c42-46f8-a1a7-bc7b4bb9d542",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -2331,6 +2362,7 @@
     },
     {
       "id": "1e1cc676-7cf9-4ba7-8a91-bb018c5e1d10",
+      "unverified": true,
       "endpoint_id": "1402b566-6b29-4401-9364-d16a50f61267",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -2416,6 +2448,7 @@
     },
     {
       "id": "516c841f-5197-4b92-8e35-75f1efc052e5",
+      "unverified": true,
       "endpoint_id": "140b8e22-97b1-47f9-9d97-73525f5d427a",
       "api_slug": "alphapulse",
       "name": "AlphaPulse",
@@ -2483,6 +2516,7 @@
     },
     {
       "id": "5f1e5f4d-af22-4c9f-8b35-483fb4c97c8d",
+      "unverified": true,
       "endpoint_id": "14678016-09cc-40c4-9673-9f855bb1c0a5",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -2559,6 +2593,7 @@
     },
     {
       "id": "d00e664e-0539-4010-8b24-cf764911c8e2",
+      "unverified": true,
       "endpoint_id": "1662f041-618a-48ba-96a4-0a18b685d212",
       "api_slug": "filingspulse",
       "name": "FilingsPulse",
@@ -2635,6 +2670,7 @@
     },
     {
       "id": "da03c58d-9e03-42fc-8552-4010fbe507ad",
+      "unverified": true,
       "endpoint_id": "16a72715-55df-4622-abe8-f0ae3f311f45",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -2720,6 +2756,7 @@
     },
     {
       "id": "f47f77bc-6579-4e5c-8d17-56728b31f1f2",
+      "unverified": true,
       "endpoint_id": "16f42df4-5399-48fb-8032-8348ba95bb2b",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -2832,6 +2869,7 @@
     },
     {
       "id": "80e6d0a4-1b0f-4f9f-8f11-da134c3462e2",
+      "unverified": true,
       "endpoint_id": "1729d330-3c0d-4ab0-b400-abd82507676b",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -2908,6 +2946,7 @@
     },
     {
       "id": "f4eed405-6f30-462d-8094-ad8ec32d9d46",
+      "unverified": true,
       "endpoint_id": "190482b6-c6ca-4b41-b2f2-5d93b2612f90",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -2993,6 +3032,7 @@
     },
     {
       "id": "f5c3f3c8-d4de-4d7b-89cc-4566c8996bbf",
+      "unverified": true,
       "endpoint_id": "1929bdcf-fdf8-4386-a22f-7cebb857f991",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -3051,6 +3091,7 @@
     },
     {
       "id": "1db989e7-c8ae-4fdd-89af-b9be25abe2d5",
+      "unverified": true,
       "endpoint_id": "1abe2300-b297-4a36-9a61-f08eb38af4a7",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -3118,6 +3159,7 @@
     },
     {
       "id": "8af2b322-5c24-4271-81db-72cb1f32df4e",
+      "unverified": true,
       "endpoint_id": "1b4ad396-ad4e-41c0-ad91-16cc31a6954c",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -3176,6 +3218,7 @@
     },
     {
       "id": "08522ace-ffb8-4e4b-8fae-e8946bbb25d3",
+      "unverified": true,
       "endpoint_id": "1b9311d6-d291-4337-859c-19b5e123f0d0",
       "api_slug": "cryptopulse",
       "name": "CryptoPulse",
@@ -3306,6 +3349,7 @@
     },
     {
       "id": "3dfcd6b6-4cb1-459e-8fef-59aabd567d28",
+      "unverified": true,
       "endpoint_id": "1bc66033-e908-462f-be2a-998bdba86c08",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -3373,6 +3417,7 @@
     },
     {
       "id": "6df45f15-bac3-4afa-8817-e88aefe7f6f0",
+      "unverified": true,
       "endpoint_id": "1c295fe0-1bd7-4c06-aff6-7ac6b9add4f8",
       "api_slug": "mailpulse",
       "name": "MailPulse",
@@ -3422,6 +3467,7 @@
     },
     {
       "id": "667a6c6d-e21a-4bfd-8a3a-fc3369d63b6b",
+      "unverified": true,
       "endpoint_id": "1c850ab3-df67-4b30-a97a-6fe9cd0f3aae",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -3489,6 +3535,7 @@
     },
     {
       "id": "dbb97648-8d7b-4a69-8eb2-c300a8bb02ff",
+      "unverified": true,
       "endpoint_id": "1ce96aa0-ed21-4f1e-8bf7-6d5063c72e23",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -3565,6 +3612,7 @@
     },
     {
       "id": "b7f44257-c781-481e-87df-6ea983c5c853",
+      "unverified": true,
       "endpoint_id": "1dcb4667-d579-4ee0-b283-43d0811c3926",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -3614,6 +3662,7 @@
     },
     {
       "id": "2d3a7fcb-7f46-4fbe-82d2-db7506cadf06",
+      "unverified": true,
       "endpoint_id": "1eac2b4f-1e58-4355-a6ee-32c74283342e",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -3663,6 +3712,7 @@
     },
     {
       "id": "ddf50a1f-63fb-402a-83a7-884587ca699c",
+      "unverified": true,
       "endpoint_id": "2109d970-aab1-49d2-a467-3efe1726c079",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -3739,6 +3789,7 @@
     },
     {
       "id": "82505172-6496-4f8c-85c6-db5ffbc3e877",
+      "unverified": true,
       "endpoint_id": "214953ba-c886-499b-9a44-d9478103bf09",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -3788,6 +3839,7 @@
     },
     {
       "id": "7f46b31c-9f18-4be7-8a6c-a892f6049e72",
+      "unverified": true,
       "endpoint_id": "21fb1f94-a046-4c45-87e9-bf3d308118f1",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -3882,6 +3934,7 @@
     },
     {
       "id": "79d2f2db-8c54-40ab-803a-91e70897f8e9",
+      "unverified": true,
       "endpoint_id": "22111b76-8e15-4900-80c3-46334daaebfc",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -4021,6 +4074,7 @@
     },
     {
       "id": "574003a5-a10c-4253-882c-5f3244621c66",
+      "unverified": true,
       "endpoint_id": "2254b636-f550-4df0-b64e-cf910efc554b",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -4088,6 +4142,7 @@
     },
     {
       "id": "a2ceb579-cab2-4c2e-839d-78f186e9c16d",
+      "unverified": true,
       "endpoint_id": "243bf461-e64a-4875-a421-e72e660ab22e",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -4146,6 +4201,7 @@
     },
     {
       "id": "dd8dc662-926f-4a8f-8ec5-42508c0b96ec",
+      "unverified": true,
       "endpoint_id": "246175e9-8846-4a30-b0be-beed4f941cda",
       "api_slug": "homepulse",
       "name": "HomePulse",
@@ -4240,6 +4296,7 @@
     },
     {
       "id": "37b77ca4-47d5-4537-8e35-cec823268166",
+      "unverified": true,
       "endpoint_id": "24d24f05-caf4-4e62-bce1-b5e86c77997a",
       "api_slug": "cyberpulse",
       "name": "CyberPulse",
@@ -4307,6 +4364,7 @@
     },
     {
       "id": "f20dea1a-4718-4920-884a-633610000b36",
+      "unverified": true,
       "endpoint_id": "2513fcee-6eed-459a-8dd4-64584b1f9417",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -4383,6 +4441,7 @@
     },
     {
       "id": "7030ab24-27f4-45bd-8707-e00728c27052",
+      "unverified": true,
       "endpoint_id": "25332d55-8f0d-40ab-bd39-9af2d3459a09",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -4459,6 +4518,7 @@
     },
     {
       "id": "52c3c3ae-01f7-4144-8fdf-0774cc2b2511",
+      "unverified": true,
       "endpoint_id": "26f03295-bdfc-4082-ab05-b858d02df721",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -4544,6 +4604,7 @@
     },
     {
       "id": "b7f3accf-aa08-42b2-87c4-55d3c4c34d97",
+      "unverified": true,
       "endpoint_id": "278ad2cc-02ba-4eba-8e6e-2d093065b486",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -4629,6 +4690,7 @@
     },
     {
       "id": "f43b8f99-81f9-4eff-8634-0cbdd92b1181",
+      "unverified": true,
       "endpoint_id": "2820982d-ea7f-40f6-a1ff-dc9f2a8036e7",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -4813,6 +4875,7 @@
     },
     {
       "id": "7e0ddb6a-1b7b-49cb-8656-71173f85f893",
+      "unverified": true,
       "endpoint_id": "2824b6c4-a3ca-4cb9-9dc5-d329793f3d20",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -4889,6 +4952,7 @@
     },
     {
       "id": "ca5392ba-d6e2-4e94-83c0-482fc49d66f0",
+      "unverified": true,
       "endpoint_id": "2864bcbd-9a2b-4610-a13f-cb49aa889ece",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -4974,6 +5038,7 @@
     },
     {
       "id": "176d88b5-4a8a-4ec0-8483-10a088efa890",
+      "unverified": true,
       "endpoint_id": "288e90b6-8294-4962-9185-7eda191d696d",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -5059,6 +5124,7 @@
     },
     {
       "id": "f2727c6f-def9-4284-8bb7-efcc449c035f",
+      "unverified": true,
       "endpoint_id": "2931db17-f305-42b3-a532-65349785951f",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -5135,6 +5201,7 @@
     },
     {
       "id": "9ef867ea-0ded-4237-8cc1-62322c528a5e",
+      "unverified": true,
       "endpoint_id": "29542466-ba1c-4f2a-91fe-716166ed4417",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -5202,6 +5269,7 @@
     },
     {
       "id": "b110bd0a-b651-44ba-8043-72f7a7426384",
+      "unverified": true,
       "endpoint_id": "2954df42-09b3-43ee-ad48-816637e31c8e",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -5269,6 +5337,7 @@
     },
     {
       "id": "4c534ed7-9541-485f-8cb5-03b73040206e",
+      "unverified": true,
       "endpoint_id": "29847330-f6a6-42a2-b08d-d6fc79c0b383",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -5327,6 +5396,7 @@
     },
     {
       "id": "9c22be36-c467-4cd0-8da8-865d6d752c99",
+      "unverified": true,
       "endpoint_id": "2a0b700c-1922-4648-9965-cae649c8aa12",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -5385,6 +5455,7 @@
     },
     {
       "id": "08b93611-c804-43ba-8cbb-e681b075ed7e",
+      "unverified": true,
       "endpoint_id": "2a63f803-9780-423e-916f-72d2dee09820",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -5434,6 +5505,7 @@
     },
     {
       "id": "fbb2e741-5530-42fb-8abd-01787f3efeb0",
+      "unverified": true,
       "endpoint_id": "2aa3e350-9a54-4f5c-b9fa-695112c6f887",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -5528,6 +5600,7 @@
     },
     {
       "id": "a2d9f675-9833-433e-8b6b-b800bf0d7a35",
+      "unverified": true,
       "endpoint_id": "2b1501ec-44d5-4d7b-bee8-85b4c7f8731d",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -5586,6 +5659,7 @@
     },
     {
       "id": "950e40d3-fc8c-45f3-8837-95162d4b8406",
+      "unverified": true,
       "endpoint_id": "2c3162db-5236-452b-9df8-9a756fb62160",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -5671,6 +5745,7 @@
     },
     {
       "id": "067d7d1d-4d9c-468d-8325-e66aa3983618",
+      "unverified": true,
       "endpoint_id": "2c92462a-3413-4764-adb6-4ae310f48a53",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -5756,6 +5831,7 @@
     },
     {
       "id": "1f177f8d-8d05-4e0c-879e-8c0129dd8613",
+      "unverified": true,
       "endpoint_id": "2d0e0434-2075-4237-b5e9-3a42d9444490",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -5841,6 +5917,7 @@
     },
     {
       "id": "df49e63c-e900-41da-853f-3d1981455a09",
+      "unverified": true,
       "endpoint_id": "2d5d127b-b208-40fd-8d16-6127779cdb37",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -5935,6 +6012,7 @@
     },
     {
       "id": "1fd45e88-c3e5-4a9c-89b0-e6dd70b6b889",
+      "unverified": true,
       "endpoint_id": "2f1b39bb-1088-417e-975a-e02ba91b50c8",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -6029,6 +6107,7 @@
     },
     {
       "id": "719fba37-9ccd-4a32-8810-05658ab68cc5",
+      "unverified": true,
       "endpoint_id": "2f8f4475-018c-42c7-8a58-2330b14990d5",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -6105,6 +6184,7 @@
     },
     {
       "id": "7f605c6d-c749-447c-8c8d-078a2ebcd594",
+      "unverified": true,
       "endpoint_id": "305453d0-498b-45a1-a76e-ef62fa3fd747",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -6172,6 +6252,7 @@
     },
     {
       "id": "f4ca3bc0-48e6-4697-8ed6-640439d14a29",
+      "unverified": true,
       "endpoint_id": "314991a2-3f8b-4da8-babf-d4517d9dab47",
       "api_slug": "clinicalintelpulse",
       "name": "ClinicalIntelPulse",
@@ -6221,6 +6302,7 @@
     },
     {
       "id": "122f2258-f9a4-4481-8d79-841d729d82c4",
+      "unverified": true,
       "endpoint_id": "32615fcf-aa80-487a-a4c5-5c3ef390b450",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -6288,6 +6370,7 @@
     },
     {
       "id": "e6f504c3-1841-4947-8ba0-f11d832e0d0b",
+      "unverified": true,
       "endpoint_id": "32ac204d-35c7-4967-b3db-fde1aeb4ef1c",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -6364,6 +6447,7 @@
     },
     {
       "id": "5383d3f2-7215-4fc9-8b49-09db35fcb38b",
+      "unverified": true,
       "endpoint_id": "32ca794c-5c8f-41e5-808c-3b7c09659cf0",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -6431,6 +6515,7 @@
     },
     {
       "id": "3f42a88d-f7f3-4be8-81b0-3be10537bd8e",
+      "unverified": true,
       "endpoint_id": "32d4d4a1-f2cb-4141-9d77-2ca8b51a6068",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -6516,6 +6601,7 @@
     },
     {
       "id": "55cb1ac4-09ed-4a7d-8328-5004a414e4b3",
+      "unverified": true,
       "endpoint_id": "334ed5fa-1634-49f0-a83b-126e32413801",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -6565,6 +6651,7 @@
     },
     {
       "id": "52e250bf-6f67-4f1a-8c22-fee5fdebd46b",
+      "unverified": true,
       "endpoint_id": "33a0cae8-ed5b-440a-9a64-d080b097828e",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -6650,6 +6737,7 @@
     },
     {
       "id": "83fa7322-28be-4517-8c35-75d2e9f9edad",
+      "unverified": true,
       "endpoint_id": "33a5f5f7-6880-4da3-8ae9-d0ae92ef8f4a",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -6726,6 +6814,7 @@
     },
     {
       "id": "4e36c5c7-a350-4261-872b-fe85548cf719",
+      "unverified": true,
       "endpoint_id": "34c21b63-2b93-432d-8cbc-cdc92c6bead3",
       "api_slug": "filingspulse",
       "name": "FilingsPulse",
@@ -6802,6 +6891,7 @@
     },
     {
       "id": "accf2d95-06fc-49c5-820d-f4d6562b961a",
+      "unverified": true,
       "endpoint_id": "34c7a7ae-7709-463d-a6d7-6be0b4b80532",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -6869,6 +6959,7 @@
     },
     {
       "id": "cdb87fc2-2e53-41fa-8265-47707c1cb1a8",
+      "unverified": true,
       "endpoint_id": "34fd1868-8ed1-4171-8d3e-93effe91d99f",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -6918,6 +7009,7 @@
     },
     {
       "id": "efdb92bd-25a9-4598-87a5-98ede7410f1b",
+      "unverified": true,
       "endpoint_id": "35019fca-641e-475e-92de-454f5b2b2564",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -6994,6 +7086,7 @@
     },
     {
       "id": "a9b172c4-879d-4195-88e1-cf0d81c55760",
+      "unverified": true,
       "endpoint_id": "3629cd16-87d0-4fb6-8fd7-2840ff591419",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -7115,6 +7208,7 @@
     },
     {
       "id": "99cbf6d5-1241-445f-8019-cd344e10c1ed",
+      "unverified": true,
       "endpoint_id": "3737779f-8976-493b-9051-3410427d0f53",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -7173,6 +7267,7 @@
     },
     {
       "id": "db16138c-23ea-422f-830f-5e9603179844",
+      "unverified": true,
       "endpoint_id": "3768c21c-0061-48bc-878b-09e294b96717",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -7258,6 +7353,7 @@
     },
     {
       "id": "15ad69da-101b-4e61-8967-1e668bb8c5de",
+      "unverified": true,
       "endpoint_id": "377406a1-a2b3-493e-9460-ec999b2edc2a",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -7307,6 +7403,7 @@
     },
     {
       "id": "c7f33799-3892-4eb5-8fd9-e9720dc827f0",
+      "unverified": true,
       "endpoint_id": "37f6790f-1661-4d27-a30b-200762caf523",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -7374,6 +7471,7 @@
     },
     {
       "id": "0e4f0e9f-9c9c-4170-827d-599399f9c246",
+      "unverified": true,
       "endpoint_id": "3851728b-894d-4690-9e31-cd9a85290836",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -7486,6 +7584,7 @@
     },
     {
       "id": "673b32e7-ab5b-4d26-8a60-a35a96c604fc",
+      "unverified": true,
       "endpoint_id": "38b4e468-47af-412e-823f-f2f626f7d73f",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -7544,6 +7643,7 @@
     },
     {
       "id": "1af02cc1-9547-4168-888a-547c6c7971d2",
+      "unverified": true,
       "endpoint_id": "38dbf492-96f3-4f2e-95a5-e4eb18290f64",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -7611,6 +7711,7 @@
     },
     {
       "id": "cbdd0371-0c2b-4ab6-8e36-f34bffad4131",
+      "unverified": true,
       "endpoint_id": "39271891-1a64-4078-ab10-1088dbc5671c",
       "api_slug": "arbipulse",
       "name": "ArbiPulse",
@@ -7687,6 +7788,7 @@
     },
     {
       "id": "abaa0506-f0e8-414d-872e-50ade71ba45e",
+      "unverified": true,
       "endpoint_id": "39932496-a9b9-4f13-8936-c9162757938d",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -7736,6 +7838,7 @@
     },
     {
       "id": "78b2f6e7-8ecc-4f10-872d-257b5d6823eb",
+      "unverified": true,
       "endpoint_id": "3abaea42-6520-4f1b-8ae0-3656a727e66b",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -7821,6 +7924,7 @@
     },
     {
       "id": "8f923bc3-90be-4190-8044-05a5ee0191a6",
+      "unverified": true,
       "endpoint_id": "3bbe9502-0340-4770-9604-b58147576078",
       "api_slug": "safepulse",
       "name": "SafePulse",
@@ -7888,6 +7992,7 @@
     },
     {
       "id": "b191c85f-5c01-43f6-863d-5ce4ecc72cfe",
+      "unverified": true,
       "endpoint_id": "3c473989-d492-4d6f-93d2-cd713ec34324",
       "api_slug": "opensanctions",
       "name": "OpenSanctions",
@@ -7937,6 +8042,7 @@
     },
     {
       "id": "0725e290-b88a-4b1e-87e7-e2685c348579",
+      "unverified": true,
       "endpoint_id": "3d2f2d15-5284-4abb-a000-3494fecf5d55",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -8004,6 +8110,7 @@
     },
     {
       "id": "6d49e99f-8018-49d9-84de-f573763a37f4",
+      "unverified": true,
       "endpoint_id": "3d467420-9503-4ec5-8e34-8cf26d7ba248",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -8053,6 +8160,7 @@
     },
     {
       "id": "86bd1e2c-08f2-4d84-8e6d-a1f787fe2599",
+      "unverified": true,
       "endpoint_id": "3d8fa0cb-2622-450d-bd01-38a4c97a4e85",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -8129,6 +8237,7 @@
     },
     {
       "id": "1ace54f7-4557-476b-883f-451c14b73517",
+      "unverified": true,
       "endpoint_id": "3da9943a-dfdf-44c3-8b08-3ea9b444482c",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -8187,6 +8296,7 @@
     },
     {
       "id": "56ab669d-b8cc-4e21-8ae8-c56ea67763a9",
+      "unverified": true,
       "endpoint_id": "3e249c41-5c6e-4895-a2c6-d9705b4df41d",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -8236,6 +8346,7 @@
     },
     {
       "id": "f14b38f4-7e7c-4964-8bea-a7b9c6d09c18",
+      "unverified": true,
       "endpoint_id": "3f095ea1-4790-4c3e-b180-9d299e00db38",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -8303,6 +8414,7 @@
     },
     {
       "id": "0c3b59c3-50cc-48e5-84a0-662dd1feef48",
+      "unverified": true,
       "endpoint_id": "3f23d922-d229-4c88-86c4-c55016715de5",
       "api_slug": "insurepulse",
       "name": "InsurePulse",
@@ -8388,6 +8500,7 @@
     },
     {
       "id": "0d7bec8f-8ef4-4d6e-855a-fe9433421e38",
+      "unverified": true,
       "endpoint_id": "3fcbd983-1031-4bd6-94b7-4531e48a8abe",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -8464,6 +8577,7 @@
     },
     {
       "id": "cb1fc6e0-582d-4556-859a-8ec7eaa83e3c",
+      "unverified": true,
       "endpoint_id": "3fdb9322-12ca-4997-99b0-75f67b539783",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -8531,6 +8645,7 @@
     },
     {
       "id": "9bef03e7-3f6a-4118-8325-c392b5e52c01",
+      "unverified": true,
       "endpoint_id": "3ffedb8d-b39f-4207-bab2-5ae58112d6f9",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -8598,6 +8713,7 @@
     },
     {
       "id": "1bab4f61-0565-420f-81f7-41de67c5f500",
+      "unverified": true,
       "endpoint_id": "402acf76-7db6-4d4d-afbb-8a91f38601e2",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -8692,6 +8808,7 @@
     },
     {
       "id": "54c2e5f7-031f-46a0-8320-0a4124597f61",
+      "unverified": true,
       "endpoint_id": "41369c61-6b0a-4059-8f0f-e1a93a5dc990",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -8759,6 +8876,7 @@
     },
     {
       "id": "aac305ca-222f-41c3-8e30-a8bd37b3bc2f",
+      "unverified": true,
       "endpoint_id": "41a6f4a3-4118-4ae1-a5d1-08dc3cc50927",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -8871,6 +8989,7 @@
     },
     {
       "id": "3d2673e4-b165-4fbd-83a6-d99193a24029",
+      "unverified": true,
       "endpoint_id": "436306b3-0447-452d-93cf-fafedcf37b78",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -8938,6 +9057,7 @@
     },
     {
       "id": "97c2de51-69d9-4a08-8583-01a2410a959f",
+      "unverified": true,
       "endpoint_id": "43d875d2-470a-4150-b3e5-fd118d0f2569",
       "api_slug": "franchisepulse",
       "name": "FranchisePulse",
@@ -8996,6 +9116,7 @@
     },
     {
       "id": "9e410f21-8fea-4709-8b06-f7c26c74b849",
+      "unverified": true,
       "endpoint_id": "43fef7db-bc94-45fe-becd-9be7be4228ff",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -9072,6 +9193,7 @@
     },
     {
       "id": "91aa2658-992d-44b3-8707-8f33496e1d29",
+      "unverified": true,
       "endpoint_id": "4428c126-a0e5-4227-a45d-4ebb7c52ce1a",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -9157,6 +9279,7 @@
     },
     {
       "id": "41827864-4524-4866-8870-15b15a7b5e7d",
+      "unverified": true,
       "endpoint_id": "4444a8e1-08a2-4d3c-ab77-0210f36d7378",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -9224,6 +9347,7 @@
     },
     {
       "id": "ab4eb187-de22-41ab-8de0-0aa83667eaca",
+      "unverified": true,
       "endpoint_id": "4493ef72-f797-4caa-8899-53ac2268524a",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -9282,6 +9406,7 @@
     },
     {
       "id": "1e6a6458-f612-4bb0-85c1-19d9b96afa07",
+      "unverified": true,
       "endpoint_id": "4521d591-a3e1-4a9b-a370-2c55954f7844",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -9376,6 +9501,7 @@
     },
     {
       "id": "c003147f-a5ad-457f-8ea4-b4bd73653607",
+      "unverified": true,
       "endpoint_id": "45652b6c-3551-4810-8a8d-83c164a052a7",
       "api_slug": "biopulse",
       "name": "BioPulse",
@@ -9452,6 +9578,7 @@
     },
     {
       "id": "3fd9f39c-2696-4e53-87bf-6a75b4ed235f",
+      "unverified": true,
       "endpoint_id": "45c7b647-7e40-482f-8f57-adddef7c2248",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -9519,6 +9646,7 @@
     },
     {
       "id": "ee48bd7a-89eb-43ca-8555-4157f7120060",
+      "unverified": true,
       "endpoint_id": "45e7d7a7-23cc-46fa-a368-7311a8cb0002",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -9622,6 +9750,7 @@
     },
     {
       "id": "88739df8-5e73-4696-87e7-a1becc35918c",
+      "unverified": true,
       "endpoint_id": "4628f9cb-77b6-4e4d-b285-ca311eda02d1",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -9698,6 +9827,7 @@
     },
     {
       "id": "297a8aff-3706-4b4b-88e2-1aa7409d79cc",
+      "unverified": true,
       "endpoint_id": "47209d3e-d773-419b-9004-6872c2740ee2",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -9792,6 +9922,7 @@
     },
     {
       "id": "3cb64684-4860-4a84-8562-bb138a78f155",
+      "unverified": true,
       "endpoint_id": "4727776c-a0dd-4f05-ae8d-748722fb34e8",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -9886,6 +10017,7 @@
     },
     {
       "id": "7e498c16-218a-4719-86e9-43ec0dc2fb93",
+      "unverified": true,
       "endpoint_id": "475464a3-3852-45b0-82b4-b4d9fdcf6568",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -9962,6 +10094,7 @@
     },
     {
       "id": "8254fb38-8935-4fe0-81fb-f69c714c4ade",
+      "unverified": true,
       "endpoint_id": "4850c4ea-3709-42c4-9a5f-cf3e40da7148",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -10011,6 +10144,7 @@
     },
     {
       "id": "dec5bef6-be61-4070-890e-9ee67ca866bc",
+      "unverified": true,
       "endpoint_id": "48a7ce6c-e81c-4ffc-989d-f6f10ef75b35",
       "api_slug": "stateedge",
       "name": "StatEdge",
@@ -10069,6 +10203,7 @@
     },
     {
       "id": "0e9ff14f-77c8-4ea3-8f93-bdfd52b4efe0",
+      "unverified": true,
       "endpoint_id": "49d6adda-8066-4ff7-bb63-a41dd7cd7694",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -10136,6 +10271,7 @@
     },
     {
       "id": "51da92dd-7390-4517-881b-1d115319d554",
+      "unverified": true,
       "endpoint_id": "4a2e760c-9c51-4c38-8518-eda4b9c986c4",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -10185,6 +10321,7 @@
     },
     {
       "id": "ee220816-698e-4b2f-88f1-41599763bb92",
+      "unverified": true,
       "endpoint_id": "4a821e6f-6b07-4f02-a178-15f114dbc912",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -10252,6 +10389,7 @@
     },
     {
       "id": "b24f5eb0-156c-4e33-8865-479245716bd1",
+      "unverified": true,
       "endpoint_id": "4a8bd9d0-77f7-4d35-b711-4ff92844863a",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -10337,6 +10475,7 @@
     },
     {
       "id": "441a81ef-f944-4926-8cfe-cb9184ba4cdb",
+      "unverified": true,
       "endpoint_id": "4ab9e8df-9716-4252-b216-7f302df3a3c4",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -10413,6 +10552,7 @@
     },
     {
       "id": "e5cf1ecc-8980-41fe-89b3-04a005324de9",
+      "unverified": true,
       "endpoint_id": "4adbea99-8676-4773-a8d3-f93edd37b74f",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -10516,6 +10656,7 @@
     },
     {
       "id": "eac948ae-5294-4f79-87ee-44771594303b",
+      "unverified": true,
       "endpoint_id": "4afcc308-f8b9-4541-9a97-149e2b77f4fc",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -10574,6 +10715,7 @@
     },
     {
       "id": "126abd34-0bd0-42a2-8c98-51092d914dba",
+      "unverified": true,
       "endpoint_id": "4b29a6d7-51a5-4197-ae85-9484088ad41c",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -10641,6 +10783,7 @@
     },
     {
       "id": "be7da9a9-4831-45de-8cd3-eb49304a1ccf",
+      "unverified": true,
       "endpoint_id": "4b3f34cd-d812-4cb7-8c23-183ff726fb35",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -10717,6 +10860,7 @@
     },
     {
       "id": "b8372496-89ac-4e0d-8369-dc65fee8d126",
+      "unverified": true,
       "endpoint_id": "4b55a68b-3a38-4d9a-b3b0-dbf1c51fe3a5",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -10775,6 +10919,7 @@
     },
     {
       "id": "821cb2da-8f48-4ffa-820d-257a1a7dddfc",
+      "unverified": true,
       "endpoint_id": "4bb24745-772a-4074-bbd1-9bae0268059d",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -10833,6 +10978,7 @@
     },
     {
       "id": "b082a957-7ec4-4c8f-8788-588dee6b6288",
+      "unverified": true,
       "endpoint_id": "4c95fbc3-3cbb-4457-b8d5-53cf24df190a",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -10900,6 +11046,7 @@
     },
     {
       "id": "a98bb08d-604e-47b9-8dfd-887cd1391cc6",
+      "unverified": true,
       "endpoint_id": "4d724310-cf35-4c51-8b12-fca780844e77",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -10994,6 +11141,7 @@
     },
     {
       "id": "eccafccf-3fbd-4dcc-872e-9324967f16a4",
+      "unverified": true,
       "endpoint_id": "4df18fb5-6200-4125-b001-6980bd792d51",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -11061,6 +11209,7 @@
     },
     {
       "id": "ee0456d2-0f2f-4f43-8ba9-6997e4c9a9c0",
+      "unverified": true,
       "endpoint_id": "4e25bfe3-81cd-4c84-9f33-2c0807059611",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -11146,6 +11295,7 @@
     },
     {
       "id": "49cc23ec-7c62-461b-8a06-fc1344434693",
+      "unverified": true,
       "endpoint_id": "4e3f416b-f248-4261-8632-4419b9985e6b",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -11195,6 +11345,7 @@
     },
     {
       "id": "984b6cd8-46e8-4c8d-8cbb-020f9ae126cd",
+      "unverified": true,
       "endpoint_id": "4e83fad7-fe70-4201-ae57-f8e1d4841393",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -11244,6 +11395,7 @@
     },
     {
       "id": "21b392ab-87bc-489e-8413-ee1890f614c3",
+      "unverified": true,
       "endpoint_id": "4e89f082-6f4f-46cd-967a-74523bc62499",
       "api_slug": "gridpulse",
       "name": "GridPulse",
@@ -11320,6 +11472,7 @@
     },
     {
       "id": "315f9ebc-1dcc-4cdc-8c5a-08e6bbc20aa3",
+      "unverified": true,
       "endpoint_id": "4eb5a0dd-fbb4-4ee2-a573-38954df325bd",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -11378,6 +11531,7 @@
     },
     {
       "id": "2081d341-1b54-4d19-857a-f0b1d5335c28",
+      "unverified": true,
       "endpoint_id": "4f1129d0-f3ea-4b0f-9139-66a1af12b861",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -11463,6 +11617,7 @@
     },
     {
       "id": "ecbbbe62-b5cb-4769-8f44-d2bbf0d7d286",
+      "unverified": true,
       "endpoint_id": "4f333aca-5f23-48f7-b35d-b014e51f19f2",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -11602,6 +11757,7 @@
     },
     {
       "id": "73d41cd3-e2a6-416a-8b70-0b43ec015f55",
+      "unverified": true,
       "endpoint_id": "4f7bc6b3-2d32-4211-a539-6d56e9e5d5de",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -11669,6 +11825,7 @@
     },
     {
       "id": "0df0965c-1614-4ebf-88b4-deddccf9d6ff",
+      "unverified": true,
       "endpoint_id": "505b741a-5fd4-4258-840f-f1e84cf63637",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -11718,6 +11875,7 @@
     },
     {
       "id": "ec448f7c-f0f6-421a-8678-7e29fd56c0db",
+      "unverified": true,
       "endpoint_id": "509f8752-2cba-4a38-8c87-20b553e46550",
       "api_slug": "homepulse",
       "name": "HomePulse",
@@ -11812,6 +11970,7 @@
     },
     {
       "id": "3835fee4-fe5e-47c6-82f0-c7b37bc48541",
+      "unverified": true,
       "endpoint_id": "50a345e3-db39-4093-970a-51f695e4200a",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -11870,6 +12029,7 @@
     },
     {
       "id": "32d978f8-3cb6-4f94-8b3a-30f5b69e617a",
+      "unverified": true,
       "endpoint_id": "50bb6389-5be3-4553-88dd-d061609300e8",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -11946,6 +12106,7 @@
     },
     {
       "id": "0c421abe-15bc-44ca-88f1-96048ccbb02d",
+      "unverified": true,
       "endpoint_id": "50c37552-f2a8-458d-a8be-868afdea59c2",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -12022,6 +12183,7 @@
     },
     {
       "id": "35f6df86-ede9-4288-8cdb-c711f883247e",
+      "unverified": true,
       "endpoint_id": "50ce1e58-a9b3-4238-b26e-6754f69c5780",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -12116,6 +12278,7 @@
     },
     {
       "id": "009119b2-f61d-40da-8da0-897a343ee012",
+      "unverified": true,
       "endpoint_id": "50de0c04-a7dd-4e01-962c-be264bea676d",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -12174,6 +12337,7 @@
     },
     {
       "id": "05bea8f9-e034-43a8-865d-b840bbbe8fb1",
+      "unverified": true,
       "endpoint_id": "5120e9a2-f501-4c37-bc7c-0d46b4600b4a",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -12268,6 +12432,7 @@
     },
     {
       "id": "0476a73d-75f2-48ec-8838-e650adf471f4",
+      "unverified": true,
       "endpoint_id": "5162215c-ea90-4641-bbaa-ca9c78735043",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -12353,6 +12518,7 @@
     },
     {
       "id": "bef22d95-1fca-47f7-8c54-6eb2031c0fc0",
+      "unverified": true,
       "endpoint_id": "526b12ce-d5ad-4162-98f3-b16c1299a31d",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -12411,6 +12577,7 @@
     },
     {
       "id": "ae277adf-de31-48ee-8e43-03ac3ff2c42f",
+      "unverified": true,
       "endpoint_id": "52bee70d-617c-479f-90cd-364df5be8138",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -12496,6 +12663,7 @@
     },
     {
       "id": "c63e79b3-c4b4-4988-8a89-4ff9d34131ad",
+      "unverified": true,
       "endpoint_id": "52ec46ef-17c9-4e64-9a70-bc16adba4ba0",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -12545,6 +12713,7 @@
     },
     {
       "id": "8cfea08a-d3cb-4982-83a4-0d661cb1d32a",
+      "unverified": true,
       "endpoint_id": "52f2f5a4-f7c1-423d-8e6c-63fce82419f2",
       "api_slug": "stateedge",
       "name": "StatEdge",
@@ -12612,6 +12781,7 @@
     },
     {
       "id": "985a4182-afb3-45d5-807e-84a21b5d841d",
+      "unverified": true,
       "endpoint_id": "533d3bf0-e75e-4c4b-b218-4701e99289b1",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -12670,6 +12840,7 @@
     },
     {
       "id": "d2c4ef37-04f6-4eeb-888e-0644b5dae1aa",
+      "unverified": true,
       "endpoint_id": "535f4e3e-db48-4f61-94de-f25383687075",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -12755,6 +12926,7 @@
     },
     {
       "id": "748a80bf-b619-4db9-84dc-e4f02bb4939e",
+      "unverified": true,
       "endpoint_id": "544eb3a8-c725-4846-b21a-e392d135571d",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -12849,6 +13021,7 @@
     },
     {
       "id": "d242c3a1-cec2-4121-8a36-44ad2d76c12f",
+      "unverified": true,
       "endpoint_id": "544f808f-9b8d-49a1-8028-62fd189ac883",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -13069,6 +13242,7 @@
     },
     {
       "id": "ec163817-697c-471e-8668-1e66af588136",
+      "unverified": true,
       "endpoint_id": "55202a6c-3df1-4af7-941e-e8ec64443b61",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -13127,6 +13301,7 @@
     },
     {
       "id": "fd29dde4-37d1-47cb-8681-252a39e798f6",
+      "unverified": true,
       "endpoint_id": "5569d3b4-0053-48eb-8ef6-3ca40b321235",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -13230,6 +13405,7 @@
     },
     {
       "id": "fcd0b2c0-003b-4531-8562-6bb4ca3fcdbd",
+      "unverified": true,
       "endpoint_id": "55d9f151-aceb-4e68-a508-c586abc779aa",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -13279,6 +13455,7 @@
     },
     {
       "id": "23c2573a-05da-4549-8823-248456deb458",
+      "unverified": true,
       "endpoint_id": "560d0e69-1da5-4821-a1be-fe98895fe44d",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -13337,6 +13514,7 @@
     },
     {
       "id": "dcd2d576-2d21-4d71-815c-da2bdbcdb5f7",
+      "unverified": true,
       "endpoint_id": "5674253a-d5f2-488d-ba36-0bfd0d2a552b",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -13413,6 +13591,7 @@
     },
     {
       "id": "2315b86a-c156-4774-8d0e-28eb2069d018",
+      "unverified": true,
       "endpoint_id": "574b7020-9db5-4a0b-9be7-d2d86e14b7ca",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -13489,6 +13668,7 @@
     },
     {
       "id": "eb168a1e-bc76-4fc9-8eb4-b2079de7ad3f",
+      "unverified": true,
       "endpoint_id": "5795f876-96b6-45a0-9e0c-95ab849742dc",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -13565,6 +13745,7 @@
     },
     {
       "id": "b86258aa-35b2-493d-8493-683b90de6b34",
+      "unverified": true,
       "endpoint_id": "584d11d1-ce9b-4a8a-86ba-a92ef78168ed",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -13641,6 +13822,7 @@
     },
     {
       "id": "1e1a77b9-22e6-4650-8a10-b131a7ae8060",
+      "unverified": true,
       "endpoint_id": "586bd231-2eaf-4dd5-b07c-ba4aa50d7162",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -13708,6 +13890,7 @@
     },
     {
       "id": "388f99e0-85c1-423d-8932-dd20233193c9",
+      "unverified": true,
       "endpoint_id": "58b1a973-ec5c-412b-9507-3706bf746afb",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -13766,6 +13949,7 @@
     },
     {
       "id": "04feec30-03d1-4229-81a4-8b6b44547124",
+      "unverified": true,
       "endpoint_id": "58d06946-cca8-4789-89b6-fc9a5c652399",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -13851,6 +14035,7 @@
     },
     {
       "id": "de08feaa-fea4-4274-8c8e-e0b8eec51e21",
+      "unverified": true,
       "endpoint_id": "590b7462-bc17-48e0-a694-66404c3c2824",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -13981,6 +14166,7 @@
     },
     {
       "id": "74b626f3-7729-471e-882d-d9a952658539",
+      "unverified": true,
       "endpoint_id": "596af7cd-fccc-42dc-b017-69a15304d6c4",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -14057,6 +14243,7 @@
     },
     {
       "id": "46012c31-85a0-439a-866b-9239ef0fde1d",
+      "unverified": true,
       "endpoint_id": "5a0a8107-fadc-4293-b9e6-de3a4dc834f8",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -14106,6 +14293,7 @@
     },
     {
       "id": "af02b43a-d06a-4e07-815f-295ba2754c77",
+      "unverified": true,
       "endpoint_id": "5a43d942-280e-4f6a-a7a6-2321bcd4b9c9",
       "api_slug": "alphapulse",
       "name": "AlphaPulse",
@@ -14173,6 +14361,7 @@
     },
     {
       "id": "bc043797-02c9-4d70-8055-3cbec1767263",
+      "unverified": true,
       "endpoint_id": "5a494d01-ca35-4f64-a247-3d3a435c8ff4",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -14240,6 +14429,7 @@
     },
     {
       "id": "bbbf0a13-9d1e-46d1-844e-e2d678cca13e",
+      "unverified": true,
       "endpoint_id": "5a8c53cc-b91f-4dd2-9ec0-f8a1d5da4376",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -14406,6 +14596,7 @@
     },
     {
       "id": "9e37b326-0937-4c2d-8f30-659f9277e375",
+      "unverified": true,
       "endpoint_id": "5a8ec18b-aa7c-49c6-8d0d-92574049b3f9",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -14518,6 +14709,7 @@
     },
     {
       "id": "ba0725ef-0c8a-4de8-8f88-7a1857087deb",
+      "unverified": true,
       "endpoint_id": "5b7760a9-7ebf-426a-947e-3cebdd6a355f",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -14567,6 +14759,7 @@
     },
     {
       "id": "bfa185de-d4a5-4df6-87fd-21cd9ec40ca7",
+      "unverified": true,
       "endpoint_id": "5bbccb2c-d49d-41a7-b770-6f30b0f36502",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -14625,6 +14818,7 @@
     },
     {
       "id": "ba7a7e21-6de6-4f7e-833e-49dba38114df",
+      "unverified": true,
       "endpoint_id": "5bbe3341-6010-485b-8256-1b475de926f6",
       "api_slug": "cryptopulse",
       "name": "CryptoPulse",
@@ -14692,6 +14886,7 @@
     },
     {
       "id": "192b6c15-229e-467e-8697-35053850fd4f",
+      "unverified": true,
       "endpoint_id": "5c1add3b-e466-4dec-9aae-158818dc1df1",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -14768,6 +14963,7 @@
     },
     {
       "id": "ebe42d9c-4a32-4b7e-8fba-0b6577ae045b",
+      "unverified": true,
       "endpoint_id": "5ebda352-2881-4437-aae9-b052bfca4fca",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -14835,6 +15031,7 @@
     },
     {
       "id": "99314d11-b28d-45d1-8211-fa91381a4efa",
+      "unverified": true,
       "endpoint_id": "5f9a1367-4b8e-4849-85bd-84594ef6651a",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -14902,6 +15099,7 @@
     },
     {
       "id": "73ea68fd-c2e7-4787-8a21-f5ef375025d4",
+      "unverified": true,
       "endpoint_id": "6038b124-1072-475b-b655-c88f3ae127fa",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -14978,6 +15176,7 @@
     },
     {
       "id": "ab68233e-8e39-44f4-8402-ec5f933f8f78",
+      "unverified": true,
       "endpoint_id": "61022874-8f18-42c3-a6e7-258b2eab281c",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -15036,6 +15235,7 @@
     },
     {
       "id": "dce32ea5-a70a-4847-8259-0d53b548efb2",
+      "unverified": true,
       "endpoint_id": "615af3f2-7bdf-46a9-a3ba-36f2ffceb7c6",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -15130,6 +15330,7 @@
     },
     {
       "id": "49ebbcb9-bbc6-4817-8d34-5dddc70bd1d8",
+      "unverified": true,
       "endpoint_id": "616c8a7d-ac09-4953-958e-d4ba58247d8c",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -15188,6 +15389,7 @@
     },
     {
       "id": "9d3eea10-ba48-4d94-835e-975cad8e8ba5",
+      "unverified": true,
       "endpoint_id": "61bf22fe-520e-4925-9d32-63619c28905f",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -15300,6 +15502,7 @@
     },
     {
       "id": "7c9f5ab7-cea8-4da9-8182-6099a4d98efe",
+      "unverified": true,
       "endpoint_id": "61f34d98-bcc4-40f6-8ff1-23f2c15ae616",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -15376,6 +15579,7 @@
     },
     {
       "id": "0cb09ffa-3f33-4949-866c-be31239ccdf7",
+      "unverified": true,
       "endpoint_id": "628de839-52bb-40e4-a125-a2bf6c5c22ef",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -15461,6 +15665,7 @@
     },
     {
       "id": "17280d87-5f8a-4fba-87bb-44b19fbb3038",
+      "unverified": true,
       "endpoint_id": "6317c530-ca38-4010-af7a-5694fb6ce6d7",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -15537,6 +15742,7 @@
     },
     {
       "id": "2581a60c-b518-49e7-8b5e-3226981462c4",
+      "unverified": true,
       "endpoint_id": "63f1e077-3582-466f-b7cb-a6c3455fa821",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -15595,6 +15801,7 @@
     },
     {
       "id": "bfd87cf1-0024-4d89-8778-544bc8dde193",
+      "unverified": true,
       "endpoint_id": "63fa112f-613d-4382-82b2-ca035d69b3e2",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -15653,6 +15860,7 @@
     },
     {
       "id": "5ea809b0-7725-41df-885b-cb6625534c51",
+      "unverified": true,
       "endpoint_id": "642a5ab5-d7d5-4c8d-9df7-4e872ab06564",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -15738,6 +15946,7 @@
     },
     {
       "id": "b91328d9-0a62-42be-8b3a-8dd519caeaa0",
+      "unverified": true,
       "endpoint_id": "646712a2-0d73-4f2d-a561-a6c41debc298",
       "api_slug": "gridpulse",
       "name": "GridPulse",
@@ -15814,6 +16023,7 @@
     },
     {
       "id": "0092cbbd-99ab-44c5-8825-fb062b960235",
+      "unverified": true,
       "endpoint_id": "64e32553-f0e5-44fb-aed5-6f88e9fb77c4",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -15890,6 +16100,7 @@
     },
     {
       "id": "0a7e9ac6-bacd-4202-858e-f1f85a02e2ff",
+      "unverified": true,
       "endpoint_id": "652bd1b0-eeba-47e9-839e-d608b40b0b99",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -15948,6 +16159,7 @@
     },
     {
       "id": "b3f89ac4-e62d-4e4e-893c-0705847f4587",
+      "unverified": true,
       "endpoint_id": "659f138e-a8d3-48ef-b21c-35a4a3c2b43f",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -16024,6 +16236,7 @@
     },
     {
       "id": "8e434730-ee0e-4d4e-827d-75ed225051be",
+      "unverified": true,
       "endpoint_id": "65d3ec2b-06e5-44dd-9c92-0f3558c64e59",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -16082,6 +16295,7 @@
     },
     {
       "id": "622c989f-b0e3-4260-8d5c-c89babceccd0",
+      "unverified": true,
       "endpoint_id": "660189ce-ea18-4fbd-993c-ecdf339d28c2",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -16158,6 +16372,7 @@
     },
     {
       "id": "e9ccdb23-c58a-43f9-8f53-33a47009abb6",
+      "unverified": true,
       "endpoint_id": "666f5961-7bb0-417c-b2fd-b2eabe63db31",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -16306,6 +16521,7 @@
     },
     {
       "id": "a3549101-a04e-496e-8c07-3de6cc9cc1ad",
+      "unverified": true,
       "endpoint_id": "670d6349-fdc7-4cfa-9ab3-6c640c267c79",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -16364,6 +16580,7 @@
     },
     {
       "id": "d2df846e-ad07-4fb1-80e2-6a026b7c5703",
+      "unverified": true,
       "endpoint_id": "67dfa400-199b-4e00-9262-e846961dd08c",
       "api_slug": "vetpulse",
       "name": "VetPulse",
@@ -16458,6 +16675,7 @@
     },
     {
       "id": "2d37882e-f41e-4285-897b-6a32abc55cba",
+      "unverified": true,
       "endpoint_id": "68729869-46c4-48a5-bcb5-8dd489d16129",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -16543,6 +16761,7 @@
     },
     {
       "id": "b84b3b0b-9553-4ac6-88b5-6ea95e99dc24",
+      "unverified": true,
       "endpoint_id": "6a96d6ae-15d0-4355-ac1a-f38ee401e062",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -16610,6 +16829,7 @@
     },
     {
       "id": "e1c92a7d-3898-491c-86d7-9ea5e3498d51",
+      "unverified": true,
       "endpoint_id": "6b4b7573-908c-4418-b5ef-0bd899373dd9",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -16668,6 +16888,7 @@
     },
     {
       "id": "2a6c8617-3026-448d-866c-fe7f082f68a0",
+      "unverified": true,
       "endpoint_id": "6c2c0fba-c1e6-4379-b112-e0b5a529e3d3",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -16744,6 +16965,7 @@
     },
     {
       "id": "02d0c463-8a06-4fa9-875e-383ca416a2f9",
+      "unverified": true,
       "endpoint_id": "6c8799de-9664-4117-98b3-a7154c3b11e7",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -16802,6 +17024,7 @@
     },
     {
       "id": "95817f5e-dcbb-4047-8f78-25189eb4a00e",
+      "unverified": true,
       "endpoint_id": "6d5ec5ca-8492-4515-8e58-92c3c7333f86",
       "api_slug": "cryptopulse",
       "name": "CryptoPulse",
@@ -16860,6 +17083,7 @@
     },
     {
       "id": "9ea92d71-5bc0-4dc2-8494-2c69ba0a49d7",
+      "unverified": true,
       "endpoint_id": "6d98a94f-ccda-4be6-abf0-d22cd39701c8",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -16954,6 +17178,7 @@
     },
     {
       "id": "fab0c37d-9853-4238-87af-5783e4e32cb2",
+      "unverified": true,
       "endpoint_id": "6e21d372-e75e-48da-bac3-0ce2a925898e",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -17021,6 +17246,7 @@
     },
     {
       "id": "ad7b05e0-f633-49cc-8ea5-3147413cfe27",
+      "unverified": true,
       "endpoint_id": "6ec36df3-3592-45d4-8b55-bc20643eb87c",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -17115,6 +17341,7 @@
     },
     {
       "id": "6b624618-69a4-43e4-8cfa-ce54d4a0f15e",
+      "unverified": true,
       "endpoint_id": "6f492053-78bd-45fa-aa8b-13755ac7a611",
       "api_slug": "biopulse",
       "name": "BioPulse",
@@ -17173,6 +17400,7 @@
     },
     {
       "id": "6ac46e65-6548-42bf-8511-3c3c98241561",
+      "unverified": true,
       "endpoint_id": "6f789a33-5643-408e-bfd3-330fec3e7911",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -17249,6 +17477,7 @@
     },
     {
       "id": "785653a0-ac54-4ba7-868e-70a0734a6f91",
+      "unverified": true,
       "endpoint_id": "6f898ad9-9b28-4e6d-941c-1f41c2711cd5",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -17316,6 +17545,7 @@
     },
     {
       "id": "d491fe46-c579-4ea4-8922-52587bcbcd7b",
+      "unverified": true,
       "endpoint_id": "6fb12a17-95bc-4692-88af-08089811fffe",
       "api_slug": "mindpulse",
       "name": "MindPulse",
@@ -17383,6 +17613,7 @@
     },
     {
       "id": "e7dbc18e-d66e-4ee2-8620-420b00c1a19a",
+      "unverified": true,
       "endpoint_id": "6fe22524-dca1-41db-bfe0-f9145d0d870a",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -17450,6 +17681,7 @@
     },
     {
       "id": "0e450f0c-aa7b-4b38-8bed-2d9c63cad7d9",
+      "unverified": true,
       "endpoint_id": "705638e6-6022-451a-a5b3-d0814c38d2f5",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -17526,6 +17758,7 @@
     },
     {
       "id": "371fc37a-a1c0-4e21-8306-f30fe7b0ed23",
+      "unverified": true,
       "endpoint_id": "71219b97-9235-4775-8270-05b47c9e8d7f",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -17611,6 +17844,7 @@
     },
     {
       "id": "012267c1-f94b-452b-8448-824d6270a511",
+      "unverified": true,
       "endpoint_id": "721452f4-2f35-4e86-8af0-5796fcaade0d",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -17660,6 +17894,7 @@
     },
     {
       "id": "42f95732-6713-43ef-8a90-128328e04c98",
+      "unverified": true,
       "endpoint_id": "7218591c-cab9-411f-a931-86491fc15088",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -17736,6 +17971,7 @@
     },
     {
       "id": "1fefd213-f03e-4761-8176-bf66d8c033f0",
+      "unverified": true,
       "endpoint_id": "722b4553-aa29-46b8-ab0e-fc27049f5cb5",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -17794,6 +18030,7 @@
     },
     {
       "id": "f4db98cf-3329-4105-804e-2c94f066d679",
+      "unverified": true,
       "endpoint_id": "7252cb2e-b2cb-4592-86e9-e1ad75019992",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -17852,6 +18089,7 @@
     },
     {
       "id": "966246d8-3065-4289-8306-2d04c7cf91b0",
+      "unverified": true,
       "endpoint_id": "72978aa9-8404-4958-a0b8-a0422b99e99b",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -17901,6 +18139,7 @@
     },
     {
       "id": "8243ce3e-987f-4329-8380-872f9f51bb07",
+      "unverified": true,
       "endpoint_id": "72acd35d-2245-4e75-8a7a-cfab58f3dc5a",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -17986,6 +18225,7 @@
     },
     {
       "id": "80caac69-37b2-4fc2-8d75-021d2c6e10ff",
+      "unverified": true,
       "endpoint_id": "72bda36a-7e10-410b-9f7f-933bf2176ba0",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -18044,6 +18284,7 @@
     },
     {
       "id": "38dfb2aa-81ea-4067-8eb8-e2fb2382b3f0",
+      "unverified": true,
       "endpoint_id": "72d316a0-7e35-4c1c-8a9e-5317e5d97b45",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -18111,6 +18352,7 @@
     },
     {
       "id": "fbf8a039-cf5c-4699-81e2-dbe4f5f5e68e",
+      "unverified": true,
       "endpoint_id": "73a6a21d-f64d-4af4-a2a6-8e2b2bcd4531",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -18187,6 +18429,7 @@
     },
     {
       "id": "3fd62517-5abd-41ca-8368-80b52fe30123",
+      "unverified": true,
       "endpoint_id": "73c29f02-6dfd-41a4-81aa-d2c0f9f98a3f",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -18245,6 +18488,7 @@
     },
     {
       "id": "7bd374a4-8d48-49d1-813b-7b67a40ba00e",
+      "unverified": true,
       "endpoint_id": "74bb4b03-a3ba-48d0-a4de-4c81ca9f829d",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -18321,6 +18565,7 @@
     },
     {
       "id": "d4d1d582-54ec-463d-8261-a529bd4795dd",
+      "unverified": true,
       "endpoint_id": "74ee94bb-1ffa-4434-8e8f-ec9a61395d07",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -18550,6 +18795,7 @@
     },
     {
       "id": "aa887d7c-5087-49f3-85cb-8ca944f935e9",
+      "unverified": true,
       "endpoint_id": "7517c915-895d-4557-b12b-5e5c3aa6eb31",
       "api_slug": "franchisepulse",
       "name": "FranchisePulse",
@@ -18608,6 +18854,7 @@
     },
     {
       "id": "ba20bfdf-d053-484e-8b81-e94850eb9e9c",
+      "unverified": true,
       "endpoint_id": "755f0695-a3fa-481b-870a-a2044f3b1d00",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -18711,6 +18958,7 @@
     },
     {
       "id": "c2086640-28a7-4160-8d6a-bd05dec2a21c",
+      "unverified": true,
       "endpoint_id": "7582944b-ea5b-4176-93be-a2eb08a69d36",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -18778,6 +19026,7 @@
     },
     {
       "id": "47453e82-9497-42ff-85c2-eefb83989480",
+      "unverified": true,
       "endpoint_id": "758ec6c0-269e-4682-8d7b-06b3a9501984",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -18845,6 +19094,7 @@
     },
     {
       "id": "6ef94ea2-9f67-48a1-8eb7-cd7b641e9e64",
+      "unverified": true,
       "endpoint_id": "759ba2e2-2acd-4aa0-8bca-4a52b036e0f5",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -18903,6 +19153,7 @@
     },
     {
       "id": "ec2afa54-ebdb-4066-88f9-19abf84fff40",
+      "unverified": true,
       "endpoint_id": "75a6389e-b320-45a7-ad62-4578ab6e6f42",
       "api_slug": "vetpulse",
       "name": "VetPulse",
@@ -18979,6 +19230,7 @@
     },
     {
       "id": "a78c9bc5-53ff-482d-8ba4-ec2120e70fba",
+      "unverified": true,
       "endpoint_id": "75d2afa4-5abf-48fd-8df0-90d508a0d26e",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -19037,6 +19289,7 @@
     },
     {
       "id": "185609a9-e7de-4334-86df-6b01c22536c9",
+      "unverified": true,
       "endpoint_id": "76247f52-ec57-47b2-ac06-56a8dfad059c",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -19113,6 +19366,7 @@
     },
     {
       "id": "a598dfc0-3e50-4ab5-8aad-66324c650664",
+      "unverified": true,
       "endpoint_id": "76b50b20-bb85-4cd3-a908-73494dab5f6c",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -19171,6 +19425,7 @@
     },
     {
       "id": "da5d87bc-e0e5-4d65-8fc1-e038bb03b67b",
+      "unverified": true,
       "endpoint_id": "76b5f3fe-b8f6-41b0-9196-ffb139f1f71b",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -19247,6 +19502,7 @@
     },
     {
       "id": "e3199e8b-2f4c-4b67-810e-32b4d84ec82a",
+      "unverified": true,
       "endpoint_id": "76ef7a51-43b1-4d10-8deb-918cc1bdf83d",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -19341,6 +19597,7 @@
     },
     {
       "id": "9919debd-d3a2-4e47-8df3-acd005f82edf",
+      "unverified": true,
       "endpoint_id": "777b9758-a4fd-413d-85ca-0d45e7175d4e",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -19435,6 +19692,7 @@
     },
     {
       "id": "11f10556-315b-4661-8178-b65c90fb5710",
+      "unverified": true,
       "endpoint_id": "78861d48-51cc-4e07-8088-4c70ffc8da21",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -19502,6 +19760,7 @@
     },
     {
       "id": "34575ca5-07f5-4f9e-8b0e-f124f25bff62",
+      "unverified": true,
       "endpoint_id": "79d0bc54-e203-4d85-ba65-d381f49dce89",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -19578,6 +19837,7 @@
     },
     {
       "id": "3c230775-b2dc-42e1-829d-f6b5bef10928",
+      "unverified": true,
       "endpoint_id": "7a3b3cf4-f541-49e8-a081-20408a8f9639",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -19645,6 +19905,7 @@
     },
     {
       "id": "00feddcf-96ca-4d7e-843e-0aa0bd52ca94",
+      "unverified": true,
       "endpoint_id": "7b02e16a-dbdd-4a9f-9cd5-a7f6ffab6e9c",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -19712,6 +19973,7 @@
     },
     {
       "id": "8d582c43-198a-41c4-8d42-3fa6f4a7a789",
+      "unverified": true,
       "endpoint_id": "7b320044-d0d6-445a-807d-8dc1d3ec5ea8",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -19788,6 +20050,7 @@
     },
     {
       "id": "3d943f58-3d93-47e1-8b12-2b2983f5f91b",
+      "unverified": true,
       "endpoint_id": "7be0799a-7d74-469c-b3cc-02a0e10a8bbc",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -19873,6 +20136,7 @@
     },
     {
       "id": "a3a4edbd-16e2-4755-81f9-1c048d59b3a0",
+      "unverified": true,
       "endpoint_id": "7c22fdf2-01c5-4627-973c-8939915b0ff3",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -19949,6 +20213,7 @@
     },
     {
       "id": "0973c99f-8edd-4957-8ba5-6ba01c883ec8",
+      "unverified": true,
       "endpoint_id": "7c7b4140-624b-4597-b66c-770fca67d788",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -20016,6 +20281,7 @@
     },
     {
       "id": "e25a62a7-6fb1-4acf-815f-f26b94b12dd5",
+      "unverified": true,
       "endpoint_id": "7c83540c-d049-4c81-bbea-3c87544d34fc",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -20092,6 +20358,7 @@
     },
     {
       "id": "f310b1d6-5750-4daa-8fbe-a53bdb943acb",
+      "unverified": true,
       "endpoint_id": "7c9b9628-1ef0-4ef6-9f1e-c516ce2aba36",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -20159,6 +20426,7 @@
     },
     {
       "id": "df2bdc57-2e55-4f18-8ee6-2172b976d3d5",
+      "unverified": true,
       "endpoint_id": "7da9bf99-8d8e-4dfe-bc8f-374af44304d9",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -20217,6 +20485,7 @@
     },
     {
       "id": "9eb23f08-e28f-4638-87f1-695e2c097638",
+      "unverified": true,
       "endpoint_id": "7dd805fe-0f32-4a19-b546-8222b2086cfe",
       "api_slug": "policypulse",
       "name": "PolicyPulse",
@@ -20302,6 +20571,7 @@
     },
     {
       "id": "55b175cf-c8b6-46f1-8098-2bf06a68adc5",
+      "unverified": true,
       "endpoint_id": "7f1bbb0f-a8a1-47df-bc5b-13312e7500d5",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -20369,6 +20639,7 @@
     },
     {
       "id": "86294d17-a26c-4a4f-89e5-329d1c4e99a7",
+      "unverified": true,
       "endpoint_id": "7f67f65a-1dbc-4e06-b172-17d9ce596176",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -20427,6 +20698,7 @@
     },
     {
       "id": "5a202b12-c156-417d-8105-57ed080de0c0",
+      "unverified": true,
       "endpoint_id": "7fd148a2-4e3d-4ef9-8080-8eedd8de4f05",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -20485,6 +20757,7 @@
     },
     {
       "id": "d6fb2b1d-5e3f-4b84-8ef9-658647a42ce8",
+      "unverified": true,
       "endpoint_id": "7ff30896-50cc-4268-b753-1958f7d5f897",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -20696,6 +20969,7 @@
     },
     {
       "id": "e3016668-ba53-4af6-8271-8666303e9b97",
+      "unverified": true,
       "endpoint_id": "803f0b23-5c59-4849-b9f6-7732eb362de3",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -20754,6 +21028,7 @@
     },
     {
       "id": "13983016-abd4-4a53-8038-3177c08eaf11",
+      "unverified": true,
       "endpoint_id": "80531a2f-30af-4381-905d-cf748b53537d",
       "api_slug": "fieldpulse",
       "name": "FieldPulse",
@@ -20830,6 +21105,7 @@
     },
     {
       "id": "79c060cc-b4a3-4981-89d0-30beb6fab265",
+      "unverified": true,
       "endpoint_id": "81a70efa-a8bb-4525-9e69-990fb208320c",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -20915,6 +21191,7 @@
     },
     {
       "id": "84b3b9f6-549a-48b9-82ee-a8683efdcede",
+      "unverified": true,
       "endpoint_id": "81b94306-c895-4a12-8dae-c53a235edb7b",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -21000,6 +21277,7 @@
     },
     {
       "id": "9fed5099-cb1f-40e6-8833-82ce1ad494be",
+      "unverified": true,
       "endpoint_id": "8203a05a-bfad-4488-814f-0c443a97e46f",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -21067,6 +21345,7 @@
     },
     {
       "id": "b7182fae-4539-40f2-8c1c-4fbef077a691",
+      "unverified": true,
       "endpoint_id": "830e1db1-4b81-43ec-960b-a00d6bd7e039",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -21134,6 +21413,7 @@
     },
     {
       "id": "b49ce461-6c41-4079-8c2a-7993a2f9d70c",
+      "unverified": true,
       "endpoint_id": "83d2044b-d5cc-461f-864a-67548669e061",
       "api_slug": "gridpulse",
       "name": "GridPulse",
@@ -21201,6 +21481,7 @@
     },
     {
       "id": "e51c3894-d0ee-4262-8ae9-34ea4afb7671",
+      "unverified": true,
       "endpoint_id": "84a25f20-b97d-4343-84bf-873cfbfa800c",
       "api_slug": "cyberpulse",
       "name": "CyberPulse",
@@ -21268,6 +21549,7 @@
     },
     {
       "id": "00c2a9dc-5454-455f-8546-2ee242b3ef7d",
+      "unverified": true,
       "endpoint_id": "859c6137-4abb-4ed0-8641-54c21d3f4251",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -21335,6 +21617,7 @@
     },
     {
       "id": "c54ff702-f851-4b7a-8a91-4727bd670e0b",
+      "unverified": true,
       "endpoint_id": "85bbb2ca-9951-4c60-b5dd-6aae0c50685f",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -21402,6 +21685,7 @@
     },
     {
       "id": "b9cc296e-bee1-48e1-8743-588ca589215e",
+      "unverified": true,
       "endpoint_id": "861cfe0b-1a2e-4953-a4b4-3efbf1a35dcf",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -21460,6 +21744,7 @@
     },
     {
       "id": "d1602c29-568e-44b0-8bb0-050cecfa3c9c",
+      "unverified": true,
       "endpoint_id": "864832bf-28d1-41dd-9990-82b0e1686076",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -21527,6 +21812,7 @@
     },
     {
       "id": "75bfe80d-c1c4-4055-84f7-9edbe1275bdd",
+      "unverified": true,
       "endpoint_id": "8649545c-dc74-4c00-9641-6f677c195003",
       "api_slug": "cryptopulse",
       "name": "CryptoPulse",
@@ -21594,6 +21880,7 @@
     },
     {
       "id": "e15f0e88-b1de-445b-80eb-8795bd3bb325",
+      "unverified": true,
       "endpoint_id": "8678eaf8-2912-48da-b681-3dc229f16a37",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -21661,6 +21948,7 @@
     },
     {
       "id": "6d243c9e-cffa-47c6-842f-90e803b05517",
+      "unverified": true,
       "endpoint_id": "8697a20a-77ce-4d4f-8e75-9de9a3f0cbcc",
       "api_slug": "gridpulse",
       "name": "GridPulse",
@@ -21710,6 +21998,7 @@
     },
     {
       "id": "cd9caaad-1712-4a30-84b5-79ce03c9a7fc",
+      "unverified": true,
       "endpoint_id": "86a2f521-8c06-4105-930d-66b473da3c87",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -21813,6 +22102,7 @@
     },
     {
       "id": "b81bb90a-2bd7-4ffc-8919-fe992193f8b4",
+      "unverified": true,
       "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -21889,6 +22179,7 @@
     },
     {
       "id": "26f460fc-08f2-43fe-8838-143606c0df47",
+      "unverified": true,
       "endpoint_id": "86df4e8d-97f4-48d1-8f59-819ec034eca2",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -21947,6 +22238,7 @@
     },
     {
       "id": "2c82e7e2-bf3f-4635-8893-392c9032e53d",
+      "unverified": true,
       "endpoint_id": "86fb2aa0-2a04-48fa-9705-11a9343fb313",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -22023,6 +22315,7 @@
     },
     {
       "id": "58bd16f7-63e4-4b98-871c-64965d6b99ab",
+      "unverified": true,
       "endpoint_id": "8787cb30-6055-4265-8af7-2db069d860a5",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -22099,6 +22392,7 @@
     },
     {
       "id": "a47159d7-5b43-41eb-83ec-b11166f91fbc",
+      "unverified": true,
       "endpoint_id": "87a2cca6-ab04-4929-8800-113b36a454cc",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -22157,6 +22451,7 @@
     },
     {
       "id": "3f75dc78-913f-4c96-89c5-069b0b5b4b99",
+      "unverified": true,
       "endpoint_id": "87f67c7e-d372-4a05-beb4-9fdbd4c2f37d",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -22260,6 +22555,7 @@
     },
     {
       "id": "3f00a032-a25c-4c47-82f6-9c77bccc57f2",
+      "unverified": true,
       "endpoint_id": "88951f43-7ef5-45a5-8dd7-ac31347833f3",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -22336,6 +22632,7 @@
     },
     {
       "id": "d43a19ca-ed0a-434f-8174-247429d238a2",
+      "unverified": true,
       "endpoint_id": "88a88088-2779-4c41-812f-40047aca8c66",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -22385,6 +22682,7 @@
     },
     {
       "id": "6783c38d-ebc2-4a1d-8c2e-6979fb227c22",
+      "unverified": true,
       "endpoint_id": "892001d7-2020-4532-acf6-ba97c1ad74f5",
       "api_slug": "safepulse",
       "name": "SafePulse",
@@ -22452,6 +22750,7 @@
     },
     {
       "id": "e5411d26-0a7f-4e2f-8093-fffd95482aee",
+      "unverified": true,
       "endpoint_id": "894f2c2d-d6fc-43f4-842b-f900e6ace684",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -22537,6 +22836,7 @@
     },
     {
       "id": "2157b4ad-cb2f-444d-8cbc-9c125855b7db",
+      "unverified": true,
       "endpoint_id": "8984cd51-c81e-45e6-9638-596f3f524f4d",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -22622,6 +22922,7 @@
     },
     {
       "id": "8dedc150-79b8-42b7-854e-a902e3c00cc2",
+      "unverified": true,
       "endpoint_id": "899061ad-6935-418f-b772-ff1b58b12498",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -22707,6 +23008,7 @@
     },
     {
       "id": "cf764c77-e533-4fd5-8e0f-d0160b22b97a",
+      "unverified": true,
       "endpoint_id": "89f8ab28-e4dc-4bf1-bb46-1c9df22917c9",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -22774,6 +23076,7 @@
     },
     {
       "id": "bf0956c4-831c-431e-8375-85e464633af5",
+      "unverified": true,
       "endpoint_id": "8a66c5ea-9f67-48eb-92af-8a081e484932",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -22850,6 +23153,7 @@
     },
     {
       "id": "f5c3e23e-c5e9-4074-8818-3e669d1e526b",
+      "unverified": true,
       "endpoint_id": "8b74fd55-1168-4c32-9926-e08d04844885",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -22917,6 +23221,7 @@
     },
     {
       "id": "8afb48f6-d336-4595-8771-d73ad267add4",
+      "unverified": true,
       "endpoint_id": "8bcf93f9-5793-4e88-ac9b-1388a6d07709",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -22975,6 +23280,7 @@
     },
     {
       "id": "d787e193-7893-431f-8890-59552cdd29d9",
+      "unverified": true,
       "endpoint_id": "8be6508b-87e2-4a22-84ba-eefafc19ce0e",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -23033,6 +23339,7 @@
     },
     {
       "id": "d66e9737-47ef-471d-8b05-08dd12ba1f67",
+      "unverified": true,
       "endpoint_id": "8bf2055a-694e-4ed7-ade1-523369fd9d34",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -23109,6 +23416,7 @@
     },
     {
       "id": "d324cb17-c723-4d9a-837d-9cc376aec6e5",
+      "unverified": true,
       "endpoint_id": "8c72c362-6d8a-4945-b47c-3fe7e04fc968",
       "api_slug": "insurepulse",
       "name": "InsurePulse",
@@ -23212,6 +23520,7 @@
     },
     {
       "id": "2da561b2-87b1-4d77-8014-cb8e455c643b",
+      "unverified": true,
       "endpoint_id": "8c7fd156-44dc-4430-90f5-074f29bc9c6c",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -23315,6 +23624,7 @@
     },
     {
       "id": "f4fbf9a5-6b09-440a-82f5-e4b13f0cfda3",
+      "unverified": true,
       "endpoint_id": "8ca84912-8020-43ec-9d90-4c01fb948070",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -23382,6 +23692,7 @@
     },
     {
       "id": "c362b6e8-47f8-4980-8b5c-75981a6d1baf",
+      "unverified": true,
       "endpoint_id": "8d690af4-4af0-46f7-ae96-c635f06df6d0",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -23449,6 +23760,7 @@
     },
     {
       "id": "480e2c57-8cff-4903-8742-544461101a57",
+      "unverified": true,
       "endpoint_id": "8d86cc53-76a0-4ba2-b1a9-818d492e6459",
       "api_slug": "clinicalintelpulse",
       "name": "ClinicalIntelPulse",
@@ -23498,6 +23810,7 @@
     },
     {
       "id": "94b27f95-77f5-4251-875f-ebf0da56bdf0",
+      "unverified": true,
       "endpoint_id": "8dd9f98e-b8fc-4e9e-8d26-54b166496ee3",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -23565,6 +23878,7 @@
     },
     {
       "id": "2997387c-e179-4dd7-8019-61a722eebf4e",
+      "unverified": true,
       "endpoint_id": "8e049519-fab3-436d-83e0-ebecb4d65cb7",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -23632,6 +23946,7 @@
     },
     {
       "id": "4c406692-e5b0-47c1-824c-00e6b33fa6eb",
+      "unverified": true,
       "endpoint_id": "8ea739b0-77e3-4dc6-bc35-557e7e7028d7",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -23708,6 +24023,7 @@
     },
     {
       "id": "73316519-33f4-4f7c-8009-91154e6c4983",
+      "unverified": true,
       "endpoint_id": "8ebd6135-f2cd-4b43-82d9-8fcdb142dfd2",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -23838,6 +24154,7 @@
     },
     {
       "id": "08033ffd-9866-4a41-803b-b7ccbf7e02e2",
+      "unverified": true,
       "endpoint_id": "8f70abea-d689-4084-8527-b9809c64042d",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -23905,6 +24222,7 @@
     },
     {
       "id": "0db56445-0ead-455f-8734-3207e21f5444",
+      "unverified": true,
       "endpoint_id": "8fac5117-a75e-41dc-a577-8dcb3c8b4c84",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -23999,6 +24317,7 @@
     },
     {
       "id": "31c7687f-f026-4e60-810a-60dba7d6e2ef",
+      "unverified": true,
       "endpoint_id": "901bc476-344f-490d-ab4c-d3309b8a4dac",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -24075,6 +24394,7 @@
     },
     {
       "id": "0ddf9067-dbbf-479a-8434-aa35a59e6b2f",
+      "unverified": true,
       "endpoint_id": "9020e4d9-5494-4bf5-a320-76ed9d19717f",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -24142,6 +24462,7 @@
     },
     {
       "id": "d5faa6f3-9c47-44e7-8246-e1d837595d14",
+      "unverified": true,
       "endpoint_id": "904b29c9-c5d3-4fed-87b7-4f19fcdebcd0",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -24209,6 +24530,7 @@
     },
     {
       "id": "0989a02b-1e09-42bc-81b0-fce2d73fe49a",
+      "unverified": true,
       "endpoint_id": "90636de3-8a0a-4756-9e77-1761c06bdf89",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -24285,6 +24607,7 @@
     },
     {
       "id": "a25c794e-0368-4694-8f90-2a8518d5acf3",
+      "unverified": true,
       "endpoint_id": "9082c584-03f6-4ad0-9568-244d1c5704df",
       "api_slug": "govspendpulse",
       "name": "GovSpendPulse",
@@ -24352,6 +24675,7 @@
     },
     {
       "id": "e19fb4d7-db9f-4a11-8d51-b5c0ec5ee3d6",
+      "unverified": true,
       "endpoint_id": "91964456-8e9f-432f-a876-c1249db4bdd4",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -24428,6 +24752,7 @@
     },
     {
       "id": "11b60537-c975-4a1b-8722-f3306f9c427c",
+      "unverified": true,
       "endpoint_id": "926c4b3a-1630-4398-be30-8241db1b4ab8",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -24522,6 +24847,7 @@
     },
     {
       "id": "e00a4e24-d33f-41eb-8383-721b6797c9d9",
+      "unverified": true,
       "endpoint_id": "926e2225-19a8-4c8c-832d-e614cfc58ec8",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -24607,6 +24933,7 @@
     },
     {
       "id": "2aef1897-96d8-4fb3-8805-8f4347f2bd9a",
+      "unverified": true,
       "endpoint_id": "92e8a207-2247-4171-9af8-fe0d90bfa3fe",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -24665,6 +24992,7 @@
     },
     {
       "id": "e095b6f0-e2fb-45c0-8e6b-fd4b0ce850c0",
+      "unverified": true,
       "endpoint_id": "92ee2ac1-0721-4d4b-9e0d-38bb72fda5b6",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -24741,6 +25069,7 @@
     },
     {
       "id": "dabeb3e6-a995-4c9f-8f8f-336d62e02c1e",
+      "unverified": true,
       "endpoint_id": "92ffeb4f-d2c8-4740-9f1e-ee2bd41e6545",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -24835,6 +25164,7 @@
     },
     {
       "id": "b4bde504-fb1e-4ef7-88c6-32d532ba9c2e",
+      "unverified": true,
       "endpoint_id": "930daf1a-4b49-4a2d-b946-23d8e245b125",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -24902,6 +25232,7 @@
     },
     {
       "id": "fad693bc-a09d-4167-85d9-47ca8ce01f63",
+      "unverified": true,
       "endpoint_id": "93221d31-f1a9-4755-a8fd-3c941943c5a2",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -24969,6 +25300,7 @@
     },
     {
       "id": "27fa7f6f-66bf-4a88-8c4f-751b5310dabb",
+      "unverified": true,
       "endpoint_id": "932b3fe2-841a-4e04-955a-f46633882b7e",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -25036,6 +25368,7 @@
     },
     {
       "id": "6a3f892f-fcce-4fe9-81cf-f6c74e8df50c",
+      "unverified": true,
       "endpoint_id": "93864601-3488-4b2e-bfb5-e27a0e018b0a",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -25103,6 +25436,7 @@
     },
     {
       "id": "9a8e20c3-f721-4d42-8cd6-0560093fa066",
+      "unverified": true,
       "endpoint_id": "93b6740a-1563-4373-a0af-69d75afb78cd",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -25179,6 +25513,7 @@
     },
     {
       "id": "a10e46f1-5466-469f-8c8d-d82041216482",
+      "unverified": true,
       "endpoint_id": "94d5a7a1-cfb0-4e24-b8f9-dd2dade2eb48",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -25246,6 +25581,7 @@
     },
     {
       "id": "b0dac56d-e7cb-4942-8157-8eeb0b5914b8",
+      "unverified": true,
       "endpoint_id": "94d92164-d3d7-44ba-903d-4eb1e3350294",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -25304,6 +25640,7 @@
     },
     {
       "id": "e276cef7-0a3b-439b-8840-cb6a5849364b",
+      "unverified": true,
       "endpoint_id": "9592c4ba-3e22-41d4-ba95-2d4c1a05c42b",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -25380,6 +25717,7 @@
     },
     {
       "id": "40c72d1d-df83-45b1-8c7e-05a6649e4308",
+      "unverified": true,
       "endpoint_id": "959992cf-506e-4076-9ec3-2f78cdcf91a1",
       "api_slug": "govspendpulse",
       "name": "GovSpendPulse",
@@ -25456,6 +25794,7 @@
     },
     {
       "id": "46e60bef-1614-4795-8ff1-b0d90689bab9",
+      "unverified": true,
       "endpoint_id": "95e0556a-87e3-450b-9ca9-5bd106252fc7",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -25523,6 +25862,7 @@
     },
     {
       "id": "a540a7e7-1770-41a7-8c40-db5571e56571",
+      "unverified": true,
       "endpoint_id": "962bf971-a51f-45c6-a55c-5c48833c6826",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -25590,6 +25930,7 @@
     },
     {
       "id": "45bea41f-b7eb-438b-8e0d-0d559d82451d",
+      "unverified": true,
       "endpoint_id": "964695ce-5131-414b-8af9-e7579e670183",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -25657,6 +25998,7 @@
     },
     {
       "id": "669cde18-595e-48bb-8e75-4366527a47eb",
+      "unverified": true,
       "endpoint_id": "964bdab4-1dc2-4c9c-8035-baf9ac0874a3",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -25715,6 +26057,7 @@
     },
     {
       "id": "3cb9a5c2-b95b-46e3-8f90-e700d29a5bb3",
+      "unverified": true,
       "endpoint_id": "967aa0a4-6692-4a46-b965-eaf8b5894825",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -25773,6 +26116,7 @@
     },
     {
       "id": "544bb7ec-8d40-4530-8c4d-6d3f78e3a920",
+      "unverified": true,
       "endpoint_id": "96b34ec8-ead6-43b0-8e96-34e42f987f8b",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -25822,6 +26166,7 @@
     },
     {
       "id": "9de9e5a7-1265-4539-89e9-4b62013ba5b8",
+      "unverified": true,
       "endpoint_id": "96dc5195-cc91-4816-9521-7dce850103b9",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -25889,6 +26234,7 @@
     },
     {
       "id": "b71ce598-a1a9-453c-886c-a1f3d08a9f7b",
+      "unverified": true,
       "endpoint_id": "96e543e5-6e38-4fe2-818c-e6b2ea6064ab",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -25965,6 +26311,7 @@
     },
     {
       "id": "405fe721-9791-4fe3-8494-0e62df1627bf",
+      "unverified": true,
       "endpoint_id": "975cf378-0144-44bc-b629-a21c753cf671",
       "api_slug": "herbapulse",
       "name": "HerbaPulse",
@@ -26032,6 +26379,7 @@
     },
     {
       "id": "236c3788-47d0-40b8-8c73-dc828674c88e",
+      "unverified": true,
       "endpoint_id": "97cedaa1-b4fb-4c9f-bfe0-84eb5568fc2c",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -26090,6 +26438,7 @@
     },
     {
       "id": "fd94cc5b-0f6f-48d1-80a7-8072a95b5351",
+      "unverified": true,
       "endpoint_id": "9894a28b-1edf-4bc7-90a4-950f5de0c61b",
       "api_slug": "policypulse",
       "name": "PolicyPulse",
@@ -26166,6 +26515,7 @@
     },
     {
       "id": "7920a669-ce2e-4918-80a5-386a11ae6ffc",
+      "unverified": true,
       "endpoint_id": "9918ff34-03c3-4931-8b87-0c2d82ba737d",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -26233,6 +26583,7 @@
     },
     {
       "id": "7bdd8510-b5c7-43c9-8cbc-c9c7353a0f14",
+      "unverified": true,
       "endpoint_id": "992242ea-d8ad-4888-b743-95c6672f7e31",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -26318,6 +26669,7 @@
     },
     {
       "id": "05725853-1484-4027-8df6-aa355698dc7e",
+      "unverified": true,
       "endpoint_id": "992c4942-ca0d-4eb9-8678-130d118e345b",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -26403,6 +26755,7 @@
     },
     {
       "id": "06b68292-daea-4a45-8fac-52f8681df19f",
+      "unverified": true,
       "endpoint_id": "9970ab42-878d-445f-850a-cfbb4681f7f8",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -26461,6 +26814,7 @@
     },
     {
       "id": "8918f55d-ef9d-4027-8ae8-fbeda454997f",
+      "unverified": true,
       "endpoint_id": "9a1c1c20-7503-4b38-a07f-29852c2ec5ee",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -26537,6 +26891,7 @@
     },
     {
       "id": "a11c3d43-d631-419b-85cc-1f2ba1acf6a4",
+      "unverified": true,
       "endpoint_id": "9aebb05a-0659-4861-9c3f-6b9d8fdd1288",
       "api_slug": "franchisepulse",
       "name": "FranchisePulse",
@@ -26595,6 +26950,7 @@
     },
     {
       "id": "9e343da9-8655-407e-8373-0759fc26b126",
+      "unverified": true,
       "endpoint_id": "9b005299-fd69-4676-9a10-d77962734325",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -26689,6 +27045,7 @@
     },
     {
       "id": "ddfac38b-5000-4d1d-8351-1cced5fb304e",
+      "unverified": true,
       "endpoint_id": "9b0d453e-ce30-4daa-8b42-c0ba89097a2e",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -26792,6 +27149,7 @@
     },
     {
       "id": "94974fb5-b28a-4b38-8c97-2e128936264c",
+      "unverified": true,
       "endpoint_id": "9b160607-5741-4747-baa1-ad0c7b84f51b",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -26841,6 +27199,7 @@
     },
     {
       "id": "cc575510-15e9-4851-8723-758559e1fbb7",
+      "unverified": true,
       "endpoint_id": "9c19b408-65f4-419e-9c25-d2567ca19373",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -26926,6 +27285,7 @@
     },
     {
       "id": "0702b5ed-5925-4a5c-8596-f0405fc8aabe",
+      "unverified": true,
       "endpoint_id": "9ca27b24-f077-46c2-b8ab-87ca0fe0121c",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -26993,6 +27353,7 @@
     },
     {
       "id": "c0f6f62a-b66c-4784-8d4e-896325164aca",
+      "unverified": true,
       "endpoint_id": "9d5b856d-de79-4061-b8c6-e9e8b5fff09a",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -27060,6 +27421,7 @@
     },
     {
       "id": "342a7ca3-82ed-439f-8c85-78475a1ed736",
+      "unverified": true,
       "endpoint_id": "9d6764eb-8661-4de2-a3e1-64565eda5c45",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -27127,6 +27489,7 @@
     },
     {
       "id": "531f4916-e3a7-4ea1-8b51-888c772de6ad",
+      "unverified": true,
       "endpoint_id": "9d713041-2ac8-4c2d-82ed-6322497ade33",
       "api_slug": "macropulse",
       "name": "MacroPulse",
@@ -27176,6 +27539,7 @@
     },
     {
       "id": "9a27e556-edd8-4392-8680-7ebff7ab66b3",
+      "unverified": true,
       "endpoint_id": "9dc0d8a5-ce20-46b6-b932-7504539fdf80",
       "api_slug": "insurepulse",
       "name": "InsurePulse",
@@ -27297,6 +27661,7 @@
     },
     {
       "id": "c9a95c8b-6be8-4307-83e2-d24b521bd00d",
+      "unverified": true,
       "endpoint_id": "9df3b8a6-39bc-4051-bd63-923d64983fa5",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -27355,6 +27720,7 @@
     },
     {
       "id": "647293ca-87ec-4841-8f60-f4146bad0ccb",
+      "unverified": true,
       "endpoint_id": "9e12bdb7-4cfa-4694-8fa6-3996f750a5aa",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -27422,6 +27788,7 @@
     },
     {
       "id": "3f3bd285-9f56-482f-88f2-efb0c431b4dd",
+      "unverified": true,
       "endpoint_id": "9ee3b334-4423-46b5-ad14-7cab6e8f7f6b",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -27480,6 +27847,7 @@
     },
     {
       "id": "851e502a-d2c4-4e52-88af-ad86b4c48cd3",
+      "unverified": true,
       "endpoint_id": "9eeb7305-3972-4edf-b6c8-dd9ac567f9bc",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -27547,6 +27915,7 @@
     },
     {
       "id": "54e3c68a-6cb9-40fc-895c-c6d798ac4b86",
+      "unverified": true,
       "endpoint_id": "9ef16031-1ca1-4933-85fc-8b8ef6e05bb1",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -27614,6 +27983,7 @@
     },
     {
       "id": "b2b8b927-05d4-41fa-89b9-236e570f015b",
+      "unverified": true,
       "endpoint_id": "9efff63b-5aed-4cdf-a52d-b8da30330000",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -27699,6 +28069,7 @@
     },
     {
       "id": "84d06a42-00d3-4cca-808e-d8c66c4fba7d",
+      "unverified": true,
       "endpoint_id": "9f3e62e2-df9f-4c9f-844a-04481e53f7e1",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -27784,6 +28155,7 @@
     },
     {
       "id": "7c432879-0272-47cc-810b-9499af7b633b",
+      "unverified": true,
       "endpoint_id": "9ff4adc5-e77c-474b-a9af-879b580962b5",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -27878,6 +28250,7 @@
     },
     {
       "id": "0b8bd7b6-62af-4501-82b1-3f98e0b429c7",
+      "unverified": true,
       "endpoint_id": "9ffc4bef-50f3-499b-babc-747eecd16715",
       "api_slug": "dealpulse",
       "name": "DealPulse",
@@ -27936,6 +28309,7 @@
     },
     {
       "id": "7ad63cc3-3fb1-4d2f-8ddb-fe61407f1899",
+      "unverified": true,
       "endpoint_id": "a06b4167-69b6-43db-b1e6-bd9ced34ed06",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -28012,6 +28386,7 @@
     },
     {
       "id": "59fdb584-5407-4f10-8527-1e57b273a0e7",
+      "unverified": true,
       "endpoint_id": "a06b7caf-93a4-4686-b4c5-dd7e0616cdcf",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -28214,6 +28589,7 @@
     },
     {
       "id": "bfdb119b-d4d0-4ca9-8a29-756adcb67419",
+      "unverified": true,
       "endpoint_id": "a0cca0de-da88-4979-8090-16ab2f52f79b",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -28263,6 +28639,7 @@
     },
     {
       "id": "4c9c814d-be8e-4d68-8e03-c964532205eb",
+      "unverified": true,
       "endpoint_id": "a118cc7f-4568-4e5c-b42e-99bf7a73a4b6",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -28330,6 +28707,7 @@
     },
     {
       "id": "0fa31218-b1d1-44e2-8cff-110621f97efd",
+      "unverified": true,
       "endpoint_id": "a1d85e44-8f56-4a7b-afb2-639e2b582e81",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -28397,6 +28775,7 @@
     },
     {
       "id": "f2be92d1-d01e-4cb7-8ef9-45ee8a3f10ea",
+      "unverified": true,
       "endpoint_id": "a221703c-1d64-4a31-83c7-95ee13b71c0c",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -28482,6 +28861,7 @@
     },
     {
       "id": "510458e2-0387-4078-8496-943be1410923",
+      "unverified": true,
       "endpoint_id": "a2937b4a-a37b-4a38-9a2b-5af6d34beed9",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -28558,6 +28938,7 @@
     },
     {
       "id": "6a4f5195-0e94-434b-8571-e08f8371e680",
+      "unverified": true,
       "endpoint_id": "a2b78923-f98a-4d00-8806-f8a69452b733",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -28625,6 +29006,7 @@
     },
     {
       "id": "31d81d1a-4a32-41e4-85bf-10864ca43bfe",
+      "unverified": true,
       "endpoint_id": "a31bec80-0a9e-4816-91ec-420aafa3c0c0",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -28683,6 +29065,7 @@
     },
     {
       "id": "7357b1af-3480-4ad1-82a4-fddc1a83e03b",
+      "unverified": true,
       "endpoint_id": "a3dfd695-a323-4065-a2b4-f9e50228d1e4",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -28741,6 +29124,7 @@
     },
     {
       "id": "223a485a-4653-4f8d-88da-8a90b87ba490",
+      "unverified": true,
       "endpoint_id": "a3f6f2a0-1e88-433a-b392-e5e3657bc35d",
       "api_slug": "biopulse",
       "name": "BioPulse",
@@ -28799,6 +29183,7 @@
     },
     {
       "id": "a2b5194d-9022-46bb-837a-f6e7d458289e",
+      "unverified": true,
       "endpoint_id": "a48d1829-c2fe-4eba-8bf4-9c67821bc2c2",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -28875,6 +29260,7 @@
     },
     {
       "id": "4f6de277-12af-48ab-8ddb-918db64b86df",
+      "unverified": true,
       "endpoint_id": "a4ad1c1a-1cc6-40ca-9e26-24b32b2b54db",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -28933,6 +29319,7 @@
     },
     {
       "id": "bba4590b-f8d6-463d-8ba5-68357b22c70f",
+      "unverified": true,
       "endpoint_id": "a54c2a13-1325-4a11-981b-8685f833a44d",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -29000,6 +29387,7 @@
     },
     {
       "id": "c78e220b-7c50-45eb-8564-065e280278d8",
+      "unverified": true,
       "endpoint_id": "a563ae26-88e3-458f-9baa-c298c7945d7c",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -29058,6 +29446,7 @@
     },
     {
       "id": "28e761e6-5573-48cf-8935-7e1d0f064085",
+      "unverified": true,
       "endpoint_id": "a5871d61-b448-4ac7-9ce0-e235ab42f665",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -29134,6 +29523,7 @@
     },
     {
       "id": "e918f50d-9d5d-4d16-8553-c998b1d0baa7",
+      "unverified": true,
       "endpoint_id": "a627964a-296a-46be-9b91-0f97afbdc25b",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -29228,6 +29618,7 @@
     },
     {
       "id": "41b2c871-64cd-487e-83a5-a46c8f23cef6",
+      "unverified": true,
       "endpoint_id": "a67933eb-c796-4ecd-91ca-f35cc50061d7",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -29313,6 +29704,7 @@
     },
     {
       "id": "f6b4da27-4a87-4a3f-8f91-7c540f2dadf0",
+      "unverified": true,
       "endpoint_id": "a7847bf4-cbc3-4dc4-9a50-0b26e33ff1c1",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -29380,6 +29772,7 @@
     },
     {
       "id": "72c05024-0b6d-4baf-830b-109fc226dba3",
+      "unverified": true,
       "endpoint_id": "a79dc4a8-5c8c-42d4-aa72-5c88a8148203",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -29456,6 +29849,7 @@
     },
     {
       "id": "4a4fe9e2-43ce-40b4-83d3-b362b4a91c3a",
+      "unverified": true,
       "endpoint_id": "a7a93bc4-2f01-4f25-bc1e-6c3387a92298",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -29532,6 +29926,7 @@
     },
     {
       "id": "07459266-1f15-440f-85d4-e11e18a5aa7f",
+      "unverified": true,
       "endpoint_id": "a7c29911-4325-410c-807d-9254c05689a2",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -29599,6 +29994,7 @@
     },
     {
       "id": "994d0532-f158-4023-818f-1ee3e946e1b6",
+      "unverified": true,
       "endpoint_id": "a8568e8f-7dc0-4a1d-bdd4-b8b261e179a3",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -29648,6 +30044,7 @@
     },
     {
       "id": "ab2e60b0-1421-4dae-8952-56f545999e3c",
+      "unverified": true,
       "endpoint_id": "a8bb0eac-312e-4de7-b86c-0cb88b1cee00",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -29724,6 +30121,7 @@
     },
     {
       "id": "5f891e0b-d122-4911-8eb6-630b0f550771",
+      "unverified": true,
       "endpoint_id": "a8bb998a-142a-4aae-8915-07924f110e11",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -29800,6 +30198,7 @@
     },
     {
       "id": "9dc210ce-2822-4b06-882b-084a62a8c8a3",
+      "unverified": true,
       "endpoint_id": "a8fb345c-4626-49bf-840e-4bfbcadbabfb",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -29885,6 +30284,7 @@
     },
     {
       "id": "464c8d5f-4888-46f2-8a1b-f2d6d389ead4",
+      "unverified": true,
       "endpoint_id": "a948d30b-f9ff-44e6-a1e5-a996cf13ebef",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -29952,6 +30352,7 @@
     },
     {
       "id": "c389f84f-2dd5-4ba2-8de6-3fc421f77fe9",
+      "unverified": true,
       "endpoint_id": "a9555d1f-0b35-4102-a0fe-2cae0df4e819",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -30019,6 +30420,7 @@
     },
     {
       "id": "1e17daa7-b2a5-4cac-8af0-ae1ff608894d",
+      "unverified": true,
       "endpoint_id": "a9a3bddb-3f4f-43ba-8dbd-a9e46d1e86c2",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -30158,6 +30560,7 @@
     },
     {
       "id": "0614a09f-96bc-4005-8372-930d0445222a",
+      "unverified": true,
       "endpoint_id": "ab8736cc-4a62-4608-a40e-deda76aec564",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -30207,6 +30610,7 @@
     },
     {
       "id": "3033cd96-adc4-4eb6-85b5-d7ab226134f5",
+      "unverified": true,
       "endpoint_id": "ad3c3ab3-b0cb-4ef9-bb70-4f038d9bea0f",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -30274,6 +30678,7 @@
     },
     {
       "id": "d44d6802-98d5-4ee2-886d-e2013882b12e",
+      "unverified": true,
       "endpoint_id": "ad525ab2-5edd-4ae5-9220-065feeeeca97",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -30341,6 +30746,7 @@
     },
     {
       "id": "62b4615a-4a7f-47a7-8da6-db6ffe1ec332",
+      "unverified": true,
       "endpoint_id": "ad8d37b7-6797-40a0-a234-87ee4a1ecc92",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -30417,6 +30823,7 @@
     },
     {
       "id": "513302b0-53d2-407b-83d7-6a3bae4ed956",
+      "unverified": true,
       "endpoint_id": "ae2f1a12-a551-4466-8ce8-2f038387dfcc",
       "api_slug": "gridpulse",
       "name": "GridPulse",
@@ -30484,6 +30891,7 @@
     },
     {
       "id": "a24e662d-7b2a-40dc-8448-86189eb435a0",
+      "unverified": true,
       "endpoint_id": "ae4b50a2-8e63-4c96-8ce4-29c9560f0b17",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -30587,6 +30995,7 @@
     },
     {
       "id": "81cb57cd-ba32-4220-889e-1352050356ff",
+      "unverified": true,
       "endpoint_id": "aeae104a-a933-44ab-9792-f97e1d2ac417",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -30663,6 +31072,7 @@
     },
     {
       "id": "5bd18a8f-dbab-44be-84be-5b45e6441bea",
+      "unverified": true,
       "endpoint_id": "aec2c8bc-0b26-448e-86bd-d1531f032ee2",
       "api_slug": "homepulse",
       "name": "HomePulse",
@@ -30748,6 +31158,7 @@
     },
     {
       "id": "c78f565e-4de1-4d83-8dcd-06a05dd8248c",
+      "unverified": true,
       "endpoint_id": "afc34630-738d-459d-9cad-24370292b69e",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -30815,6 +31226,7 @@
     },
     {
       "id": "2ffafc96-bb9b-4e3c-8697-f134c0ff2b1d",
+      "unverified": true,
       "endpoint_id": "b01d3794-d918-4662-a75a-5ee730671d98",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -30891,6 +31303,7 @@
     },
     {
       "id": "c9e3ca5c-ae7c-4d55-840a-61b38d321038",
+      "unverified": true,
       "endpoint_id": "b0d59df6-36d3-4294-ae16-83b8281aeb11",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -30994,6 +31407,7 @@
     },
     {
       "id": "ff217449-87ba-4355-8e40-e15e0de1dbf5",
+      "unverified": true,
       "endpoint_id": "b160cca1-0cc0-4d34-8c5d-421623ce7a45",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -31043,6 +31457,7 @@
     },
     {
       "id": "11762fb3-c338-4c7c-818b-e41e1075649d",
+      "unverified": true,
       "endpoint_id": "b1de4cf0-a46b-4181-a935-1ea372285c4c",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -31119,6 +31534,7 @@
     },
     {
       "id": "2ff31ce7-23f3-4f69-8b9e-f7c49c0491cd",
+      "unverified": true,
       "endpoint_id": "b1ef02ed-42ed-4eab-9d6d-6d4515c78044",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -31195,6 +31611,7 @@
     },
     {
       "id": "f305d051-36c3-402f-879c-fe804b7ecc44",
+      "unverified": true,
       "endpoint_id": "b2ab87e8-4618-4ec7-971e-7536b0499678",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -31244,6 +31661,7 @@
     },
     {
       "id": "c1bae9e4-e97d-4e49-89d9-63bf76000c63",
+      "unverified": true,
       "endpoint_id": "b2dd3176-2ab2-4e8a-9249-d9edfffebcdb",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -31338,6 +31756,7 @@
     },
     {
       "id": "7851efda-958d-4c3d-8f81-b6f42cd27682",
+      "unverified": true,
       "endpoint_id": "b44af741-c14e-4978-938d-b7377c8b6ca2",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -31396,6 +31815,7 @@
     },
     {
       "id": "080b35ef-9b2d-4d9e-819d-0371a9acd7d9",
+      "unverified": true,
       "endpoint_id": "b4af4657-cfad-4997-97f7-0a47913fb394",
       "api_slug": "cryptopulse",
       "name": "CryptoPulse",
@@ -31445,6 +31865,7 @@
     },
     {
       "id": "816f757c-b58f-4377-8a70-bc7f0c876a96",
+      "unverified": true,
       "endpoint_id": "b4be7cdb-d84a-4637-a380-c618895ed045",
       "api_slug": "fieldpulse",
       "name": "FieldPulse",
@@ -31530,6 +31951,7 @@
     },
     {
       "id": "e3aa9c06-dbaf-4420-8bfa-cc8983769c12",
+      "unverified": true,
       "endpoint_id": "b63d4076-2465-4aa4-9758-f14bcdd5f5b5",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -31606,6 +32028,7 @@
     },
     {
       "id": "02229d62-bcd7-47c6-8054-95e1d17b70ef",
+      "unverified": true,
       "endpoint_id": "b63d6af7-2054-43b4-8cda-fc637db5b43d",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -31673,6 +32096,7 @@
     },
     {
       "id": "fae9ae29-b5b8-4e31-85f5-221f5076606e",
+      "unverified": true,
       "endpoint_id": "b69d2c60-35f2-4092-aaf1-ab3980052f74",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -31740,6 +32164,7 @@
     },
     {
       "id": "dd127a0f-40fd-4073-82ab-a18fb6cb6fe8",
+      "unverified": true,
       "endpoint_id": "b6ece620-9c19-4024-814f-451ea8b57c04",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -31807,6 +32232,7 @@
     },
     {
       "id": "538b54f2-6d6c-47c5-8aaa-db8d0de74778",
+      "unverified": true,
       "endpoint_id": "b6feea65-d041-4a51-8441-09e7ea78386a",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -31982,6 +32408,7 @@
     },
     {
       "id": "981894d7-0fa0-4d33-864a-8534138a0ed9",
+      "unverified": true,
       "endpoint_id": "b748d3dc-8390-49f8-9758-b2b430c5a2f4",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -32049,6 +32476,7 @@
     },
     {
       "id": "2607c545-a7c0-4535-8701-07d1bd8d704b",
+      "unverified": true,
       "endpoint_id": "b83db495-dfa1-471e-b0f9-c2d6fc209f14",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -32107,6 +32535,7 @@
     },
     {
       "id": "a91c5d7e-ff5d-4d81-8364-001e9ca9b37d",
+      "unverified": true,
       "endpoint_id": "baba2d42-c636-4541-9e38-274164dd2813",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -32192,6 +32621,7 @@
     },
     {
       "id": "fc6165d0-37db-497d-8ece-1d307c67c609",
+      "unverified": true,
       "endpoint_id": "bb00ccc3-9632-4dd4-8e90-021b91844304",
       "api_slug": "govspendpulse",
       "name": "GovSpendPulse",
@@ -32259,6 +32689,7 @@
     },
     {
       "id": "e1a026a2-164f-43d2-83a2-dbda163e99d4",
+      "unverified": true,
       "endpoint_id": "bb27885f-aa7d-4eb3-9e48-3f880f5a89d5",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -32308,6 +32739,7 @@
     },
     {
       "id": "c23679a2-d657-4afc-8229-f6e9a84c26d4",
+      "unverified": true,
       "endpoint_id": "bb7eee4d-1b2c-4356-a700-3c1b631ae824",
       "api_slug": "homepulse",
       "name": "HomePulse",
@@ -32393,6 +32825,7 @@
     },
     {
       "id": "09abf95e-78f5-41ab-8ec7-df553edbbb28",
+      "unverified": true,
       "endpoint_id": "bba33a07-b87e-4701-893f-ba7d271a1901",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -32469,6 +32902,7 @@
     },
     {
       "id": "fc5260b9-db65-4602-8237-693f5163d94b",
+      "unverified": true,
       "endpoint_id": "bbeb5742-885e-4632-a9f0-f381838d198d",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -32536,6 +32970,7 @@
     },
     {
       "id": "88d1e1da-bc88-48a8-86d9-1f491712bc83",
+      "unverified": true,
       "endpoint_id": "bcaa1ddd-c7c3-4428-af44-4e820e7c0fd8",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -32594,6 +33029,7 @@
     },
     {
       "id": "e9f492c0-7878-4df8-8dbb-68fed0e7afc2",
+      "unverified": true,
       "endpoint_id": "bd26181e-b6cc-4993-915a-d0f6ccaf3676",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -32670,6 +33106,7 @@
     },
     {
       "id": "c4938032-1848-4b75-851e-9e7e798f1de2",
+      "unverified": true,
       "endpoint_id": "be417bea-1000-4229-ad0d-11db77cd0e4e",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -32773,6 +33210,7 @@
     },
     {
       "id": "86c3f25a-4bdf-44b5-8355-fe62074aa601",
+      "unverified": true,
       "endpoint_id": "bfbec52e-f210-40bc-8ac7-19a906b39734",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -32840,6 +33278,7 @@
     },
     {
       "id": "82a7911d-ab85-4924-8da7-24c5545ce575",
+      "unverified": true,
       "endpoint_id": "c08f1587-bc52-450c-b397-48cc3898eeae",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -32907,6 +33346,7 @@
     },
     {
       "id": "ad0b15e5-8348-41a0-8abe-5cc310458932",
+      "unverified": true,
       "endpoint_id": "c09488f5-cc8b-48cf-9575-9b26256d56b1",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -33010,6 +33450,7 @@
     },
     {
       "id": "98a6655d-37b8-4cac-8516-b833b866ef23",
+      "unverified": true,
       "endpoint_id": "c0abab37-9317-4060-9031-c36485b9f311",
       "api_slug": "citepulse",
       "name": "CitePulse",
@@ -33077,6 +33518,7 @@
     },
     {
       "id": "fdcc5f5e-5501-4466-86ab-f4967786f4b5",
+      "unverified": true,
       "endpoint_id": "c0f5d495-e12a-47d2-82a7-81adc465cf10",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -33144,6 +33586,7 @@
     },
     {
       "id": "4d2f9cab-f80b-4402-8569-72aae97ff447",
+      "unverified": true,
       "endpoint_id": "c0f75b77-a840-4890-8860-6b1a5f2adbb9",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -33211,6 +33654,7 @@
     },
     {
       "id": "05a78ed6-e9c8-42f7-827c-6b6b95b25c4e",
+      "unverified": true,
       "endpoint_id": "c2622d5a-e463-4888-a3fb-e9eeec771d00",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -33278,6 +33722,7 @@
     },
     {
       "id": "13cb8b9f-945d-4367-874f-c80b4cf38bc3",
+      "unverified": true,
       "endpoint_id": "c28d63f6-c21a-4bfb-bd01-6148d96b95a0",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -33345,6 +33790,7 @@
     },
     {
       "id": "c750c16d-843b-4f2a-8272-5ee4ea474cd0",
+      "unverified": true,
       "endpoint_id": "c337c5e2-ab51-475b-99b0-5ee5ecf82d0e",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -33412,6 +33858,7 @@
     },
     {
       "id": "d1a864fb-11fd-47fc-894f-205d6ee3e3dd",
+      "unverified": true,
       "endpoint_id": "c3b52a65-f6c6-4056-a137-229cb8ff9e7d",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -33470,6 +33917,7 @@
     },
     {
       "id": "3994f335-a636-4bc9-8613-36dbe1c7d698",
+      "unverified": true,
       "endpoint_id": "c3f62379-3641-4fa3-9b62-4f2487ed8d47",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -33537,6 +33985,7 @@
     },
     {
       "id": "91086170-7b99-4e2d-83e2-aa90726f0919",
+      "unverified": true,
       "endpoint_id": "c413bacc-3911-4343-84f5-cfb643f99ac2",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -33613,6 +34062,7 @@
     },
     {
       "id": "1d8ec4da-c1ac-4e4d-8ae1-bd6fc3eeb272",
+      "unverified": true,
       "endpoint_id": "c43d54d0-02d2-4515-8cd4-97c3302b83a3",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -33707,6 +34157,7 @@
     },
     {
       "id": "e54b7708-5500-4e91-8482-024ab77234ef",
+      "unverified": true,
       "endpoint_id": "c43db624-96aa-4da0-96ed-5677df16a99a",
       "api_slug": "tablepulse",
       "name": "TablePulse",
@@ -33774,6 +34225,7 @@
     },
     {
       "id": "e1639e5f-b38f-4b3f-8b64-f912391af8c9",
+      "unverified": true,
       "endpoint_id": "c44a71f8-9e6f-4ace-a51d-f669632ff451",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -33841,6 +34293,7 @@
     },
     {
       "id": "4112daf2-ac78-40de-8347-a1fcf071bbc0",
+      "unverified": true,
       "endpoint_id": "c53303d2-aeab-4dcd-ab00-136b37ee20ce",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -33908,6 +34361,7 @@
     },
     {
       "id": "48a1990e-8db1-436b-8cf7-40bf3bfa5674",
+      "unverified": true,
       "endpoint_id": "c5383313-f36e-4954-99f3-0c0be7d16aa6",
       "api_slug": "filingspulse",
       "name": "FilingsPulse",
@@ -33957,6 +34411,7 @@
     },
     {
       "id": "46ff61c2-3d07-4be8-843c-e6e0b5415df8",
+      "unverified": true,
       "endpoint_id": "c5e20335-b011-4ff9-a28a-4a6edf1dfe9a",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -34015,6 +34470,7 @@
     },
     {
       "id": "47899629-24ed-444f-891d-5ad6d013ed0e",
+      "unverified": true,
       "endpoint_id": "c6225e8f-c867-4342-b479-af08fd4a866c",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -34073,6 +34529,7 @@
     },
     {
       "id": "98e3c16b-18a4-4038-840b-676f68e7a70a",
+      "unverified": true,
       "endpoint_id": "c63f09c6-e21a-4a82-83a3-4383f3dad991",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -34140,6 +34597,7 @@
     },
     {
       "id": "edddeffa-4076-43c6-8684-3cabad583c31",
+      "unverified": true,
       "endpoint_id": "c6bf5004-9ca1-43dd-bd70-a7929681f30a",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -34216,6 +34674,7 @@
     },
     {
       "id": "fb24a22a-cd1d-494a-8998-7695b6a9b2f7",
+      "unverified": true,
       "endpoint_id": "c6e1a529-de83-4ad5-b0f0-9d12072a0fca",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -34292,6 +34751,7 @@
     },
     {
       "id": "363fb10e-54d2-4c58-8feb-dde774d5179c",
+      "unverified": true,
       "endpoint_id": "c70d7d58-e47a-4d91-9b92-55e5df35e4d7",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -34350,6 +34810,7 @@
     },
     {
       "id": "d28d9f95-0231-493a-8bdd-58af2fb18526",
+      "unverified": true,
       "endpoint_id": "c7168053-bb0a-4158-90dd-09e03f4b867c",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -34426,6 +34887,7 @@
     },
     {
       "id": "07af3925-f982-420d-8a65-81a53a8e1af5",
+      "unverified": true,
       "endpoint_id": "c74c6240-259d-43bf-903e-b4f86d5e7424",
       "api_slug": "stateedge",
       "name": "StatEdge",
@@ -34493,6 +34955,7 @@
     },
     {
       "id": "a13b3f25-ed1d-4619-8d61-8c31bb52ffbe",
+      "unverified": true,
       "endpoint_id": "c79f2a69-38da-4c0d-b7e9-066eb16d8300",
       "api_slug": "fieldpulse",
       "name": "FieldPulse",
@@ -34578,6 +35041,7 @@
     },
     {
       "id": "b06589dd-d863-4796-8df4-b8eeef0c5bbb",
+      "unverified": true,
       "endpoint_id": "c7bab10d-86ac-4591-a89a-190360c35b3a",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -34663,6 +35127,7 @@
     },
     {
       "id": "3b62f372-d698-420f-8c14-d972b9bb714b",
+      "unverified": true,
       "endpoint_id": "c827d043-1f5f-4add-9523-c8c35be2c7e3",
       "api_slug": "stablecoinpulse",
       "name": "StablecoinPulse",
@@ -34721,6 +35186,7 @@
     },
     {
       "id": "9eae8d98-5dc4-459a-857d-72e71c9c76dc",
+      "unverified": true,
       "endpoint_id": "c85545c0-908a-4a8a-82ad-51541ac6aef6",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -34806,6 +35272,7 @@
     },
     {
       "id": "f95a8a56-090c-4100-8811-a2ef852b1ef7",
+      "unverified": true,
       "endpoint_id": "c95a69e0-49dc-4b0b-9c7c-5cbb783b49fd",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -34882,6 +35349,7 @@
     },
     {
       "id": "c048edd5-172c-467a-814b-13a75fe4f852",
+      "unverified": true,
       "endpoint_id": "ca24951d-159d-4be8-99f0-02a759969732",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -34949,6 +35417,7 @@
     },
     {
       "id": "44fdecdf-b3b0-4183-850d-c99df5ebc04f",
+      "unverified": true,
       "endpoint_id": "ca4ef332-e3a2-42ae-9931-e8c50a35051d",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -35007,6 +35476,7 @@
     },
     {
       "id": "a402f404-bbca-4f79-8069-34ed1eb56d7a",
+      "unverified": true,
       "endpoint_id": "cae907b0-251e-4c8c-a7a8-4c47d0b26b58",
       "api_slug": "filingspulse",
       "name": "FilingsPulse",
@@ -35083,6 +35553,7 @@
     },
     {
       "id": "a33b2de5-64c2-423d-88d0-4e317fa44f14",
+      "unverified": true,
       "endpoint_id": "cbd67dc3-9de5-418b-b5d5-ee60f7d21e11",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -35141,6 +35612,7 @@
     },
     {
       "id": "6dbc0fdf-d8ab-4321-84bd-44e7a6802ef0",
+      "unverified": true,
       "endpoint_id": "cc695e4d-224a-4f20-b8b4-83edeb02766c",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -35217,6 +35689,7 @@
     },
     {
       "id": "f32a84ad-9184-421c-877b-c744f9ab0841",
+      "unverified": true,
       "endpoint_id": "ccba8a05-1c9c-474c-a682-4a108e03bc14",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -35275,6 +35748,7 @@
     },
     {
       "id": "3a2b95c0-fb42-4161-802a-a9a98fcc1f07",
+      "unverified": true,
       "endpoint_id": "cd11f85e-efcf-4304-a03a-b9e45573b49e",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -35342,6 +35816,7 @@
     },
     {
       "id": "935e1cf8-7536-43a6-8e9b-d42df3891cbe",
+      "unverified": true,
       "endpoint_id": "cd1b00f3-3a72-4d55-8bcb-c3e99ef4e7df",
       "api_slug": "harvestpulse",
       "name": "HarvestPulse",
@@ -35391,6 +35866,7 @@
     },
     {
       "id": "1cbbea19-953c-4ad2-878b-974e3f117ccd",
+      "unverified": true,
       "endpoint_id": "ce7503f2-c3e1-4b8c-8796-c7119217107c",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -35467,6 +35943,7 @@
     },
     {
       "id": "ce9eb25a-97b1-4a24-8763-b0596303dc0d",
+      "unverified": true,
       "endpoint_id": "ceabc8c8-c59a-49e2-b1ce-32e5f5a35148",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -35552,6 +36029,7 @@
     },
     {
       "id": "aeff1482-7753-4da4-842a-022fe8681d3b",
+      "unverified": true,
       "endpoint_id": "cf04f9a4-af88-456b-af2b-18023e559791",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -35610,6 +36088,7 @@
     },
     {
       "id": "4efe56a6-e0d3-4a5c-8e6b-2093bbbe303d",
+      "unverified": true,
       "endpoint_id": "cf239398-0c69-419a-adbc-46c4de0b3b3b",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -35713,6 +36192,7 @@
     },
     {
       "id": "abd25fb6-21a2-4163-89dd-edec7cda20db",
+      "unverified": true,
       "endpoint_id": "cfaedd1e-d24c-46d0-b506-62dac989bdeb",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -35762,6 +36242,7 @@
     },
     {
       "id": "916dafd0-78d0-4fcb-8be2-ccf24aab3072",
+      "unverified": true,
       "endpoint_id": "cfdd85ba-0fed-4a98-81f8-4dd7f063a9ad",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -35820,6 +36301,7 @@
     },
     {
       "id": "f7c84665-d085-41fb-8e54-f8fcda58de6a",
+      "unverified": true,
       "endpoint_id": "cff16fac-e706-4d07-81dd-79554edfe72b",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -35887,6 +36369,7 @@
     },
     {
       "id": "57c4e0ee-8297-4d42-8953-7c0d980070c3",
+      "unverified": true,
       "endpoint_id": "d0177750-f48d-4bce-9d15-036d605750d9",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -35972,6 +36455,7 @@
     },
     {
       "id": "4cc49608-9efa-4063-877d-a77f5eeda15c",
+      "unverified": true,
       "endpoint_id": "d09b8411-d9de-418e-8c6b-c90a71b85461",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -36057,6 +36541,7 @@
     },
     {
       "id": "4f8ac7ae-bf11-419a-87d0-3416a9faf3bb",
+      "unverified": true,
       "endpoint_id": "d0bb2f0e-b161-4384-8220-252bb3586819",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -36142,6 +36627,7 @@
     },
     {
       "id": "54f50f6d-76b9-45d1-8273-f3f87dba327d",
+      "unverified": true,
       "endpoint_id": "d1ba2eab-5beb-4ed0-a08a-171669219765",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -36200,6 +36686,7 @@
     },
     {
       "id": "69170040-bca8-41c5-8eea-b9ff356afa65",
+      "unverified": true,
       "endpoint_id": "d1d7100a-f386-4021-8a27-ee0377d1680a",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -36294,6 +36781,7 @@
     },
     {
       "id": "be4c8d07-37b8-4cc5-84cc-8cf1c0fb1434",
+      "unverified": true,
       "endpoint_id": "d30a4967-000e-4fe3-871e-3f1b64b25371",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -36352,6 +36840,7 @@
     },
     {
       "id": "99263545-80af-45c7-8a9d-7c8f363bb347",
+      "unverified": true,
       "endpoint_id": "d3680261-20f3-41b3-b1ed-516091dcc4cd",
       "api_slug": "safepulse",
       "name": "SafePulse",
@@ -36419,6 +36908,7 @@
     },
     {
       "id": "40c1f2b9-eb39-4bb9-8ebc-1f6b0851f07f",
+      "unverified": true,
       "endpoint_id": "d58001f8-d8b5-49ee-be84-6c6b89a5e2bb",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -36522,6 +37012,7 @@
     },
     {
       "id": "0087067b-a10d-41c5-8a0e-ca6a361405c5",
+      "unverified": true,
       "endpoint_id": "d5da63eb-4449-4c3a-b7e6-1255398ee94c",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -36580,6 +37071,7 @@
     },
     {
       "id": "96349ff4-5595-4365-8035-f279a5eefea2",
+      "unverified": true,
       "endpoint_id": "d61abf85-c6e2-443a-b223-6def35dcdb2c",
       "api_slug": "stateedge",
       "name": "StatEdge",
@@ -36629,6 +37121,7 @@
     },
     {
       "id": "df03cde5-b437-485f-8b9a-c67532125895",
+      "unverified": true,
       "endpoint_id": "d6253cf5-b5c3-4472-9e02-c1b98c7b88bc",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -36687,6 +37180,7 @@
     },
     {
       "id": "6aac836d-483d-4afd-8ac9-02e41ca88aa1",
+      "unverified": true,
       "endpoint_id": "d69e0b82-3a11-4017-b79a-5b008d220cc0",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -36772,6 +37266,7 @@
     },
     {
       "id": "02d054be-ab05-49c9-8041-f16da0379271",
+      "unverified": true,
       "endpoint_id": "d6e76cac-af26-47c4-8fdb-7403df8cc186",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -36839,6 +37334,7 @@
     },
     {
       "id": "4d6c88f7-f3b5-4ae4-8302-c5f72ebfe681",
+      "unverified": true,
       "endpoint_id": "d826d8e2-9a9c-48c6-b940-11b7d6d0230c",
       "api_slug": "safepulse",
       "name": "SafePulse",
@@ -36915,6 +37411,7 @@
     },
     {
       "id": "8caaa69b-1fdf-4403-89f9-dd508840e271",
+      "unverified": true,
       "endpoint_id": "d8325878-41e5-4782-9fd4-ce5188b19076",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -36973,6 +37470,7 @@
     },
     {
       "id": "c16a64b8-3c58-4920-887d-f3314b7ba12e",
+      "unverified": true,
       "endpoint_id": "d852595c-9164-49f8-b06f-841d4806aee4",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -37049,6 +37547,7 @@
     },
     {
       "id": "6428c8b2-c8d9-4124-8794-d6b390a61efb",
+      "unverified": true,
       "endpoint_id": "d88ead35-a51f-40fc-a109-e36676e3787d",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -37116,6 +37615,7 @@
     },
     {
       "id": "af2a43d0-ece5-4a53-8bc8-7b5177bfad09",
+      "unverified": true,
       "endpoint_id": "d8c0e906-481b-4933-9243-9a7ac78059a0",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -37183,6 +37683,7 @@
     },
     {
       "id": "5c004c1c-3fc9-4d95-825d-7726a2074d19",
+      "unverified": true,
       "endpoint_id": "da31e041-e8a4-4e9e-ba9b-1ec96481c362",
       "api_slug": "franchisepulse",
       "name": "FranchisePulse",
@@ -37241,6 +37742,7 @@
     },
     {
       "id": "1f4f113e-9cf7-485a-8af8-863d47a42289",
+      "unverified": true,
       "endpoint_id": "dc730453-3f7e-40d3-9bb1-9ce8e2f01a73",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -37299,6 +37801,7 @@
     },
     {
       "id": "f89aab95-9d95-418b-872e-bca8b1e3fe44",
+      "unverified": true,
       "endpoint_id": "dd065825-02e7-428e-adfc-2d2d08586abe",
       "api_slug": "fanpulse",
       "name": "FanPulse",
@@ -37366,6 +37869,7 @@
     },
     {
       "id": "2de5d7fa-1024-4a2a-845b-2f7a44be3e0d",
+      "unverified": true,
       "endpoint_id": "de0677ef-0a72-48e7-b4ec-915b6926a1e9",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -37442,6 +37946,7 @@
     },
     {
       "id": "baed7f2b-ac78-4a83-8bfa-cbfe7efb4ef5",
+      "unverified": true,
       "endpoint_id": "de0c9b0e-f9f1-4be1-9316-21600a9d71b6",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -37518,6 +38023,7 @@
     },
     {
       "id": "6a13fddb-1be6-4863-8f49-06bd67a3a398",
+      "unverified": true,
       "endpoint_id": "de20424d-897f-4698-8830-cdd7459c0810",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -37612,6 +38118,7 @@
     },
     {
       "id": "8702660c-ec49-4a5f-8a26-e575982aaecf",
+      "unverified": true,
       "endpoint_id": "dee6b472-6be5-4eed-a76b-5b387178a13f",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -37661,6 +38168,7 @@
     },
     {
       "id": "bef2400c-bc68-4d05-8624-a0c02480c7e4",
+      "unverified": true,
       "endpoint_id": "df04e8f5-36de-4d25-b608-19f7698abc08",
       "api_slug": "autopulse",
       "name": "AutoPulse",
@@ -37728,6 +38236,7 @@
     },
     {
       "id": "ef4e15cf-e7d2-4171-8e9f-5053e479188e",
+      "unverified": true,
       "endpoint_id": "df771f29-3ee0-4526-adaa-79be9bf40087",
       "api_slug": "riskpulse",
       "name": "RiskPulse",
@@ -37795,6 +38304,7 @@
     },
     {
       "id": "8c7d0035-9390-4118-8d2c-a10104da2367",
+      "unverified": true,
       "endpoint_id": "e0395e23-2517-4aaf-b1a2-ab1a3073d46d",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -37862,6 +38372,7 @@
     },
     {
       "id": "2a3b1a51-d78f-4dbe-8d09-43219d2d6efb",
+      "unverified": true,
       "endpoint_id": "e08d4dcc-e083-4895-a7c6-aaea50306426",
       "api_slug": "legalpulse",
       "name": "LegalPulse",
@@ -37920,6 +38431,7 @@
     },
     {
       "id": "73989777-d02d-42ef-8ffb-eda48cefd358",
+      "unverified": true,
       "endpoint_id": "e094c568-3fd9-4e69-bdf6-1de65ab9b788",
       "api_slug": "scentpulse",
       "name": "ScentPulse",
@@ -37987,6 +38499,7 @@
     },
     {
       "id": "2327835c-116e-491e-8a8f-4b5b3932801b",
+      "unverified": true,
       "endpoint_id": "e0be93e4-c6d2-4fba-b59c-9f78a41cafea",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -38063,6 +38576,7 @@
     },
     {
       "id": "7acc5fd6-6f44-4594-817c-d85160768325",
+      "unverified": true,
       "endpoint_id": "e1ebee0a-178b-4aa4-a384-20f325955eee",
       "api_slug": "transitpulse",
       "name": "TransitPulse",
@@ -38112,6 +38626,7 @@
     },
     {
       "id": "55024f1e-ce61-45b0-826a-1762f951f9dc",
+      "unverified": true,
       "endpoint_id": "e205ff26-64c8-4e3a-b091-2e8a11118a6a",
       "api_slug": "fieldpulse",
       "name": "FieldPulse",
@@ -38179,6 +38694,7 @@
     },
     {
       "id": "0695583c-fa7b-4f19-85a0-8d3f1720a440",
+      "unverified": true,
       "endpoint_id": "e27fd285-a2d8-4962-860c-b91955f54e71",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -38237,6 +38753,7 @@
     },
     {
       "id": "2bde0e4d-583c-45ac-8f05-d4e988f0bf97",
+      "unverified": true,
       "endpoint_id": "e299a680-d8c0-47d7-bb8f-d677922b7bb5",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -38295,6 +38812,7 @@
     },
     {
       "id": "d32bb398-2454-478f-8f40-59e99d6e7ee5",
+      "unverified": true,
       "endpoint_id": "e2f6f094-f7f9-4158-87de-0e08eda055ba",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -38362,6 +38880,7 @@
     },
     {
       "id": "bd7c6b36-4bfa-4a3d-8aae-642ce73f6fdd",
+      "unverified": true,
       "endpoint_id": "e36d92af-2ca8-4cea-8de3-f9f9acc4506d",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -38420,6 +38939,7 @@
     },
     {
       "id": "7376cf08-eaba-46b8-8f6e-072ead806c33",
+      "unverified": true,
       "endpoint_id": "e3ed620b-6823-4711-9fab-b466ff7db0de",
       "api_slug": "seniorpulse",
       "name": "SeniorPulse",
@@ -38496,6 +39016,7 @@
     },
     {
       "id": "70f1d9e8-967b-4a20-8fb2-7d27df3db50a",
+      "unverified": true,
       "endpoint_id": "e41d7b6f-3f3c-4679-aba0-57a3d02d6b35",
       "api_slug": "patentpulse",
       "name": "PatentPulse",
@@ -38572,6 +39093,7 @@
     },
     {
       "id": "d3d23491-9b66-4de8-8a3d-4587d298526f",
+      "unverified": true,
       "endpoint_id": "e41e0ea2-b330-4369-a93a-fc33065b010d",
       "api_slug": "taxpulse",
       "name": "TaxPulse",
@@ -38648,6 +39170,7 @@
     },
     {
       "id": "39655fde-69c4-48f6-8239-b654354cb171",
+      "unverified": true,
       "endpoint_id": "e4963899-8f39-4e19-9fe8-66548bbe1655",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -38715,6 +39238,7 @@
     },
     {
       "id": "61f78eed-5bf9-49ad-833b-478405655e7c",
+      "unverified": true,
       "endpoint_id": "e49e992b-db8d-4a7b-93cb-ec40bb159554",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -38809,6 +39333,7 @@
     },
     {
       "id": "26bc7d23-a394-419f-87cf-0538ea04e9f7",
+      "unverified": true,
       "endpoint_id": "e5e95381-a5e1-454b-9f78-662946d1848b",
       "api_slug": "clinicalintelpulse",
       "name": "ClinicalIntelPulse",
@@ -38858,6 +39383,7 @@
     },
     {
       "id": "06683856-c52b-4935-830b-45ff453f53e1",
+      "unverified": true,
       "endpoint_id": "e622890e-fe98-4064-b68b-9e3abf48272e",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -38943,6 +39469,7 @@
     },
     {
       "id": "655e60b3-f07b-4592-8c7c-3a612c447c57",
+      "unverified": true,
       "endpoint_id": "e6523716-2380-4b3a-8606-8fd75de7bee5",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -39019,6 +39546,7 @@
     },
     {
       "id": "6d768ac3-652b-4f4b-86c0-5c7e3b2705f4",
+      "unverified": true,
       "endpoint_id": "e65b88f6-f096-4ef0-8e9d-fbb879901bce",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -39104,6 +39632,7 @@
     },
     {
       "id": "05f7585c-ec86-4452-836a-ce6027617386",
+      "unverified": true,
       "endpoint_id": "e6c0da6f-8aef-4b75-8145-d23178a1db23",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -39171,6 +39700,7 @@
     },
     {
       "id": "53422448-1a21-4ba6-8cb8-629b889452e1",
+      "unverified": true,
       "endpoint_id": "e711d8f3-561e-45a5-9bc6-53389f100dff",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -39265,6 +39795,7 @@
     },
     {
       "id": "230fa751-d104-4ea9-8d7f-d79950552cd9",
+      "unverified": true,
       "endpoint_id": "e7246b23-ded7-49fe-9c0e-e4d86c31cc5f",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -39314,6 +39845,7 @@
     },
     {
       "id": "6a3c180c-4b70-4e25-8e65-d31d7877d326",
+      "unverified": true,
       "endpoint_id": "e7a1bbf1-c310-48cb-9eab-1c70e6f339d7",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -39381,6 +39913,7 @@
     },
     {
       "id": "b5e1ea4f-bc5f-4457-8273-360f11c7b676",
+      "unverified": true,
       "endpoint_id": "e7d22369-7859-4d70-9b28-ba41f0d1fb5f",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -39457,6 +39990,7 @@
     },
     {
       "id": "0d47b630-6b18-48f0-8237-38bb647bd96f",
+      "unverified": true,
       "endpoint_id": "e7fdefff-66b6-4cae-8e0c-f1a55d66b3a3",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -39506,6 +40040,7 @@
     },
     {
       "id": "a099f3f8-db7a-411e-8148-ff24b3925323",
+      "unverified": true,
       "endpoint_id": "e8532bfa-78d3-47d6-9e9d-8047b92a46a0",
       "api_slug": "tradepulse",
       "name": "TradePulse",
@@ -39591,6 +40126,7 @@
     },
     {
       "id": "8754a474-4973-458b-8c02-3f79e04be990",
+      "unverified": true,
       "endpoint_id": "e92f9caf-a2c6-4b21-9a38-b126423fb649",
       "api_slug": "findpulse",
       "name": "FindPulse",
@@ -39649,6 +40185,7 @@
     },
     {
       "id": "4211676e-5ce0-4b4c-800c-7acde5446a93",
+      "unverified": true,
       "endpoint_id": "e9492fb1-1fc0-4594-abf7-00dd6a690cfb",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -39734,6 +40271,7 @@
     },
     {
       "id": "eb5ecd14-8b29-4e58-821c-c1658832abdb",
+      "unverified": true,
       "endpoint_id": "e9b0929c-567c-4687-a94e-79fffcfb73a7",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -39792,6 +40330,7 @@
     },
     {
       "id": "d891cc26-15e9-456c-8cfc-71be87d04b08",
+      "unverified": true,
       "endpoint_id": "e9bce163-2274-4f3d-805a-61454bb9ea49",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -39850,6 +40389,7 @@
     },
     {
       "id": "3e47b9a0-2d3a-4970-87d5-575cf2d0e6e9",
+      "unverified": true,
       "endpoint_id": "e9cb8d5a-2395-4c4e-8a79-2910acc87e57",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -39917,6 +40457,7 @@
     },
     {
       "id": "749c6e3e-64f4-40fb-83e7-f4d8a077eef8",
+      "unverified": true,
       "endpoint_id": "ea6e9b4d-6a7f-4116-ad4f-4d055c31de64",
       "api_slug": "collectablespulse",
       "name": "CollectablesPulse",
@@ -39984,6 +40525,7 @@
     },
     {
       "id": "2c7bd59a-2f94-4b9e-8b50-135643f95cfc",
+      "unverified": true,
       "endpoint_id": "ea8d0c48-08f1-41e8-9f49-5d9588fd1693",
       "api_slug": "climatepulse",
       "name": "ClimatePulse",
@@ -40060,6 +40602,7 @@
     },
     {
       "id": "696bc83e-c931-4d69-8ed9-d18a906e0b0b",
+      "unverified": true,
       "endpoint_id": "eaaa0fe4-689b-4c3e-9bd7-09e2def7a4f3",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -40118,6 +40661,7 @@
     },
     {
       "id": "0b4161fc-647c-43e6-8d2a-2bc090e14467",
+      "unverified": true,
       "endpoint_id": "eabbccf7-0713-47ec-acc0-5db85c24cc99",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -40176,6 +40720,7 @@
     },
     {
       "id": "d50742d1-3f9f-41af-86f7-909504e9e396",
+      "unverified": true,
       "endpoint_id": "eacb6db0-4387-42b4-8bc7-f6bab0aed236",
       "api_slug": "scholarpulse",
       "name": "ScholarPulse",
@@ -40270,6 +40815,7 @@
     },
     {
       "id": "9fc0b148-6784-44dc-86dc-5b0f4f53210d",
+      "unverified": true,
       "endpoint_id": "eb213951-b2d5-40bb-b91d-f0dbf3117da8",
       "api_slug": "macropulse",
       "name": "MacroPulse",
@@ -40319,6 +40865,7 @@
     },
     {
       "id": "35324d9b-817e-4601-8c48-43a4dc6a714f",
+      "unverified": true,
       "endpoint_id": "eb2a5b1f-d15f-4005-af2f-7fe047e77a39",
       "api_slug": "footballpulse",
       "name": "FootballPulse",
@@ -40395,6 +40942,7 @@
     },
     {
       "id": "5fde551d-f345-4906-8662-d65697efb291",
+      "unverified": true,
       "endpoint_id": "eb334dee-f3e3-459d-adcd-647240eb0488",
       "api_slug": "racingpulse",
       "name": "RacingPulse",
@@ -40453,6 +41001,7 @@
     },
     {
       "id": "dfbf83bf-2074-4a57-8fcd-5ab322733a4d",
+      "unverified": true,
       "endpoint_id": "ec1f25e3-6163-4430-a362-9ef2df8f5784",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -40529,6 +41078,7 @@
     },
     {
       "id": "a7010a0b-0fa1-45b9-8f27-4436a1645e50",
+      "unverified": true,
       "endpoint_id": "ed2e9f1f-6c89-4a13-a6db-9310eda46137",
       "api_slug": "marketpulse",
       "name": "MarketPulse",
@@ -40605,6 +41155,7 @@
     },
     {
       "id": "6972bc2a-a014-4676-8062-756e8ac78ba8",
+      "unverified": true,
       "endpoint_id": "ed521b76-a5bf-451f-8697-bff0ea594771",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -40681,6 +41232,7 @@
     },
     {
       "id": "a95fb796-0baf-4df0-8d55-d05d475d1ea5",
+      "unverified": true,
       "endpoint_id": "ed660634-8f25-4543-a2f7-3f3eb002565e",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -40784,6 +41336,7 @@
     },
     {
       "id": "eb4656af-8468-4736-822a-48b7d9f4c16b",
+      "unverified": true,
       "endpoint_id": "edd94770-a81d-445e-8699-a5a031f37369",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -40878,6 +41431,7 @@
     },
     {
       "id": "41f9eba3-9fd0-4c74-886c-5eb0e86ae361",
+      "unverified": true,
       "endpoint_id": "ee015b76-6ba6-49b2-8489-00a175202d88",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -40954,6 +41508,7 @@
     },
     {
       "id": "f7968d2c-8c44-40b3-813c-05c39a8cfa20",
+      "unverified": true,
       "endpoint_id": "eeaaf341-683b-4ee1-84b0-23f281540e8e",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -41021,6 +41576,7 @@
     },
     {
       "id": "ef714155-9944-4330-8e42-cdd1f2191939",
+      "unverified": true,
       "endpoint_id": "eeb77a29-c240-4033-86de-2ca2d0f89a64",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -41070,6 +41626,7 @@
     },
     {
       "id": "865c43cf-7994-435c-83ef-48499985bab7",
+      "unverified": true,
       "endpoint_id": "eec533e4-610c-4bb3-892b-0c2772b0577d",
       "api_slug": "agentbodega",
       "name": "AgentBodega",
@@ -41119,6 +41676,7 @@
     },
     {
       "id": "88a58d89-8052-46f6-8568-1165714a8637",
+      "unverified": true,
       "endpoint_id": "eede68e4-fa18-4e6e-8b01-feb122031562",
       "api_slug": "clearcarepulse",
       "name": "ClearCarePulse",
@@ -41213,6 +41771,7 @@
     },
     {
       "id": "46241456-e324-4e44-869b-50530118de10",
+      "unverified": true,
       "endpoint_id": "eef22bb7-de35-484a-8b50-bb5ac4b023e2",
       "api_slug": "biopulse",
       "name": "BioPulse",
@@ -41271,6 +41830,7 @@
     },
     {
       "id": "0ef8da13-2005-4969-8ced-d08d737a93ff",
+      "unverified": true,
       "endpoint_id": "eef671e0-cf51-40a7-ad33-78936dd258a9",
       "api_slug": "stablecoinpulse",
       "name": "StablecoinPulse",
@@ -41329,6 +41889,7 @@
     },
     {
       "id": "bd5f7c31-a9c9-4ebb-8beb-71eae06a9896",
+      "unverified": true,
       "endpoint_id": "ef7d45c3-5f85-4487-aad5-ce4447e25e64",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -41423,6 +41984,7 @@
     },
     {
       "id": "88c1e716-9a43-4745-8bf9-19597ed765fa",
+      "unverified": true,
       "endpoint_id": "efd92053-6eb6-41e7-823e-5a8e38a89b5f",
       "api_slug": "esgpulse",
       "name": "ESGPulse",
@@ -41490,6 +42052,7 @@
     },
     {
       "id": "b4fd8e8e-6259-4c27-8521-b7370495fafe",
+      "unverified": true,
       "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f",
       "api_slug": "companies-house",
       "name": "Companies House",
@@ -41566,6 +42129,7 @@
     },
     {
       "id": "7fc2772f-548a-4cb7-846f-d8304475a9d8",
+      "unverified": true,
       "endpoint_id": "f0749699-ccab-4d0f-b37d-6aee298e8029",
       "api_slug": "talentpulse",
       "name": "TalentPulse",
@@ -41633,6 +42197,7 @@
     },
     {
       "id": "b285f5bd-b0d6-4115-89be-211be39bc582",
+      "unverified": true,
       "endpoint_id": "f0937e14-fb39-43f4-beb6-498262e8aef4",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -41709,6 +42274,7 @@
     },
     {
       "id": "2675d828-2dc9-4148-8755-f299575b6d14",
+      "unverified": true,
       "endpoint_id": "f09d018c-defe-4d35-bfab-0cd640c8779a",
       "api_slug": "fitpulse",
       "name": "FitPulse",
@@ -41767,6 +42333,7 @@
     },
     {
       "id": "20a72c28-859b-4152-8fb8-23401b1ad6d3",
+      "unverified": true,
       "endpoint_id": "f101654d-6c20-4c94-ac98-1be205326923",
       "api_slug": "onchainpulse",
       "name": "OnchainPulse",
@@ -41816,6 +42383,7 @@
     },
     {
       "id": "26b65d70-6f36-4402-85ba-e6294d29d24a",
+      "unverified": true,
       "endpoint_id": "f149f62c-e28a-427f-9312-e1a83f5c5345",
       "api_slug": "wealthpulse",
       "name": "WealthPulse",
@@ -41919,6 +42487,7 @@
     },
     {
       "id": "3a42e665-4ff9-4bf3-8b27-141f01a6ecd1",
+      "unverified": true,
       "endpoint_id": "f1876435-4b04-4bf4-81d3-932a7ce10f0f",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -41995,6 +42564,7 @@
     },
     {
       "id": "3cb8722d-6ed9-452f-891d-500bfe6173ca",
+      "unverified": true,
       "endpoint_id": "f1ec7b99-af71-43eb-b507-2429e1d633b1",
       "api_slug": "alphapulse",
       "name": "AlphaPulse",
@@ -42062,6 +42632,7 @@
     },
     {
       "id": "458aa6e8-3749-413d-8c0d-5d5856c7944f",
+      "unverified": true,
       "endpoint_id": "f20642b3-5eec-4c4a-a06b-519feea13e13",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -42138,6 +42709,7 @@
     },
     {
       "id": "9e5143b7-dac4-459f-8d40-01692ba7dea7",
+      "unverified": true,
       "endpoint_id": "f2095cf9-84f8-45b4-9178-b33370599526",
       "api_slug": "grantpulse",
       "name": "GrantPulse",
@@ -42241,6 +42813,7 @@
     },
     {
       "id": "80623d5d-3eee-4a5b-86da-5eb23bf93093",
+      "unverified": true,
       "endpoint_id": "f2586089-decd-4fb8-ad49-9ae5fd5076b6",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -42335,6 +42908,7 @@
     },
     {
       "id": "ff151499-289d-46bc-8488-192396e81761",
+      "unverified": true,
       "endpoint_id": "f2821bd9-a0e6-4b16-9830-848e026625aa",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -42519,6 +43093,7 @@
     },
     {
       "id": "bb2de19d-ceac-4357-84f2-7a613082740c",
+      "unverified": true,
       "endpoint_id": "f2df6cfe-46b6-499e-85d6-118ecd8e7136",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -42577,6 +43152,7 @@
     },
     {
       "id": "67eea9c0-ac96-4b6a-833a-1299763fcc02",
+      "unverified": true,
       "endpoint_id": "f3642d76-2ce8-46a6-8848-62d21469c331",
       "api_slug": "vetpulse",
       "name": "VetPulse",
@@ -42653,6 +43229,7 @@
     },
     {
       "id": "21d9e3ec-b31b-41a4-84f7-d671a3315083",
+      "unverified": true,
       "endpoint_id": "f3834809-ebcd-4037-808f-8bdb9572ec54",
       "api_slug": "compliancepulse",
       "name": "CompliancePulse",
@@ -42720,6 +43297,7 @@
     },
     {
       "id": "2a50f198-f25b-43cf-8ac9-cf0bbca1ddec",
+      "unverified": true,
       "endpoint_id": "f3a843de-1221-40f2-b342-a35c93b6953b",
       "api_slug": "waterpulse",
       "name": "WaterPulse",
@@ -42787,6 +43365,7 @@
     },
     {
       "id": "1b0cb8fe-b863-47cb-8687-8157c033c059",
+      "unverified": true,
       "endpoint_id": "f3b4ed0f-062f-4903-9fa1-6aaa19fafe79",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -42863,6 +43442,7 @@
     },
     {
       "id": "6acdd4a9-9d70-4a52-8847-ed5cea142268",
+      "unverified": true,
       "endpoint_id": "f49176b3-ce2a-4fd3-8338-e81532a555a6",
       "api_slug": "truthpulse",
       "name": "TruthPulse",
@@ -42939,6 +43519,7 @@
     },
     {
       "id": "b8753a1a-763c-4185-84e9-1246c20cde4b",
+      "unverified": true,
       "endpoint_id": "f4b6cb48-1c95-4079-829f-512e0580844b",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -42988,6 +43569,7 @@
     },
     {
       "id": "c38d7488-91ce-40b4-8c28-00e50841c058",
+      "unverified": true,
       "endpoint_id": "f4c19e5c-b80d-4cf9-9024-3b14cdec30a0",
       "api_slug": "petpulse",
       "name": "PetPulse",
@@ -43073,6 +43655,7 @@
     },
     {
       "id": "1419d222-f685-4a3f-83f9-06c0ac8c0262",
+      "unverified": true,
       "endpoint_id": "f79b4cfd-5224-492b-9a7e-06633df34824",
       "api_slug": "venturepulse",
       "name": "VenturePulse",
@@ -43149,6 +43732,7 @@
     },
     {
       "id": "81261375-5475-4562-8c0b-76a26ccd2d68",
+      "unverified": true,
       "endpoint_id": "f7cdfcd5-f6b0-4a68-9c80-1d2b3437a635",
       "api_slug": "longevitypulse",
       "name": "LongevityPulse",
@@ -43207,6 +43791,7 @@
     },
     {
       "id": "99cda3de-c53a-40b7-8cb5-f062c31161f1",
+      "unverified": true,
       "endpoint_id": "f7dd9e5d-eb14-433e-8088-8a79913814c9",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -43265,6 +43850,7 @@
     },
     {
       "id": "77b90300-22ba-436f-81d5-07d8ae4e20e4",
+      "unverified": true,
       "endpoint_id": "f7e43dcf-d6e3-4e6a-bde5-7fb4990ac139",
       "api_slug": "signalpulse",
       "name": "SignalPulse",
@@ -43332,6 +43918,7 @@
     },
     {
       "id": "e69f52a2-77bf-4af8-89d3-2d0d00e8af88",
+      "unverified": true,
       "endpoint_id": "f8709217-63bd-4764-8140-a111cb1b36b7",
       "api_slug": "proppulse",
       "name": "PropPulse",
@@ -43417,6 +44004,7 @@
     },
     {
       "id": "aa6946a5-1f41-4301-82b4-37944e95b214",
+      "unverified": true,
       "endpoint_id": "f8aa413a-ca09-407e-b615-158deee8d62e",
       "api_slug": "glowpulse",
       "name": "GlowPulse",
@@ -43484,6 +44072,7 @@
     },
     {
       "id": "d91d081b-853e-498e-853d-e9b5399d52c0",
+      "unverified": true,
       "endpoint_id": "f9a6a225-61c7-455b-84c4-5ba4a5ad8963",
       "api_slug": "prospectpulse",
       "name": "ProspectPulse",
@@ -43551,6 +44140,7 @@
     },
     {
       "id": "e1548604-c2e6-4d6b-854b-60a04ea6f4d9",
+      "unverified": true,
       "endpoint_id": "f9e730ff-71e3-41fd-aef2-52d5d5564ac8",
       "api_slug": "chronicapulse",
       "name": "ChronicaPulse",
@@ -43627,6 +44217,7 @@
     },
     {
       "id": "4a0f3570-6df0-42c6-8433-aade307f5661",
+      "unverified": true,
       "endpoint_id": "fae82c34-a2b4-4cd5-9b3f-1f8461da1cd4",
       "api_slug": "debtpulse",
       "name": "DebtPulse",
@@ -43703,6 +44294,7 @@
     },
     {
       "id": "3916ea3d-d3db-415a-883d-f3a4cb9ec38d",
+      "unverified": true,
       "endpoint_id": "fb51d8a7-7602-4b85-be82-bd7aed57b3c3",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -43779,6 +44371,7 @@
     },
     {
       "id": "115d5cf1-c7c0-4f22-8df0-9a6a42e03849",
+      "unverified": true,
       "endpoint_id": "fbb30480-fa24-4cd2-b074-6095a6e5668f",
       "api_slug": "travelpulse",
       "name": "TravelPulse",
@@ -43864,6 +44457,7 @@
     },
     {
       "id": "46767bd8-6f59-4960-8eed-af535fae49df",
+      "unverified": true,
       "endpoint_id": "fcd7070b-9b98-4fc4-830a-ee136d966774",
       "api_slug": "stableenrich",
       "name": "StableEnrich",
@@ -43922,6 +44516,7 @@
     },
     {
       "id": "6b922fda-8559-4399-8a47-5b7bd2038727",
+      "unverified": true,
       "endpoint_id": "fceda0d6-baab-4e8b-ad38-f8c3349d7a15",
       "api_slug": "careerpulse",
       "name": "CareerPulse",
@@ -43998,6 +44593,7 @@
     },
     {
       "id": "82689979-81ac-4786-83e6-f1590ac7a41d",
+      "unverified": true,
       "endpoint_id": "fd49d744-19ee-40b5-a64a-63e67317bb47",
       "api_slug": "gamepulse",
       "name": "GamePulse",
@@ -44056,6 +44652,7 @@
     },
     {
       "id": "c30c4558-aa78-4967-8cd4-01f1ffc36937",
+      "unverified": true,
       "endpoint_id": "fd985444-0903-4050-bbc5-17c70886b78b",
       "api_slug": "mealpulse",
       "name": "MealPulse",
@@ -44114,6 +44711,7 @@
     },
     {
       "id": "0b617a9e-70be-4e42-8f42-170b9130baae",
+      "unverified": true,
       "endpoint_id": "fd994440-b184-4c09-afc0-e58df4fae784",
       "api_slug": "edupulse",
       "name": "EduPulse",
@@ -44343,6 +44941,7 @@
     },
     {
       "id": "66895a06-2f3b-4181-80da-68dbf00b6935",
+      "unverified": true,
       "endpoint_id": "fdb60b50-78ce-4c16-93d8-a15067c8d02d",
       "api_slug": "remittancepulse",
       "name": "RemittancePulse",
@@ -44419,6 +45018,7 @@
     },
     {
       "id": "e0031bf6-4040-49a9-8eec-371e41e16de6",
+      "unverified": true,
       "endpoint_id": "fe66311d-0630-4b0c-8953-d2f4516fc4f1",
       "api_slug": "nutripulse",
       "name": "NutriPulse",
@@ -44495,6 +45095,7 @@
     },
     {
       "id": "3cce9d97-154e-4435-8b9b-44fc956c3be1",
+      "unverified": true,
       "endpoint_id": "fe97931f-f086-4a37-99f1-96755f1a724c",
       "api_slug": "insurepulse",
       "name": "InsurePulse",
@@ -44688,6 +45289,7 @@
     },
     {
       "id": "3c3be941-9fb2-47e2-8638-dbdb134e2333",
+      "unverified": true,
       "endpoint_id": "fea43e22-6ef0-4c13-93ae-976da05ca93b",
       "api_slug": "nutripulse",
       "name": "NutriPulse",

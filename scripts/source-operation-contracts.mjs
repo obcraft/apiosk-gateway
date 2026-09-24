@@ -77,7 +77,9 @@ export function buildOperations(snapshot) {
     localWords.forEach(w=>words.set(w.slug,w));
     const description=e.description;
     const id=uuid(['source-document-v1',e.id]);
-    const service={id,endpoint_id:e.id,api_slug:a.slug,name:a.name,description,source_url:e.external_docs_url||a.docs_url,
+    // Staged, not published: the runtime catalogue loads it as unverified
+    // until a first usable live response promotes it.
+    const service={id,unverified:true,endpoint_id:e.id,api_slug:a.slug,name:a.name,description,source_url:e.external_docs_url||a.docs_url,
       method:e.method,path:e.path,listing_type:a.listing_type||'api',list_atomic:Math.ceil(Number(e.price)*1e6),
       fixed_params:{},preconditions:{},pagination:{},freshness_seconds:3600,jurisdiction:null,
       sample_payload:{data:'Synthetic document-adapter fixture; not a provider response or live execution.'},

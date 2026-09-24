@@ -11,6 +11,7 @@ test('admission does not privilege a source or provider name',()=>{
  for(const name of ['kvk','filingspulse','stableenrich','browserbase','future-provider']) {
   const b=buildOperations(fixture(name));assert.equal(b.services.length,1,name);
   const s=b.services[0];assert.equal(s.contract.output_map.base,'$');assert.equal(s.contract.identifies,null);
+  assert.equal(s.unverified,true,'a staged document contract waits for its first live response');
   assert.deepEqual(b.vocabulary.find(w=>w.slug.endsWith('.country')).value_schema,{type:'string',enum:['NL','GB']});
  }
 });
