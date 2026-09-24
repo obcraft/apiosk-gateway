@@ -1,6 +1,8 @@
 //! Tasks saved by earlier gateway versions stay readable: each file in
 //! eval/replay/v1/legacy-tasks is inserted as stored and read back through
-//! the production task view. Run by scripts/test-legacy-tasks.mjs.
+//! the production task view. Run by scripts/test-legacy-tasks.mjs; with
+//! LEGACY_VIEWS_OUT=<dir> it also writes each view there, for the App's
+//! release gate (app/tests/fixtures/release-gate/legacy-*.json).
 
 use apiosk_gateway_v2::{
     auth::Principal,
@@ -71,9 +73,16 @@ async fn saved_tasks_of_every_shape_stay_readable() {
         assert_eq!(json!(analysis["observations"].as_array().map(Vec::len)), expect["observations"], "{name}: observations");
         assert_eq!(analysis["presentation"]["kind"], expect["presentation_kind"], "{name}: presentation kind");
         assert_eq!(*analysis, fixture["task_document"]["analysis"], "{name}: the saved analysis passes through unchanged");
+        assert!(!analysis.to_string().contains("{{"), "{name}: a saved answer has its cited values inlined, as the gateway validates it");
         assert!(view.result.as_ref().is_some_and(Value::is_object), "{name}: the last saved result is readable");
         let active = fixture["task_document"]["active_results"].as_array().map_or(0, Vec::len);
         assert_eq!(view.context_view["results"].as_array().map_or(0, Vec::len), active, "{name}: current results");
         assert!(view.context_view["report"].is_null() == fixture["task_document"]["proposal"].is_null(), "{name}: a report link needs a saved quote");
+        // The App renders these exact responses in its release gate
+        // (app/tests/fixtures/release-gate/legacy-*.json).
+        if let Ok(out) = std::env::var("LEGACY_VIEWS_OUT") {
+            std::fs::create_dir_all(&out).unwrap();
+            std::fs::write(Path::new(&out).join(format!("legacy-{name}.json")), serde_json::to_string_pretty(&view).unwrap() + "\n").unwrap();
+        }
     }
 }
