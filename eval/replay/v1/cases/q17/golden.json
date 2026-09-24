@@ -1,0 +1,89 @@
+{
+  "answer": {
+    "follow_up": false,
+    "limitations": 1,
+    "observations": 2,
+    "status": "completed"
+  },
+  "facts": [
+    [
+      "eurostat",
+      "Duitsland",
+      "/data/status/0",
+      "p"
+    ],
+    [
+      "eurostat",
+      "Duitsland",
+      "/data/value/0",
+      "4254930"
+    ],
+    [
+      "eurostat",
+      "Nederland",
+      "/data/dimension/time/category/label/2023",
+      "2023"
+    ],
+    [
+      "eurostat",
+      "Nederland",
+      "/data/dimension/unit/category/label/CP_MEUR",
+      "Current prices, million euro"
+    ],
+    [
+      "eurostat",
+      "Nederland",
+      "/data/value/0",
+      "1050133"
+    ]
+  ],
+  "plan": {
+    "cap_atomic": 43478,
+    "inputs": [
+      [
+        "Duitsland",
+        "eurostat.input.time",
+        "2023"
+      ],
+      [
+        "Nederland",
+        "eurostat.input.time",
+        "2023"
+      ]
+    ],
+    "order": [
+      "statistics.eurostat-gdp-netherlands",
+      "statistics.eurostat-gdp-germany"
+    ],
+    "status": "plan",
+    "steps": [
+      [
+        "statistics.eurostat-gdp-germany",
+        "eurostat",
+        "Duitsland"
+      ],
+      [
+        "statistics.eurostat-gdp-netherlands",
+        "eurostat",
+        "Nederland"
+      ]
+    ]
+  },
+  "presentation": {
+    "cells": [
+      [
+        "Bbp, lopende prijzen (miljoen euro)",
+        "Duitsland",
+        "4254930",
+        "/data/value/0"
+      ],
+      [
+        "Bbp, lopende prijzen (miljoen euro)",
+        "Nederland",
+        "1050133",
+        "/data/value/0"
+      ]
+    ],
+    "kind": "comparison"
+  }
+}

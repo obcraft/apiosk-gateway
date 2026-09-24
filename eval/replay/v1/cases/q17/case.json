@@ -1,0 +1,8 @@
+{
+  "id": "q17",
+  "lang": "nl",
+  "question": "Vergelijk het bbp van Nederland en Duitsland in 2023 in dezelfde eenheid.",
+  "query_class": "comparison",
+  "catalog": "tests/fixtures/statistics-presets.json",
+  "synthetic": false
+}

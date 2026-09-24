@@ -1,4 +1,5 @@
 mod execute;
+pub(crate) use execute::{analysis_operations, answer_sources};
 pub(crate) mod input;
 pub use input::bind_subjects;
 mod followups;

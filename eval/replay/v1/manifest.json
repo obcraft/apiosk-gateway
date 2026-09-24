@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "created_at": "2026-09-25T00:00:00Z",
+  "gateway_commit": "173fb15",
+  "models": {
+    "intent": "replay-fixture",
+    "analysis": "replay-fixture"
+  },
+  "prompt_hashes": {
+    "chat": "d69262f7377ec8d0fe27471335208e72b1277326ad2f04b1c9d7ca6419674674",
+    "analysis": "0d30948beac69e0e8a0bee4daebc3c24e06c3ff3ce2cb77a74af05e681fd2afd"
+  },
+  "catalog_fixtures": {
+    "tests/fixtures/supplier-check/catalog.json": "79622a9f523cc465eab4c97b18d64b10b08453534fd8394516a88239231b6a2a",
+    "tests/fixtures/dutch-public-sources/catalog.json": "96d7dddd73f0282f5d097d9775dc97eae1aed4d8995f684eb57c59f0aa346cad",
+    "tests/fixtures/statistics-presets.json": "fee52cabd45eee2351e18cdeed8015d656432cb27a3449fd4fb5249c0cf923b1",
+    "tests/fixtures/tenderned-browse.json": "114205dc8249556b7b11ee5a1dd9d6e3bea402e06615ac8ddcaf8847672d8354"
+  },
+  "review": {
+    "status": "draft",
+    "by": null,
+    "at": null
+  },
+  "changelog": [
+    "v1: hand-authored model responses that pass the production validators; source documents from test fixtures (synthetic edits documented per case). Record live responses into v2 with REPLAY_TAPE=live REPLAY_RECORD=1."
+  ],
+  "cases": {
+    "full_tapes": [
+      "q01",
+      "q04",
+      "q09",
+      "q15",
+      "q17"
+    ],
+    "legacy_tasks": [
+      "analysis-without-presentation",
+      "chart-presentation",
+      "comparison-presentation",
+      "supplier-verdict",
+      "table-presentation",
+      "timeline-v0-result-refs-only",
+      "workflow-task"
+    ]
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "steps": [
+    {
+      "capability": "procurement.nl-public-contracts",
+      "subject": "laadpalen",
+      "document": {
+        "data": {
+          "content": [
+            {
+              "publicatieId": "441462",
+              "publicatieDatum": "2026-09-24",
+              "typePublicatie": {
+                "code": "REC",
+                "omschrijving": "Rectificatie"
+              },
+              "aanbestedingNaam": "Leveren, installeren en beheren van laadpalen in de openbare ruimte",
+              "opdrachtgeverNaam": "Waterschap Rivierenland",
+              "procedure": {
+                "code": "OPE",
+                "omschrijving": "Openbaar"
+              },
+              "typeOpdracht": {
+                "code": "W",
+                "omschrijving": "Werken"
+              },
+              "tsenderNaam": "Mercell",
+              "tsenderLink": "https://s2c.mercell.com/today/200534",
+              "digitaal": false,
+              "europees": true,
+              "publicatiecode": {
+                "code": "EF29",
+                "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+              },
+              "publicatiestatus": {
+                "code": "PUB",
+                "omschrijving": "Gepubliceerd"
+              },
+              "isVroegtijdigeBeeindiging": false,
+              "opdrachtBeschrijving": "De Raamovereenkomst Elektrotechnische en Procesautomatisering werkzaamheden iWA2.0/iPA2.0 2026-2030 is voornamelijk gebaseerd op de programma’s iWA2.0 en iPA2.0. De, niet uitputtende, werkzaamheden zijn onderverdeeld in:\n• Werkzaamheden aan de objecten stuwen en gemalen, krooshekreiniger, meetpunten en dergelijke objecten in het watersysteem. Deze objecten behoren tot het programma iWA2.0\n• Werkzaamheden aan de objecten rioolgemalen en rioolwaterzuiveringsinstallaties (rwzi’s) in de waterketen. Deze objecten behoren tot het programma iPA2.0;\n• Buiten de programma’s iWA2.0 en iPA2.0 kunnen werkzaamheden op de (de)centrale locaties/kantoren van WSRL deel uitmaken van deze Raamovereenkomst. De werkzaamheden moeten wel in relatie staan met de werkzaamheden zoals in deze Aanbestedingsleidraad benoemd;\n• Detachering van personeel in geval van capaciteitsbehoefte bij WSRL.\n\nVoor deze objecten dienen er voornamelijk elektrotechnische installatiewerkzaamheden uitgevoerd te worden. Meestal worden de engineeringswerkzaamheden door WSRL zelf uitgevoerd. In sommige gevallen kan de engineering door Opdrachtnemer onderdeel uitmaken van de Nadere opdracht.\n\nWSRL hanteert voor het gehele programma iWA2.0 en iPA2.0 de volgende doelstellingen:\n• Het vervangen van de procesautomatisering eens per 12,5 jaar van de objecten waarbij enkel op elektrotechnisch en procesautomatisering vlak vervanging dient plaats te vinden;\n• Bij het vervangen van de procesautomatisering gelijktijdig het vervangen van de elektrotechnische componenten, welke niet meer voldoen aan de normen of aan vervanging toe zijn, inclusief de benodigde documentatie van de objecten;\n• Het technisch en functioneel op orde houden van de centrale hoofdposten watersysteem en waterketen.\n \nHet doel van deze aanbesteding is tweeledig:\n1. Het sluiten van een Raamovereenkomst(en) met één of meerdere ondernemingen voor Elektrotechnische installaties & Procesautomatisering werkzaamheden iWA2.0/ iPA2.0 2026-2030; \n2. Het verstrekken van één Opdracht (een Nadere opdracht vanuit vakgebied B) voor werkzaamheden aan gemaal Middelkoop.",
+              "isEformsWijziging": true,
+              "score": null,
+              "kenmerk": 614031,
+              "link": {
+                "href": "https://www.tenderned.nl/aankondigingen/overzicht/441462",
+                "title": "self"
+              }
+            },
+            {
+              "publicatieId": "441454",
+              "publicatieDatum": "2026-09-24",
+              "typePublicatie": {
+                "code": "REC",
+                "omschrijving": "Rectificatie"
+              },
+              "aanbestedingNaam": "Laadpalen voor het gemeentelijk wagenpark",
+              "opdrachtgeverNaam": "Gemeente Nieuwegein",
+              "sluitingsDatum": "2026-10-01T11:30:00",
+              "aantalDagenTotSluitingsDatum": 7,
+              "procedure": {
+                "code": "OPE",
+                "omschrijving": "Openbaar"
+              },
+              "typeOpdracht": {
+                "code": "L",
+                "omschrijving": "Leveringen"
+              },
+              "digitaal": true,
+              "europees": true,
+              "publicatiecode": {
+                "code": "EF16",
+                "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+              },
+              "publicatiestatus": {
+                "code": "PUB",
+                "omschrijving": "Gepubliceerd"
+              },
+              "isVroegtijdigeBeeindiging": false,
+              "opdrachtBeschrijving": "Betreft het leveren aanbrengen en onderhouden van Bomen (Perceel 1)\nen het leveren van Planten (Perceel 2)",
+              "isEformsWijziging": true,
+              "score": null,
+              "kenmerk": 603626,
+              "link": {
+                "href": "https://www.tenderned.nl/aankondigingen/overzicht/441454",
+                "title": "self"
+              }
+            }
+          ],
+          "first": true,
+          "last": false,
+          "totalElements": 37,
+          "totalPages": 19,
+          "size": 2,
+          "numberOfElements": 2,
+          "number": 0
+        },
+        "source": {
+          "provider": "tenderned",
+          "name": "TenderNed",
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+          "endpoint_id": null,
+          "contract_version": 1,
+          "retrieved_at": "2026-09-24T12:00:00Z",
+          "path": "/v2/publicaties"
+        },
+        "charged_atomic": "54348",
+        "currency": "USD",
+        "missing_fields": [],
+        "coverage": "partial",
+        "coverage_note": "One page of matching TenderNed publications; later pages were not retrieved.",
+        "subject": {
+          "entity_ref": null,
+          "label": "laadpalen"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "about": "One validated table presentation.",
+  "task_document": {
+    "entities": [
+      {
+        "entity_ref": "00000000-0000-4000-8000-000000000e01",
+        "label": "Mollie B.V.",
+        "selected": true
+      }
+    ],
+    "facts": [],
+    "focus": {
+      "entity_refs": [
+        "00000000-0000-4000-8000-000000000e01"
+      ],
+      "goal_refs": []
+    },
+    "intent": {
+      "subjects": [
+        {
+          "entity_ref": "00000000-0000-4000-8000-000000000e01",
+          "label": "Mollie B.V.",
+          "values": {}
+        }
+      ],
+      "goals": [
+        {
+          "capability": "company.registry-profile",
+          "subject": 0,
+          "constraints": {}
+        }
+      ],
+      "answer_operations": [],
+      "unresolved_references": []
+    },
+    "actions": [],
+    "proposal": null,
+    "completed": [],
+    "result_refs": [
+      "00000000-0000-4000-8000-000000000201"
+    ],
+    "pending_candidates": [],
+    "original_subject": null,
+    "cancelled": false,
+    "conversation_timeline_version": 1,
+    "conversation": [
+      {
+        "question": "Wat is het adres van Mollie B.V.?",
+        "reply": "Ik controleer het Handelsregister."
+      }
+    ],
+    "active_results": [
+      "00000000-0000-4000-8000-000000000201"
+    ],
+    "analysis": {
+      "status": "completed",
+      "observations": [
+        {
+          "text": "Het bezoekadres van Mollie B.V. is {{a}}.",
+          "evidence": [
+            {
+              "result_ref": "00000000-0000-4000-8000-000000000201",
+              "pointer": "/data/_embedded/hoofdvestiging/adressen/0/volledigAdres",
+              "value": "Keizersgracht 126 1015CW Amsterdam"
+            }
+          ]
+        }
+      ],
+      "limitations": [],
+      "presentation": {
+        "kind": "table",
+        "title": "Handelsregister",
+        "columns": [
+          {
+            "value": "Veld"
+          },
+          {
+            "value": "Waarde"
+          }
+        ],
+        "rows": [
+          [
+            {
+              "value": "Naam"
+            },
+            {
+              "value": "Mollie B.V.",
+              "result_ref": "00000000-0000-4000-8000-000000000201",
+              "pointer": "/data/statutaireNaam",
+              "source": "KVK Business Register"
+            }
+          ],
+          [
+            {
+              "value": "KVK-nummer"
+            },
+            {
+              "value": "30204462",
+              "result_ref": "00000000-0000-4000-8000-000000000201",
+              "pointer": "/data/kvkNummer",
+              "source": "KVK Business Register"
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "results": {
+    "00000000-0000-4000-8000-000000000201": {
+      "data": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "source": {
+        "provider": "kvk-dutch-business-register",
+        "name": "KVK Business Register",
+        "url": "https://developers.kvk.nl/nl/documentation",
+        "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+        "contract_version": 1,
+        "retrieved_at": "2026-09-01T10:00:00Z",
+        "path": "/api/v1/basisprofielen"
+      },
+      "charged_atomic": "76087",
+      "currency": "USD",
+      "missing_fields": [],
+      "coverage": "source_response",
+      "subject": {
+        "entity_ref": "00000000-0000-4000-8000-000000000e01",
+        "label": "Mollie B.V."
+      }
+    }
+  },
+  "expect": {
+    "status": "succeeded",
+    "turns": 1,
+    "observations": 1,
+    "presentation_kind": "table"
+  }
+}

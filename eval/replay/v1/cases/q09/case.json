@@ -1,0 +1,9 @@
+{
+  "id": "q09",
+  "lang": "nl",
+  "question": "Zoek TenderNed-opdrachten over laadpalen.",
+  "query_class": "search_list",
+  "catalog": "tests/fixtures/tenderned-browse.json",
+  "synthetic": true,
+  "synthetic_edit": "The captured TenderNed page cut to its first two publications, retitled as charging-point tenders, with totals set to one page of a 37-result search."
+}

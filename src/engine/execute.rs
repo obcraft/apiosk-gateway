@@ -157,39 +157,9 @@ impl Engine {
                         .clone()
                         .ok_or_else(|| anyhow::anyhow!("missing intent"))?,
                 )?;
-                let mut sources = Vec::new();
                 let documents = self.store.results(p.owner, id, &task.active_results).await?;
-                for result in &task.active_results {
-                    let document = &documents[result];
-                    if plan.steps.iter().any(|step| {
-                        document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
-                            && document["subject"]["entity_ref"] == json!(step.entity_ref)
-                            && (step.browser_fallback.is_some()
-                                || task.conversation.last().is_some_and(|turn| crate::report_assets::requested(&turn.question))
-                                || crate::uk_supplier::is_check(&intent) || intent.goals.iter().any(|goal| {
-                                goal.capability == step.service.contract.capability_slug
-                                    && intent
-                                        .subjects
-                                        .get(goal.subject)
-                                        .is_some_and(|s| s.entity_ref == Some(step.entity_ref))
-                            }))
-                    }) {
-                        sources.push(json!({"result_ref":result,"document":document}));
-                    }
-                }
-                let mut operations = task
-                    .intent
-                    .as_ref()
-                    .and_then(|v| v["answer_operations"].as_array())
-                    .cloned()
-                    .unwrap_or_default();
-                if let Some(turn) = task.conversation.last() {
-                    operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
-                }
-                if operations.is_empty() {
-                    operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
-                }
-                let operations = json!(operations);
+                let sources = answer_sources(&plan, &intent, &task, &documents);
+                let operations = analysis_operations(&task);
                 source_ready = Some(std::time::Instant::now());
                 tracing::info!(trace = telemetry::id(), task = %id, quote = %plan.quote_ref, milestone = "sources_ready",
                     complete = task.failed_steps.is_empty() && !sources.is_empty(), "request milestone");
@@ -684,4 +654,49 @@ impl Engine {
         }
         self.advance(task)
     }
+}
+
+/// The saved documents an answer may cite: results of the asked steps, of a
+/// quoted fallback, of a requested map and of a UK supplier check, in the
+/// order they were saved. The offline replay (`crate::replay`) uses the same
+/// selection as a live answer.
+pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, documents: &std::collections::BTreeMap<Uuid, Value>) -> Vec<Value> {
+    let mut sources = Vec::new();
+    for result in &task.active_results {
+        let document = &documents[result];
+        if plan.steps.iter().any(|step| {
+            document["source"]["endpoint_id"] == json!(step.service.endpoint_id)
+                && document["subject"]["entity_ref"] == json!(step.entity_ref)
+                && (step.browser_fallback.is_some()
+                    || task.conversation.last().is_some_and(|turn| crate::report_assets::requested(&turn.question))
+                    || crate::uk_supplier::is_check(intent) || intent.goals.iter().any(|goal| {
+                    goal.capability == step.service.contract.capability_slug
+                        && intent
+                            .subjects
+                            .get(goal.subject)
+                            .is_some_and(|s| s.entity_ref == Some(step.entity_ref))
+                }))
+        }) {
+            sources.push(json!({"result_ref":result,"document":document}));
+        }
+    }
+    sources
+}
+
+/// What the analysis is asked: the person's last question first, then the
+/// intent's answer operations, or a plain summary when there are none.
+pub(crate) fn analysis_operations(task: &Task) -> Value {
+    let mut operations = task
+        .intent
+        .as_ref()
+        .and_then(|v| v["answer_operations"].as_array())
+        .cloned()
+        .unwrap_or_default();
+    if let Some(turn) = task.conversation.last() {
+        operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
+    }
+    if operations.is_empty() {
+        operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
+    }
+    json!(operations)
 }

@@ -1,0 +1,8 @@
+{
+  "id": "q04",
+  "lang": "en",
+  "question": "Show the RDW technical profile for plate RZ874R.",
+  "query_class": "simple_lookup",
+  "catalog": "tests/fixtures/dutch-public-sources/catalog.json",
+  "synthetic": false
+}

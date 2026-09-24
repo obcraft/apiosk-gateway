@@ -1,0 +1,96 @@
+{
+  "answer": {
+    "follow_up": false,
+    "limitations": 1,
+    "observations": 2,
+    "status": "completed"
+  },
+  "facts": [
+    [
+      "tenderned",
+      "laadpalen",
+      "/data/content/0/aanbestedingNaam",
+      "Leveren, installeren en beheren van laadpalen in de openbare ruimte"
+    ],
+    [
+      "tenderned",
+      "laadpalen",
+      "/data/content/0/opdrachtgeverNaam",
+      "Waterschap Rivierenland"
+    ],
+    [
+      "tenderned",
+      "laadpalen",
+      "/data/numberOfElements",
+      "2"
+    ],
+    [
+      "tenderned",
+      "laadpalen",
+      "/data/totalElements",
+      "37"
+    ]
+  ],
+  "plan": {
+    "cap_atomic": 54348,
+    "inputs": [
+      [
+        "laadpalen",
+        "company_intel.input.search",
+        "laadpalen"
+      ]
+    ],
+    "order": [
+      "procurement.nl-public-contracts"
+    ],
+    "status": "plan",
+    "steps": [
+      [
+        "procurement.nl-public-contracts",
+        "tenderned",
+        "laadpalen"
+      ]
+    ]
+  },
+  "presentation": {
+    "cells": [
+      [
+        "Laadpalen voor het gemeentelijk wagenpark",
+        "Opdracht",
+        "Laadpalen voor het gemeentelijk wagenpark",
+        "/data/content/1/aanbestedingNaam"
+      ],
+      [
+        "Laadpalen voor het gemeentelijk wagenpark",
+        "Opdrachtgever",
+        "Gemeente Nieuwegein",
+        "/data/content/1/opdrachtgeverNaam"
+      ],
+      [
+        "Laadpalen voor het gemeentelijk wagenpark",
+        "Publicatiedatum",
+        "2026-09-24",
+        "/data/content/1/publicatieDatum"
+      ],
+      [
+        "Leveren, installeren en beheren van laadpalen in de openbare ruimte",
+        "Opdracht",
+        "Leveren, installeren en beheren van laadpalen in de openbare ruimte",
+        "/data/content/0/aanbestedingNaam"
+      ],
+      [
+        "Leveren, installeren en beheren van laadpalen in de openbare ruimte",
+        "Opdrachtgever",
+        "Waterschap Rivierenland",
+        "/data/content/0/opdrachtgeverNaam"
+      ],
+      [
+        "Leveren, installeren en beheren van laadpalen in de openbare ruimte",
+        "Publicatiedatum",
+        "2026-09-24",
+        "/data/content/0/publicatieDatum"
+      ]
+    ],
+    "kind": "table"
+  }
+}

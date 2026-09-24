@@ -1,0 +1,56 @@
+{
+  "answer": {
+    "follow_up": false,
+    "limitations": 0,
+    "observations": 2,
+    "status": "completed"
+  },
+  "facts": [
+    [
+      "rdw",
+      "RZ874R",
+      "/data/0/handelsbenaming",
+      "POLO"
+    ],
+    [
+      "rdw",
+      "RZ874R",
+      "/data/0/kenteken",
+      "RZ874R"
+    ],
+    [
+      "rdw",
+      "RZ874R",
+      "/data/0/merk",
+      "VOLKSWAGEN"
+    ],
+    [
+      "rdw",
+      "RZ874R",
+      "/data/0/vervaldatum_apk",
+      "20271029"
+    ]
+  ],
+  "plan": {
+    "cap_atomic": 54348,
+    "inputs": [
+      [
+        "RZ874R",
+        "vehicle.registration.nl.plate",
+        "RZ874R"
+      ]
+    ],
+    "order": [
+      "vehicle.technical-profile"
+    ],
+    "status": "plan",
+    "steps": [
+      [
+        "vehicle.technical-profile",
+        "rdw",
+        "RZ874R"
+      ]
+    ]
+  },
+  "presentation": null
+}

@@ -1,0 +1,123 @@
+{
+  "steps": [
+    {
+      "capability": "company.registry-profile",
+      "subject": "Coolblue B.V.",
+      "document": {
+        "data": {
+          "_embedded": {
+            "eigenaar": {
+              "links": [
+                {
+                  "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/eigenaar",
+                  "rel": "self"
+                },
+                {
+                  "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087",
+                  "rel": "basisprofiel"
+                }
+              ],
+              "rechtsvorm": "Besloten Vennootschap",
+              "rsin": "810433941",
+              "uitgebreideRechtsvorm": "Besloten Vennootschap"
+            },
+            "hoofdvestiging": {
+              "adressen": [
+                {
+                  "huisnummer": 664,
+                  "indAfgeschermd": "Nee",
+                  "land": "Nederland",
+                  "plaats": "Rotterdam",
+                  "postcode": "3012CN",
+                  "straatnaam": "Weena",
+                  "type": "bezoekadres",
+                  "volledigAdres": "Weena 664 3012CN Rotterdam"
+                }
+              ],
+              "eersteHandelsnaam": "Coolblue B.V.",
+              "indCommercieleVestiging": "Ja",
+              "indHoofdvestiging": "Ja",
+              "kvkNummer": "24330087",
+              "links": [
+                {
+                  "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/hoofdvestiging",
+                  "rel": "self"
+                },
+                {
+                  "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen",
+                  "rel": "vestigingen"
+                },
+                {
+                  "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087",
+                  "rel": "basisprofiel"
+                },
+                {
+                  "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000019297874",
+                  "rel": "vestigingsprofiel"
+                }
+              ],
+              "materieleRegistratie": {
+                "datumAanvang": "20050421"
+              },
+              "totaalWerkzamePersonen": 110,
+              "vestigingsnummer": "000019297874"
+            }
+          },
+          "handelsnamen": [
+            {
+              "naam": "Coolblue B.V.",
+              "volgorde": 0
+            }
+          ],
+          "indNonMailing": "Ja",
+          "kvkNummer": "24330087",
+          "links": [
+            {
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087",
+              "rel": "self"
+            },
+            {
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/24330087/vestigingen",
+              "rel": "vestigingen"
+            }
+          ],
+          "materieleRegistratie": {
+            "datumAanvang": "20050421"
+          },
+          "naam": "Coolblue B.V.",
+          "sbiActiviteiten": [
+            {
+              "indHoofdactiviteit": "Ja",
+              "sbiCode": "62900",
+              "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+            },
+            {
+              "indHoofdactiviteit": "Nee",
+              "sbiCode": "62100",
+              "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+            }
+          ],
+          "statutaireNaam": "Coolblue B.V.",
+          "totaalWerkzamePersonen": 110
+        },
+        "source": {
+          "provider": "kvk-dutch-business-register",
+          "name": "KVK Business Register",
+          "url": "https://developers.kvk.nl/nl/documentation",
+          "endpoint_id": null,
+          "contract_version": 1,
+          "retrieved_at": "2026-09-20T10:00:00Z",
+          "path": "/api/v1/basisprofielen"
+        },
+        "charged_atomic": "76086",
+        "currency": "USD",
+        "missing_fields": [],
+        "coverage": "source_response",
+        "subject": {
+          "entity_ref": null,
+          "label": "Coolblue B.V."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "q15",
+  "lang": "nl",
+  "question": "Zoek publicaties met de titel \"apioskzeroresultxzy92745\".",
+  "query_class": "search_list",
+  "catalog": "tests/fixtures/dutch-public-sources/catalog.json",
+  "synthetic": false
+}

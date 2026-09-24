@@ -1,0 +1,31 @@
+{
+  "answer": {
+    "follow_up": false,
+    "limitations": 1,
+    "observations": 0,
+    "status": "partial"
+  },
+  "facts": [],
+  "plan": {
+    "cap_atomic": 54348,
+    "inputs": [
+      [
+        "apioskzeroresultxzy92745",
+        "government.publication.keyword",
+        "apioskzeroresultxzy92745"
+      ]
+    ],
+    "order": [
+      "government.publication.search"
+    ],
+    "status": "plan",
+    "steps": [
+      [
+        "government.publication.search",
+        "koop",
+        "apioskzeroresultxzy92745"
+      ]
+    ]
+  },
+  "presentation": null
+}

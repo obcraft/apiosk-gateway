@@ -1,0 +1,9 @@
+{
+  "id": "q01",
+  "lang": "nl",
+  "question": "Wat is het bezoekadres van Coolblue B.V. (KVK 24330087)?",
+  "query_class": "simple_lookup",
+  "catalog": "tests/fixtures/supplier-check/catalog.json",
+  "synthetic": true,
+  "synthetic_edit": "The fixture's KVK basisprofiel sample (Mollie B.V.) with Coolblue B.V.'s name, KVK number, RSIN, establishment number and visiting address (Weena 664, Rotterdam) substituted."
+}

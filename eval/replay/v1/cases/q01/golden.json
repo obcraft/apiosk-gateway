@@ -1,0 +1,38 @@
+{
+  "answer": {
+    "follow_up": false,
+    "limitations": 0,
+    "observations": 1,
+    "status": "completed"
+  },
+  "facts": [
+    [
+      "kvk-dutch-business-register",
+      "Coolblue B.V.",
+      "/data/_embedded/hoofdvestiging/adressen/0/volledigAdres",
+      "Weena 664 3012CN Rotterdam"
+    ]
+  ],
+  "plan": {
+    "cap_atomic": 76087,
+    "inputs": [
+      [
+        "Coolblue B.V.",
+        "company_registry.kvknummer",
+        "24330087"
+      ]
+    ],
+    "order": [
+      "company.registry-profile"
+    ],
+    "status": "plan",
+    "steps": [
+      [
+        "company.registry-profile",
+        "kvk-dutch-business-register",
+        "Coolblue B.V."
+      ]
+    ]
+  },
+  "presentation": null
+}
