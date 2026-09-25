@@ -2,8 +2,27 @@ use crate::workflow_catalog;
 use super::*;
 use crate::workflows::{run_status, SUPPLIER_CHECK};
 use sqlx::Row;
+use std::sync::OnceLock;
 
 const RUN_COLUMNS: &str = "id,workflow_slug,surface,status,task_id,quote_ref,document,input,question,result->'verdict' AS verdict,result->'verdict'->>'decision' AS decision,created_at,updated_at";
+
+/// Registration follows the task's own state transitions rather than every
+/// view build: a view only re-registers a run once per revision it has not
+/// registered before. The cache is best-effort (per instance, evicted after
+/// a day of task inactivity); a miss after eviction or on a fresh instance
+/// just re-registers, which is a no-op UPDATE if nothing actually changed.
+/// Never losing a run status therefore does not depend on the cache: it is
+/// only there to skip the redundant query on repeat reads of an unchanged
+/// revision (SSE polling, status refreshes).
+fn registration_cache() -> &'static moka::future::Cache<(Uuid, Uuid), i64> {
+    static CACHE: OnceLock<moka::future::Cache<(Uuid, Uuid), i64>> = OnceLock::new();
+    CACHE.get_or_init(|| {
+        moka::future::Cache::builder()
+            .max_capacity(50_000)
+            .time_to_idle(std::time::Duration::from_secs(86_400))
+            .build()
+    })
+}
 
 fn named_run_summary(task: &Task) -> Option<Value> {
     task.analysis.as_ref().map(|analysis| json!({
@@ -12,20 +31,6 @@ fn named_run_summary(task: &Task) -> Option<Value> {
         "results_count": task.active_results.len(),
         "detail_location": "saved_task"
     }))
-}
-
-#[cfg(test)]
-mod summary_tests {
-    use super::*;
-    #[test]
-    fn history_index_does_not_duplicate_large_saved_evidence() {
-        let mut task = Task::default();
-        task.analysis = Some(json!({"status":"completed","observations":[{"text":"large saved answer", "evidence":[{"value":"page ".repeat(100000)}]}]}));
-        let summary = named_run_summary(&task).unwrap();
-        assert_eq!(summary["observations_count"], 1);
-        assert!(summary.to_string().len() < 1024);
-        assert!(task.analysis.unwrap().to_string().len() > 262144);
-    }
 }
 
 fn run_json(row: &sqlx::postgres::PgRow) -> Value {
@@ -97,15 +102,23 @@ impl Engine {
         Ok(self.complete(p,request.request_id,result).await)
     }
 
-    pub(super) async fn record_named_workflow_run(&self, p: &Principal, task_id: Uuid, task: &Task, response: &Response) -> anyhow::Result<()> {
+    /// Called from a view build, but only actually writes when this task
+    /// revision has not been registered before: registration therefore
+    /// tracks state transitions (a revision changes only on save), not
+    /// every read that happens to observe the same, already-registered
+    /// state. Failures never fail the view: a run row is a secondary index
+    /// over the task, and the task itself remains the source of truth.
+    pub(super) async fn record_named_workflow_run(&self, p: &Principal, task_id: Uuid, revision: i64, task: &Task, response: &Response) -> anyhow::Result<()> {
         let Some(workflow)=&task.workflow else {return Ok(())};
         let Some(quote_ref)=task.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|q|q.parse::<Uuid>().ok()) else {return Ok(())};
+        if registration_cache().get(&(task_id, quote_ref)).await == Some(revision) { return Ok(()); }
         let mut input=serde_json::to_value(&workflow.input)?;
         input["workflow_title"]=json!(workflow.title);
         let question=task.conversation.last().map(|t|t.question.as_str()).unwrap_or("");
         let status=if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {"failed"} else if response.status==Status::Partial {"partial"} else {run_status(&response.status,None)};
         sqlx::query("INSERT INTO workflow_runs(id,owner_id,workspace_id,workflow_slug,surface,status,task_id,quote_ref,input,question,result) VALUES($1,$2,$3,$4,$11,$5,$6,$7,$8,$9,$10) ON CONFLICT(task_id,quote_ref) DO UPDATE SET status=EXCLUDED.status,result=EXCLUDED.result,updated_at=now() WHERE (workflow_runs.status,workflow_runs.result) IS DISTINCT FROM (EXCLUDED.status,EXCLUDED.result)")
             .bind(Uuid::new_v4()).bind(p.owner).bind(task.workspace_id).bind(&workflow.slug).bind(status).bind(task_id).bind(quote_ref).bind(input).bind(question).bind(named_run_summary(task)).bind(if p.is_person() {"workflows"} else {"connected_agent"}).execute(&self.store.pool).await?;
+        registration_cache().insert((task_id, quote_ref), revision).await;
         Ok(())
     }
     pub async fn workflow_runs(&self, p: &Principal, workflow: Option<&str>) -> anyhow::Result<Value> {
@@ -145,5 +158,21 @@ impl Engine {
             .bind(Uuid::new_v4()).bind(p.owner).bind(task.workspace_id).bind(SUPPLIER_CHECK).bind(surface).bind(task_id).bind(quote_ref).bind(input).bind(question).bind(analysis)
             .execute(&self.store.pool).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod summary_tests {
+    use super::*;
+    #[test]
+    fn history_index_does_not_duplicate_large_saved_evidence() {
+        let task = Task {
+            analysis: Some(json!({"status":"completed","observations":[{"text":"large saved answer", "evidence":[{"value":"page ".repeat(100000)}]}]})),
+            ..Task::default()
+        };
+        let summary = named_run_summary(&task).unwrap();
+        assert_eq!(summary["observations_count"], 1);
+        assert!(summary.to_string().len() < 1024);
+        assert!(task.analysis.unwrap().to_string().len() > 262144);
     }
 }
