@@ -281,6 +281,12 @@ fn intent_repair_message(surface: &str, reason: &str) -> String {
     };
     format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and eight goals.")
 }
+/// The endpoints a person selected in the App next to the question: shown to
+/// the model, whose subject values may then also copy these entered values.
+pub struct ModelSelection {
+    pub view: Value,
+    pub literals: Vec<String>,
+}
 /// App-only conversational routing; never an executable action or approval.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -796,25 +802,39 @@ impl Parser {
         task: &Task,
         catalog: &Catalog,
     ) -> anyhow::Result<ChatReply> {
-        if let Some(client) = &self.typesafe {
+        self.chat_selected(question, None, task, catalog).await
+    }
+    /// The shadow interpreter does not read a selection; a selected question
+    /// always takes the baseline route, which does.
+    pub async fn chat_selected(
+        &self,
+        question: &str,
+        selection: Option<&ModelSelection>,
+        task: &Task,
+        catalog: &Catalog,
+    ) -> anyhow::Result<ChatReply> {
+        if let (Some(client), None) = (&self.typesafe, selection) {
             if client.mode() == crate::typesafe::Mode::On {
                 if let Some(decision) = client.parse(question, task, catalog).await {
                     return Ok(ChatReply { message: decision.message, discover: true, intent: Some(decision.intent) });
                 }
             } else {
-                let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.chat_baseline(question, task, catalog));
+                let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.chat_baseline(question, None, task, catalog));
                 shadow_intent(candidate.as_ref().map(|d| &d.intent), baseline.as_ref().ok().and_then(|r| r.intent.as_ref()));
                 return baseline;
             }
         }
-        self.chat_baseline(question, task, catalog).await
+        self.chat_baseline(question, selection, task, catalog).await
     }
 
-    async fn chat_baseline(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
+    async fn chat_baseline(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
         // The chat route has no interpretation cache: every question is read anew.
         crate::telemetry::set_parser_cache(Cache::Miss);
         let mut input=chat_input(question, task, catalog);
         input["catalog"]=self.planning_view(question,task,catalog).await?;
+        if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
+        // Entered values are literals too; the question is still sent as typed.
+        let literals = selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"));
         let payload = json!({
             "model": self.model, "temperature": 0, "max_tokens": 4096,
             "reasoning": {"effort":"minimal", "exclude":true},
@@ -831,7 +851,7 @@ impl Parser {
             if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
                 intent.restore_question_literals(question);
-                intent.validate(question, task, catalog)?;
+                intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
             }
             Ok(reply)
         })

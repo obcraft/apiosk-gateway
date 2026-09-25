@@ -16,7 +16,7 @@ impl Engine {
         input: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Response> {
         if let Some(r) = self
-            .request_claim(p, request_id, &digest(&("direct", p.connection, source, operation, input)))
+            .request_claim(p, request_id, &digest(&("direct", p.connection, source, operation, input)), "direct")
             .await?
         {
             return Ok(r);

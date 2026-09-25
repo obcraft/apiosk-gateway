@@ -302,6 +302,11 @@ impl Gate {
             Some(json!({"quote_ref":proposal["quote_ref"],"max_total_atomic":proposal["max_total_atomic"]}))).await
     }
 
+    async fn requote(&self, person: &Person, task: Uuid, state: &Value, quote_ref: &Value) -> (StatusCode, Value) {
+        self.send(person, &format!("/v2/tasks/{task}/requote"),
+            Some(json!({"request_id":Uuid::new_v4(),"state":state,"quote_ref":quote_ref}))).await
+    }
+
     async fn view(&self, person: &Person, task: Uuid) -> (StatusCode, Value) {
         self.send(person, &format!("/v2/tasks/{task}"), None).await
     }
@@ -524,13 +529,31 @@ async fn gate_expired_quote_never_dispatches() {
     let person = Person::new();
     let expire = "UPDATE tasks SET document=jsonb_set(document,'{proposal,expires_at}',to_jsonb(now()-interval '1 minute')) WHERE id=$1";
 
-    let (stale, stale_quote, _) = gate.priced(&person, "Expired").await;
+    let (stale, stale_quote, stale_priced) = gate.priced(&person, "Expired").await;
     sqlx::query(expire).bind(stale).execute(&gate.pool).await.unwrap();
     let (status, body) = gate.authorize(&person, stale, &stale_quote).await;
     assert_eq!(status, StatusCode::FORBIDDEN, "an expired quote cannot be approved: {body}");
     let view = gate.view(&person, stale).await.1;
     assert_eq!((&view["billing"]["authorization_active"], &view["billing"]["total_charged"]), (&json!(false), &json!("0")), "{view}");
     gate::assert_no_approval(&gate.pool, stale).await;
+
+    // #23: refreshing that same expired quote issues a new one from the
+    // stored intent, with no model call and still no approval or spend.
+    let chats_before = gate.fake.chat.load(SeqCst);
+    let (status, refreshed) = gate.requote(&person, stale, &stale_priced["state"], &stale_quote["quote_ref"]).await;
+    assert_eq!(status, StatusCode::OK, "{refreshed}");
+    assert_eq!(refreshed["status"], "ready", "{refreshed}");
+    assert_eq!(refreshed["context_view"]["requote"]["changed"], false, "the same steps still bind");
+    assert_eq!(refreshed["context_view"]["requote"]["previous_quote_ref"], stale_quote["quote_ref"]);
+    assert_ne!(refreshed["proposal"]["quote_ref"], stale_quote["quote_ref"], "a refresh always issues a new quote_ref");
+    assert_eq!(gate.fake.chat.load(SeqCst), chats_before, "no model call to refresh a quote");
+    gate::assert_no_approval(&gate.pool, stale).await;
+    let restale = "UPDATE tasks SET document=jsonb_set(document,'{proposal,expires_at}',to_jsonb(now()-interval '1 minute')) WHERE id=$1";
+    sqlx::query(restale).bind(stale).execute(&gate.pool).await.unwrap();
+    let (status, mismatched) = gate.requote(&person, stale, &refreshed["state"], &stale_quote["quote_ref"]).await;
+    assert_eq!(status, StatusCode::OK, "{mismatched}");
+    assert_eq!(mismatched["status"], "state_conflict", "the stale quote_ref no longer matches: {mismatched}");
+    assert_eq!(mismatched["errors"][0]["code"], "quote_mismatch");
 
     let (lapsed, lapsed_quote, lapsed_priced) = gate.priced(&person, "Lapsed").await;
     let principal = person.principal();

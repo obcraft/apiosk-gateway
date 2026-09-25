@@ -72,6 +72,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
                 }
             }),
         )
+        .route("/v2/meta", get(crate::routes::intake::meta))
+        .route("/v2/requests/:request_id", get(request_receipt))
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
         .route("/v2/sources", get(sources))
@@ -87,6 +89,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/report.pdf", get(research_report))
         .route("/v2/tasks/:task/reports/:quote/evidence.zip", get(research_evidence))
         .route("/v2/tasks/:id/authorize", post(authorize))
+        .route("/v2/tasks/:id/requote", post(requote))
         // The public API: every credential, one execution and billing path.
         .route("/v2/sources/:source_id", get(crate::public_api::source))
         .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
@@ -500,6 +503,65 @@ async fn chat(
             )
         }
     }
+}
+/// `GET /v2/requests/:request_id` (#11, `request_receipts_v1`): what became
+/// of a first request, without resending it or re-interpreting the question.
+/// Read-only; claims nothing and does not count toward the claim rate limit.
+async fn requote(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<crate::protocol::RequoteRequest>,
+) -> HttpResponse {
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    match state.engine.requote(&p, id, req).await {
+        Ok(r) => Json(r).into_response(),
+        Err(e) => {
+            tracing::error!(error=%e, "requote persistence failure");
+            failure(StatusCode::SERVICE_UNAVAILABLE, "unavailable", "The price could not be refreshed.")
+        }
+    }
+}
+async fn request_receipt(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(request_id): Path<Uuid>,
+) -> HttpResponse {
+    let p = match app_person(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    let row = match state.engine.store.request_receipt(p.owner, request_id, p.workspace, p.connection).await {
+        Ok(row) => row,
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "unavailable", "The request receipt could not be read."),
+    };
+    let Some(row) = row.filter(|row| row.kind.is_some()) else {
+        // Never claimed, pruned, another context, or a pre-#11 row: all read
+        // the same, and the same request id is safe to resend.
+        return failure(StatusCode::NOT_FOUND, "request_unknown", "This request is not known. It is safe to send again.");
+    };
+    let response: Option<crate::protocol::Response> = row.response.and_then(|v| serde_json::from_value(v).ok());
+    let interrupted = response.is_none() && (chrono::Utc::now() - row.created_at).num_seconds() >= crate::protocol::INTERRUPTED_AFTER_SECS;
+    let (state_, retry_after_ms) = match (&response, interrupted) {
+        (Some(_), _) => (crate::protocol::ReceiptState::Completed, None),
+        (None, true) => (crate::protocol::ReceiptState::Interrupted, None),
+        (None, false) => (crate::protocol::ReceiptState::Pending, Some(2000)),
+    };
+    Json(crate::protocol::RequestReceipt {
+        protocol_version: crate::protocol::VERSION,
+        request_id,
+        state: state_,
+        kind: row.kind,
+        task_ref: response.is_some().then(|| row.task_id).flatten(),
+        response_status: response.as_ref().map(|r| r.status.clone()),
+        errors: response.as_ref().map(|r| r.errors.clone()).unwrap_or_default(),
+        created_at: row.created_at,
+        completed_at: row.completed_at,
+        retry_after_ms,
+    }).into_response()
 }
 async fn read_document(
     State(state): State<ServerState>,

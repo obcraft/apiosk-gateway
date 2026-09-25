@@ -1,10 +1,13 @@
 use crate::state::Envelope;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
+pub mod features;
+pub mod limits;
+
 pub const VERSION: &str = "2";
-pub const MAX_QUESTION: usize = 4000;
 pub const MAX_INLINE: usize = 32 * 1024;
 pub const MAX_STEPS: usize = 12;
 pub const MAX_DEPTH: usize = 5;
@@ -19,6 +22,87 @@ pub struct ContextDelta {
     pub explicit_values: Vec<ExplicitValue>,
     #[serde(default)]
     pub requested_focus_refs: Vec<Uuid>,
+    /// App endpoint selection (`chat_selection_v1`): the literal question is
+    /// unchanged; the gateway binds the validated endpoints and known values.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<Selection>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Selection {
+    pub version: u8,
+    #[serde(default)]
+    pub mode: SelectionMode,
+    pub endpoints: Vec<SelectedEndpoint>,
+}
+/// `restrict`: only the selected endpoints may serve the requested goals.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionMode {
+    #[default]
+    Restrict,
+}
+/// Exactly one of `endpoint_id` (a catalog endpoint) or `listing` (a
+/// published endpoint without a planner contract).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelectedEndpoint {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub listing: Option<ListingRef>,
+    #[serde(default)]
+    pub inputs: Vec<KnownInput>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListingRef {
+    pub slug: String,
+    pub method: String,
+    pub path: String,
+}
+/// A value the person entered for one of the endpoint's contract inputs.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KnownInput {
+    pub fact_type: String,
+    pub subject_role: String,
+    pub value: Value,
+}
+/// `GET /v2/requests/:request_id` (`request_receipts_v1`, #11): whether a
+/// first request was ever claimed, and how it ended, without resending it or
+/// re-interpreting the question.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReceiptState {
+    Pending,
+    Completed,
+    Interrupted,
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct RequestReceipt {
+    pub protocol_version: &'static str,
+    pub request_id: Uuid,
+    pub state: ReceiptState,
+    pub kind: Option<String>,
+    pub task_ref: Option<Uuid>,
+    pub response_status: Option<Status>,
+    pub errors: Vec<Value>,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_after_ms: Option<u64>,
+}
+/// A request older than this with no response is presumed lost, not merely slow.
+pub const INTERRUPTED_AFTER_SECS: i64 = 240;
+/// `POST /v2/tasks/:id/requote` (`requote_v1`, #23): refresh an expired quote
+/// from the stored intent and selection, with no model call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequoteRequest {
+    pub request_id: Uuid,
+    pub state: Envelope,
+    pub quote_ref: Uuid,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -130,6 +214,34 @@ impl Response {
     }
 }
 
+pub const EVENTS_HEARTBEAT_MS: u64 = 10_000;
+pub const EVENTS_STALE_AFTER_MS: u64 = 25_000;
+
+/// `GET /v2/meta`: what this gateway accepts, for Apps that must also work
+/// against an older gateway during a rolling deploy.
+#[derive(Debug, Serialize)]
+pub struct Meta {
+    pub protocol_version: &'static str,
+    pub features: Vec<&'static str>,
+    pub limits: &'static limits::AskLimits,
+    pub events: EventTiming,
+}
+#[derive(Debug, Serialize)]
+pub struct EventTiming {
+    pub heartbeat_ms: u64,
+    pub stale_after_ms: u64,
+}
+impl Meta {
+    pub fn current() -> Self {
+        Self {
+            protocol_version: VERSION,
+            features: features::advertised(),
+            limits: limits::limits(),
+            events: EventTiming { heartbeat_ms: EVENTS_HEARTBEAT_MS, stale_after_ms: EVENTS_STALE_AFTER_MS },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,6 +251,37 @@ mod tests {
             serde_json::json!({"request_id":Uuid::new_v4(),"question":"x","approved":true})
         )
         .is_err());
+    }
+    #[test]
+    fn a_request_without_selection_keeps_its_digest() {
+        // Idempotency hashes the parsed request: a retry sent before this
+        // field existed must hash the same after a deploy.
+        let old = serde_json::json!({"request_id":Uuid::nil(),"question":"x","state":null,"context_delta":{"explicit_values":[],"requested_focus_refs":[]}});
+        let parsed: DiscoverRequest = serde_json::from_value(old.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), old);
+    }
+    #[test]
+    fn selection_rejects_unknown_fields_and_modes() {
+        let endpoint = serde_json::json!({"endpoint_id":Uuid::nil(),"inputs":[{"fact_type":"company.id","subject_role":"subject","value":"1"}]});
+        let parsed: Selection = serde_json::from_value(serde_json::json!({"version":1,"endpoints":[endpoint]})).unwrap();
+        assert_eq!(parsed.mode, SelectionMode::Restrict);
+        assert!(serde_json::from_value::<Selection>(serde_json::json!({"version":1,"mode":"prefer","endpoints":[]})).is_err());
+        assert!(serde_json::from_value::<Selection>(serde_json::json!({"version":1,"endpoints":[],"price":1})).is_err());
+        assert!(serde_json::from_value::<SelectedEndpoint>(serde_json::json!({"endpoint_id":Uuid::nil(),"approved":true})).is_err());
+    }
+    #[test]
+    fn the_largest_valid_chat_request_fits_the_body_limit() {
+        // Four UTF-8 bytes per question character, six bytes per escaped
+        // control character in the entered values, 64-character fact types.
+        let budget = &limits::limits().selection;
+        let inputs_per_endpoint = budget.max_inputs_per_endpoint;
+        let per_value = budget.max_total_value_chars / (budget.max_endpoints * inputs_per_endpoint);
+        let endpoint = SelectedEndpoint { endpoint_id: Some(Uuid::nil()), listing: None, inputs: (0..inputs_per_endpoint).map(|_| KnownInput {
+            fact_type: "f".repeat(64), subject_role: "subject".into(), value: Value::String("\u{1}".repeat(per_value)) }).collect() };
+        let request = DiscoverRequest { request_id: Uuid::nil(), question: "😀".repeat(limits::limits().question.max_chars), state: None,
+            context_delta: ContextDelta { selection: Some(Selection { version: 1, mode: SelectionMode::Restrict, endpoints: vec![endpoint; budget.max_endpoints] }), ..Default::default() } };
+        let bytes = serde_json::to_vec(&request).unwrap().len() + 1024;
+        assert!(bytes < 64 * 1024, "{bytes} bytes with an envelope");
     }
     #[test]
     fn all_statuses_use_same_envelope() {

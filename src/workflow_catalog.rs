@@ -344,7 +344,7 @@ pub fn prepare(
         recipe.output
     );
     anyhow::ensure!(
-        question.len() <= crate::protocol::MAX_QUESTION,
+        crate::protocol::limits::question_ok(&question),
         "Workflow details are too long."
     );
     let country_scope = recipe.country_coverage.iter().find(|coverage| values.get("country").and_then(Value::as_str) == Some(coverage.country.as_str()))

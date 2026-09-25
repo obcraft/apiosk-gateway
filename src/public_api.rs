@@ -17,7 +17,7 @@
 use crate::{
     auth::AuthContext,
     catalog::{Catalog, Service},
-    protocol::{DiscoverRequest, ExecuteRequest, Response, Status, MAX_QUESTION},
+    protocol::{limits, DiscoverRequest, ExecuteRequest, Response, Status},
     resolver::Plan,
     server::{authenticated, token, Refusal, ServerState},
 };
@@ -530,7 +530,7 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
         return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "Supply exactly one of question or workflow."));
     }
     let question = req.question.as_deref().unwrap_or_default().trim();
-    if req.question.is_some() && (question.is_empty() || question.len() > MAX_QUESTION) {
+    if req.question.is_some() && !limits::question_ok(question) {
         return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "question must be 1 to 4000 characters."));
     }
     let max_spend = spend_limit(req.max_spend.as_ref())?;

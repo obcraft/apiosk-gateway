@@ -28,6 +28,7 @@ mod report_layout;
 pub mod protocol;
 pub mod public_api;
 pub mod resolver;
+pub mod routes;
 pub mod server;
 mod server_events;
 pub mod sources;
