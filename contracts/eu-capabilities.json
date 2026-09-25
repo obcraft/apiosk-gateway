@@ -1,0 +1,20 @@
+[
+  {
+    "slug": "eu.company.profile",
+    "name": "European company profile",
+    "primary_sources": ["kvk-dutch-business-register", "sirenic", "companies-house"],
+    "supplementary_sources": ["gleif", "vies", "overheid-io"]
+  },
+  {
+    "slug": "eu.tenders.search",
+    "name": "European tender search",
+    "primary_sources": ["ted", "tenderned"],
+    "supplementary_sources": ["eu-funding-tenders", "sirenic"]
+  },
+  {
+    "slug": "eu.statistics.query",
+    "name": "European statistics",
+    "primary_sources": ["cbs-statline", "eurostat"],
+    "supplementary_sources": ["pdok", "data-overheid-nl"]
+  }
+]

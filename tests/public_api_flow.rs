@@ -151,6 +151,12 @@ async fn organisation_key_public_api() {
         .await
         .unwrap();
     let fixture = Arc::new(Fixture { pool: pool.clone(), provider: AtomicU64::new(0), bearers: Mutex::new(vec![]) });
+    // Published source fixtures need no execution contracts to be discoverable.
+    for slug in ["kvk-dutch-business-register", "sirenic", "companies-house", "gleif", "vies", "overheid-io",
+        "ted", "tenderned", "eu-funding-tenders", "cbs-statline", "eurostat", "pdok", "data-overheid-nl"] {
+        sqlx::query("INSERT INTO public.apis(id,slug,name,status,active,is_verified,discoverable) VALUES($1,$2,$2,'active',true,true,true)")
+            .bind(Uuid::new_v4()).bind(slug).execute(&pool).await.unwrap();
+    }
     let mock = Router::new()
         .route("/chat", post(model))
         .route("/functions/v1/agent-gateway/v1/run", post(provider))
@@ -177,6 +183,19 @@ async fn organisation_key_public_api() {
     let (status, body) = api.get("/v2/sources", READ_ONLY).await;
     assert_eq!(status, 200, "{body}");
     assert!(body.to_string().contains("fixture"));
+    for (capability, expected) in [
+        ("eu.company.profile", vec!["kvk-dutch-business-register", "sirenic", "companies-house"]),
+        ("eu.tenders.search", vec!["ted", "tenderned"]),
+        ("eu.statistics.query", vec!["cbs-statline", "eurostat"]),
+    ] {
+        let (status, sources) = api.get(&format!("/v2/sources?capability={capability}"), READ_ONLY).await;
+        assert_eq!(status, 200, "{sources}");
+        let actual: Vec<_> = sources["sources"].as_array().unwrap().iter().map(|s| s["slug"].as_str().unwrap()).collect();
+        assert_eq!(actual, expected);
+        assert_eq!(sources["selected_capability"]["slug"], capability);
+        assert!(sources["sources"].as_array().unwrap().iter().all(|s| s["available_in_v2"] == false));
+    }
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), 0, "capability discovery cannot purchase data");
     let (status, source) = api.get("/v2/sources/fixture", READ_ONLY).await;
     assert_eq!(status, 200, "{source}");
     let search = source["operations"].as_array().unwrap().iter().find(|o| o["id"] == "company.search").unwrap();

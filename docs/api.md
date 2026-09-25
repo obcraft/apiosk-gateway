@@ -70,6 +70,36 @@ above are examples.
 
 ## 3. List sources
 
+The three European capability groups return their primary sources through the
+same free catalog used by the chatbot and the Ask source browser:
+
+| Capability | Primary sources | Supplementary sources |
+| --- | --- | --- |
+| `eu.company.profile` | KVK, Sirenic, Companies House | GLEIF, VIES, Overheid.io |
+| `eu.tenders.search` | TED, TenderNed | EU Funding & Tenders, Sirenic |
+| `eu.statistics.query` | CBS, Eurostat | PDOK, Data.overheid.nl |
+
+```http
+GET /v2/sources?capability=eu.company.profile
+GET /v2/sources?capability=eu.tenders.search
+GET /v2/sources?capability=eu.statistics.query
+```
+
+`sources` contains only published primary sources, in the order above, subject
+to other filters and pagination. `selected_capability` describes the chosen
+group and lists its published `primary_sources` and `supplementary_sources`
+with their slugs and names. `capability_groups` describes all three groups.
+Each source also carries `capability_roles`. An exact group slug in `search`
+returns the same primary sources. The unfiltered source catalog includes these
+group slugs in `capabilities`, so the Ask browser uses the same membership.
+
+For chatbots, use `apiosk_sources({"capability":"eu.company.profile"})` (or either
+of the other slugs). Entering a bare slug into Ask also returns a source overview.
+These discovery groups do not create priced execution contracts or certify
+country coverage. Use the source's available operations for a data call; existing
+readiness, source restrictions, pricing and approval rules still apply.
+
+
 ```http
 GET /v2/sources?search=tenders&category=…&tag=…&sector=…&capability=company.search&offset=0&limit=20
 ```

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createApioskMcpRuntime } from '../../mcp/src/runtime.mjs';
+const { createApioskMcpRuntime } = await import(process.env.TEST_MCP_RUNTIME_URL || new URL('../../mcp/src/runtime.mjs', import.meta.url).href);
 const base=process.env.FIXTURE_GATEWAY_URL;
 assert.match(base,/^http:\/\/127\.0\.0\.1:\d+$/);
 const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CONNECT_TOKEN:'apk_access_local_fixture'}});

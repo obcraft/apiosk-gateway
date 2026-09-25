@@ -338,7 +338,8 @@ pub struct Parser {
 }
 
 fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
-    json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":catalog.parser_view()})
+    json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":catalog.parser_view(),
+        "source_groups":crate::eu_capabilities::catalog_view(catalog)})
 }
 
 pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> anyhow::Result<Value> {
@@ -813,6 +814,11 @@ impl Parser {
         task: &Task,
         catalog: &Catalog,
     ) -> anyhow::Result<ChatReply> {
+        if selection.is_none() {
+            if let Some(reply) = crate::eu_capabilities::browse_reply(question, catalog) {
+                return Ok(reply);
+            }
+        }
         if let (Some(client), None) = (&self.typesafe, selection) {
             if client.mode() == crate::typesafe::Mode::On {
                 if let Some(decision) = client.parse(question, task, catalog).await {

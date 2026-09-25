@@ -32,6 +32,7 @@ pub mod routes;
 pub mod server;
 mod server_events;
 pub mod sources;
+pub mod eu_capabilities;
 pub mod source_preview;
 pub mod state;
 pub mod store;
