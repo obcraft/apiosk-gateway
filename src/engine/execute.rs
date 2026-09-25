@@ -10,7 +10,7 @@ impl Engine {
         bearer: &str,
         req: ExecuteRequest,
     ) -> anyhow::Result<Response> {
-        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("continue", p.connection, &req))).await? {
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("continue", p.connection, &req)), "continue").await? {
             return Ok(response);
         }
         let result = async {
@@ -55,7 +55,7 @@ impl Engine {
         req: ExecuteRequest,
     ) -> anyhow::Result<Response> {
         if let Some(r) = self
-            .request_claim(p, req.request_id, &digest(&("execute", p.connection, &req)))
+            .request_claim(p, req.request_id, &digest(&("execute", p.connection, &req)), "execute")
             .await?
         {
             return Ok(r);

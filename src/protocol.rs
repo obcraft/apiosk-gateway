@@ -1,4 +1,5 @@
 use crate::state::Envelope;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
@@ -67,6 +68,41 @@ pub struct KnownInput {
     pub fact_type: String,
     pub subject_role: String,
     pub value: Value,
+}
+/// `GET /v2/requests/:request_id` (`request_receipts_v1`, #11): whether a
+/// first request was ever claimed, and how it ended, without resending it or
+/// re-interpreting the question.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReceiptState {
+    Pending,
+    Completed,
+    Interrupted,
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct RequestReceipt {
+    pub protocol_version: &'static str,
+    pub request_id: Uuid,
+    pub state: ReceiptState,
+    pub kind: Option<String>,
+    pub task_ref: Option<Uuid>,
+    pub response_status: Option<Status>,
+    pub errors: Vec<Value>,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_after_ms: Option<u64>,
+}
+/// A request older than this with no response is presumed lost, not merely slow.
+pub const INTERRUPTED_AFTER_SECS: i64 = 240;
+/// `POST /v2/tasks/:id/requote` (`requote_v1`, #23): refresh an expired quote
+/// from the stored intent and selection, with no model call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequoteRequest {
+    pub request_id: Uuid,
+    pub state: Envelope,
+    pub quote_ref: Uuid,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

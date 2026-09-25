@@ -23,7 +23,7 @@ impl Engine {
             "Related services require a person in the App"
         );
         if let Some(r) = self
-            .request_claim(p, req.request_id, &digest(&("follow-up", &req)))
+            .request_claim(p, req.request_id, &digest(&("follow-up", &req)), "follow-up")
             .await?
         {
             return Ok(r);

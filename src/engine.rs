@@ -1,4 +1,5 @@
 mod endpoint_selection;
+mod requote;
 mod execute;
 pub(crate) use execute::{analysis_operations, answer_sources};
 pub(crate) mod input;
@@ -18,7 +19,7 @@ use crate::{
     protocol::*,
     resolver::{self, Action, Plan, Resolution},
     state::{digest, Entity, Fact, Signer, Task},
-    store::{Claim, Store},
+    store::{Claim, ClaimMeta, Store},
     telemetry::{self, Phase},
 };
 use chrono::Utc;
@@ -79,10 +80,12 @@ impl Engine {
         p: &Principal,
         id: Uuid,
         hash: &str,
+        kind: &'static str,
     ) -> anyhow::Result<Option<Response>> {
         self.store.check_workspace(p).await?;
         let scoped_hash = p.workspace.map(|w|digest(&(w,hash)));
-        Ok(match telemetry::timed(Phase::Claim, "request", self.store.claim(p.owner, id, scoped_hash.as_deref().unwrap_or(hash))).await? {
+        let meta = ClaimMeta { kind: Some(kind), workspace: p.workspace, connection: p.connection, trace: telemetry::current().map(|t| t.id) };
+        Ok(match telemetry::timed(Phase::Claim, "request", self.store.claim_meta(p.owner, id, scoped_hash.as_deref().unwrap_or(hash), meta)).await? {
             Claim::New => None,
             Claim::Replay(r) => Some(*r),
             Claim::Conflict => Some(Response::error(
@@ -142,6 +145,7 @@ impl Engine {
                 p,
                 req.request_id,
                 &digest(&("discover", p.connection, &req)),
+                "discover",
             )
             .await?
         {
@@ -153,13 +157,77 @@ impl Engine {
     pub async fn chat(&self, p: &Principal, req: DiscoverRequest) -> anyhow::Result<Response> {
         anyhow::ensure!(p.is_person(), "Ask chat requires a person in the App");
         if let Some(r) = self
-            .request_claim(p, req.request_id, &digest(&("ask-chat", &req)))
+            .request_claim(p, req.request_id, &digest(&("ask-chat", &req)), "chat")
             .await?
         {
             return Ok(r);
         }
         let result = self.discover_inner(p, &req, true).await;
         Ok(self.complete(p, req.request_id, result).await)
+    }
+    /// #23: refresh an expired quote from the stored intent and selection.
+    /// No model call, no new turn; a new price always needs a new explicit
+    /// approval.
+    pub async fn requote(&self, p: &Principal, id: Uuid, req: RequoteRequest) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.is_person(), "Refreshing a price requires a person in the App");
+        anyhow::ensure!(id == req.state.state_ref, "the request path must match the state it refreshes");
+        if let Some(r) = self
+            .request_claim(p, req.request_id, &digest(&("requote", id, &req)), "requote")
+            .await?
+        {
+            return Ok(r);
+        }
+        let result = self.requote_inner(p, id, &req).await;
+        Ok(self.complete(p, req.request_id, result).await)
+    }
+    async fn requote_refused(&self, p: &Principal, id: Uuid, request: Uuid, code: &str, message: &str) -> anyhow::Result<Response> {
+        let mut response = self.view(p, id, request, Some(Status::StateConflict)).await?;
+        response.errors.push(json!({"code": code, "message": message}));
+        Ok(response)
+    }
+    async fn requote_inner(&self, p: &Principal, id: Uuid, req: &RequoteRequest) -> anyhow::Result<Response> {
+        self.signer.verify(p.owner, &req.state, true)?;
+        let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
+        anyhow::ensure!(connection == p.connection, "task belongs to another connection; use explicit task recovery");
+        if req.state.revision != revision {
+            return self.view(p, id, req.request_id, Some(Status::StateConflict)).await;
+        }
+        if task.cancelled || task.intent.is_none() || task.proposal.is_none() {
+            return self.requote_refused(p, id, req.request_id, "requote_unavailable", "There is no active quote to refresh.").await;
+        }
+        let plan: Plan = serde_json::from_value(task.proposal.clone().unwrap())?;
+        if plan.quote_ref != req.quote_ref {
+            return self.requote_refused(p, id, req.request_id, "quote_mismatch", "This is not the price shown. Reload the task and try again.").await;
+        }
+        if plan.expires_at > Utc::now() {
+            return self.requote_refused(p, id, req.request_id, "quote_still_valid", "This price has not expired yet.").await;
+        }
+        if self.store.requote_blocked(id, plan.quote_ref).await? {
+            return self.requote_refused(p, id, req.request_id, "requote_unavailable", "An execution under this price is in progress, or was never confirmed. Recover the task before refreshing the price.").await;
+        }
+        let catalog = self.catalog.get().await?;
+        let mut intent: Intent = serde_json::from_value(task.intent.clone().unwrap())?;
+        let previous_quote_ref = plan.quote_ref;
+        let changed = match requote::same_steps(&catalog, &plan) {
+            Some(mut refreshed) => {
+                refreshed.quote_ref = Uuid::new_v4();
+                refreshed.expires_at = Utc::now() + chrono::Duration::minutes(10);
+                refreshed.hash = digest(&refreshed.steps);
+                task.actions = if refreshed.steps.is_empty() { Vec::new() } else { vec![serde_json::to_value(Action::Run { action_id: Uuid::new_v4(), step: 0 })?] };
+                task.proposal = Some(serde_json::to_value(&refreshed)?);
+                false
+            }
+            None => {
+                input::bind_subjects(&mut task, &catalog, &mut intent)?;
+                task.intent = Some(serde_json::to_value(&intent)?);
+                self.plan(&mut task, &catalog, &intent)?;
+                true
+            }
+        };
+        self.store.save_intent(p.owner, id, revision, &task).await?;
+        let mut response = self.view(p, id, req.request_id, None).await?;
+        response.context_view["requote"] = json!({"previous_quote_ref": previous_quote_ref, "changed": changed});
+        Ok(response)
     }
     async fn discover_inner(
         &self,
@@ -220,6 +288,11 @@ impl Engine {
         } else {
             self.store.create_scoped(p.owner, p.connection, p.workspace).await?
         };
+        // Best-effort: a lost response can still be recovered by task id even
+        // when `finish` never runs (#11). Never blocks the answer.
+        if self.store.link_request_task(p.owner, req.request_id, id).await.is_err() {
+            tracing::warn!("request receipt task link failed");
+        }
         let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
         anyhow::ensure!(
             connection == p.connection,

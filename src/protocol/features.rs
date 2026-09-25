@@ -10,6 +10,8 @@ pub const IMPLEMENTED: &[&str] = &[
     "trace_header_v1",
     "question_chars_v1",
     "chat_selection_v1",
+    "request_receipts_v1",
+    "requote_v1",
 ];
 
 /// The implemented features the environment allows.

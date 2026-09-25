@@ -82,7 +82,7 @@ impl Engine {
     }
 
     pub async fn start_workflow(&self, p: &Principal, slug: &str, request: crate::workflow_catalog::StartRequest) -> anyhow::Result<Response> {
-        if let Some(response)=self.request_claim(p,request.request_id,&digest(&("start-workflow",slug,&request))).await? { return Ok(response); }
+        if let Some(response)=self.request_claim(p,request.request_id,&digest(&("start-workflow",slug,&request)), "start-workflow").await? { return Ok(response); }
         let result=async {
             let catalog=self.catalog.get().await?;
             let (intent,context,question)=match crate::workflow_catalog::prepare(slug,&request.input,&catalog) {

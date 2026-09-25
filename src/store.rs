@@ -35,6 +35,23 @@ pub enum Claim {
     Busy,
     Conflict,
 }
+/// Recovery identity for a claimed request. Never part of the idempotency
+/// hash: two lanes can add fields here without invalidating a retry's digest.
+#[derive(Default)]
+pub struct ClaimMeta {
+    pub kind: Option<&'static str>,
+    pub workspace: Option<Uuid>,
+    pub connection: Option<Uuid>,
+    pub trace: Option<Uuid>,
+}
+/// A stored request receipt, for `GET /v2/requests/:request_id` (#11).
+pub struct RequestReceiptRow {
+    pub kind: Option<String>,
+    pub task_id: Option<Uuid>,
+    pub response: Option<Value>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
 impl Store {
     pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> { self.list_tasks_scoped(owner,None).await }
     pub async fn list_tasks_scoped(&self, owner: Uuid, workspace: Option<Uuid>) -> anyhow::Result<Vec<Value>> {
@@ -45,6 +62,11 @@ impl Store {
         ).bind(owner).bind(workspace).fetch_all(&self.pool).await?)
     }
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
+        self.claim_meta(owner, request, hash, ClaimMeta::default()).await
+    }
+    /// `meta` is recovery identity only (#11): never part of the idempotency
+    /// hash, so adding a field here cannot change what counts as a retry.
+    pub async fn claim_meta(&self, owner: Uuid, request: Uuid, hash: &str, meta: ClaimMeta) -> anyhow::Result<Claim> {
         let _db = crate::telemetry::db("requests.claim");
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))")
@@ -58,20 +80,58 @@ impl Store {
         let count:i64=sqlx::query_scalar("SELECT count(*) FROM requests WHERE owner_id=$1 AND created_at>now()-interval '1 minute'").bind(owner).fetch_one(&mut *tx).await?;
         anyhow::ensure!(count < 60, "request rate limit; wait one minute");
         sqlx::query(
-            "INSERT INTO requests(owner_id,request_id,payload_hash) VALUES($1,$2,$3)",
+            "INSERT INTO requests(owner_id,request_id,payload_hash,kind,workspace_id,connection_id,trace_id) VALUES($1,$2,$3,$4,$5,$6,$7)",
         )
         .bind(owner)
         .bind(request)
         .bind(hash)
+        .bind(meta.kind)
+        .bind(meta.workspace)
+        .bind(meta.connection)
+        .bind(meta.trace)
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;
         Ok(Claim::New)
     }
+    /// Links a claimed request to the task it produced, once that task id is
+    /// known. Best-effort: the receipt still resolves through `response` if
+    /// this never runs (an interrupted request, or an old code path).
+    pub async fn link_request_task(&self, owner: Uuid, request: Uuid, task: Uuid) -> anyhow::Result<()> {
+        sqlx::query("UPDATE requests SET task_id=$3 WHERE owner_id=$1 AND request_id=$2 AND task_id IS NULL")
+            .bind(owner)
+            .bind(request)
+            .bind(task)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+    /// The receipt for `GET /v2/requests/:request_id` (#11). Scoped to the
+    /// owner and, when given, the exact workspace and connection it was made
+    /// in, so a request from another context reads as not found.
+    pub async fn request_receipt(&self, owner: Uuid, request: Uuid, workspace: Option<Uuid>, connection: Option<Uuid>) -> anyhow::Result<Option<RequestReceiptRow>> {
+        let _db = crate::telemetry::db("requests.receipt");
+        Ok(sqlx::query(
+            "SELECT kind,task_id,response,created_at,completed_at FROM requests WHERE owner_id=$1 AND request_id=$2 AND workspace_id IS NOT DISTINCT FROM $3 AND connection_id IS NOT DISTINCT FROM $4",
+        )
+        .bind(owner)
+        .bind(request)
+        .bind(workspace)
+        .bind(connection)
+        .fetch_optional(&self.pool)
+        .await?
+        .map(|row| RequestReceiptRow {
+            kind: row.get("kind"),
+            task_id: row.get("task_id"),
+            response: row.get("response"),
+            created_at: row.get("created_at"),
+            completed_at: row.get("completed_at"),
+        }))
+    }
     pub async fn finish(&self, owner: Uuid, response: &Response) -> anyhow::Result<()> {
         let _db = crate::telemetry::db("requests.finish");
         sqlx::query(
-            "UPDATE requests SET response=$3 WHERE owner_id=$1 AND request_id=$2",
+            "UPDATE requests SET response=$3,completed_at=now() WHERE owner_id=$1 AND request_id=$2",
         )
         .bind(owner)
         .bind(response.request_id)
@@ -204,6 +264,20 @@ impl Store {
         tx.commit().await?;
         crate::server_events::task_changed(id);
         Ok(revision + 1)
+    }
+    /// A quote cannot be refreshed while anything paid could still land under
+    /// it: a dispatch in flight for the task, or any execution (of any
+    /// status) already made under this exact quote's authorization. #23.
+    pub async fn requote_blocked(&self, task: Uuid, quote_ref: Uuid) -> anyhow::Result<bool> {
+        let _db = crate::telemetry::db("requests.requote_blocked");
+        Ok(sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text)))) \
+             OR EXISTS(SELECT 1 FROM executions e JOIN authorizations a ON a.id=e.authorization_id WHERE a.task_id=$1 AND a.quote_ref=$2)",
+        )
+        .bind(task)
+        .bind(quote_ref)
+        .fetch_one(&self.pool)
+        .await?)
     }
     pub async fn result(&self, owner: Uuid, task: Uuid, id: Uuid) -> anyhow::Result<Value> {
         let _db = crate::telemetry::db("results.one");

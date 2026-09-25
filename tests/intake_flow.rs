@@ -258,3 +258,72 @@ async fn an_invalid_selection_is_refused_before_interpretation() {
     assert_eq!(task_count(&intake, &person).await, 0);
     println!("an_invalid_selection_is_refused_before_interpretation: no task, no model call");
 }
+
+/// A first request's receipt is recoverable by request id alone: pending
+/// while claimed, completed once answered (with the task it produced),
+/// unknown for an id nothing ever claimed, and unavailable to another person.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn request_receipt_recovers_a_first_request_by_id() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let request_id = Uuid::new_v4();
+    let (status, unknown) = intake.send(&person.bearer, &format!("/v2/requests/{request_id}"), None).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "{unknown}");
+    assert_eq!(codes(&unknown), ["request_unknown"]);
+
+    let answered = intake.chat(&person, json!({"request_id":request_id,"question":"Hallo","state":null})).await;
+    assert_eq!(answered["status"], "needs_input", "{answered}");
+    let task: Uuid = answered["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+
+    let (status, receipt) = intake.send(&person.bearer, &format!("/v2/requests/{request_id}"), None).await;
+    assert_eq!(status, StatusCode::OK, "{receipt}");
+    assert_eq!(receipt["state"], "completed");
+    assert_eq!(receipt["kind"], "chat");
+    assert_eq!(receipt["task_ref"], json!(task));
+    assert_eq!(receipt["response_status"], "needs_input");
+    assert!(receipt["retry_after_ms"].is_null());
+
+    let other = Person::new();
+    let (status, denied) = intake.send(&other.bearer, &format!("/v2/requests/{request_id}"), None).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another person cannot read this receipt: {denied}");
+    println!("request_receipt_recovers_a_first_request_by_id: unknown, then completed with its task, scoped to the owner");
+}
+
+/// A quote that has not expired, or that no longer matches what is shown,
+/// or a task with nothing to refresh, is refused before anything is touched.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn requote_refuses_a_valid_or_mismatched_quote() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let priced = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Example","state":null})).await;
+    assert_eq!(priced["status"], "ready", "{priced}");
+    let task: Uuid = priced["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+
+    let still_valid = intake.http.post(format!("{}/v2/tasks/{task}/requote", intake.gateway)).bearer_auth(&person.bearer)
+        .json(&json!({"request_id":Uuid::new_v4(),"state":priced["state"],"quote_ref":priced["proposal"]["quote_ref"]}))
+        .send().await.unwrap();
+    assert_eq!(still_valid.status(), StatusCode::OK);
+    let still_valid: Value = still_valid.json().await.unwrap();
+    assert_eq!(still_valid["status"], "state_conflict", "{still_valid}");
+    assert_eq!(codes(&still_valid), ["quote_still_valid"]);
+
+    let expired = "UPDATE tasks SET document=jsonb_set(document,'{proposal,expires_at}',to_jsonb(now()-interval '1 minute')) WHERE id=$1";
+    sqlx::query(expired).bind(task).execute(&intake.pool).await.unwrap();
+    let mismatched = intake.http.post(format!("{}/v2/tasks/{task}/requote", intake.gateway)).bearer_auth(&person.bearer)
+        .json(&json!({"request_id":Uuid::new_v4(),"state":priced["state"],"quote_ref":Uuid::new_v4()}))
+        .send().await.unwrap();
+    let mismatched: Value = mismatched.json().await.unwrap();
+    assert_eq!(codes(&mismatched), ["quote_mismatch"], "{mismatched}");
+
+    let fresh = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Hallo","state":null})).await;
+    assert_eq!(fresh["status"], "needs_input", "{fresh}");
+    let empty_task: Uuid = fresh["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let nothing_to_refresh = intake.http.post(format!("{}/v2/tasks/{empty_task}/requote", intake.gateway)).bearer_auth(&person.bearer)
+        .json(&json!({"request_id":Uuid::new_v4(),"state":fresh["state"],"quote_ref":Uuid::new_v4()}))
+        .send().await.unwrap();
+    let nothing_to_refresh: Value = nothing_to_refresh.json().await.unwrap();
+    assert_eq!(codes(&nothing_to_refresh), ["requote_unavailable"], "{nothing_to_refresh}");
+    println!("requote_refuses_a_valid_or_mismatched_quote: quote_still_valid, quote_mismatch, requote_unavailable");
+}
