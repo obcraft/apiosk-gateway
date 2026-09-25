@@ -873,7 +873,11 @@ impl Engine {
         }
         if let Some(workflow)=&task.workflow {
             r.context_view["workflow"]=json!({"slug":workflow.slug,"title":workflow.title,"limitations":workflow.limitations});
-            self.record_named_workflow_run(p,id,&task,&r).await?;
+            // Best-effort: a run row is a secondary index over the task, so a
+            // failure here must never fail the view itself.
+            if let Err(error) = self.record_named_workflow_run(p,id,revision,&task,&r).await {
+                tracing::warn!(error=%error, task=%id, "workflow run registration failed");
+            }
         }
         r.state = Some(self.signer.issue(p.owner, id, revision, task.focus));
         tracing::info!(trace = telemetry::id(), task = %id, view_ms = started.elapsed().as_millis() as u64,

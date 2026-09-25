@@ -214,9 +214,6 @@ impl Response {
     }
 }
 
-pub const EVENTS_HEARTBEAT_MS: u64 = 10_000;
-pub const EVENTS_STALE_AFTER_MS: u64 = 25_000;
-
 /// `GET /v2/meta`: what this gateway accepts, for Apps that must also work
 /// against an older gateway during a rolling deploy.
 #[derive(Debug, Serialize)]
@@ -240,6 +237,36 @@ impl Meta {
             events: EventTiming { heartbeat_ms: EVENTS_HEARTBEAT_MS, stale_after_ms: EVENTS_STALE_AFTER_MS },
         }
     }
+}
+
+pub const EVENTS_HEARTBEAT_MS: u64 = 10_000;
+pub const EVENTS_STALE_AFTER_MS: u64 = 25_000;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StreamOpen {
+    pub protocol: String,
+    pub heartbeat_ms: u64,
+    pub stale_after_ms: u64,
+    pub expires_at: i64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Heartbeat {
+    pub at: chrono::DateTime<chrono::Utc>,
+    pub revision: Option<i64>,
+    pub sync_key: Option<String>,
+}
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamEndReason {
+    Terminal,
+    Expired,
+    AccessLost,
+    Error,
+    Shutdown,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StreamEnd {
+    pub reason: StreamEndReason,
+    pub revision: Option<i64>,
 }
 
 #[cfg(test)]

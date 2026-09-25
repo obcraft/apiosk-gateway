@@ -1,36 +1,105 @@
 //! Account display preferences only; quote authorization and ledger amounts stay in micro USD.
+//!
+//! Each instance caches the two display inputs: an account's preferred
+//! currency, and the latest published rate per currency and UTC day. A
+//! caller that knows a value changed can invalidate it at once through
+//! `preference_changed`, `rates_changed` or `clear`; absent that, a value
+//! never outlives its TTL. A failed read is never cached.
 use crate::store::Store;
+use chrono::NaiveDate;
 use serde_json::{json, Value};
+use sqlx::Row;
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 use uuid::Uuid;
+
+/// A preference can be changed by the account at any time; keep the window short.
+const PREFERENCE_TTL: Duration = Duration::from_secs(30);
+/// Rates are published at most once per UTC day; a few minutes of staleness is safe.
+const RATE_TTL: Duration = Duration::from_secs(300);
+
+#[derive(Clone)]
+struct Rate {
+    rate: String,
+    as_of_date: NaiveDate,
+}
+
+struct DisplayCache {
+    preferences: moka::future::Cache<Uuid, String>,
+    rates: moka::future::Cache<(String, NaiveDate), Option<Rate>>,
+}
+
+fn cache() -> &'static DisplayCache {
+    static CACHE: OnceLock<DisplayCache> = OnceLock::new();
+    CACHE.get_or_init(|| DisplayCache {
+        preferences: moka::future::Cache::builder().max_capacity(10_000).time_to_live(PREFERENCE_TTL).build(),
+        rates: moka::future::Cache::builder().max_capacity(256).time_to_live(RATE_TTL).build(),
+    })
+}
+
+/// An account changed its display currency.
+pub async fn preference_changed(owner: Uuid) {
+    cache().preferences.invalidate(&owner).await;
+}
+
+/// A rate was published, corrected or withdrawn.
+pub async fn rates_changed() {
+    cache().rates.invalidate_all();
+}
+
+/// Forget every cached display input.
+pub async fn clear() {
+    cache().preferences.invalidate_all();
+    cache().rates.invalidate_all();
+}
+
+/// Reads `key` through `cache`, loading it once for concurrent callers. A failed load is never cached.
+async fn cached<K, T, F>(cache: &moka::future::Cache<K, T>, key: K, load: impl FnOnce() -> F) -> Result<T, Arc<sqlx::Error>>
+where
+    K: std::hash::Hash + Eq + Clone + Send + Sync + 'static,
+    T: Clone + Send + Sync + 'static,
+    F: std::future::Future<Output = Result<T, sqlx::Error>>,
+{
+    cache.try_get_with(key, load()).await
+}
 
 impl Store {
     pub async fn money_display(&self, owner: Uuid) -> Value {
-        let _db = crate::telemetry::db("money_display");
-        let row: Result<Value, sqlx::Error> = async {
-            let mut tx = self.pool.begin().await?;
-            // Transaction-local RLS identity cannot leak to another pooled request.
-            sqlx::query("SELECT set_config('apiosk.display_owner',$1,true)")
-                .bind(owner.to_string()).execute(&mut *tx).await?;
-            let value = sqlx::query_scalar(
-            "WITH preference AS (
-                SELECT coalesce((SELECT display_currency FROM identity.user_preferences WHERE user_id=$1),'EUR') AS currency
-             ) SELECT jsonb_build_object('preferred_currency',p.currency,'rate',fx.rate::text,'as_of_date',fx.as_of_date)
-             FROM preference p LEFT JOIN LATERAL (
-                SELECT rate,as_of_date FROM billing.fx_rates WHERE quote_currency=p.currency
-                  AND as_of_date <= (now() AT TIME ZONE 'UTC')::date
-                ORDER BY as_of_date DESC LIMIT 1
-             ) fx ON true",
-            ).bind(owner).fetch_one(&mut *tx).await?;
-            tx.commit().await?;
-            Ok(value)
+        let today = chrono::Utc::now().date_naive();
+        let display: Result<Value, Arc<sqlx::Error>> = async {
+            let preferred = cached(&cache().preferences, owner, || self.display_preference(owner)).await?;
+            let rate = if preferred == "USD" { None } else {
+                cached(&cache().rates, (preferred.clone(), today), || self.display_rate(&preferred, today)).await?
+            };
+            Ok(json!({"preferred_currency":preferred,"rate":rate.as_ref().map(|r| &r.rate),"as_of_date":rate.as_ref().map(|r| r.as_of_date)}))
         }.await;
-        match row {
+        match display {
             Ok(value) => resolve_display(value),
             Err(error) => {
                 tracing::warn!(error = %error, "account display currency unavailable");
                 json!({"base_currency":"USD","currency":"USD","rate":"1","fallback_reason":"display_currency_unavailable"})
             }
         }
+    }
+
+    async fn display_preference(&self, owner: Uuid) -> Result<String, sqlx::Error> {
+        let _db = crate::telemetry::db("money_display");
+        let mut tx = self.pool.begin().await?;
+        // Transaction-local RLS identity cannot leak to another pooled request.
+        sqlx::query("SELECT set_config('apiosk.display_owner',$1,true)")
+            .bind(owner.to_string()).execute(&mut *tx).await?;
+        let preferred = sqlx::query_scalar("SELECT coalesce((SELECT display_currency FROM identity.user_preferences WHERE user_id=$1),'EUR')")
+            .bind(owner).fetch_one(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(preferred)
+    }
+
+    /// The latest rate published on or before `day`; a later-dated row is not yet valid.
+    async fn display_rate(&self, currency: &str, day: NaiveDate) -> Result<Option<Rate>, sqlx::Error> {
+        let _db = crate::telemetry::db("money_display");
+        let row = sqlx::query("SELECT rate::text AS rate,as_of_date FROM billing.fx_rates WHERE quote_currency=$1 AND as_of_date<=$2 ORDER BY as_of_date DESC LIMIT 1")
+            .bind(currency).bind(day).fetch_optional(&self.pool).await?;
+        Ok(row.map(|row| Rate { rate: row.get("rate"), as_of_date: row.get("as_of_date") }))
     }
 }
 
@@ -76,5 +145,38 @@ mod tests {
             assert_eq!(value["rate"], "1");
             assert_eq!(value["fallback_reason"], "exchange_rate_unavailable");
         }
+    }
+
+    #[tokio::test]
+    async fn concurrent_reads_of_the_same_key_load_once_and_a_failed_load_is_never_cached() {
+        let cache: moka::future::Cache<u8, &'static str> = moka::future::Cache::new(4);
+        let loads = &std::sync::atomic::AtomicUsize::new(0);
+        let load = move || async move {
+            loads.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok::<_, sqlx::Error>("value")
+        };
+        assert_eq!(cached(&cache, 1, load).await.unwrap(), "value");
+        assert_eq!(cached(&cache, 1, load).await.unwrap(), "value");
+        assert_eq!(loads.load(std::sync::atomic::Ordering::SeqCst), 1, "a fresh cached read does not reload");
+        let failing = || async { Err(sqlx::Error::RowNotFound) };
+        assert!(cached(&cache, 2, failing).await.is_err());
+        assert_eq!(cached(&cache, 2, load).await.unwrap(), "value", "a failed read is never cached");
+    }
+
+    #[tokio::test]
+    async fn invalidation_forces_the_next_read_to_reload() {
+        let owner = Uuid::new_v4();
+        cache().preferences.insert(owner, "EUR".to_string()).await;
+        assert_eq!(cache().preferences.get(&owner).await.as_deref(), Some("EUR"));
+        preference_changed(owner).await;
+        assert_eq!(cache().preferences.get(&owner).await, None);
+
+        cache().rates.insert(("EUR".to_string(), chrono::Utc::now().date_naive()), None).await;
+        rates_changed().await;
+        assert_eq!(cache().rates.iter().count(), 0);
+
+        cache().preferences.insert(owner, "GBP".to_string()).await;
+        clear().await;
+        assert_eq!(cache().preferences.get(&owner).await, None);
     }
 }
