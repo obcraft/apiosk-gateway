@@ -2324,6 +2324,10 @@ async fn named_source_worker_acceptance(engine: Arc<Engine>, pool: &sqlx::PgPool
         assert_eq!(counts.provider.load(Ordering::Relaxed), before);
         sqlx::query("UPDATE public.api_endpoints SET active=true, price=($2::jsonb #>> '{}')::numeric WHERE id=$1")
             .bind(report.service.endpoint_id).bind(old_price).execute(pool).await.unwrap();
+        // The planning catalogue refreshes in the background, so one loaded
+        // while the report was withdrawn may still be served. Plan the next
+        // quote from the restored directory.
+        engine.catalog.fresh().await.unwrap();
     }
     println!("Backend acceptance: named-source ambiguity resumes after one approval; withdrawn/repriced downstream reports cause zero purchases and saved results remain readable.");
 }

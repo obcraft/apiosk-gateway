@@ -225,23 +225,13 @@ pub fn set_catalog_cache(cache: Cache) {
     });
 }
 
-/// One catalog read. A hit only marks the trace; waiting for a load, or
-/// serving the last catalog after a failed refresh, is also a span.
-pub fn catalog(state: Cache) -> CatalogRead {
+/// One catalog read that began at `started`. A hit only marks the trace;
+/// waiting for a load, or serving a catalog past its TTL while a refresh
+/// is pending, is also a span.
+pub fn catalog(state: Cache, started: Instant, outcome: Outcome) {
     set_catalog_cache(state);
-    CatalogRead((state != Cache::Hit).then(|| span(Phase::Catalog).tag("catalog_cache", state.as_str())))
-}
-pub struct CatalogRead(Option<Span>);
-impl CatalogRead {
-    pub fn finish(self, outcome: Outcome) {
-        if let Some(span) = self.0 {
-            span.finish(outcome);
-        }
-    }
-    /// The refresh failed and the last loaded catalog was served instead.
-    pub fn stale(self) {
-        set_catalog_cache(Cache::StaleServed);
-        self.0.unwrap_or_else(|| span(Phase::Catalog)).tag("catalog_cache", Cache::StaleServed.as_str()).finish(Outcome::Failed(ErrorClass::Db));
+    if state != Cache::Hit {
+        span(Phase::Catalog).since(started).tag("catalog_cache", state.as_str()).finish(outcome);
     }
 }
 pub fn set_parser_cache(cache: Cache) {
