@@ -1,0 +1,765 @@
+{
+  "answer_schema_version": 2,
+  "status": "partial",
+  "observations": [
+    {
+      "id": "o1",
+      "text": "Mollie rapporteert over 2024 een omzet van 1500000.",
+      "evidence": [
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/year",
+          "value": 2024,
+          "quote": null,
+          "field": "year",
+          "subject": {
+            "label": "Mollie B.V.",
+            "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01"
+          },
+          "source": {
+            "provider": "kvk-annual-accounts",
+            "name": "Jaarrekeningen",
+            "retrieved_at": "2026-09-24T19:02:11Z"
+          }
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue",
+          "value": 1500000,
+          "quote": null,
+          "field": "revenue",
+          "subject": {
+            "label": "Mollie B.V.",
+            "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01"
+          },
+          "source": {
+            "provider": "kvk-annual-accounts",
+            "name": "Jaarrekeningen",
+            "retrieved_at": "2026-09-24T19:02:11Z"
+          }
+        }
+      ]
+    },
+    {
+      "id": "o2",
+      "text": "Adyen rapporteert over 2024 een omzet van 1900000.",
+      "evidence": [
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/year",
+          "value": 2024,
+          "quote": null,
+          "field": "year",
+          "subject": {
+            "label": "Adyen N.V.",
+            "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12"
+          },
+          "source": {
+            "provider": "kvk-annual-accounts",
+            "name": "Jaarrekeningen",
+            "retrieved_at": "2026-09-24T19:02:14Z"
+          }
+        },
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/revenue",
+          "value": 1900000,
+          "quote": null,
+          "field": "revenue",
+          "subject": {
+            "label": "Adyen N.V.",
+            "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12"
+          },
+          "source": {
+            "provider": "kvk-annual-accounts",
+            "name": "Jaarrekeningen",
+            "retrieved_at": "2026-09-24T19:02:14Z"
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "De opgehaalde jaarrekeningen van Mollie bevatten geen omzet over het eerste gevraagde jaar."
+  ],
+  "follow_up_question": null,
+  "presentation": {
+    "kind": "comparison",
+    "superseded_by": "blocks"
+  },
+  "provisional": false,
+  "source_index": [
+    {
+      "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+      "name": "Jaarrekeningen",
+      "provider": "kvk-annual-accounts",
+      "retrieved_at": "2026-09-24T19:02:11Z",
+      "coverage": "source_response",
+      "subject_label": "Mollie B.V.",
+      "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01"
+    },
+    {
+      "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+      "name": "Jaarrekeningen",
+      "provider": "kvk-annual-accounts",
+      "retrieved_at": "2026-09-24T19:02:14Z",
+      "coverage": "source_response",
+      "subject_label": "Adyen N.V.",
+      "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12"
+    }
+  ],
+  "derivations": [
+    {
+      "id": "d1",
+      "op": "difference",
+      "inputs": [
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/0/revenue"
+        }
+      ],
+      "periods": "compare",
+      "missing": "fail",
+      "zero_divisor": "fail",
+      "result": {
+        "value": 300000,
+        "state": "derived",
+        "currency": {
+          "value": "EUR",
+          "basis": "derivation"
+        },
+        "inputs": [
+          {
+            "reference": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/revenue"
+            },
+            "value": 1500000,
+            "period_key": "2024"
+          },
+          {
+            "reference": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/0/revenue"
+            },
+            "value": 1200000,
+            "period_key": "2023"
+          }
+        ],
+        "complete": true,
+        "formula": "revenue [Mollie B.V., 2024] minus revenue [Mollie B.V., 2023]"
+      }
+    },
+    {
+      "id": "d2",
+      "op": "percentage",
+      "inputs": [
+        {
+          "derivation_id": "d1"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/0/revenue"
+        }
+      ],
+      "periods": "compare",
+      "decimals": 1,
+      "missing": "fail",
+      "zero_divisor": "fail",
+      "result": {
+        "value": 25,
+        "state": "derived",
+        "unit": {
+          "value": "percent",
+          "basis": "operation"
+        },
+        "inputs": [
+          {
+            "reference": {
+              "derivation_id": "d1"
+            },
+            "value": 300000
+          },
+          {
+            "reference": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/0/revenue"
+            },
+            "value": 1200000,
+            "period_key": "2023"
+          }
+        ],
+        "complete": true,
+        "formula": "d1 divided by revenue [Mollie B.V., 2023], times 100"
+      }
+    },
+    {
+      "id": "d3",
+      "op": "difference",
+      "inputs": [
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/revenue"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue"
+        }
+      ],
+      "periods": "same",
+      "missing": "fail",
+      "zero_divisor": "fail",
+      "result": {
+        "value": 400000,
+        "state": "derived",
+        "currency": {
+          "value": "EUR",
+          "basis": "derivation"
+        },
+        "period": {
+          "value": "2024",
+          "key": "2024",
+          "granularity": "year",
+          "basis": "derivation"
+        },
+        "inputs": [
+          {
+            "reference": {
+              "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+              "pointer": "/data/years/2/revenue"
+            },
+            "value": 1900000,
+            "period_key": "2024"
+          },
+          {
+            "reference": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/revenue"
+            },
+            "value": 1500000,
+            "period_key": "2024"
+          }
+        ],
+        "complete": true,
+        "formula": "revenue [Adyen N.V., 2024] minus revenue [Mollie B.V., 2024]"
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "id": "b1",
+      "kind": "summary",
+      "title": "Conclusie",
+      "requirement_ids": [
+        "r3",
+        "r6",
+        "r7"
+      ],
+      "provisional": false,
+      "produced_by": "model",
+      "source_status": [
+        {
+          "step_key": "kvk-annual-accounts:3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Mollie B.V.",
+          "state": "completed"
+        },
+        {
+          "step_key": "kvk-annual-accounts:4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Adyen N.V.",
+          "state": "completed"
+        }
+      ],
+      "conclusion": {
+        "text": "Adyen rapporteert over 2024 een hogere omzet dan Mollie; het verschil bedraagt 400000.",
+        "facts": [
+          {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "pointer": "/data/years/2/year",
+            "value": 2024,
+            "field": "year"
+          },
+          {
+            "derivation_id": "d3",
+            "value": 400000,
+            "state": "derived",
+            "currency": {
+              "value": "EUR",
+              "basis": "derivation"
+            },
+            "period": {
+              "value": "2024",
+              "key": "2024",
+              "granularity": "year",
+              "basis": "derivation"
+            }
+          }
+        ],
+        "scope": "partial"
+      },
+      "finding_ids": [
+        "o1",
+        "o2"
+      ],
+      "open_point_ids": [
+        "m1"
+      ],
+      "offer_report": true
+    },
+    {
+      "id": "b2",
+      "kind": "kpi",
+      "title": "Kerncijfer Mollie",
+      "requirement_ids": [
+        "r3"
+      ],
+      "provisional": false,
+      "produced_by": "model",
+      "source_status": [
+        {
+          "step_key": "kvk-annual-accounts:3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Mollie B.V.",
+          "state": "completed"
+        }
+      ],
+      "cards": [
+        {
+          "id": "k1",
+          "label": "Omzet Mollie",
+          "fact": {
+            "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+            "pointer": "/data/years/1/revenue",
+            "value": 1500000,
+            "field": "revenue",
+            "currency": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/currency",
+              "value": "EUR",
+              "basis": "evidence"
+            },
+            "period": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/year",
+              "value": "2024",
+              "key": "2024",
+              "granularity": "year",
+              "basis": "evidence"
+            }
+          },
+          "change": {
+            "derivation_id": "d2",
+            "baseline": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/0/revenue",
+              "value": 1200000,
+              "field": "revenue",
+              "currency": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/currency",
+                "value": "EUR",
+                "basis": "evidence"
+              },
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/year",
+                "value": "2023",
+                "key": "2023",
+                "granularity": "year",
+                "basis": "evidence"
+              }
+            },
+            "result": {
+              "derivation_id": "d2",
+              "value": 25,
+              "state": "derived",
+              "rounded_to": 1,
+              "unit": {
+                "value": "percent",
+                "basis": "operation"
+              }
+            },
+            "basis": "prior_period"
+          }
+        }
+      ]
+    },
+    {
+      "id": "b3",
+      "kind": "comparison",
+      "title": "Omzet naast elkaar",
+      "requirement_ids": [
+        "r3",
+        "r6",
+        "r7"
+      ],
+      "provisional": false,
+      "produced_by": "model",
+      "source_status": [
+        {
+          "step_key": "kvk-annual-accounts:3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Mollie B.V.",
+          "state": "completed"
+        },
+        {
+          "step_key": "kvk-annual-accounts:4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Adyen N.V.",
+          "state": "completed"
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "label": "Mollie B.V.",
+          "subject": 0,
+          "name": {
+            "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+            "pointer": "/data/name",
+            "value": "Mollie B.V.",
+            "field": "name"
+          }
+        },
+        {
+          "id": "e2",
+          "label": "Adyen N.V.",
+          "subject": 1,
+          "name": {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "pointer": "/data/name",
+            "value": "Adyen N.V.",
+            "field": "name"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": "c1",
+          "label": "Omzet",
+          "requirement_id": "r7",
+          "cells": [
+            {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/revenue",
+              "value": 1500000,
+              "field": "revenue",
+              "currency": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/currency",
+                "value": "EUR",
+                "basis": "evidence"
+              },
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/year",
+                "value": "2024",
+                "key": "2024",
+                "granularity": "year",
+                "basis": "evidence"
+              }
+            },
+            {
+              "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+              "pointer": "/data/years/2/revenue",
+              "value": 1900000,
+              "field": "revenue",
+              "currency": {
+                "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+                "pointer": "/data/years/2/currency",
+                "value": "EUR",
+                "basis": "evidence"
+              },
+              "period": {
+                "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+                "pointer": "/data/years/2/year",
+                "value": "2024",
+                "key": "2024",
+                "granularity": "year",
+                "basis": "evidence"
+              }
+            }
+          ],
+          "basis": {
+            "comparable": true,
+            "values_differ": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "b4",
+      "kind": "line_chart",
+      "title": "Omzetontwikkeling",
+      "requirement_ids": [
+        "r1",
+        "r2",
+        "r3",
+        "r4",
+        "r5",
+        "r6"
+      ],
+      "provisional": false,
+      "produced_by": "model",
+      "source_status": [
+        {
+          "step_key": "kvk-annual-accounts:3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Mollie B.V.",
+          "state": "completed"
+        },
+        {
+          "step_key": "kvk-annual-accounts:4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "source_name": "Jaarrekeningen",
+          "subject_label": "Adyen N.V.",
+          "state": "completed"
+        }
+      ],
+      "value_label": "Omzet",
+      "granularity": "year",
+      "currency": {
+        "value": "EUR",
+        "basis": "evidence"
+      },
+      "series": [
+        {
+          "id": "s1",
+          "label": "Mollie B.V.",
+          "points": [
+            {
+              "period": {
+                "key": "2022",
+                "granularity": "year"
+              },
+              "gap": "not_in_source"
+            },
+            {
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/year",
+                "value": "2023",
+                "key": "2023",
+                "granularity": "year",
+                "basis": "evidence"
+              },
+              "fact": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/revenue",
+                "value": 1200000,
+                "field": "revenue",
+                "currency": {
+                  "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                  "pointer": "/data/years/0/currency",
+                  "value": "EUR",
+                  "basis": "evidence"
+                }
+              }
+            },
+            {
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/year",
+                "value": "2024",
+                "key": "2024",
+                "granularity": "year",
+                "basis": "evidence"
+              },
+              "fact": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/revenue",
+                "value": 1500000,
+                "field": "revenue",
+                "currency": {
+                  "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                  "pointer": "/data/years/1/currency",
+                  "value": "EUR",
+                  "basis": "evidence"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "label": "Adyen N.V.",
+          "collection": {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "rows_pointer": "/data/years",
+            "row_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          "period_pointer": "/year",
+          "value_pointer": "/revenue",
+          "currency": {
+            "pointer": "/currency",
+            "value": "EUR",
+            "basis": "evidence"
+          },
+          "points": [
+            {
+              "row_index": 0,
+              "period": {
+                "value": "2022",
+                "key": "2022",
+                "granularity": "year",
+                "basis": "evidence"
+              },
+              "fact": {
+                "value": 1300000
+              }
+            },
+            {
+              "row_index": 1,
+              "period": {
+                "value": "2023",
+                "key": "2023",
+                "granularity": "year",
+                "basis": "evidence"
+              },
+              "fact": {
+                "value": 1600000
+              }
+            },
+            {
+              "row_index": 2,
+              "period": {
+                "value": "2024",
+                "key": "2024",
+                "granularity": "year",
+                "basis": "evidence"
+              },
+              "fact": {
+                "value": 1900000
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "completeness": {
+    "complete": false,
+    "requirements": [
+      {
+        "id": "r1",
+        "subject": 0,
+        "subject_label": "Mollie B.V.",
+        "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2022",
+        "status": "unknown",
+        "reason": "period_unavailable",
+        "missing_ids": [
+          "m1"
+        ]
+      },
+      {
+        "id": "r2",
+        "subject": 0,
+        "subject_label": "Mollie B.V.",
+        "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2023",
+        "status": "answered",
+        "answered_by": [
+          "b4"
+        ]
+      },
+      {
+        "id": "r3",
+        "subject": 0,
+        "subject_label": "Mollie B.V.",
+        "entity_ref": "3b0c5e7d-1a2b-4c3d-8e4f-5a6b7c8d9e01",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2024",
+        "status": "answered",
+        "answered_by": [
+          "o1",
+          "b2",
+          "b3"
+        ]
+      },
+      {
+        "id": "r4",
+        "subject": 1,
+        "subject_label": "Adyen N.V.",
+        "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2022",
+        "status": "answered",
+        "answered_by": [
+          "b4"
+        ]
+      },
+      {
+        "id": "r5",
+        "subject": 1,
+        "subject_label": "Adyen N.V.",
+        "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2023",
+        "status": "answered",
+        "answered_by": [
+          "b4"
+        ]
+      },
+      {
+        "id": "r6",
+        "subject": 1,
+        "subject_label": "Adyen N.V.",
+        "entity_ref": "4c1d6f8e-2b3c-4d4e-9f5a-6b7c8d9e0f12",
+        "criterion": "company.financial-statements",
+        "criterion_kind": "capability",
+        "period": "2024",
+        "status": "answered",
+        "answered_by": [
+          "o2",
+          "b3"
+        ]
+      },
+      {
+        "id": "r7",
+        "criterion": "Vergelijk de omzet en toon de trend",
+        "criterion_kind": "operation",
+        "status": "answered",
+        "answered_by": [
+          "b3",
+          "b4",
+          "d3"
+        ]
+      }
+    ]
+  },
+  "missing_information": [
+    {
+      "id": "m1",
+      "kind": "period",
+      "requirement_ids": [
+        "r1"
+      ],
+      "description": "De opgehaalde jaarrekeningen van Mollie bevatten geen omzet over het eerste gevraagde jaar.",
+      "blocking": false,
+      "resolution": "new_source_call"
+    }
+  ]
+}

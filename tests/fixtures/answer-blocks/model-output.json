@@ -1,0 +1,355 @@
+{
+  "about": "Model-written form of the golden analysis (answer_schema_version 2): references only; the gateway fills every value.",
+  "observations": [
+    {
+      "text": "Mollie rapporteert over {{a}} een omzet van {{b}}.",
+      "evidence": [
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/year"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue"
+        }
+      ]
+    },
+    {
+      "text": "Adyen rapporteert over {{a}} een omzet van {{b}}.",
+      "evidence": [
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/year"
+        },
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/revenue"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "De opgehaalde jaarrekeningen van Mollie bevatten geen omzet over het eerste gevraagde jaar."
+  ],
+  "follow_up_question": null,
+  "derivations": [
+    {
+      "id": "d1",
+      "op": "difference",
+      "inputs": [
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/0/revenue"
+        }
+      ],
+      "periods": "compare"
+    },
+    {
+      "id": "d2",
+      "op": "percentage",
+      "inputs": [
+        {
+          "derivation_id": "d1"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/0/revenue"
+        }
+      ],
+      "periods": "compare",
+      "decimals": 1
+    },
+    {
+      "id": "d3",
+      "op": "difference",
+      "inputs": [
+        {
+          "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+          "pointer": "/data/years/2/revenue"
+        },
+        {
+          "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+          "pointer": "/data/years/1/revenue"
+        }
+      ],
+      "periods": "same"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "b1",
+      "kind": "summary",
+      "title": "Conclusie",
+      "requirement_ids": [
+        "r3",
+        "r6",
+        "r7"
+      ],
+      "conclusion": {
+        "text": "Adyen rapporteert over {{a}} een hogere omzet dan Mollie; het verschil bedraagt {{b}}.",
+        "facts": [
+          {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "pointer": "/data/years/2/year"
+          },
+          {
+            "derivation_id": "d3"
+          }
+        ]
+      },
+      "finding_ids": [
+        "o1",
+        "o2"
+      ],
+      "open_point_ids": [
+        "m1"
+      ],
+      "offer_report": true
+    },
+    {
+      "id": "b2",
+      "kind": "kpi",
+      "title": "Kerncijfer Mollie",
+      "requirement_ids": [
+        "r3"
+      ],
+      "cards": [
+        {
+          "id": "k1",
+          "label": "Omzet Mollie",
+          "fact": {
+            "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+            "pointer": "/data/years/1/revenue",
+            "currency": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/currency"
+            },
+            "period": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/year"
+            }
+          },
+          "change": {
+            "derivation_id": "d2",
+            "baseline": {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/0/revenue",
+              "currency": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/currency"
+              },
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/year"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "b3",
+      "kind": "comparison",
+      "title": "Omzet naast elkaar",
+      "requirement_ids": [
+        "r3",
+        "r6",
+        "r7"
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "label": "Mollie B.V.",
+          "subject": 0,
+          "name": {
+            "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+            "pointer": "/data/name"
+          }
+        },
+        {
+          "id": "e2",
+          "label": "Adyen N.V.",
+          "subject": 1,
+          "name": {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "pointer": "/data/name"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": "c1",
+          "label": "Omzet",
+          "requirement_id": "r7",
+          "cells": [
+            {
+              "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+              "pointer": "/data/years/1/revenue",
+              "currency": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/currency"
+              },
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/year"
+              }
+            },
+            {
+              "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+              "pointer": "/data/years/2/revenue",
+              "currency": {
+                "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+                "pointer": "/data/years/2/currency"
+              },
+              "period": {
+                "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+                "pointer": "/data/years/2/year"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b4",
+      "kind": "line_chart",
+      "title": "Omzetontwikkeling",
+      "requirement_ids": [
+        "r1",
+        "r2",
+        "r3",
+        "r4",
+        "r5",
+        "r6"
+      ],
+      "value_label": "Omzet",
+      "series": [
+        {
+          "id": "s1",
+          "label": "Mollie B.V.",
+          "points": [
+            {
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/year"
+              },
+              "fact": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/0/revenue",
+                "currency": {
+                  "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                  "pointer": "/data/years/0/currency"
+                }
+              }
+            },
+            {
+              "period": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/year"
+              },
+              "fact": {
+                "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                "pointer": "/data/years/1/revenue",
+                "currency": {
+                  "result_ref": "7f1d3c2a-5b6e-4c8d-9a0b-1c2d3e4f5a61",
+                  "pointer": "/data/years/1/currency"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "label": "Adyen N.V.",
+          "collection": {
+            "result_ref": "8a2e4d3b-6c7f-4d9e-8b1c-2d3e4f5a6b72",
+            "rows_pointer": "/data/years",
+            "row_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          "period_pointer": "/year",
+          "value_pointer": "/revenue",
+          "currency": {
+            "pointer": "/currency"
+          }
+        }
+      ]
+    }
+  ],
+  "requirement_status": [
+    {
+      "requirement_id": "r1",
+      "status": "unknown",
+      "reason": "period_unavailable",
+      "missing_ids": [
+        "m1"
+      ]
+    },
+    {
+      "requirement_id": "r2",
+      "status": "answered",
+      "answered_by": [
+        "b4"
+      ]
+    },
+    {
+      "requirement_id": "r3",
+      "status": "answered",
+      "answered_by": [
+        "o1",
+        "b2",
+        "b3"
+      ]
+    },
+    {
+      "requirement_id": "r4",
+      "status": "answered",
+      "answered_by": [
+        "b4"
+      ]
+    },
+    {
+      "requirement_id": "r5",
+      "status": "answered",
+      "answered_by": [
+        "b4"
+      ]
+    },
+    {
+      "requirement_id": "r6",
+      "status": "answered",
+      "answered_by": [
+        "o2",
+        "b3"
+      ]
+    },
+    {
+      "requirement_id": "r7",
+      "status": "answered",
+      "answered_by": [
+        "b3",
+        "b4",
+        "d3"
+      ]
+    }
+  ],
+  "missing_information": [
+    {
+      "id": "m1",
+      "kind": "period",
+      "requirement_ids": [
+        "r1"
+      ],
+      "description": "De opgehaalde jaarrekeningen van Mollie bevatten geen omzet over het eerste gevraagde jaar.",
+      "blocking": false,
+      "resolution": "new_source_call"
+    }
+  ]
+}

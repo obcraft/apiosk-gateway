@@ -1,6 +1,27 @@
 //! A model chooses the answer's shape; only saved source fields supply its values.
+//!
+//! Version 1 (`validate`): one presentation. Version 2 (`validate_blocks`):
+//! combined components (`crate::answer_blocks`), validated block by block,
+//! plus the deterministic mapping from a version-1 presentation.
 use anyhow::{ensure, Context};
 use serde_json::{json, Value};
+
+mod blocks;
+#[cfg(test)]
+mod block_tests;
+mod charts;
+mod entities;
+mod legacy;
+mod map;
+mod period;
+mod resolve;
+mod tables;
+mod text;
+mod timeline;
+
+pub use blocks::{set_conclusion_scope, validate_blocks};
+pub use legacy::{blocks_from_presentation, legacy_kind};
+pub use resolve::valid_prose;
 
 fn label(value: &Value) -> anyhow::Result<&str> {
     let text = value.as_str().context("missing presentation label")?;
