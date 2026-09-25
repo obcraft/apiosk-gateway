@@ -94,6 +94,10 @@ pub fn public_error(body: &Value) -> Value {
             "source_schema_refunded",
             "The source response could not be processed. The full amount, including the fee, was refunded.",
         ),
+        Some("source_access_refunded") => (
+            "source_access_blocked",
+            "The source blocked Apiosk's request (403). The full amount, including the fee, was refunded. Apiosk must resolve access to this source; changing your question will not fix this error.",
+        ),
         Some("policy_denied_refunded") => (
             "purchase_policy_denied",
             "An Apiosk purchase rule or limit blocked this request before the source was called. The full amount, including the fee, was refunded. The rule or limit must be resolved before retrying; changing the search query will not resolve it.",
@@ -117,6 +121,7 @@ pub fn refunded_failure(output: &Value) -> Value {
         match (execution["status"].as_u64(), execution["body"]["error"].as_str()) {
             (Some(403), Some("policy_denied")) => "policy_denied_refunded",
             (_, Some("policy_unavailable")) => "policy_unavailable_refunded",
+            (Some(403), _) => "source_access_refunded",
             (Some(429), _) => "rate_limited_refunded",
             (Some(404), _) => "source_not_found_refunded",
             (_, Some("invalid_source_query")) => "source_input_refunded",
@@ -127,10 +132,11 @@ pub fn refunded_failure(output: &Value) -> Value {
     json!({"ok":false,"charged_micro_usd":0,"error":error,"message":"The payment ledger confirms this execution was refunded."})
 }
 
-/// A purchase restriction needs an operational change, not a narrower query.
+/// Purchase restrictions and source access blocks need an operational change,
+/// not a narrower query. Suppress the generic request-refinement follow-up.
 pub fn purchase_policy_blocked(failures: &std::collections::BTreeMap<String, Value>) -> bool {
     failures.values().any(|failure| matches!(failure["code"].as_str(),
-        Some("purchase_policy_denied" | "purchase_policy_unavailable")))
+        Some("purchase_policy_denied" | "purchase_policy_unavailable" | "source_access_blocked")))
 }
 
 pub fn display_step_error(error: &Value) -> Value {
@@ -144,6 +150,17 @@ pub fn display_step_error(error: &Value) -> Value {
 #[cfg(test)]
 mod refunded_error_tests {
     use super::*;
+    #[test]
+    fn html_source_access_block_is_safe_and_does_not_request_query_refinement() {
+        let failure = refunded_failure(&json!({"execution":{"paid":false,"status":403,
+            "body":"<html>Request blocked. Request ID: private-trace</html>"}}));
+        let shown = public_error(&failure);
+        assert_eq!(shown["code"], "source_access_blocked");
+        assert_eq!(failure["charged_micro_usd"], 0);
+        assert!(shown["message"].as_str().unwrap().contains("changing your question will not fix"));
+        assert!(!shown.to_string().contains("private-trace"));
+        assert!(purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), shown)])));
+    }
     #[test]
     fn refunded_policy_denial_keeps_the_reason_and_does_not_expose_internal_rules() {
         let output = json!({"execution":{"paid":false,"status":403,"body":{
@@ -159,7 +176,7 @@ mod refunded_error_tests {
         assert!(purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), shown)])));
 
         // An upstream 403 alone does not prove an Apiosk purchase restriction.
-        assert_eq!(refunded_failure(&json!({"execution":{"paid":false,"status":403,"body":{"error":"forbidden"}}}))["error"], "refunded");
+        assert_eq!(refunded_failure(&json!({"execution":{"paid":false,"status":403,"body":{"error":"forbidden"}}}))["error"], "source_access_refunded");
         assert_eq!(refunded_failure(&json!({"execution":{"paid":true,"status":403,"body":{"error":"policy_denied"}}}))["error"], "refunded");
         assert!(!purchase_policy_blocked(&std::collections::BTreeMap::from([("step".into(), public_error(&json!({"error":"source_input_refunded"})))])));
     }

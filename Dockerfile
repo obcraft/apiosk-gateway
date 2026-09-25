@@ -15,6 +15,7 @@ RUN cargo build --locked --release \
     --bin apiosk-gateway \
     --bin check_dutch_public_sources \
     --bin check_eu_public_sources \
+    --bin check_eurostat_catalogue \
     --bin check_dutch_identifier_links \
     --bin check_domain_intelligence \
     --bin check_uk_vat \
@@ -32,6 +33,7 @@ COPY --from=executor-builder /executor/target/release/reconciliation_worker /usr
 COPY --from=executor-builder /executor/target/release/check_dutch_public_sources /usr/local/bin/check-dutch-public-sources
 COPY --from=executor-builder /executor/target/release/check_dutch_identifier_links /usr/local/bin/check-dutch-identifier-links
 COPY --from=executor-builder /executor/target/release/check_eu_public_sources /usr/local/bin/check-eu-public-sources
+COPY --from=executor-builder /executor/target/release/check_eurostat_catalogue /usr/local/bin/check-eurostat-catalogue
 COPY --from=executor-builder /executor/target/release/check_domain_intelligence /usr/local/bin/check-domain-intelligence
 COPY --from=executor-builder /executor/target/release/check_uk_vat /usr/local/bin/check-uk-vat
 COPY deploy/certs/supabase-prod-ca-2021.crt /etc/ssl/certs/supabase-prod-ca-2021.crt
