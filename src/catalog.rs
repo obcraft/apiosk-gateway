@@ -9,8 +9,11 @@ use catalog_core::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::PgPool;
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
+
+mod refresh;
+use refresh::{Policy, Refreshing};
 
 pub const CATALOG_SQL: &str = include_str!("catalog.sql");
 
@@ -395,68 +398,28 @@ impl Catalog {
         json!({"catalog":self.parser_view(),"requested_services":services})
     }
 }
+/// The planning catalogue and source list, refreshed in the background
+/// before they expire; `refresh` holds the policy.
 pub struct CatalogCache {
     pool: PgPool,
-    cache: moka::future::Cache<u8, Arc<Catalog>>,
-    sources: moka::future::Cache<u8, Arc<Vec<crate::sources::Source>>>,
-    /// Last catalog and source list that loaded. A slow or failing refresh keeps
-    /// serving them instead of failing every question; prices are still quoted
-    /// and re-checked at execution by the payment executor.
-    last_catalog: std::sync::RwLock<Option<Arc<Catalog>>>,
-    last_sources: std::sync::RwLock<Option<Arc<Vec<crate::sources::Source>>>>,
+    catalog: Arc<Refreshing<Catalog>>,
+    sources: Arc<Refreshing<Vec<crate::sources::Source>>>,
 }
 impl CatalogCache {
     pub fn new(pool: PgPool) -> Self {
-        Self {
-            pool,
-            sources: moka::future::Cache::builder()
-                .max_capacity(1)
-                .time_to_live(Duration::from_secs(60))
-                .build(),
-            cache: moka::future::Cache::builder()
-                .max_capacity(1)
-                .time_to_live(Duration::from_secs(60))
-                .build(),
-            last_catalog: std::sync::RwLock::new(None),
-            last_sources: std::sync::RwLock::new(None),
-        }
+        Self { pool, catalog: Refreshing::new(Policy::CATALOG), sources: Refreshing::new(Policy::CATALOG) }
     }
     pub async fn get(&self) -> anyhow::Result<Arc<Catalog>> {
-        use crate::telemetry::{Cache, ErrorClass, Outcome};
-        let state = if self.cache.contains_key(&0) { Cache::Hit } else if self.last_catalog.read().unwrap().is_some() { Cache::RefreshWait } else { Cache::FirstLoad };
-        let read = crate::telemetry::catalog(state);
-        match self.cache.try_get_with(0, self.fresh()).await {
-            Ok(catalog) => {
-                *self.last_catalog.write().unwrap() = Some(catalog.clone());
-                read.finish(Outcome::Ok);
-                Ok(catalog)
-            }
-            Err(error) => match self.last_catalog.read().unwrap().clone() {
-                Some(stale) => {
-                    read.stale();
-                    tracing::warn!(error = %error, "catalog refresh failed; serving the last loaded catalog");
-                    Ok(stale)
-                }
-                None => {
-                    read.finish(Outcome::Failed(ErrorClass::Db));
-                    Err(anyhow::anyhow!("catalog unavailable: {error}"))
-                }
-            },
-        }
+        use crate::telemetry::{ErrorClass, Outcome};
+        let started = std::time::Instant::now();
+        let (catalog, cache) = self.catalog.get(|| load_catalog(self.pool.clone())).await;
+        crate::telemetry::catalog(cache, started, if catalog.is_ok() { Outcome::Ok } else { Outcome::Failed(ErrorClass::Db) });
+        catalog.map_err(|error| anyhow::anyhow!("catalog unavailable: {error}"))
     }
+    /// Reads the directory now instead of serving the cached catalogue, and
+    /// keeps the result for later questions.
     pub async fn fresh(&self) -> anyhow::Result<Arc<Catalog>> {
-        // Directory statistics can exceed the ordinary ten-second statement
-        // limit while the database is busy. Bound this read separately so a
-        // cold start does not crash-loop. Live execution checks keep the short
-        // limit and fetch only the selected contracts.
-        let mut tx = self.pool.begin().await?;
-        sqlx::query("SET TRANSACTION READ ONLY").execute(&mut *tx).await?;
-        sqlx::query("SET LOCAL statement_timeout='30s'").execute(&mut *tx).await?;
-        let value: Value = sqlx::query_scalar(CATALOG_SQL)
-            .fetch_one(&mut *tx)
-            .await?;
-        tx.commit().await?;
-        Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
+        self.catalog.reload(load_catalog(self.pool.clone())).await
     }
     pub async fn fresh_execution(&self, service_ids: &[Uuid]) -> anyhow::Result<Arc<Catalog>> {
         let value: Value = sqlx::query_scalar(&execution_catalog_sql())
@@ -465,33 +428,36 @@ impl CatalogCache {
         Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
     }
     pub async fn sources(&self) -> anyhow::Result<Arc<Vec<crate::sources::Source>>> {
-        let loaded = self.sources
-            .try_get_with(0, async {
-                let value: Value = sqlx::query_scalar(include_str!("sources.sql"))
-                    .fetch_one(&self.pool)
-                    .await?;
-                let mut sources: Vec<crate::sources::Source> = serde_json::from_value(value)?;
-                // Supabase is the v2 source of truth for provider identity and
-                // logos. Sanitise those values locally; source browsing must
-                // never call the public v1 provider directory as a fallback.
-                crate::sources::apply_branding(&mut sources, None);
-                Ok::<_, anyhow::Error>(Arc::new(sources))
-            })
-            .await;
-        match loaded {
-            Ok(sources) => {
-                *self.last_sources.write().unwrap() = Some(sources.clone());
-                Ok(sources)
-            }
-            Err(error) => match self.last_sources.read().unwrap().clone() {
-                Some(stale) => {
-                    tracing::warn!(error = %error, "source list refresh failed; serving the last loaded list");
-                    Ok(stale)
-                }
-                None => Err(anyhow::anyhow!("source catalog unavailable")),
-            },
-        }
+        let (sources, _) = self.sources.get(|| load_sources(self.pool.clone())).await;
+        sources.map_err(|error| anyhow::anyhow!("source catalog unavailable: {error}"))
     }
+}
+
+async fn load_catalog(pool: PgPool) -> anyhow::Result<Catalog> {
+    // Directory statistics can exceed the ordinary ten-second statement
+    // limit while the database is busy. Bound this read separately so a
+    // cold start does not crash-loop. Live execution checks keep the short
+    // limit and fetch only the selected contracts.
+    let mut tx = pool.begin().await?;
+    sqlx::query("SET TRANSACTION READ ONLY").execute(&mut *tx).await?;
+    sqlx::query("SET LOCAL statement_timeout='30s'").execute(&mut *tx).await?;
+    let value: Value = sqlx::query_scalar(CATALOG_SQL)
+        .fetch_one(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(Catalog::build(serde_json::from_value(value)?))
+}
+
+async fn load_sources(pool: PgPool) -> anyhow::Result<Vec<crate::sources::Source>> {
+    let value: Value = sqlx::query_scalar(include_str!("sources.sql"))
+        .fetch_one(&pool)
+        .await?;
+    let mut sources: Vec<crate::sources::Source> = serde_json::from_value(value)?;
+    // Supabase is the v2 source of truth for provider identity and
+    // logos. Sanitise those values locally; source browsing must
+    // never call the public v1 provider directory as a fallback.
+    crate::sources::apply_branding(&mut sources, None);
+    Ok(sources)
 }
 
 #[cfg(test)]

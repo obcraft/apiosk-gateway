@@ -16,7 +16,9 @@ import { summarize as summarizeLegacy } from './summarize-latency.mjs'
 
 const root = new URL('../', import.meta.url)
 const UNKNOWN = 'unknown'
-const COLD = new Set(['refresh_wait', 'first_load', 'stale_served'])
+// A catalog past its TTL is served without waiting while it refreshes in
+// the background (stale_served), so only a load the question waited for is cold.
+const COLD = new Set(['refresh_wait', 'first_load'])
 const FAILED = new Set(['failed', 'unsupported'])
 
 export const percentile = (values, p) => {
@@ -248,7 +250,7 @@ export function summarize(logRows, { dictionary, budgets, rows = null }) {
     budgets: { status: budgets.status, baseline_ref: budgets.baseline_ref, min_samples: budgets.min_samples, results: comparisons },
     costs: costReport(allTraces, rows),
     legacy: summarizeLegacy(logRows),
-    definition: 'Percentiles are nearest-rank over successful samples; error_rate counts failed samples (and failed questions that never reached a browser journey phase). approval_wait is human time and provider_wait is provider time: neither is app-budgeted. cache is cold when the catalog had to load (refresh_wait, first_load, stale_served). Cost per fully answered request divides the cost of every trace, failed ones included, by the number of fully answered requests. Null means unmeasured, never 0.',
+    definition: 'Percentiles are nearest-rank over successful samples; error_rate counts failed samples (and failed questions that never reached a browser journey phase). approval_wait is human time and provider_wait is provider time: neither is app-budgeted. cache is cold when the question waited for a catalog load (refresh_wait, first_load). Cost per fully answered request divides the cost of every trace, failed ones included, by the number of fully answered requests. Null means unmeasured, never 0.',
   }
 }
 
