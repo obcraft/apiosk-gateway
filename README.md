@@ -27,6 +27,17 @@ Zie [ChatGPT, Claude en browserkoppeling](docs/chatbot-setup.md), [architectuur 
 
 ## Controleren
 
+Haal na het clonen eerst de vastgelegde submodules op:
+
+```sh
+git submodule update --init --recursive
+```
+
+De Fly-image bouwt zowel gateway v2 als de ingebouwde provider-/betaalexecutor
+uit `legacy-executor`. Zonder die submodule faalt `fly deploy` met een ontbrekende
+`/executor/Cargo.toml`. De executor draait binnen dezelfde v2-image; er is geen
+aparte gateway-v1-deployment nodig.
+
 Vanuit deze directory, met Rust/Cargo en Node geïnstalleerd en de App/MCP-dependencies aanwezig:
 
 ```sh

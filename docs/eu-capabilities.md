@@ -1,6 +1,6 @@
 # European capability source groups
 
-Implemented locally; not deployed. The canonical source membership is
+Deployed to Gateway v2 and MCP on 2026-09-25. The canonical source membership is
 `contracts/eu-capabilities.json`. These are discovery groups, not new execution
 contracts. The existing planner, source restrictions, prices and approval flow
 are unchanged.
@@ -33,12 +33,24 @@ existing executable operations.
   the new output fields against the advertised MCP schema.
 - Tests use local fixtures, not paid production sources.
 
-The original sibling `mcp` checkout is older and has unrelated local edits.
-The MCP changes are in the separate sibling `mcp-current` checkout. Integration
-was run against it with:
+Production verification on 2026-09-25:
+
+- Gateway runtime commit `9505abb` deployed to `apiosk-gateway-v2`; the public
+  health endpoint reports protocol `2` and `payment_executor: ready`. Fly's
+  HTTP health check passes.
+- MCP commit `24b6f37` deployed to `apiosk-mcp`; its public health endpoint
+  reports `status: ok`.
+- Live MCP source queries return exactly the primary sources listed above
+  (3 company, 2 tender, 2 statistics sources) and all supplementary memberships.
+  These checks only browse the catalog and do not execute paid provider calls.
+- The App changes are on `main` at `04a42a6`; its production rollout was not
+  independently verified during this deployment.
+
+The current checkouts are the sibling directories `gateway`, `mcp`, and `app`.
+The integration runner can target the MCP runtime explicitly with:
 
 ```sh
-TEST_MCP_RUNTIME_URL="file:///absolute/path/to/mcp-current/src/runtime.mjs" node scripts/test-integration.mjs
+TEST_MCP_RUNTIME_URL="file:///absolute/path/to/mcp/src/runtime.mjs" node scripts/test-integration.mjs
 ```
 
 ## Release order
