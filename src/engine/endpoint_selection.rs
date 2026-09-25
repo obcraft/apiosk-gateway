@@ -147,13 +147,20 @@ impl Selected {
         let endpoints: Vec<Value> = self.endpoints.iter().map(|endpoint| {
             let capabilities: BTreeSet<&str> = endpoint.services.iter().map(|index| catalog.services[*index].contract.capability_slug.as_str()).collect();
             let inputs: Vec<Value> = endpoint.inputs.iter().map(|input| json!({"fact_type":input.fact_type,"subject_role":input.subject_role,"value":input.value})).collect();
+            // What a contract cannot run without, so the model can ask for it
+            // in the chat instead of the App showing a form.
+            let needs: BTreeSet<&str> = endpoint.services.iter()
+                .flat_map(|index| catalog.services[*index].contract.requires.iter().filter(|r| !r.optional).map(|r| r.fact_type.as_str()))
+                .collect();
+            let needs: Vec<Value> = needs.into_iter().map(|fact_type| json!({"fact_type":fact_type,
+                "description":catalog.vocabulary.get(fact_type).and_then(|fact| fact.value_schema["description"].as_str())})).collect();
             json!({"endpoint_id":endpoint.endpoint_id,"listing":endpoint.listing,
                 "source":endpoint.services.first().map(|index| &catalog.services[*index].api_slug),
-                "capabilities":capabilities,"planner_available":!endpoint.services.is_empty(),"inputs":inputs})
+                "capabilities":capabilities,"planner_available":!endpoint.services.is_empty(),"inputs":inputs,"needs":needs})
         }).collect();
         ModelSelection {
             view: json!({"mode":"restrict",
-                "rule":"The person selected these endpoints for this question. Plan only goals whose capability a selected endpoint with planner_available=true offers. Its inputs are values the person entered for that endpoint; use them for the subject they describe. If no selected endpoint can serve the request, set discover=false and explain which part is not available.",
+                "rule":"The person selected these endpoints for this question. Plan only goals whose capability a selected endpoint with planner_available=true offers. Its inputs are values the person entered for that endpoint; use them for the subject they describe. needs lists what the endpoint cannot run without. When the conversation does not give such a value and no catalog service can look it up from what the person did give (a KVK number from a company name, for example), set discover=false and ask for the missing values in one short question, in the person's own terms (a company name, a year, a search term), never field names. When the question only names the selected endpoint, say in one sentence what it returns and ask for what it needs; plan it straight away when it needs nothing. If no selected endpoint can serve the request, set discover=false and explain which part is not available.",
                 "endpoints":endpoints}),
             literals: self.endpoints.iter().flat_map(|endpoint| endpoint.inputs.iter().filter_map(|input| value_text(&input.value))).collect(),
         }
@@ -281,6 +288,7 @@ mod tests {
         let chosen = validate(&selection(vec![selected(accounts, &[("company.id", json!("12345678"))])]), &catalog).unwrap();
         let view = chosen.model_selection(&catalog);
         assert_eq!(view.view["endpoints"][0]["capabilities"], json!(["company.accounts"]));
+        assert_eq!(view.view["endpoints"][0]["needs"][0]["fact_type"], "company.id", "the model can ask for what is missing");
         assert_eq!(view.literals, ["12345678"]);
         let mut intent = modelled("Example", &["company.accounts"]);
         intent.subjects[0].values.insert("company.id".into(), json!("99"));
