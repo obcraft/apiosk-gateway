@@ -17,6 +17,8 @@
 
 !assets/
 !assets/**
+!perf/
+!perf/**
 legacy-executor/target/
 legacy-executor/.git
 legacy-executor/.env*

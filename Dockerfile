@@ -5,6 +5,7 @@ COPY crates ./crates
 COPY src ./src
 COPY contracts ./contracts
 COPY assets ./assets
+COPY perf ./perf
 RUN cargo build --locked --release --bin apiosk-gateway-v2
 
 FROM rust:1.97.1-slim-bookworm AS executor-builder
