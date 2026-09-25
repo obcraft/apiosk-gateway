@@ -130,6 +130,132 @@ impl Response {
     }
 }
 
+/// A worker lease is the only execution signal LIVE-DB owns; queueing and
+/// provisional-result fields are EXECUTION's (#27/#30) to fill in later.
+/// Until then a task is only ever `Idle` or `Active`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionState {
+    Idle,
+    Queued,
+    Active,
+    Stalled,
+    Expired,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionView {
+    pub state: ExecutionState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queue: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provisional: Option<Value>,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct StepCounts {
+    pub total: u32,
+    pub completed: u32,
+    pub failed: u32,
+    pub skipped: u32,
+    pub running: u32,
+    pub pending: u32,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ConversationMeta {
+    pub total: u32,
+    pub window_start_seq: u32,
+    pub title: Option<String>,
+}
+/// `e` is one of `i q a s x` (idle, queued, active, stalled, expired) and `a`
+/// is `0` or `1`. Opaque to clients: they only compare it for equality.
+pub fn sync_key(revision: i64, state: ExecutionState, authorization_active: bool) -> String {
+    let e = match state {
+        ExecutionState::Idle => 'i',
+        ExecutionState::Queued => 'q',
+        ExecutionState::Active => 'a',
+        ExecutionState::Stalled => 's',
+        ExecutionState::Expired => 'x',
+    };
+    format!("{revision}.{e}.{}", u8::from(authorization_active))
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskStatus {
+    pub protocol_version: String,
+    pub task_ref: Uuid,
+    pub revision: i64,
+    pub observed_at: chrono::DateTime<chrono::Utc>,
+    pub sync_key: String,
+    pub status: Status,
+    pub execution: ExecutionView,
+    pub worker_active: bool,
+    pub analyzing: bool,
+    pub authorization_active: bool,
+    pub quote_ref: Option<Uuid>,
+    pub quote_expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub steps: StepCounts,
+    pub result_count: u32,
+    pub conversation: ConversationMeta,
+    pub has_errors: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_after_ms: Option<u64>,
+    pub events_path: Option<String>,
+}
+
+pub const EVENTS_HEARTBEAT_MS: u64 = 10_000;
+pub const EVENTS_STALE_AFTER_MS: u64 = 25_000;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StreamOpen {
+    pub protocol: String,
+    pub heartbeat_ms: u64,
+    pub stale_after_ms: u64,
+    pub expires_at: i64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Heartbeat {
+    pub at: chrono::DateTime<chrono::Utc>,
+    pub revision: Option<i64>,
+    pub sync_key: Option<String>,
+}
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StreamEndReason {
+    Terminal,
+    Expired,
+    AccessLost,
+    Error,
+    Shutdown,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StreamEnd {
+    pub reason: StreamEndReason,
+    pub revision: Option<i64>,
+}
+
+/// `before_seq` defaults to the window's own start when omitted by the caller.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TurnsQuery {
+    pub before_seq: Option<u32>,
+    pub limit: Option<u8>,
+}
+pub const TURNS_PAGE_DEFAULT: u8 = 5;
+pub const TURNS_PAGE_MAX: u8 = 10;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnView {
+    pub seq: u32,
+    pub question: String,
+    pub reply: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub output: Option<Value>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TurnsPage {
+    pub protocol_version: String,
+    pub task_ref: Uuid,
+    pub total: u32,
+    pub turns: Vec<TurnView>,
+    pub next_before_seq: Option<u32>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

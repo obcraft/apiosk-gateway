@@ -52,6 +52,11 @@ while (r.status !== 'succeeded') {
   let end;
   while ((end = buffer.indexOf('\n\n')) >= 0) {
     const block = buffer.slice(0, end); buffer = buffer.slice(end + 2);
+    // This card only ever listened for `task`/`task_delta` (R5); the new
+    // `stream_open`, `heartbeat` and `stream_end` events also carry a
+    // `data:` line but must stay invisible to it.
+    const event = block.split('\n').find(line => line.startsWith('event:'))?.slice(6).trim();
+    if (event !== 'task' && event !== 'task_delta') continue;
     const line = block.split('\n').find(line => line.startsWith('data:'));
     if (line) r = JSON.parse(line.slice(5).trim());
   }

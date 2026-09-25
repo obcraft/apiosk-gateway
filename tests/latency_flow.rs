@@ -168,9 +168,11 @@ async fn saved_lookup_and_batched_history_preserve_results() {
     let mut legacy = client.get(&events_url).send().await.unwrap();
     let mut buffer = Vec::new();
     let mut legacy_buffer = Vec::new();
+    assert_eq!(event(&mut stream, &mut buffer).await.0, "stream_open", "the observable heartbeat announces itself before the first snapshot");
     let (kind, initial) = event(&mut stream, &mut buffer).await;
     assert_eq!(kind, "task", "a compact stream starts with a full recovery snapshot");
     assert_eq!(initial["state"]["revision"], revision);
+    assert_eq!(event(&mut legacy, &mut legacy_buffer).await.0, "stream_open");
     assert_eq!(event(&mut legacy, &mut legacy_buffer).await.0, "task");
     let response = engine
         .execute(
@@ -201,7 +203,9 @@ async fn saved_lookup_and_batched_history_preserve_results() {
     assert_eq!(kind, "task", "older App and MCP clients keep full updates");
     assert_eq!(legacy_update["context_view"]["analysis"], response.context_view["analysis"]);
     let mut recovered = client.get(format!("{events_url}&compact=true")).send().await.unwrap();
-    let (kind, recovered) = event(&mut recovered, &mut Vec::new()).await;
+    let mut recovered_buffer = Vec::new();
+    assert_eq!(event(&mut recovered, &mut recovered_buffer).await.0, "stream_open");
+    let (kind, recovered) = event(&mut recovered, &mut recovered_buffer).await;
     assert_eq!(kind, "task");
     assert_eq!(recovered["status"], "succeeded");
     eprintln!("LOCAL FIXTURE final event: full {} bytes, compact {} bytes", legacy_update.to_string().len(), update.to_string().len());

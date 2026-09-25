@@ -1,4 +1,9 @@
-use crate::{auth::Principal, protocol::Status, server::ServerState, telemetry::{self, Outcome, Phase}};
+use crate::{
+    auth::Principal,
+    protocol::{Heartbeat, Status, StreamEnd, StreamEndReason, StreamOpen, EVENTS_HEARTBEAT_MS, EVENTS_STALE_AFTER_MS},
+    server::ServerState,
+    telemetry::{self, Outcome, Phase},
+};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -116,11 +121,27 @@ pub async fn task_events(
     telemetry::spawn(async move {
         let _permit = permit;
         let stream = telemetry::span(Phase::SseStream).task(id);
-        let (mut events, mut deltas, mut probes) = (0u64, 0u64, 0u64);
+        let (mut events, mut deltas, mut probes, mut heartbeats) = (0u64, 0u64, 0u64, 0u64);
         let mut next = initial;
         let mut previous = None;
         let mut snapshot = None;
-        while chrono::Utc::now().timestamp() < access.expires {
+        let mut last_event = tokio::time::Instant::now();
+        let open = StreamOpen {
+            protocol: "task-events-2".into(),
+            heartbeat_ms: EVENTS_HEARTBEAT_MS,
+            stale_after_ms: EVENTS_STALE_AFTER_MS,
+            expires_at: access.expires,
+        };
+        let Ok(open_data) = serde_json::to_string(&open) else { return };
+        if sender.send(Ok(Event::default().event("stream_open").data(open_data))).await.is_err() {
+            return;
+        }
+        // `end` is the reason to report in `stream_end`; a `return` below
+        // (the receiver already gone) skips it, since nobody can read it.
+        let end = 'stream: loop {
+            if chrono::Utc::now().timestamp() >= access.expires {
+                break 'stream StreamEndReason::Expired;
+            }
             let key = (
                 next.state.as_ref().map(|s| s.revision),
                 next.status.clone(),
@@ -135,7 +156,7 @@ pub async fn task_events(
                     Status::NeedsInput | Status::NeedsSelection | Status::Succeeded | Status::Partial | Status::Cancelled | Status::Failed | Status::Unsupported
                 ) && next.context_view["worker_active"] != true;
                 let (kind, data) = if access.compact {
-                    let Ok(full) = serde_json::to_value(&next) else { break; };
+                    let Ok(full) = serde_json::to_value(&next) else { return };
                     let update = snapshot.as_ref().map(|previous| delta(previous, &full));
                     let data = serde_json::to_string(update.as_ref().unwrap_or(&full));
                     snapshot = Some(full);
@@ -143,24 +164,44 @@ pub async fn task_events(
                 } else {
                     ("task", serde_json::to_string(&next))
                 };
-                let Ok(data) = data else { break; };
+                let Ok(data) = data else { return };
                 telemetry::sse(data.len());
                 events += 1;
                 deltas += u64::from(kind == "task_delta");
                 let event = Event::default().event(kind).data(data);
-                if sender.send(Ok(event)).await.is_err() || terminal {
-                    break;
+                if sender.send(Ok(event)).await.is_err() {
+                    return;
+                }
+                last_event = tokio::time::Instant::now();
+                if terminal {
+                    break 'stream StreamEndReason::Terminal;
                 }
                 previous = Some(key);
             }
             // Local saves wake immediately. Periodic reads still recover missed
-            // notifications and changes made by another Gateway instance.
+            // notifications and changes made by another Gateway instance. An
+            // idle stream still proves itself alive every heartbeat_ms: four
+            // seconds of silence is normal, not a disconnect.
             tokio::select! {
-                _ = sender.closed() => break,
+                _ = sender.closed() => return,
                 _ = next_change(&mut updates, id) => {},
                 _ = tokio::time::sleep(Duration::from_millis(750)) => {},
+                _ = tokio::time::sleep_until(last_event + Duration::from_millis(EVENTS_HEARTBEAT_MS)) => {
+                    let heartbeat = Heartbeat {
+                        at: chrono::Utc::now(),
+                        revision: next.state.as_ref().map(|s| s.revision),
+                        sync_key: next.context_view["sync_key"].as_str().map(String::from),
+                    };
+                    let Ok(data) = serde_json::to_string(&heartbeat) else { return };
+                    if sender.send(Ok(Event::default().event("heartbeat").data(data))).await.is_err() {
+                        return;
+                    }
+                    last_event = tokio::time::Instant::now();
+                    heartbeats += 1;
+                    continue;
+                },
             }
-            if state.engine.store.check_workspace(&p).await.is_err() { break; }
+            if state.engine.store.check_workspace(&p).await.is_err() { break 'stream StreamEndReason::AccessLost; }
             probes += 1;
             let version: Result<serde_json::Value,_> = telemetry::timed_db("sse_probe", sqlx::query_scalar("SELECT jsonb_build_array(t.revision,EXISTS(SELECT 1 FROM execution_leases l WHERE l.task_id=t.id AND l.expires_at>now()),EXISTS(SELECT 1 FROM authorizations a WHERE a.task_id=t.id AND a.owner_id=t.owner_id AND a.quote_ref::text=t.document#>>'{proposal,quote_ref}' AND a.revoked_at IS NULL AND a.expires_at>now())) FROM tasks t WHERE t.id=$1 AND t.owner_id=$2 AND t.expires_at>now()")
                 .bind(id).bind(p.owner).fetch_one(&state.engine.store.pool)).await;
@@ -173,15 +214,19 @@ pub async fn task_events(
             ]);
             match version {
                 Ok(version) if version == current => continue,
-                Err(_) => break,
+                Err(_) => break 'stream StreamEndReason::Error,
                 _ => {}
             }
             match state.engine.view_with_results(&p, id, Uuid::new_v4(), None, &mut documents).await {
                 Ok(value) => { next = value; bound_cache(&mut documents); },
-                Err(_) => break,
+                Err(_) => break 'stream StreamEndReason::Error,
             }
+        };
+        let stream_end = StreamEnd { reason: end, revision: next.state.as_ref().map(|s| s.revision) };
+        if let Ok(data) = serde_json::to_string(&stream_end) {
+            let _ = sender.send(Ok(Event::default().event("stream_end").data(data))).await;
         }
-        stream.measure("events", events).measure("delta_events", deltas).measure("probes", probes).finish(Outcome::Ok);
+        stream.measure("events", events).measure("delta_events", deltas).measure("probes", probes).measure("heartbeats", heartbeats).finish(Outcome::Ok);
         telemetry::flush();
     });
     let mut response = Sse::new(ReceiverStream::new(receiver))
