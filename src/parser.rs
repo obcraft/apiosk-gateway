@@ -632,25 +632,13 @@ impl Parser {
 
     async fn analyze_with_scope(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>, workflow: bool) -> anyhow::Result<Value> {
         let (max_observations, max_limitations) = if workflow { (24, 12) } else { (8, 6) };
-        let mut projected = sources.to_vec();
-        for source in &mut projected {
-            source["document"] = crate::report_assets::public_document(&source["document"]);
-            // Geometry dominates GeoJSON size but contributes no demographic
-            // evidence. Preserve property paths and validate against originals.
-            if let Some(features) = source
-                .pointer_mut("/document/data/features")
-                .and_then(Value::as_array_mut)
-            {
-                for feature in features {
-                    if let Some(object) = feature.as_object_mut() {
-                        object.remove("geometry");
-                    }
-                }
-            }
-        }
-        let input = json!({"answer_operations":operations,"sources":projected,"unavailable_steps":failures});
+        // Large saved documents are narrowed to question-relevant evidence;
+        // citations are still validated against the originals.
+        let mut input = json!({"answer_operations":operations,"sources":[],"unavailable_steps":failures});
+        let budget = crate::evidence_selection::ANALYSIS_INPUT_BYTES.saturating_sub(serde_json::to_vec(&input)?.len());
+        input["sources"] = json!(crate::evidence_selection::project(sources, operations, budget));
         anyhow::ensure!(
-            serde_json::to_vec(&input)?.len() <= 256 * 1024,
+            serde_json::to_vec(&input)?.len() <= crate::evidence_selection::ANALYSIS_INPUT_BYTES,
             "analysis input too large"
         );
         if sources.is_empty() {

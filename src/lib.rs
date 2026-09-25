@@ -11,6 +11,7 @@ pub mod catalog;
 pub mod compat;
 pub mod engine;
 mod entity_resolution;
+mod evidence_selection;
 pub mod execution;
 pub mod followups;
 pub mod input_binding;

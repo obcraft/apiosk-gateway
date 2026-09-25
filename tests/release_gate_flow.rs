@@ -42,6 +42,8 @@ struct Fake {
     pool: PgPool,
     chat: AtomicU64,
     analysis: AtomicU64,
+    /// The largest analysis input the model received, in bytes.
+    analysis_input: AtomicU64,
     provider: AtomicU64,
     replayed: AtomicU64,
     /// Calls whose connection dropped before the Edge function settled.
@@ -86,12 +88,26 @@ async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<V
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("answer_operations").is_some() {
         fake.analysis.fetch_add(1, SeqCst);
-        let cited: Vec<_> = input["sources"].as_array().unwrap().iter()
-            .filter(|source| source["document"]["data"]["accounts"].is_string()).collect();
-        let answer = match cited.first() {
-            Some(source) => json!({"observations":[{"text":"The registry reports accounts for {{a}}.",
+        fake.analysis_input.fetch_max(body["messages"][1]["content"].as_str().unwrap().len() as u64, SeqCst);
+        let question = input["answer_operations"][0].as_str().unwrap_or_default();
+        let sources = input["sources"].as_array().unwrap();
+        // A ledger line named in the question, wherever the evidence selection kept it.
+        let named = sources.iter().find_map(|source| {
+            let rows: Vec<(String, &Value)> = match &source["document"]["data"]["rows"] {
+                Value::Object(kept) => kept.iter().map(|(index, row)| (index.clone(), row)).collect(),
+                Value::Array(all) => all.iter().enumerate().map(|(index, row)| (index.to_string(), row)).collect(),
+                _ => return None,
+            };
+            rows.into_iter().find(|(_, row)| row["line"].as_str().is_some_and(|line| question.contains(line)))
+                .map(|(index, _)| (source["result_ref"].clone(), index))
+        });
+        let cited: Vec<_> = sources.iter().filter(|source| source["document"]["data"]["accounts"].is_string()).collect();
+        let answer = match (named, cited.first()) {
+            (Some((result, index)), _) => json!({"observations":[{"text":"The ledger reports {{a}} for {{b}}.","evidence":[
+                {"result_ref":result,"pointer":format!("/data/rows/{index}/value_eur")},{"result_ref":result,"pointer":format!("/data/rows/{index}/line")}]}],"limitations":[]}),
+            (None, Some(source)) => json!({"observations":[{"text":"The registry reports accounts for {{a}}.",
                 "evidence":[{"result_ref":source["result_ref"],"pointer":"/data/accounts"}]}],"limitations":[]}),
-            None => json!({"observations":[],"limitations":["No saved source reports accounts."]}),
+            (None, None) => json!({"observations":[],"limitations":["No saved source reports accounts."]}),
         };
         return Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}));
     }
@@ -215,7 +231,7 @@ impl Gate {
               INSERT INTO public.gate_workspace_bindings VALUES(w,s,t,amount); END $$;")
             .execute(&pool).await.unwrap();
         let fake = Arc::new(Fake {
-            pool: pool.clone(), chat: AtomicU64::new(0), analysis: AtomicU64::new(0), provider: AtomicU64::new(0),
+            pool: pool.clone(), chat: AtomicU64::new(0), analysis: AtomicU64::new(0), analysis_input: AtomicU64::new(0), provider: AtomicU64::new(0),
             replayed: AtomicU64::new(0), parked: Mutex::new(Vec::new()),
         });
         let mock = Router::new()
@@ -270,7 +286,12 @@ impl Gate {
 
     /// A priced question: the task, its quote and the chat response.
     async fn priced(&self, person: &Person, label: &str) -> (Uuid, Value, Value) {
-        let priced = self.chat(person, Uuid::new_v4(), &format!("Jaarrekening van {label}")).await;
+        self.priced_question(person, &format!("Jaarrekening van {label}")).await
+    }
+
+    /// A priced question whose last word is the fixture label.
+    async fn priced_question(&self, person: &Person, question: &str) -> (Uuid, Value, Value) {
+        let priced = self.chat(person, Uuid::new_v4(), question).await;
         assert_eq!(priced["status"], "ready", "{priced}");
         assert_eq!(priced["proposal"]["max_total_atomic"], "138", "search 23 and accounts 115, to the micro-USD");
         (task_of(&priced), priced["proposal"].clone(), priced)
@@ -556,25 +577,29 @@ async fn gate_missing_source_zero_charge() {
 }
 
 /// 5,000 rows: the saved result is paged, every page is readable without a
-/// purchase, and the analysis ends with an explicit limitation, never missing.
+/// purchase, and the analysis answers from question-directed evidence
+/// selected across the whole document, with pointers into the original.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-release-gate.mjs); no live database"]
 async fn gate_long_data() {
     let gate = Gate::start().await;
     let person = Person::new();
-    let (task, proposal, _) = gate.priced(&person, "Long").await;
+    let (task, proposal, _) = gate.priced_question(&person, "Balance sheet line 4321 in de jaarrekening van Long").await;
     assert_eq!(gate.authorize(&person, task, &proposal).await.0, StatusCode::OK);
     let ended = gate.settled(&person, task).await;
-    assert!(["succeeded", "partial"].contains(&ended["status"].as_str().unwrap()), "{ended}");
+    assert_eq!(ended["status"], "succeeded", "{ended}");
     let documents = gate::saved_documents(&gate.pool, task).await;
     let long = documents.values().find(|document| document["data"]["rows"].is_array()).expect("the long result is saved");
     assert_eq!(long["data"]["rows"].as_array().unwrap().len(), 5000, "every row is saved");
     assert!(long.to_string().len() > 256 * 1024);
 
     let analysis = &ended["context_view"]["analysis"];
-    assert!(analysis.is_object(), "the analysis is never missing: {ended}");
-    let limited = analysis["limitations"].as_array().is_some_and(|limits| !limits.is_empty());
-    assert!(analysis["status"] == "completed" || limited, "completed, or unavailable with an explicit limitation: {analysis}");
+    assert_eq!(analysis["status"], "completed", "the analysis is never missing above 256 KiB: {analysis}");
+    assert!(gate.fake.analysis_input.load(SeqCst) <= 256 * 1024, "the model reads a bounded selection");
+    let evidence = &analysis["observations"][0]["evidence"];
+    assert_eq!(evidence[0]["pointer"], "/data/rows/4321/value_eur", "the named row, far beyond any first rows: {analysis}");
+    assert_eq!(evidence[0]["value"], long["data"]["rows"][4321]["value_eur"], "the value comes from the original");
+    assert_eq!(evidence[1]["value"], "Balance sheet line 4321");
 
     // The page shows the first part and reads the rest part by part, free.
     let (read_ref, mut offset) = match &ended["result"] {
@@ -597,6 +622,6 @@ async fn gate_long_data() {
         parts += 1;
     }
     assert_eq!(gate.fake.provider.load(SeqCst), 2, "reading parts buys nothing");
-    gate::assert_all(&gate.pool, task, &proposal, &ended).await;
-    println!("gate_long_data: 5000 rows saved and paged; analysis {} with {} limitation(s)", analysis["status"], analysis["limitations"].as_array().map_or(0, Vec::len));
+    assert_eq!(gate::assert_all(&gate.pool, task, &proposal, &ended).await, 2, "every cited pointer resolves in the original");
+    println!("gate_long_data: 5000 rows saved and paged; analysis {} from a {}-byte selection", analysis["status"], gate.fake.analysis_input.load(SeqCst));
 }
