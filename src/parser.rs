@@ -527,6 +527,51 @@ mod analysis_tests {
         server.abort();
     }
 
+    #[tokio::test]
+    async fn a_model_that_never_addresses_a_requirement_forces_partial_status() {
+        use axum::{routing::post, Json, Router};
+        let sources = vec![json!({"result_ref":"saved-source","document":{"subject":{"entity_ref":Uuid::nil().to_string()},"data":{"name":"Example B.V."}}})];
+        let requirements = vec![
+            crate::answer_blocks::Requirement {
+                id: "r1".into(), subject: Some(0), subject_label: Some("Example".into()), entity_ref: Some(Uuid::nil().to_string()),
+                criterion: "company.registry-profile".into(), criterion_kind: crate::answer_blocks::CriterionKind::Capability, period: None,
+                status: crate::answer_blocks::RequirementStatus::Pending, reason: None, answered_by: vec![], missing_ids: vec![], evidence: vec![],
+            },
+            crate::answer_blocks::Requirement {
+                id: "r2".into(), subject: None, subject_label: None, entity_ref: None, criterion: "Confirm the address".into(),
+                criterion_kind: crate::answer_blocks::CriterionKind::Operation, period: None,
+                status: crate::answer_blocks::RequirementStatus::Pending, reason: None, answered_by: vec![], missing_ids: vec![], evidence: vec![],
+            },
+        ];
+        for (claims, expected_status) in [
+            // No requirement_status at all: an older/fixture model keeps its existing behavior.
+            (json!(null), "completed"),
+            // r2 is never addressed: forced to partial, with an explicit not_addressed reason.
+            (json!([{"requirement_id":"r1","status":"answered","answered_by":["o1"],
+                "evidence":[{"result_ref":"saved-source","pointer":"/data/name"}]}]), "partial"),
+        ] {
+            let claims = claims.clone();
+            let app = Router::new().route("/", post(move |Json(_): Json<Value>| {
+                let claims = claims.clone();
+                async move {
+                    let mut answer = json!({"observations":[{"text":"The company is {{a}}.",
+                        "evidence":[{"result_ref":"saved-source","pointer":"/data/name"}]}],"limitations":[]});
+                    if !claims.is_null() {
+                        answer["requirement_status"] = claims;
+                    }
+                    Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}))
+                }
+            }));
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let url = format!("http://{}", listener.local_addr().unwrap());
+            let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+            let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+            let answer = parser.analyze_with_scope(&json!(["Identify the company"]), &sources, &BTreeMap::new(), false, &requirements).await.unwrap();
+            assert_eq!(answer["status"], expected_status, "{answer}");
+            server.abort();
+        }
+    }
+
     #[test]
     fn workflow_reports_can_cover_ten_checks_without_relaxing_evidence_validation() {
         let sources=vec![json!({"result_ref":"saved","document":{"data":{"name":"Example","year":2026}}})];
@@ -658,9 +703,8 @@ impl Parser {
             if limitations.is_empty() {
                 limitations.push(json!("No source result is available to support an analysis."));
             }
-            let completeness = crate::completeness::reconcile(requirements.to_vec(), &[], sources);
             return Ok(
-                json!({"status":"partial","observations":[],"limitations":limitations,"completeness":completeness}),
+                json!({"status":"partial","observations":[],"limitations":limitations}),
             );
         }
         let mut prompt = include_str!("../contracts/analysis-prompt.txt").to_owned();
@@ -677,15 +721,18 @@ impl Parser {
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| {
             let mut checked = validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)?;
+            // Only a model that engages with requested_parts is held to it:
+            // a fixture or an older model that never mentions requirement_status
+            // keeps its existing behavior unchanged.
             if !requirements.is_empty() {
-                let claims: Vec<RequirementClaim> = serde_json::from_value(
-                    serde_json::from_str::<Value>(raw).unwrap_or_default()["requirement_status"].clone(),
-                ).unwrap_or_default();
-                let completeness = crate::completeness::reconcile(requirements.to_vec(), &claims, sources);
-                if !completeness.complete {
-                    checked["status"] = json!("partial");
+                if let Some(status) = serde_json::from_str::<Value>(raw).ok().and_then(|value| value.get("requirement_status").cloned()) {
+                    let claims: Vec<RequirementClaim> = serde_json::from_value(status).unwrap_or_default();
+                    let completeness = crate::completeness::reconcile(requirements.to_vec(), &claims, sources);
+                    if !completeness.complete {
+                        checked["status"] = json!("partial");
+                    }
+                    checked["completeness"] = serde_json::to_value(&completeness)?;
                 }
-                checked["completeness"] = serde_json::to_value(&completeness)?;
             }
             Ok(checked)
         })
