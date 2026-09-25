@@ -109,12 +109,19 @@ impl SourceQuery {
 #[serde(deny_unknown_fields)]
 pub struct EndpointQuery {
     pub search: Option<String>,
+    pub capabilities: Option<String>,
     pub offset: Option<usize>,
     pub limit: Option<usize>,
 }
 impl EndpointQuery {
+    pub fn capabilities(&self) -> Vec<&str> {
+        self.capabilities.as_deref().map(|s| s.split(',').collect()).unwrap_or_default()
+    }
     pub fn valid(&self) -> bool {
         self.search.as_ref().is_none_or(|s| s.chars().count() <= 200)
+            && self.capabilities.as_ref().is_none_or(|s| !s.is_empty() && s.len() <= 16_000)
+            && self.capabilities().len() <= 128
+            && self.capabilities().iter().all(|s| !s.is_empty() && s.len() <= 200 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_')))
             && self.limit.is_none_or(|n| (1..=100).contains(&n))
             && self.offset.is_none_or(|n| n <= 10_000)
     }
@@ -127,34 +134,12 @@ pub async fn endpoint_page(pool: &PgPool, catalog: &Catalog, source_id: &str, qu
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(40);
     let search = query.search.as_deref().unwrap_or("").trim();
-    let mut result: Value = sqlx::query_scalar(r#"
-WITH matched AS (
- SELECT a.slug, a.name, e.id, e.method, e.path, e.description,
-        e.endpoint_category, e.tags, e.use_cases
- FROM providers.apis a
- LEFT JOIN providers.provider_profiles p ON p.id=a.owner_id
- JOIN providers.api_endpoints e ON e.api_id=a.id AND e.active=true
- WHERE a.status='active' AND coalesce(a.active,true) AND a.is_verified=true
-   AND coalesce(a.discoverable,true) AND a.suspended_at IS NULL
-   AND (($1='pulsenetwork' AND p.username='pulsenetwork') OR ($1<>'pulsenetwork' AND a.slug=$1))
-   AND ($2='' OR concat_ws(' ',a.name,a.slug,e.method,e.path,e.description,e.endpoint_category,
-        array_to_string(e.tags,' '),array_to_string(e.use_cases,' ')) ILIKE '%' || $2 || '%')
-), page AS (
- SELECT * FROM matched ORDER BY lower(name),path,id LIMIT $3 OFFSET $4
-)
-SELECT jsonb_build_object(
- 'total',(SELECT count(*) FROM matched),
- 'items',coalesce((SELECT jsonb_agg(jsonb_build_object(
-   'slug',slug,'listing',name,'endpoint',jsonb_build_object(
-     'candidate_id',id,'method',method,'path',path,'description',description,
-     'category',endpoint_category,'tags',coalesce(tags,'{}'::text[]),
-     'use_cases',coalesce(use_cases,'{}'::text[]))) ORDER BY lower(name),path,id)
-   FROM page),'[]'::jsonb))
-"#)
+    let mut result: Value = sqlx::query_scalar(include_str!("source_endpoints.sql"))
         .bind(source_id)
         .bind(search)
         .bind(limit as i64)
         .bind(offset as i64)
+        .bind(query.capabilities())
         .fetch_one(pool).await?;
     mark_available(&mut result, catalog);
     let count = result["items"].as_array().map(Vec::len).unwrap_or(0);
@@ -744,4 +729,15 @@ mod tests {
         assert!(EndpointQuery {limit:Some(100),..Default::default()}.valid());
         assert!(!EndpointQuery {limit:Some(101),..Default::default()}.valid());
     }
+    #[test]
+    fn endpoint_capability_filters_are_bounded_exact_contract_identifiers() {
+        let query = EndpointQuery {capabilities:Some("operation.onchainpulse.get-api-rh-launches-19e826f6,eu.statistics.query".into()), ..Default::default()};
+        assert!(query.valid());
+        assert_eq!(query.capabilities(), vec!["operation.onchainpulse.get-api-rh-launches-19e826f6", "eu.statistics.query"]);
+        for invalid in ["", "foo,,bar", "a b", "x%", "x'", "a,", &"x".repeat(201), &vec!["x";129].join(",")] {
+            assert!(!EndpointQuery {capabilities:Some(invalid.into()),..Default::default()}.valid(), "{invalid}");
+        }
+        assert!(EndpointQuery::default().capabilities().is_empty());
+    }
+
 }
