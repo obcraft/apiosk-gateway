@@ -7,7 +7,6 @@ pub mod features;
 pub mod limits;
 
 pub const VERSION: &str = "2";
-pub const MAX_QUESTION: usize = 4000;
 pub const MAX_INLINE: usize = 32 * 1024;
 pub const MAX_STEPS: usize = 12;
 pub const MAX_DEPTH: usize = 5;

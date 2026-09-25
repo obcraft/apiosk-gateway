@@ -8,6 +8,7 @@
 /// Every feature this build implements, in the order they are advertised.
 pub const IMPLEMENTED: &[&str] = &[
     "trace_header_v1",
+    "question_chars_v1",
 ];
 
 /// The implemented features the environment allows.

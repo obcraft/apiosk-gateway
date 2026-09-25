@@ -163,10 +163,7 @@ impl Engine {
         let mut workflow = forced.as_ref().and_then(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
-        anyhow::ensure!(
-            !req.question.trim().is_empty() && req.question.len() <= MAX_QUESTION,
-            "invalid question length"
-        );
+        anyhow::ensure!(limits::question_ok(&req.question), "invalid question length");
         let id = if let Some(state) = &req.state {
             self.signer.verify(p.owner, state, true)?;
             if state.expires_at <= Utc::now() {
