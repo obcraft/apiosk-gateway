@@ -72,6 +72,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
                 }
             }),
         )
+        .route("/v2/meta", get(crate::routes::intake::meta))
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
         .route("/v2/sources", get(sources))
