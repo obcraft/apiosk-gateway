@@ -1,4 +1,5 @@
 use crate::{
+    answer_blocks::{Requirement, RequirementClaim},
     catalog::Catalog,
     state::{digest, Task},
     telemetry::{Cache, ErrorClass, Outcome},
@@ -495,7 +496,7 @@ mod analysis_tests {
         let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
         let sources = vec![json!({"result_ref":"saved","document":{"data":{"text":"The plan costs €12 monthly."}}})];
         assert!(validate_analysis(&invalid, &sources, false).is_err());
-        let answer = parser.analyze_with_scope(&json!(["Find the price"]), &sources, &BTreeMap::new(), true).await.unwrap();
+        let answer = parser.analyze_with_scope(&json!(["Find the price"]), &sources, &BTreeMap::new(), true, &[]).await.unwrap();
         assert_eq!(answer["observations"][0]["text"], "The fee is €12 monthly.");
         server.abort();
     }
@@ -518,12 +519,57 @@ mod analysis_tests {
         let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
         let sources = vec![json!({"result_ref":"saved-source","document":{"data":{"name":"Example B.V."}}})];
         for workflow in [false, true] {
-            let answer = parser.analyze_with_scope(&json!(["Identify the company"]), &sources, &BTreeMap::new(), workflow).await.unwrap();
+            let answer = parser.analyze_with_scope(&json!(["Identify the company"]), &sources, &BTreeMap::new(), workflow, &[]).await.unwrap();
             assert_eq!(answer["status"], "completed");
             assert_eq!(answer["observations"][0]["text"], "The company is Example B.V..");
             assert_eq!(answer["observations"][0]["evidence"][0]["value"], "Example B.V.");
         }
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn a_model_that_never_addresses_a_requirement_forces_partial_status() {
+        use axum::{routing::post, Json, Router};
+        let sources = vec![json!({"result_ref":"saved-source","document":{"subject":{"entity_ref":Uuid::nil().to_string()},"data":{"name":"Example B.V."}}})];
+        let requirements = vec![
+            crate::answer_blocks::Requirement {
+                id: "r1".into(), subject: Some(0), subject_label: Some("Example".into()), entity_ref: Some(Uuid::nil().to_string()),
+                criterion: "company.registry-profile".into(), criterion_kind: crate::answer_blocks::CriterionKind::Capability, period: None,
+                status: crate::answer_blocks::RequirementStatus::Pending, reason: None, answered_by: vec![], missing_ids: vec![], evidence: vec![],
+            },
+            crate::answer_blocks::Requirement {
+                id: "r2".into(), subject: None, subject_label: None, entity_ref: None, criterion: "Confirm the address".into(),
+                criterion_kind: crate::answer_blocks::CriterionKind::Operation, period: None,
+                status: crate::answer_blocks::RequirementStatus::Pending, reason: None, answered_by: vec![], missing_ids: vec![], evidence: vec![],
+            },
+        ];
+        for (claims, expected_status) in [
+            // No requirement_status at all: an older/fixture model keeps its existing behavior.
+            (json!(null), "completed"),
+            // r2 is never addressed: forced to partial, with an explicit not_addressed reason.
+            (json!([{"requirement_id":"r1","status":"answered","answered_by":["o1"],
+                "evidence":[{"result_ref":"saved-source","pointer":"/data/name"}]}]), "partial"),
+        ] {
+            let claims = claims.clone();
+            let app = Router::new().route("/", post(move |Json(_): Json<Value>| {
+                let claims = claims.clone();
+                async move {
+                    let mut answer = json!({"observations":[{"text":"The company is {{a}}.",
+                        "evidence":[{"result_ref":"saved-source","pointer":"/data/name"}]}],"limitations":[]});
+                    if !claims.is_null() {
+                        answer["requirement_status"] = claims;
+                    }
+                    Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}))
+                }
+            }));
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let url = format!("http://{}", listener.local_addr().unwrap());
+            let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+            let parser = Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+            let answer = parser.analyze_with_scope(&json!(["Identify the company"]), &sources, &BTreeMap::new(), false, &requirements).await.unwrap();
+            assert_eq!(answer["status"], expected_status, "{answer}");
+            server.abort();
+        }
     }
 
     #[test]
@@ -605,13 +651,14 @@ impl Parser {
         operations: &Value,
         sources: &[Value],
         failures: &BTreeMap<String, Value>,
+        requirements: &[Requirement],
     ) -> anyhow::Result<Value> {
         if failures.is_empty() {
             if let Some(client) = &self.typesafe {
                 if client.mode() == crate::typesafe::Mode::On {
                     if let Some(answer) = client.analyze(operations, sources).await { return Ok(answer); }
                 } else {
-                    let (candidate, baseline) = tokio::join!(client.analyze(operations, sources), self.analyze_with_scope(operations, sources, failures, false));
+                    let (candidate, baseline) = tokio::join!(client.analyze(operations, sources), self.analyze_with_scope(operations, sources, failures, false, requirements));
                     tracing::info!(surface = "analysis", candidate_available = candidate.is_some(), baseline_available = baseline.is_ok(), "typesafe shadow comparison");
                     return baseline;
                 }
@@ -620,37 +667,25 @@ impl Parser {
         if failures.is_empty() && self.typesafe.is_none() {
             if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
         }
-        self.analyze_with_scope(operations, sources, failures, false).await
+        self.analyze_with_scope(operations, sources, failures, false, requirements).await
     }
 
-    pub async fn analyze_workflow(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>) -> anyhow::Result<Value> {
+    pub async fn analyze_workflow(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>, requirements: &[Requirement]) -> anyhow::Result<Value> {
         if failures.is_empty() {
             if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
         }
-        self.analyze_with_scope(operations, sources, failures, true).await
+        self.analyze_with_scope(operations, sources, failures, true, requirements).await
     }
 
-    async fn analyze_with_scope(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>, workflow: bool) -> anyhow::Result<Value> {
+    async fn analyze_with_scope(&self, operations: &Value, sources: &[Value], failures: &BTreeMap<String, Value>, workflow: bool, requirements: &[Requirement]) -> anyhow::Result<Value> {
         let (max_observations, max_limitations) = if workflow { (24, 12) } else { (8, 6) };
-        let mut projected = sources.to_vec();
-        for source in &mut projected {
-            source["document"] = crate::report_assets::public_document(&source["document"]);
-            // Geometry dominates GeoJSON size but contributes no demographic
-            // evidence. Preserve property paths and validate against originals.
-            if let Some(features) = source
-                .pointer_mut("/document/data/features")
-                .and_then(Value::as_array_mut)
-            {
-                for feature in features {
-                    if let Some(object) = feature.as_object_mut() {
-                        object.remove("geometry");
-                    }
-                }
-            }
-        }
-        let input = json!({"answer_operations":operations,"sources":projected,"unavailable_steps":failures});
+        // Large saved documents are narrowed to question-relevant evidence;
+        // citations are still validated against the originals.
+        let mut input = json!({"answer_operations":operations,"sources":[],"unavailable_steps":failures,"requested_parts":requirements});
+        let budget = crate::evidence_selection::ANALYSIS_INPUT_BYTES.saturating_sub(serde_json::to_vec(&input)?.len());
+        input["sources"] = json!(crate::evidence_selection::project(sources, operations, budget));
         anyhow::ensure!(
-            serde_json::to_vec(&input)?.len() <= 256 * 1024,
+            serde_json::to_vec(&input)?.len() <= crate::evidence_selection::ANALYSIS_INPUT_BYTES,
             "analysis input too large"
         );
         if sources.is_empty() {
@@ -685,7 +720,21 @@ impl Parser {
                 {"role":"system","content":prompt},
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| {
-            validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)
+            let mut checked = validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)?;
+            // Only a model that engages with requested_parts is held to it:
+            // a fixture or an older model that never mentions requirement_status
+            // keeps its existing behavior unchanged.
+            if !requirements.is_empty() {
+                if let Some(status) = serde_json::from_str::<Value>(raw).ok().and_then(|value| value.get("requirement_status").cloned()) {
+                    let claims: Vec<RequirementClaim> = serde_json::from_value(status).unwrap_or_default();
+                    let completeness = crate::completeness::reconcile(requirements.to_vec(), &claims, sources);
+                    if !completeness.complete {
+                        checked["status"] = json!("partial");
+                    }
+                    checked["completeness"] = serde_json::to_value(&completeness)?;
+                }
+            }
+            Ok(checked)
         })
         .await
     }
@@ -1181,13 +1230,13 @@ mod tests {
             "execution":{"paid":false,"status":403,"body":{"error":"policy_denied","message":"private policy details"}}
         })));
         let failures = BTreeMap::from([("first".into(), failure.clone()), ("second".into(), failure.clone())]);
-        let answer = parser.analyze(&json!(["Find charging stations"]), &[], &failures).await.unwrap();
+        let answer = parser.analyze(&json!(["Find charging stations"]), &[], &failures, &[]).await.unwrap();
         assert_eq!(answer["status"], "partial");
         assert_eq!(answer["observations"], json!([]));
         assert_eq!(answer["limitations"], json!([failure["message"]]));
         assert!(answer["follow_up_question"].is_null());
         assert!(!answer.to_string().contains("private policy"));
-        let empty = parser.analyze(&json!([]), &[], &BTreeMap::new()).await.unwrap();
+        let empty = parser.analyze(&json!([]), &[], &BTreeMap::new(), &[]).await.unwrap();
         assert_eq!(empty["limitations"], json!(["No source result is available to support an analysis."]));
     }
 

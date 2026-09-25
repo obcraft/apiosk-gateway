@@ -54,7 +54,7 @@ async fn saved_results_choose_the_requested_answer_form() -> anyhow::Result<()> 
     std::fs::create_dir_all(&output)?;
     for (name, question, expected, source) in cases {
         let answer = parser
-            .analyze(&json!([question]), &[source.clone()], &BTreeMap::new())
+            .analyze(&json!([question]), &[source.clone()], &BTreeMap::new(), &[])
             .await?;
         std::fs::write(
             output.join(format!("{name}.json")),
@@ -79,7 +79,7 @@ async fn saved_results_choose_the_requested_answer_form() -> anyhow::Result<()> 
     let question =
         "Which records are about charging stations? Show only their title and source link.";
     let answer = parser
-        .analyze(&json!([question]), &[source.clone()], &BTreeMap::new())
+        .analyze(&json!([question]), &[source.clone()], &BTreeMap::new(), &[])
         .await?;
     std::fs::write(
         output.join("selective-large.json"),

@@ -138,10 +138,11 @@ pub async fn run(parser: &Parser, catalog: &Catalog, case: &Case, stored: &[Stor
         Some(answer) => answer,
         None => {
             let operations = crate::engine::analysis_operations(&task);
+            let requirements = crate::completeness::requirements(&intent);
             let answer = if crate::uk_supplier::is_check(&intent) {
-                parser.analyze_workflow(&operations, &sources, &task.failed_steps).await
+                parser.analyze_workflow(&operations, &sources, &task.failed_steps, &requirements).await
             } else {
-                parser.analyze(&operations, &sources, &task.failed_steps).await
+                parser.analyze(&operations, &sources, &task.failed_steps, &requirements).await
             };
             answer.unwrap_or_else(|_| json!({"status":"unavailable","observations":[],"limitations":[]}))
         }

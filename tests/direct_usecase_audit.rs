@@ -95,7 +95,7 @@ async fn audit_saved_direct_source_answers() {
         let index=id[..2].parse::<usize>().unwrap()-1;
         let operations=planned.as_ref().map(|p|p[index]["intent"]["answer_operations"].clone()).unwrap_or(json!([question]));
         let analysis = if operations.as_array().is_some_and(|v|v.is_empty()) {json!({"status":"not_requested","observations":[],"limitations":[],"presentation":"source_native_tables"})}
-        else {match parser.analyze(&operations,&sources,&failures).await {Ok(a)=>a,Err(e)=>json!({"status":"failed","error":e.to_string()})}};
+        else {match parser.analyze(&operations,&sources,&failures,&[]).await {Ok(a)=>a,Err(e)=>json!({"status":"failed","error":e.to_string()})}};
         let row = json!({"id":id,"question":question,"failures":failures,"mapping_audit":mappings,"analysis_ms":start.elapsed().as_millis(),"analysis":analysis});
         let prefix = if final_run {"final-"} else if planned.is_some() && only.is_some() {"actual-retry-"} else if planned.is_some() {"actual-"} else if only.is_some() { "retry-" } else { "" };
         std::fs::write(

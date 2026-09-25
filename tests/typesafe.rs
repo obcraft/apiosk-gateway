@@ -218,6 +218,7 @@ async fn extractive_answer_uses_saved_value_and_rejected_answer_uses_synthesis()
                 &json!(["Which year does the filing cover?"]),
                 &sources,
                 &BTreeMap::new(),
+                &[],
             )
             .await
             .unwrap();
@@ -235,7 +236,7 @@ async fn extractive_answer_uses_saved_value_and_rejected_answer_uses_synthesis()
         let failures = BTreeMap::from([("missing".into(), json!({"code":"unavailable"}))]);
         assert_eq!(
             parser
-                .analyze(&json!(["Which year?"]), &sources, &failures)
+                .analyze(&json!(["Which year?"]), &sources, &failures, &[])
                 .await
                 .unwrap()["status"],
             "partial"
