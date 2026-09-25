@@ -272,8 +272,19 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     let capabilities_for = |source: &Source| {
         source.offered_capabilities.iter().cloned()
             .chain(executable_capabilities_for(&source.slug))
+            // These names group sources for discovery; they do not create a
+            // runnable contract or grant an unreviewed source membership.
+            .filter(|slug| crate::eu_capabilities::find(slug).is_none())
+            .chain(crate::eu_capabilities::definitions().iter()
+                .filter(|c| c.role(&source.slug) == Some("primary"))
+                .map(|c| c.slug.clone()))
             .collect::<BTreeSet<_>>()
     };
+    let capability_filter = query.capability.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let selected_group = capability_filter.and_then(crate::eu_capabilities::find)
+        .or_else(|| if capability_filter.is_none() {
+            query.search.as_deref().and_then(crate::eu_capabilities::find)
+        } else { None });
     let capabilities: BTreeSet<_> = sources
         .iter()
         .flat_map(|s| capabilities_for(s))
@@ -350,6 +361,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
                     && selected(&query.category, source.categories.iter().chain(std::iter::once(&source.category)))
                     && selected(&query.tag, &source.tags)
                     && selected(&query.sector, &source.sectors)
+                    && selected_group.is_none_or(|group| group.role(&source.slug) == Some("primary"))
                     && capability_selected(&query.capability, capabilities_for(source)))
                 .then_some((score, *index, *source))
             })
@@ -372,6 +384,9 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     }
     // Group before pagination, so a provider cannot fill a page with its services.
     matches.sort_by_key(|(score, rank, index, ..)| (std::cmp::Reverse(*score), *rank, *index));
+    if let Some(group) = selected_group {
+        matches.sort_by_key(|(_, _, _, key, ..)| group.primary_sources.iter().position(|slug| slug == key).unwrap_or(usize::MAX));
+    }
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(20).clamp(1, 50);
     let page: Vec<_> = matches.iter().skip(offset).take(limit).map(|(_, _, _, key, members, matching)| {
@@ -394,6 +409,8 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             "readiness":crate::readiness::assess(catalog, &slugs),
             "available_in_v2":members.iter().any(|(_,s)| !restricted.contains(s.slug.as_str()) && executable.contains(s.slug.as_str())),
             "capabilities":capabilities,"executable_capabilities":executable_capabilities,"input_types":inputs});
+        row["capability_roles"] = json!(crate::eu_capabilities::definitions().iter()
+            .filter_map(|c| c.role(key).map(|role| (&c.slug, role))).collect::<BTreeMap<_, _>>());
         if grouped {
             row["service_count"] = json!(members.len());
             row["matching_service_count"] = json!(matching.len());
@@ -402,15 +419,84 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         row
     }).collect();
     let end = offset.saturating_add(page.len());
+    let group_view = |group: &crate::eu_capabilities::Capability| {
+        let visible = |slugs: &[String]| slugs.iter().filter_map(|slug| sources.iter()
+            .find(|source| source.slug == *slug)
+            .map(|source| json!({"slug":source.slug,"name":source.name}))).collect::<Vec<_>>();
+        json!({"slug":group.slug,"name":group.name,
+            "primary_sources":visible(&group.primary_sources),
+            "supplementary_sources":visible(&group.supplementary_sources)})
+    };
     json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
         "offset":offset,"next_offset":if end < matches.len() {Some(end)} else {None},
         "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
+        "capability_groups":crate::eu_capabilities::definitions().iter().map(group_view).collect::<Vec<_>>(),
+        "selected_capability":selected_group.map(group_view),
         "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under Pulse Network are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."})
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn eu_rows() -> Vec<Source> {
+        let slugs = ["kvk-dutch-business-register", "sirenic", "companies-house", "gleif", "vies", "overheid-io",
+            "ted", "tenderned", "eu-funding-tenders", "cbs-statline", "eurostat", "pdok", "data-overheid-nl", "unrelated"];
+        slugs.iter().rev().map(|slug| serde_json::from_value(json!({
+            "slug":slug,"provider_slug":"apiosk-basics","name":slug,"description":"EU company tender statistics data",
+            "category":"data","tags":[],"sectors":[],"endpoint_count":1,
+            // Provider metadata must not be able to self-enrol in curated groups.
+            "offered_capabilities":["eu.company.profile","eu.tenders.search","eu.statistics.query"]
+        })).unwrap()).collect()
+    }
+
+    #[test]
+    fn european_capabilities_return_only_their_primary_sources_in_order() {
+        let c = catalog();
+        let rows = eu_rows();
+        for (slug, primary, supplementary) in [
+            ("eu.company.profile", vec!["kvk-dutch-business-register", "sirenic", "companies-house"], vec!["gleif", "vies", "overheid-io"]),
+            ("eu.tenders.search", vec!["ted", "tenderned"], vec!["eu-funding-tenders", "sirenic"]),
+            ("eu.statistics.query", vec!["cbs-statline", "eurostat"], vec!["pdok", "data-overheid-nl"]),
+        ] {
+            for query in [SourceQuery { capability: Some(format!(" {} ", slug.to_uppercase())), ..Default::default() },
+                SourceQuery { search: Some(slug.into()), ..Default::default() }] {
+                let result = browse(&rows, &c, &query);
+                let found: Vec<_> = result["sources"].as_array().unwrap().iter().map(|s| s["slug"].as_str().unwrap()).collect();
+                assert_eq!(found, primary);
+                assert_eq!(result["total"], primary.len());
+                let extras: Vec<_> = result["selected_capability"]["supplementary_sources"].as_array().unwrap().iter().map(|s| s["slug"].as_str().unwrap()).collect();
+                assert_eq!(extras, supplementary);
+                for source in result["sources"].as_array().unwrap() {
+                    assert_eq!(source["capability_roles"][slug], "primary");
+                    assert_eq!(source["available_in_v2"], false);
+                    assert_eq!(source["executable_capabilities"], json!([]));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn european_groups_respect_visibility_filters_and_pagination() {
+        let c = catalog();
+        let mut rows = eu_rows();
+        rows.retain(|s| s.slug != "companies-house" && s.slug != "vies");
+        let query = SourceQuery { capability: Some("eu.company.profile".into()), limit: Some(1), ..Default::default() };
+        let first = browse(&rows, &c, &query);
+        assert_eq!(first["total"], 2);
+        assert_eq!(first["next_offset"], 1);
+        assert_eq!(first["sources"][0]["slug"], "kvk-dutch-business-register");
+        assert_eq!(first["selected_capability"]["primary_sources"].as_array().unwrap().len(), 2);
+        assert_eq!(first["selected_capability"]["supplementary_sources"].as_array().unwrap().len(), 2);
+        let second = browse(&rows, &c, &SourceQuery { offset: Some(1), ..query });
+        assert_eq!(second["sources"][0]["slug"], "sirenic");
+        assert!(second["next_offset"].is_null());
+        let excluded = browse(&rows, &c, &SourceQuery { capability: Some("eu.company.profile".into()), category: Some("weather".into()), ..Default::default() });
+        assert_eq!(excluded["total"], 0);
+        let directory = browse(&rows, &c, &SourceQuery::default());
+        let sirenic = directory["sources"].as_array().unwrap().iter().find(|s| s["slug"] == "sirenic").unwrap();
+        assert_eq!(sirenic["capability_roles"]["eu.tenders.search"], "supplementary");
+        assert!(!sirenic["capabilities"].as_array().unwrap().contains(&json!("eu.tenders.search")));
+    }
     #[test]
     fn pulse_services_are_one_source_before_filtering_and_pagination() {
         let mut rows = rows();
