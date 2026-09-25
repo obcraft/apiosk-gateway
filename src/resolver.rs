@@ -193,6 +193,11 @@ fn matches_source(service: &Service, source: &str, catalog: &Catalog) -> bool {
 fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
     constraints.iter().all(|(k, v)| match k.as_str() {
         "source" => v.as_str().is_some_and(|source| matches_source(service, source, catalog)),
+        // Endpoints the person selected in the App: one id or a list.
+        "endpoint_id" => {
+            let selected = |id: &Value| id.as_str().and_then(|id| id.parse::<Uuid>().ok()) == Some(service.endpoint_id);
+            v.as_array().map_or_else(|| selected(v), |ids| ids.iter().any(selected))
+        }
         "jurisdiction" => v
             .as_str()
             .zip(service.jurisdiction.as_deref())

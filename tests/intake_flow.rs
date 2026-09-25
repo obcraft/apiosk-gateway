@@ -174,3 +174,87 @@ async fn intake_counts_characters_not_bytes() {
     assert_eq!(owned, 1, "only the accepted App question created a task");
     println!("intake_counts_characters_not_bytes: 4000 characters accepted on /v2/chat and /v2/ask, 4001 refused");
 }
+
+/// The endpoint id of the fixture service with this capability.
+fn endpoint(capability: &str) -> String {
+    let catalog: Value = serde_json::from_str(include_str!("fixtures/integration-catalog.json")).unwrap();
+    catalog["services"].as_array().unwrap().iter().find(|s| s["contract"]["capability_slug"] == capability).unwrap()["endpoint_id"].as_str().unwrap().to_owned()
+}
+
+fn selection(endpoints: Value) -> Value {
+    json!({"version":1,"mode":"restrict","endpoints":endpoints})
+}
+
+async fn task_count(intake: &Intake, person: &Person) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM tasks WHERE owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap()
+}
+
+/// The App sends its selected endpoints and entered values as structured
+/// context. The model reads them next to the unchanged question; the gateway
+/// pins the plan to those endpoints and binds the entered values.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn selection_restricts_and_binds_without_rewriting_the_question() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let (search, accounts) = (endpoint("company.search"), endpoint("company.accounts"));
+    let question = "Jaarrekening van Example";
+    // Search misses its name, so this is interpreted rather than compiled.
+    let chosen = selection(json!([{"endpoint_id":search,"inputs":[]},
+        {"endpoint_id":accounts,"inputs":[{"fact_type":"company.id","subject_role":"subject","value":"12345678"}]}]));
+    let priced = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":{"selection":chosen}})).await;
+    assert_eq!(priced["status"], "ready", "{priced}");
+    let seen = intake.model.chats();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0]["question"], question, "the question is sent as typed");
+    assert_eq!(seen[0]["selection"]["endpoints"].as_array().unwrap().len(), 2);
+    assert_eq!(seen[0]["selection"]["endpoints"][1]["inputs"][0]["value"], "12345678");
+    assert_eq!(priced["context_view"]["conversation"][0]["question"], question, "the turn keeps the literal question");
+    assert_eq!(priced["proposal"]["steps"], json!(["company.accounts"]), "the entered id makes the search step unnecessary");
+    assert_eq!(priced["proposal"]["max_total_atomic"], "115");
+    let task: Uuid = priced["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let intent: Value = sqlx::query_scalar("SELECT document->'intent' FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(intent["goals"][0]["constraints"]["endpoint_id"], json!(accounts));
+    assert_eq!(intent["subjects"][0]["values"]["company.id"], "12345678");
+
+    // A request outside the selection is not planned with another source.
+    let outside = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null,
+        "context_delta":{"selection":selection(json!([{"endpoint_id":search,"inputs":[]}]))}})).await;
+    assert_eq!(outside["status"], "needs_input", "{outside}");
+    assert!(outside["proposal"].is_null());
+    assert!(outside["context_view"]["conversation"][0]["reply"].as_str().unwrap().contains("company.accounts"), "{outside}");
+    assert_eq!(intake.model.chats().len(), 2);
+    println!("selection_restricts_and_binds_without_rewriting_the_question: pinned to the selected endpoint, entered id bound");
+}
+
+/// A selection that cannot be valid is refused before a task exists or the
+/// model is asked, and a connected chatbot cannot send one at all.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn an_invalid_selection_is_refused_before_interpretation() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let accounts = endpoint("company.accounts");
+    let wrong = selection(json!([{"endpoint_id":accounts,"inputs":[{"fact_type":"company.id","subject_role":"subject","value":12}]}]));
+    let refused = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Example","state":null,"context_delta":{"selection":wrong}})).await;
+    assert_eq!((&refused["status"], &refused["state"]), (&json!("needs_input"), &Value::Null), "{refused}");
+    assert_eq!(refused["errors"][0]["code"], "invalid_selection");
+    assert_eq!((&refused["errors"][0]["endpoint_id"], &refused["errors"][0]["fact_type"]), (&json!(accounts), &json!("company.id")));
+    assert!(intake.model.chats().is_empty());
+    assert_eq!(task_count(&intake, &person).await, 0, "a refused selection creates no task");
+
+    let valid = selection(json!([{"endpoint_id":accounts,"inputs":[]}]));
+    let (_, discovered) = intake.send(&person.bearer, "/v2/discover", Some(json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Example","context_delta":{"selection":valid}}))).await;
+    assert_eq!(codes(&discovered), ["invalid_selection"], "selection is an App chat feature: {discovered}");
+    assert!(intake.model.chats().is_empty());
+
+    // An old gateway rejects the unknown field before claiming the request:
+    // a 422 without a JSON body, which the App answers with the legacy shape.
+    let raw = intake.http.post(format!("{}/v2/chat", intake.gateway)).bearer_auth(&person.bearer)
+        .json(&json!({"request_id":Uuid::new_v4(),"question":"Hallo","state":null,"context_delta":{"selection":{"version":1,"endpoints":[],"unexpected":true}}}))
+        .send().await.unwrap();
+    assert_eq!(raw.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(serde_json::from_str::<Value>(&raw.text().await.unwrap()).is_err());
+    assert_eq!(task_count(&intake, &person).await, 0);
+    println!("an_invalid_selection_is_refused_before_interpretation: no task, no model call");
+}

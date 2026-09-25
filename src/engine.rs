@@ -1,3 +1,4 @@
+mod endpoint_selection;
 mod execute;
 pub(crate) use execute::{analysis_operations, answer_sources};
 pub(crate) mod input;
@@ -44,6 +45,34 @@ fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
     })
 }
 
+/// Leave only the conversation: the reply asks the person for something
+/// before anything can be planned.
+fn clear_plan(task: &mut Task) {
+    task.intent = None;
+    task.proposal = None;
+    task.actions.clear();
+    task.completed.clear();
+    task.failed_steps.clear();
+    task.skipped_steps.clear();
+    task.active_results.clear();
+    task.analysis = None;
+    task.supplier_check = None;
+    task.pending_candidates.clear();
+    task.original_subject = None;
+    task.execution_error = None;
+    task.cancelled = false;
+    task.focus.goal_refs.clear();
+}
+
+/// The reply to this question replaces the model's, or starts its turn.
+fn reply_to(task: &mut Task, question: &str, message: String) {
+    if let Some(turn) = task.conversation.last_mut().filter(|turn| turn.question == question) {
+        turn.reply = Some(message);
+    } else {
+        task.record_turn(question, Some(message));
+    }
+}
+
 impl Engine {
     async fn request_claim(
         &self,
@@ -87,6 +116,12 @@ impl Engine {
                     }
                 };
                 return Response::error(id, status, code, &model.to_string());
+            }
+            if let Some(invalid) = e.downcast_ref::<endpoint_selection::Invalid>() {
+                // Refused before anything was interpreted; the person fixes the selection.
+                let mut r = Response::new(id, Status::NeedsInput);
+                r.errors.push(invalid.error());
+                return r;
             }
             let message = if e.downcast_ref::<sqlx::Error>().is_some() {
                 "Task storage is temporarily unavailable. Recover the task before continuing."
@@ -164,6 +199,11 @@ impl Engine {
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
         anyhow::ensure!(limits::question_ok(&req.question), "invalid question length");
+        let catalog = self.catalog.get().await?;
+        // A selection is checked before any task exists: a refusal creates nothing.
+        let selection = req.context_delta.selection.as_ref()
+            .map(|selection| endpoint_selection::accept(selection, app_chat, req.context_delta.workflow_slug.is_some(), &catalog))
+            .transpose()?;
         let id = if let Some(state) = &req.state {
             self.signer.verify(p.owner, state, true)?;
             if state.expires_at <= Utc::now() {
@@ -207,7 +247,6 @@ impl Engine {
         if !req.context_delta.requested_focus_refs.is_empty() {
             task.focus.entity_refs = req.context_delta.requested_focus_refs.clone()
         }
-        let catalog = self.catalog.get().await?;
         for f in &req.context_delta.explicit_values {
             self.user_fact(
                 &mut task,
@@ -220,6 +259,9 @@ impl Engine {
         let selected_workflow = req.context_delta.workflow_slug.as_deref();
         anyhow::ensure!(selected_workflow.is_none() || (app_chat && req.state.is_none()), "Start a workflow in a new App chat.");
         let conversational_workflow = forced.is_none() && app_chat && (selected_workflow.is_some() || pending_workflow.is_some());
+        if conversational_workflow && selection.is_some() {
+            return Err(endpoint_selection::Invalid::workflow().into());
+        }
         if conversational_workflow {
             task.workflow = match selected_workflow {
                 Some(slug) => {
@@ -236,7 +278,10 @@ impl Engine {
                 return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
             }
         }
-        if forced.is_none() {
+        // Deterministic shortcuts read the question alone; a selection already
+        // says which endpoints may answer it.
+        let shortcuts = forced.is_none() && selection.is_none();
+        if shortcuts {
             if let Some(company) = crate::parser::broad_filing_subject(&req.question) {
                 // This request has no form or topic. The connected filing
                 // operations cannot return a complete filing index, and a
@@ -247,46 +292,21 @@ impl Engine {
                     .unwrap_or_else(|_| format!("Are you looking for a complete list of {company} filings, a particular form, or disclosures on a topic?"));
                 self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
                 task.record_turn(&req.question, Some(message));
-                task.intent = None;
-                task.proposal = None;
-                task.actions.clear();
-                task.completed.clear();
-                task.failed_steps.clear();
-                task.skipped_steps.clear();
-                task.active_results.clear();
-                task.analysis = None;
-                task.supplier_check = None;
-                task.pending_candidates.clear();
-                task.original_subject = None;
-                task.execution_error = None;
-                task.cancelled = false;
-                task.focus.goal_refs.clear();
+                clear_plan(&mut task);
                 self.store.save_intent(p.owner, id, revision, &task).await?;
                 return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
             }
         }
         let mut chat_intent = None;
         // Invoice checks must not depend on the model recognising the wording.
-        let invoice_fallback = if forced.is_none() { crate::supplier_check::fallback_intent(&req.question, &catalog) } else { None };
+        let invoice_fallback = if shortcuts { crate::supplier_check::fallback_intent(&req.question, &catalog) } else { None };
         // A plain invoice check needs no interpretation: skip the model call.
-        let forced = forced.or_else(|| crate::supplier_check::direct_intent(&req.question, &catalog));
-        if app_chat && forced.is_none() && crate::supplier_check::needs_invoice_upload(&req.question, &catalog) {
+        let forced = forced.or_else(|| shortcuts.then(|| crate::supplier_check::direct_intent(&req.question, &catalog)).flatten());
+        if app_chat && shortcuts && forced.is_none() && crate::supplier_check::needs_invoice_upload(&req.question, &catalog) {
             // Deterministic: ask for the invoice in the conversation, no model call.
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, Some(crate::supplier_check::upload_message(&req.question)));
-            task.intent = None;
-            task.proposal = None;
-            task.completed.clear();
-            task.failed_steps.clear();
-            task.skipped_steps.clear();
-            task.active_results.clear();
-            task.analysis = None;
-            task.supplier_check = None;
-            task.pending_candidates.clear();
-            task.original_subject = None;
-            task.execution_error = None;
-            task.cancelled = false;
-            task.focus.goal_refs.clear();
+            clear_plan(&mut task);
             task.actions = vec![serde_json::to_value(Action::Upload { action_id: Uuid::new_v4(), purpose: "invoice".into() })?];
             self.store.save_intent(p.owner, id, revision, &task).await?;
             return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
@@ -303,7 +323,8 @@ impl Engine {
         // App-only behaviour (workflow collection, invoice upload) stays above.
         let interpreted = forced.is_none();
         if interpreted {
-            let mut reply = match (self.parser.chat(&req.question, &task, &catalog).await, &invoice_fallback) {
+            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
+            let mut reply = match (self.parser.chat_selected(&req.question, model_selection.as_ref(), &task, &catalog).await, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
                 (Err(error), None) => return Err(error),
@@ -318,20 +339,7 @@ impl Engine {
             // clarification; a plan runs exactly as its intent asks.
             task.record_turn(&req.question, (app_chat || !reply.discover).then_some(reply.message));
             if !reply.discover {
-                task.intent = None;
-                task.proposal = None;
-                task.actions.clear();
-                task.completed.clear();
-                task.failed_steps.clear();
-            task.skipped_steps.clear();
-                task.active_results.clear();
-                task.analysis = None;
-                task.supplier_check = None;
-                task.pending_candidates.clear();
-                task.original_subject = None;
-                task.execution_error = None;
-                task.cancelled = false;
-                task.focus.goal_refs.clear();
+                clear_plan(&mut task);
                 self.store.save_intent(p.owner, id, revision, &task).await?;
                 return self
                     .view(p, id, req.request_id, Some(Status::NeedsInput))
@@ -347,7 +355,13 @@ impl Engine {
                 (Err(error), None) => return Err(error),
             },
         };
-        if workflow.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
+        if let Some(Err(reason)) = selection.as_ref().map(|selection| selection.bind(&mut intent, &catalog)) {
+            reply_to(&mut task, &req.question, reason);
+            clear_plan(&mut task);
+            self.store.save_intent(p.owner, id, revision, &task).await?;
+            return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
+        }
+        if workflow.is_none() && selection.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
             tracing::info!("invoice question routed to the supplier payment check");
         }
         if !app_chat && !interpreted {
@@ -382,7 +396,9 @@ impl Engine {
         task.execution_error = None;
         let planning = telemetry::span(Phase::Plan).task(id);
         let mut status = self.plan(&mut task, &catalog, &intent)?;
-        if let (false, Resolution::Unsupported(reason)) = (direct, resolver::resolve(&catalog, &task, &intent)) {
+        // A selected endpoint is the person's own choice: the model reviews
+        // neither a direct call nor a selection, and their refusal stands.
+        if let (false, Resolution::Unsupported(reason)) = (direct || selection.is_some(), resolver::resolve(&catalog, &task, &intent)) {
             let review = self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await?;
             if let Some(revised) = review.intent {
                 task.intent = Some(serde_json::to_value(&revised)?);
@@ -392,11 +408,7 @@ impl Engine {
                 task.actions = vec![json!({"kind":"planning_clarification","message":review.message})];
                 status = Status::NeedsInput;
             }
-            if let Some(turn) = task.conversation.last_mut().filter(|turn| turn.question == req.question) {
-                turn.reply = Some(review.message);
-            } else {
-                task.record_turn(&req.question, Some(review.message));
-            }
+            reply_to(&mut task, &req.question, review.message);
         }
         planning.finish(telemetry::Outcome::Ok);
         telemetry::set_query_class(telemetry::classify(&task));
