@@ -188,10 +188,11 @@ impl Engine {
                             analysis_failures.insert(step.key(), json!({"code":"source_result_pending", "source":step.service.name, "message":"This source result is still pending. Its outcome is unknown; do not infer a passed check or a negative match."}));
                         }
                     }
+                    let requirements = crate::completeness::requirements(&intent);
                     let answer = if task.workflow.is_some() || crate::uk_supplier::is_check(&intent) {
-                        self.parser.analyze_workflow(&operations, &sources, &analysis_failures).await
+                        self.parser.analyze_workflow(&operations, &sources, &analysis_failures, &requirements).await
                     } else {
-                        self.parser.analyze(&operations, &sources, &analysis_failures).await
+                        self.parser.analyze(&operations, &sources, &analysis_failures, &requirements).await
                     };
                     match answer {
                         Ok(analysis) => analysis,

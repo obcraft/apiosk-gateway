@@ -16,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
         std::env::var("INTENT_API_KEY")?,
         std::env::var("INTENT_MODEL")?,
     );
-    let answer=parser.analyze(&json!(["How many people live in postcode 3011, according to PDOK? Use the latest available observation and explicitly state its reference period."]),&sources,&Default::default()).await?;
+    let answer=parser.analyze(&json!(["How many people live in postcode 3011, according to PDOK? Use the latest available observation and explicitly state its reference period."]),&sources,&Default::default(),&[]).await?;
     anyhow::ensure!(
         !answer["observations"].as_array().unwrap().is_empty(),
         "missing population answer"

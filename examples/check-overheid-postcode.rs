@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
         std::env::var("INTENT_API_KEY")?,
         std::env::var("INTENT_MODEL")?,
     );
-    let answer = parser.analyze(&json!(["Find addresses in postcode area 3011 using Overheid.io. Give the reported total and a few examples from this page; state that these are addresses, not people."]), &sources, &Default::default()).await?;
+    let answer = parser.analyze(&json!(["Find addresses in postcode area 3011 using Overheid.io. Give the reported total and a few examples from this page; state that these are addresses, not people."]), &sources, &Default::default(), &[]).await?;
     anyhow::ensure!(
         !answer["observations"].as_array().unwrap().is_empty(),
         "missing natural answer"
