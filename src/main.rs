@@ -134,7 +134,7 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .map(|v| v.trim().to_owned())
         .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| "google/gemini-3.8-flash".into());
+        .unwrap_or_else(|| "google/gemma-3-12b-it".into());
     tracing::info!(model=%intent_model, "intent parser configured");
     let engine = Arc::new(Engine {
         store: store.clone(),

@@ -10,7 +10,7 @@ kill_timeout = "120s"
   APP_ORIGIN = "https://app.apiosk.com"
   SUPABASE_URL = "https://api.apiosk.com"
   BIND_ADDRESS = "0.0.0.0:8082"
-  INTENT_MODEL = "google/gemini-3.8-flash"
+  INTENT_MODEL = "google/gemma-3-12b-it"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.
@@ -20,7 +20,7 @@ kill_timeout = "120s"
   EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"
   EMBEDDED_EXECUTOR_PORT = "8080"
   EMBEDDED_RESEARCH_WORKER_PORT = "8081"
-  APIOSK_ENGINE_MODEL = "google/gemini-3.8-flash"
+  APIOSK_ENGINE_MODEL = "google/gemma-3-12b-it"
   RECONCILIATION_POLL_SECONDS = "300"
   # Retired rails: no research worker, no payment-hold or settlement
   # reconciliation loops. See entrypoint.sh.

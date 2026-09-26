@@ -251,7 +251,7 @@ async fn live_parser_binds_company_requests() {
         std::env::var("INTENT_API_URL")
             .unwrap_or_else(|_| "https://openrouter.ai/api/v1/chat/completions".into()),
         std::env::var("INTENT_API_KEY").expect("configured intent model key"),
-        std::env::var("INTENT_MODEL").unwrap_or_else(|_| "google/gemini-3.8-flash".into()),
+        std::env::var("INTENT_MODEL").unwrap_or_else(|_| "google/gemma-3-12b-it".into()),
     );
     let proposed: Snapshot = serde_json::from_value(fixture()).unwrap();
     let mut snapshot: Snapshot = serde_json::from_slice(

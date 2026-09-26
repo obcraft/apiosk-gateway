@@ -814,11 +814,12 @@ impl Parser {
         let mut payload = payload.clone();
         let analysis = surface == "analysis";
         payload["model"] = json!(if analysis { &self.analysis_model } else { &self.model });
-        // Gemma still thinks at "minimal" effort and only hides it, which
-        // took the chat past its 12-second attempt limit; off, it answers in
-        // one to three seconds.
         if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma")) {
-            if payload.get("reasoning").is_some() {
+            // Gemma 3 providers do not support a reasoning parameter. Gemma 4
+            // supports it, but needs thinking disabled to keep chat bounded.
+            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-")) {
+                payload.as_object_mut().unwrap().remove("reasoning");
+            } else if payload.get("reasoning").is_some() {
                 payload["reasoning"] = json!({"enabled": false});
             }
             // Gemma follows the prompt's shape less closely than Gemini (it
@@ -1424,6 +1425,18 @@ mod tests {
         }
         assert!(Parser::new(reqwest::Client::new(), "".into(), "".into(), "fixture".into())
             .with_routing(None, Some("typo".into()), None).is_err());
+    }
+    #[test]
+    fn gemma_3_uses_supported_parameters_and_keeps_output_validation() {
+        let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-3-12b-it".into());
+        let payload = json!({"reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},"response_format":{"type":"json_object"}});
+        for surface in ["chat", "intent", "analysis", "clarification"] {
+            let routed = parser.routed_payload(surface, &payload);
+            assert_eq!(routed["model"], "google/gemma-3-12b-it");
+            assert!(routed.get("reasoning").is_none());
+            assert_eq!(routed["provider"]["require_parameters"], true);
+            assert_eq!(routed["response_format"]["type"], if matches!(surface, "chat" | "intent") { "json_schema" } else { "json_object" });
+        }
     }
     #[test]
     fn gemma_answers_without_thinking_and_other_models_keep_their_effort() {

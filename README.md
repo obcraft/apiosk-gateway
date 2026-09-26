@@ -8,7 +8,9 @@ De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sou
 
 De betaalroute is verder aangescherpt met afzonderlijke ledgerbetaalstatus, exacte kosten/feecontrole, saldotekortafhandeling en weergave van refunds. Zie [betalingen en grenzen van de oude route](docs/payments.md).
 
-De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De geconfigureerde Gemini 3.8 Flash-parser heeft een echte modeltest met uitsluitend synthetische invoer doorstaan. Uitvoering staat standaard uit.
+De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De toen geconfigureerde Gemini 3.8 Flash-parser heeft een echte modeltest met uitsluitend synthetische invoer doorstaan. Uitvoering staat standaard uit.
+
+De huidige standaard voor `INTENT_MODEL` en `APIOSK_ENGINE_MODEL` is `google/gemma-3-12b-it` (Google: Gemma 3 12B). Antwoordanalyse gebruikt hetzelfde model tenzij `ANALYSIS_MODEL` is ingesteld. De App gebruikt deze modellen via de Gateway. Gemma 3-verzoeken laten de niet-ondersteunde reasoning-parameter weg en behouden de bestaande uitvoervalidatie.
 
 De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en gevalideerde uitvoeringscontracten; alle 133 doorstonden de lokale contractvalidatie. De catalogus bevat meer listings/capabilities dan daadwerkelijk ondersteunde uitvoeringscontracten. Een beschikbare listing telt daarom niet automatisch als uitvoerbare dienst.
 

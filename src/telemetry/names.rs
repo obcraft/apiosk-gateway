@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn labels_admit_only_short_slugs() {
-        assert_eq!(label("google/gemini-3.8-flash"), "google/gemini-3.8-flash");
+        assert_eq!(label("google/gemma-3-12b-it"), "google/gemma-3-12b-it");
         assert_eq!(label("kvk:registry-profile"), "kvk:registry-profile");
         for text in ["", "Coolblue B.V.", "a b", "UPPER", "eyJhbGciOi", &"x".repeat(65)] {
             assert_eq!(label(text), "other", "{text}");

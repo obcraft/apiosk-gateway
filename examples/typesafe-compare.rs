@@ -234,7 +234,7 @@ async fn run(
         let model = env
             .get("INTENT_MODEL")
             .cloned()
-            .unwrap_or_else(|| "google/gemini-3.8-flash".into());
+            .unwrap_or_else(|| "google/gemma-3-12b-it".into());
         let parser = Parser::new(
             reqwest::Client::builder()
                 .redirect(reqwest::redirect::Policy::none())
