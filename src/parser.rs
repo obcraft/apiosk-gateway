@@ -337,6 +337,31 @@ pub struct Parser {
     pub calls: AtomicU64,
 }
 
+/// The JSON shape of `Intent`, and of the replies that carry one, for models
+/// that need it enforced. Values and constraints stay open maps; their keys
+/// are checked by `Intent::validate`, not here.
+fn intent_reply_schema(surface: &str) -> Option<Value> {
+    let text = json!({"type":"string"});
+    let intent = json!({"type":"object","additionalProperties":false,
+        "required":["subjects","goals","answer_operations","unresolved_references"],
+        "properties":{
+            "subjects":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["entity_ref","label","values"],
+                "properties":{"entity_ref":{"type":["string","null"]},"label":text,"values":{"type":"object","additionalProperties":{"type":["string","number"]}}}}},
+            "goals":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["capability","subject","constraints"],
+                "properties":{"capability":text,"subject":{"type":"integer","minimum":0},"constraints":{"type":"object"}}}},
+            "answer_operations":{"type":"array","items":text},
+            "unresolved_references":{"type":"array","items":text}}});
+    let optional = json!({"anyOf":[intent,{"type":"null"}]});
+    match surface {
+        "intent" => Some(intent),
+        "chat" => Some(json!({"type":"object","additionalProperties":false,"required":["message","discover","intent"],
+            "properties":{"message":text,"discover":{"type":"boolean"},"intent":optional}})),
+        "planning" => Some(json!({"type":"object","additionalProperties":false,"required":["message","intent"],
+            "properties":{"message":text,"intent":optional}})),
+        _ => None,
+    }
+}
+
 fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
     json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":catalog.parser_view(),
         "source_groups":crate::eu_capabilities::catalog_view(catalog)})
@@ -789,6 +814,21 @@ impl Parser {
         let mut payload = payload.clone();
         let analysis = surface == "analysis";
         payload["model"] = json!(if analysis { &self.analysis_model } else { &self.model });
+        // Gemma still thinks at "minimal" effort and only hides it, which
+        // took the chat past its 12-second attempt limit; off, it answers in
+        // one to three seconds.
+        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma")) {
+            if payload.get("reasoning").is_some() {
+                payload["reasoning"] = json!({"enabled": false});
+            }
+            // Gemma follows the prompt's shape less closely than Gemini (it
+            // wrote answer_operations as objects), so it gets the schema.
+            if payload["response_format"]["type"] == "json_object" {
+                if let Some(schema) = intent_reply_schema(surface) {
+                    payload["response_format"] = json!({"type":"json_schema","json_schema":{"name":surface.replace('-', "_"),"strict":false,"schema":schema}});
+                }
+            }
+        }
         if url::Url::parse(&self.url).is_ok_and(|url| url.host_str() == Some("openrouter.ai")) {
             let sort = if analysis { &self.analysis_provider_sort } else { &self.intent_provider_sort };
             if let Some(sort) = sort {
@@ -1384,6 +1424,26 @@ mod tests {
         }
         assert!(Parser::new(reqwest::Client::new(), "".into(), "".into(), "fixture".into())
             .with_routing(None, Some("typo".into()), None).is_err());
+    }
+    #[test]
+    fn gemma_answers_without_thinking_and_other_models_keep_their_effort() {
+        let payload = json!({"reasoning":{"effort":"minimal","exclude":true}});
+        let routed = |model: &str| Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), model.into())
+            .routed_payload("chat", &payload);
+        assert_eq!(routed("google/gemma-4-26b-a4b-it")["reasoning"], json!({"enabled": false}));
+        assert_eq!(routed("google/gemini-3.8-flash")["reasoning"], payload["reasoning"]);
+        assert!(routed("google/gemma-4-26b-a4b-it").pointer("/reasoning").is_some());
+        let without = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-4-26b-a4b-it".into())
+            .routed_payload("chat", &json!({}));
+        assert!(without.get("reasoning").is_none(), "a payload without reasoning gets none added");
+        let json_mode = json!({"response_format":{"type":"json_object"}});
+        let gemma = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-4-26b-a4b-it".into());
+        let chat = gemma.routed_payload("chat", &json_mode);
+        assert_eq!(chat["response_format"]["type"], "json_schema");
+        assert_eq!(chat["response_format"]["json_schema"]["schema"]["properties"]["intent"]["anyOf"][0]["properties"]["answer_operations"]["items"]["type"], "string");
+        assert_eq!(gemma.routed_payload("analysis", &json_mode)["response_format"], json_mode["response_format"], "only intent-carrying replies get the schema");
+        let gemini = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemini-3.8-flash".into());
+        assert_eq!(gemini.routed_payload("chat", &json_mode)["response_format"], json_mode["response_format"]);
     }
     #[test]
     fn chat_keeps_the_complete_catalog_once() {
