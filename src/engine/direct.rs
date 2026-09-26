@@ -3,6 +3,39 @@ use crate::parser::{Goal, Subject};
 use std::collections::BTreeMap;
 
 impl Engine {
+    /// A structured European request is a fixed multi-goal intent. It enters
+    /// the ordinary planner and saved quote flow; no provider is called here.
+    pub async fn structured_capability(
+        &self,
+        p: &Principal,
+        request_id: Uuid,
+        capability: &str,
+        input: &BTreeMap<String, Value>,
+        operations: &[(String, String)],
+    ) -> anyhow::Result<Response> {
+        if let Some(r) = self.request_claim(p, request_id,
+            &digest(&("structured-capability", p.connection, capability, input, operations)), "capability").await? {
+            return Ok(r);
+        }
+        let label = input.get("company.name").or_else(|| input.get("company.nl.registered_name"))
+            .or_else(|| input.get("eurostat.input.dataset"))
+            .and_then(Value::as_str).unwrap_or(capability).chars().take(120).collect();
+        let intent = Intent {
+            subjects: vec![Subject { entity_ref: None, label, values: input.clone() }],
+            goals: operations.iter().map(|(source, operation)| Goal {
+                capability: operation.clone(), subject: 0,
+                constraints: BTreeMap::from([("source".into(), json!(source))]),
+            }).collect(),
+            answer_operations: vec![format!("Answer {capability} from the saved source results. Merge records only when stable identifiers match, deduplicate repeated records, and preserve each source's retrieval time, source URL and provenance. Mark unavailable fields as unknown; do not infer an unverified match.")],
+            unresolved_references: vec![],
+        };
+        let request = DiscoverRequest { request_id,
+            question: format!("{capability} structured request"), state: None,
+            context_delta: ContextDelta::default() };
+        let result = self.intake(p, &request, false, Some((intent, None))).await;
+        Ok(self.complete(p, request_id, result).await)
+    }
+
     /// A direct source call: the caller names the source, the operation and
     /// the inputs, so no model interprets a question. It is a one-goal intent
     /// pinned to that source, priced by the same planner and run by the same

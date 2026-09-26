@@ -195,6 +195,23 @@ async fn organisation_key_public_api() {
         assert_eq!(sources["selected_capability"]["slug"], capability);
         assert!(sources["sources"].as_array().unwrap().iter().all(|s| s["available_in_v2"] == false));
     }
+    let (status, resolved) = api.post("/v2/capabilities/resolve", READ_ONLY,
+        json!({"capability":"eu.tenders.search","country":"NL","input":{}}), None).await;
+    assert_eq!(status, 200, "{resolved}");
+    assert_eq!(resolved["capability"], "eu.tenders.search");
+    assert_eq!(resolved["ready_source_count"], 0, "published metadata alone must not yield a runnable source");
+    let (status, refused) = api.post("/v2/capabilities/resolve", READ_ONLY,
+        json!({"capability":"eu.tenders.search","country":"Netherlands"}), None).await;
+    assert_eq!((status, refused["error"]["code"].as_str()), (400, Some("invalid_country")));
+    let (status, refused) = api.post("/v2/capabilities/resolve", READ_ONLY,
+        json!({"capability":"eu.statistics.query","country":"NL","input":{"eurostat.input.geo":"DE"}}), None).await;
+    assert_eq!((status, refused["error"]["code"].as_str()), (400, Some("country_mismatch")));
+    let (status, no_contract) = api.post("/v2/capabilities/plan", KEY,
+        json!({"capability":"eu.tenders.search","country":"NL","input":{}}), None).await;
+    assert_eq!((status, no_contract["error"]["code"].as_str()), (422, Some("capability_needs_input")), "{no_contract}");
+    let (status, no_scope) = api.post("/v2/capabilities/plan", READ_ONLY,
+        json!({"capability":"eu.tenders.search","country":"NL","input":{}}), None).await;
+    assert_eq!((status, no_scope["error"]["required_scope"].as_str()), (403, Some("ask:create")));
     assert_eq!(fixture.provider.load(Ordering::SeqCst), 0, "capability discovery cannot purchase data");
     let (status, source) = api.get("/v2/sources/fixture", READ_ONLY).await;
     assert_eq!(status, 200, "{source}");
@@ -458,4 +475,43 @@ async fn organisation_key_public_api() {
     assert_eq!((status,error["error"]["code"].as_str()),(409,Some("run_cancelled")));
     assert_eq!(fixture.provider.load(Ordering::SeqCst),after_search);
     println!("PASS continuation boundaries: expired quote, revoked approval and cancellation never buy or approve again");
+
+    // Add one accepted KVK operation to the isolated catalog, then prove the
+    // structured capability path quotes and runs through the same worker.
+    let endpoint_id = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.capabilities(slug,status) VALUES('company_registry.search','active') ON CONFLICT DO NOTHING")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.api_endpoints(id,api_id,method,path,price,active) SELECT $1,id,'GET','/api/v2/zoeken',0.000020,true FROM public.apis WHERE slug='kvk-dutch-business-register'")
+        .bind(endpoint_id).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model,produces,adapter_version) SELECT $1,$2,'company_registry.search',version,'active',requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,now(),effect,price_model,produces,adapter_version FROM public.capability_execution_contracts WHERE capability_slug='company.search' LIMIT 1")
+        .bind(Uuid::new_v4()).bind(endpoint_id).execute(&pool).await.unwrap();
+    let sirenic_endpoint = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.capabilities(slug,status) VALUES('company.eu-registry-search','active') ON CONFLICT DO NOTHING")
+        .execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.api_endpoints(id,api_id,method,path,price,active) SELECT $1,id,'GET','/v1/eu/recherche',0.000020,true FROM public.apis WHERE slug='sirenic'")
+        .bind(sirenic_endpoint).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model,produces,adapter_version) SELECT $1,$2,'company.eu-registry-search',version,'active',requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,now(),effect,price_model,produces,adapter_version FROM public.capability_execution_contracts WHERE capability_slug='company.search' LIMIT 1")
+        .bind(Uuid::new_v4()).bind(sirenic_endpoint).execute(&pool).await.unwrap();
+    let (pilot, _) = start_api(&pool, &base).await;
+    let before_capability = fixture.provider.load(Ordering::SeqCst);
+    let input = json!({"capability":"eu.company.profile","country":"NL","input":{"company.name":"Example"}});
+    let (status, resolved) = pilot.post("/v2/capabilities/resolve", READ_ONLY, input.clone(), None).await;
+    assert_eq!(status, 200, "{resolved}");
+    assert_eq!(resolved["ready_source_count"], 2, "{resolved}");
+    let (status, planned) = pilot.post("/v2/capabilities/plan", KEY, input, Some("european-profile-1")).await;
+    assert_eq!((status, planned["status"].as_str()), (200, Some("requires_approval")), "{planned}");
+    assert_eq!(planned["plan"]["steps"][0]["source_id"], "kvk-dutch-business-register");
+    assert_eq!(planned["plan"]["steps"][1]["source_id"], "sirenic");
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before_capability, "planning is free");
+    let id = planned["id"].as_str().unwrap();
+    let (status, completed) = pilot.post(&format!("/v2/asks/{id}/run"), KEY, json!({"max_spend":1}), None).await;
+    assert_eq!((status, completed["status"].as_str()), (200, Some("completed")), "{completed}");
+    assert_eq!(completed["capability"], "eu.company.profile");
+    assert_eq!(completed["results"][0]["metadata"]["source_id"], "kvk-dutch-business-register");
+    assert_eq!(completed["results"][1]["metadata"]["source_id"], "sirenic");
+    let facts = completed["normalized_records"][0]["facts"].as_array().expect("extracted facts");
+    assert!(facts.iter().any(|fact| fact["sources"][0]["source_id"] == "kvk-dutch-business-register"
+        && fact["sources"][0]["retrieved_at"].is_string() && fact["expires_at"].is_string()), "{completed}");
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), before_capability + 2);
+    println!("PASS Alexandria capability: two endpoint fits, one priced plan and approval, two provider calls and source metadata");
 }

@@ -90,11 +90,11 @@ await db.exec(`CREATE SCHEMA IF NOT EXISTS catalog; CREATE TABLE catalog.capabil
 await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN adapter_version text; GRANT SELECT(adapter_version) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915150000_supplier_invoice_checks.sql',import.meta.url),'utf8'));
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915160000_workflow_runs_and_document_uploads.sql',import.meta.url),'utf8'));
-// Every gateway migration from 2026-09-25 on runs here in timestamp order, so
-// a new runtime table is exercised without editing this adapter. A name
-// ending in `_prod_only.sql` needs production catalogue rows and is skipped.
+// Runtime migrations from 2026-09-25 on run here in timestamp order. The
+// Eurostat data migration requires the full production catalog, which this
+// isolated runtime fixture deliberately does not load.
 const migrations=new URL('../supabase/migrations/',import.meta.url);
-for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')).sort()) {
+for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
 }
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));

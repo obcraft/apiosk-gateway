@@ -440,8 +440,8 @@ mod tests {
         let rows = eu_rows();
         for (slug, primary, supplementary) in [
             ("eu.company.profile", vec!["kvk-dutch-business-register", "sirenic", "companies-house"], vec!["gleif", "vies", "overheid-io"]),
-            ("eu.tenders.search", vec!["ted", "tenderned"], vec!["eu-funding-tenders", "sirenic"]),
-            ("eu.statistics.query", vec!["cbs-statline", "eurostat"], vec!["pdok", "data-overheid-nl"]),
+            ("eu.tenders.search", vec!["ted", "tenderned"], vec!["sirenic"]),
+            ("eu.statistics.query", vec!["cbs-statline", "eurostat"], vec!["data-overheid-nl"]),
         ] {
             for query in [SourceQuery { capability: Some(format!(" {} ", slug.to_uppercase())), ..Default::default() },
                 SourceQuery { search: Some(slug.into()), ..Default::default() }] {

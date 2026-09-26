@@ -3,18 +3,36 @@
     "slug": "eu.company.profile",
     "name": "European company profile",
     "primary_sources": ["kvk-dutch-business-register", "sirenic", "companies-house"],
-    "supplementary_sources": ["gleif", "vies", "overheid-io"]
+    "supplementary_sources": ["gleif", "vies", "overheid-io"],
+    "source_operations": {
+      "kvk-dutch-business-register": ["company.registry-profile", "company_registry.search"],
+      "sirenic": ["company.registry-profile", "company.eu-registry-search", "company.fr-registry-search"],
+      "companies-house": ["company.registry-profile", "company.uk-registry-search"],
+      "gleif": ["company.legal-entity-search", "company.lei-verification"],
+      "vies": ["vat.eu.validate"],
+      "overheid-io": ["company_registry.search", "company_registry.lookup"]
+    }
   },
   {
     "slug": "eu.tenders.search",
     "name": "European tender search",
     "primary_sources": ["ted", "tenderned"],
-    "supplementary_sources": ["eu-funding-tenders", "sirenic"]
+    "supplementary_sources": ["sirenic"],
+    "source_operations": {
+      "ted": ["procurement.ted-kvk-notices", "procurement.ted-rsin-notices"],
+      "tenderned": ["procurement.nl-public-contracts", "procurement.company-name-mentions", "procurement.rsin-mentions"],
+      "sirenic": ["company.sirenic-entreprise-siren-marches-publics", "company.sirenic-entreprise-siren-marches-publics-ue"]
+    }
   },
   {
     "slug": "eu.statistics.query",
     "name": "European statistics",
     "primary_sources": ["cbs-statline", "eurostat"],
-    "supplementary_sources": ["pdok", "data-overheid-nl"]
+    "supplementary_sources": ["data-overheid-nl"],
+    "source_operations": {
+      "cbs-statline": ["statistics.cbs-datasets", "statistics.cbs-company-counts", "statistics.cbs-bankruptcies", "statistics.cbs-business-closures", "statistics.cbs-sector-income", "statistics.cbs-sector-balance", "statistics.cbs-turnover-trend", "statistics.cbs-construction-annual"],
+      "eurostat": ["statistics.eurostat-data", "statistics.eurostat-dataset-search"],
+      "data-overheid-nl": ["data.catalog-search", "data.dataset-metadata"]
+    }
   }
 ]

@@ -255,6 +255,207 @@ fn operations<'a>(catalog: &'a Catalog, slugs: &[String]) -> Vec<Vec<&'a Service
     grouped
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CapabilityResolve {
+    capability: String,
+    #[serde(default)]
+    country: Option<String>,
+    #[serde(default)]
+    input: BTreeMap<String, Value>,
+    #[serde(default)]
+    operation: Option<String>,
+}
+
+/// Resolve a European capability against accepted endpoint contracts. This is
+/// free catalog discovery: no quote, provider call or implicit purchase.
+pub async fn resolve_capability(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
+    if let Err(response) = context(&state, &headers, &["sources:read"]).await { return response; }
+    let req: CapabilityResolve = match parse(&body) { Ok(req) => req, Err(response) => return response };
+    let Some(group) = crate::eu_capabilities::find(&req.capability) else {
+        return problem(StatusCode::NOT_FOUND, "capability_not_found", "Unknown European capability.");
+    };
+    if req.operation.as_deref().is_some_and(|operation| !group.source_operations.values().any(|ops| ops.iter().any(|op| op == operation))) {
+        return problem(StatusCode::UNPROCESSABLE_ENTITY, "invalid_capability_operation", "This operation is not part of the selected European capability.");
+    }
+    let country = req.country.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_ascii_uppercase);
+    if country.as_ref().is_some_and(|c| c.len() != 2 || !c.bytes().all(|b| b.is_ascii_uppercase())) {
+        return problem(StatusCode::BAD_REQUEST, "invalid_country", "country must be a two-letter ISO country code.");
+    }
+    if country.as_ref().is_some_and(|country| ["company.country_code", "company.search.country_code", "vat.eu.country_code"]
+        .iter().any(|field| req.input.get(*field).and_then(Value::as_str)
+            .is_some_and(|value| !value.eq_ignore_ascii_case(country)))
+        || (group.slug == "eu.statistics.query" && req.input.get("eurostat.input.geo").and_then(Value::as_str)
+            .is_some_and(|geo| !geo.eq_ignore_ascii_case(crate::eu_capabilities::eurostat_geo(country))))) {
+        return problem(StatusCode::BAD_REQUEST, "country_mismatch", "country conflicts with a country code in input.");
+    }
+    let Ok(_permit) = state.permits.try_acquire() else { return busy() };
+    let (sources, catalog) = match tokio::try_join!(state.engine.catalog.sources(), state.engine.catalog.get()) {
+        Ok(both) => both,
+        Err(error) => return unavailable("catalog", &error),
+    };
+    let accepted_fields: std::collections::BTreeSet<&str> = catalog.services.iter()
+        .filter(|service| group.source_operations.get(&service.api_slug)
+            .is_some_and(|operations| operations.contains(&service.contract.capability_slug)))
+        .flat_map(|service| service.contract.requires.iter().map(|r| r.fact_type.as_str()))
+        .collect();
+    let unknown: Vec<&str> = req.input.keys().filter(|field| !accepted_fields.contains(field.as_str())).map(String::as_str).collect();
+    if !unknown.is_empty() {
+        return problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_capability_input", "Input contains fields that no accepted operation of this capability uses.", json!({"unknown":unknown}));
+    }
+    Json(capability_candidates(group, country.as_deref(), &req.input, req.operation.as_deref(), &sources, &catalog)).into_response()
+}
+
+fn capability_candidates(group: &crate::eu_capabilities::Capability, country: Option<&str>, input: &BTreeMap<String, Value>, operation: Option<&str>, sources: &[crate::sources::Source], catalog: &Catalog) -> Value {
+    let effective_input = crate::eu_capabilities::enriched_input(group, country, input);
+    let source_rows: Vec<Value> = group.primary_sources.iter().chain(&group.supplementary_sources)
+        .filter_map(|slug| {
+            let source = sources.iter().find(|s| &s.slug == slug)?;
+            let allowed = group.source_operations.get(slug)?;
+            let role = group.role(slug)?;
+            let mut routes = Vec::new();
+            for service in catalog.services.iter().filter(|s| &s.api_slug == slug && allowed.contains(&s.contract.capability_slug) && operation.is_none_or(|op| s.contract.capability_slug == op) && !s.unverified) {
+                if !country_fits(slug, &service.contract.capability_slug, country) { continue; }
+                let expected: std::collections::BTreeSet<&str> = service.contract.requires.iter().map(|r| r.fact_type.as_str()).collect();
+                let supplied: serde_json::Map<String, Value> = effective_input.iter().filter(|(key, _)| expected.contains(key.as_str())).map(|(key, value)| (key.clone(), value.clone())).collect();
+                let missing: Vec<&str> = service.contract.requires.iter().filter(|r| !r.optional && !supplied.contains_key(&r.fact_type)).map(|r| r.fact_type.as_str()).collect();
+                let invalid: Vec<&str> = service.contract.requires.iter().filter(|r| supplied.get(&r.fact_type).is_some_and(|value| catalog.vocabulary.get(&r.fact_type).is_none_or(|fact| catalog_core::facts::schema::validate(&fact.value_schema, value).is_err()))).map(|r| r.fact_type.as_str()).collect();
+                routes.push(json!({
+                    "operation": service.contract.capability_slug,
+                    "endpoint_id": service.endpoint_id,
+                    "method": service.method,
+                    "path": service.path,
+                    "required_input": service.contract.requires.iter().filter(|r| !r.optional).map(|r| r.fact_type.as_str()).collect::<Vec<_>>(),
+                    "inputs": inputs_json(service, catalog),
+                    "input": supplied,
+                    "missing_input": missing,
+                    "invalid_input": invalid,
+                    "ready": missing.is_empty() && invalid.is_empty(),
+                    "output": service.contract.output_map.produces.keys().collect::<Vec<_>>(),
+                    "freshness_seconds": service.freshness_seconds,
+                    "price": money(service.total()),
+                    "run_url": format!("/v2/sources/{}/run", service.api_slug),
+                }));
+            }
+            if routes.is_empty() { return None; }
+            let ready = routes.iter().any(|r| r["ready"] == true);
+            Some(json!({"source_id":slug,"name":source.name,"role":role,"ready":ready,"operations":routes}))
+        }).collect();
+    let ready_sources = source_rows.iter().filter(|s| s["ready"] == true).count();
+    json!({"capability":group.slug,"country":country,"sources":source_rows,"ready_source_count":ready_sources,
+        "notice":"Only active runtime-accepted endpoint contracts are shown. Matching is free; use the listed run URL with an exact operation and review its price before execution. A run calls one source."})
+}
+
+fn country_fits(source: &str, operation: &str, country: Option<&str>) -> bool {
+    match country {
+        None => true,
+        Some(country) => match source {
+            "kvk-dutch-business-register" | "overheid-io" | "tenderned" | "cbs-statline" | "data-overheid-nl" | "ted" => country == "NL",
+            "companies-house" => country == "GB",
+            "sirenic" if operation == "company.fr-registry-search" || operation.starts_with("company.sirenic-entreprise-siren-") => country == "FR",
+            _ => true,
+        },
+    }
+}
+
+/// Choose at most one exact endpoint operation per source. Primary sources
+/// are preferred; supplementary calls require their own identifying input.
+fn capability_plan<'a>(group: &crate::eu_capabilities::Capability, country: Option<&str>, input: &BTreeMap<String, Value>, operation: Option<&str>, catalog: &'a Catalog) -> Vec<&'a Service> {
+    let effective = crate::eu_capabilities::enriched_input(group, country, input);
+    let mut selected = Vec::new();
+    for slug in group.primary_sources.iter().chain(&group.supplementary_sources) {
+        let Some(allowed) = group.source_operations.get(slug) else { continue };
+        let supplementary = group.role(slug) == Some("supplementary");
+        if supplementary && !selected.is_empty() && !match slug.as_str() {
+            "gleif" => input.contains_key("company.registration.lei"),
+            "vies" => input.contains_key("vat.eu.number"),
+            "sirenic" => input.contains_key("company.registration.fr.siren"),
+            "data-overheid-nl" => input.keys().any(|key| key.starts_with("donl.input.")),
+            _ => false,
+        } { continue; }
+        for op in allowed {
+            if operation.is_some_and(|requested| requested != op) { continue; }
+            // A metric-free statistics request must not silently buy the CBS
+            // dataset index as though it answered an observation question.
+            if group.slug == "eu.statistics.query" && slug == "cbs-statline" && operation.is_none() { continue; }
+            let service = catalog.services.iter().filter(|s| s.api_slug == *slug && s.contract.capability_slug == *op && !s.unverified
+                && country_fits(slug, op, country)).find(|service| {
+                    let fields: Vec<&str> = service.contract.requires.iter().map(|r| r.fact_type.as_str()).collect();
+                    let consumed = input.keys().any(|key| fields.contains(&key.as_str()));
+                    let explicit_statistic = input.is_empty() && group.slug == "eu.statistics.query" && operation == Some(op.as_str());
+                    let dutch_browse = input.is_empty() && group.slug == "eu.tenders.search" && slug == "tenderned" && country == Some("NL");
+                    if !consumed && !explicit_statistic && !dutch_browse { return false; }
+                    service.contract.requires.iter().all(|r| {
+                        let value = effective.get(&r.fact_type);
+                        (r.optional || value.is_some()) && value.is_none_or(|v| catalog.vocabulary.get(&r.fact_type)
+                            .is_some_and(|fact| catalog_core::facts::schema::validate(&fact.value_schema, v).is_ok()))
+                    })
+                });
+            if let Some(service) = service { selected.push(service); break; }
+        }
+        if selected.len() >= 8 { break; }
+    }
+    selected
+}
+
+/// Build one saved, quoted plan from structured input. The existing
+/// `/v2/asks/{id}/run` endpoint is the single approval/execution step.
+pub async fn plan_capability(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
+    plan_capability_inner(&state, &headers, &body).await.unwrap_or_else(|response| response)
+}
+async fn plan_capability_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answer {
+    let ctx = context(state, headers, &["ask:create"]).await?;
+    let req: CapabilityResolve = parse(body)?;
+    let group = crate::eu_capabilities::find(&req.capability)
+        .ok_or_else(|| problem(StatusCode::NOT_FOUND, "capability_not_found", "Unknown European capability."))?;
+    if req.operation.as_deref().is_some_and(|op| !group.source_operations.values().any(|ops| ops.iter().any(|allowed| allowed == op))) {
+        return Err(problem(StatusCode::UNPROCESSABLE_ENTITY, "invalid_capability_operation", "This operation is not part of the selected European capability."));
+    }
+    let country = req.country.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_ascii_uppercase);
+    if country.as_ref().is_some_and(|c| c.len() != 2 || !c.bytes().all(|b| b.is_ascii_uppercase())) {
+        return Err(problem(StatusCode::BAD_REQUEST, "invalid_country", "country must be a two-letter ISO country code."));
+    }
+    if country.as_ref().is_some_and(|country| ["company.country_code", "company.search.country_code", "vat.eu.country_code"]
+        .iter().any(|field| req.input.get(*field).and_then(Value::as_str)
+            .is_some_and(|value| !value.eq_ignore_ascii_case(country)))
+        || (group.slug == "eu.statistics.query" && req.input.get("eurostat.input.geo").and_then(Value::as_str)
+            .is_some_and(|geo| !geo.eq_ignore_ascii_case(crate::eu_capabilities::eurostat_geo(country))))) {
+        return Err(problem(StatusCode::BAD_REQUEST, "country_mismatch", "country conflicts with a country code in input."));
+    }
+    let catalog = state.engine.catalog.get().await.map_err(|error| unavailable("catalog", &error))?;
+    let accepted_fields: std::collections::BTreeSet<&str> = catalog.services.iter()
+        .filter(|service| group.source_operations.get(&service.api_slug)
+            .is_some_and(|ops| ops.contains(&service.contract.capability_slug)))
+        .flat_map(|service| service.contract.requires.iter().map(|r| r.fact_type.as_str())).collect();
+    let unknown: Vec<&str> = req.input.keys().filter(|field| !accepted_fields.contains(field.as_str())).map(String::as_str).collect();
+    if !unknown.is_empty() {
+        return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "invalid_capability_input", "Input contains fields that no accepted operation of this capability uses.", json!({"unknown":unknown})));
+    }
+    let selected = capability_plan(group, country.as_deref(), &req.input, req.operation.as_deref(), &catalog);
+    if selected.is_empty() {
+        return Err(problem(StatusCode::UNPROCESSABLE_ENTITY, "capability_needs_input", "No operation fits these inputs. Resolve the capability to see supported fields; nothing was charged."));
+    }
+    let selected_fields: std::collections::BTreeSet<&str> = selected.iter()
+        .flat_map(|service| service.contract.requires.iter().map(|r| r.fact_type.as_str())).collect();
+    let unused: Vec<&str> = req.input.keys().filter(|key| !selected_fields.contains(key.as_str())).map(String::as_str).collect();
+    if !unused.is_empty() {
+        return Err(problem_with(StatusCode::UNPROCESSABLE_ENTITY, "unused_capability_input", "No selected operation applies these input fields. Nothing was charged.", json!({"unused":unused})));
+    }
+    let input: BTreeMap<String, Value> = crate::eu_capabilities::enriched_input(group, country.as_deref(), &req.input)
+        .into_iter().filter(|(field, _)| selected_fields.contains(field.as_str())).collect();
+    let steps: Vec<(String, String)> = selected.iter().map(|s| (s.api_slug.clone(), s.contract.capability_slug.clone())).collect();
+    let request = request_id(headers, &ctx, "capabilities/plan")?;
+    let response = {
+        let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
+        state.engine.structured_capability(&ctx.principal, request, &group.slug, &input, &steps).await
+            .map_err(|error| unavailable("capability plan", &error))?
+    };
+    if let Some(refusal) = refused_by_engine(&response) { return Err(refusal); }
+    let id = response.state.as_ref().map(|s| s.state_ref)
+        .ok_or_else(|| problem(StatusCode::SERVICE_UNAVAILABLE, "service_unavailable", "The capability plan could not be saved. Retry with the same Idempotency-Key."))?;
+    finish(state, &ctx, id, Duration::ZERO, None, None).await
+}
+
 /// The request body of a direct call, bound to the fact types one variant
 /// takes. A caller may use the fact type (`company.name`), the name the
 /// source's own API uses (`naam`), or the unambiguous last word (`name`).
@@ -851,6 +1052,11 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
         "balance": { "remaining": r.billing.as_ref().and_then(|b| micro(&b["balance_available"])).map(money) },
         "errors": r.errors,
     });
+    if let Some(capability) = task.conversation.last().and_then(|turn| turn.question.strip_suffix(" structured request"))
+        .and_then(crate::eu_capabilities::find) {
+        body["capability"] = json!(capability.slug);
+        body["normalized_records"] = normalized_records(&task, &results);
+    }
     // A direct call asks one source one thing; its document is the answer.
     if let [single] = results.as_slice() {
         body["data"] = single["data"].clone();
@@ -885,6 +1091,85 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
         }
     }
     Ok(body)
+}
+
+/// Present contract-extracted facts as records. Subjects merge only when they
+/// share the same country-specific or globally unique identifier, never a
+/// name. Equal facts retain every source reference.
+fn normalized_records(task: &crate::state::Task, results: &[Value]) -> Value {
+    let references: BTreeMap<&str, &Value> = results.iter()
+        .filter_map(|result| result["result_ref"].as_str().map(|reference| (reference, result)))
+        .collect();
+    let current: Vec<_> = task.facts.iter().filter_map(|fact| {
+        if fact.provenance["kind"] != "provider_response" { return None; }
+        let reference = fact.provenance["result_ref"].as_str()?;
+        Some((fact, reference, *references.get(reference)?))
+    }).collect();
+    let mut parents: BTreeMap<String, String> = current.iter().map(|(fact, _, _)| {
+        let id = fact.entity_ref.to_string(); (id.clone(), id)
+    }).collect();
+    let mut identifiers: BTreeMap<(String, String), String> = BTreeMap::new();
+    for (fact, _, _) in &current {
+        if !stable_record_identifier(&fact.semantic_type) { continue; }
+        let Some(value) = fact.value.as_str().map(str::trim).filter(|value| !value.is_empty()) else { continue; };
+        let subject = fact.entity_ref.to_string();
+        let key = (fact.semantic_type.to_ascii_lowercase(), value.to_ascii_uppercase());
+        if let Some(previous) = identifiers.get(&key) {
+            let root = record_root(&parents, &subject);
+            let previous_root = record_root(&parents, previous);
+            if root != previous_root { parents.insert(root, previous_root); }
+        } else { identifiers.insert(key, subject); }
+    }
+    let mut records: BTreeMap<String, (std::collections::BTreeSet<String>, Vec<Value>)> = BTreeMap::new();
+    for (fact, reference, result) in current {
+        let subject = fact.entity_ref.to_string();
+        let root = record_root(&parents, &subject);
+        let (members, facts) = records.entry(root).or_default();
+        members.insert(subject);
+        let source = json!({
+            "source_id": result["metadata"]["source_id"],
+            "result_ref": reference,
+            "source_url": result["metadata"]["source_url"],
+            "retrieved_at": result["metadata"]["retrieved_at"],
+            "source_pointer": fact.provenance["source_pointer"],
+        });
+        if let Some(existing) = facts.iter_mut().find(|existing| existing["type"] == fact.semantic_type && existing["value"] == fact.value) {
+            let sources = existing["sources"].as_array_mut().expect("normalized fact sources");
+            if !sources.contains(&source) { sources.push(source); }
+            if fact.expires_at < existing["expires_at"].as_str().and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                .map(|date| date.with_timezone(&chrono::Utc)).unwrap_or(fact.expires_at) {
+                existing["expires_at"] = json!(fact.expires_at);
+            }
+        } else {
+            facts.push(json!({
+                "type": fact.semantic_type,
+                "value": fact.value,
+                "observed_at": fact.observed_at,
+                "expires_at": fact.expires_at,
+                "sources": [source],
+            }));
+        }
+    }
+    json!(records.into_iter().map(|(entity_ref, (entity_refs, facts))| json!({
+        "entity_ref": entity_ref,
+        "entity_refs": entity_refs,
+        "facts": facts,
+    })).collect::<Vec<_>>())
+}
+
+fn record_root(parents: &BTreeMap<String, String>, id: &str) -> String {
+    let mut root = id;
+    while let Some(parent) = parents.get(root) {
+        if parent == root { break; }
+        root = parent;
+    }
+    root.to_owned()
+}
+
+fn stable_record_identifier(kind: &str) -> bool {
+    let kind = kind.to_ascii_lowercase();
+    ["kvk", "rsin", "lei", "siren", "siret", "companies_house"]
+        .iter().any(|marker| kind.contains(marker))
 }
 
 /// Fact types that identify a subject rather than describe it.
@@ -1130,6 +1415,31 @@ mod tests {
     }
 
     #[test]
+    fn capability_resolution_returns_only_matching_runtime_operations() {
+        let mut catalog = fixture();
+        catalog.services[0].api_slug = "kvk-dutch-business-register".into();
+        catalog.services[0].contract.capability_slug = "company_registry.search".into();
+        catalog.services[1].api_slug = "kvk-dutch-business-register".into();
+        catalog.services[1].contract.capability_slug = "company.accounts".into();
+        let rows = vec![source("kvk-dutch-business-register", None, "KVK")];
+        let group = crate::eu_capabilities::find("eu.company.profile").unwrap();
+        let empty = capability_candidates(group, Some("NL"), &BTreeMap::new(), None, &rows, &catalog);
+        assert_eq!(empty["sources"][0]["operations"].as_array().unwrap().len(), 1);
+        assert_eq!(empty["sources"][0]["operations"][0]["missing_input"], json!(["company.name"]));
+        assert_eq!(empty["ready_source_count"], 0);
+        let ready = capability_candidates(group, Some("NL"), &BTreeMap::from([("company.name".into(), json!("Mollie B.V."))]), None, &rows, &catalog);
+        assert_eq!(ready["ready_source_count"], 1);
+        assert_eq!(ready["sources"][0]["operations"][0]["operation"], "company_registry.search");
+        assert_eq!(ready["sources"][0]["operations"][0]["input"]["company.name"], "Mollie B.V.");
+        let chosen = capability_plan(group, Some("NL"), &BTreeMap::from([("company.name".into(), json!("Mollie B.V."))]), None, &catalog);
+        assert_eq!(chosen.len(), 1);
+        assert_eq!(chosen[0].contract.capability_slug, "company_registry.search");
+        let wrong_country = capability_candidates(group, Some("GB"), &BTreeMap::new(), None, &rows, &catalog);
+        assert_eq!(wrong_country["sources"], json!([]));
+        assert!(capability_plan(group, Some("GB"), &BTreeMap::from([("company.name".into(), json!("Mollie B.V."))]), None, &catalog).is_empty());
+    }
+
+    #[test]
     fn a_grouped_provider_is_a_source_id_like_any_other() {
         let mut catalog = fixture();
         catalog.services[0].api_slug = "signalpulse".into();
@@ -1173,6 +1483,45 @@ mod tests {
         let mut bounded = Vec::new();
         collect_links(&many, &mut bounded);
         assert_eq!(bounded.len(), 10);
+    }
+
+    #[test]
+    fn normalized_records_combine_exact_facts_and_keep_both_sources() {
+        let entity = Uuid::new_v4();
+        let matching_entity = Uuid::new_v4();
+        let other_entity = Uuid::new_v4();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let c = Uuid::new_v4();
+        let now = chrono::Utc::now();
+        let fact = |entity_ref: Uuid, result_ref: Uuid, kind: &str, value: &str| crate::state::Fact {
+            entity_ref,
+            semantic_type: kind.into(),
+            value: json!(value),
+            provenance: json!({"kind":"provider_response","result_ref":result_ref,"source_pointer":"/company/kvk"}),
+            observed_at: now,
+            expires_at: now + chrono::Duration::hours(1),
+            verification: "source_observed".into(),
+        };
+        let task = crate::state::Task { facts: vec![
+            fact(entity, a, "company.registration.kvk", "123"),
+            fact(entity, a, "company.name", "Same name"),
+            fact(matching_entity, b, "company.registration.kvk", "123"),
+            fact(matching_entity, b, "company.registration.kvk", "456"),
+            fact(other_entity, c, "company.name", "Same name"),
+        ], ..Default::default() };
+        let results = vec![
+            json!({"result_ref":a,"metadata":{"source_id":"kvk","retrieved_at":now,"source_url":"https://kvk.test/123"}}),
+            json!({"result_ref":b,"metadata":{"source_id":"other","retrieved_at":now,"source_url":"https://other.test/123"}}),
+            json!({"result_ref":c,"metadata":{"source_id":"third","retrieved_at":now,"source_url":"https://third.test/name"}}),
+        ];
+        let records = normalized_records(&task, &results);
+        assert_eq!(records.as_array().unwrap().len(), 2, "an unverified name never joins a record");
+        let merged = records.as_array().unwrap().iter().find(|record| record["entity_refs"].as_array().unwrap().len() == 2).unwrap();
+        let facts = merged["facts"].as_array().unwrap();
+        assert_eq!(facts.len(), 3);
+        assert_eq!(facts[0]["sources"].as_array().unwrap().len(), 2);
+        assert!(facts.iter().any(|fact| fact["value"] == "Same name" && fact["sources"].as_array().unwrap().len() == 1));
     }
 
     #[test]

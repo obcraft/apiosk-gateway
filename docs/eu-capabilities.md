@@ -1,15 +1,33 @@
 # European capability source groups
 
 Deployed to Gateway v2 and MCP on 2026-09-25. The canonical source membership is
-`contracts/eu-capabilities.json`. These are discovery groups, not new execution
-contracts. The existing planner, source restrictions, prices and approval flow
-are unchanged.
+`contracts/eu-capabilities.json`. These are curated source groups, not new
+execution contracts. The existing planner, source restrictions, prices and
+approval flow are unchanged. `POST /v2/capabilities/resolve` accepts structured
+input and returns only fitting runtime-accepted endpoint contracts without a
+provider call or charge.
+`POST /v2/capabilities/plan` uses the same structured body to choose
+runtime-accepted operations, save one priced multi-source plan, and return its
+total ceiling. `POST /v2/asks/{id}/run` is the one explicit approval and
+execution step. Exact CBS observation operations need an `operation` selector;
+the planner does not infer a metric from a country alone.
+Eurostat data accepts an explicit dataset code plus `country`; the resolver
+fills `eurostat.input.geo`, mapping ISO `GR`/`GB` to Eurostat `EL`/`UK`.
+Capability plans and runs return `normalized_records` from contract-extracted
+provider facts, grouped by subject. Subjects with matching stable identifiers
+are joined; exact duplicate facts retain each source reference, retrieval time
+and freshness expiry. The original documents stay in `results` for inspection.
 
 - `eu.company.profile`: KVK, Sirenic, Companies House. Supplementary: GLEIF,
   VIES, Overheid.io.
-- `eu.tenders.search`: TED, TenderNed. Supplementary: EU Funding & Tenders,
-  Sirenic.
-- `eu.statistics.query`: CBS, Eurostat. Supplementary: PDOK, Data.overheid.nl.
+- `eu.tenders.search`: TED, TenderNed. Supplementary: Sirenic.
+- `eu.statistics.query`: CBS, Eurostat. Supplementary: Data.overheid.nl.
+
+TED currently has organisation-notice lookups by KVK/RSIN, not a general
+notice-search execution contract. TenderNed has Dutch public-contract browse.
+EU Funding & Tenders returns funding calls rather than procurement notices.
+PDOK returns geospatial data, not statistical observations. The endpoint
+allowlist in `contracts/eu-capabilities.json` keeps unrelated operations out.
 
 The authenticated `GET /v2/sources?capability=<slug>` route returns published
 primary sources only, before pagination, with supplemental membership in

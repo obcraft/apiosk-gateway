@@ -77,6 +77,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
         .route("/v2/sources", get(sources))
+        .route("/v2/capabilities/resolve", post(crate::public_api::resolve_capability))
+        .route("/v2/capabilities/plan", post(crate::public_api::plan_capability))
         .route("/v2/sources/:source_id/endpoints", get(source_endpoints))
         .route("/v1/source-readiness", get(source_readiness))
         .route("/v2/follow-up", post(followup))
