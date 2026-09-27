@@ -452,7 +452,7 @@ pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
     parsed
         .capabilities
         .iter()
-        .filter(|capability| capability.slug != "general.conversation" && !crate::capability_intake::is_app_action(&capability.slug))
+        .filter(|capability| capability.slug != "general.conversation")
         .map(|capability| {
             let query = capability_query(capability, parsed, &empty_task);
             let mut generic = capability.clone();

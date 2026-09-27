@@ -81,8 +81,8 @@ pub(super) async fn disconnect(State(state): State<ServerState>, headers: Header
 }
 
 /// What the person's connected apps can do, in the planner's capability shape.
-/// The App adds these slugs to Ask's known slugs so a request like "post it in
-/// Slack" plans `app.slack.sendMessage` instead of inventing a data lookup.
+/// The Ask page matches a question against these ("post it in Slack" →
+/// `app.slack.sendMessage`) after planning; the planner itself never sees them.
 pub(super) async fn actions(State(state): State<ServerState>, headers: HeaderMap) -> Response {
     let (owner, composio) = match (person(&state, &headers).await, client()) {
         (Ok(owner), Ok(composio)) => (owner, composio),

@@ -33,7 +33,7 @@ POST /v2/integrations/{toolkit}/disconnect
 `status` is `connected`, `expired` (reconnect) or `not_connected`.
 
 An agent that calls `connect` shows `redirect_url` to its person. After consent
-Composio sends the browser to `{APP_ORIGIN}/connections?integration={toolkit}`,
+Composio sends the browser to `{APP_ORIGIN}/integrations?integration={toolkit}`,
 which re-reads the list. The callback is never taken from the caller.
 
 Each Apiosk account is Composio user `apiosk_user_{owner_uuid}`. Every list and
@@ -55,11 +55,17 @@ POST /v2/integrations/actions/{slug}/execute      # App session: { arguments }
   "tool": "SLACK_SEND_MESSAGE", "inputs": ["channel", "markdown_text"], "outputs": […], "input_schema": { … } }
 ```
 
-- The Ask page passes these slugs to the planner as known slugs, and `app` is a
-  planner domain (`contracts/ask-v2-webgpu-*`, kept identical to the App's
-  parser by `app/tests/lib/ask-v2-parser/gateway-contract.test.ts`).
-- `app.*` capabilities never reach source search (`capability_intake::is_app_action`).
-  The App matches each one to a found action and shows a card for it.
+- The planner never sees these actions: its prompt, schema and speed are the
+  same with or without connected apps. The Ask page reads the question itself
+  (`findAppActions` in `app/src/lib/domain/integrations.ts`) for an app named as
+  the place of an action ("in Slack", "to my Google Sheet", "a HubSpot contact")
+  next to a writing verb, and adds the matching action to the capabilities
+  object. Source search still receives the planner's request unchanged.
+  Measured on 30 questions × 3 runs with `google/gemma-3-4b-it`: offering the
+  actions to the planner added ~19% latency (more output tokens) and dropped
+  the data half of 4/18 mixed questions; reading the question does neither.
+- Only non-destructive write actions are offered (`is_write_action`): reads
+  would compete with source search for data questions, and deletes never run.
 - `prepare` asks the model for arguments from the question and the purchased
   results (`contracts/action-arguments-prompt.txt`). Keys outside the schema
   are dropped, and empty required keys are reported in `missing`. Nothing runs.

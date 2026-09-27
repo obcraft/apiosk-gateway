@@ -25,7 +25,6 @@ const DOMAINS: &[&str] = &[
     "procurement",
     "document",
     "research",
-    "app",
     "general",
 ];
 const FORMATS: &[&str] = &["chat", "pdf", "xlsx", "docx", "json"];
@@ -502,17 +501,11 @@ pub fn capability_query(cap: &Capability, parsed: &ParsedRequest, task: &Task) -
         .collect()
 }
 
-/// A connected-app action (`app.slack.sendMessage`). The App runs these through
-/// the person's own integrations; no catalog source or Bazaar offer fulfils one.
-pub fn is_app_action(slug: &str) -> bool {
-    slug.starts_with("app.")
-}
-
 pub fn queries(parsed: &ParsedRequest, task: &Task) -> BTreeMap<String, String> {
     parsed
         .capabilities
         .iter()
-        .filter(|c| c.slug != "general.conversation" && !is_app_action(&c.slug))
+        .filter(|c| c.slug != "general.conversation")
         .map(|c| (c.slug.clone(), capability_query(c, parsed, task)))
         .collect()
 }
