@@ -102,17 +102,6 @@ impl Engine {
         self.sign_research_report(owner, id, quote, &document)
     }
 
-    pub async fn research_report_link(
-        &self,
-        owner: Uuid,
-        id: Uuid,
-        task: &Task,
-        quote: Uuid,
-    ) -> anyhow::Result<Value> {
-        let document = self.research_document(owner, id, task, quote).await?;
-        self.sign_research_report(owner, id, quote, &document)
-    }
-
     fn sign_research_report(
         &self,
         owner: Uuid,

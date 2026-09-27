@@ -27,7 +27,7 @@ Boards larger than five, truncated rosters and unsupported roles are reported as
 - `CHECK_FULL_CATALOG=1 cargo run --example check-uk-supplier-planner -- <env-file>` reads the current production catalog and calls the configured intent model; it never calls sources or debits customer balances. The exact prompt resolved across 321 services to the twelve intended steps before publication.
 - MCP has 198 passing tests and card v48 (ChatGPT v14), with coverage notices before approval.
 - The staged migration leaves the new source/endpoint disabled and eight contracts at `validated`. Publish only after runtime deployment and successful free production-egress probes.
-- `/usr/local/bin/check-uk-vat` checks a known positive and a published candidate through the same normalizer. A source-egress check is not a paid buyer-flow or settlement test.
+- `check_uk_vat` checks a known positive and a published candidate through the same normalizer. It is no longer in the gateway image; run it locally with `cargo run --manifest-path legacy-executor/Cargo.toml --bin check_uk_vat`. A source-egress check is not a paid buyer-flow or settlement test.
 
 The live paid Anthropic execution requires the buyer's explicit approval. Neither fixtures nor free source checks establish a supplier clearance.
 

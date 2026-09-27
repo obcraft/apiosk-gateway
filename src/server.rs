@@ -76,7 +76,6 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
                 }
             }),
         )
-        .route("/v2/meta", get(crate::routes::intake::meta))
         .route("/v2/requests/:request_id", get(request_receipt))
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
@@ -134,7 +133,6 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/workflows", get(workflows))
         .route("/v2/workflows/:slug/start", post(start_workflow))
         .route("/v2/workflows/runs", get(workflow_runs))
-        .route("/v2/workflows/runs/:id", get(workflow_run))
         .layer(cors)
         // EventSource runs inside the host's embedded card origin. The signed
         // task capability is read-only; keep bearer/approval routes app-only.
@@ -358,7 +356,7 @@ async fn source_endpoints(
         Err(refusal) => return failure(refusal.status, refusal.code, refusal.message),
     }
     if !query.valid() || source_id.len() > 100 || !source_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
-        return failure(StatusCode::BAD_REQUEST, "invalid_query", "Use a source slug, up to 200 search characters, and a limit from 1 to 100.");
+        return failure(StatusCode::BAD_REQUEST, "invalid_query", "Use a source slug, an optional service slug, up to 200 search characters, and a limit from 1 to 100.");
     }
     match state.engine.catalog.get().await {
         Ok(catalog) => match crate::sources::endpoint_page(&state.engine.store.pool, &catalog, &source_id, &query).await {
@@ -734,17 +732,6 @@ async fn workflow_runs(State(state): State<ServerState>, headers: HeaderMap, Que
     match state.engine.workflow_runs(&p, query.workflow.as_deref()).await {
         Ok(runs) => Json(runs).into_response(),
         Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "history_unavailable", "Workflow history could not be loaded. Try again."),
-    }
-}
-async fn workflow_run(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>) -> HttpResponse {
-    let p = match app_person(&state, &headers).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
-    match state.engine.workflow_run(&p, id).await {
-        Ok(Some(run)) => Json(run).into_response(),
-        Ok(None) => failure(StatusCode::NOT_FOUND, "run_unavailable", "This workflow run is not available for this account."),
-        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "history_unavailable", "The workflow run could not be loaded. Try again."),
     }
 }
 async fn followup(

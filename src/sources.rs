@@ -110,6 +110,9 @@ impl SourceQuery {
 pub struct EndpointQuery {
     pub search: Option<String>,
     pub capabilities: Option<String>,
+    /// One service of a grouped source (a Pulse Network listing), by its
+    /// listing slug. Absent, the page spans every service of the source.
+    pub service: Option<String>,
     pub offset: Option<usize>,
     pub limit: Option<usize>,
 }
@@ -117,8 +120,14 @@ impl EndpointQuery {
     pub fn capabilities(&self) -> Vec<&str> {
         self.capabilities.as_deref().map(|s| s.split(',').collect()).unwrap_or_default()
     }
+    /// The listing slug to narrow to, or `""` for every service. The SQL
+    /// treats `""` as no filter, so an absent parameter changes nothing.
+    pub fn service(&self) -> &str {
+        self.service.as_deref().unwrap_or("")
+    }
     pub fn valid(&self) -> bool {
         self.search.as_ref().is_none_or(|s| s.chars().count() <= 200)
+            && self.service.as_ref().is_none_or(|s| !s.is_empty() && s.len() <= 100 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.')))
             && self.capabilities.as_ref().is_none_or(|s| !s.is_empty() && s.len() <= 16_000)
             && self.capabilities().len() <= 128
             && self.capabilities().iter().all(|s| !s.is_empty() && s.len() <= 200 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-' | b'_')))
@@ -140,6 +149,7 @@ pub async fn endpoint_page(pool: &PgPool, catalog: &Catalog, source_id: &str, qu
         .bind(limit as i64)
         .bind(offset as i64)
         .bind(query.capabilities())
+        .bind(query.service())
         .fetch_one(pool).await?;
     mark_available(&mut result, catalog);
     let count = result["items"].as_array().map(Vec::len).unwrap_or(0);
@@ -824,6 +834,33 @@ mod tests {
             assert!(!EndpointQuery {capabilities:Some(invalid.into()),..Default::default()}.valid(), "{invalid}");
         }
         assert!(EndpointQuery::default().capabilities().is_empty());
+    }
+    #[test]
+    fn endpoint_service_filter_is_an_optional_bounded_listing_slug() {
+        // Absent, the query binds "" and the SQL keeps every service of the
+        // source, so pages without the parameter are unchanged.
+        assert_eq!(EndpointQuery::default().service(), "");
+        assert!(EndpointQuery::default().valid());
+        for slug in ["pulse-company-lookup", "kvk", "cbs_statline", "api.v2"] {
+            let query = EndpointQuery {service:Some(slug.into()), ..Default::default()};
+            assert!(query.valid(), "{slug}");
+            assert_eq!(query.service(), slug);
+        }
+        for invalid in ["", "a b", "x%", "x'", "a,b", "x/y", &"x".repeat(101)] {
+            assert!(!EndpointQuery {service:Some(invalid.into()),..Default::default()}.valid(), "{invalid}");
+        }
+        let query: EndpointQuery = serde_json::from_value(json!({"service":"pulse-company-lookup","limit":40})).unwrap();
+        assert_eq!(query.service(), "pulse-company-lookup");
+    }
+    #[test]
+    fn endpoint_sql_narrows_to_one_listing_only_when_a_service_is_given() {
+        let sql = include_str!("source_endpoints.sql");
+        // $6 is the service slug bound by `endpoint_page`; "" disables it.
+        assert!(sql.contains("AND ($6='' OR a.slug=$6)"));
+        // It narrows the matched set, before totals and paging are computed.
+        let matched_end = sql.find("), filtered AS").unwrap();
+        assert!(sql.find("$6").unwrap() < matched_end);
+        assert_eq!(sql.matches("$6").count(), 2);
     }
 
 }

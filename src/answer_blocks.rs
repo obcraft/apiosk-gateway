@@ -21,8 +21,6 @@ pub const MAX_BLOCKS: usize = 12;
 /// including six archived turns, must stay within `Task::bounded` (1 MiB).
 pub const MAX_BLOCKS_BYTES: usize = 96 * 1024;
 pub const MAX_QUOTE_BYTES: usize = 1024;
-pub const MAX_DERIVATIONS: usize = 32;
-pub const MAX_DERIVATION_INPUTS: usize = 200;
 pub const MAX_COLLECTION_ROWS: usize = 200;
 pub const MAX_EXPLICIT_ROWS: usize = 50;
 pub const MAX_COLUMNS: usize = 8;
@@ -37,8 +35,6 @@ pub const MAX_TIMELINE_EVENTS: usize = 200;
 pub const MAX_PROFILE_ITEMS: usize = 24;
 pub const MAX_RELATION_NODES: usize = 60;
 pub const MAX_RELATION_EDGES: usize = 120;
-pub const MAX_MISSING_INFORMATION: usize = 12;
-pub const MAX_CLARIFICATION_OPTIONS: usize = 6;
 
 fn is_false(value: &bool) -> bool {
     !*value

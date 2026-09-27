@@ -20,16 +20,9 @@ kill_timeout = "120s"
   WORKSPACE_CONTEXT_ENABLED = "true"
   EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"
   EMBEDDED_EXECUTOR_PORT = "8080"
-  EMBEDDED_RESEARCH_WORKER_PORT = "8081"
   APIOSK_ENGINE_MODEL = "google/gemma-3-12b-it"
-  RECONCILIATION_POLL_SECONDS = "300"
-  # Retired rails: no research worker, no payment-hold or settlement
-  # reconciliation loops. See entrypoint.sh.
-  RESEARCH_WORKER_DISABLED = "true"
-  RECONCILIATION_DISABLED = "true"
-  # Two embedded executor processes share the same 60-connection database.
-  # Each gets 4 request + 1 log + 2 telemetry connections; with v2 (16)
-  # and reconciliation (2), this app is capped at 32 connections in total.
+  # The one embedded executor process shares the 60-connection database with
+  # v2; it gets 4 request + 1 log + 2 telemetry connections.
   GATEWAY_DB_POOL_SIZE = "4"
   GATEWAY_LOG_POOL_SIZE = "1"
 

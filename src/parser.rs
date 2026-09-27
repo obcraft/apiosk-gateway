@@ -345,8 +345,6 @@ pub struct Parser {
     analysis_model: String,
     intent_provider_sort: Option<String>,
     analysis_provider_sort: Option<String>,
-    typesafe: Option<crate::typesafe::Client>,
-    pub usage: crate::typesafe::Usage,
     cache: moka::future::Cache<String, Arc<Intent>>,
     pub calls: AtomicU64,
 }
@@ -780,17 +778,6 @@ impl Parser {
         requirements: &[Requirement],
     ) -> anyhow::Result<Value> {
         if failures.is_empty() {
-            if let Some(client) = &self.typesafe {
-                if client.mode() == crate::typesafe::Mode::On {
-                    if let Some(answer) = client.analyze(operations, sources).await { return Ok(answer); }
-                } else {
-                    let (candidate, baseline) = tokio::join!(client.analyze(operations, sources), self.analyze_with_scope(operations, sources, failures, false, requirements));
-                    tracing::info!(surface = "analysis", candidate_available = candidate.is_some(), baseline_available = baseline.is_ok(), "typesafe shadow comparison");
-                    return baseline;
-                }
-            }
-        }
-        if failures.is_empty() && self.typesafe.is_none() {
             if let Some(answer) = empty_source_analysis(sources) { return Ok(answer); }
         }
         self.analyze_with_scope(operations, sources, failures, false, requirements).await
@@ -876,18 +863,12 @@ impl Parser {
             bazaar_search_url: crate::capability_intake::BAZAAR_SEARCH.into(),
             intent_provider_sort: None,
             analysis_provider_sort: None,
-            typesafe: None,
-            usage: crate::typesafe::Usage::default(),
             cache: moka::future::Cache::builder()
                 .max_capacity(1024)
                 .time_to_live(Duration::from_secs(600))
                 .build(),
             calls: AtomicU64::new(0),
         }
-    }
-    pub fn with_typesafe(mut self, config: Option<crate::typesafe::Config>) -> anyhow::Result<Self> {
-        self.typesafe = config.map(crate::typesafe::Client::new).transpose()?;
-        Ok(self)
     }
     pub fn with_ask_v2(mut self, client: crate::ask_v2::Client) -> Self {
         self.ask_v2 = Some(client);
@@ -907,9 +888,6 @@ impl Parser {
         anyhow::ensure!(parsed.scheme() == "http" && parsed.host_str() == Some("127.0.0.1"), "fixture discovery must be loopback");
         self.bazaar_search_url = url;
         Ok(self)
-    }
-    pub fn typesafe_usage(&self) -> crate::typesafe::UsageSnapshot {
-        self.typesafe.as_ref().map(|client| client.usage.snapshot()).unwrap_or_default()
     }
     /// Explicit stage routing; defaults preserve the configured model. Provider
     /// sorting is an OpenRouter extension and is never sent to other endpoints.
@@ -962,8 +940,6 @@ impl Parser {
     ) -> anyhow::Result<ChatReply> {
         self.chat_selected(question, None, task, catalog).await
     }
-    /// The shadow interpreter does not read a selection; a selected question
-    /// always takes the baseline route, which does.
     pub async fn chat_selected(
         &self,
         question: &str,
@@ -974,17 +950,6 @@ impl Parser {
         if selection.is_none() {
             if let Some(reply) = crate::eu_capabilities::browse_reply(question, catalog) {
                 return Ok(reply);
-            }
-        }
-        if let (Some(client), None) = (&self.typesafe, selection) {
-            if client.mode() == crate::typesafe::Mode::On {
-                if let Some(decision) = client.parse(question, task, catalog).await {
-                    return Ok(ChatReply { message: decision.message, discover: true, intent: Some(decision.intent) });
-                }
-            } else {
-                let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.chat_baseline(question, None, task, catalog));
-                shadow_intent(candidate.as_ref().map(|d| &d.intent), baseline.as_ref().ok().and_then(|r| r.intent.as_ref()));
-                return baseline;
             }
         }
         self.chat_baseline(question, selection, task, catalog).await
@@ -1231,7 +1196,6 @@ impl Parser {
         let work = async {
             let mut attempt_payload = payload.clone();
             for attempt in 1..=2 {
-                self.usage.request();
                 let mut call = crate::telemetry::model_call(surface, attempt, payload["model"].as_str().unwrap_or_default(), input_bytes);
                 let response = self
                     .http
@@ -1245,7 +1209,6 @@ impl Parser {
                     Ok(response) if response.status().is_success() => {
                         match bounded_json_sized(response, 65536).await {
                             Ok((body, output_bytes)) => {
-                                self.usage.completion(&body);
                                 call.received(&body, output_bytes);
                                 let choice = body.pointer("/choices/0");
                                 let finish = choice.and_then(|c| c["finish_reason"].as_str());
@@ -1411,23 +1374,11 @@ impl Parser {
             &context,
             &catalog.version,
             &self.model,
-            self.typesafe.as_ref().map(|client| client.fingerprint()),
             "parser-v2.6",
         ));
         crate::telemetry::set_parser_cache(if self.cache.contains_key(&key) { Cache::Hit } else { Cache::Miss });
         let intent=self.cache.try_get_with(key,async {
             self.calls.fetch_add(1,Ordering::Relaxed);
-            if let Some(client) = &self.typesafe {
-                if client.mode() == crate::typesafe::Mode::On {
-                    if let Some(decision) = client.parse(question, task, catalog).await {
-                        return Ok::<_,anyhow::Error>(Arc::new(decision.intent));
-                    }
-                } else {
-                    let (candidate, baseline) = tokio::join!(client.parse(question, task, catalog), self.parse_baseline(question, task, catalog));
-                    shadow_intent(candidate.as_ref().map(|d| &d.intent), baseline.as_ref().ok());
-                    return baseline.map(Arc::new);
-                }
-            }
             self.parse_baseline(question, task, catalog).await.map(Arc::new)
         }).await.map_err(|e| anyhow::Error::new(e.downcast_ref::<ModelFailure>().cloned().unwrap_or(ModelFailure::Unavailable)))?;
         Ok((*intent).clone())
@@ -1495,11 +1446,6 @@ fn empty_source_analysis(sources: &[Value]) -> Option<Value> {
         .then(|| json!({"status":"partial","observations":[],"limitations":[
             "The returned source response contains no usable records for this question. No finding can be supported from it."
         ]}))
-}
-fn shadow_intent(candidate: Option<&Intent>, baseline: Option<&Intent>) {
-    let core = |intent: &Intent| digest(&(&intent.subjects, &intent.goals, &intent.unresolved_references));
-    let agreement = candidate.zip(baseline).map(|(left, right)| core(left) == core(right));
-    tracing::info!(surface = "intent", candidate_available = candidate.is_some(), baseline_available = baseline.is_some(), core_agreement = agreement, "typesafe shadow comparison");
 }
 pub async fn bounded_json(response: reqwest::Response, limit: usize) -> anyhow::Result<Value> {
     Ok(bounded_json_sized(response, limit).await?.0)

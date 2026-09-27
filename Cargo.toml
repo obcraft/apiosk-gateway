@@ -16,7 +16,6 @@ axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
 tokio-stream = "0.1"
-tower = { version = "0.4", features = ["util", "limit"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
@@ -47,3 +46,4 @@ codegen-units = 1
 
 [dev-dependencies]
 roxmltree = "=0.20.0"
+tower = { version = "0.4", features = ["util", "limit"] }

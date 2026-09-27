@@ -170,8 +170,8 @@ pub enum Settlement {
     Refunded { refunded_micro_usd: Option<i64> },
 }
 
-/// The numeric usage fields of an OpenAI-compatible envelope, or of the
-/// typesafe endpoint's `input_tokens`/`output_tokens`.
+/// The numeric usage fields of an OpenAI-compatible envelope, or of an
+/// endpoint that reports `input_tokens`/`output_tokens`.
 pub(crate) struct Usage {
     pub prompt: Option<u64>,
     pub completion: Option<u64>,

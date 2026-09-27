@@ -124,7 +124,7 @@ What Apiosk pays per check: KVK €0.02, OpenSanctions €0.10, and AI extractio
 
 **Adapter tests** (`legacy-executor: cargo test --bin apiosk-gateway domain_intel`) run on real RDAP/DNS fixtures. They cover host pinning and path/query rejection.
 
-**Production-egress probe:** `check-domain-intelligence` in the image, and `cargo run --bin check_domain_intelligence` locally.
+**Egress probe:** `cargo run --manifest-path legacy-executor/Cargo.toml --bin check_domain_intelligence`, run locally. The probe is no longer in the gateway image.
 
 **Real model + production catalog** (`cargo run --example check-supplier-payment`, read-only):
 - 4 invoice questions plan correctly through both the MCP parser and the Ask chat.
@@ -145,6 +145,6 @@ What Apiosk pays per check: KVK €0.02, OpenSanctions €0.10, and AI extractio
 1. `20260915150000_supplier_invoice_checks.sql`: supplier invoice history table.
 2. `20260915150100_onboard_domain_intelligence.sql`: RDAP/DNS source staged as inactive.
 3. `20260915160000_workflow_runs_and_document_uploads.sql`: workflow run history and temporary document uploads.
-4. `20260915150200_publish_domain_intelligence.sql`: activates the domain source. Apply only after the gateway image with the adapter is deployed and `check-domain-intelligence` passes on production egress.
+4. `20260915150200_publish_domain_intelligence.sql`: activates the domain source. Apply only after the gateway image with the adapter is deployed and the `check_domain_intelligence` egress probe above passes.
 
 Migrations 1–3 must be applied before deploying the new gateway, because the code reads those tables. `20260915090000_welcome_credit_eligibility.sql` is also pending remotely; it is unrelated to this feature and was not touched.

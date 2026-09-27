@@ -11,6 +11,7 @@ WITH matched AS (
  WHERE a.status='active' AND coalesce(a.active,true) AND a.is_verified=true
    AND coalesce(a.discoverable,true) AND a.suspended_at IS NULL
    AND (($1='pulsenetwork' AND p.username='pulsenetwork') OR ($1<>'pulsenetwork' AND a.slug=$1))
+   AND ($6='' OR a.slug=$6)
    AND ($2='' OR concat_ws(' ',a.name,a.slug,e.method,e.path,e.description,e.endpoint_category,
         array_to_string(e.tags,' '),array_to_string(e.use_cases,' ')) ILIKE '%' || $2 || '%')
 ), filtered AS (

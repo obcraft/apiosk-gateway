@@ -31,6 +31,7 @@ Copy the newest state unchanged, including signature, revision, expiry and focus
 | `needs_selection` | Show the returned candidates and ask which entity is intended. Use `select_entity` with `{"entity_ref": <returned reference>}`. Do not guess the first match. |
 | `requires_approval` | Show the plan and exact total, and wait for the person to approve in the interactive card when `context_view.approval_mode` is `chatbot`. Otherwise offer `proposal.approval_url`. After approval, the server continues automatically. If a legacy external approval leaves an offered continuation, start it once using its current action and quote reference; the backend handles all remaining calls. |
 | `running` | With server execution, the card receives events and the backend continues. Do not issue execute or poll loops. Use apiosk_status only when current saved evidence is needed. For a legacy server without execution_mode=server, follow its offered poll action and retry_after_ms. Never buy again to check progress. |
+| `cancelled` | Explain that no further source calls will start. Preserve and report any results, charges or receipts already saved; cancellation does not erase them. |
 | `succeeded` | Answer from returned evidence. Use offered result reads if details are needed. |
 | `partial` | Answer the supported part and state missing fields, entities, periods or truncation. Do not imply complete coverage. |
 | `unsupported` | Explain the specific limitation. Ask before changing the requested source or scope. |
@@ -49,7 +50,7 @@ The person approves one exact total ceiling in the chat card under the spending 
 
 A request ID belongs to one exact request. Preserve it for an identical transport retry. A changed state, input or approval situation needs a new request ID. The adapter generates one when omitted. Preserve the action ID and idempotency key on paid-action retries; the adapter defaults the key to the action ID.
 
-If state is lost, expired or a response was interrupted, call `apiosk_execute` with ONLY `recover_task_ref` set to the previous `state.state_ref`. Recovery reads; it does not parse, approve or buy. Continue from recovered state. If the reference is lost too, explain that safe resumption is unavailable; do not silently repurchase.
+If state is lost, expired or a response was interrupted, call `apiosk_status` with ONLY `task_ref` set to the previous `state.state_ref`. Recovery reads; it does not parse, approve or buy. `apiosk_execute` with only `recover_task_ref` remains a compatibility route, but do not prefer it. Continue from recovered state. If the reference is lost too, explain that safe resumption is unavailable; do not silently repurchase.
 
 When the person says stop, use the offered cancel action. Cancellation stops future steps; it does not reverse an already dispatched request or guarantee a refund. On an authentication error, reconnect through the host's OAuth UI. Never request account passwords, Supabase keys, treasury keys or provider keys in chat.
 
@@ -74,6 +75,16 @@ Use English consistently for Apiosk plan, approval, status and completion messag
 ## Combined research PDF
 
 For a request combining annual accounts, a company profile, address enrichment and analysis, send the complete question in one discovery call. PDF output is a built-in deliverable, not another provider. Preserve the profile-to-address dependency and requested sources; quote the actual combined price, never invent a target price or promise a range before discovery. After the one approval, continue all returned actions, including the analysis poll, until terminal status. Use context_view.report.url for the combined PDF; individual result.report links contain only that source result. Surface the combined download link when present, including with a visible card. If analysis or the report is unavailable, say so and retain the saved data; do not claim an individual annual-account PDF contains the requested combined analysis.
+
+## Supplier onboarding due diligence
+
+When the person asks to onboard or vet a supplier across several facts—such as the legal entity or owner/controllers, filed accounts, VAT validity, directors/officers and sanctions or adverse signals—use `apiosk_discover` ONCE with the complete request. Do not answer from general model knowledge, split the request into separate Apiosk tasks, or replace an available Apiosk check with the host's web search. Preserve an explicit request for a PDF and short summary. The resulting multi-source task has one combined price ceiling and one purchase approval; after approval the backend owns every source call and the analysis.
+
+Let the gateway resolve a named UK entity through its supported registry search. Never guess a company number or VAT number. If the gateway genuinely needs a VAT number that no selected source can derive, relay that single clarification and preserve the rest of the task; do not call the missing check with a fabricated value. Treat “directors clean” as a request for current/former officer records plus supported sanctions, disqualification or warning-signal screening. Report exactly which people and lists were screened, and call an unavailable or unmatched check unknown—not clean. A name-search non-match is not a compliance certification.
+
+At completion, surface `context_view.report.url` as the combined PDF and give only a one- or two-sentence summary of the supported conclusion and material unknowns. Do not repeat the report or card as a long answer. If the result is partial, say which requested check is missing in that short summary.
+
+The embedded result puts the answer above a collapsed “Sources and details” section. When asked whether the supplier is valid, distinguish an active legal registration from full onboarding clearance. Missing ownership or VAT evidence means not fully verified for onboarding, not that the company is invalid. Potential screening matches require identity review; a PEP candidate is not a confirmed sanctions finding. A completed task or no returned matches is not a compliance certificate. Answer the actual verification question, not just “data retrieved”.
 
 ## Supplier payment check
 

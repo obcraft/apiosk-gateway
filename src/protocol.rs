@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-pub mod features;
 pub mod limits;
 
 pub const VERSION: &str = "2";
@@ -211,31 +210,6 @@ impl Response {
         r.errors
             .push(serde_json::json!({"code":code,"message":message}));
         r
-    }
-}
-
-/// `GET /v2/meta`: what this gateway accepts, for Apps that must also work
-/// against an older gateway during a rolling deploy.
-#[derive(Debug, Serialize)]
-pub struct Meta {
-    pub protocol_version: &'static str,
-    pub features: Vec<&'static str>,
-    pub limits: &'static limits::AskLimits,
-    pub events: EventTiming,
-}
-#[derive(Debug, Serialize)]
-pub struct EventTiming {
-    pub heartbeat_ms: u64,
-    pub stale_after_ms: u64,
-}
-impl Meta {
-    pub fn current() -> Self {
-        Self {
-            protocol_version: VERSION,
-            features: features::advertised(),
-            limits: limits::limits(),
-            events: EventTiming { heartbeat_ms: EVENTS_HEARTBEAT_MS, stale_after_ms: EVENTS_STALE_AFTER_MS },
-        }
     }
 }
 
