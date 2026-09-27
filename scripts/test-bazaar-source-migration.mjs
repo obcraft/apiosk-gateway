@@ -11,6 +11,13 @@ const migration = await readFile(new URL('../supabase/migrations/20260928001500_
 assert.equal(await readFile(new URL('../../app/supabase/migrations/20260928001500_coinbase_bazaar_source.sql', import.meta.url), 'utf8'), migration,
   'app/ must carry an identical copy: migrations are applied from app/ only');
 assert.doesNotMatch(migration.replace(/--.*$/gm, ''), /\bDELETE\s+FROM\b|\bTRUNCATE\b|\bDROP\s+TABLE\b/i, 'the import never deletes');
+const logoFix = await readFile(new URL('../supabase/migrations/20260928003000_fix_bazaar_logo_check.sql', import.meta.url), 'utf8');
+assert.equal(await readFile(new URL('../../app/supabase/migrations/20260928003000_fix_bazaar_logo_check.sql', import.meta.url), 'utf8'), logoFix,
+  'app/ must carry an identical copy of the logo-check fix');
+// PostgreSQL caps a regular-expression bound at 255; `{1,2040}` compiled fine
+// and failed at the first real batch ("invalid repetition count(s)"). The
+// applied migration keeps it, so the check runs on the functions as installed.
+const regexBounds = sql => [...sql.matchAll(/\{(\d+)(?:,(\d+))?\}/g)].map(m => Number(m[2] ?? m[1]));
 
 const page = async name => JSON.parse(await readFile(new URL(`../tests/fixtures/bazaar/${name}`, import.meta.url), 'utf8'));
 const items = [...(await page('page-offset-0.json')).items, ...(await page('page-offset-6000.json')).items];
@@ -111,6 +118,11 @@ try {
   await db.exec(bootstrap);
   await db.exec(migration);
   await db.exec(migration); // idempotent
+  await db.exec(logoFix);
+  for (const { proname, src } of (await db.query(`SELECT p.proname, p.prosrc AS src FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'providers' AND p.proname LIKE '%bazaar%'`)).rows) {
+    assert.ok(regexBounds(src).every(n => n <= 255), `providers.${proname}: a regex bound above 255 fails at run time`);
+  }
 
   const identity = await one(`SELECT p.username, p.display_name, u.email, u.email_confirmed_at, u.banned_until = 'infinity' AS banned
     FROM providers.provider_profiles p JOIN auth.users u ON u.id = p.id WHERE p.id = '${OWNER}'`);
