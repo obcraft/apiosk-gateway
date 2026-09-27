@@ -1,0 +1,1 @@
+app (actions in the user's connected apps: send a Slack message or email, add CRM records or spreadsheet rows; reuse the known app slug)

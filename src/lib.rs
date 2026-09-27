@@ -18,6 +18,7 @@ mod evidence_selection;
 pub mod execution;
 pub mod followups;
 pub mod input_binding;
+pub mod integrations;
 pub mod invoice_document;
 pub mod maintenance;
 pub mod parser;

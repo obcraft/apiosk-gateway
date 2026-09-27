@@ -354,6 +354,21 @@ pub struct Parser {
 /// The JSON shape of `Intent`, and of the replies that carry one, for models
 /// that need it enforced. Values and constraints stay open maps; their keys
 /// are checked by `Intent::validate`, not here.
+/// Keeps only the schema's own properties, and reports every required one
+/// that is still empty — whatever the model claimed in `missing`.
+pub(crate) fn action_arguments(raw: &str, schema: &Value) -> anyhow::Result<Value> {
+    let reply: Value = serde_json::from_str(raw.trim()).map_err(|_| anyhow::anyhow!("action_arguments_invalid"))?;
+    let proposed = reply["arguments"].as_object().ok_or_else(|| anyhow::anyhow!("action_arguments_invalid"))?;
+    let properties = schema["properties"].as_object();
+    let arguments: serde_json::Map<String, Value> = proposed
+        .iter()
+        .filter(|(key, value)| properties.is_some_and(|p| p.contains_key(*key)) && !value.is_null() && value.as_str() != Some(""))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect();
+    let missing: Vec<&str> = schema["required"].as_array().into_iter().flatten().filter_map(Value::as_str).filter(|key| !arguments.contains_key(*key)).collect();
+    Ok(json!({"arguments": arguments, "missing": missing}))
+}
+
 fn intent_reply_schema(surface: &str) -> Option<Value> {
     let text = json!({"type":"string"});
     let intent = json!({"type":"object","additionalProperties":false,
@@ -741,6 +756,20 @@ impl Parser {
                 {"role":"user","content":json!({"question":question,"context":task.parser_context(),"gap":gap}).to_string()}
             ]});
         self.completion("clarification", &payload, missing_context_message).await
+    }
+
+    /// Proposes arguments for one connected-app action. It only proposes: the
+    /// App shows them to the person, who confirms or edits before anything runs.
+    pub async fn propose_action_arguments(&self, question: &str, action: &crate::integrations::AppAction, results: &Value) -> anyhow::Result<Value> {
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":1200,
+            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_object"},"messages":[
+                {"role":"system","content":include_str!("../contracts/action-arguments-prompt.txt")},
+                {"role":"user","content":json!({"question":question,"results":results,
+                    "action":{"slug":action.slug,"name":action.name,"description":action.description,"input_schema":action.input_schema}}).to_string()}
+            ]});
+        let schema = action.input_schema.clone();
+        self.completion("action-arguments", &payload, move |raw| action_arguments(raw, &schema)).await
     }
 
     pub async fn analyze(

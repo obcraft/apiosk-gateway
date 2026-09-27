@@ -18,6 +18,29 @@ pub const DEFAULT_MODEL: &str = "google/gemma-3-4b-it";
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
+/// The `app (…)` domain entry, offered only alongside connected-app action
+/// slugs. Without them the prompt and schema are exactly the ones above, so a
+/// person with no connected apps is planned for as fast and as before.
+const APP_DOMAIN: &str = include_str!("../../contracts/ask-v2-app-domain.txt");
+
+/// `PROMPT` with `app (…)` in its domain list, just before `general`.
+fn app_prompt() -> Option<String> {
+    let at = PROMPT.find("; general (")?;
+    Some(format!("{}; {APP_DOMAIN}{}", &PROMPT[..at], &PROMPT[at..]))
+}
+
+/// `SCHEMA` with `"app"` in the domain enum, keeping its text otherwise verbatim.
+fn app_schema() -> Option<&'static str> {
+    static SCHEMA_WITH_APP: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    SCHEMA_WITH_APP
+        .get_or_init(|| {
+            let research = SCHEMA.find("\"research\",")? + "\"research\",".len();
+            let general = research + SCHEMA[research..].find("\"general\"")?;
+            let gap = &SCHEMA[research..general];
+            Some(format!("{}{gap}\"app\",{gap}{}", &SCHEMA[..research], &SCHEMA[general..]))
+        })
+        .as_deref()
+}
 const DEADLINE: Duration = Duration::from_secs(12);
 const MAX_STREAM_BYTES: usize = 256 * 1024;
 const WINDOW: Duration = Duration::from_secs(60);
@@ -181,12 +204,15 @@ impl Client {
             correction.is_none_or(|text| text.len() <= 16_384),
             "ask_v2_invalid_correction"
         );
+        let offers_apps = known_slugs.iter().any(|slug| slug.starts_with("app."));
+        let base = if offers_apps { app_prompt().ok_or_else(|| anyhow!("ask_v2_model_unavailable"))? } else { PROMPT.to_owned() };
+        let schema = if offers_apps { app_schema().ok_or_else(|| anyhow!("ask_v2_model_unavailable"))? } else { SCHEMA };
         let mut prompt = if known_slugs.is_empty() {
-            PROMPT.to_owned()
+            base
         } else {
             format!(
                 "{}Known slugs: {}",
-                PROMPT
+                base
                     .strip_suffix("Known slugs: none")
                     .ok_or_else(|| anyhow!("ask_v2_model_unavailable"))?,
                 known_slugs.join(", ")
@@ -206,7 +232,7 @@ impl Client {
         // the model's generation order relative to WebGPU's requested shape.
         body.pop();
         body.push_str(",\"response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"capability_request\",\"strict\":true,\"schema\":");
-        body.push_str(SCHEMA);
+        body.push_str(schema);
         body.push_str("}}}");
         let mut response = self
             .http
@@ -351,6 +377,19 @@ impl Sse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_app_domain_is_added_only_as_one_entry_and_one_enum_value() {
+        let prompt = app_prompt().unwrap();
+        assert_eq!(prompt.len(), PROMPT.len() + 2 + APP_DOMAIN.len());
+        assert!(prompt.contains(&format!("markets); {APP_DOMAIN}; general (")));
+        assert_eq!(prompt.replacen(&format!("; {APP_DOMAIN}"), "", 1), PROMPT);
+        let schema: Value = serde_json::from_str(app_schema().unwrap()).unwrap();
+        let domains = &schema["properties"]["capabilities"]["items"]["properties"]["domain"]["enum"];
+        assert_eq!(domains[domains.as_array().unwrap().len() - 2], "app");
+        assert_eq!(domains.as_array().unwrap().len(), 11);
+        assert!(!SCHEMA.contains("\"app\""));
+    }
     use axum::{
         body::{Body, Bytes},
         http::{HeaderMap, StatusCode},

@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 mod ask_v2;
 mod ask_v2_external;
+mod integrations;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -118,6 +119,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/runs/:id", get(crate::public_api::run_status))
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
+        .route("/v2/integrations", get(integrations::list))
+        .route("/v2/integrations/:toolkit/connect", post(integrations::connect))
+        .route("/v2/integrations/:toolkit/disconnect", post(integrations::disconnect))
+        .route("/v2/integrations/actions", get(integrations::actions))
+        .route("/v2/integrations/actions/:slug/prepare", post(integrations::prepare).layer(DefaultBodyLimit::max(96 * 1024)))
+        .route("/v2/integrations/actions/:slug/execute", post(integrations::execute).layer(DefaultBodyLimit::max(96 * 1024)))
         .layer(DefaultBodyLimit::max(64 * 1024))
         // A scanned invoice page image exceeds the default JSON limit.
         .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
