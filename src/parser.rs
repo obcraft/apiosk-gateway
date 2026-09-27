@@ -1069,6 +1069,9 @@ impl Parser {
                     }
                 }
                 intent.restore_question_literals(question);
+                if let Some(intake) = intake {
+                    capability_binding::require_named_sources(intent, intake, catalog);
+                }
                 intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
             }
             Ok(reply)

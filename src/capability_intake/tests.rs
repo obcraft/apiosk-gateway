@@ -243,7 +243,7 @@ async fn fixture(
         Json(json!({"choices":[{"message":{"content":next.to_string()}}]}))
     })).route("/bazaar", get(|State(state): State<Arc<Mock>>, Query(query): Query<BTreeMap<String,String>>| async move {
         state.events.lock().unwrap().push("bazaar".into());
-        assert_eq!(query["limit"], "3");
+        assert_eq!(query["limit"], BAZAAR_CANDIDATE_LIMIT.to_string());
         assert!(!query["query"].to_lowercase().contains("coolblue"));
         assert!(!query["query"].contains("12345678"));
         (if state.bazaar_fail { StatusCode::SERVICE_UNAVAILABLE } else { StatusCode::OK }, Json(json!({"resources":[{"resource":"https://external.example/accounts","serviceName":"External accounts"}]})))

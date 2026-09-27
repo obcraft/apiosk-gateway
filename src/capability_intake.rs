@@ -1,6 +1,9 @@
 //! Ask intake: validated capabilities first, catalog discovery second. Discovery
 //! returns metadata; only the existing planner and approval can execute a source.
-use crate::{catalog::Catalog, state::Task};
+use crate::{
+    catalog::{Catalog, Service},
+    state::Task,
+};
 use anyhow::ensure;
 use futures_util::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -30,6 +33,11 @@ const DOMAINS: &[&str] = &[
 const FORMATS: &[&str] = &["chat", "pdf", "xlsx", "docx", "json"];
 const OPERATIONS: &[&str] = &["summarize", "analyze", "compare", "list", "export"];
 pub const BAZAAR_SEARCH: &str = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
+/// Every matched source is shown to the person, so these bound the intake
+/// payload rather than hide alternatives. Apiosk operations are capped at 32
+/// per request; a capability rarely has more than a handful of providers.
+const APIOSK_CANDIDATE_LIMIT: usize = 12;
+const BAZAAR_CANDIDATE_LIMIT: usize = 6;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subject {
@@ -523,6 +531,14 @@ pub fn source_count(catalog: &Catalog) -> usize {
         .collect::<BTreeSet<_>>()
         .len()
 }
+/// Whether `service` is the source the person named (a lowercase
+/// `source_hint`). Discovery ranks it first and the planner holds the plan to
+/// it, so the source listed first is the source that is quoted.
+pub fn names_source(service: &Service, hint: &str) -> bool {
+    format!("{} {}", service.api_slug, service.name)
+        .to_lowercase()
+        .contains(hint)
+}
 pub fn local_matches(
     parsed: &ParsedRequest,
     query: &BTreeMap<String, String>,
@@ -544,18 +560,14 @@ pub fn local_matches(
                 .filter(|s| selected.contains(&s.contract.capability_slug))
                 .collect();
             services.sort_by_key(|s| {
-                let named = hint.is_some_and(|hint| {
-                    format!("{} {}", s.api_slug, s.name)
-                        .to_lowercase()
-                        .contains(hint)
-                });
+                let named = hint.is_some_and(|hint| names_source(s, hint));
                 (!named, s.unverified, s.total(), s.api_slug.clone(), s.id)
             });
             let mut seen = BTreeSet::new();
             let apiosk = services
                 .into_iter()
                 .filter(|s| seen.insert(s.endpoint_id))
-                .take(3)
+                .take(APIOSK_CANDIDATE_LIMIT)
                 .map(|s| Candidate {
                     origin: "apiosk".into(),
                     name: s.name.clone(),
@@ -671,7 +683,7 @@ fn coinbase_candidates(body: Value) -> anyhow::Result<Vec<Candidate>> {
                 availability: "discovery_only".into(),
             })
         })
-        .take(3)
+        .take(BAZAAR_CANDIDATE_LIMIT)
         .collect())
 }
 pub async fn fetch_coinbase(
@@ -690,7 +702,7 @@ async fn fetch_coinbase_uncached(
     ensure!(!query.trim().is_empty(), "empty discovery query");
     let response = http
         .get(search_url)
-        .query(&[("query", query), ("limit", "3")])
+        .query(&[("query", query), ("limit", &BAZAAR_CANDIDATE_LIMIT.to_string())])
         .timeout(Duration::from_secs(4))
         .send()
         .await?
