@@ -32,7 +32,7 @@ fn not_configured() -> Response {
 
 fn toolkit(slug: &str) -> Result<&'static str, Response> {
     integrations::toolkit(slug).ok_or_else(|| {
-        failure(StatusCode::NOT_FOUND, "unknown_integration", "Supported integrations: hubspot, salesforce, slack, gmail, outlook, googlesheets.")
+        failure(StatusCode::NOT_FOUND, "unknown_integration", "Supported integrations: slack, microsoft_teams, discordbot, telegram, whatsapp, google_chat, gmail, outlook, notion.")
     })
 }
 
@@ -40,6 +40,10 @@ fn provider_failed(context: &str, error: ComposioError) -> Response {
     if matches!(error, ComposioError::Unauthorized) {
         tracing::error!(context, "composio rejected the project key");
         return not_configured();
+    }
+    if matches!(error, ComposioError::NeedsSetup) {
+        tracing::error!(context, "toolkit has no auth config; set one up in the Composio dashboard");
+        return failure(StatusCode::CONFLICT, "integration_needs_setup", "This app needs a one-time setup by Apiosk before it can be connected.");
     }
     tracing::warn!(error = %error, context, "composio request failed");
     failure(StatusCode::BAD_GATEWAY, "integration_provider_unavailable", "The integration provider did not respond. Try again shortly.")

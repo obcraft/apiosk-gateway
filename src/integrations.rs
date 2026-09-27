@@ -1,7 +1,7 @@
 //! Business-app integrations, brokered by Composio.
 //!
-//! A person connects their own HubSpot, Salesforce, Slack, Gmail, Outlook or
-//! Google Sheets account. The OAuth consent happens on Composio's hosted page
+//! A person connects their own communication channels: Slack, Microsoft Teams,
+//! Discord, Telegram, WhatsApp, Google Chat, Gmail, Outlook (Hotmail) or Notion. The OAuth consent happens on Composio's hosted page
 //! and the tokens stay with Composio. The gateway holds one project key and
 //! the right to ask about ONE Composio user per caller — `composio_user_id` of
 //! the authenticated owner — and nothing a caller sends can name another one.
@@ -32,13 +32,18 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 /// The apps a person may connect, in the order they are shown.
-pub const TOOLKITS: [(&str, &str); 6] = [
-    ("hubspot", "HubSpot"),
-    ("salesforce", "Salesforce"),
+/// Communication channels only. The slugs are Composio's: Discord is
+/// `discordbot` because the plain `discord` toolkit cannot post a message.
+pub const TOOLKITS: [(&str, &str); 9] = [
     ("slack", "Slack"),
+    ("microsoft_teams", "Microsoft Teams"),
+    ("discordbot", "Discord"),
+    ("telegram", "Telegram"),
+    ("whatsapp", "WhatsApp"),
+    ("google_chat", "Google Chat"),
     ("gmail", "Gmail"),
     ("outlook", "Outlook"),
-    ("googlesheets", "Google Sheets"),
+    ("notion", "Notion"),
 ];
 
 /// The allow-listed slug, or `None` for anything else — refused before
@@ -80,6 +85,10 @@ pub enum ComposioError {
     Transport(#[from] reqwest::Error),
     #[error("unexpected composio response: {0}")]
     Invalid(&'static str),
+    /// Composio has no managed login for this app (Telegram's bot token, a
+    /// Google Chat OAuth app) and none was set up in the Composio dashboard.
+    #[error("no auth config set up for this toolkit")]
+    NeedsSetup,
 }
 
 /// Accounts that name this user and an allowed toolkit. `user_ids` asks
@@ -111,7 +120,7 @@ pub fn statuses(user_id: &str, items: &[Value]) -> Vec<IntegrationRow> {
         .collect()
 }
 
-/// `{"salesforce":"ac_…"}`, keeping only allowed toolkits and well-formed ids.
+/// `{"google_chat":"ac_…"}`, keeping only allowed toolkits and well-formed ids.
 pub fn pinned_auth_configs(raw: Option<&str>) -> HashMap<&'static str, String> {
     let Some(parsed) = raw.and_then(|raw| serde_json::from_str::<HashMap<String, String>>(raw).ok()) else {
         return HashMap::new();
@@ -338,16 +347,24 @@ impl Composio {
         if let Some(id) = cache.get(toolkit) {
             return Ok(id.clone());
         }
-        let found = self.call(reqwest::Method::GET, &format!("/auth_configs?toolkit_slug={toolkit}&is_composio_managed=true&limit=20"), None).await?;
-        let enabled = found["items"].as_array().into_iter().flatten().find(|item| item["status"] != "DISABLED").and_then(|item| item["id"].as_str()).map(str::to_owned);
-        let id = match enabled {
+        let found = self.call(reqwest::Method::GET, &format!("/auth_configs?toolkit_slug={toolkit}&limit=50"), None).await?;
+        let usable: Vec<&Value> = found["items"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|item| item["status"] != "DISABLED" && item["id"].is_string() && item["toolkit"]["slug"].as_str().is_none_or(|slug| slug == toolkit))
+            .collect();
+        // Composio's own login first; otherwise the one set up in the Composio
+        // dashboard, which is how Telegram (a bot token) and Google Chat (an
+        // OAuth app of our own) get connected.
+        let existing = usable.iter().find(|item| item["is_composio_managed"] == true).or(usable.first()).and_then(|item| item["id"].as_str()).map(str::to_owned);
+        let id = match existing {
             Some(id) => id,
-            None => self
-                .call(reqwest::Method::POST, "/auth_configs", Some(json!({"toolkit": {"slug": toolkit}, "auth_config": {"type": "use_composio_managed_auth"}})))
-                .await?["auth_config"]["id"]
-                .as_str()
-                .ok_or(ComposioError::Invalid("auth_config.id"))?
-                .to_owned(),
+            None => match self.call(reqwest::Method::POST, "/auth_configs", Some(json!({"toolkit": {"slug": toolkit}, "auth_config": {"type": "use_composio_managed_auth"}}))).await {
+                Ok(created) => created["auth_config"]["id"].as_str().ok_or(ComposioError::Invalid("auth_config.id"))?.to_owned(),
+                Err(ComposioError::Status(400..=499)) => return Err(ComposioError::NeedsSetup),
+                Err(error) => return Err(error),
+            },
         };
         cache.insert(toolkit, id.clone());
         Ok(id)
@@ -520,9 +537,10 @@ mod tests {
 
     #[test]
     fn only_the_six_toolkits_are_allowed() {
-        assert_eq!(toolkit("hubspot"), Some("hubspot"));
-        assert_eq!(toolkit("googlesheets"), Some("googlesheets"));
-        for slug in ["github", "HubSpot", "", "gmail/../x"] {
+        assert_eq!(toolkit("slack"), Some("slack"));
+        assert_eq!(toolkit("discordbot"), Some("discordbot"));
+        assert_eq!(toolkit("google_chat"), Some("google_chat"));
+        for slug in ["github", "hubspot", "salesforce", "googlesheets", "discord", "Slack", "", "gmail/../x"] {
             assert_eq!(toolkit(slug), None);
         }
     }
@@ -530,31 +548,31 @@ mod tests {
     #[test]
     fn statuses_show_only_this_users_accounts() {
         let items = vec![
-            account("ca_1", ME, "hubspot", "ACTIVE"),
-            account("ca_2", "apiosk_user_someone-else", "slack", "ACTIVE"),
+            account("ca_1", ME, "slack", "ACTIVE"),
+            account("ca_2", "apiosk_user_someone-else", "telegram", "ACTIVE"),
             account("ca_3", ME, "gmail", "EXPIRED"),
             account("ca_4", ME, "outlook", "INITIATED"),
-            account("ca_5", ME, "salesforce", "FAILED"),
+            account("ca_5", ME, "notion", "FAILED"),
             account("ca_6", ME, "github", "ACTIVE"),
         ];
         let rows = statuses(ME, &items);
         let by = |slug: &str| rows.iter().find(|row| row.toolkit == slug).unwrap().status;
-        assert_eq!(rows.len(), 6);
-        assert_eq!(by("hubspot"), "connected");
-        assert_eq!(by("slack"), "not_connected");
+        assert_eq!(rows.len(), 9);
+        assert_eq!(by("slack"), "connected");
+        assert_eq!(by("telegram"), "not_connected");
         assert_eq!(by("gmail"), "expired");
         assert_eq!(by("outlook"), "not_connected");
-        assert_eq!(by("salesforce"), "not_connected");
+        assert_eq!(by("notion"), "not_connected");
         assert_eq!(rows[0].connected_at.as_deref(), Some("2026-09-27T10:00:00Z"));
     }
 
     #[test]
     fn an_active_account_wins_over_an_expired_one_and_disabled_ones_do_not_count() {
-        let mut disabled = account("ca_9", ME, "slack", "ACTIVE");
+        let mut disabled = account("ca_9", ME, "telegram", "ACTIVE");
         disabled["is_disabled"] = json!(true);
-        let rows = statuses(ME, &[account("ca_1", ME, "hubspot", "EXPIRED"), account("ca_2", ME, "hubspot", "ACTIVE"), disabled]);
+        let rows = statuses(ME, &[account("ca_1", ME, "slack", "EXPIRED"), account("ca_2", ME, "slack", "ACTIVE"), disabled]);
         assert_eq!(rows[0].status, "connected");
-        assert_eq!(rows[2].status, "not_connected");
+        assert_eq!(rows[3].status, "not_connected");
     }
 
     /// A stand-in for Composio that records what it was asked.
@@ -566,19 +584,24 @@ mod tests {
             .route("/auth_configs", get({ let log = log.clone(); move |headers: HeaderMap, uri: OriginalUri| async move {
                 log.lock().unwrap().push(format!("GET {}", uri.0));
                 if !authorised(&headers) { return Err(StatusCode::UNAUTHORIZED) }
-                // Slack already has one; everything else must be created.
-                Ok(Json(if uri.0.query().unwrap_or("").contains("toolkit_slug=slack") { json!({"items":[{"id":"ac_slack","status":"ENABLED"}]}) } else { json!({"items":[]}) }))
+                // Slack has a managed one, Telegram one set up by hand; the rest must be created.
+                let query = uri.0.query().unwrap_or("").to_owned();
+                Ok(Json(if query.contains("toolkit_slug=slack") { json!({"items":[{"id":"ac_custom","status":"ENABLED","is_composio_managed":false,"toolkit":{"slug":"slack"}},{"id":"ac_slack","status":"ENABLED","is_composio_managed":true,"toolkit":{"slug":"slack"}}]}) }
+                    else if query.contains("toolkit_slug=telegram") { json!({"items":[{"id":"ac_bot_token","status":"ENABLED","is_composio_managed":false,"toolkit":{"slug":"telegram"}}]}) }
+                    else { json!({"items":[]}) }))
             }}).post({ let log = log.clone(); move |Json(body): Json<Value>| async move {
                 log.lock().unwrap().push(format!("POST /auth_configs {body}"));
-                Json(json!({"auth_config":{"id":format!("ac_{}", body["toolkit"]["slug"].as_str().unwrap())}}))
+                // No managed login for Google Chat: Composio refuses to create one.
+                if body["toolkit"]["slug"] == "google_chat" { return Err(StatusCode::BAD_REQUEST) }
+                Ok(Json(json!({"auth_config":{"id":format!("ac_{}", body["toolkit"]["slug"].as_str().unwrap())}})))
             }}))
             .route("/connected_accounts", get({ let log = log.clone(); move |uri: OriginalUri| async move {
                 log.lock().unwrap().push(format!("GET {}", uri.0));
                 // Deliberately ignores the user filter, like a regressed API would.
                 Json(json!({"items":[
-                    account("ca_mine", ME, "hubspot", "ACTIVE"),
-                    account("ca_old", ME, "hubspot", "EXPIRED"),
-                    account("ca_theirs", "apiosk_user_other", "hubspot", "ACTIVE"),
+                    account("ca_mine", ME, "notion", "ACTIVE"),
+                    account("ca_old", ME, "notion", "EXPIRED"),
+                    account("ca_theirs", "apiosk_user_other", "notion", "ACTIVE"),
                 ]}))
             }}))
             .route("/connected_accounts/link", post({ let log = log.clone(); move |Json(body): Json<Value>| async move {
@@ -592,10 +615,10 @@ mod tests {
             .route("/tools", get({ let log = log.clone(); move |uri: OriginalUri| async move {
                 log.lock().unwrap().push(format!("GET {}", uri.0));
                 Json(json!({"items":[
-                    {"slug":"HUBSPOT_CREATE_CONTACT","name":"Create contact","toolkit":{"slug":"hubspot"},"description":"Creates a contact.","input_parameters":{"type":"object","properties":{"email":{"type":"string"}},"required":["email"]}},
-                    {"slug":"HUBSPOT_OLD_THING","name":"Old","toolkit":{"slug":"hubspot"},"is_deprecated":true},
-                    {"slug":"HUBSPOT_GET_CONTACT","name":"Get contact","toolkit":{"slug":"hubspot"}},
-                    {"slug":"HUBSPOT_DELETE_CONTACT","name":"Delete contact","toolkit":{"slug":"hubspot"}},
+                    {"slug":"NOTION_CREATE_NOTION_PAGE","name":"Create page","toolkit":{"slug":"notion"},"description":"Creates a page.","input_parameters":{"type":"object","properties":{"title":{"type":"string"}},"required":["title"]}},
+                    {"slug":"NOTION_OLD_THING","name":"Old","toolkit":{"slug":"notion"},"is_deprecated":true},
+                    {"slug":"NOTION_FETCH_DATA","name":"Fetch data","toolkit":{"slug":"notion"}},
+                    {"slug":"NOTION_DELETE_BLOCK","name":"Delete block","toolkit":{"slug":"notion"}},
                 ]}))
             }}))
             .route("/tools/execute/:tool", post({ let log = log.clone(); move |Path(tool): Path<String>, Json(body): Json<Value>| async move {
@@ -615,26 +638,29 @@ mod tests {
         let owner: Uuid = "00000000-0000-4000-8000-000000000001".parse().unwrap();
 
         let rows = composio.list(owner).await.unwrap();
-        assert_eq!(rows[0].status, "connected");
-        assert!(rows[1..].iter().all(|row| row.status == "not_connected"));
+        assert!(rows.iter().all(|row| row.status == if row.toolkit == "notion" { "connected" } else { "not_connected" }));
 
-        let link = composio.connect(owner, "hubspot").await.unwrap();
+        let link = composio.connect(owner, "notion").await.unwrap();
         assert_eq!(link.redirect_url, "https://connect.composio.dev/link/lt_123");
-        composio.connect(owner, "hubspot").await.unwrap();
+        composio.connect(owner, "notion").await.unwrap();
         composio.connect(owner, "slack").await.unwrap();
+        composio.connect(owner, "telegram").await.unwrap();
+        assert!(matches!(composio.connect(owner, "google_chat").await, Err(ComposioError::NeedsSetup)));
 
-        assert_eq!(composio.disconnect(owner, "hubspot").await.unwrap(), 2);
+        assert_eq!(composio.disconnect(owner, "notion").await.unwrap(), 2);
 
         let log = log.lock().unwrap().clone();
         assert!(log.iter().all(|line| !line.starts_with("GET /connected_accounts") || line.contains("user_ids=apiosk_user_00000000-0000-4000-8000-000000000001")));
-        // Found or created once per toolkit, then cached.
-        assert_eq!(log.iter().filter(|l| l.starts_with("POST /auth_configs")).count(), 1);
-        assert!(log.iter().any(|l| l.starts_with("POST /auth_configs") && l.contains("use_composio_managed_auth") && l.contains("hubspot")));
+        // Found or created once per toolkit, then cached; Google Chat's refused create is the second.
+        assert_eq!(log.iter().filter(|l| l.starts_with("POST /auth_configs")).count(), 2);
+        assert!(log.iter().any(|l| l.starts_with("POST /auth_configs") && l.contains("use_composio_managed_auth") && l.contains("notion")));
         let links: Vec<&String> = log.iter().filter(|l| l.starts_with("POST /connected_accounts/link")).collect();
-        assert_eq!(links.len(), 3);
-        assert!(links[0].contains(r#""auth_config_id":"ac_hubspot""#) && links[0].contains(r#""user_id":"apiosk_user_00000000-0000-4000-8000-000000000001""#));
-        assert!(links[0].contains(r#""callback_url":"https://app.apiosk.com/integrations?integration=hubspot""#));
+        assert_eq!(links.len(), 4);
+        assert!(links[0].contains(r#""auth_config_id":"ac_notion""#) && links[0].contains(r#""user_id":"apiosk_user_00000000-0000-4000-8000-000000000001""#));
+        assert!(links[0].contains(r#""callback_url":"https://app.apiosk.com/integrations?integration=notion""#));
+        // Composio's own login wins over a hand-made one; Telegram uses the one set up by hand.
         assert!(links[2].contains(r#""auth_config_id":"ac_slack""#));
+        assert!(links[3].contains(r#""auth_config_id":"ac_bot_token""#));
         // Never somebody else's account, even when the filter was ignored.
         assert_eq!(log.iter().filter(|l| l.starts_with("DELETE")).cloned().collect::<Vec<_>>(), ["DELETE ca_mine", "DELETE ca_old"]);
     }
@@ -645,23 +671,23 @@ mod tests {
         let composio = Composio::new("ak_test".into(), base, "https://app.apiosk.com".into(), HashMap::new());
         let owner: Uuid = "00000000-0000-4000-8000-000000000001".parse().unwrap();
 
-        // HubSpot is the only connected app in the fake; its deprecated tool is dropped.
+        // Notion is the only connected app in the fake; its deprecated, read and delete tools are dropped.
         let actions = composio.actions(owner).await.unwrap();
-        assert_eq!(actions.iter().map(|a| a.slug.as_str()).collect::<Vec<_>>(), ["app.hubspot.createContact"]);
+        assert_eq!(actions.iter().map(|a| a.slug.as_str()).collect::<Vec<_>>(), ["app.notion.createNotionPage"]);
         composio.actions(owner).await.unwrap();
 
-        let outcome = composio.execute(owner, "app.hubspot.createContact", &json!({"email": "a@b.test"})).await.unwrap();
+        let outcome = composio.execute(owner, "app.notion.createNotionPage", &json!({"title": "Coolblue"})).await.unwrap();
         assert!(outcome.successful);
         assert_eq!(outcome.data["id"], "501");
         assert!(matches!(composio.execute(owner, "app.slack.sendMessage", &json!({})).await, Err(ExecuteError::UnknownAction)));
-        assert!(matches!(composio.execute(owner, "app.hubspot.createContact", &json!("text")).await, Err(ExecuteError::InvalidArguments)));
+        assert!(matches!(composio.execute(owner, "app.notion.createNotionPage", &json!("text")).await, Err(ExecuteError::InvalidArguments)));
 
         let log = log.lock().unwrap().clone();
         // Too few featured write tools, so the rest is read once too; then the cache serves.
         assert_eq!(log.iter().filter(|l| l.starts_with("GET /tools")).count(), 2);
         let runs: Vec<&String> = log.iter().filter(|l| l.starts_with("EXECUTE")).collect();
         assert_eq!(runs.len(), 1);
-        assert!(runs[0].starts_with("EXECUTE HUBSPOT_CREATE_CONTACT"));
+        assert!(runs[0].starts_with("EXECUTE NOTION_CREATE_NOTION_PAGE"));
         assert!(runs[0].contains(r#""user_id":"apiosk_user_00000000-0000-4000-8000-000000000001""#));
     }
 
@@ -676,8 +702,8 @@ mod tests {
     #[test]
     fn action_slugs_are_planner_slugs_under_the_app_domain() {
         assert_eq!(action_slug("slack", "SLACK_SEND_MESSAGE").as_deref(), Some("app.slack.sendMessage"));
-        assert_eq!(action_slug("googlesheets", "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND").as_deref(), Some("app.googlesheets.spreadsheetsValuesAppend"));
-        assert_eq!(action_slug("googlesheets", "GOOGLESHEETS_CREATE_GOOGLE_SHEET1").as_deref(), Some("app.googlesheets.createGoogleSheet1"));
+        assert_eq!(action_slug("google_chat", "GOOGLE_CHAT_CREATE_MESSAGE").as_deref(), Some("app.google_chat.createMessage"));
+        assert_eq!(action_slug("microsoft_teams", "MICROSOFT_TEAMS_SEND_MESSAGE_TO_CHANNEL").as_deref(), Some("app.microsoft_teams.sendMessageToChannel"));
         // Another toolkit's tool, or a slug the planner could not reuse exactly.
         assert_eq!(action_slug("slack", "GMAIL_SEND_EMAIL"), None);
         assert_eq!(action_slug("slack", "SLACK_"), None);
@@ -690,17 +716,21 @@ mod tests {
         for tool in ["SLACK_SEND_MESSAGE", "SLACK_CREATE_CHANNEL", "SLACK_UPLOAD_OR_CREATE_A_FILE_IN_SLACK"] {
             assert!(is_write_action("slack", tool, &none), "{tool}");
         }
-        assert!(is_write_action("googlesheets", "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND", &none));
-        assert!(is_write_action("googlesheets", "GOOGLESHEETS_BATCH_UPDATE", &none));
+        assert!(is_write_action("telegram", "TELEGRAM_SEND_MESSAGE", &none));
+        assert!(is_write_action("discordbot", "DISCORDBOT_CREATE_MESSAGE", &none));
+        assert!(is_write_action("notion", "NOTION_APPEND_TEXT_BLOCKS", &none));
+        assert!(is_write_action("notion", "NOTION_INSERT_ROW_DATABASE", &none));
+        assert!(is_write_action("microsoft_teams", "MICROSOFT_TEAMS_SEND_MESSAGE_TO_CHAT", &none));
+        assert!(is_write_action("whatsapp", "WHATSAPP_SEND_MESSAGE", &none));
         assert!(is_write_action("gmail", "GMAIL_CREATE_EMAIL_DRAFT", &none));
         assert!(is_write_action("outlook", "OUTLOOK_OUTLOOK_SEND_EMAIL", &none));
         // Reads would compete with source search; deletes never run from Ask.
-        for (toolkit, tool) in [("slack", "SLACK_FETCH_CONVERSATION_HISTORY"), ("slack", "SLACK_FIND_USERS"), ("googlesheets", "GOOGLESHEETS_VALUES_GET"),
-            ("hubspot", "HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA"), ("hubspot", "HUBSPOT_DELETE_CONTACT"), ("gmail", "GMAIL_MOVE_TO_TRASH"), ("gmail", "SLACK_SEND_MESSAGE")] {
+        for (toolkit, tool) in [("slack", "SLACK_FETCH_CONVERSATION_HISTORY"), ("slack", "SLACK_FIND_USERS"), ("notion", "NOTION_FETCH_DATA"),
+            ("notion", "NOTION_SEARCH_NOTION_PAGE"), ("notion", "NOTION_DELETE_BLOCK"), ("gmail", "GMAIL_MOVE_TO_TRASH"), ("gmail", "SLACK_SEND_MESSAGE")] {
             assert!(!is_write_action(toolkit, tool, &none), "{tool}");
         }
         assert!(!is_write_action("slack", "SLACK_SEND_MESSAGE", &json!(["important", "destructiveHint"])));
-        assert!(!is_write_action("hubspot", "HUBSPOT_CREATE_REPORT", &json!(["readOnlyHint"])));
+        assert!(!is_write_action("notion", "NOTION_CREATE_COMMENT", &json!(["readOnlyHint"])));
     }
 
     #[test]
@@ -753,9 +783,9 @@ mod tests {
 
     #[test]
     fn pinned_auth_configs_keep_only_known_toolkits_and_ids() {
-        let pinned = pinned_auth_configs(Some(r#"{"salesforce":"ac_abc123","github":"ac_x1234","slack":"nope","gmail":"ac_bad id"}"#));
+        let pinned = pinned_auth_configs(Some(r#"{"google_chat":"ac_abc123","hubspot":"ac_x1234","slack":"nope","gmail":"ac_bad id"}"#));
         assert_eq!(pinned.len(), 1);
-        assert_eq!(pinned.get("salesforce").map(String::as_str), Some("ac_abc123"));
+        assert_eq!(pinned.get("google_chat").map(String::as_str), Some("ac_abc123"));
         assert!(pinned_auth_configs(Some("not json")).is_empty());
         assert!(pinned_auth_configs(None).is_empty());
     }

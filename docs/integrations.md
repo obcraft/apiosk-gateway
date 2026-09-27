@@ -1,6 +1,8 @@
 # App integrations (Composio)
 
-A person connects HubSpot, Salesforce, Slack, Gmail, Outlook or Google Sheets.
+A person connects a communication channel: Slack, Microsoft Teams, Discord,
+Telegram, WhatsApp (Business), Google Chat (Hangouts), Gmail, Outlook (Hotmail)
+or Notion.
 Consent happens on Composio's hosted page; tokens stay with Composio. Code:
 `src/integrations.rs` (client) and `src/server/integrations.rs` (routes).
 
@@ -16,12 +18,14 @@ POST /v2/integrations/{toolkit}/connect
 POST /v2/integrations/{toolkit}/disconnect
 ```
 
-`toolkit` is one of `hubspot`, `salesforce`, `slack`, `gmail`, `outlook`,
-`googlesheets`; anything else is `404 unknown_integration`.
+`toolkit` is Composio's slug: `slack`, `microsoft_teams`, `discordbot` (the
+Discord toolkit that can post; plain `discord` cannot), `telegram`, `whatsapp`,
+`google_chat`, `gmail`, `outlook`, `notion`. Anything else is
+`404 unknown_integration`.
 
 ```json
 // GET /v2/integrations
-{ "integrations": [ { "toolkit": "hubspot", "name": "HubSpot", "status": "connected", "connected_at": "2026-09-27T10:00:00Z" }, … ] }
+{ "integrations": [ { "toolkit": "slack", "name": "Slack", "status": "connected", "connected_at": "2026-09-27T10:00:00Z" }, … ] }
 
 // POST /v2/integrations/slack/connect
 { "toolkit": "slack", "redirect_url": "https://…composio…", "expires_at": "…" }
@@ -59,7 +63,7 @@ POST /v2/integrations/actions/{slug}/execute      # App session: { arguments }
 - The planner never sees these actions: its prompt, schema and speed are the
   same with or without connected apps. The Ask page reads the question itself
   (`findAppActions` in `app/src/lib/domain/integrations.ts`) for an app named as
-  the place of an action ("in Slack", "to my Google Sheet", "a HubSpot contact")
+  the place of an action ("in Slack", "via Telegram", "a Notion page")
   next to a writing verb, and adds the matching action to the capabilities
   object. Source search still receives the planner's request unchanged.
   Measured on 30 questions × 3 runs with `google/gemma-3-4b-it`: offering the
@@ -79,7 +83,21 @@ POST /v2/integrations/actions/{slug}/execute      # App session: { arguments }
 | Env | |
 | --- | --- |
 | `COMPOSIO_API_KEY` | Project key, `ak_…`. A `ck_…` consumer key is for MCP clients and is rejected by the REST API. Unset → `503 integrations_not_configured`. |
-| `COMPOSIO_AUTH_CONFIGS` | Optional `{"salesforce":"ac_…"}` to use your own OAuth app for a toolkit. Otherwise the first enabled Composio-managed auth config is used, or one is created on first connect. |
+| `COMPOSIO_AUTH_CONFIGS` | Optional `{"google_chat":"ac_…"}` to pin an auth config. Otherwise an enabled Composio-managed config is used, then any enabled config set up in the Composio dashboard, and a managed one is created on first connect. |
+
+### One-time setup for Telegram and Google Chat
+
+Composio has no managed login for these, so connecting them answers
+`409 integration_needs_setup` until an auth config exists:
+
+- **Telegram** (bot token): in the Composio dashboard, add an auth config for
+  Telegram with API-key auth and leave the key for the user to enter; each
+  person pastes their own bot token on Composio's connect page.
+- **Google Chat**: create an OAuth client in Google Cloud (Chat API enabled)
+  and add it as the Google Chat auth config in Composio.
+
+The gateway finds either one by itself on the next connect; no restart needed
+after the first lookup fails (a failed lookup is not cached).
 
 ```sh
 fly secrets set COMPOSIO_API_KEY=ak_… -a apiosk-gateway-v2
