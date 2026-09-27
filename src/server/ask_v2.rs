@@ -9,7 +9,10 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::json;
-use std::{collections::BTreeSet, time::Instant};
+use std::{
+    collections::BTreeSet,
+    time::{Duration, Instant},
+};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -32,7 +35,7 @@ impl ParseRequest {
     fn valid(&self) -> bool {
         !self.request_id.is_nil()
             && !self.question.trim().is_empty()
-            && self.question.chars().count() <= 16_000
+            && self.question.encode_utf16().count() <= 16_000
             && self.known_slugs.len() <= 100
             && self.known_slugs.iter().all(|slug| valid_slug(slug))
             && self.correction.as_ref().is_none_or(|c| c.len() <= 4_000)
@@ -84,7 +87,10 @@ pub(super) async fn parse(
         )
         .await
     {
-        Ok(output) => Json(output).into_response(),
+        Ok(output) => {
+            tracing::info!(request_id=%request.request_id, model=%output.model, parse_ms=output.timing.parse_ms, "Ask v2 capabilities parsed");
+            Json(output).into_response()
+        }
         Err(error) => {
             // Stable client errors contain no prompt, key or provider body.
             tracing::warn!(request_id=%request.request_id, error=%error, "Ask v2 parse unavailable");
@@ -199,8 +205,17 @@ pub(super) async fn search(
                     )
                 }
             };
+            let matches = crate::ask_v2::search::search(&request.parsed_request, &catalog);
+            let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
+            // Branding is cached separately from contracts. A slow directory
+            // refresh must not hold up capability matches indefinitely.
+            if let Ok(Ok(sources)) =
+                tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.sources()).await
+            {
+                brand_matches(&mut matches, &sources);
+            }
             (
-                crate::ask_v2::search::search(&request.parsed_request, &catalog),
+                matches,
                 capability_intake::source_count(&catalog),
                 catalog.version.clone(),
             )
@@ -224,10 +239,38 @@ pub(super) async fn search(
                 capability_intake::BAZAAR_SEARCH,
             )
             .await;
-            (matches, 0, String::new())
+            (
+                serde_json::to_value(matches).unwrap_or_else(|_| json!([])),
+                0,
+                String::new(),
+            )
         }
     };
-    Json(json!({"matches":matches,"apiosk_sources_searched":count,"catalog_version":version,"timing":{"search_ms":started.elapsed().as_millis()}})).into_response()
+    let search_ms = started.elapsed().as_millis() as u64;
+    tracing::info!(
+        origin = if count > 0 { "apiosk" } else { "coinbase" },
+        search_ms,
+        sources_searched = count,
+        "Ask v2 sources searched"
+    );
+    Json(json!({"matches":matches,"apiosk_sources_searched":count,"catalog_version":version,"timing":{"search_ms":search_ms}})).into_response()
+}
+
+fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Source]) {
+    for found in matches.as_array_mut().into_iter().flatten() {
+        for candidate in found["apiosk"].as_array_mut().into_iter().flatten() {
+            let source = candidate["source_slug"]
+                .as_str()
+                .and_then(|slug| sources.iter().find(|source| source.slug == slug));
+            if let Some(source) = source {
+                candidate["name"] = json!(source.name);
+                candidate["logo_url"] = json!(source
+                    .logo_url
+                    .as_deref()
+                    .or(source.provider_logo_url.as_deref()));
+            }
+        }
+    }
 }
 
 #[cfg(test)]

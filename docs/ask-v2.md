@@ -12,8 +12,10 @@ It ports the current WebGPU project's parser, normalization and validation into
 2. The App applies the original WebGPU validation and normalization. It permits
    the original one correction attempt for invalid model output and adds the
    model, parse timestamp and SHA-256 metadata.
-3. The App immediately displays the parsed capabilities and JSON, then sends
-   independent `/v2/ask-v2/search` requests for `apiosk` and `coinbase`.
+3. The App retains the validated object and sends independent
+   `/v2/ask-v2/search` requests for `apiosk` and `coinbase`. Results appear directly
+   in a table with source logo, name, short description and price. Parsing
+   metadata is not part of the main result view.
 4. Apiosk searches the full catalog locally, ranking metadata per capability.
    Admitted operations retain their contract identifiers; directory-only sources
    are explicitly marked `discovery_only`. The catalog index retains one version.
@@ -37,7 +39,7 @@ and the existing concurrent-request semaphore applies. No task, quote, approval,
 payment, source execution or answer synthesis is created by these routes. Client
 metadata is validated and used only for directory search.
 
-The App shows actual elapsed parse time, model and number of attempts. Provider
+The parser records actual elapsed parse time, model and number of attempts. Provider
 speed and semantic extraction quality vary; neither two-second latency nor
 complete extraction of every sub-question is guaranteed. Tests cover exact
 WebGPU normalization parity, cancellation and stale responses, origin retries,

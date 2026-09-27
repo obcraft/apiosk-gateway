@@ -32,7 +32,8 @@
           "identifiers"
         ],
         "additionalProperties": false
-      }
+      },
+      "maxItems": 32
     },
     "capabilities": {
       "type": "array",
@@ -67,13 +68,15 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "maxItems": 32
           },
           "outputs": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "maxItems": 32
           },
           "subject_id": {
             "type": [
@@ -103,7 +106,8 @@
           "confidence"
         ],
         "additionalProperties": false
-      }
+      },
+      "maxItems": 16
     },
     "deliverable": {
       "type": "object",

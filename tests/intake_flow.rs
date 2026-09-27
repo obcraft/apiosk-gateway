@@ -26,10 +26,26 @@ const ORGANISATION_KEY: &str = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
+    ask_v2_requests: Mutex<Vec<Value>>,
     chats: Mutex<Vec<Value>>,
     workflow_chats: Mutex<Vec<Value>>,
     stages: Mutex<Vec<&'static str>>,
     failures: Mutex<std::collections::BTreeMap<&'static str, usize>>,
+}
+
+fn ask_v2_capabilities() -> Value {
+    json!({"language":"nl","subjects":[{"id":"s1","label":"Coolblue","type":"company","identifiers":{}}],
+        "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve company annual accounts.","domain":"company","inputs":[],"outputs":["financial_statements"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
+        "deliverable":{"format":"chat","operations":["list"]}})
+}
+
+/// Only the new transport uses this fake SSE provider. Record its request to
+/// prove the App bearer never becomes a provider credential or planner input.
+async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> ([(axum::http::header::HeaderName, &'static str); 1], String) {
+    assert_eq!(headers.get("authorization").unwrap(), "Bearer ask-v2-fixture-key");
+    model.ask_v2_requests.lock().unwrap().push(body);
+    let event = json!({"choices":[{"delta":{"content":ask_v2_capabilities().to_string()}}]});
+    ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
 }
 impl Model {
     fn chats(&self) -> Vec<Value> {
@@ -141,6 +157,7 @@ impl Intake {
         let model = Arc::new(Model::default());
         let mock = Router::new()
             .route("/chat", post(interpret))
+            .route("/ask-v2-model", post(ask_v2_model))
             .route("/bazaar", get(|State(model): State<Arc<Model>>| async move {
                 model.stages.lock().unwrap().push("bazaar");
                 Json(json!({"resources":[]}))
@@ -155,7 +172,9 @@ impl Intake {
         let engine = Arc::new(Engine {
             store: store.clone(),
             catalog: CatalogCache::new(pool.clone()),
-            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap(),
+            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap()
+                .with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(http.clone(), "ask-v2-fixture-key".into(), "ask-v2-fixture-model".into())
+                    .with_local_endpoint(format!("{base}/ask-v2-model")).unwrap()),
             signer: Signer::new(vec![7; 32]).unwrap(),
             executor: Executor { store, http: http.clone(), supabase_url: base.clone(), enabled: true },
             app_url: "http://localhost:5173".into(),
@@ -192,6 +211,88 @@ impl Intake {
 
 fn codes(response: &Value) -> Vec<&str> {
     response["errors"].as_array().unwrap().iter().filter_map(|error| error["code"].as_str()).collect()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Jaarrekening van Coolblue";
+    let (status, output) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"known_slugs":[]
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{output}");
+    assert_eq!(output["model"], "ask-v2-fixture-model");
+    assert!(output["timing"]["parse_ms"].is_u64());
+    let raw = output["text"].as_str().unwrap();
+    assert_eq!(serde_json::from_str::<Value>(raw).unwrap(), ask_v2_capabilities());
+    let parsed = apiosk_gateway_v2::capability_intake::normalize(raw, question, output["model"].as_str().unwrap()).unwrap();
+    let (status, found) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({
+        "parsed_request":parsed,"origin":"apiosk"
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    assert_eq!(found["apiosk_sources_searched"], 1);
+    assert!(found["catalog_version"].is_string());
+    assert!(found["timing"]["search_ms"].is_u64());
+    assert_eq!(found["matches"][0]["apiosk"][0]["capability"], "company.accounts", "{found}");
+    let calls = intake.model.ask_v2_requests.lock().unwrap().clone();
+    assert_eq!(calls.len(), 1, "local search must not call a model");
+    assert_eq!(calls[0]["stream"], true);
+    assert_eq!(calls[0]["model"], "ask-v2-fixture-model");
+    assert_eq!(calls[0]["messages"][1]["content"], question);
+    assert_eq!(calls[0]["response_format"]["type"], "json_schema");
+    assert!(intake.model.stages.lock().unwrap().is_empty(), "the old parser, discovery model, Bazaar and planner must remain untouched");
+    for response in [&output, &found] {
+        for field in ["state", "proposal", "next_actions", "task_id"] {
+            assert!(response.get(field).is_none(), "discovery cannot expose execution state: {response}");
+        }
+    }
+    assert_eq!(task_count(&intake, &person).await, 0);
+    let executions: i64 = sqlx::query_scalar("SELECT count(*) FROM executions e JOIN tasks t ON t.id=e.task_id WHERE t.owner_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations a JOIN tasks t ON t.id=a.task_id WHERE t.owner_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!((executions, approvals, charges), (0,0,0));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
+    let intake = Intake::start().await;
+    let parse = json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Coolblue"});
+    let parsed = apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(), "Jaarrekening van Coolblue", "fixture").unwrap();
+    let search = json!({"parsed_request":parsed,"origin":"apiosk"});
+    for (path, body) in [("/v2/ask-v2/parse", parse.clone()), ("/v2/ask-v2/search", search)] {
+        let response = intake.http.post(format!("{}{path}",intake.gateway)).json(&body).send().await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "anonymous {path}");
+        let (status, response) = intake.send("invalid-fixture-bearer", path, Some(body.clone())).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{response}");
+        let (status, response) = intake.send(ORGANISATION_KEY, path, Some(body)).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "App-only {path}: {response}");
+    }
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    let first = Person::new();
+    let second = Person::new();
+    // Exhausting one identity must not consume another person's allowance.
+    let mut accepted = 0;
+    loop {
+        let (status, response) = intake.send(&first.bearer, "/v2/ask-v2/parse", Some(parse.clone())).await;
+        if status == StatusCode::TOO_MANY_REQUESTS { break; }
+        assert_eq!(status, StatusCode::OK, "{response}");
+        accepted += 1;
+        assert!(accepted <= 30, "per-owner parser limit must be bounded");
+    }
+    assert!(accepted > 0);
+    let (status, response) = intake.send(&second.bearer, "/v2/ask-v2/parse", Some(parse)).await;
+    assert_eq!(status, StatusCode::OK, "independent caller allowance: {response}");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), accepted + 1);
+    assert_eq!(task_count(&intake, &first).await, 0);
+    assert_eq!(task_count(&intake, &second).await, 0);
+    assert!(intake.model.stages.lock().unwrap().is_empty());
 }
 
 /// A question is measured in Unicode scalar values on every surface: 4,000

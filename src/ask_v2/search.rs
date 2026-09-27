@@ -87,7 +87,30 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         );
         let capabilities =
             normalized_capabilities(std::iter::once(service.contract.capability_slug.as_str()));
-        documents.push(document(Target::Endpoint(position), &text, capabilities));
+        let primary = document(
+            Target::Endpoint(position),
+            &service.contract.capability_slug,
+            capabilities.clone(),
+        )
+        .facets;
+        let mut indexed = document(Target::Endpoint(position), &text, capabilities);
+        if primary != 0 {
+            // The operation's own concept takes precedence over a description
+            // explaining what a caller might do afterwards. A director roster
+            // "for sanctions screening" is not itself sanctions screening.
+            indexed.facets = primary;
+            for (facet, marker) in [
+                (FINANCIAL, "@financial"),
+                (OFFICERS, "@officers"),
+                (CONTROL, "@control"),
+                (SANCTIONS, "@sanctions"),
+            ] {
+                if primary & facet == 0 {
+                    indexed.tokens.remove(marker);
+                }
+            }
+        }
+        documents.push(indexed);
     }
     for (position, source) in catalog.known_sources.iter().enumerate() {
         let descriptions = &source.metadata.capability_descriptions;
@@ -610,6 +633,53 @@ mod tests {
         assert_eq!(
             found[0].operations,
             BTreeSet::from(["company.accounts".into()])
+        );
+    }
+
+    #[test]
+    fn requested_outputs_keep_both_officers_and_psc_ahead_of_related_name_searches() {
+        let catalog = catalog(vec![
+            service(1, "company.officers", "Companies House", "Retrieve officers for one company", "companies-house"),
+            service(2, "company.significant-control", "Companies House", "Retrieve persons with significant control for one company", "companies-house"),
+            service(3, "operation.companies-house.get-search-officers", "Companies House", "Search officer names and show appointment date and resignation date for each director, person with significant control and officer", "companies-house"),
+            service(4, "operation.companies-house.get-psc-history", "Companies House", "The significant control and appointment notification history for one PSC id", "companies-house"),
+        ], vec![]);
+        let mut request = parsed(vec![
+            json!({"slug":"company.profile.officers","name":"Company officers"}),
+        ]);
+        request.capabilities[0].outputs = vec![
+            "appointment_date".into(),
+            "resignation_date".into(),
+            "significant_control".into(),
+        ];
+        let found = search(&request, &catalog);
+        let top: BTreeSet<_> = found[0]
+            .apiosk
+            .iter()
+            .take(2)
+            .filter_map(|candidate| candidate.capability.as_deref())
+            .collect();
+        assert_eq!(
+            top,
+            BTreeSet::from(["company.officers", "company.significant-control"])
+        );
+    }
+
+    #[test]
+    fn downstream_screening_description_does_not_turn_a_roster_into_sanctions_results() {
+        let catalog = catalog(vec![
+            service(1, "company.uk-director-roster", "Registry", "Retrieve a complete active UK director roster for bounded OpenSanctions screening", "registry"),
+            service(2, "company.sanctions-screen", "OpenSanctions", "Screen a company against sanctions lists", "opensanctions"),
+        ], vec![]);
+        let found = search(
+            &parsed(vec![
+                json!({"slug":"compliance.sanctions","name":"Company sanctions screening"}),
+            ]),
+            &catalog,
+        );
+        assert_eq!(
+            found[0].operations,
+            BTreeSet::from(["company.sanctions-screen".into()])
         );
     }
 

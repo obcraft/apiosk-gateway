@@ -172,6 +172,13 @@ async fn main() -> anyhow::Result<()> {
         quarantined = catalog.rejected.len(),
         "catalog loaded"
     );
+    // Warm optional branding without holding up the listener or health checks.
+    let branding = engine.clone();
+    tokio::spawn(async move {
+        if branding.catalog.sources().await.is_err() {
+            tracing::warn!("source branding will refresh on demand");
+        }
+    });
     let app = router(
         ServerState {
             engine,
