@@ -15,6 +15,7 @@ use apiosk_gateway_v2::{
     engine::Engine,
     execution::Executor,
     parser::Parser,
+    protocol::DiscoverRequest,
     server::{router, ServerState},
     state::Signer,
     store::Store,
@@ -290,10 +291,12 @@ impl Gate {
         (status, response.json().await.unwrap_or(Value::Null))
     }
 
+    /// A question through the engine's App chat path, which still creates the
+    /// tasks these scenarios gate. The App no longer sends it over HTTP
+    /// (`/v2/chat` answers 410); a new Ask task starts at /v2/ask-v2/prepare.
     async fn chat(&self, person: &Person, request_id: Uuid, question: &str) -> Value {
-        let (status, body) = self.send(person, "/v2/chat", Some(json!({"request_id":request_id,"question":question,"state":null}))).await;
-        assert_eq!(status, StatusCode::OK, "{body}");
-        body
+        let request: DiscoverRequest = serde_json::from_value(json!({"request_id":request_id,"question":question,"state":null})).unwrap();
+        serde_json::to_value(self.engine.chat(&person.principal(), request).await.unwrap()).unwrap()
     }
 
     /// A priced question: the task, its quote and the chat response.

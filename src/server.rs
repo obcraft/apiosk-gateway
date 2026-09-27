@@ -11,7 +11,7 @@ use axum::{
     extract::{DefaultBodyLimit, OriginalUri, Path, Query, State},
     http::{HeaderMap, HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response as HttpResponse},
-    routing::{get, post},
+    routing::{any, get, post},
     Json, Router,
 };
 use serde::Deserialize;
@@ -76,9 +76,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
                 }
             }),
         )
-        .route("/v2/requests/:request_id", get(request_receipt))
+        // Retired App Ask routes. Saved tasks open in Ask's task view and
+        // questions go through /v2/ask-v2/*; an old tab is told to reload,
+        // never forwarded to the legacy executor by the fallback.
+        .route("/v2/requests/:request_id", any(ask_moved))
         .route("/v2/discover", post(discover))
-        .route("/v2/chat", post(chat))
+        .route("/v2/chat", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/endpoints/:id", get(ask_v2::endpoint))
@@ -126,9 +129,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/integrations/actions/:slug/prepare", post(integrations::prepare).layer(DefaultBodyLimit::max(96 * 1024)))
         .route("/v2/integrations/actions/:slug/execute", post(integrations::execute).layer(DefaultBodyLimit::max(96 * 1024)))
         .layer(DefaultBodyLimit::max(64 * 1024))
-        // A scanned invoice page image exceeds the default JSON limit.
-        .route("/v2/documents", post(read_document).layer(DefaultBodyLimit::max(16 * 1024 * 1024)))
-        .route("/v2/documents/:id/read", post(read_document_again).layer(DefaultBodyLimit::max(64 * 1024)))
+        .route("/v2/documents", any(ask_moved))
+        .route("/v2/documents/:id/read", any(ask_moved))
         .route("/v2/telemetry", post(telemetry_beacon).layer(DefaultBodyLimit::max(crate::telemetry::BEACON_MAX_BYTES)))
         .route("/v2/workflows", get(workflows))
         .route("/v2/workflows/:slug/start", post(start_workflow))
@@ -488,44 +490,6 @@ async fn discover(
         }
     }
 }
-async fn chat(
-    State(state): State<ServerState>,
-    headers: HeaderMap,
-    Json(req): Json<DiscoverRequest>,
-) -> HttpResponse {
-    let Ok(_permit) = state.permits.try_acquire() else {
-        return failure(
-            StatusCode::TOO_MANY_REQUESTS,
-            "busy",
-            "Probeer het over enkele seconden opnieuw.",
-        );
-    };
-    let p = match caller(&state, &headers).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
-    if !p.is_person() {
-        return failure(
-            StatusCode::FORBIDDEN,
-            "app_only",
-            "Gebruik de discover-tool voor verbonden chatbots.",
-        );
-    }
-    match state.engine.chat(&p, req).await {
-        Ok(r) => Json(r).into_response(),
-        Err(e) => {
-            tracing::error!(error=%e, "chat persistence failure");
-            failure(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "unavailable",
-                "The conversation could not be saved.",
-            )
-        }
-    }
-}
-/// `GET /v2/requests/:request_id` (#11, `request_receipts_v1`): what became
-/// of a first request, without resending it or re-interpreting the question.
-/// Read-only; claims nothing and does not count toward the claim rate limit.
 async fn requote(
     State(state): State<ServerState>,
     headers: HeaderMap,
@@ -544,145 +508,11 @@ async fn requote(
         }
     }
 }
-async fn request_receipt(
-    State(state): State<ServerState>,
-    headers: HeaderMap,
-    Path(request_id): Path<Uuid>,
-) -> HttpResponse {
-    let p = match app_person(&state, &headers).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
-    let row = match state.engine.store.request_receipt(p.owner, request_id, p.workspace, p.connection).await {
-        Ok(row) => row,
-        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "unavailable", "The request receipt could not be read."),
-    };
-    let Some(row) = row.filter(|row| row.kind.is_some()) else {
-        // Never claimed, pruned, another context, or a pre-#11 row: all read
-        // the same, and the same request id is safe to resend.
-        return failure(StatusCode::NOT_FOUND, "request_unknown", "This request is not known. It is safe to send again.");
-    };
-    let response: Option<crate::protocol::Response> = row.response.and_then(|v| serde_json::from_value(v).ok());
-    let interrupted = response.is_none() && (chrono::Utc::now() - row.created_at).num_seconds() >= crate::protocol::INTERRUPTED_AFTER_SECS;
-    let (state_, retry_after_ms) = match (&response, interrupted) {
-        (Some(_), _) => (crate::protocol::ReceiptState::Completed, None),
-        (None, true) => (crate::protocol::ReceiptState::Interrupted, None),
-        (None, false) => (crate::protocol::ReceiptState::Pending, Some(2000)),
-    };
-    Json(crate::protocol::RequestReceipt {
-        protocol_version: crate::protocol::VERSION,
-        request_id,
-        state: state_,
-        kind: row.kind,
-        task_ref: response.is_some().then(|| row.task_id).flatten(),
-        response_status: response.as_ref().map(|r| r.status.clone()),
-        errors: response.as_ref().map(|r| r.errors.clone()).unwrap_or_default(),
-        created_at: row.created_at,
-        completed_at: row.completed_at,
-        retry_after_ms,
-    }).into_response()
-}
-async fn read_document(
-    State(state): State<ServerState>,
-    headers: HeaderMap,
-    Json(req): Json<crate::documents::DocumentRequest>,
-) -> HttpResponse {
-    use crate::documents::{self, Content, Reading};
-    let Ok(_permit) = state.permits.try_acquire() else {
-        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
-    };
-    let p = match app_person(&state, &headers).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
-    let reading = match req.reading() {
-        Ok(reading) => reading,
-        Err(message) => return failure(StatusCode::BAD_REQUEST, "invalid_document", message),
-    };
-    // Shares the per-account request budget; a request ID is used once.
-    match state.engine.store.claim(p.owner, req.request_id, &crate::state::digest(&("document", req.request_id, &req.file_name, &req.purpose))).await {
-        Ok(crate::store::Claim::New) => {}
-        Ok(_) => return failure(StatusCode::CONFLICT, "request_conflict", "Use a new request ID for each document."),
-        Err(e) => return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", &e.to_string()),
-    }
-    let dutch = req.dutch();
-    let (raw, text, label, stored) = match reading {
-        Reading::Text(text) => (state.engine.parser.extract_invoice(Content::Text(&text)).await, Some(text), "text_layer", None),
-        Reading::Image(image) => (state.engine.parser.extract_invoice(Content::Image(&image)).await, None, "page_image", None),
-        Reading::File { mime_type, bytes } => {
-            // Reading needs the original file: keep it only for this reading window.
-            let stored = match documents::store(&state.engine.store.pool, p.owner, p.workspace, &req.purpose, &req.file_name, mime_type, &bytes).await {
-                Ok(stored) => stored,
-                Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "document_unavailable", "The file could not be prepared for reading. Try again."),
-            };
-            let raw = state.engine.parser.extract_invoice(Content::File { file_name: &stored.file_name, data_url: documents::data_url(&stored.mime_type, &stored.bytes) }).await;
-            (raw, None, "server_file", Some(stored))
-        }
-    };
-    finish_document_read(&state, &p, raw, text.as_deref(), label, stored, dutch).await
-}
-async fn read_document_again(
-    State(state): State<ServerState>,
-    headers: HeaderMap,
-    Path(id): Path<Uuid>,
-    Json(req): Json<crate::documents::ReadAgain>,
-) -> HttpResponse {
-    use crate::documents::{self, Content};
-    let Ok(_permit) = state.permits.try_acquire() else {
-        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
-    };
-    let p = match app_person(&state, &headers).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
-    match state.engine.store.claim(p.owner, req.request_id, &crate::state::digest(&("document-read", id, req.request_id))).await {
-        Ok(crate::store::Claim::New) => {}
-        Ok(_) => return failure(StatusCode::CONFLICT, "request_conflict", "Use a new request ID for each attempt."),
-        Err(e) => return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", &e.to_string()),
-    }
-    let stored = match documents::load(&state.engine.store.pool, p.owner, p.workspace, id).await {
-        Ok(Some(stored)) => stored,
-        Ok(None) => return failure(StatusCode::NOT_FOUND, "document_expired", "This file is no longer stored. Upload it again."),
-        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "document_unavailable", "The file could not be loaded. Try again."),
-    };
-    let raw = state.engine.parser.extract_invoice(Content::File { file_name: &stored.file_name, data_url: documents::data_url(&stored.mime_type, &stored.bytes) }).await;
-    finish_document_read(&state, &p, raw, None, "server_file", Some(stored), req.language.as_deref() != Some("en")).await
-}
-async fn finish_document_read(
-    state: &ServerState,
-    p: &Principal,
-    raw: anyhow::Result<serde_json::Value>,
-    text: Option<&str>,
-    reading: &str,
-    stored: Option<crate::documents::Stored>,
-    dutch: bool,
-) -> HttpResponse {
-    let kept = |deleted: bool| match &stored {
-        Some(s) => json!({"id":s.id,"stored_temporarily":true,"deleted":deleted,"expires_at":if deleted { serde_json::Value::Null } else { json!(s.expires_at) }}),
-        None => json!({"id":null,"stored_temporarily":false,"deleted":false,"expires_at":null}),
-    };
-    let raw = match raw {
-        Ok(raw) => raw,
-        Err(_) => {
-            // Keep a stored file (for at most its hour) so reading can be retried without a new upload.
-            let mut body = serde_json::to_value(Response::error(Uuid::new_v4(), Status::Failed, "extraction_unavailable", "The document could not be read just now. Try again, or enter the supplier details yourself.")).unwrap_or_default();
-            body["document"] = kept(false);
-            return (StatusCode::SERVICE_UNAVAILABLE, Json(body)).into_response();
-        }
-    };
-    // A successful read no longer needs the original file.
-    let mut deleted = false;
-    if let Some(s) = &stored {
-        deleted = crate::documents::delete(&state.engine.store.pool, p.owner, s.id).await.is_ok();
-    }
-    match crate::documents::invoice_result(&raw, text, reading, dutch, kept(deleted)) {
-        Ok(result) => Json(result).into_response(),
-        Err(message) => {
-            let mut body = serde_json::to_value(Response::error(Uuid::new_v4(), Status::Failed, "document_unreadable", message)).unwrap_or_default();
-            body["document"] = kept(deleted);
-            (StatusCode::UNPROCESSABLE_ENTITY, Json(body)).into_response()
-        }
-    }
+/// `/v2/chat`, `/v2/requests/:id` and `/v2/documents*` served the App's old
+/// Ask conversation. Every method answers 410 here, so nothing reaches the
+/// legacy fallback and the App shows the reload message as-is.
+async fn ask_moved() -> HttpResponse {
+    (StatusCode::GONE, Json(json!({"errors":[{"code":"ask_moved","message":"This Ask flow moved. Reload Apiosk."}]}))).into_response()
 }
 async fn app_person(state: &ServerState, headers: &HeaderMap) -> Result<Principal, HttpResponse> {
     let p = caller(state, headers).await?;
@@ -968,5 +798,65 @@ mod tests {
 
         let transient = task_view_failure(id, anyhow::anyhow!("database unavailable"));
         assert_eq!(transient.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    /// The App's retired Ask routes answer 410 for every method, and never
+    /// reach the legacy executor that the fallback forwards other paths to.
+    #[tokio::test]
+    async fn retired_ask_routes_answer_gone_without_the_legacy_fallback() {
+        use axum::body::Body;
+        use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+        use tower::ServiceExt;
+
+        let forwarded = Arc::new(AtomicUsize::new(0));
+        let legacy = Router::new().fallback({
+            let forwarded = forwarded.clone();
+            move || async move { forwarded.fetch_add(1, SeqCst); (StatusCode::OK, "legacy executor") }
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        tokio::spawn(async move { axum::serve(listener, legacy).await.unwrap() });
+
+        // Nothing here may touch the database: the pool never connects.
+        let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://unused@127.0.0.1:1/unused").unwrap();
+        let http = reqwest::Client::new();
+        let store = crate::store::Store { pool: pool.clone() };
+        let engine = Arc::new(Engine {
+            store: store.clone(),
+            catalog: crate::catalog::CatalogCache::new(pool.clone()),
+            parser: crate::parser::Parser::new(http.clone(), "http://127.0.0.1:1/chat".into(), "unused".into(), "unused".into()),
+            signer: crate::state::Signer::new(vec![7; 32]).unwrap(),
+            executor: crate::execution::Executor { store, http: http.clone(), supabase_url: "http://127.0.0.1:1".into(), enabled: false },
+            app_url: "http://localhost:5173".into(),
+        });
+        let app = router(ServerState {
+            engine,
+            auth: Arc::new(Auth { pool, http: http.clone(), supabase_url: "http://127.0.0.1:1".into(), publishable_key: "unused".into() }),
+            permits: Arc::new(Semaphore::new(4)),
+            executor_compat: Some(ExecutorCompat::new(http, origin).unwrap()),
+        }, "http://localhost:5173").unwrap();
+
+        let request = Uuid::new_v4();
+        for (method, path) in [
+            (Method::POST, "/v2/chat".to_owned()),
+            (Method::GET, "/v2/chat".to_owned()),
+            (Method::GET, format!("/v2/requests/{request}")),
+            (Method::POST, "/v2/documents".to_owned()),
+            (Method::POST, format!("/v2/documents/{request}/read")),
+        ] {
+            let body = if method == Method::POST { Body::from(r#"{"request_id":"00000000-0000-4000-8000-000000000001","question":"Hallo","state":null}"#) } else { Body::empty() };
+            let response = app.clone().oneshot(axum::http::Request::builder().method(method.clone()).uri(&path)
+                .header("authorization", "Bearer apk_would-be-a-key").header("content-type", "application/json").body(body).unwrap()).await.unwrap();
+            assert_eq!(response.status(), StatusCode::GONE, "{method} {path}");
+            let bytes = axum::body::to_bytes(response.into_body(), 4096).await.unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body, json!({"errors":[{"code":"ask_moved","message":"This Ask flow moved. Reload Apiosk."}]}), "{method} {path}");
+        }
+        assert_eq!(forwarded.load(SeqCst), 0, "no retired Ask route reaches the legacy executor");
+
+        // The fallback itself is live in this router: an unknown path is forwarded.
+        let response = app.oneshot(axum::http::Request::get("/v1/legacy-probe").body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(forwarded.load(SeqCst), 1);
     }
 }

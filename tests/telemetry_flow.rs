@@ -135,10 +135,12 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     let trace = Uuid::new_v4().to_string();
     let client = reqwest::Client::new();
     let send = |request: reqwest::RequestBuilder| request.bearer_auth(BEARER).header("x-apiosk-trace", &trace).send();
-    let chat = send(client.post(format!("{gateway}/v2/chat")).json(&json!({"request_id":Uuid::new_v4(),"question":format!("Jaarrekening van {CANARY}"),"state":null})))
+    // A question over HTTP: /v2/discover shares the App chat's intake (the
+    // App's own /v2/chat route is retired and answers 410).
+    let asked = send(client.post(format!("{gateway}/v2/discover")).json(&json!({"request_id":Uuid::new_v4(),"question":format!("Jaarrekening van {CANARY}"),"state":null})))
         .await.unwrap();
-    assert_eq!(chat.headers()["x-apiosk-trace"], trace.as_str());
-    let priced: Value = chat.json().await.unwrap();
+    assert_eq!(asked.headers()["x-apiosk-trace"], trace.as_str());
+    let priced: Value = asked.json().await.unwrap();
     assert_eq!(priced["status"], "ready", "{priced}");
     let task = priced["state"]["state_ref"].as_str().unwrap().to_owned();
     let proposal = &priced["proposal"];
@@ -213,7 +215,7 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     assert_eq!(sum("provider_micro_usd"), 120);
     assert_eq!(sum("fee_micro_usd"), 18);
     let chat_cost = costs.iter().find(|line| line["segment"] == "question").unwrap();
-    assert_eq!(chat_cost["cost_nanousd"], Value::Null, "the chat response carried no cost");
+    assert_eq!(chat_cost["cost_nanousd"], Value::Null, "the model response carried no cost");
     assert_eq!(chat_cost["cost_complete"], false);
     let worker = costs.iter().find(|line| line["segment"] == "execution" && line.get("db_calls").is_some()).expect("the worker flushes its own counters");
     assert!(worker["db_calls"].as_u64().unwrap() > 0);

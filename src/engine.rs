@@ -38,6 +38,12 @@ pub struct Engine {
 }
 pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
 
+/// Where a person approves a task: Ask's task view in the App. Links sent
+/// before this (`/gateway-v2?task=`) still redirect there.
+fn approval_url(app_url: &str, task: Uuid) -> String {
+    format!("{}/?task={}", app_url.trim_end_matches('/'), task)
+}
+
 fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
     let base = app_url.trim_end_matches('/');
     let scope = workspace.map(|id| format!("?workspace={id}")).unwrap_or_default();
@@ -882,7 +888,7 @@ impl Engine {
                 currency: "USD".into(),
                 max_total_atomic: plan.cap_atomic.to_string(),
                 expires_at: plan.expires_at,
-                approval_url: format!("{}/gateway-v2?task={}", self.app_url, id),
+                approval_url: approval_url(&self.app_url, id),
                 steps: plan
                     .steps
                     .iter()
@@ -927,7 +933,16 @@ impl Engine {
 
 #[cfg(test)]
 mod account_navigation_tests {
-    use super::account_navigation;
+    use super::{account_navigation, approval_url};
+
+    #[test]
+    fn approval_links_open_the_task_in_ask() {
+        let task = uuid::Uuid::parse_str("00000000-0000-4000-8000-000000000456").unwrap();
+        for app in ["https://app.apiosk.com", "https://app.apiosk.com/"] {
+            assert_eq!(approval_url(app, task), "https://app.apiosk.com/?task=00000000-0000-4000-8000-000000000456");
+        }
+        assert!(!approval_url("https://app.apiosk.com", task).contains("gateway-v2"));
+    }
 
     #[test]
     fn account_shortcuts_are_absolute_and_stable() {

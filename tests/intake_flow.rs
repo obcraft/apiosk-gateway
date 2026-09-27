@@ -10,6 +10,7 @@ use apiosk_gateway_v2::{
     engine::Engine,
     execution::Executor,
     parser::Parser,
+    protocol::DiscoverRequest,
     server::{router, ServerState},
     state::Signer,
     store::Store,
@@ -254,10 +255,12 @@ impl Intake {
         (status, response.json().await.unwrap_or(Value::Null))
     }
 
+    /// The engine's App chat path, which still creates the tasks these flows
+    /// test. The App no longer sends it over HTTP: `/v2/chat` answers 410.
     async fn chat(&self, person: &Person, body: Value) -> Value {
-        let (status, response) = self.send(&person.bearer, "/v2/chat", Some(body)).await;
-        assert_eq!(status, StatusCode::OK, "{response}");
-        response
+        let request: DiscoverRequest = serde_json::from_value(body).unwrap();
+        let principal = Principal { owner: person.owner, connection: None, workspace: None };
+        serde_json::to_value(self.engine.chat(&principal, request).await.unwrap()).unwrap()
     }
 }
 
@@ -377,7 +380,7 @@ async fn intake_counts_characters_not_bytes() {
     assert_eq!(intake.model.chats().len(), 2);
     let owned: i64 = sqlx::query_scalar("SELECT count(*) FROM tasks WHERE owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(owned, 1, "only the accepted App question created a task");
-    println!("intake_counts_characters_not_bytes: 4000 characters accepted on /v2/chat and /v2/ask, 4001 refused");
+    println!("intake_counts_characters_not_bytes: 4000 characters accepted by App chat and /v2/ask, 4001 refused");
 }
 
 /// The endpoint id of the fixture service with this capability.
@@ -757,46 +760,33 @@ async fn an_invalid_selection_is_refused_before_interpretation() {
     assert_eq!(codes(&discovered), ["invalid_selection"], "selection is an App chat feature: {discovered}");
     assert!(intake.model.chats().is_empty());
 
-    // An old gateway rejects the unknown field before claiming the request:
-    // a 422 without a JSON body, which the App answers with the legacy shape.
-    let raw = intake.http.post(format!("{}/v2/chat", intake.gateway)).bearer_auth(&person.bearer)
-        .json(&json!({"request_id":Uuid::new_v4(),"question":"Hallo","state":null,"context_delta":{"selection":{"version":1,"endpoints":[],"unexpected":true}}}))
-        .send().await.unwrap();
-    assert_eq!(raw.status(), StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(serde_json::from_str::<Value>(&raw.text().await.unwrap()).is_err());
+    // An unknown selection field is refused before the request is claimed.
+    assert!(serde_json::from_value::<DiscoverRequest>(json!({"request_id":Uuid::new_v4(),"question":"Hallo","state":null,"context_delta":{"selection":{"version":1,"endpoints":[],"unexpected":true}}})).is_err());
     assert_eq!(task_count(&intake, &person).await, 0);
     println!("an_invalid_selection_is_refused_before_interpretation: no task, no model call");
 }
 
-/// A first request's receipt is recoverable by request id alone: pending
-/// while claimed, completed once answered (with the task it produced),
-/// unknown for an id nothing ever claimed, and unavailable to another person.
+/// The App's retired Ask routes answer 410 for a signed-in person, before
+/// any claim, model call or task: an old tab is told to reload.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
-async fn request_receipt_recovers_a_first_request_by_id() {
+async fn retired_ask_routes_answer_gone_and_create_nothing() {
     let intake = Intake::start().await;
     let person = Person::new();
     let request_id = Uuid::new_v4();
-    let (status, unknown) = intake.send(&person.bearer, &format!("/v2/requests/{request_id}"), None).await;
-    assert_eq!(status, StatusCode::NOT_FOUND, "{unknown}");
-    assert_eq!(codes(&unknown), ["request_unknown"]);
-
-    let answered = intake.chat(&person, json!({"request_id":request_id,"question":"Hallo","state":null})).await;
-    assert_eq!(answered["status"], "needs_input", "{answered}");
-    let task: Uuid = answered["state"]["state_ref"].as_str().unwrap().parse().unwrap();
-
-    let (status, receipt) = intake.send(&person.bearer, &format!("/v2/requests/{request_id}"), None).await;
-    assert_eq!(status, StatusCode::OK, "{receipt}");
-    assert_eq!(receipt["state"], "completed");
-    assert_eq!(receipt["kind"], "chat");
-    assert_eq!(receipt["task_ref"], json!(task));
-    assert_eq!(receipt["response_status"], "needs_input");
-    assert!(receipt["retry_after_ms"].is_null());
-
-    let other = Person::new();
-    let (status, denied) = intake.send(&other.bearer, &format!("/v2/requests/{request_id}"), None).await;
-    assert_eq!(status, StatusCode::NOT_FOUND, "another person cannot read this receipt: {denied}");
-    println!("request_receipt_recovers_a_first_request_by_id: unknown, then completed with its task, scoped to the owner");
+    for (path, body) in [
+        ("/v2/chat".to_owned(), Some(json!({"request_id":request_id,"question":"Jaarrekening van Example","state":null}))),
+        (format!("/v2/requests/{request_id}"), None),
+        ("/v2/documents".to_owned(), Some(json!({"request_id":Uuid::new_v4(),"purpose":"invoice","file_name":"invoice.pdf"}))),
+        (format!("/v2/documents/{}/read", Uuid::new_v4()), Some(json!({"request_id":Uuid::new_v4()}))),
+    ] {
+        let (status, gone) = intake.send(&person.bearer, &path, body).await;
+        assert_eq!(status, StatusCode::GONE, "{path}: {gone}");
+        assert_eq!(codes(&gone), ["ask_moved"], "{path}");
+    }
+    assert!(intake.model.chats().is_empty(), "no retired route reaches interpretation");
+    assert_eq!(task_count(&intake, &person).await, 0);
+    println!("retired_ask_routes_answer_gone_and_create_nothing: /v2/chat, /v2/requests and /v2/documents answer 410");
 }
 
 /// A quote that has not expired, or that no longer matches what is shown,
