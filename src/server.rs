@@ -21,6 +21,8 @@ use tokio::sync::Semaphore;
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
+mod ask_v2;
+
 #[derive(Clone)]
 pub struct ServerState {
     pub engine: Arc<Engine>,
@@ -76,6 +78,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/requests/:request_id", get(request_receipt))
         .route("/v2/discover", post(discover))
         .route("/v2/chat", post(chat))
+        .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
+        .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/sources", get(sources))
         .route("/v2/capabilities/resolve", post(crate::public_api::resolve_capability))
         .route("/v2/capabilities/plan", post(crate::public_api::plan_capability))

@@ -335,6 +335,7 @@ pub enum ModelFailure {
 }
 
 pub struct Parser {
+    ask_v2: Option<crate::ask_v2::Client>,
     http: reqwest::Client,
     discovery_http: reqwest::Client,
     url: String,
@@ -836,6 +837,7 @@ impl Parser {
     }
     pub fn new(http: reqwest::Client, url: String, key: String, model: String) -> Self {
         Self {
+            ask_v2: None,
             http,
             discovery_http: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().expect("public discovery HTTP client"),
             url,
@@ -857,6 +859,16 @@ impl Parser {
     pub fn with_typesafe(mut self, config: Option<crate::typesafe::Config>) -> anyhow::Result<Self> {
         self.typesafe = config.map(crate::typesafe::Client::new).transpose()?;
         Ok(self)
+    }
+    pub fn with_ask_v2(mut self, client: crate::ask_v2::Client) -> Self {
+        self.ask_v2 = Some(client);
+        self
+    }
+    pub fn ask_v2(&self) -> Option<&crate::ask_v2::Client> {
+        self.ask_v2.as_ref()
+    }
+    pub fn discovery_http(&self) -> &reqwest::Client {
+        &self.discovery_http
     }
     /// Isolated HTTP fixtures may replace the public discovery service. An
     /// arbitrary external discovery host is never accepted by this override.

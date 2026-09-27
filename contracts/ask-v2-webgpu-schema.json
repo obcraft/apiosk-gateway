@@ -1,0 +1,149 @@
+{
+  "type": "object",
+  "properties": {
+    "language": {
+      "type": "string"
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "identifiers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "type",
+          "identifiers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "company",
+              "location",
+              "compliance",
+              "vehicle",
+              "finance",
+              "legal",
+              "procurement",
+              "document",
+              "research",
+              "general"
+            ]
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_hint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "domain",
+          "inputs",
+          "outputs",
+          "subject_id",
+          "source_hint",
+          "confidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "deliverable": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "pdf",
+            "xlsx",
+            "docx",
+            "json"
+          ]
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "summarize",
+              "analyze",
+              "compare",
+              "list",
+              "export"
+            ]
+          }
+        }
+      },
+      "required": [
+        "format",
+        "operations"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "language",
+    "subjects",
+    "capabilities",
+    "deliverable"
+  ],
+  "additionalProperties": false
+}

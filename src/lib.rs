@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod ask_v2;
 pub mod answer_blocks;
 pub mod answer_presentation;
 mod approval_feedback;

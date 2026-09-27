@@ -11,6 +11,7 @@ kill_timeout = "120s"
   SUPABASE_URL = "https://api.apiosk.com"
   BIND_ADDRESS = "0.0.0.0:8082"
   INTENT_MODEL = "google/gemma-3-12b-it"
+  ASK_V2_MODEL = "google/gemma-3-4b-it"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.

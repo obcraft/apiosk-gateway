@@ -152,7 +152,11 @@ async fn main() -> anyhow::Result<()> {
             env::var("ANALYSIS_MODEL").ok(),
             Some(env::var("INTENT_PROVIDER_SORT").unwrap_or_else(|_| "latency".into())),
             env::var("ANALYSIS_PROVIDER_SORT").ok(),
-        )?,
+        )?.with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(
+            http.clone(),
+            env::var("OPENROUTER_API_KEY").or_else(|_| env::var("INTENT_API_KEY")).unwrap_or_default(),
+            env::var("ASK_V2_MODEL").unwrap_or_else(|_| apiosk_gateway_v2::ask_v2::DEFAULT_MODEL.into()),
+        )),
         signer: Signer::new(required("STATE_SIGNING_KEY")?.into_bytes())?,
         executor: Executor {
             store,
