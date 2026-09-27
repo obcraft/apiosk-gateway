@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 impl Engine {
     /// Price the exact registered endpoint selected in Ask v2. The client can
-    /// supply only its declared, canonical fact inputs; directory descriptions
+    /// supply its declared canonical inputs or a supported native lookup seed; directory descriptions
     /// and model capabilities never become execution authority. No model,
     /// authorization, provider request, or balance reservation happens here.
     pub async fn prepare_endpoint(
@@ -49,6 +49,27 @@ impl Engine {
             return Err(("ambiguous_endpoint", "This endpoint has several operations. Choose its specific capability before preparing a quote."));
         }
         Ok(first)
+    }
+
+    /// Names may seed a native, validated dependency chain. Only facts that
+    /// the same source can actually derive are offered as lookup alternatives.
+    pub(crate) fn endpoint_lookup_fields(catalog: &Catalog, service: &crate::catalog::Service) -> Vec<String> {
+        if !catalog.vocabulary.contains_key("company.name") { return vec![]; }
+        let mut known = std::collections::BTreeSet::from(["company.name".to_owned()]);
+        for _ in 0..crate::protocol::MAX_DEPTH {
+            let before = known.len();
+            let available = known.clone();
+            for candidate in catalog.services.iter().filter(|candidate| candidate.api_slug == service.api_slug
+                && candidate.endpoint_id != service.endpoint_id && !candidate.unverified) {
+                if candidate.contract.requires.iter().filter(|r| !r.optional).all(|r| available.contains(&r.fact_type)) {
+                    known.extend(candidate.contract.output_map.produces.keys()
+                        .filter(|field| !candidate.optional_outputs.contains(*field)).cloned());
+                }
+            }
+            if known.len() == before { break; }
+        }
+        service.contract.requires.iter().filter(|r| !r.optional && r.fact_type != "company.name" && known.contains(&r.fact_type))
+            .map(|r| r.fact_type.clone()).collect()
     }
 
     /// A structured European request is a fixed multi-goal intent. It enters
@@ -132,7 +153,8 @@ impl Engine {
 
 fn endpoint_intent(catalog: &Catalog, service: &crate::catalog::Service, input: &BTreeMap<String, Value>) -> Result<Intent, String> {
     for (field, value) in input {
-        if !service.contract.requires.iter().any(|r| r.fact_type == *field) {
+        if !service.contract.requires.iter().any(|r| r.fact_type == *field)
+            && !(field == "company.name" && !Engine::endpoint_lookup_fields(catalog, service).is_empty()) {
             return Err(format!("`{field}` is not an input of this endpoint. Review its input fields; nothing was charged."));
         }
         let fact = catalog.vocabulary.get(field)
@@ -141,7 +163,7 @@ fn endpoint_intent(catalog: &Catalog, service: &crate::catalog::Service, input: 
             return Err(format!("Check the value of `{field}` against its input format. Nothing was charged."));
         }
     }
-    let label = input.values().find_map(Value::as_str).unwrap_or(&service.name).chars().take(120).collect();
+    let label = input.get("company.name").and_then(Value::as_str).or_else(|| input.values().find_map(Value::as_str)).unwrap_or(&service.name).chars().take(120).collect();
     Ok(Intent {
         subjects: vec![Subject { entity_ref: None, label, values: input.clone() }],
         goals: vec![Goal {
@@ -188,7 +210,7 @@ mod tests {
     fn endpoint_inputs_are_exact_schema_checked_and_never_inferred() {
         let catalog = catalog();
         let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();
-        for input in [BTreeMap::from([("company.name".into(), json!("Example"))]), BTreeMap::from([("company.id".into(), json!(123))])] {
+        for input in [BTreeMap::from([("unrelated.name".into(), json!("Example"))]), BTreeMap::from([("company.id".into(), json!(123))])] {
             assert!(endpoint_intent(&catalog, service, &input).is_err());
         }
         let mut intent = endpoint_intent(&catalog, service, &BTreeMap::new()).unwrap();
@@ -196,6 +218,40 @@ mod tests {
         let mut task = Task::default();
         input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         assert!(matches!(resolver::resolve(&catalog, &task, &intent), Resolution::Missing { .. }));
+    }
+
+    #[test]
+    fn native_name_lookup_is_priced_with_the_pinned_endpoint() {
+        let catalog = catalog();
+        let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();
+        assert_eq!(Engine::endpoint_lookup_fields(&catalog, service), vec!["company.id"]);
+        let mut intent = endpoint_intent(&catalog, service, &BTreeMap::from([("company.name".into(), json!("Example Ltd"))])).unwrap();
+        let mut task = Task::default();
+        input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected lookup and accounts") };
+        assert_eq!(plan.steps.len(), 2);
+        assert_eq!(plan.steps[0].service.contract.capability_slug, "company.search");
+        assert_eq!(plan.steps[1].service.endpoint_id, service.endpoint_id);
+        assert_eq!(plan.cap_atomic, 138);
+    }
+
+    #[test]
+    fn lookup_alternatives_require_guaranteed_native_outputs() {
+        for mode in ["foreign", "unverified", "optional", "cycle"] {
+            let mut catalog = catalog();
+            let selected = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap().clone();
+            for service in catalog.services.iter_mut().filter(|s| s.endpoint_id != selected.endpoint_id) {
+                match mode {
+                    "foreign" => service.api_slug = "other-provider".into(),
+                    "unverified" => service.unverified = true,
+                    "optional" => { service.optional_outputs.push("company.id".into()); },
+                    "cycle" => for required in &mut service.contract.requires { required.fact_type = "company.id".into(); },
+                    _ => unreachable!(),
+                }
+            }
+            assert!(Engine::endpoint_lookup_fields(&catalog, &selected).is_empty(), "{mode}");
+            assert!(endpoint_intent(&catalog, &selected, &BTreeMap::from([("company.name".into(), json!("Example"))])).is_err(), "{mode}");
+        }
     }
 
     #[test]

@@ -440,11 +440,35 @@ async fn ask_v2_prepare_saves_exact_endpoint_quote_without_model_or_payment() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_prepare_includes_native_name_lookup_in_one_quote() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let endpoint = endpoint("company.accounts");
+    let (_, descriptor) = intake.send(&person.bearer, &format!("/v2/ask-v2/endpoints/{endpoint}?capability=company.accounts"), None).await;
+    assert_eq!(descriptor["lookup"]["field"], "company.name");
+    assert_eq!(descriptor["lookup"]["resolves"], json!(["company.id"]));
+    let request = json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"capability":"company.accounts","input":{"company.name":"Example Ltd"}});
+    let (status, quote) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(request.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{quote}");
+    assert_eq!(quote["status"], "ready", "{quote}");
+    assert_eq!(quote["proposal"]["max_total_atomic"], "138");
+    assert_eq!(quote["proposal"]["steps"], json!(["company.search", "company.accounts"]));
+    let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    assert_no_purchase(&intake, &person, task).await;
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
+    let (_, replay) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(request)).await;
+    assert_eq!(replay, quote);
+    assert_eq!(task_count(&intake, &person).await, 1);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
 async fn ask_v2_prepare_rejects_unknown_inputs_and_authenticates_before_task_creation() {
     let intake = Intake::start().await;
     let person = Person::new();
     let endpoint = endpoint("company.accounts");
-    for input in [json!({"company.name":"Example"}), json!({"company.id":123}), json!({"max_total_atomic":"0"})] {
+    for input in [json!({"unrelated.name":"Example"}), json!({"company.id":123}), json!({"max_total_atomic":"0"})] {
         let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":input}))).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(response["status"], "needs_input", "{response}");

@@ -82,11 +82,16 @@ fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &crate::catal
         }
         json!({"field":required.fact_type,"required":!required.optional,"schema":schema})
     }).collect();
+    let lookup_fields = crate::engine::Engine::endpoint_lookup_fields(catalog, service);
     json!({
         "endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
         "source":{"slug":service.api_slug,"name":source.map(|s| s.name.as_str()).unwrap_or(&service.api_slug),
             "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url},
         "inputs":inputs,
+        "lookup":if lookup_fields.is_empty() { Value::Null } else {
+            json!({"field":"company.name","resolves":lookup_fields,
+                "schema":catalog.vocabulary.get("company.name").map(|fact| &fact.value_schema)})
+        },
         "price":{"currency":"USDC","provider_atomic":service.list_atomic.to_string(),"buyer_atomic":service.total().to_string()}
     })
 }
