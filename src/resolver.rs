@@ -489,6 +489,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
                 "label":match required.fact_type.as_str() { "company_registry.kvknummer" => "KVK number".to_owned(), "company.name" => "Company name".to_owned(), "company.nl.main_establishment_addresses" => "Registered visiting address".to_owned(), "source.bodemloket.b_b_o_x" | "source.pdok_ruimtelijke_plannen.b_b_o_x" => "Location from the verified address".to_owned(), _ => required.fact_type.replace(['.', '_', '-'], " ") }}))
         }).collect();
         json!({"number":index+1,"title":title,"capability":capability,
+            "max_total_atomic":plan.step_total(step).to_string(),"currency":"USD",
             "source":{"name":service.name,"slug":service.api_slug,
                 "directory_slug":source.map(crate::sources::directory_slug).unwrap_or(&service.api_slug),
                 "directory_name":source.map(crate::sources::directory_name).unwrap_or(&service.name),
@@ -519,6 +520,23 @@ mod presentation_tests {
         assert_eq!(action.kind,"retry_analysis");
         assert!(!action.requires_authorization);
         assert_eq!(action.input_schema,json!({"type":"null"}));
+    }
+    #[test]
+    fn step_prices_use_the_quoted_markup_and_sum_to_the_approved_cap() {
+        let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 0, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(3).map(|service| Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }).collect() };
+        for markup in [1500, 2000] {
+            plan.apply_markup(markup);
+            let details = describe_steps(&plan, &[]);
+            let mut total = 0;
+            for (detail, step) in details.iter().zip(&plan.steps) {
+                let amount: i64 = detail["max_total_atomic"].as_str().unwrap().parse().unwrap();
+                assert_eq!(amount, step.service.total_with(markup));
+                assert_eq!(detail["currency"], "USD");
+                total += amount;
+            }
+            assert_eq!(total, plan.cap_atomic);
+        }
     }
     #[test]
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
