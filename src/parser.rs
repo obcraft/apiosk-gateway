@@ -269,13 +269,18 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "explicit values must be scalar literals" => "non_scalar_input",
         "invalid subject index" => "invalid_subject_index",
         "invalid intent size" => "invalid_intent_size",
+        "discovery requires a matched intent" => "missing_matched_intent",
+        "unmatched capabilities need clarification before a quote" => "unmatched_capabilities",
+        "intent must use discovered operations" => "undiscovered_operation",
+        "every matched capability needs a retrieval goal" => "missing_capability_goal",
+        "unexpected intent for conversational reply" => "conversation_requires_null_intent",
         _ => "invalid_intent_schema",
     }
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
     let shape = if surface == "chat" {
-        "Return the chat envelope with message, discover and intent; place the corrected intent inside intent."
+        "Return the chat envelope with message, discover and intent. If discover=false, intent MUST be null. If discover=true, place the corrected intent inside intent. Use exact apiosk_operations from source_matches when supplied; parsed_request slugs describe meaning and are not executable operations."
     } else {
         "Return only the Intent object with subjects, goals, answer_operations and unresolved_references."
     };
@@ -359,7 +364,6 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
             "properties":{"message":text,"discover":{"type":"boolean"},"intent":optional}})),
         "planning" => Some(json!({"type":"object","additionalProperties":false,"required":["message","intent"],
             "properties":{"message":text,"intent":optional}})),
-        "capability-intake" | "capability-search" => crate::capability_intake::reply_schema(surface),
         _ => None,
     }
 }
@@ -912,7 +916,9 @@ impl Parser {
         let mut input = intake::search_input(&parsed, task, catalog);
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         let queries = intake::queries(&parsed, task);
-        let selected = if queries.is_empty() { BTreeMap::new() } else {
+        let selected = if queries.is_empty() || (input["operations"].as_object().is_some_and(|ops| ops.is_empty()) && input["workflow_presets"].as_array().is_none_or(|rows| rows.is_empty())) {
+            queries.keys().map(|slug| (slug.clone(), Default::default())).collect()
+        } else {
             let payload = json!({"model":self.model,"temperature":0,"max_tokens":2500,
                 "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
                 "messages":[{"role":"system","content":include_str!("../contracts/capability-source-search-prompt.txt")},
@@ -941,19 +947,24 @@ impl Parser {
         input["catalog"]=view;
         if let Some(intake) = intake {
             input["parsed_request"] = json!(intake.parsed_request);
-            input["source_matches"] = json!(intake.matches);
+            input["source_matches"] = json!(intake.matches.iter().map(|m| json!({"parsed_capability":m.slug,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})).collect::<Vec<_>>());
             input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
         let literals = selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"));
+        let system = if intake.is_some() {
+            format!("{}\n\nThe language code for your message is {}. Write the entire message in that language, including clarification questions.", include_str!("../contracts/capability-planning-prompt.txt"), intake.unwrap().parsed_request.language)
+        } else {
+            format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.", include_str!("../contracts/ask-chat-prompt.txt"), include_str!("../contracts/parser-prompt.txt"))
+        };
         let payload = json!({
             "model": self.model, "temperature": 0, "max_tokens": 4096,
             "reasoning": {"effort":"minimal", "exclude":true},
             "provider": {"require_parameters":true},
             "response_format": {"type":"json_object"},
             "messages": [
-                {"role":"system","content":format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.",include_str!("../contracts/ask-chat-prompt.txt"),include_str!("../contracts/parser-prompt.txt"))},
+                {"role":"system","content":system},
                 {"role":"user","content":input.to_string()}
             ]
         });
@@ -966,11 +977,12 @@ impl Parser {
             }
             if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
-                intent.restore_question_literals(question);
-                intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
                 if intake.is_some() {
                     anyhow::ensure!(intent.goals.iter().all(|goal| input["catalog"]["capabilities"].as_array().is_some_and(|caps| caps.iter().any(|c| c == &goal.capability))), "intent must use discovered operations");
+                    anyhow::ensure!(intake.is_none_or(|i| i.matches.iter().all(|m| intent.goals.iter().any(|goal| m.operations.contains(&goal.capability)))), "every matched capability needs a retrieval goal");
                 }
+                intent.restore_question_literals(question);
+                intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
             }
             Ok(reply)
         })
@@ -1143,6 +1155,15 @@ impl Parser {
                                         }
                                         Err(error) => {
                                             if surface == "capability-intake" || surface == "capability-search" {
+                                                let reason = match error.to_string().as_str() {
+                                                    "missing capability matches" => "missing_matches",
+                                                    "unknown or duplicate parsed capability" => "unknown_capability",
+                                                    "unknown operation" => "unknown_operation",
+                                                    "incomplete capability matching" => "incomplete_matches",
+                                                    "subject must be literal and have a type" => "non_literal_subject",
+                                                    _ => "invalid_schema",
+                                                };
+                                                tracing::warn!(surface, attempt, reason, "capability validation failed");
                                                 if let Some(messages) = attempt_payload["messages"].as_array_mut() {
                                                     messages.push(json!({"role":"assistant","content":raw}));
                                                     messages.push(json!({"role":"user","content":format!("The JSON failed validation: {}. Return one complete corrected object following the original schema. Do not invent identifiers, capabilities or operations.",error)}));

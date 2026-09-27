@@ -86,6 +86,17 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 
 async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<Value> {
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input.get("known_slugs").is_some() {
+        let label = input["question"].as_str().unwrap().rsplit(' ').next().unwrap();
+        let parsed = json!({"language":"nl","subjects":[{"id":"s1","label":label,"type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve annual company accounts.","domain":"company","inputs":[],"outputs":["financial_statements"],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":[]}});
+        return Json(json!({"choices":[{"message":{"content":parsed.to_string()}}]}));
+    }
+    if let Some(queries) = input["queries"].as_object() {
+        let matches: Vec<_> = queries.keys().map(|slug| json!({"slug":slug,"capabilities":["company.accounts"]})).collect();
+        return Json(json!({"choices":[{"message":{"content":json!({"matches":matches}).to_string()}}]}));
+    }
     if input.get("answer_operations").is_some() {
         fake.analysis.fetch_add(1, SeqCst);
         fake.analysis_input.fetch_max(body["messages"][1]["content"].as_str().unwrap().len() as u64, SeqCst);
@@ -236,6 +247,7 @@ impl Gate {
         });
         let mock = Router::new()
             .route("/chat", post(model))
+            .route("/bazaar", get(|| async { Json(json!({"resources":[]})) }))
             .route("/functions/v1/use-selection", post(provider))
             .route("/auth/v1/user", get(user))
             .with_state(fake.clone());
@@ -247,7 +259,7 @@ impl Gate {
         let engine = Arc::new(Engine {
             store: store.clone(),
             catalog: CatalogCache::new(pool.clone()),
-            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()),
+            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap(),
             signer: Signer::new(vec![6; 32]).unwrap(),
             executor: Executor { store, http: http.clone(), supabase_url: base.clone(), enabled: true },
             app_url: "http://localhost:5173".into(),
@@ -500,8 +512,19 @@ async fn gate_workspace_isolation() {
     }
     let mut stream = gate.http.get(format!("{}{events}&compact=true", gate.gateway)).send().await.unwrap();
     assert_eq!(stream.status(), StatusCode::OK);
-    let first = String::from_utf8(stream.chunk().await.unwrap().unwrap().to_vec()).unwrap();
-    assert!(first.contains(&task.to_string()) && !first.contains(&other.to_string()), "the stream carries its own task only");
+    // Skip stream_open and read a complete task event across HTTP chunks.
+    let mut frame = Vec::new();
+    let first = loop {
+        if let Some((complete, _)) = std::str::from_utf8(&frame).ok().and_then(|text| text.rsplit_once("\n\n")) {
+            if let Some(event) = complete.split("\n\n").find(|event| event.starts_with("event: task\n")) {
+                break event.to_owned();
+            }
+        }
+        let chunk = tokio::time::timeout(Duration::from_secs(5), stream.chunk()).await.unwrap().unwrap().unwrap();
+        frame.extend_from_slice(&chunk);
+        assert!(frame.len() <= 256 * 1024, "bounded first event");
+    };
+    assert!(first.contains(&task.to_string()) && !first.contains(&other.to_string()), "the stream carries its own task only: {first}");
     drop(stream);
 
     assert_eq!(gate.authorize(&in_a, task, &proposal).await.0, StatusCode::OK);

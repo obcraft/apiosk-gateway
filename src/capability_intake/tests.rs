@@ -287,3 +287,61 @@ async fn external_only_match_cannot_become_an_apiosk_quote() {
         .is_err());
     server.abort();
 }
+
+#[tokio::test]
+async fn generic_parsed_slug_cannot_replace_the_discovered_operation() {
+    let mut wrong = planned();
+    wrong["intent"]["goals"][0]["capability"] = json!("company.financial.statements");
+    let (parser, mock, bazaar, server) =
+        fixture(vec![raw(), matched(), wrong, planned()], false).await;
+    let c = catalog();
+    let task = Task::default();
+    let intake = parser
+        .prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar)
+        .await
+        .unwrap();
+    let reply = parser
+        .chat_from_capabilities(QUESTION, None, &task, &c, &intake)
+        .await
+        .unwrap();
+    assert_eq!(
+        reply.intent.unwrap().goals[0].capability,
+        "company.accounts"
+    );
+    assert_eq!(
+        *mock.events.lock().unwrap(),
+        vec!["parse", "search", "bazaar", "plan", "plan"]
+    );
+    server.abort();
+}
+
+#[tokio::test]
+async fn a_dependency_goal_cannot_silently_replace_the_requested_retrieval() {
+    let mut dependency = planned();
+    dependency["intent"]["goals"][0]["capability"] = json!("company.search");
+    let (parser, _, bazaar, server) = fixture(
+        vec![raw(), matched(), dependency.clone(), dependency],
+        false,
+    )
+    .await;
+    let c = catalog();
+    let task = Task::default();
+    let intake = parser
+        .prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar)
+        .await
+        .unwrap();
+    assert!(parser
+        .chat_from_capabilities(QUESTION, None, &task, &c, &intake)
+        .await
+        .is_err());
+    server.abort();
+}
+
+#[test]
+fn a_shared_search_verb_does_not_match_unrelated_data() {
+    let mut input = raw();
+    input["capabilities"][0] = json!({"slug":"procurement.notices","name":"Public procurement notices","description":"Search public procurement notices by topic and jurisdiction.","domain":"procurement","inputs":["topic","jurisdiction"],"outputs":["procurement_notices"],"subject_id":null,"source_hint":null,"confidence":1});
+    let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
+    let search = search_input(&parsed, &Task::default(), &catalog());
+    assert!(search["operations"].as_object().unwrap().is_empty());
+}

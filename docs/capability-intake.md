@@ -1,0 +1,21 @@
+# Ask capability intake
+
+App `/v2/chat` submissions now follow this order:
+
+1. Extract and validate the WebGPU-style `language`, `subjects`, `capabilities`, and `deliverable` object. Add model, parsing time, and SHA-256 of the question on the server. Greetings use the conversation capability without discovery. Malformed output gets at most one correction attempt.
+2. Build generic queries from capability name, description, input concepts, and explicit source hint. Scan every accepted Apiosk operation, score a shortlist per capability, and semantically match those candidates. The directory comes from the current catalog; Pulse Network's services remain individually searchable inside its one source group. No count is hardcoded.
+3. Query public Coinbase Bazaar with those generic queries, after Apiosk matching. Redact parsed/saved subject labels and identifiers. Filter HTTP resources, reject invalid URLs, deduplicate, and retain at most three results per capability. Search failures leave local matches intact. Never request a returned resource URL here.
+4. Interpret the complete original question, selected services, saved context, and parsed object using the matched execution contracts and their dependencies. Missing capability matches require clarification before a quote. Coinbase results are discovery metadata, not newly executable contracts.
+5. Continue through the existing resolver, total-price quote, approval, and backend execution. Store the intake object with the task so reopening it does not repeat discovery or make a purchase.
+
+The App exposes the latest capability object and ordered source matches in a collapsed “Capabilities and sources” section. Coinbase results appear after Apiosk and are labelled as discovery-only. Paid calls remain behind the existing approval.
+
+Main code: `src/capability_intake.rs`, `Parser::prepare_ask`, `Parser::chat_from_capabilities`, and `Engine::intake_question`. The independent App repository renders `context_view.capability_intake` in `CapabilityDiscovery`.
+
+Checks: `cargo test --offline --lib capability_intake`, the isolated `scripts/test-intake-flow.mjs` suite, and the App's capability-discovery and gateway-v2 tests. `tests/capability_intake_live.rs` contains explicit opt-in checks: an entirely local catalog inspection and a separate live model/public discovery check. The latter sends metadata to the configured model and must only be run with appropriately authorized data. Synthetic diagnostic capture refuses a real catalog.
+
+The planning stage uses its own prompt to translate generic parsed slugs into exact matched operations. Validation rejects a generic slug used as an executable operation, an omitted requested retrieval, and a dependency lookup substituted for the actual result. Shared verbs such as “search” cannot by themselves shortlist unrelated data. An unspecified comparison is clarified rather than assumed to require financial statements.
+
+Validation on 2026-09-27: 260 Gateway unit tests passed (four existing ignored tests), six isolated database intake/recovery tests passed, and 63 focused App tests plus the production build passed. Offline inspection of a fresh catalog snapshot considered 1,301 accepted operations across 112 listings grouped into 37 sources, retaining financial-statement and procurement operations. Three live questions passed with a synthetic company-only catalog: annual accounts proceeded to intent planning, an unspecified comparison requested clarification, and procurement remained unavailable instead of being replaced with company search. Those checks used public Bazaar discovery and created no purchases. Live verification with the full production catalog and deployment remain unverified.
+
+Release validation on 2026-09-27: the workspace/all-targets suite reported 485 passed, 52 ignored, and one strict quality-tape failure (`quality_set_scores_every_replayed_case`, q01). That exact failure also reproduced in an isolated snapshot of unchanged `origin/main`; the recorded baseline was not rewritten. All seven isolated release-gate scenarios passed after updating their model/discovery fixtures and reading the task event after the SSE stream-opening handshake. These cover expiry, long data, lost-response recovery, missing sources, concurrent approval/workers, receipt replay, and workspace isolation.

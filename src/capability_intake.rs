@@ -30,24 +30,6 @@ const FORMATS: &[&str] = &["chat", "pdf", "xlsx", "docx", "json"];
 const OPERATIONS: &[&str] = &["summarize", "analyze", "compare", "list", "export"];
 pub const BAZAAR_SEARCH: &str = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 
-pub fn reply_schema(surface: &str) -> Option<Value> {
-    let text = json!({"type":"string"});
-    let strings = json!({"type":"array","items":{"type":"string"}});
-    match surface {
-        "capability-intake" => Some(json!({"type":"object","additionalProperties":false,
-            "required":["language","subjects","capabilities","deliverable"],"properties":{
-            "language":text,
-            "subjects":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["id","label","type","identifiers"],"properties":{"id":text,"label":text,"type":text,"identifiers":{"type":"object","additionalProperties":{"type":"string"}}}}},
-            "capabilities":{"type":"array","minItems":1,"maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["slug","name","description","domain","inputs","outputs","subject_id","source_hint","confidence"],"properties":{"slug":text,"name":text,"description":text,"domain":{"type":"string","enum":DOMAINS},"inputs":strings,"outputs":strings,"subject_id":{"type":["string","null"]},"source_hint":{"type":["string","null"]},"confidence":{"type":"number","minimum":0,"maximum":1}}}},
-            "deliverable":{"type":"object","additionalProperties":false,"required":["format","operations"],"properties":{"format":{"type":"string","enum":FORMATS},"operations":{"type":"array","items":{"type":"string","enum":OPERATIONS}}}}
-        }})),
-        "capability-search" => Some(
-            json!({"type":"object","additionalProperties":false,"required":["matches"],"properties":{"matches":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["slug","capabilities"],"properties":{"slug":text,"capabilities":strings}}}}}),
-        ),
-        _ => None,
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subject {
     pub id: String,
@@ -730,6 +712,13 @@ pub fn search_input(parsed: &ParsedRequest, task: &Task, catalog: &Catalog) -> V
                         "information",
                         "company",
                         "general",
+                        "search",
+                        "find",
+                        "get",
+                        "list",
+                        "lookup",
+                        "query",
+                        "api",
                     ]
                     .contains(word)
             })

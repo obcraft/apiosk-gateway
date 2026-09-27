@@ -397,10 +397,9 @@ impl Engine {
                 "I'll prepare the source checks and show the total price before you approve.".into()
             } else { crate::supplier_check::routing_message(&req.question) }));
         }
-        // One interpretation for every surface. The Ask page, a connected
-        // chatbot and the API read the same question with the same single
-        // model pass and the same catalogue, so they plan it the same way.
-        // App-only behaviour (workflow collection, invoice upload) stays above.
+        // Ask interprets execution inputs against its discovered operations.
+        // Connected-agent/API requests retain their existing interpreter.
+        // Both feed the same resolver, quote, authorization and execution path.
         let interpreted = forced.is_none();
         if interpreted {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
