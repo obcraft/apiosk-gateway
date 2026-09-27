@@ -41,7 +41,9 @@ if (process.argv[1]===new URL(import.meta.url).pathname) {
   await fs.writeFile(path.join(output,'catalog.json'),JSON.stringify(snapshot,null,2)+'\n');
   const contractsByEndpoint=Map.groupBy(contracts,c=>c.endpoint_id);
   const offersByEndpoint=Map.groupBy(offers,o=>o.endpoint_id);
-  const sourceFor=a=>owners.get(a.owner_id)==='pulsenetwork'?'pulsenetwork':a.slug;
+  // Grouped providers: their listings are services of one source (src/sources.rs GROUPED_PROVIDERS).
+  const grouped=new Set(['pulsenetwork','coinbase-bazaar']);
+  const sourceFor=a=>grouped.has(owners.get(a.owner_id))?owners.get(a.owner_id):a.slug;
   const rows=Map.groupBy(visible,sourceFor);
   const coverage=[...rows].map(([source,services])=>{
     const all=endpoints.filter(e=>services.some(a=>a.id===e.api_id));

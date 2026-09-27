@@ -514,10 +514,9 @@ pub fn source_count(catalog: &Catalog) -> usize {
         .known_sources
         .iter()
         .map(|s| {
-            if s.metadata.provider_slug.as_deref() == Some("pulsenetwork") {
-                "pulsenetwork"
-            } else {
-                &s.slug
+            match s.metadata.provider_slug.as_deref().and_then(crate::sources::grouped_provider) {
+                Some(group) => group.handle,
+                None => &s.slug,
             }
         })
         .collect::<BTreeSet<_>>()

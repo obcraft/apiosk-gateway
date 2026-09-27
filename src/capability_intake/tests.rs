@@ -161,6 +161,21 @@ fn all_37_directory_sources_and_pulse_members_are_searchable() {
     assert!(!input.to_string().contains("Coolblue"));
 }
 #[test]
+fn every_grouped_provider_counts_as_one_source() {
+    let mut c = catalog();
+    let member = |slug: String, provider: &str| KnownSource {
+        slug,
+        name: "member".into(),
+        block_reason: None,
+        metadata: crate::readiness::Metadata { provider_slug: Some(provider.into()), ..Default::default() },
+    };
+    c.known_sources = (0..3).map(|i| member(format!("source-{i}"), "someone")).collect();
+    c.known_sources.extend((0..76).map(|i| member(format!("pulse-{i}"), "pulsenetwork")));
+    c.known_sources.extend((0..500).map(|i| member(format!("cbz-host-{i}"), "coinbase-bazaar")));
+    // three independent sources, Pulse Network and Coinbase Bazaar
+    assert_eq!(source_count(&c), 5);
+}
+#[test]
 fn semantic_matching_accepts_only_supplied_operations_and_accounts_for_every_capability() {
     let p = normalize(&raw().to_string(), QUESTION, "model").unwrap();
     let input = search_model_input(&search_input(&p, &Task::default(), &catalog()));

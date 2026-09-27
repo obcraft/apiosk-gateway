@@ -150,6 +150,7 @@ pub async fn endpoint_page(pool: &PgPool, catalog: &Catalog, source_id: &str, qu
         .bind(offset as i64)
         .bind(query.capabilities())
         .bind(query.service())
+        .bind(grouped_handles())
         .fetch_one(pool).await?;
     mark_available(&mut result, catalog);
     let count = result["items"].as_array().map(Vec::len).unwrap_or(0);
@@ -226,21 +227,46 @@ fn capability_selected(filter: &Option<String>, values: impl IntoIterator<Item =
         v.eq_ignore_ascii_case(wanted) || family.iter().any(|m| m.eq_ignore_ascii_case(v))
     })
 }
-/// Pulse's listings are services of one registered provider, not independent
-/// sources. Match the stored owner handle, never a name/suffix heuristic: KVK,
-/// CBS and the other upstreams distributed by Apiosk retain their own identity.
+/// A registered provider whose listings are services of ONE source, not
+/// independent sources. Mirrored byte for byte by `GROUPED_PROVIDERS` in the
+/// app (`source-directory.ts`) and the MCP server (`source-groups.mjs`).
+pub struct GroupedProvider {
+    pub handle: &'static str,
+    pub name: &'static str,
+    pub description: &'static str,
+    pub category: &'static str,
+    /// GET /v2/sources/{id} pages operations by default
+    pub paged_detail: bool,
+}
+pub const GROUPED_PROVIDERS: &[GroupedProvider] = &[
+    GroupedProvider { handle: "pulsenetwork", name: "Pulse Network", description: "Data services published by Pulse Network.", category: "intelligence", paged_detail: false },
+    GroupedProvider { handle: "coinbase-bazaar", name: "Coinbase Bazaar", description: "Third-party pay-per-call services listed in the Coinbase x402 Bazaar. Apiosk buys each call for you from your balance.", category: "marketplace", paged_detail: true },
+];
+/// Nested services carried on one grouped `/v2/sources` row. Pulse (87
+/// services) stays complete; a Bazaar row cannot carry thousands.
+/// `service_count` and `matching_service_count` stay exact.
+pub const NESTED_SERVICE_CAP: usize = 100;
+/// The grouped provider with this stored owner handle, if any.
+pub fn grouped_provider(handle: &str) -> Option<&'static GroupedProvider> {
+    GROUPED_PROVIDERS.iter().find(|g| g.handle == handle)
+}
+pub fn grouped_handles() -> Vec<String> {
+    GROUPED_PROVIDERS.iter().map(|g| g.handle.to_owned()).collect()
+}
+/// A grouped provider's listings are services of one registered provider, not
+/// independent sources. Match the stored owner handle, never a name/suffix
+/// heuristic: KVK, CBS and the other upstreams distributed by Apiosk retain
+/// their own identity.
 pub fn directory_slug(source: &Source) -> &str {
-    if source.provider_slug.as_deref() == Some("pulsenetwork") {
-        "pulsenetwork"
-    } else {
-        &source.slug
+    match source.provider_slug.as_deref().and_then(grouped_provider) {
+        Some(group) => group.handle,
+        None => &source.slug,
     }
 }
 pub fn directory_name(source: &Source) -> &str {
-    if source.provider_slug.as_deref() == Some("pulsenetwork") {
-        "Pulse Network"
-    } else {
-        &source.name
+    match source.provider_slug.as_deref().and_then(grouped_provider) {
+        Some(group) => group.name,
+        None => &source.name,
     }
 }
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
@@ -391,15 +417,16 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         let executable_capabilities: BTreeSet<_> = services.iter().map(|s| &s.contract.capability_slug).collect();
         let capabilities: BTreeSet<_> = members.iter().flat_map(|(_,s)| capabilities_for(s)).collect();
         let inputs: BTreeSet<_> = services.iter().flat_map(|s| s.contract.requires.iter().filter(|r| !r.optional).map(|r| &r.fact_type)).collect();
-        let grouped = *key == "pulsenetwork";
+        let group = members.iter().find_map(|(_, s)| s.provider_slug.as_deref().and_then(grouped_provider)).filter(|g| g.handle == *key);
+        let grouped = group.is_some();
         let tags: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.tags).collect();
         let sectors: BTreeSet<_> = members.iter().flat_map(|(_,s)| &s.sectors).collect();
         let categories: BTreeSet<_> = members.iter()
             .flat_map(|(_,s)| s.categories.iter().chain(std::iter::once(&s.category)))
             .filter(|s| !s.is_empty()).collect();
         let mut row = json!({"slug":key,"provider_slug":first.provider_slug,"logo_url":if grouped {first.provider_logo_url.as_ref().or(first.logo_url.as_ref())} else {first.logo_url.as_ref()},
-            "name":directory_name(first),"description":if grouped {"Data services published by Pulse Network."} else {&first.description},
-            "category":if grouped {"intelligence"} else {&first.category},"categories":categories,
+            "name":directory_name(first),"description":group.map_or(first.description.as_str(), |g| g.description),
+            "category":group.map_or(first.category.as_str(), |g| g.category),"categories":categories,
             "tags":tags,"sectors":sectors,"endpoint_count":members.iter().map(|(_,s)|s.endpoint_count).sum::<i64>(),
             "readiness":crate::readiness::assess(catalog, &slugs),
             "available_in_v2":members.iter().any(|(_,s)| !restricted.contains(s.slug.as_str()) && executable.contains(s.slug.as_str())),
@@ -409,7 +436,8 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         if grouped {
             row["service_count"] = json!(members.len());
             row["matching_service_count"] = json!(matching.len());
-            row["services"] = json!(matching.iter().map(|(_,_,s)|json!({"slug":s.slug,"name":s.name,"description":s.description,"category":s.category})).collect::<Vec<_>>());
+            // Bounded: the counts above stay exact, the list is the first page.
+            row["services"] = json!(matching.iter().take(NESTED_SERVICE_CAP).map(|(_,_,s)|json!({"slug":s.slug,"name":s.name,"description":s.description,"category":s.category})).collect::<Vec<_>>());
         }
         row
     }).collect();
@@ -427,7 +455,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
         "capability_groups":crate::eu_capabilities::definitions().iter().map(group_view).collect::<Vec<_>>(),
         "selected_capability":selected_group.map(group_view),
-        "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under Pulse Network are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."})
+        "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under a grouped provider such as Pulse Network or Coinbase Bazaar are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."})
 }
 
 #[cfg(test)]
@@ -565,6 +593,71 @@ mod tests {
         let independent = rows.iter_mut().find(|s| s.slug == "one").unwrap();
         independent.name = "Independent Pulse".into();
         assert_eq!(directory_slug(independent), "one");
+    }
+    #[test]
+    fn a_second_grouped_provider_is_one_bounded_source_beside_pulse() {
+        let mut rows = rows();
+        for index in 0..87 {
+            rows.push(serde_json::from_value(json!({
+                "slug":format!("pulse-service-{index}"),"provider_slug":"pulsenetwork",
+                "name":format!("Pulse service {index}"),"description":"other service",
+                "category":"intelligence","tags":[],"sectors":[],"endpoint_count":1
+            })).unwrap());
+        }
+        for index in 0..150 {
+            rows.push(serde_json::from_value(json!({
+                "slug":format!("cbz-host-{index}"),"provider_slug":"coinbase-bazaar",
+                "name":format!("Bazaar host {index}"),"description":if index % 3 == 0 {"token price oracle"} else {"web search"},
+                "category":"crypto","tags":["x402"],"sectors":[],"endpoint_count":2
+            })).unwrap());
+        }
+        // A listing that merely calls itself "Coinbase Bazaar" is not a member.
+        rows.push(serde_json::from_value(json!({
+            "slug":"coinbase-bazaar-lookalike","provider_slug":"someone-else","name":"Coinbase Bazaar",
+            "description":"imitation","category":"data","tags":[],"sectors":[],"endpoint_count":1
+        })).unwrap());
+        let c = catalog();
+        let all = browse(&rows, &c, &SourceQuery { limit: Some(50), ..Default::default() });
+        // one, two, Pulse, Bazaar and the lookalike: every group counted once.
+        assert_eq!(all["total"], 5);
+        assert_eq!(all["catalog_total"], 5);
+        let sources = all["sources"].as_array().unwrap();
+        assert_eq!(sources.iter().filter(|s| s["slug"] == "coinbase-bazaar").count(), 1);
+        assert_eq!(sources.iter().filter(|s| s["slug"] == "pulsenetwork").count(), 1);
+        let bazaar = sources.iter().find(|s| s["slug"] == "coinbase-bazaar").unwrap();
+        let definition = grouped_provider("coinbase-bazaar").unwrap();
+        assert_eq!(bazaar["name"], definition.name);
+        assert_eq!(bazaar["name"], "Coinbase Bazaar");
+        assert_eq!(bazaar["description"], definition.description);
+        assert_eq!(bazaar["category"], "marketplace");
+        assert_eq!(bazaar["service_count"], 150);
+        assert_eq!(bazaar["matching_service_count"], 150);
+        assert_eq!(bazaar["services"].as_array().unwrap().len(), NESTED_SERVICE_CAP);
+        assert_eq!(bazaar["endpoint_count"], 300);
+        // Pulse stays complete under the cap.
+        let pulse = sources.iter().find(|s| s["slug"] == "pulsenetwork").unwrap();
+        assert_eq!(pulse["service_count"], 87);
+        assert_eq!(pulse["services"].as_array().unwrap().len(), 87);
+        assert_eq!(pulse["description"], "Data services published by Pulse Network.");
+        let lookalike = sources.iter().find(|s| s["slug"] == "coinbase-bazaar-lookalike").unwrap();
+        assert!(lookalike.get("service_count").is_none());
+        // A search narrows the nested list; the counts stay exact.
+        let oracle = browse(&rows, &c, &SourceQuery { search: Some("token price oracle".into()), ..Default::default() });
+        let bazaar = oracle["sources"].as_array().unwrap().iter().find(|s| s["slug"] == "coinbase-bazaar").unwrap();
+        assert_eq!(bazaar["service_count"], 150);
+        assert_eq!(bazaar["matching_service_count"], 50);
+        assert_eq!(bazaar["services"].as_array().unwrap().len(), 50);
+        assert_eq!(directory_slug(&rows[rows.len() - 1]), "coinbase-bazaar-lookalike");
+        assert_eq!(directory_name(&rows[rows.len() - 2]), "Coinbase Bazaar");
+        assert_eq!(grouped_handles(), vec!["pulsenetwork".to_owned(), "coinbase-bazaar".to_owned()]);
+        assert!(!all["notice"].as_str().unwrap().contains("services under Pulse Network are"));
+    }
+    #[test]
+    fn endpoint_sql_groups_every_grouped_provider_by_owner_handle() {
+        let sql = include_str!("source_endpoints.sql");
+        assert!(sql.contains("(($1 = ANY($7::text[]) AND p.username = $1) OR (NOT ($1 = ANY($7::text[])) AND a.slug = $1))"));
+        assert!(!sql.contains("pulsenetwork"));
+        assert_eq!(sql.matches("$7").count(), 2);
     }
     fn catalog() -> Catalog {
         Catalog::build(

@@ -23,7 +23,7 @@ use crate::{
 };
 use axum::{
     body::Bytes,
-    extract::{Path, Query, State},
+    extract::{Path, Query, RawQuery, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response as HttpResponse},
     Json,
@@ -527,8 +527,52 @@ fn resolve<'a>(catalog: &'a Catalog, sources: &[crate::sources::Source], source:
     choose(&candidates, body)
 }
 
+/// Operations per page of a paged source detail, unless `limit` says otherwise.
+const DETAIL_PAGE_LIMIT: usize = 100;
+
+/// One page of a source's operations.
+#[derive(Debug, PartialEq)]
+struct DetailPage {
+    offset: usize,
+    limit: usize,
+}
+
+/// Read `offset`/`limit` from a source detail query string. Every other
+/// parameter is ignored, as it always was. `None` means the full listing:
+/// no paging was asked for and the source is not paged by default, so the
+/// body keeps its original shape.
+fn detail_page(raw: Option<&str>, paged_by_default: bool) -> Result<Option<DetailPage>, &'static str> {
+    let (mut offset, mut limit) = (None, None);
+    for (key, value) in url::form_urlencoded::parse(raw.unwrap_or("").as_bytes()) {
+        match key.as_ref() {
+            "offset" => offset = Some(value.parse::<usize>().ok().filter(|n| *n <= 1_000_000)
+                .ok_or("offset must be an integer from 0 to 1000000.")?),
+            "limit" => limit = Some(value.parse::<usize>().ok().filter(|n| (1..=200).contains(n))
+                .ok_or("limit must be an integer from 1 to 200.")?),
+            _ => {}
+        }
+    }
+    if offset.is_none() && limit.is_none() && !paged_by_default {
+        return Ok(None);
+    }
+    Ok(Some(DetailPage { offset: offset.unwrap_or(0), limit: limit.unwrap_or(DETAIL_PAGE_LIMIT) }))
+}
+
+/// The operations on one page, the total, and where the next page starts.
+fn page_operations<'a>(grouped: &[Vec<&'a Service>], page: &DetailPage) -> (Vec<Vec<&'a Service>>, usize, Option<usize>) {
+    let total = grouped.len();
+    let items: Vec<_> = grouped.iter().skip(page.offset).take(page.limit).cloned().collect();
+    let end = page.offset.saturating_add(items.len());
+    (items, total, (end < total).then_some(end))
+}
+
 /// `GET /v2/sources/{source_id}`: operations, input schemas and prices.
-pub async fn source(State(state): State<ServerState>, headers: HeaderMap, Path(source_id): Path<String>) -> HttpResponse {
+///
+/// A grouped provider that is paged by default (Coinbase Bazaar), or any
+/// source asked with `offset`/`limit`, returns one page of operations with
+/// `operation_total`, `offset` and `next_offset`. Every other request keeps
+/// the full listing unchanged.
+pub async fn source(State(state): State<ServerState>, headers: HeaderMap, Path(source_id): Path<String>, RawQuery(raw): RawQuery) -> HttpResponse {
     if let Err(r) = context(&state, &headers, &["sources:read"]).await {
         return r;
     }
@@ -544,22 +588,54 @@ pub async fn source(State(state): State<ServerState>, headers: HeaderMap, Path(s
     let first = grouped[0][0];
     let meta = sources.iter().find(|s| s.slug == id).or_else(|| sources.iter().find(|s| crate::sources::directory_slug(s) == id));
     let group = slugs.len() > 1;
+    let paged_by_default = group && crate::sources::grouped_provider(&id).is_some_and(|g| g.paged_detail);
+    // A source that always answered in full keeps ignoring parameters it
+    // cannot read, as it always did; only a paged source refuses them.
+    let page = match detail_page(raw.as_deref(), paged_by_default) {
+        Ok(page) => page,
+        Err(message) if paged_by_default => return problem(StatusCode::BAD_REQUEST, "invalid_request", message),
+        Err(_) => None,
+    };
+    let Some(page) = page else {
+        return Json(source_body(&id, &slugs, meta, first, &grouped, group, &catalog)).into_response();
+    };
+    let (items, total, next_offset) = page_operations(&grouped, &page);
+    let mut body = source_body(&id, &slugs, meta, first, &items, group, &catalog);
+    body["operation_total"] = json!(total);
+    body["offset"] = json!(page.offset);
+    body["next_offset"] = json!(next_offset);
+    if group {
+        let mut listed: Vec<&str> = Vec::new();
+        for variants in &items {
+            if !listed.contains(&variants[0].api_slug.as_str()) {
+                listed.push(&variants[0].api_slug);
+            }
+        }
+        body["sources"] = json!(listed);
+        body["source_count"] = json!(slugs.len());
+    }
+    Json(body).into_response()
+}
+
+/// The detail body over the given operations. `first` is the source's first
+/// operation overall, whatever page is shown.
+fn source_body(id: &str, slugs: &[String], meta: Option<&crate::sources::Source>, first: &Service, grouped: &[Vec<&Service>], group: bool, catalog: &Catalog) -> Value {
     let mut body = json!({
         "id": id,
-        "name": if group { meta.map_or(id.as_str(), crate::sources::directory_name) } else { meta.map_or(first.name.as_str(), |s| s.name.as_str()) },
+        "name": if group { meta.map_or(id, crate::sources::directory_name) } else { meta.map_or(first.name.as_str(), |s| s.name.as_str()) },
         "description": if group { None } else { meta.map(|s| s.description.as_str()) },
         "category": meta.map(|s| &s.category),
         "tags": meta.map(|s| &s.tags),
         "sectors": meta.map(|s| &s.sectors),
         "logo_url": meta.and_then(|s| s.logo_url.as_deref()),
         "jurisdiction": first.jurisdiction,
-        "operations": grouped.iter().map(|variants| operation(variants, &catalog)).collect::<Vec<_>>(),
+        "operations": grouped.iter().map(|variants| operation(variants, catalog)).collect::<Vec<_>>(),
     });
     if group {
         // A provider of several sources: each operation names the source that runs it.
         body["sources"] = json!(slugs);
     }
-    Json(body).into_response()
+    body
 }
 
 #[derive(Deserialize)]
@@ -1457,6 +1533,63 @@ mod tests {
         let body = serde_json::Map::from_iter([(input, json!("x"))]);
         let (service, _) = resolve(&catalog, &sources, "pulsenetwork", &operation, &body).unwrap();
         assert_eq!(service.api_slug, "signalpulse");
+    }
+
+    #[test]
+    fn the_bazaar_is_a_grouped_source_id_and_its_detail_is_paged() {
+        let mut catalog = fixture();
+        let template = catalog.services[0].clone();
+        catalog.services = (0..7).map(|i| {
+            let mut service = template.clone();
+            service.id = Uuid::new_v4();
+            service.endpoint_id = Uuid::new_v4();
+            service.api_slug = format!("cbz-host-{}", i % 3);
+            service.contract.capability_slug = format!("operation.cbz-host-{}.get-op-{i}", i % 3);
+            service
+        }).collect();
+        let sources: Vec<_> = (0..3).map(|i| source(&format!("cbz-host-{i}"), Some("coinbase-bazaar"), &format!("Host {i}"))).collect();
+        let (id, slugs) = members(&catalog, &sources, "coinbase-bazaar").unwrap();
+        assert_eq!(id, "coinbase-bazaar");
+        assert_eq!(slugs.len(), 3);
+        assert_eq!(members(&catalog, &sources, "Coinbase Bazaar").unwrap().1.len(), 3);
+        assert!(crate::sources::grouped_provider(&id).unwrap().paged_detail);
+        assert!(!crate::sources::grouped_provider("pulsenetwork").unwrap().paged_detail);
+        // Paging walks the operations exactly once.
+        let grouped = operations(&catalog, &slugs);
+        let total = grouped.len();
+        let mut seen = 0;
+        let mut offset = Some(0);
+        while let Some(start) = offset {
+            let (items, all, next) = page_operations(&grouped, &DetailPage { offset: start, limit: 2 });
+            assert_eq!(all, total);
+            assert!(items.len() <= 2);
+            seen += items.len();
+            offset = next;
+        }
+        assert_eq!(seen, total);
+        let (beyond, _, next) = page_operations(&grouped, &DetailPage { offset: total + 5, limit: 2 });
+        assert!(beyond.is_empty() && next.is_none());
+        // The unpaged body keeps its original keys.
+        let meta = sources.iter().find(|s| crate::sources::directory_slug(s) == id);
+        let body = source_body(&id, &slugs, meta, grouped[0][0], &grouped, true, &catalog);
+        let keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
+        assert_eq!(keys, ["category", "description", "id", "jurisdiction", "logo_url", "name", "operations", "sectors", "sources", "tags"]);
+        assert_eq!(body["name"], "Coinbase Bazaar");
+        assert_eq!(body["operations"].as_array().unwrap().len(), total);
+    }
+
+    #[test]
+    fn source_detail_paging_is_opt_in_except_for_paged_groups() {
+        // No parameters: the full listing, unless the group pages by default.
+        assert_eq!(detail_page(None, false), Ok(None));
+        assert_eq!(detail_page(Some("foo=bar&search=x"), false), Ok(None));
+        assert_eq!(detail_page(None, true), Ok(Some(DetailPage { offset: 0, limit: DETAIL_PAGE_LIMIT })));
+        assert_eq!(detail_page(Some("offset=100"), false), Ok(Some(DetailPage { offset: 100, limit: DETAIL_PAGE_LIMIT })));
+        assert_eq!(detail_page(Some("limit=5&unknown=1"), false), Ok(Some(DetailPage { offset: 0, limit: 5 })));
+        assert_eq!(detail_page(Some("offset=10&limit=200"), true), Ok(Some(DetailPage { offset: 10, limit: 200 })));
+        for invalid in ["offset=-1", "offset=abc", "offset=1000001", "limit=0", "limit=201", "limit="] {
+            assert!(detail_page(Some(invalid), false).is_err(), "{invalid}");
+        }
     }
 
     #[test]

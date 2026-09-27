@@ -150,9 +150,12 @@ pub fn related_services(catalog: &Catalog, task: &Task) -> Vec<RelatedService> {
             service_ref: s.id,
             entity_ref: entity.entity_ref,
             title: title(s),
-            provider: if catalog.known_sources.iter().any(|source| source.slug == s.api_slug && source.metadata.provider_slug.as_deref() == Some("pulsenetwork")) {
-                format!("Pulse Network · {}", s.name)
-            } else { s.name.clone() },
+            provider: match catalog.known_sources.iter().find(|source| source.slug == s.api_slug)
+                .and_then(|source| source.metadata.provider_slug.as_deref())
+                .and_then(crate::sources::grouped_provider) {
+                Some(group) => format!("{} · {}", group.name, s.name),
+                None => s.name.clone(),
+            },
             subject: entity.label.clone(),
             total_atomic: s.total().to_string(),
         })
