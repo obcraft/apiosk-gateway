@@ -827,4 +827,73 @@ mod tests {
             assert!(found[0].apiosk[0].url.is_none());
         }
     }
+
+    #[test]
+    #[ignore = "optional local catalog snapshot precision check; reads only a local file and makes no network/model calls"]
+    fn local_catalog_precision() {
+        let path = std::env::var("ASK_V2_CATALOG_SNAPSHOT").unwrap();
+        let catalog =
+            Catalog::build(serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap());
+        for (name, slug, title, outputs, hint, expected) in [
+            (
+                "Monzo officers and PSC",
+                "company.profile.officers",
+                "Company officers",
+                vec![
+                    "appointment_date",
+                    "resignation_date",
+                    "significant_control",
+                ],
+                Some("companies house"),
+                vec!["company.officers", "company.significant-control"],
+            ),
+            (
+                "Coolblue registered address and KVK",
+                "company.profile.registered_address",
+                "Registered company address and KVK number",
+                vec!["registered_address", "kvk_number"],
+                Some("kvk"),
+                vec!["company.registry-profile"],
+            ),
+            (
+                "Financial statements",
+                "company.financial.statements",
+                "Company financial statements",
+                vec!["financial_statements"],
+                None,
+                vec!["company.financial-statements"],
+            ),
+            (
+                "Sanctions",
+                "compliance.sanctions",
+                "Company sanctions screening",
+                vec!["matching_records", "match_scores", "source_links"],
+                None,
+                vec!["company.sanctions-screen"],
+            ),
+        ] {
+            let mut request = parsed(vec![json!({"slug":slug,"name":title})]);
+            request.capabilities[0].outputs = outputs.into_iter().map(str::to_owned).collect();
+            request.capabilities[0].source_hint = hint.map(str::to_owned);
+            let found = search(&request, &catalog);
+            println!(
+                "{name}: {:?}",
+                found[0]
+                    .apiosk
+                    .iter()
+                    .map(|candidate| (
+                        &candidate.source_slug,
+                        &candidate.capability,
+                        &candidate.availability
+                    ))
+                    .collect::<Vec<_>>()
+            );
+            for capability in expected {
+                assert!(
+                    found[0].operations.contains(capability),
+                    "{name}: expected {capability}"
+                );
+            }
+        }
+    }
 }
