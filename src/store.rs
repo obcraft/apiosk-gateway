@@ -44,14 +44,6 @@ pub struct ClaimMeta {
     pub connection: Option<Uuid>,
     pub trace: Option<Uuid>,
 }
-/// A stored request receipt, for `GET /v2/requests/:request_id` (#11).
-pub struct RequestReceiptRow {
-    pub kind: Option<String>,
-    pub task_id: Option<Uuid>,
-    pub response: Option<Value>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
-}
 impl Store {
     pub async fn list_tasks(&self, owner: Uuid) -> anyhow::Result<Vec<Value>> { self.list_tasks_scoped(owner,None).await }
     pub async fn list_tasks_scoped(&self, owner: Uuid, workspace: Option<Uuid>) -> anyhow::Result<Vec<Value>> {
@@ -105,28 +97,6 @@ impl Store {
             .execute(&self.pool)
             .await?;
         Ok(())
-    }
-    /// The receipt for `GET /v2/requests/:request_id` (#11). Scoped to the
-    /// owner and, when given, the exact workspace and connection it was made
-    /// in, so a request from another context reads as not found.
-    pub async fn request_receipt(&self, owner: Uuid, request: Uuid, workspace: Option<Uuid>, connection: Option<Uuid>) -> anyhow::Result<Option<RequestReceiptRow>> {
-        let _db = crate::telemetry::db("requests.receipt");
-        Ok(sqlx::query(
-            "SELECT kind,task_id,response,created_at,completed_at FROM requests WHERE owner_id=$1 AND request_id=$2 AND workspace_id IS NOT DISTINCT FROM $3 AND connection_id IS NOT DISTINCT FROM $4",
-        )
-        .bind(owner)
-        .bind(request)
-        .bind(workspace)
-        .bind(connection)
-        .fetch_optional(&self.pool)
-        .await?
-        .map(|row| RequestReceiptRow {
-            kind: row.get("kind"),
-            task_id: row.get("task_id"),
-            response: row.get("response"),
-            created_at: row.get("created_at"),
-            completed_at: row.get("completed_at"),
-        }))
     }
     pub async fn finish(&self, owner: Uuid, response: &Response) -> anyhow::Result<()> {
         let _db = crate::telemetry::db("requests.finish");

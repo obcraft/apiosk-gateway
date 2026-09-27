@@ -63,7 +63,7 @@ pub fn definitions_for_client(catalog: &crate::catalog::Catalog, display: &Value
         workflows.push(json!({
             "slug": SUPPLIER_CHECK, "name": "Supplier payment check", "name_nl": "Kan ik deze leverancier veilig betalen?", "category": "finance",
             "description": "Upload an invoice. Apiosk checks the business register, VAT number, sanctions, domain age, bank account and earlier invoices, and tells you whether to hold the payment.",
-            "input": {"kind":"document","purpose":"invoice","accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::documents::MAX_FILE_BYTES},
+            "input": {"kind":"document","purpose":"invoice","accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::invoice_document::MAX_FILE_BYTES},
             "fields": FIELDS.iter().map(|k| json!({"key":k,"label":label(k),"required":false})).collect::<Vec<_>>(),
             "checks": checks,
             "steps": steps,

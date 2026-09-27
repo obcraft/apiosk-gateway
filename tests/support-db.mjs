@@ -105,7 +105,10 @@ await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915160000_w
 // Eurostat data migration requires the full production catalog, which this
 // isolated runtime fixture deliberately does not load.
 const migrations=new URL('../supabase/migrations/',import.meta.url);
-for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')).sort()) {
+for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')
+  // The Coinbase Bazaar import asserts the full production catalogue; its own
+  // PGlite check is scripts/test-bazaar-source-migration.mjs.
+  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
 }
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));

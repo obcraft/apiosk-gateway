@@ -1,6 +1,11 @@
 # Ask capability intake
 
-App `/v2/chat` submissions now follow this order:
+The App chat intake (`Engine::intake_question` with `app_chat`) follows this
+order. It served the App's `/v2/chat`, which is retired and now answers
+`410 ask_moved`; the App's Ask uses `/v2/ask-v2/*` instead (see `ask-v2.md`).
+A person's workflow start still runs step 1, and the database integration tests
+drive the whole order through `Engine::chat`.
+
 
 1. Extract and validate the WebGPU-style `language`, `subjects`, `capabilities`, and `deliverable` object. Add model, parsing time, and SHA-256 of the question on the server. Greetings use the conversation capability without discovery. Malformed output gets at most one correction attempt.
 2. Build generic queries from capability name, description, input concepts, and explicit source hint. Scan every accepted Apiosk operation, score a shortlist per capability, and semantically match those candidates. The directory comes from the current catalog; Pulse Network's services remain individually searchable inside its one source group. No count is hardcoded.
@@ -17,13 +22,13 @@ Main code: `src/capability_intake.rs`, `Parser::prepare_ask`, `Parser::chat_from
 A temporary interpretation failure saves `intake_recovery` on the same scoped task:
 the original question, exact structured context, and the paused parsing/planning
 stage. The response remains a technical failure with signed state, rather than
-pretending the question was ambiguous. The App offers Resume and Edit and keeps
-the diagnostic explanation available. Previous quotes are removed from the
-active task; saved results remain in conversation history.
+pretending the question was ambiguous. Ask's task view shows the paused
+question and sends the person back to Ask to ask again. Previous quotes are
+removed from the active task; saved results remain in conversation history.
 
 Resume uses a new request ID only after the previous request has finished or is
-confirmed interrupted. A lost response is checked through its read-only receipt;
-only an unknown receipt permits one identical resend. Completed request replay
+confirmed interrupted. The read-only request receipt route
+(`GET /v2/requests/:id`) is retired (`410 ask_moved`). Completed request replay
 does not call the model again. A matching question and context can reuse successful
 capability discovery for five minutes, only while the catalog version is unchanged.
 Changed questions, source restrictions, workflows, stale timestamps, or catalog

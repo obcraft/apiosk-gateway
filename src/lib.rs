@@ -8,7 +8,6 @@ mod completeness;
 pub mod browser_fallback;
 pub mod display_money;
 mod direct_answer;
-pub mod documents;
 pub mod catalog;
 pub mod capability_intake;
 pub mod compat;

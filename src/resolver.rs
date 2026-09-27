@@ -140,7 +140,7 @@ impl Action {
                 "upload_document",
                 if purpose == "invoice" { "Upload the invoice".into() } else { "Upload a document".into() },
                 false,
-                json!({"type":"object","x-purpose":purpose,"x-workflow":crate::workflows::SUPPLIER_CHECK,"x-accept":".pdf,application/pdf,image/png,image/jpeg","x-max-bytes":crate::documents::MAX_FILE_BYTES}),
+                json!({"type":"object","x-purpose":purpose,"x-workflow":crate::workflows::SUPPLIER_CHECK,"x-accept":".pdf,application/pdf,image/png,image/jpeg","x-max-bytes":crate::invoice_document::MAX_FILE_BYTES}),
             ),
             Self::RetryAnalysis { .. } => (
                 "retry_analysis",

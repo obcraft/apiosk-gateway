@@ -82,7 +82,9 @@ Nog niet bewezen: gebruik van v2 in de geïnstalleerde ChatGPT/Claude-cloudclien
 
 ## Aparte Ask-chatlaag
 
-De App gebruikt `/v2/chat` voor een extra Gemini 3.8 Flash-gespreksstap. Begroetingen en verduidelijkingen krijgen een modelantwoord en opgeslagen gesprekscontext (laatste zes beurten). Een concrete datavraag gaat daarna met de oorspronkelijke gebruikersinvoer naar dezelfde bestaande intentparser, resolver, prijs- en toestemmingsroute. De chatlaag mag geen identifiers invullen of betalingen goedkeuren. MCP en WebMCP blijven `/v2/discover` gebruiken zonder deze extra modelstap; de bestaande parserprompt en intentstructuur zijn behouden. De nieuwe App-route weigert agentcredentials.
+> Uitgefaseerd: `/v2/chat` antwoordt nu `410 ask_moved`. De App-Ask gebruikt `/v2/ask-v2/*` en opent opgeslagen taken op `/?task=<id>`. Onderstaande tekst beschrijft de eerdere situatie.
+
+De App gebruikte `/v2/chat` voor een extra Gemini 3.8 Flash-gespreksstap. Begroetingen en verduidelijkingen krijgen een modelantwoord en opgeslagen gesprekscontext (laatste zes beurten). Een concrete datavraag gaat daarna met de oorspronkelijke gebruikersinvoer naar dezelfde bestaande intentparser, resolver, prijs- en toestemmingsroute. De chatlaag mag geen identifiers invullen of betalingen goedkeuren. MCP en WebMCP blijven `/v2/discover` gebruiken zonder deze extra modelstap; de bestaande parserprompt en intentstructuur zijn behouden. De nieuwe App-route weigert agentcredentials.
 
 Gecontroleerd: App-componenttest voor modelantwoord en vervolgstate; Rust-validation van de beperkte chatrespons; lokale duurzame ketentest voor begroeting, herstel, vervolgplan en verwijderen van oude koopacties zonder provideruitvoering. In de echte ingelogde Ask UI kwam op `Hallo` een OpenRouter-modelantwoord terug zonder foutmelding of aankoop. Dit is geen bewijs voor een betaalde bronquery.
 

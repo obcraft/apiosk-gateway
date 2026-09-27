@@ -161,6 +161,11 @@ impl Engine {
         let result = self.discover_inner(p, &req, false).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
+    /// The App chat intake (`app_chat`: capability intake, endpoint
+    /// selections, conversational workflows, the invoice upload prompt). No
+    /// route serves it since `/v2/chat` answers 410 `ask_moved`; the database
+    /// integration tests still drive the shared intake through it.
+    #[doc(hidden)]
     pub async fn chat(&self, p: &Principal, req: DiscoverRequest) -> anyhow::Result<Response> {
         anyhow::ensure!(p.is_person(), "Ask chat requires a person in the App");
         if let Some(r) = self
@@ -769,7 +774,7 @@ impl Engine {
             !task.result_refs.is_empty() && task.active_result_ref().is_none()
         );
         if actions.iter().any(|a| matches!(a, Action::Upload { .. })) {
-            r.context_view["upload_request"] = json!({"purpose":"invoice","workflow":crate::workflows::SUPPLIER_CHECK,"accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::documents::MAX_FILE_BYTES});
+            r.context_view["upload_request"] = json!({"purpose":"invoice","workflow":crate::workflows::SUPPLIER_CHECK,"accept":".pdf,application/pdf,image/png,image/jpeg","max_bytes":crate::invoice_document::MAX_FILE_BYTES});
         }
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);

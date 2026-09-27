@@ -229,14 +229,6 @@ async fn supplier_check_holds_payment_when_invoice_details_change() {
     let stranger = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
     assert!(engine.workflow_run(&stranger, run_id).await.unwrap().is_none());
 
-    // Temporary document storage is owner-scoped and removed after reading.
-    let stored = apiosk_gateway_v2::documents::store(&pool, person.owner, None, "invoice", "scan.pdf", "application/pdf", b"%PDF-1.7 fixture").await.unwrap();
-    assert!(stored.expires_at <= chrono::Utc::now() + chrono::Duration::minutes(61));
-    assert!(apiosk_gateway_v2::documents::load(&pool, stranger.owner, None, stored.id).await.unwrap().is_none());
-    assert!(apiosk_gateway_v2::documents::load(&pool, person.owner, None, stored.id).await.unwrap().is_some());
-    apiosk_gateway_v2::documents::delete(&pool, person.owner, stored.id).await.unwrap();
-    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM gateway_v2.document_uploads").fetch_one(&pool).await.unwrap();
-    assert_eq!(left, 0);
     std::fs::create_dir_all("output/supplier-check").unwrap();
     std::fs::write("output/supplier-check/hold-verdict.json", serde_json::to_vec_pretty(&second.context_view["analysis"]).unwrap()).unwrap();
     println!("Supplier check flow: 2 invoices, 12 source calls after 2 approvals, OK then HOLD with {reasons:?}. Model/provider/billing are fixtures.");

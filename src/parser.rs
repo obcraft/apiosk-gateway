@@ -1082,7 +1082,8 @@ impl Parser {
         .await
     }
 
-    /// Propose invoice fields for review. Never stored, never executable.
+    /// Collect a workflow's field values from the conversation; each value
+    /// must be one the person supplied.
     pub async fn workflow_chat(&self, question: &str, task: &Task, recipe: &crate::workflow_catalog::Recipe) -> anyhow::Result<WorkflowChatReply> {
         let workflow = task.workflow.as_ref().ok_or_else(|| anyhow::anyhow!("Missing workflow context"))?;
         let payload = json!({
@@ -1116,26 +1117,6 @@ impl Parser {
             }
             Ok(reply)
         }).await
-    }
-
-    pub async fn extract_invoice(&self, document: crate::documents::Content<'_>) -> anyhow::Result<Value> {
-        use crate::documents::Content;
-        use crate::invoice_document::{schema, PROMPT};
-        let content = match document {
-            Content::Text(text) => json!(format!("Invoice text:\n{text}")),
-            Content::Image(image) => json!([{"type":"text","text":"Invoice page image:"},{"type":"image_url","image_url":{"url":image}}]),
-            Content::File { file_name, data_url } => json!([{"type":"text","text":"Invoice document:"},{"type":"file","file":{"filename":file_name,"file_data":data_url}}]),
-        };
-        let payload = json!({"model":self.model,"temperature":0,"max_tokens":1500,
-            "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
-            "response_format":{"type":"json_schema","json_schema":{"name":"invoice_fields","strict":true,"schema":schema()}},
-            "messages":[{"role":"system","content":PROMPT},{"role":"user","content":content}]});
-        self.completion("invoice", &payload, |raw| {
-            let value: Value = serde_json::from_str(raw)?;
-            anyhow::ensure!(value.is_object(), "invalid invoice fields");
-            Ok(value)
-        })
-        .await
     }
 
     pub async fn review_plan(
@@ -1188,7 +1169,7 @@ impl Parser {
             (20, 30)
         } else if surface == "clarification" {
             (6, 12)
-        } else if surface == "analysis" || surface == "invoice" {
+        } else if surface == "analysis" {
             (30, 65)
         } else {
             (12, 25)

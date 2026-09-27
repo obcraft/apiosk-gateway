@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "about": "Canonical telemetry vocabulary. src/telemetry/names.rs must match it (unit test); the App copy src/lib/analytics/trace-phases.json is written by scripts/sync-telemetry.mjs.",
+  "about": "Canonical telemetry vocabulary. src/telemetry/names.rs must match it (unit test); the client sections validate /v2/telemetry beacons.",
   "server_phases": {
     "gw.request": "One HTTP request: matched route template, status, bytes, pool size/idle at start, instrumented database calls.",
     "gw.auth": "Credential resolution (label jwt_remote, agent_token or org_key).",
