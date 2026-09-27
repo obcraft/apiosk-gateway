@@ -1,0 +1,163 @@
+[
+  {
+    "source": {
+      "id": "coinbase-x402-bazaar"
+    },
+    "endpoints": [
+      {
+        "resource": "https://api.sirenic.eu/v1/eu/entreprise/GB/:company_number/dirigeants",
+        "method": "GET",
+        "provider": "Coinbase Bazaar",
+        "description": "UK company officers live from Companies House, the official UK company registry, by company number (e.g. GB/00102498): active directors and secretaries with role, appointment date, nationality, occupation, country of residence and month+year of birth only — never a correspondence address (GDPR minimisation). Resigned-officer count included. Built for KYB and due diligence on director appointments and governance. Contains public sector information licensed under the Open Government Licence v3.0.",
+        "settlement": "apiosk",
+        "price_usd": 0.01,
+        "buyer_price_usd": 0.011,
+        "network": "eip155:8453",
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "enum": [
+                "GET"
+              ],
+              "type": "string"
+            },
+            "pathParams": {
+              "properties": {
+                "company_number": {
+                  "description": "Companies House company number, leading zeros required (00102498, NI017460, SC...). Unknown number returns 404, payment cancelled; missing CPH_UK key returns 503 (fail-closed)., e.g. 00000006",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "company_number"
+              ],
+              "type": "object"
+            },
+            "queryParams": {
+              "properties": {},
+              "type": "object"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "method"
+          ],
+          "type": "object"
+        }
+      }
+    ]
+  },
+  {
+    "source": {
+      "id": "coinbase-x402-bazaar"
+    },
+    "endpoints": [
+      {
+        "resource": "https://api.ukintel.uk/v1/company/search",
+        "method": "GET",
+        "provider": "Coinbase Bazaar",
+        "description": "Find a UK company by name. Returns the top 5 matches from the Companies House register with number, name, status and incorporation date. Taster tier - cheap enough to try on a whim before paying for a full profile or verdict.",
+        "settlement": "apiosk",
+        "price_usd": 0.005,
+        "buyer_price_usd": 0.0055,
+        "network": "eip155:8453",
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "enum": [
+                "GET"
+              ],
+              "type": "string"
+            },
+            "queryParams": {
+              "properties": {
+                "limit": {
+                  "maximum": 5,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "q": {
+                  "description": "Company name or fragment",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "q"
+              ],
+              "type": "object"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "method"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "resource": "https://api.ukintel.uk/v1/company/:number",
+        "method": "GET",
+        "provider": "Coinbase Bazaar",
+        "description": "One UK company as clean structured JSON: status, incorporation date, company type, SIC codes, registered office, accounts and confirmation-statement due dates with overdue booleans, and officer counts. Sourced live from Companies House.",
+        "settlement": "apiosk",
+        "price_usd": 0.02,
+        "buyer_price_usd": 0.022,
+        "network": "eip155:8453",
+        "input_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "enum": [
+                "GET"
+              ],
+              "type": "string"
+            },
+            "pathParams": {
+              "properties": {
+                "number": {
+                  "description": "UK company number",
+                  "pattern": "^([A-Z]{2})?[0-9]{6,8}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "number"
+              ],
+              "type": "object"
+            },
+            "queryParams": {
+              "properties": {
+                "detail": {
+                  "enum": [
+                    "full"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "http",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "method"
+          ],
+          "type": "object"
+        }
+      }
+    ]
+  }
+]

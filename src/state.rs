@@ -186,6 +186,10 @@ impl IntakeRecovery {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
+    /// A selected Bazaar purchase uses the existing balance ledger and treasury
+    /// executor, without pretending an external URL is a reviewed catalog API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_purchase: Option<crate::ask_v2::purchase::Purchase>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub intake_recovery: Option<IntakeRecovery>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -13,6 +13,8 @@ pub struct ExecutorCompat {
 }
 
 impl ExecutorCompat {
+    pub(crate) fn directory_origin(&self) -> &str { &self.origin }
+
     pub fn new(client: Client, origin: String) -> anyhow::Result<Self> {
         let parsed = url::Url::parse(&origin)?;
         anyhow::ensure!(

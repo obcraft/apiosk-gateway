@@ -295,6 +295,7 @@ impl Engine {
             tracing::warn!("request receipt task link failed");
         }
         let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
+        anyhow::ensure!(task.external_purchase.is_none(), "External source purchases keep their own saved quote. Start a new question to choose another source.");
         anyhow::ensure!(
             connection == p.connection,
             "task belongs to another connection; use explicit task recovery"

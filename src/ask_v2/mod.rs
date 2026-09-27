@@ -2,6 +2,8 @@
 //! unchanged WebGPU TypeScript parser; this client never plans or executes data.
 
 pub mod search;
+pub mod external;
+pub mod purchase;
 
 use anyhow::{anyhow, ensure, Result};
 use serde::Serialize;
@@ -237,7 +239,10 @@ impl Client {
                 .await
                 .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
         }
-        ensure!(response.status().is_success(), "ask_v2_model_unavailable");
+        if !response.status().is_success() {
+            tracing::warn!(status = response.status().as_u16(), "Ask v2 model request refused");
+            return Err(anyhow!("ask_v2_model_unavailable"));
+        }
         ensure!(
             response
                 .content_length()

@@ -44,7 +44,7 @@ DO $$ DECLARE t text; BEGIN
  END LOOP;
 END $$;
 GRANT INSERT(id,user_id,connection_id,prompt,kind,source,name,capability,api_slug,
- candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata)
+ candidate_id,resource_url,method,provider_price_micro_usd,charged_micro_usd,metadata)
  ON public.user_selected_apis TO gateway_v2_runtime;
 DROP POLICY IF EXISTS gateway_v2_runtime_selection ON public.user_selected_apis;
 CREATE POLICY gateway_v2_runtime_selection ON public.user_selected_apis

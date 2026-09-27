@@ -22,6 +22,7 @@ use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
 mod ask_v2;
+mod ask_v2_external;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -80,6 +81,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/chat", post(chat))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
+        .route("/v2/ask-v2/endpoints/:id", get(ask_v2::endpoint))
+        .route("/v2/ask-v2/prepare", post(ask_v2::prepare))
+        .route("/v2/ask-v2/external/source", post(ask_v2_external::source))
+        .route("/v2/ask-v2/external/prepare", post(ask_v2_external::prepare))
+        .route("/v2/ask-v2/external/:id/authorize", post(ask_v2_external::authorize))
+        .route("/v2/ask-v2/external/:id", get(ask_v2_external::status))
         .route("/v2/sources", get(sources))
         .route("/v2/capabilities/resolve", post(crate::public_api::resolve_capability))
         .route("/v2/capabilities/plan", post(crate::public_api::plan_capability))

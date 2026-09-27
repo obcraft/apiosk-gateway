@@ -1,6 +1,6 @@
 # Ask v2 capability search
 
-The App's `/ask-v2` page is independent of the existing Ask task and payment flow.
+The App's `/ask-v2` page searches independently of the existing Ask planner.
 It ports the current WebGPU project's parser, normalization and validation into
 `app/src/lib/domain/ask-v2-parser`. It accepts the current question only.
 
@@ -42,6 +42,35 @@ membership checks. Separate bounded per-owner limits cover parsing and search,
 and the existing concurrent-request semaphore applies. No task, quote, approval,
 payment, source execution or answer synthesis is created by these routes. Client
 metadata is validated and used only for directory search.
+
+## Selected-source purchases
+
+Selecting **Use** opens the source's input contract below the results table. The
+model's output and discovery price never authorize execution or determine what
+the user pays. Input review and quote preparation make no paid source request.
+
+For registered normal and x402 APIs, `GET /v2/ask-v2/endpoints/:id?capability=...`
+reads the current executable input contract. `POST /v2/ask-v2/prepare` accepts
+only that endpoint's canonical inputs and saves a quote pinned to its endpoint
+and capability. It skips model planning and uses the existing V2 authorization,
+worker, internal-balance ledger, result and read-only recovery routes.
+
+For Coinbase Bazaar, `/v2/ask-v2/external/source` resolves the exact resource and
+method against the server's settled source directory. It requires a supported
+input schema, an eligible payment rail and an authoritative buyer total. The
+client cannot supply a price or settlement policy. `/external/prepare` saves a
+ten-minute, owner/workspace-scoped quote under the immutable request UUID.
+`/external/:id/authorize` accepts the displayed quote and cap, atomically records
+one approval and selection, and starts one existing `use-selection` execution.
+That executor reserves internal balance, pays x402 from the Apiosk treasury, and
+settles or refunds through the same ledger as V1. The migration granting only
+`INSERT(resource_url)` on the selection table must ship before this route.
+
+`GET /external/:id` recovers the saved receipt and source output without executing
+or repurchasing. Concurrent or repeated approvals cannot dispatch twice. Unknown
+payment outcomes remain pending reconciliation. The App retains a receipt per
+user/workspace, refreshes balance caches when billing changes, and restores the
+purchase through read-only requests after a reload. The browser needs no wallet.
 
 The parser records actual elapsed parse time, model and number of attempts. Provider
 speed and semantic extraction quality vary; neither two-second latency nor

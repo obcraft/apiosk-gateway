@@ -5,7 +5,7 @@
 //! a time on the one PGlite connection.
 
 use apiosk_gateway_v2::{
-    auth::Auth,
+    auth::{Auth, Principal},
     catalog::CatalogCache,
     engine::Engine,
     execution::Executor,
@@ -16,7 +16,7 @@ use apiosk_gateway_v2::{
 };
 use axum::{extract::State, http::{HeaderMap, StatusCode}, routing::{get, post}, Json, Router};
 use serde_json::{json, Value};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{postgres::PgPoolOptions, PgPool, Row};
 use std::{sync::{Arc, Mutex}, time::Duration};
 use uuid::Uuid;
 
@@ -140,6 +140,56 @@ struct Intake {
     model: Arc<Model>,
     gateway: String,
     http: reqwest::Client,
+    engine: Arc<Engine>,
+    edge: Arc<FakeEdge>,
+}
+
+#[derive(Clone)]
+enum EdgeOutcome {
+    Success { result: Value, record_run: bool, mismatched_receipt: bool },
+    Ambiguous,
+    Refused,
+}
+struct FakeEdge {
+    pool: PgPool,
+    calls: Mutex<Vec<Value>>,
+    outcome: Mutex<EdgeOutcome>,
+}
+
+/// The existing balance executor is replaced only inside this fixture. This
+/// models its ledger/result contract, not a blockchain or production RPC.
+async fn fake_edge(State(edge): State<Arc<FakeEdge>>, headers: HeaderMap, Json(request): Json<Value>) -> (StatusCode, Json<Value>) {
+    let owner: Uuid = headers.get("authorization").unwrap().to_str().unwrap().strip_prefix("Bearer intake-").unwrap().parse().unwrap();
+    assert_eq!(request["deterministic"], true);
+    let selection: Uuid = request["selection_id"].as_str().unwrap().parse().unwrap();
+    let key = request["idempotency_key"].as_str().unwrap();
+    edge.calls.lock().unwrap().push(request.clone());
+    let outcome = edge.outcome.lock().unwrap().clone();
+    let (result, record_run, mismatched_receipt) = match outcome {
+        EdgeOutcome::Ambiguous => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"ok":false,"error":"internal_error","stage":"executing"}))),
+        EdgeOutcome::Refused => return (StatusCode::PAYMENT_REQUIRED, Json(json!({"ok":false,"error":"insufficient_funds","stage":"checking_balance"}))),
+        EdgeOutcome::Success { result, record_run, mismatched_receipt } => (result, record_run, mismatched_receipt),
+    };
+    let selected = sqlx::query("SELECT kind,resource_url,provider_price_micro_usd,charged_micro_usd FROM public.user_selected_apis WHERE id=$1 AND user_id=$2")
+        .bind(selection).bind(owner).fetch_one(&edge.pool).await.unwrap();
+    assert_eq!(selected.get::<String,_>("kind"), "external");
+    assert_eq!(selected.get::<String,_>("resource_url"), "https://fixture.example/data");
+    let provider: i64 = selected.get("provider_price_micro_usd");
+    let total = provider + (provider * 1500 + 9999) / 10000;
+    assert_eq!(selected.get::<i64,_>("charged_micro_usd"), total);
+    let charge = Uuid::new_v4();
+    let mut tx = edge.pool.begin().await.unwrap();
+    assert_eq!(sqlx::query("UPDATE public.user_balances SET balance_micro_usd=balance_micro_usd-$2 WHERE user_id=$1 AND balance_micro_usd>=$2")
+        .bind(owner).bind(total).execute(&mut *tx).await.unwrap().rows_affected(), 1);
+    sqlx::query("INSERT INTO public.balance_charges(id,user_id,idempotency_key,status,charged_micro_usd,actual_provider_micro_usd,provider_price_micro_usd,fee_micro_usd) VALUES($1,$2,$3,'charged',$4,$5,$5,$6)")
+        .bind(charge).bind(owner).bind(key).bind(total).bind(provider).bind(total-provider).execute(&mut *tx).await.unwrap();
+    if record_run {
+        sqlx::query("INSERT INTO public.call_runs(id,charge_id,user_id,status,output,output_truncated) VALUES($1,$2,$3,'succeeded',$4,false)")
+            .bind(Uuid::new_v4()).bind(charge).bind(owner).bind(&result).execute(&mut *tx).await.unwrap();
+    }
+    tx.commit().await.unwrap();
+    (StatusCode::OK, Json(json!({"ok":true,"status":"charged","execution_id":if mismatched_receipt {Uuid::new_v4()} else {charge},
+        "charged_micro_usd":total,"provider_micro_usd":provider,"fee_micro_usd":total-provider,"result":result,"result_truncated":false})))
 }
 
 impl Intake {
@@ -155,6 +205,7 @@ impl Intake {
             .await
             .unwrap();
         let model = Arc::new(Model::default());
+        let edge = Arc::new(FakeEdge { pool:pool.clone(), calls:Mutex::new(vec![]), outcome:Mutex::new(EdgeOutcome::Success {result:json!({"rows":[{"id":"fixture-record"}]}), record_run:true, mismatched_receipt:false}) });
         let mock = Router::new()
             .route("/chat", post(interpret))
             .route("/ask-v2-model", post(ask_v2_model))
@@ -163,7 +214,8 @@ impl Intake {
                 Json(json!({"resources":[]}))
             }))
             .route("/auth/v1/user", get(user))
-            .with_state(model.clone());
+            .with_state(model.clone())
+            .merge(Router::new().route("/functions/v1/use-selection", post(fake_edge)).with_state(edge.clone()));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
@@ -180,7 +232,7 @@ impl Intake {
             app_url: "http://localhost:5173".into(),
         });
         let app = router(ServerState {
-            engine,
+            engine: engine.clone(),
             auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base, publishable_key: "fixture".into() }),
             permits: Arc::new(tokio::sync::Semaphore::new(16)),
             executor_compat: None,
@@ -188,7 +240,7 @@ impl Intake {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let gateway = format!("http://{}", listener.local_addr().unwrap());
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-        Self { pool, model, gateway, http }
+        Self { pool, model, gateway, http, engine, edge }
     }
 
     async fn send(&self, bearer: &str, path: &str, body: Option<Value>) -> (StatusCode, Value) {
@@ -340,6 +392,286 @@ fn selection(endpoints: Value) -> Value {
 
 async fn task_count(intake: &Intake, person: &Person) -> i64 {
     sqlx::query_scalar("SELECT count(*) FROM tasks WHERE owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_prepare_saves_exact_endpoint_quote_without_model_or_payment() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let endpoint = endpoint("company.accounts");
+    let (status, descriptor) = intake.send(&person.bearer, &format!("/v2/ask-v2/endpoints/{endpoint}?capability=company.accounts"), None).await;
+    assert_eq!(status, StatusCode::OK, "{descriptor}");
+    assert_eq!(descriptor["endpoint_id"], endpoint);
+    assert_eq!(descriptor["capability"], "company.accounts");
+    assert_eq!(descriptor["inputs"], json!([{"field":"company.id","required":true,"schema":{"type":"string"}}]));
+    assert_eq!(descriptor["price"]["buyer_atomic"], "115");
+    assert_eq!(task_count(&intake, &person).await, 0);
+
+    let request = json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"capability":"company.accounts","input":{"company.id":"12345678"}});
+    let (status, quote) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(request.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{quote}");
+    assert_eq!(quote["status"], "ready", "{quote}");
+    assert_eq!(quote["proposal"]["max_total_atomic"], "115");
+    assert_eq!(quote["proposal"]["steps"], json!(["company.accounts"]));
+    assert!(quote["next_actions"].as_array().unwrap().iter().any(|action| action["kind"] == "execute_quoted_step" && action["requires_authorization"] == true));
+    let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let saved: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(saved["intent"]["goals"][0]["constraints"]["endpoint_id"], endpoint);
+    assert_eq!(saved["intent"]["subjects"][0]["values"]["company.id"], "12345678");
+    assert_eq!(saved["intent"]["answer_operations"], json!([]));
+    assert_eq!(saved["proposal"]["steps"][0]["service"]["endpoint_id"], endpoint);
+    assert_no_purchase(&intake, &person, task).await;
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
+
+    let (_, replay) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(request.clone())).await;
+    assert_eq!(replay, quote, "the same request returns the same saved quote");
+    assert_eq!(task_count(&intake, &person).await, 1);
+    let mut changed = request;
+    changed["input"]["company.id"] = json!("changed");
+    let (_, conflict) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(changed)).await;
+    assert!(codes(&conflict).contains(&"request_conflict"));
+    let other = Person::new();
+    let (status, _) = intake.send(&other.bearer, &format!("/v2/tasks/{task}"), None).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another owner cannot read the prepared task");
+    assert_no_purchase(&intake, &person, task).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_prepare_rejects_unknown_inputs_and_authenticates_before_task_creation() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let endpoint = endpoint("company.accounts");
+    for input in [json!({"company.name":"Example"}), json!({"company.id":123}), json!({"max_total_atomic":"0"})] {
+        let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":input}))).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(response["status"], "needs_input", "{response}");
+        assert!(codes(&response).contains(&"invalid_endpoint_input"));
+        assert!(response["proposal"].is_null() && response["state"].is_null());
+    }
+    let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":Uuid::new_v4(),"input":{}}))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(codes(&response).contains(&"endpoint_unavailable"));
+    for bearer in ["invalid", "apk_access_local_fixture", ORGANISATION_KEY] {
+        let (status, _) = intake.send(bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":{"company.id":"123"}}))).await;
+        assert!(!status.is_success());
+        let (status, _) = intake.send(bearer, &format!("/v2/ask-v2/endpoints/{endpoint}"), None).await;
+        assert!(!status.is_success());
+    }
+    assert_eq!(task_count(&intake, &person).await, 0);
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
+
+    let (status, missing) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":{}}))).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(missing["status"], "needs_input", "{missing}");
+    assert!(missing["proposal"].is_null());
+    assert!(missing["next_actions"].as_array().unwrap().iter().any(|action| action["kind"] == "supply_input"));
+    let task = missing["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    assert_no_purchase(&intake, &person, task).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_external_purchase_cannot_be_overwritten_by_chat() {
+    use apiosk_gateway_v2::{ask_v2::{external::{BoundInput, Offer}, purchase::Purchase}, state::Task};
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let id = Uuid::new_v4();
+    let saved = Task { external_purchase: Some(Purchase {
+        request_hash:"fixture-request".into(),
+        source: Offer { resource:"https://fixture.example/data".into(), method:"GET".into(), name:"Fixture source".into(), description:"Synthetic source".into(), source:"coinbase-x402-bazaar".into(), host:"fixture.example".into(), network:Some("eip155:8453".into()), provider_atomic:100, total_atomic:115, inputs:vec![], input_schema:json!({"type":"object","properties":{}}) },
+        input:BoundInput { inputs:json!({}), input_parts:json!({"path":{},"query":{},"body":{}}) },
+        quote_ref:Uuid::new_v4(), expires_at:chrono::Utc::now()+chrono::Duration::minutes(10), execution_id:Uuid::new_v4(), selection_id:Uuid::new_v4(), approved_at:None, refusal:None, receipt:None,
+    }), ..Task::default() };
+    let document = serde_json::to_value(&saved).unwrap();
+    let revision: i64 = sqlx::query_scalar("INSERT INTO tasks(id,owner_id,document) VALUES($1,$2,$3) RETURNING revision")
+        .bind(id).bind(person.owner).bind(&document).fetch_one(&intake.pool).await.unwrap();
+    let state = Signer::new(vec![7;32]).unwrap().issue(person.owner, id, revision, saved.focus);
+    let response = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Coolblue","state":state})).await;
+    assert_eq!(response["status"], "failed");
+    assert!(response["errors"][0]["message"].as_str().unwrap().contains("External source purchases"));
+    let unchanged: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(id).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(unchanged, document, "an old chat cannot replace the saved external quote");
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    assert_no_purchase(&intake, &person, id).await;
+    let (status, purchase) = intake.send(&person.bearer, &format!("/v2/ask-v2/external/{id}"), None).await;
+    assert_eq!(status, StatusCode::OK, "{purchase}");
+    assert_eq!(purchase["status"], "requires_approval");
+    assert_eq!(purchase["quote"]["max_total_atomic"], "115");
+    assert_no_purchase(&intake, &person, id).await;
+}
+
+fn external_offer() -> apiosk_gateway_v2::ask_v2::external::Offer {
+    use apiosk_gateway_v2::ask_v2::external::Offer;
+    Offer { resource:"https://fixture.example/data".into(), method:"GET".into(), name:"Fixture source".into(), description:"Synthetic source".into(), source:"coinbase-x402-bazaar".into(), host:"fixture.example".into(), network:Some("eip155:8453".into()), provider_atomic:100, total_atomic:115, inputs:vec![], input_schema:json!({"type":"object","properties":{},"additionalProperties":false}) }
+}
+
+async fn prepare_external(intake: &Intake, person: &Person, id: Uuid, workspace: Option<Uuid>) -> Value {
+    use apiosk_gateway_v2::ask_v2::{external::BoundInput, purchase};
+    let principal = Principal {owner:person.owner,connection:None,workspace};
+    let offer = external_offer();
+    let input = BoundInput {inputs:json!({}),input_parts:json!({"path":{},"query":{},"body":{}})};
+    let hash = purchase::request_hash(&principal, &offer.resource, &offer.method, "company data", &input.inputs);
+    purchase::prepare(&intake.engine, &principal, id, hash, offer, input).await.unwrap()
+}
+
+async fn external_status(intake: &Intake, person: &Person, id: Uuid) -> Value {
+    let (status, view) = intake.send(&person.bearer, &format!("/v2/ask-v2/external/{id}"), None).await;
+    assert_eq!(status, StatusCode::OK, "{view}");
+    view
+}
+
+async fn wait_external(intake: &Intake, person: &Person, id: Uuid, expected: &str) -> Value {
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let view = external_status(intake, person, id).await;
+            if view["status"] == expected { return view; }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    }).await.unwrap_or_else(|_| panic!("purchase did not reach {expected}"))
+}
+
+async fn external_balance(intake: &Intake, person: &Person) -> i64 {
+    sqlx::query_scalar("SELECT balance_micro_usd FROM public.user_balances WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_external_one_approval_charges_once_and_recovery_never_redispatches() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000)").bind(person.owner).execute(&intake.pool).await.unwrap();
+    let id = Uuid::new_v4();
+    let quote = prepare_external(&intake, &person, id, None).await;
+    assert_eq!(quote["status"], "requires_approval");
+    assert_eq!(quote["quote"]["max_total_atomic"], "115");
+    assert_eq!(prepare_external(&intake, &person, id, None).await, quote);
+    assert_eq!(external_status(&intake, &person, id).await, quote);
+    assert_no_purchase(&intake, &person, id).await;
+    assert_eq!(external_balance(&intake, &person).await, 1000);
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    let path = format!("/v2/ask-v2/external/{id}/authorize");
+    let approve = json!({"quote_ref":quote["quote"]["quote_ref"],"max_total_atomic":"115"});
+    let (first, second) = tokio::join!(intake.send(&person.bearer, &path, Some(approve.clone())), intake.send(&person.bearer, &path, Some(approve.clone())));
+    assert_eq!(first.0, StatusCode::OK, "{}", first.1);
+    assert_eq!(second.0, StatusCode::OK, "{}", second.1);
+    let finished = wait_external(&intake, &person, id, "succeeded").await;
+    assert_eq!(finished["result_present"], true);
+    assert_eq!(finished["result"], json!({"rows":[{"id":"fixture-record"}]}));
+    assert_eq!(finished["billing"]["charged_micro_usd"], 115);
+    assert_eq!(external_balance(&intake, &person).await, 885);
+    for _ in 0..3 { assert_eq!(external_status(&intake, &person, id).await["status"], "succeeded"); }
+    sqlx::query("UPDATE tasks SET document=jsonb_set(document,'{external_purchase,expires_at}',to_jsonb(now()-interval '1 minute')) WHERE id=$1").bind(id).execute(&intake.pool).await.unwrap();
+    let (status, replay) = intake.send(&person.bearer, &path, Some(approve)).await;
+    assert_eq!(status, StatusCode::OK, "{replay}");
+    assert_eq!(replay["status"], "succeeded", "replaying approval after quote expiry only reads the saved purchase");
+    assert_eq!(intake.edge.calls.lock().unwrap().len(), 1);
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    let selections: i64 = sqlx::query_scalar("SELECT count(*) FROM public.user_selected_apis WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!((charges,selections), (1,1));
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_external_refuses_wrong_quote_owner_and_workspace_before_any_charge() {
+    use apiosk_gateway_v2::ask_v2::purchase;
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let id = Uuid::new_v4();
+    let quote = prepare_external(&intake, &person, id, None).await;
+    let path = format!("/v2/ask-v2/external/{id}/authorize");
+    for approval in [json!({"quote_ref":quote["quote"]["quote_ref"],"max_total_atomic":"114"}), json!({"quote_ref":Uuid::new_v4(),"max_total_atomic":"115"})] {
+        assert_eq!(intake.send(&person.bearer, &path, Some(approval)).await.0, StatusCode::CONFLICT);
+    }
+    let approval = json!({"quote_ref":quote["quote"]["quote_ref"],"max_total_atomic":"115"});
+    let other = Person::new();
+    assert_eq!(intake.send(&other.bearer, &path, Some(approval.clone())).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(intake.send(&other.bearer, &format!("/v2/ask-v2/external/{id}"), None).await.0, StatusCode::NOT_FOUND);
+    sqlx::query("UPDATE tasks SET document=jsonb_set(document,'{external_purchase,expires_at}',to_jsonb(now()-interval '1 minute')) WHERE id=$1").bind(id).execute(&intake.pool).await.unwrap();
+    assert_eq!(intake.send(&person.bearer, &path, Some(approval)).await.0, StatusCode::CONFLICT);
+    let (workspace, other_workspace) = (Uuid::new_v4(), Uuid::new_v4());
+    for workspace in [workspace, other_workspace] {
+        sqlx::query("INSERT INTO public.fixture_workspace_access VALUES($1,$2,true)").bind(person.owner).bind(workspace).execute(&intake.pool).await.unwrap();
+    }
+    let scoped = Uuid::new_v4();
+    let scoped_quote = prepare_external(&intake, &person, scoped, Some(workspace)).await;
+    let wrong = Principal {owner:person.owner,connection:None,workspace:Some(other_workspace)};
+    assert!(purchase::view(&intake.engine, &wrong, scoped).await.is_err());
+    let quote_ref: Uuid = scoped_quote["quote"]["quote_ref"].as_str().unwrap().parse().unwrap();
+    assert!(purchase::authorize(intake.engine.clone(), wrong, person.bearer.clone(), scoped, quote_ref, "115").await.is_err());
+    let correct = Principal {owner:person.owner,connection:None,workspace:Some(workspace)};
+    sqlx::query("UPDATE public.fixture_workspace_access SET can_spend=false WHERE actor_id=$1 AND workspace_id=$2").bind(person.owner).bind(workspace).execute(&intake.pool).await.unwrap();
+    assert!(purchase::authorize(intake.engine.clone(), correct, person.bearer.clone(), scoped, quote_ref, "115").await.unwrap_err().to_string().contains("spending is not permitted"));
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    assert_no_purchase(&intake, &person, id).await;
+    assert_no_purchase(&intake, &person, scoped).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_external_recovers_edge_result_when_history_write_fails_including_null() {
+    let intake = Intake::start().await;
+    for result in [json!({"fallback":"received from the paid source"}), Value::Null] {
+        let person = Person::new();
+        sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000)").bind(person.owner).execute(&intake.pool).await.unwrap();
+        *intake.edge.outcome.lock().unwrap() = EdgeOutcome::Success {result:result.clone(),record_run:false,mismatched_receipt:false};
+        let id = Uuid::new_v4();
+        let quote = prepare_external(&intake, &person, id, None).await;
+        let (status, _) = intake.send(&person.bearer, &format!("/v2/ask-v2/external/{id}/authorize"), Some(json!({"quote_ref":quote["quote"]["quote_ref"],"max_total_atomic":"115"}))).await;
+        assert_eq!(status, StatusCode::OK);
+        let saved = wait_external(&intake, &person, id, "succeeded").await;
+        assert_eq!(saved["result"], result);
+        assert_eq!(saved["result_present"], true);
+        assert_eq!(saved["result_truncated"], false);
+        let runs: i64 = sqlx::query_scalar("SELECT count(*) FROM public.call_runs WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(runs, 0, "result came from the validated fallback, not a history row");
+        assert_eq!(external_balance(&intake, &person).await, 885);
+        assert_eq!(external_status(&intake, &person, id).await, saved);
+    }
+    assert_eq!(intake.edge.calls.lock().unwrap().len(), 2);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_external_ambiguous_and_mismatched_receipts_never_trigger_paid_replay() {
+    let intake = Intake::start().await;
+    for outcome in [EdgeOutcome::Ambiguous, EdgeOutcome::Success {result:json!({"wrong":"charge"}),record_run:false,mismatched_receipt:true}, EdgeOutcome::Refused] {
+        let person = Person::new();
+        sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000)").bind(person.owner).execute(&intake.pool).await.unwrap();
+        let refused = matches!(&outcome, EdgeOutcome::Refused);
+        *intake.edge.outcome.lock().unwrap() = outcome;
+        let before = intake.edge.calls.lock().unwrap().len();
+        let id = Uuid::new_v4();
+        let quote = prepare_external(&intake, &person, id, None).await;
+        let path = format!("/v2/ask-v2/external/{id}/authorize");
+        let approval = json!({"quote_ref":quote["quote"]["quote_ref"],"max_total_atomic":"115"});
+        assert_eq!(intake.send(&person.bearer, &path, Some(approval.clone())).await.0, StatusCode::OK);
+        tokio::time::timeout(Duration::from_secs(3), async { while intake.edge.calls.lock().unwrap().len() == before {tokio::time::sleep(Duration::from_millis(10)).await;} }).await.unwrap();
+        if refused {
+            let saved = wait_external(&intake, &person, id, "failed").await;
+            assert_eq!(saved["error"]["code"], "insufficient_balance");
+            assert_eq!(saved["billing"]["status"], "not_charged");
+        } else {
+            tokio::time::sleep(Duration::from_millis(80)).await;
+            sqlx::query("UPDATE tasks SET document=jsonb_set(document,'{external_purchase,approved_at}',to_jsonb(now()-interval '2 minutes')) WHERE id=$1").bind(id).execute(&intake.pool).await.unwrap();
+            let saved = external_status(&intake, &person, id).await;
+            assert_eq!(saved["status"], "running");
+            assert_eq!(saved["result_present"], false);
+            assert!(saved["result"].is_null());
+            assert_eq!(saved["error"]["code"], "pending_reconciliation");
+            let fallback: Value = sqlx::query_scalar("SELECT document->'external_purchase'->'receipt' FROM tasks WHERE id=$1").bind(id).fetch_one(&intake.pool).await.unwrap_or(Value::Null);
+            assert!(fallback.is_null(), "an unrelated charge receipt cannot become saved evidence");
+        }
+        for _ in 0..2 {
+            let _ = external_status(&intake, &person, id).await;
+            assert_eq!(intake.send(&person.bearer, &path, Some(approval.clone())).await.0, StatusCode::OK);
+        }
+        assert_eq!(intake.edge.calls.lock().unwrap().len(), before+1);
+    }
 }
 
 /// The App sends its selected endpoints and entered values as structured

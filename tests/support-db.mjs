@@ -12,7 +12,7 @@ await db.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
 // that production-owned provider rows already exist; replaying those into this
 // minimal database would make an unrelated new source break the core flow test.
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260907094100_gateway_v2_state.sql',import.meta.url),'utf8'));
-await db.exec(`CREATE TABLE public.user_selected_apis(id uuid primary key,user_id uuid,connection_id uuid,prompt text,kind text,source text,name text,capability text,api_slug text,candidate_id uuid,method text,provider_price_micro_usd bigint,charged_micro_usd bigint,metadata jsonb);
+await db.exec(`CREATE TABLE public.user_selected_apis(id uuid primary key,user_id uuid,connection_id uuid,prompt text,kind text,source text,name text,capability text,api_slug text,candidate_id uuid,resource_url text,method text,provider_price_micro_usd bigint,charged_micro_usd bigint,metadata jsonb);
 CREATE TABLE public.balance_charges(id uuid primary key,user_id uuid,idempotency_key text,status text,charged_micro_usd bigint,actual_provider_micro_usd bigint,provider_price_micro_usd bigint,fee_micro_usd bigint,metadata jsonb,created_at timestamptz default now(),job_id uuid);
 CREATE TABLE public.agent_connections(id uuid primary key,user_id uuid,revoked_at timestamptz,per_call_limit_micro_usd bigint,daily_limit_micro_usd bigint);
 CREATE TABLE public.job_budget_reservations(user_id uuid,connection_id uuid,spent_micro_usd bigint,reserved_micro_usd bigint,created_at timestamptz,status text);
@@ -24,6 +24,15 @@ CREATE TABLE public.provider_profiles(id uuid primary key, username text, avatar
 CREATE TABLE public.apis(id uuid primary key,owner_id uuid,slug text,name text,listing_type text,status text,active boolean,is_verified boolean,discoverable boolean,suspended_at timestamptz,docs_url text,website_url text,description text DEFAULT 'Company filings',category text DEFAULT 'finance',listing_metadata jsonb DEFAULT '{"tags":["registry"]}');
 CREATE TABLE public.api_endpoints(id uuid primary key,api_id uuid,method text,path text,price numeric,active boolean);
 CREATE TABLE public.capability_execution_contracts(id uuid primary key,endpoint_id uuid,capability_slug text,version int,status text,requires jsonb,input_map jsonb,output_map jsonb,identifies text,cardinality text,max_fan_out int,fixed_params jsonb,preconditions jsonb,pagination jsonb,freshness_seconds int,sample_payload jsonb,validated_at timestamptz,effect text,price_model text);`);
+// Scope checks for isolated purchase tests; the real tenancy and billing RPCs
+// are intentionally not replaced in production or called by this fixture.
+await db.exec(`CREATE TABLE public.fixture_workspace_access(actor_id uuid,workspace_id uuid,can_spend boolean,primary key(actor_id,workspace_id));
+CREATE FUNCTION public.workspace_gateway_context(actor uuid,connection uuid,workspace uuid) RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE allowed boolean; BEGIN
+ SELECT can_spend INTO allowed FROM public.fixture_workspace_access WHERE actor_id=actor AND workspace_id=workspace;
+ IF NOT FOUND THEN RAISE EXCEPTION 'forbidden' USING ERRCODE='42501'; END IF;
+ RETURN jsonb_build_object('workspace_id',workspace,'can_spend',allowed);
+END $$;`);
 const fixtureHash=createHash('sha256').update('apk_access_local_fixture').digest('hex');
 await db.exec(`CREATE FUNCTION public.use_agent_token(text) RETURNS TABLE(status text,owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT 'ok'::text,'00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000002'::uuid WHERE $1='${fixtureHash}' $$;
 CREATE FUNCTION public.use_agent_connection(text) RETURNS TABLE(owner_id uuid,connection_id uuid) LANGUAGE sql AS $$ SELECT NULL::uuid,NULL::uuid WHERE false $$;`);
@@ -85,7 +94,9 @@ const port=Number(process.env.PGTEST_PORT || 54329);
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260912181441_request_execution_lease.sql',import.meta.url),'utf8'));
 await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN produces jsonb NOT NULL DEFAULT '[]'::jsonb; GRANT SELECT(produces) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
 // sources.sql lists each source's offered capabilities, as production does.
-await db.exec(`CREATE SCHEMA IF NOT EXISTS catalog; CREATE TABLE catalog.capability_offers(api_id uuid, endpoint_id uuid, capability_slug text, source text); GRANT USAGE ON SCHEMA catalog TO gateway_v2_runtime; GRANT SELECT(api_id, capability_slug) ON catalog.capability_offers TO gateway_v2_runtime;`);
+await db.exec(`CREATE SCHEMA IF NOT EXISTS catalog; CREATE TABLE catalog.capability_offers(api_id uuid, endpoint_id uuid, capability_slug text, source text); GRANT USAGE ON SCHEMA catalog TO gateway_v2_runtime; GRANT SELECT(api_id, capability_slug) ON catalog.capability_offers TO gateway_v2_runtime;
+CREATE TABLE catalog.discovery_sources(id text PRIMARY KEY,fetch_kind text,shape text,url text,enabled boolean);
+INSERT INTO catalog.discovery_sources VALUES('coinbase-x402-bazaar','queried','x402-items','https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?limit=20&query={query}',false);`);
 // catalog.sql also loads staged source-document contracts by adapter version.
 await db.exec(`ALTER TABLE public.capability_execution_contracts ADD COLUMN adapter_version text; GRANT SELECT(adapter_version) ON public.capability_execution_contracts TO gateway_v2_runtime;`);
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915150000_supplier_invoice_checks.sql',import.meta.url),'utf8'));
