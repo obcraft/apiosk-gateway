@@ -120,19 +120,45 @@ fn all_37_directory_sources_and_pulse_members_are_searchable() {
 #[test]
 fn semantic_matching_accepts_only_supplied_operations_and_accounts_for_every_capability() {
     let p = normalize(&raw().to_string(), QUESTION, "model").unwrap();
-    let input = search_input(&p, &Task::default(), &catalog());
+    let input = search_model_input(&search_input(&p, &Task::default(), &catalog()));
     for response in [
         json!({"matches":[]}),
-        json!({"matches":[{"slug":"company.financial.statements","capabilities":["invented.operation"]}]}),
-        json!({"matches":[{"slug":"unknown","capabilities":[]}]}),
+        json!({"matches":[{"slug":"company.financial.statements","candidate_ids":["invented.operation"]}]}),
+        json!({"matches":[{"slug":"unknown","candidate_ids":[]}]}),
     ] {
         assert!(decode_matches(&response.to_string(), &input).is_err());
     }
     assert!(decode_matches(
-        &json!({"matches":[{"slug":"company.financial.statements","capabilities":[]}]}).to_string(),
+        &json!({"matches":[{"slug":"company.financial.statements","candidate_ids":[]}]})
+            .to_string(),
         &input
     )
     .is_ok());
+}
+
+#[test]
+fn candidate_ids_resolve_exact_operations_without_exporting_the_full_directory() {
+    let slug = "compliance.sanctions.screening";
+    let operation = "operation.fixture-screen.get-match-a1b2c3d4";
+    let index = json!({"queries":{slug:"Screen companies against sanctions lists."},
+        "operations":{operation:[{"source":"fixture-screen","description":"Company sanctions screening with match scores.","inputs":["name"]}]},
+        "workflow_presets":[],"sources":[{"slug":"unrelated","description":"This directory description need not enter model context."}]});
+    let input = search_model_input(&index);
+    assert!(input.get("sources").is_none());
+    let raw = json!({"matches":[{"slug":slug,"candidate_ids":["c1"]}]}).to_string();
+    assert_eq!(
+        decode_matches(&raw, &input).unwrap()[slug],
+        BTreeSet::from([operation.to_owned()])
+    );
+    let schema = search_reply_schema(&input);
+    assert_eq!(
+        schema.pointer("/properties/matches/items/properties/candidate_ids/items/enum"),
+        Some(&json!(["c1"]))
+    );
+    for id in ["fixture-screen", operation, "c2"] {
+        let raw = json!({"matches":[{"slug":slug,"candidate_ids":[id]}]}).to_string();
+        assert!(decode_matches(&raw, &input).is_err());
+    }
 }
 #[test]
 fn bazaar_filters_bad_urls_types_duplicates_and_does_not_compare_different_assets() {
@@ -195,7 +221,7 @@ async fn fixture(
     )
 }
 fn matched() -> Value {
-    json!({"matches":[{"slug":"company.financial.statements","capabilities":["company.accounts"]}]})
+    json!({"matches":[{"slug":"company.financial.statements","candidate_ids":["c1"]}]})
 }
 fn planned() -> Value {
     json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{"subjects":[{"entity_ref":null,"label":"Coolblue","values":{"company.name":"Coolblue"}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
@@ -271,7 +297,7 @@ async fn greetings_skip_all_source_searches() {
 }
 #[tokio::test]
 async fn external_only_match_cannot_become_an_apiosk_quote() {
-    let empty = json!({"matches":[{"slug":"company.financial.statements","capabilities":[]}]});
+    let empty = json!({"matches":[{"slug":"company.financial.statements","candidate_ids":[]}]});
     let (parser, _, bazaar, server) =
         fixture(vec![raw(), empty, planned(), planned()], false).await;
     let c = catalog();

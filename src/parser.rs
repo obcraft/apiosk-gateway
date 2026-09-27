@@ -913,14 +913,15 @@ impl Parser {
         } else {
             self.completion("capability-intake", &payload, |raw| intake::normalize(raw, question, &self.model)).await?
         };
-        let mut input = intake::search_input(&parsed, task, catalog);
+        let mut input = intake::search_model_input(&intake::search_input(&parsed, task, catalog));
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         let queries = intake::queries(&parsed, task);
-        let selected = if queries.is_empty() || (input["operations"].as_object().is_some_and(|ops| ops.is_empty()) && input["workflow_presets"].as_array().is_none_or(|rows| rows.is_empty())) {
+        let selected = if queries.is_empty() || input["candidates"].as_object().is_some_and(|c| c.is_empty()) {
             queries.keys().map(|slug| (slug.clone(), Default::default())).collect()
         } else {
             let payload = json!({"model":self.model,"temperature":0,"max_tokens":2500,
-                "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
+                "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+                "response_format":{"type":"json_schema","json_schema":{"name":"capability_search","strict":true,"schema":intake::search_reply_schema(&input)}},
                 "messages":[{"role":"system","content":include_str!("../contracts/capability-source-search-prompt.txt")},
                     {"role":"user","content":input.to_string()}]});
             self.completion("capability-search", &payload, |raw| intake::decode_matches(raw, &input)).await?
@@ -1158,7 +1159,7 @@ impl Parser {
                                                 let reason = match error.to_string().as_str() {
                                                     "missing capability matches" => "missing_matches",
                                                     "unknown or duplicate parsed capability" => "unknown_capability",
-                                                    "unknown operation" => "unknown_operation",
+                                                    "unknown candidate id" => "unknown_candidate",
                                                     "incomplete capability matching" => "incomplete_matches",
                                                     "subject must be literal and have a type" => "non_literal_subject",
                                                     _ => "invalid_schema",

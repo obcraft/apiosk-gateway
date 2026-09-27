@@ -28,6 +28,12 @@ fn inspect_catalog_locally() {
             "Search public procurement notices by topic and jurisdiction.",
             "procurement.nl-public-contracts",
         ),
+        (
+            "compliance.sanctions.screening",
+            "Company sanctions screening",
+            "Screen companies against current sanctions lists and return matching records, match scores and source links.",
+            "company.sanctions-screen",
+        ),
     ] {
         let raw = json!({"language":"en","subjects":[],"capabilities":[{"slug":slug,"name":name,"description":description,"domain":slug.split('.').next().unwrap(),"inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}});
         let parsed =
@@ -40,6 +46,10 @@ fn inspect_catalog_locally() {
         assert_eq!(input["sources"].as_array().unwrap().len(), 112);
         println!("{slug}: scanned {} accepted operations, retained {} operation groups; {} bytes of search context",catalog.services.len(),input["operations"].as_object().unwrap().len(),input.to_string().len());
         assert!(input.to_string().len() < 75_000);
+        let compact = capability_intake::search_model_input(&input);
+        println!("Model search input: {} bytes", compact.to_string().len());
+        assert!(compact.to_string().len() < 20_000);
+        assert!(compact["candidates"].as_object().unwrap().values().any(|c|c["capability"]==expected));
     }
 }
 

@@ -94,7 +94,7 @@ async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<V
         return Json(json!({"choices":[{"message":{"content":parsed.to_string()}}]}));
     }
     if let Some(queries) = input["queries"].as_object() {
-        let matches: Vec<_> = queries.keys().map(|slug| json!({"slug":slug,"capabilities":["company.accounts"]})).collect();
+        let matches: Vec<_> = queries.keys().map(|slug| json!({"slug":slug,"candidate_ids":["c1"]})).collect();
         return Json(json!({"choices":[{"message":{"content":json!({"matches":matches}).to_string()}}]}));
     }
     if input.get("answer_operations").is_some() {

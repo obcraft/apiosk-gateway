@@ -821,6 +821,45 @@ pub fn search_input(parsed: &ParsedRequest, task: &Task, catalog: &Catalog) -> V
         "sources":catalog.known_sources.iter().map(|s| json!({"slug":s.slug,"name":s.name,"description":s.metadata.description.chars().take(160).collect::<String>(),
             "provider":s.metadata.provider_slug,"category":s.metadata.category,"block_reason":s.block_reason})).collect::<Vec<_>>()})
 }
+/// The local scan considers the entire directory. The model only needs the
+/// shortlisted contracts, each with a short id it can copy without inventing
+/// a provider name or reconstructing an opaque operation slug.
+pub fn search_model_input(index: &Value) -> Value {
+    let mut candidates = serde_json::Map::new();
+    if let Some(operations) = index["operations"].as_object() {
+        for (capability, offers) in operations {
+            let id = format!("c{}", candidates.len() + 1);
+            candidates.insert(id, json!({"capability":capability,"offers":offers}));
+        }
+    }
+    for preset in index["workflow_presets"].as_array().into_iter().flatten() {
+        let id = format!("c{}", candidates.len() + 1);
+        candidates.insert(
+            id,
+            json!({"capability":preset["capability"],"description":preset["description"]}),
+        );
+    }
+    json!({"queries":index["queries"],"candidates":candidates})
+}
+
+pub fn search_reply_schema(input: &Value) -> Value {
+    let slugs: Vec<_> = input["queries"]
+        .as_object()
+        .into_iter()
+        .flat_map(|q| q.keys())
+        .collect();
+    let ids: Vec<_> = input["candidates"]
+        .as_object()
+        .into_iter()
+        .flat_map(|c| c.keys())
+        .collect();
+    json!({"type":"object","additionalProperties":false,"required":["matches"],"properties":{
+        "matches":{"type":"array","minItems":slugs.len(),"maxItems":slugs.len(),"items":{
+            "type":"object","additionalProperties":false,"required":["slug","candidate_ids"],"properties":{
+                "slug":{"type":"string","enum":slugs},
+                "candidate_ids":{"type":"array","maxItems":32,"items":{"type":"string","enum":ids}}}}}}})
+}
+
 pub fn decode_matches(
     raw: &str,
     input: &Value,
@@ -840,20 +879,17 @@ pub fn decode_matches(
             "unknown or duplicate parsed capability"
         );
         let mut selected = BTreeSet::new();
-        for value in item["capabilities"]
+        for value in item["candidate_ids"]
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("matches must be an array"))?
         {
-            let cap = value
+            let id = value
                 .as_str()
-                .ok_or_else(|| anyhow::anyhow!("invalid operation"))?;
-            ensure!(
-                input["operations"].get(cap).is_some()
-                    || input["workflow_presets"]
-                        .as_array()
-                        .is_some_and(|v| v.iter().any(|p| p["capability"] == cap)),
-                "unknown operation"
-            );
+                .ok_or_else(|| anyhow::anyhow!("invalid candidate id"))?;
+            let cap = input["candidates"]
+                .get(id)
+                .and_then(|c| c["capability"].as_str())
+                .ok_or_else(|| anyhow::anyhow!("unknown candidate id"))?;
             selected.insert(cap.to_owned());
             all.insert(cap.to_owned());
         }

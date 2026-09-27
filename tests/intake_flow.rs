@@ -58,7 +58,7 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     }
     if let Some(queries)=input["queries"].as_object() {
         model.stages.lock().unwrap().push("search");
-        let content=json!({"matches":queries.keys().map(|slug|json!({"slug":slug,"capabilities":["company.accounts"]})).collect::<Vec<_>>()});
+        let content=json!({"matches":queries.keys().map(|slug|json!({"slug":slug,"candidate_ids":["c1"]})).collect::<Vec<_>>()});
         return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
     }
     model.stages.lock().unwrap().push("plan");
