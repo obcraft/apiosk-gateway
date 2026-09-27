@@ -147,6 +147,7 @@ fn words(text: &str) -> BTreeSet<String> {
         .filter(|word| word.len() >= 3 && word.chars().count() <= 64)
         .map(|word| match word {
             "companies" => "company".into(),
+            "addresses" => "address".into(),
             "jaarrekeningen" => "jaarrekening".into(),
             _ if word.len() > 3
                 && word.ends_with('s')
@@ -314,6 +315,19 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
         return 0.0;
     }
     let exact = !wanted.capabilities.is_disjoint(&candidate.capabilities);
+    // These accepted semantic contracts identify company-level records. Their
+    // concise descriptions must not lose to a long name-search or single-PSC
+    // notification description merely because that text repeats more terms.
+    let direct_facets = candidate.capabilities.iter().fold(0, |facets, capability| {
+        facets
+            | match capability.as_str() {
+                "company.officers" => OFFICERS,
+                "company.significant.control" => CONTROL,
+                "company.financial.statements" | "company.accounts" => FINANCIAL,
+                "company.sanctions.screen" => SANCTIONS,
+                _ => 0,
+            }
+    });
     overlap
         .into_iter()
         .map(|token| {
@@ -325,6 +339,7 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
         })
         .sum::<f64>()
         + if exact { 1000.0 } else { 0.0 }
+        + (wanted.facets & direct_facets).count_ones() as f64 * 100.0
 }
 
 fn safe_url(value: &str) -> Option<String> {
