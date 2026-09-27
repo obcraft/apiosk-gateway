@@ -3,7 +3,7 @@
 use super::{ChatReply, Goal, Intent, ModelSelection, Subject};
 use crate::{
     capability_intake::{names_source, Intake, ParsedRequest},
-    catalog::Catalog,
+    catalog::{Catalog, Service},
     state::Task,
 };
 use serde::Deserialize;
@@ -174,15 +174,28 @@ enum BoundValue {
     },
 }
 
-/// A source the person named ("Include the KVK source") is a requirement, not
-/// a ranking hint. The planning model is asked to carry it as a `source`
-/// constraint but can leave it out, and the resolver then quotes the cheapest
-/// provider of the same operation, such as a reseller covering the same
-/// register. Bind it here from the parse, so the quote uses the named source
-/// or no plan is made. A goal that already names a source is left as is; a
-/// hint that names no provider of the goal's operation, or several, adds
-/// nothing.
-pub(super) fn require_named_sources(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
+/// The Dutch company register. A Dutch company's registry data comes from
+/// here unless the person names another source.
+const DUTCH_REGISTER: &str = "kvk-dutch-business-register";
+
+/// Which source each goal must be bought from, decided from the parse rather
+/// than left to the planning model:
+///
+/// 1. A source the person named ("Include the KVK source") is a requirement,
+///    not a ranking hint. The model is asked to carry it as a `source`
+///    constraint but can leave it out, and the resolver then quotes the
+///    cheapest provider of the same operation, such as a reseller covering the
+///    same register.
+/// 2. Otherwise a Dutch company (a KVK number or a Dutch legal form in its
+///    name) is looked up at KVK when KVK offers the operation. A reseller's
+///    search can come back incomplete and stop the request after payment;
+///    the register itself is the authoritative record.
+///
+/// The resolver never swaps a required source for another provider, so the
+/// quote uses it or no plan is made. A goal that already names a source is
+/// left as is; a hint that names no provider of the goal's operation, or
+/// several, adds nothing.
+pub(super) fn bind_source_requirements(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
     let parsed = &intake.parsed_request;
     for goal in &mut intent.goals {
         if goal.constraints.contains_key("source") {
@@ -191,7 +204,8 @@ pub(super) fn require_named_sources(intent: &mut Intent, intake: &Intake, catalo
         let label = intent
             .subjects
             .get(goal.subject)
-            .map(|s| s.label.to_lowercase());
+            .map(|s| s.label.to_lowercase())
+            .unwrap_or_default();
         let hints: BTreeSet<&str> = parsed
             .capabilities
             .iter()
@@ -206,25 +220,49 @@ pub(super) fn require_named_sources(intent: &mut Intent, intake: &Intake, catalo
                 cap.subject_id
                     .as_ref()
                     .and_then(|id| parsed.subjects.iter().find(|s| &s.id == id))
-                    .is_none_or(|subject| {
-                        label.as_deref() == Some(subject.label.to_lowercase().as_str())
-                    })
+                    .is_none_or(|subject| subject.label.to_lowercase() == label)
             })
             .filter_map(|cap| cap.source_hint.as_deref())
             .collect();
-        let sources: BTreeSet<&str> = catalog
-            .services
-            .iter()
-            .filter(|s| {
-                s.contract.capability_slug == goal.capability
-                    && hints.iter().any(|hint| names_source(s, hint))
-            })
-            .map(|s| s.api_slug.as_str())
-            .collect();
-        if let [source] = sources.into_iter().collect::<Vec<_>>()[..] {
+        let providers = |offers: &dyn Fn(&Service) -> bool| -> Vec<&str> {
+            catalog
+                .services
+                .iter()
+                .filter(|s| s.contract.capability_slug == goal.capability && offers(s))
+                .map(|s| s.api_slug.as_str())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect()
+        };
+        let source = if hints.is_empty() {
+            let dutch = dutch_legal_form(&label)
+                || parsed.subjects.iter().any(|s| {
+                    s.label.to_lowercase() == label
+                        && s.identifiers.keys().any(|kind| kind.contains("kvk"))
+                });
+            (dutch && !providers(&|s| s.api_slug == DUTCH_REGISTER).is_empty())
+                .then_some(DUTCH_REGISTER)
+        } else {
+            match providers(&|s| hints.iter().any(|hint| names_source(s, hint)))[..] {
+                [source] => Some(source),
+                _ => None,
+            }
+        };
+        if let Some(source) = source {
             goal.constraints.insert("source".into(), json!(source));
         }
     }
+}
+
+/// "Coolblue B.V.", "Philips N.V.", "Bakkerij de Vries V.O.F.".
+fn dutch_legal_form(label: &str) -> bool {
+    let label = label.to_lowercase().replace('.', "");
+    label.contains("besloten vennootschap")
+        || label.contains("naamloze vennootschap")
+        || label
+            .split_whitespace()
+            .last()
+            .is_some_and(|form| ["bv", "nv", "vof"].contains(&form))
 }
 
 /// Only user-supplied text is eligible for literal bindings. Assistant replies,
@@ -401,45 +439,68 @@ mod tests {
     }
 
     #[test]
-    fn a_named_source_becomes_a_requirement_instead_of_a_cheaper_reseller() {
+    fn a_named_source_or_a_dutch_company_requires_kvk_instead_of_a_cheaper_reseller() {
         let catalog = catalog_with_reseller();
-        let mut intent = planned("s1");
-        require_named_sources(&mut intent, &intake(Some("kvk")), &catalog);
+        let mut named = planned("s1");
+        bind_source_requirements(&mut named, &intake(Some("kvk")), &catalog);
         assert_eq!(
-            intent.goals[0].constraints["source"],
+            named.goals[0].constraints["source"],
             "kvk-dutch-business-register"
         );
 
-        let mut unnamed = planned("s1");
-        require_named_sources(&mut unnamed, &intake(None), &catalog);
+        let mut dutch = planned("s1");
+        bind_source_requirements(&mut dutch, &intake(None), &catalog);
+        assert_eq!(
+            dutch.goals[0].constraints["source"], "kvk-dutch-business-register",
+            "a Dutch company defaults to KVK"
+        );
+
+        let mut foreign = planned("s2");
+        bind_source_requirements(&mut foreign, &intake(None), &catalog);
         assert!(
-            unnamed.goals[0].constraints.is_empty(),
-            "without a named source the price decides"
+            foreign.goals[0].constraints.is_empty(),
+            "a non-Dutch company is priced across providers"
         );
 
         let mut other_subject = planned("s2");
-        require_named_sources(&mut other_subject, &intake(Some("kvk")), &catalog);
+        bind_source_requirements(&mut other_subject, &intake(Some("kvk")), &catalog);
         assert!(
             other_subject.goals[0].constraints.is_empty(),
             "a hint applies to its own subject only"
         );
 
         let mut unknown = planned("s1");
-        require_named_sources(&mut unknown, &intake(Some("companies house")), &catalog);
+        bind_source_requirements(&mut unknown, &intake(Some("companies house")), &catalog);
         assert!(
             unknown.goals[0].constraints.is_empty(),
-            "a hint that names no provider adds nothing"
+            "a hint that names no provider adds nothing, not the Dutch default"
         );
 
         let mut chosen = planned("s1");
         chosen.goals[0]
             .constraints
             .insert("source".into(), json!("sirenic"));
-        require_named_sources(&mut chosen, &intake(Some("kvk")), &catalog);
+        bind_source_requirements(&mut chosen, &intake(Some("kvk")), &catalog);
         assert_eq!(
             chosen.goals[0].constraints["source"], "sirenic",
             "an explicit plan constraint is kept"
         );
+    }
+
+    #[test]
+    fn dutch_legal_forms_are_recognised_without_matching_inside_words() {
+        for label in [
+            "Coolblue B.V.",
+            "Philips N.V.",
+            "Bakkerij de Vries V.O.F.",
+            "Example Besloten Vennootschap",
+            "ASML Holding NV",
+        ] {
+            assert!(dutch_legal_form(label), "{label}");
+        }
+        for label in ["Example Ltd", "Bvlgari", "Novartis AG", "Coolblue"] {
+            assert!(!dutch_legal_form(label), "{label}");
+        }
     }
 
     #[test]
