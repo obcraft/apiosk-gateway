@@ -359,6 +359,7 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
             "properties":{"message":text,"discover":{"type":"boolean"},"intent":optional}})),
         "planning" => Some(json!({"type":"object","additionalProperties":false,"required":["message","intent"],
             "properties":{"message":text,"intent":optional}})),
+        "capability-intake" | "capability-search" => crate::capability_intake::reply_schema(surface),
         _ => None,
     }
 }
@@ -1074,7 +1075,7 @@ impl Parser {
         // Analysing saved multi-source documents takes longer than intent parsing.
         // Keep both retries bounded and below the app's 80-second request limit.
         let (attempt_seconds, total_seconds) = if surface == "capability-intake" || surface == "capability-search" {
-            (6, 12)
+            (10, 20)
         } else if surface == "clarification" {
             (6, 12)
         } else if surface == "analysis" || surface == "invoice" {

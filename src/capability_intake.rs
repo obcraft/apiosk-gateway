@@ -30,6 +30,24 @@ const FORMATS: &[&str] = &["chat", "pdf", "xlsx", "docx", "json"];
 const OPERATIONS: &[&str] = &["summarize", "analyze", "compare", "list", "export"];
 pub const BAZAAR_SEARCH: &str = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
 
+pub fn reply_schema(surface: &str) -> Option<Value> {
+    let text = json!({"type":"string"});
+    let strings = json!({"type":"array","items":{"type":"string"}});
+    match surface {
+        "capability-intake" => Some(json!({"type":"object","additionalProperties":false,
+            "required":["language","subjects","capabilities","deliverable"],"properties":{
+            "language":text,
+            "subjects":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["id","label","type","identifiers"],"properties":{"id":text,"label":text,"type":text,"identifiers":{"type":"object","additionalProperties":{"type":"string"}}}}},
+            "capabilities":{"type":"array","minItems":1,"maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["slug","name","description","domain","inputs","outputs","subject_id","source_hint","confidence"],"properties":{"slug":text,"name":text,"description":text,"domain":{"type":"string","enum":DOMAINS},"inputs":strings,"outputs":strings,"subject_id":{"type":["string","null"]},"source_hint":{"type":["string","null"]},"confidence":{"type":"number","minimum":0,"maximum":1}}}},
+            "deliverable":{"type":"object","additionalProperties":false,"required":["format","operations"],"properties":{"format":{"type":"string","enum":FORMATS},"operations":{"type":"array","items":{"type":"string","enum":OPERATIONS}}}}
+        }})),
+        "capability-search" => Some(
+            json!({"type":"object","additionalProperties":false,"required":["matches"],"properties":{"matches":{"type":"array","maxItems":8,"items":{"type":"object","additionalProperties":false,"required":["slug","capabilities"],"properties":{"slug":text,"capabilities":strings}}}}}),
+        ),
+        _ => None,
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subject {
     pub id: String,
@@ -647,7 +665,7 @@ pub async fn fetch_coinbase(
     let response = http
         .get(search_url)
         .query(&[("query", query), ("limit", "3")])
-        .timeout(Duration::from_secs(8))
+        .timeout(Duration::from_secs(4))
         .send()
         .await?
         .error_for_status()?;
@@ -691,11 +709,128 @@ pub async fn add_coinbase(http: &reqwest::Client, matches: &mut [Match], search_
 
 pub fn search_input(parsed: &ParsedRequest, task: &Task, catalog: &Catalog) -> Value {
     let queries = queries(parsed, task);
-    let joined = queries.values().cloned().collect::<Vec<_>>().join(" ");
-    json!({"queries":queries,"operations":catalog.operation_index_for(&joined),
+    // Score EVERY registered operation before selecting the compact semantic
+    // search input. Large providers must not crowd the model context with
+    // hundreds of unrelated operations. This is independent of source count.
+    let words = |text: &str| -> BTreeSet<String> {
+        let mut tokens: BTreeSet<_> = text
+            .to_lowercase()
+            .split(|ch: char| !ch.is_alphanumeric())
+            .filter(|word| {
+                word.len() >= 3
+                    && ![
+                        "the",
+                        "for",
+                        "and",
+                        "from",
+                        "with",
+                        "retrieve",
+                        "provides",
+                        "data",
+                        "information",
+                        "company",
+                        "general",
+                    ]
+                    .contains(word)
+            })
+            .map(|word| word.trim_end_matches('s').to_owned())
+            .collect();
+        // High-recall terminology only; the semantic pass decides whether a
+        // financial statement, bank account, filing or summary actually fits.
+        if tokens
+            .iter()
+            .any(|w| ["financial", "statement", "jaarrekening"].contains(&w.as_str()))
+        {
+            tokens.insert("account".into());
+        }
+        tokens
+    };
+    let docs: Vec<_> = catalog
+        .services
+        .iter()
+        .map(|s| {
+            words(&format!(
+                "{} {} {} {} {} {}",
+                s.contract.capability_slug,
+                s.api_slug,
+                s.name,
+                s.description.as_deref().unwrap_or(""),
+                s.contract
+                    .input_map
+                    .values()
+                    .map(|b| b.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" "),
+                s.contract
+                    .output_map
+                    .produces
+                    .keys()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            ))
+        })
+        .collect();
+    let mut frequency: BTreeMap<&str, usize> = BTreeMap::new();
+    for doc in &docs {
+        for word in doc {
+            *frequency.entry(word).or_default() += 1;
+        }
+    }
+    let mut chosen = BTreeSet::new();
+    for (slug, query) in &queries {
+        let wanted = words(query);
+        let mut ranked: Vec<_> = catalog
+            .services
+            .iter()
+            .zip(&docs)
+            .map(|(service, doc)| {
+                let exact = normalize_slug(&service.contract.capability_slug, "")
+                    .is_some_and(|(normalized, _)| &normalized == slug);
+                let score = wanted
+                    .intersection(doc)
+                    .map(|word| {
+                        ((docs.len() + 1) as f64
+                            / (*frequency.get(word.as_str()).unwrap_or(&0) + 1) as f64)
+                            .ln()
+                            + 1.0
+                    })
+                    .sum::<f64>()
+                    + if exact { 100.0 } else { 0.0 };
+                (score, service)
+            })
+            .filter(|(score, _)| *score > 0.0)
+            .collect();
+        ranked.sort_by(|a, b| {
+            b.0.total_cmp(&a.0)
+                .then(a.1.unverified.cmp(&b.1.unverified))
+                .then(a.1.id.cmp(&b.1.id))
+        });
+        for (_, service) in ranked.into_iter().take(24) {
+            chosen.insert(service.contract.capability_slug.clone());
+        }
+    }
+    let mut operations = catalog.operation_index();
+    operations
+        .as_object_mut()
+        .unwrap()
+        .retain(|slug, _| chosen.contains(slug));
+    for variants in operations
+        .as_object_mut()
+        .unwrap()
+        .values_mut()
+        .filter_map(Value::as_array_mut)
+    {
+        for variant in variants {
+            if let Some(description) = variant["description"].as_str() {
+                variant["description"] = json!(description.chars().take(320).collect::<String>());
+            }
+        }
+    }
+    json!({"queries":queries,"operations":operations,
         "workflow_presets":catalog.parser_view()["workflow_presets"],
-        "sources":catalog.known_sources.iter().map(|s| json!({"slug":s.slug,"name":s.name,"description":s.metadata.description,
-            "provider":s.metadata.provider_slug,"category":s.metadata.category,"tags":s.metadata.tags,"block_reason":s.block_reason})).collect::<Vec<_>>()})
+        "sources":catalog.known_sources.iter().map(|s| json!({"slug":s.slug,"name":s.name,"description":s.metadata.description.chars().take(160).collect::<String>(),
+            "provider":s.metadata.provider_slug,"category":s.metadata.category,"block_reason":s.block_reason})).collect::<Vec<_>>()})
 }
 pub fn decode_matches(
     raw: &str,
