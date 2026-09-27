@@ -159,6 +159,8 @@ pub struct TurnOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capability_intake: Option<crate::capability_intake::Intake>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<Uuid>,
     #[serde(default)]
     pub pending_dispatches: Vec<PendingDispatch>,
@@ -265,6 +267,7 @@ impl Task {
         let object = context.as_object_mut().expect("context object");
         object.remove("analysis");
         object.remove("result_refs");
+        object.remove("capability_intake");
         if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
             for turn in turns {
                 let summary = turn.pointer("/output/analysis").filter(|value| !value.is_null()).map(&answer);
@@ -282,7 +285,7 @@ impl Task {
         context
     }
     pub fn context_view(&self) -> Value {
-        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,
+        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,"capability_intake":self.capability_intake,
             "known_facts":self.facts.iter().filter(|f| f.expires_at > Utc::now() && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer" | "company.name")).collect::<Vec<_>>(),
             "analysis":self.analysis,"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
     }

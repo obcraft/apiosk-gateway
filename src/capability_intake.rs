@@ -1,0 +1,743 @@
+//! Ask intake: validated capabilities first, catalog discovery second. Discovery
+//! returns metadata; only the existing planner and approval can execute a source.
+use crate::{catalog::Catalog, state::Task};
+use anyhow::ensure;
+use futures_util::{stream, StreamExt};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Duration,
+};
+
+#[cfg(test)]
+mod tests;
+
+const DOMAINS: &[&str] = &[
+    "company",
+    "location",
+    "compliance",
+    "vehicle",
+    "finance",
+    "legal",
+    "procurement",
+    "document",
+    "research",
+    "general",
+];
+const FORMATS: &[&str] = &["chat", "pdf", "xlsx", "docx", "json"];
+const OPERATIONS: &[&str] = &["summarize", "analyze", "compare", "list", "export"];
+pub const BAZAAR_SEARCH: &str = "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Subject {
+    pub id: String,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub identifiers: BTreeMap<String, String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Capability {
+    pub slug: String,
+    pub name: String,
+    pub description: String,
+    pub domain: String,
+    pub inputs: Vec<String>,
+    pub outputs: Vec<String>,
+    pub subject_id: Option<String>,
+    pub source_hint: Option<String>,
+    pub confidence: f64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Deliverable {
+    pub format: String,
+    pub operations: Vec<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Meta {
+    pub model: String,
+    pub parsed_at: String,
+    pub text_sha256: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParsedRequest {
+    pub language: String,
+    pub subjects: Vec<Subject>,
+    pub capabilities: Vec<Capability>,
+    pub deliverable: Deliverable,
+    pub meta: Meta,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Candidate {
+    pub origin: String,
+    pub name: String,
+    pub description: String,
+    pub source_slug: Option<String>,
+    pub capability: Option<String>,
+    pub endpoint_id: Option<String>,
+    pub url: Option<String>,
+    pub method: String,
+    pub price: Option<String>,
+    pub network: Option<String>,
+    pub calls_30d: Option<u64>,
+    pub availability: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Match {
+    pub slug: String,
+    pub query: String,
+    pub operations: BTreeSet<String>,
+    pub apiosk: Vec<Candidate>,
+    pub coinbase: Vec<Candidate>,
+    pub coinbase_status: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Intake {
+    pub parsed_request: ParsedRequest,
+    pub matches: Vec<Match>,
+    pub apiosk_sources_searched: usize,
+    pub catalog_version: String,
+    /// Contract slugs used by the planner, not new model-invented execution paths.
+    pub selected_capabilities: BTreeSet<String>,
+}
+
+fn text(value: &Value) -> String {
+    value.as_str().unwrap_or("").trim().to_owned()
+}
+fn snake(value: &str) -> String {
+    value
+        .to_lowercase()
+        .split(|ch: char| !ch.is_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("_")
+}
+fn names(value: &Value) -> anyhow::Result<Vec<String>> {
+    let values = value
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("inputs and outputs must be arrays"))?;
+    ensure!(values.len() <= 32, "too many input or output concepts");
+    let mut result = Vec::new();
+    for value in values {
+        let word = value
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("concept must be text"))?;
+        let word = snake(word);
+        ensure!(!word.is_empty() && word.len() <= 100, "invalid concept");
+        if !result.contains(&word) {
+            result.push(word);
+        }
+    }
+    Ok(result)
+}
+fn literal(request: &str, value: &str) -> bool {
+    !value.is_empty() && request.to_lowercase().contains(&value.to_lowercase())
+}
+pub fn normalize_slug(slug: &str, domain: &str) -> Option<(String, String)> {
+    let mut parts: Vec<String> = slug
+        .split(|ch: char| !ch.is_ascii_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            if s.chars().all(|c| !c.is_ascii_lowercase()) {
+                s.to_lowercase()
+            } else {
+                format!("{}{}", s[..1].to_ascii_lowercase(), &s[1..])
+            }
+        })
+        .collect();
+    let prefix = parts.first().map(|s| s.to_lowercase()).unwrap_or_default();
+    let domain = if DOMAINS.contains(&prefix.as_str()) {
+        parts.remove(0);
+        prefix
+    } else if DOMAINS.contains(&domain.to_lowercase().as_str()) {
+        domain.to_lowercase()
+    } else {
+        "general".into()
+    };
+    parts.retain(|part| {
+        part != &domain
+            && ![
+                "a", "an", "and", "de", "een", "en", "for", "het", "of", "or", "the", "to", "van",
+                "voor",
+            ]
+            .contains(&part.as_str())
+    });
+    if parts.is_empty() {
+        return None;
+    }
+    Some((format!("{domain}.{}", parts.join(".")), domain))
+}
+
+/// Read the first complete JSON object, allowing fenced output and trailing prose.
+pub fn extract_json(raw: &str) -> anyhow::Result<Value> {
+    let start = raw
+        .find('{')
+        .ok_or_else(|| anyhow::anyhow!("missing JSON object"))?;
+    let chars: Vec<_> = raw[start..].chars().collect();
+    let mut repaired = String::new();
+    let (mut quoted, mut escaped) = (false, false);
+    for (i, &ch) in chars.iter().enumerate() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else if ch == '"' {
+            quoted = true;
+        } else if ch == ','
+            && chars[i + 1..]
+                .iter()
+                .find(|ch| !ch.is_whitespace())
+                .is_some_and(|ch| matches!(ch, '}' | ']'))
+        {
+            continue;
+        }
+        repaired.push(ch);
+    }
+    let mut values = serde_json::Deserializer::from_str(&repaired).into_iter::<Value>();
+    values
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("missing JSON object"))?
+        .map_err(Into::into)
+}
+pub fn conversation_language(request: &str) -> Option<&'static str> {
+    let clean = request
+        .trim()
+        .trim_end_matches(['!', '?', '.', ',', ' '])
+        .to_lowercase();
+    let mut body = clean.as_str();
+    for prefix in [
+        "hi",
+        "hey",
+        "hello",
+        "hoi",
+        "hallo",
+        "goedemorgen",
+        "goedemiddag",
+        "goedenavond",
+    ] {
+        if let Some(tail) = body
+            .strip_prefix(prefix)
+            .filter(|tail| tail.starts_with([' ', ',', '!', '.', '?']))
+        {
+            body = tail.trim_start_matches([' ', ',', '!', '.', '?']);
+            break;
+        }
+    }
+    if [
+        "hoi",
+        "hallo",
+        "hoe gaat het",
+        "hoe gaat het met je",
+        "hoe gaat het met jou",
+        "hoe gaat het met u",
+        "hoe is het",
+        "hoe is het met je",
+        "hoe is het met jou",
+        "dank je",
+        "dank je wel",
+        "dankjewel",
+        "bedankt",
+    ]
+    .contains(&body)
+    {
+        Some("nl")
+    } else if [
+        "hi",
+        "hey",
+        "hello",
+        "thanks",
+        "thank you",
+        "how are you",
+        "how are you doing",
+    ]
+    .contains(&body)
+    {
+        Some("en")
+    } else {
+        None
+    }
+}
+pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<ParsedRequest> {
+    let raw = if let Some(language) = conversation_language(request) {
+        json!({"language":language,"subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Reply to a greeting, thanks, or small talk.","domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}})
+    } else {
+        extract_json(raw)?
+    };
+    let language = text(&raw["language"]).to_lowercase();
+    ensure!(
+        language.len() == 2 && language.bytes().all(|c| c.is_ascii_lowercase()),
+        "language must be a two-letter code"
+    );
+    let subjects = raw["subjects"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("subjects must be an array"))?;
+    ensure!(subjects.len() <= 8, "too many subjects");
+    let mut ids = BTreeMap::new();
+    let mut normalized_subjects = Vec::new();
+    for subject in subjects {
+        ensure!(subject.is_object(), "subject must be an object");
+        let label = text(&subject["label"]);
+        let kind = snake(&text(&subject["type"]));
+        ensure!(
+            !label.is_empty() && label.len() <= 500 && literal(request, &label) && !kind.is_empty(),
+            "subject must be literal and have a type"
+        );
+        let identifiers = subject["identifiers"]
+            .as_object()
+            .ok_or_else(|| anyhow::anyhow!("identifiers must be an object"))?;
+        let identifiers = identifiers
+            .iter()
+            .filter_map(|(key, value)| {
+                let value = value
+                    .as_str()
+                    .map(str::to_owned)
+                    .or_else(|| value.as_number().map(ToString::to_string))?;
+                (literal(request, &value) && !snake(key).is_empty()).then(|| (snake(key), value))
+            })
+            .collect();
+        let id = format!("s{}", normalized_subjects.len() + 1);
+        let old = text(&subject["id"]);
+        ensure!(
+            !old.is_empty() && !ids.contains_key(&old),
+            "subject ids must be unique"
+        );
+        ids.insert(old, id.clone());
+        normalized_subjects.push(Subject {
+            id,
+            label,
+            kind,
+            identifiers,
+        });
+    }
+    let capabilities = raw["capabilities"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("capabilities must be an array"))?;
+    ensure!(
+        !capabilities.is_empty() && capabilities.len() <= 8,
+        "return one to eight capabilities"
+    );
+    let mut normalized = Vec::new();
+    for cap in capabilities {
+        ensure!(cap.is_object(), "capability must be an object");
+        let name = text(&cap["name"]);
+        let description = text(&cap["description"]);
+        ensure!(
+            !name.is_empty()
+                && name.len() <= 120
+                && !description.is_empty()
+                && description.len() <= 1000,
+            "capability needs a generic name and description"
+        );
+        let (slug, domain) = normalize_slug(&text(&cap["slug"]), &text(&cap["domain"]))
+            .ok_or_else(|| anyhow::anyhow!("unusable capability slug"))?;
+        ensure!(slug.len() <= 200, "capability slug too long");
+        let confidence = cap["confidence"]
+            .as_f64()
+            .or_else(|| cap["confidence"].as_str().and_then(|s| s.parse().ok()))
+            .ok_or_else(|| anyhow::anyhow!("confidence must be a number"))?;
+        let confidence = if confidence > 1.0 && confidence <= 100.0 {
+            confidence / 100.0
+        } else {
+            confidence
+        };
+        let source = text(&cap["source_hint"]).to_lowercase();
+        let capability = Capability {
+            slug,
+            name,
+            description,
+            domain,
+            inputs: names(&cap["inputs"])?,
+            outputs: names(&cap["outputs"])?,
+            subject_id: ids.get(&text(&cap["subject_id"])).cloned(),
+            source_hint: literal(request, &source).then_some(source),
+            confidence: confidence.clamp(0.0, 1.0),
+        };
+        if !normalized.iter().any(|c: &Capability| {
+            c.slug == capability.slug && c.subject_id == capability.subject_id
+        }) {
+            normalized.push(capability);
+        }
+    }
+    let deliverable = &raw["deliverable"];
+    ensure!(deliverable.is_object(), "deliverable must be an object");
+    let format = text(&deliverable["format"]).to_lowercase();
+    let format = match format.as_str() {
+        "excel" => "xlsx",
+        "word" => "docx",
+        f if FORMATS.contains(&f) => f,
+        _ => "chat",
+    }
+    .to_owned();
+    let operations = deliverable["operations"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("operations must be an array"))?
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::to_lowercase)
+        .filter(|s| OPERATIONS.contains(&s.as_str()))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    Ok(ParsedRequest {
+        language,
+        subjects: normalized_subjects,
+        capabilities: normalized,
+        deliverable: Deliverable { format, operations },
+        meta: Meta {
+            model: model.into(),
+            parsed_at: chrono::Utc::now().to_rfc3339(),
+            text_sha256: hex::encode(Sha256::digest(request.as_bytes())),
+        },
+    })
+}
+
+/// Same generic query fields as WebGPU. The external query is also scrubbed
+/// against literals in the request/context so model mistakes do not copy them.
+pub fn capability_query(cap: &Capability, parsed: &ParsedRequest, task: &Task) -> String {
+    let mut query = [
+        cap.name.clone(),
+        cap.description.clone(),
+        cap.inputs.join(" "),
+        cap.source_hint.clone().unwrap_or_default(),
+    ]
+    .into_iter()
+    .map(|s| s.trim_end_matches(['.', ' ']).to_owned())
+    .filter(|s| !s.is_empty())
+    .collect::<Vec<_>>()
+    .join(". ")
+    .replace('_', " ");
+    let mut private: Vec<String> = parsed
+        .subjects
+        .iter()
+        .flat_map(|s| std::iter::once(s.label.clone()).chain(s.identifiers.values().cloned()))
+        .chain(task.entities.iter().map(|e| e.label.clone()))
+        .chain(
+            task.facts
+                .iter()
+                .filter_map(|f| f.value.as_str().map(str::to_owned)),
+        )
+        .collect();
+    private.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    for value in private {
+        if value.is_empty() {
+            continue;
+        }
+        // Use character indices from the original string, including Unicode.
+        let lowered = value.to_lowercase();
+        let chars: Vec<_> = query
+            .char_indices()
+            .map(|(i, _)| i)
+            .chain(std::iter::once(query.len()))
+            .collect();
+        let mut ranges = Vec::new();
+        for (position, &start) in chars.iter().enumerate().take(chars.len().saturating_sub(1)) {
+            for &end in chars
+                .iter()
+                .skip(position + 1)
+                .take(value.chars().count() + 2)
+            {
+                if query[start..end].to_lowercase() == lowered {
+                    ranges.push((start, end));
+                    break;
+                }
+            }
+        }
+        let mut before = query.len();
+        for (start, end) in ranges.into_iter().rev() {
+            if end <= before {
+                query.replace_range(start..end, "");
+                before = start;
+            }
+        }
+    }
+    query
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(300)
+        .collect()
+}
+
+pub fn queries(parsed: &ParsedRequest, task: &Task) -> BTreeMap<String, String> {
+    parsed
+        .capabilities
+        .iter()
+        .filter(|c| c.slug != "general.conversation")
+        .map(|c| (c.slug.clone(), capability_query(c, parsed, task)))
+        .collect()
+}
+pub fn source_count(catalog: &Catalog) -> usize {
+    catalog
+        .known_sources
+        .iter()
+        .map(|s| {
+            if s.metadata.provider_slug.as_deref() == Some("pulsenetwork") {
+                "pulsenetwork"
+            } else {
+                &s.slug
+            }
+        })
+        .collect::<BTreeSet<_>>()
+        .len()
+}
+pub fn local_matches(
+    parsed: &ParsedRequest,
+    query: &BTreeMap<String, String>,
+    selected: &BTreeMap<String, BTreeSet<String>>,
+    catalog: &Catalog,
+) -> Vec<Match> {
+    query
+        .iter()
+        .map(|(slug, query)| {
+            let selected = &selected[slug];
+            let hint = parsed
+                .capabilities
+                .iter()
+                .find(|c| &c.slug == slug)
+                .and_then(|c| c.source_hint.as_deref());
+            let mut services: Vec<_> = catalog
+                .services
+                .iter()
+                .filter(|s| selected.contains(&s.contract.capability_slug))
+                .collect();
+            services.sort_by_key(|s| {
+                let named = hint.is_some_and(|hint| {
+                    format!("{} {}", s.api_slug, s.name)
+                        .to_lowercase()
+                        .contains(hint)
+                });
+                (!named, s.unverified, s.total(), s.api_slug.clone(), s.id)
+            });
+            let mut seen = BTreeSet::new();
+            let apiosk = services
+                .into_iter()
+                .filter(|s| seen.insert(s.endpoint_id))
+                .take(3)
+                .map(|s| Candidate {
+                    origin: "apiosk".into(),
+                    name: s.name.clone(),
+                    description: s
+                        .description
+                        .clone()
+                        .unwrap_or_else(|| s.contract.capability_slug.clone()),
+                    source_slug: Some(s.api_slug.clone()),
+                    capability: Some(s.contract.capability_slug.clone()),
+                    endpoint_id: Some(s.endpoint_id.to_string()),
+                    url: s.source_url.as_deref().and_then(safe_url),
+                    method: s.method.clone(),
+                    price: Some(format!("{:.6} USD", s.total() as f64 / 1_000_000.0)),
+                    network: None,
+                    calls_30d: None,
+                    availability: if s.unverified {
+                        "unverified"
+                    } else {
+                        "supported"
+                    }
+                    .into(),
+                })
+                .collect();
+            Match {
+                slug: slug.clone(),
+                query: query.clone(),
+                operations: selected.clone(),
+                apiosk,
+                coinbase: vec![],
+                coinbase_status: "pending".into(),
+            }
+        })
+        .collect()
+}
+fn safe_url(value: &str) -> Option<String> {
+    let url = url::Url::parse(value).ok()?;
+    (value.len() <= 2048
+        && matches!(url.scheme(), "https" | "http")
+        && url.host_str().is_some()
+        && url.username().is_empty()
+        && url.password().is_none())
+    .then(|| url.to_string())
+}
+fn coinbase_candidates(body: Value) -> anyhow::Result<Vec<Candidate>> {
+    let resources = body["resources"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing Bazaar resources"))?;
+    let mut seen = BTreeSet::new();
+    Ok(resources
+        .iter()
+        .filter(|r| r["type"].as_str().unwrap_or("http") == "http")
+        .filter_map(|r| {
+            let url = safe_url(r["resource"].as_str()?)?;
+            if !seen.insert(url.clone()) {
+                return None;
+            }
+            let accepts = r["accepts"].as_array();
+            let cheapest = accepts
+                .into_iter()
+                .flatten()
+                .filter_map(|a| {
+                    if a.pointer("/extra/name").and_then(Value::as_str) != Some("USD Coin") {
+                        return None;
+                    }
+                    let amount = a.get("amount").or_else(|| a.get("maxAmountRequired"))?;
+                    let amount = amount
+                        .as_str()
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .or_else(|| amount.as_u64())?;
+                    Some((amount, a))
+                })
+                .min_by_key(|(amount, _)| *amount);
+            let name = r["serviceName"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+                .unwrap_or_else(|| {
+                    url::Url::parse(&url)
+                        .unwrap()
+                        .host_str()
+                        .unwrap()
+                        .to_owned()
+                });
+            Some(Candidate {
+                origin: "coinbase".into(),
+                name: name.chars().take(160).collect(),
+                description: r["description"]
+                    .as_str()
+                    .unwrap_or("")
+                    .trim()
+                    .chars()
+                    .take(1000)
+                    .collect(),
+                source_slug: None,
+                capability: None,
+                endpoint_id: None,
+                url: Some(url),
+                method: r
+                    .pointer("/extensions/bazaar/info/input/method")
+                    .and_then(Value::as_str)
+                    .unwrap_or("GET")
+                    .chars()
+                    .take(12)
+                    .collect(),
+                price: cheapest
+                    .map(|(amount, _)| format!("{:.6} USD", amount as f64 / 1_000_000.0)),
+                network: cheapest
+                    .and_then(|(_, a)| a["network"].as_str())
+                    .map(str::to_owned),
+                calls_30d: r
+                    .pointer("/quality/l30DaysTotalCalls")
+                    .and_then(Value::as_u64),
+                availability: "discovery_only".into(),
+            })
+        })
+        .take(3)
+        .collect())
+}
+pub async fn fetch_coinbase(
+    http: &reqwest::Client,
+    search_url: &str,
+    query: &str,
+) -> anyhow::Result<Vec<Candidate>> {
+    ensure!(!query.trim().is_empty(), "empty discovery query");
+    let response = http
+        .get(search_url)
+        .query(&[("query", query), ("limit", "3")])
+        .timeout(Duration::from_secs(8))
+        .send()
+        .await?
+        .error_for_status()?;
+    let mut chunks = response.bytes_stream();
+    let mut bytes = Vec::new();
+    while let Some(chunk) = chunks.next().await {
+        let chunk = chunk?;
+        ensure!(
+            bytes.len() + chunk.len() <= 256_000,
+            "Bazaar response too large"
+        );
+        bytes.extend_from_slice(&chunk);
+    }
+    coinbase_candidates(serde_json::from_slice(&bytes)?)
+}
+pub async fn add_coinbase(http: &reqwest::Client, matches: &mut [Match], search_url: &str) {
+    // All requests start AFTER local discovery and never target resource URLs.
+    let jobs: Vec<_> = matches
+        .iter()
+        .enumerate()
+        .map(|(index, found)| {
+            let query = found.query.clone();
+            let http = http.clone();
+            let url = search_url.to_owned();
+            async move { (index, fetch_coinbase(&http, &url, &query).await) }
+        })
+        .collect();
+    let results: Vec<_> = stream::iter(jobs).buffer_unordered(4).collect().await;
+    for (index, result) in results {
+        match result {
+            Ok(candidates) => {
+                matches[index].coinbase = candidates;
+                matches[index].coinbase_status = "complete".into();
+            }
+            Err(_) => {
+                matches[index].coinbase_status = "unavailable".into();
+            }
+        }
+    }
+}
+
+pub fn search_input(parsed: &ParsedRequest, task: &Task, catalog: &Catalog) -> Value {
+    let queries = queries(parsed, task);
+    let joined = queries.values().cloned().collect::<Vec<_>>().join(" ");
+    json!({"queries":queries,"operations":catalog.operation_index_for(&joined),
+        "workflow_presets":catalog.parser_view()["workflow_presets"],
+        "sources":catalog.known_sources.iter().map(|s| json!({"slug":s.slug,"name":s.name,"description":s.metadata.description,
+            "provider":s.metadata.provider_slug,"category":s.metadata.category,"tags":s.metadata.tags,"block_reason":s.block_reason})).collect::<Vec<_>>()})
+}
+pub fn decode_matches(
+    raw: &str,
+    input: &Value,
+) -> anyhow::Result<BTreeMap<String, BTreeSet<String>>> {
+    let raw = extract_json(raw)?;
+    let items = raw["matches"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing capability matches"))?;
+    let mut matches = BTreeMap::new();
+    let mut all = BTreeSet::new();
+    for item in items {
+        let slug = item["slug"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("missing parsed slug"))?;
+        ensure!(
+            input["queries"].get(slug).is_some() && !matches.contains_key(slug),
+            "unknown or duplicate parsed capability"
+        );
+        let mut selected = BTreeSet::new();
+        for value in item["capabilities"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("matches must be an array"))?
+        {
+            let cap = value
+                .as_str()
+                .ok_or_else(|| anyhow::anyhow!("invalid operation"))?;
+            ensure!(
+                input["operations"].get(cap).is_some()
+                    || input["workflow_presets"]
+                        .as_array()
+                        .is_some_and(|v| v.iter().any(|p| p["capability"] == cap)),
+                "unknown operation"
+            );
+            selected.insert(cap.to_owned());
+            all.insert(cap.to_owned());
+        }
+        matches.insert(slug.to_owned(), selected);
+    }
+    ensure!(
+        all.len() <= 32 && matches.len() == input["queries"].as_object().map_or(0, |q| q.len()),
+        "incomplete capability matching"
+    );
+    Ok(matches)
+}

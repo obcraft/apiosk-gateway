@@ -27,6 +27,7 @@ const ORGANISATION_KEY: &str = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 #[derive(Default)]
 struct Model {
     chats: Mutex<Vec<Value>>,
+    stages: Mutex<Vec<&'static str>>,
 }
 impl Model {
     fn chats(&self) -> Vec<Value> {
@@ -46,6 +47,21 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 /// conversation. The label is the last word, copied literally.
 async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> Json<Value> {
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input["known_slugs"].is_array() {
+        model.stages.lock().unwrap().push("parse");
+        let question=input["question"].as_str().unwrap();
+        let label=question.strip_prefix("Jaarrekening van ").map(|s| s.rsplit(' ').next().unwrap());
+        let content=json!({"language":"nl","subjects":label.map(|label| vec![json!({"id":"s1","label":label,"type":"company","identifiers":{}})]).unwrap_or_default(),
+            "capabilities":[{"slug":if label.is_some(){"company.financial.statements"}else{"general.conversation"},"name":"Company financial statements","description":"Retrieve financial statements for a company.","domain":"company","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":0.9}],
+            "deliverable":{"format":"chat","operations":[]}});
+        return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
+    }
+    if let Some(queries)=input["queries"].as_object() {
+        model.stages.lock().unwrap().push("search");
+        let content=json!({"matches":queries.keys().map(|slug|json!({"slug":slug,"capabilities":["company.accounts"]})).collect::<Vec<_>>()});
+        return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
+    }
+    model.stages.lock().unwrap().push("plan");
     model.chats.lock().unwrap().push(input.clone());
     let question = input["question"].as_str().unwrap();
     let content = match question.strip_prefix("Jaarrekening van ") {
@@ -93,6 +109,10 @@ impl Intake {
         let model = Arc::new(Model::default());
         let mock = Router::new()
             .route("/chat", post(interpret))
+            .route("/bazaar", get(|State(model): State<Arc<Model>>| async move {
+                model.stages.lock().unwrap().push("bazaar");
+                Json(json!({"resources":[]}))
+            }))
             .route("/auth/v1/user", get(user))
             .with_state(model.clone());
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -103,7 +123,7 @@ impl Intake {
         let engine = Arc::new(Engine {
             store: store.clone(),
             catalog: CatalogCache::new(pool.clone()),
-            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()),
+            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap(),
             signer: Signer::new(vec![7; 32]).unwrap(),
             executor: Executor { store, http: http.clone(), supabase_url: base.clone(), enabled: true },
             app_url: "http://localhost:5173".into(),
@@ -326,4 +346,29 @@ async fn requote_refuses_a_valid_or_mismatched_quote() {
     let nothing_to_refresh: Value = nothing_to_refresh.json().await.unwrap();
     assert_eq!(codes(&nothing_to_refresh), ["requote_unavailable"], "{nothing_to_refresh}");
     println!("requote_refuses_a_valid_or_mismatched_quote: quote_still_valid, quote_mismatch, requote_unavailable");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn capability_object_precedes_discovery_and_survives_recovery_without_purchase() {
+    let intake=Intake::start().await;
+    let person=Person::new();
+    let request=json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Coolblue","state":null});
+    let priced=intake.chat(&person,request.clone()).await;
+    assert_eq!(priced["status"],"ready","{priced}");
+    assert_eq!(*intake.model.stages.lock().unwrap(), vec!["parse","search","bazaar","plan"]);
+    let object=&priced["context_view"]["capability_intake"];
+    assert_eq!(object["parsed_request"]["subjects"][0]["label"],"Coolblue");
+    assert_eq!(object["parsed_request"]["capabilities"][0]["slug"],"company.financial.statements");
+    assert_eq!(object["matches"][0]["apiosk"][0]["origin"],"apiosk");
+    assert!(intake.model.chats()[0]["parsed_request"].is_object());
+    let replay=intake.chat(&person,request).await;
+    assert_eq!(replay["state"],priced["state"]);
+    assert_eq!(intake.model.stages.lock().unwrap().len(),4);
+    let id=priced["state"]["state_ref"].as_str().unwrap();
+    let (status,recovered)=intake.send(&person.bearer,&format!("/v2/tasks/{id}"),None).await;
+    assert_eq!(status,StatusCode::OK);
+    assert_eq!(recovered["context_view"]["capability_intake"],*object);
+    let calls:i64=sqlx::query_scalar("SELECT count(*) FROM executions WHERE task_id=$1").bind(id.parse::<Uuid>().unwrap()).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(calls,0,"discovery and recovery must never buy source data");
 }

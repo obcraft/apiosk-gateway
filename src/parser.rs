@@ -328,6 +328,7 @@ pub struct Parser {
     url: String,
     key: String,
     model: String,
+    bazaar_search_url: String,
     analysis_model: String,
     intent_provider_sort: Option<String>,
     analysis_provider_sort: Option<String>,
@@ -777,6 +778,7 @@ impl Parser {
             key,
             analysis_model: model.clone(),
             model,
+            bazaar_search_url: crate::capability_intake::BAZAAR_SEARCH.into(),
             intent_provider_sort: None,
             analysis_provider_sort: None,
             typesafe: None,
@@ -790,6 +792,15 @@ impl Parser {
     }
     pub fn with_typesafe(mut self, config: Option<crate::typesafe::Config>) -> anyhow::Result<Self> {
         self.typesafe = config.map(crate::typesafe::Client::new).transpose()?;
+        Ok(self)
+    }
+    /// Isolated HTTP fixtures may replace the public discovery service. An
+    /// arbitrary external discovery host is never accepted by this override.
+    #[doc(hidden)]
+    pub fn with_local_bazaar(mut self, url: String) -> anyhow::Result<Self> {
+        let parsed = url::Url::parse(&url)?;
+        anyhow::ensure!(parsed.scheme() == "http" && parsed.host_str() == Some("127.0.0.1"), "fixture discovery must be loopback");
+        self.bazaar_search_url = url;
         Ok(self)
     }
     pub fn typesafe_usage(&self) -> crate::typesafe::UsageSnapshot {
@@ -875,10 +886,63 @@ impl Parser {
     }
 
     async fn chat_baseline(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
+        let view = self.planning_view(question, task, catalog).await?;
+        self.chat_with_view(question, selection, task, catalog, view, None).await
+    }
+
+    /// Ask must finish capability extraction before any source search starts.
+    pub async fn prepare_ask(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
+        self.prepare_ask_with_bazaar(question, selection, task, catalog, &self.bazaar_search_url).await
+    }
+
+    pub(crate) async fn prepare_ask_with_bazaar(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, bazaar: &str) -> anyhow::Result<crate::capability_intake::Intake> {
+        use crate::capability_intake as intake;
+        let known: Vec<_> = catalog.by_capability.keys().filter(|slug| !slug.starts_with("operation."))
+            .filter_map(|slug| intake::normalize_slug(slug, "").map(|(slug, _)| slug)).take(100).collect();
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":3000,
+            "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
+            "messages":[{"role":"system","content":include_str!("../contracts/capability-intake-prompt.txt")},
+                {"role":"user","content":json!({"question":question,"known_slugs":known,"previous_context":task.parser_context()}).to_string()}]});
+        let parsed = if intake::conversation_language(question).is_some() {
+            intake::normalize("", question, &self.model)?
+        } else {
+            self.completion("capability-intake", &payload, |raw| intake::normalize(raw, question, &self.model)).await?
+        };
+        let mut input = intake::search_input(&parsed, task, catalog);
+        if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
+        let queries = intake::queries(&parsed, task);
+        let selected = if queries.is_empty() { BTreeMap::new() } else {
+            let payload = json!({"model":self.model,"temperature":0,"max_tokens":2500,
+                "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
+                "messages":[{"role":"system","content":include_str!("../contracts/capability-source-search-prompt.txt")},
+                    {"role":"user","content":input.to_string()}]});
+            self.completion("capability-search", &payload, |raw| intake::decode_matches(raw, &input)).await?
+        };
+        let mut matches = intake::local_matches(&parsed, &queries, &selected, catalog);
+        // Directory discovery is public and carries no user credentials. Never
+        // follow redirects to an arbitrary host or fetch the discovered resource.
+        let discovery_http = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build()?;
+        intake::add_coinbase(&discovery_http, &mut matches, bazaar).await;
+        Ok(intake::Intake { parsed_request: parsed, matches,
+            apiosk_sources_searched: intake::source_count(catalog), catalog_version: catalog.version.clone(),
+            selected_capabilities: selected.into_values().flatten().collect() })
+    }
+
+    pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
+        let view = catalog.selected_parser_view(&intake.selected_capabilities);
+        self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
+    }
+
+    async fn chat_with_view(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, view: Value, intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<ChatReply> {
         // The chat route has no interpretation cache: every question is read anew.
         crate::telemetry::set_parser_cache(Cache::Miss);
         let mut input=chat_input(question, task, catalog);
-        input["catalog"]=self.planning_view(question,task,catalog).await?;
+        input["catalog"]=view;
+        if let Some(intake) = intake {
+            input["parsed_request"] = json!(intake.parsed_request);
+            input["source_matches"] = json!(intake.matches);
+            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
+        }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
         let literals = selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"));
@@ -895,10 +959,17 @@ impl Parser {
         self.completion("chat", &payload, |raw| {
             let mut reply: ChatReply = serde_json::from_str(raw)?;
             reply.validate()?;
+            if intake.is_some() {
+                anyhow::ensure!(!reply.discover || reply.intent.is_some(), "discovery requires a matched intent");
+                anyhow::ensure!(!reply.discover || intake.is_none_or(|i| i.matches.iter().all(|m| !m.operations.is_empty())), "unmatched capabilities need clarification before a quote");
+            }
             if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
                 intent.restore_question_literals(question);
                 intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
+                if intake.is_some() {
+                    anyhow::ensure!(intent.goals.iter().all(|goal| input["catalog"]["capabilities"].as_array().is_some_and(|caps| caps.iter().any(|c| c == &goal.capability))), "intent must use discovered operations");
+                }
             }
             Ok(reply)
         })
@@ -1002,7 +1073,9 @@ impl Parser {
         }
         // Analysing saved multi-source documents takes longer than intent parsing.
         // Keep both retries bounded and below the app's 80-second request limit.
-        let (attempt_seconds, total_seconds) = if surface == "clarification" {
+        let (attempt_seconds, total_seconds) = if surface == "capability-intake" || surface == "capability-search" {
+            (6, 12)
+        } else if surface == "clarification" {
             (6, 12)
         } else if surface == "analysis" || surface == "invoice" {
             (30, 65)
@@ -1068,6 +1141,12 @@ impl Parser {
                                             return Err(ModelFailure::Unsupported.into());
                                         }
                                         Err(error) => {
+                                            if surface == "capability-intake" || surface == "capability-search" {
+                                                if let Some(messages) = attempt_payload["messages"].as_array_mut() {
+                                                    messages.push(json!({"role":"assistant","content":raw}));
+                                                    messages.push(json!({"role":"user","content":format!("The JSON failed validation: {}. Return one complete corrected object following the original schema. Do not invent identifiers, capabilities or operations.",error)}));
+                                                }
+                                            }
                                             if surface == "intent" || surface == "chat" {
                                                 let reason = intent_validation_reason(&error);
                                                 tracing::warn!(surface, attempt, reason, "intent validation failed");

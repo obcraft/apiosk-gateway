@@ -329,6 +329,13 @@ impl Engine {
                 f.value.clone(),
             )?;
         }
+        // All Ask submissions, including follow-ups and workflow input, cross
+        // this boundary before source selection or planning. Direct API calls
+        // already name an exact operation and keep their separate contract.
+        task.capability_intake = if app_chat && !direct {
+            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
+            Some(self.parser.prepare_ask(&req.question, model_selection.as_ref(), &task, &catalog).await?)
+        } else { None };
         let selected_workflow = req.context_delta.workflow_slug.as_deref();
         anyhow::ensure!(selected_workflow.is_none() || (app_chat && req.state.is_none()), "Start a workflow in a new App chat.");
         let conversational_workflow = forced.is_none() && app_chat && (selected_workflow.is_some() || pending_workflow.is_some());
@@ -397,7 +404,12 @@ impl Engine {
         let interpreted = forced.is_none();
         if interpreted {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
-            let mut reply = match (self.parser.chat_selected(&req.question, model_selection.as_ref(), &task, &catalog).await, &invoice_fallback) {
+            let reply = if let Some(intake) = &task.capability_intake {
+                self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, intake).await
+            } else {
+                self.parser.chat_selected(&req.question, model_selection.as_ref(), &task, &catalog).await
+            };
+            let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
                 (Err(error), None) => return Err(error),
