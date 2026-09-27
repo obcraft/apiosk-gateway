@@ -197,7 +197,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         .any(|word| has(word));
     let control = has("psc")
         || has("ubo")
-        || (has("significant") && has("control"))
+        || (has("significant") && (has("control") || has("controller")))
         || ((has("beneficial") || has("ultimate")) && (has("owner") || has("ownership")));
     let sanctions = has("sanction") || has("sanctie");
     let facets = u8::from(financial) * FINANCIAL
@@ -325,6 +325,34 @@ fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet
             .map(|service| service.api_slug.clone()),
     );
     (!sources.is_empty()).then_some(sources)
+}
+
+/// Apply the parsed, explicit source preference to public Bazaar metadata.
+/// This runs after discovery and preserves its ranking, bound and status; it
+/// never fetches another page or relaxes the preference when nothing matches.
+pub fn filter_coinbase(parsed: &ParsedRequest, matches: &mut [Match]) {
+    for found in matches {
+        let Some(hint) = parsed
+            .capabilities
+            .iter()
+            .find(|capability| capability.slug == found.slug)
+            .and_then(|capability| capability.source_hint.as_deref())
+            .map(identity)
+            .filter(|hint| !hint.is_empty())
+        else {
+            continue;
+        };
+        found.coinbase.retain(|candidate| {
+            [
+                candidate.name.as_str(),
+                candidate.description.as_str(),
+                candidate.source_slug.as_deref().unwrap_or(""),
+                candidate.url.as_deref().unwrap_or(""),
+            ]
+            .into_iter()
+            .any(|field| identity_matches(&hint, field))
+        });
+    }
 }
 
 fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
@@ -560,6 +588,79 @@ mod tests {
             "Find information for Monzo Bank Limited from Companies House and preferred", "fixture").unwrap()
     }
 
+    fn bazaar(description: &str) -> Candidate {
+        Candidate {
+            origin: "coinbase".into(),
+            name: "Directory endpoint".into(),
+            description: description.into(),
+            source_slug: None,
+            capability: None,
+            endpoint_id: None,
+            url: Some("https://example.test/public".into()),
+            method: "GET".into(),
+            price: None,
+            network: None,
+            calls_30d: None,
+            availability: "discovery_only".into(),
+        }
+    }
+
+    #[test]
+    fn coinbase_named_source_filters_unrelated_country_registries() {
+        let mut request = parsed(vec![json!({"slug":"company.officers","name":"Officers"})]);
+        request.capabilities[0].source_hint = Some("companies_house".into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase_status = "ready".into();
+        matches[0].coinbase = vec![
+            bazaar("Sirenic GB company officers from Companies House"),
+            bazaar("Company directors from the Cyprus registry"),
+            bazaar("eu-verify UK persons with significant control (CompaniesHouse)"),
+            bazaar("Latvia company officers"),
+            bazaar("Japan company directors"),
+        ];
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 2);
+        assert!(matches[0].coinbase[0].description.starts_with("Sirenic GB"));
+        assert!(matches[0].coinbase[1]
+            .description
+            .starts_with("eu-verify UK"));
+        assert_eq!(matches[0].coinbase_status, "ready");
+    }
+
+    #[test]
+    fn coinbase_source_identity_can_be_in_name_slug_or_url() {
+        let mut request = parsed(vec![json!({"slug":"company.officers","name":"Officers"})]);
+        request.capabilities[0].source_hint = Some("Companies House".into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        let mut name = bazaar("Officers");
+        name.name = "Companies-House officers".into();
+        let mut slug = bazaar("Officers");
+        slug.source_slug = Some("companies_house".into());
+        let mut url = bazaar("Officers");
+        url.url = Some("https://api.example.test/companies-house/officers".into());
+        matches[0].coinbase = vec![name, slug, url];
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 3);
+    }
+
+    #[test]
+    fn coinbase_hint_applies_per_capability_and_does_not_widen_empty_results() {
+        let mut request = parsed(vec![
+            json!({"slug":"company.officers","name":"Officers"}),
+            json!({"slug":"company.financial.statements","name":"Financial statements"}),
+        ]);
+        request.capabilities[0].source_hint = Some("companies_house".into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![bazaar("Latvia officers")];
+        matches[1].coinbase = vec![bazaar("Latvia annual accounts")];
+        matches[0].apiosk = vec![bazaar("unmodified local candidate")];
+        filter_coinbase(&request, &mut matches);
+        assert!(matches[0].coinbase.is_empty());
+        assert_eq!(matches[1].coinbase.len(), 1);
+        assert_eq!(matches[0].apiosk.len(), 1);
+        assert!(matches[0].operations.is_empty());
+    }
+
     #[test]
     fn monzo_officers_and_significant_control_keep_separate_endpoint_matches() {
         let catalog = catalog(
@@ -663,6 +764,77 @@ mod tests {
             top,
             BTreeSet::from(["company.officers", "company.significant-control"])
         );
+    }
+
+    #[test]
+    fn significant_controllers_live_parse_keeps_both_company_level_endpoints() {
+        let catalog = catalog(
+            vec![
+                service(
+                    1,
+                    "company.officers",
+                    "Companies House",
+                    "Retrieve officers for one company",
+                    "companies-house",
+                ),
+                service(
+                    2,
+                    "company.significant-control",
+                    "Companies House",
+                    "Retrieve persons with significant control for one company",
+                    "companies-house",
+                ),
+                service(
+                    3,
+                    "operation.companies-house.get-search-officers",
+                    "Companies House",
+                    "Search officer names, appointments and resignation status",
+                    "companies-house",
+                ),
+                service(
+                    4,
+                    "operation.companies-house.get-officer-appointments",
+                    "Companies House",
+                    "Retrieve appointments for one officer",
+                    "companies-house",
+                ),
+                service(
+                    5,
+                    "company.officers",
+                    "Other registry",
+                    "Retrieve company officers",
+                    "other",
+                ),
+            ],
+            vec![],
+        );
+        let mut request = parsed(vec![json!({
+            "slug":"company.officers.controllers",
+            "name":"Company officers and significant controllers",
+            "description":"Retrieves information about company officers and significant controllers from a company registry"
+        })]);
+        request.capabilities[0].outputs = vec![
+            "officers".into(),
+            "significant_controllers".into(),
+            "appointment_status".into(),
+            "resignation_status".into(),
+        ];
+        request.capabilities[0].source_hint = Some("companies_house".into());
+        let found = search(&request, &catalog);
+        let top: BTreeSet<_> = found[0]
+            .apiosk
+            .iter()
+            .take(2)
+            .filter_map(|candidate| candidate.capability.as_deref())
+            .collect();
+        assert_eq!(
+            top,
+            BTreeSet::from(["company.officers", "company.significant-control"])
+        );
+        assert!(found[0]
+            .apiosk
+            .iter()
+            .all(|candidate| candidate.source_slug.as_deref() == Some("companies-house")));
     }
 
     #[test]
@@ -920,6 +1092,19 @@ mod tests {
         let catalog =
             Catalog::build(serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap());
         for (name, slug, title, outputs, hint, expected) in [
+            (
+                "Monzo officers and significant controllers live parse",
+                "company.officers.controllers",
+                "Company officers and significant controllers",
+                vec![
+                    "officers",
+                    "significant_controllers",
+                    "appointment_status",
+                    "resignation_status",
+                ],
+                Some("companies_house"),
+                vec!["company.officers", "company.significant-control"],
+            ),
             (
                 "Monzo officers and PSC",
                 "company.profile.officers",

@@ -24,12 +24,16 @@ It ports the current WebGPU project's parser, normalization and validation into
    after Apiosk in the UI. Only successful discovery metadata is cached, with a
    bounded five-minute cache. Failure does not discard the parsed object or the
    other origin's results. Retrying a source search does not rerun the model.
+   An explicitly named source also filters Bazaar candidates by their metadata.
 
 The fixed prompt in `contracts/ask-v2-webgpu-prompt.txt` is the prototype's
 `parsePrompt([])` output. Known slugs and the original correction directive are
 the only additions. For the 4B model, `ask-v2-webgpu-schema.json` enforces that
 same output shape through OpenRouter structured output. This transport difference
 prevents malformed array/object types from causing an unnecessary second request.
+The schema is sent verbatim, retaining the prototype's field order. Serializing
+it through an alphabetically sorted map changed the 4B model's behavior and
+roughly doubled generation time in the same-question comparison.
 The generation remains streaming, temperature zero, and capped at 1,024 tokens.
 It has a twelve-second total server deadline and bounded response size.
 

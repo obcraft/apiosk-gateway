@@ -239,6 +239,7 @@ pub(super) async fn search(
                 capability_intake::BAZAAR_SEARCH,
             )
             .await;
+            crate::ask_v2::search::filter_coinbase(&request.parsed_request, &mut matches);
             (
                 serde_json::to_value(matches).unwrap_or_else(|_| json!([])),
                 0,

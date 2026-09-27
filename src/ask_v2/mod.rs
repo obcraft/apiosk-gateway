@@ -193,24 +193,27 @@ impl Client {
         if let Some(correction) = correction {
             prompt.push_str(&format!("\nPrevious output failed validation: {correction}\nParse the user's request again. Return only one complete JSON object with every required field."));
         }
-        let schema: Value =
-            serde_json::from_str(SCHEMA).map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
-        let body = json!({
+        let mut body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
-            "stream": true, "temperature": 0, "max_tokens": 1024,
-            // Same WebGPU shape, enforced at generation for the total-4B model.
-            "response_format": {"type":"json_schema","json_schema":{
-                "name":"capability_request","strict":true,"schema":schema
-            }}
-        });
+            "stream": true, "temperature": 0, "max_tokens": 1024
+        })
+        .to_string();
+        // Serialize all dynamic fields normally, but embed the trusted schema
+        // verbatim: Value's sorted maps reorder its properties and can change
+        // the model's generation order relative to WebGPU's requested shape.
+        body.pop();
+        body.push_str(",\"response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"capability_request\",\"strict\":true,\"schema\":");
+        body.push_str(SCHEMA);
+        body.push_str("}}}");
         let mut response = self
             .http
             .post(&self.endpoint)
             .bearer_auth(&self.key)
             .header("X-Title", "Apiosk Ask v2")
             .timeout(self.deadline)
-            .json(&body)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body.clone())
             .send()
             .await
             .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
@@ -228,7 +231,8 @@ impl Client {
                 .bearer_auth(&self.key)
                 .header("X-Title", "Apiosk Ask v2")
                 .timeout(self.deadline)
-                .json(&body)
+                .header(reqwest::header::CONTENT_TYPE, "application/json")
+                .body(body.clone())
                 .send()
                 .await
                 .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
@@ -347,7 +351,7 @@ mod tests {
         http::{HeaderMap, StatusCode},
         response::Response,
         routing::post,
-        Json, Router,
+        Router,
     };
     use futures_util::StreamExt;
     use std::convert::Infallible;
@@ -507,13 +511,24 @@ mod tests {
     async fn sends_only_exact_prompt_question_and_shape_with_no_planner_fields() {
         let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
         let handler_capture = captured.clone();
+        let raw_requests = Arc::new(Mutex::new(Vec::<String>::new()));
+        let handler_raw = raw_requests.clone();
         let app = Router::new().route(
             "/",
-            post(move |headers: HeaderMap, Json(body): Json<Value>| {
+            post(move |headers: HeaderMap, body: Bytes| {
                 let captured = handler_capture.clone();
+                let raw_requests = handler_raw.clone();
                 async move {
                     assert_eq!(headers.get("authorization").unwrap(), "Bearer fixture-key");
-                    captured.lock().unwrap().push(body);
+                    assert_eq!(headers.get("content-type").unwrap(), "application/json");
+                    captured
+                        .lock()
+                        .unwrap()
+                        .push(serde_json::from_slice(&body).unwrap());
+                    raw_requests
+                        .lock()
+                        .unwrap()
+                        .push(String::from_utf8(body.to_vec()).unwrap());
                     Response::builder()
                         .header("content-type", "text/event-stream")
                         .body(Body::from(format!(
@@ -529,7 +544,7 @@ mod tests {
         let first = client.parse("Hoi!", &[], None).await.unwrap();
         client
             .parse(
-                "Geef KVK details",
+                "Geef \"KVK\" details\né",
                 &["company.profile".into()],
                 Some("subjects must be an array."),
             )
@@ -552,6 +567,17 @@ mod tests {
         );
         assert_eq!(captured[1]["messages"][0]["content"], format!("{}Known slugs: company.profile\nPrevious output failed validation: subjects must be an array.\nParse the user's request again. Return only one complete JSON object with every required field.", PROMPT.strip_suffix("Known slugs: none").unwrap()));
         assert_eq!(captured[1]["messages"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            captured[1]["messages"][1]["content"],
+            "Geef \"KVK\" details\né"
+        );
+        for request in raw_requests.lock().unwrap().iter() {
+            let schema = request.split_once("\"schema\":").unwrap().1;
+            assert!(schema.starts_with(SCHEMA));
+            let positions = ["language", "subjects", "capabilities", "deliverable"]
+                .map(|field| schema.find(&format!("\"{field}\":")).unwrap());
+            assert!(positions.windows(2).all(|pair| pair[0] < pair[1]));
+        }
         assert_eq!(first.text, "{\"language\":\"nl\"}");
         assert_eq!(first.model, DEFAULT_MODEL);
         assert!(serde_json::to_value(first).unwrap()["timing"]["parse_ms"].is_u64());
