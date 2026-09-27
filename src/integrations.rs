@@ -237,6 +237,43 @@ pub fn action_from_tool(toolkit: &'static str, tool: &Value) -> Option<AppAction
     })
 }
 
+/// One of an app's Composio tools, as the Integrations page lists it. Every
+/// tool is listed; `in_ask` marks the ones Ask can plan and run.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ToolkitAction {
+    pub tool: String,
+    pub name: String,
+    pub description: String,
+    /// The Ask capability slug (`app.slack.sendMessage`) when `in_ask`.
+    pub slug: Option<String>,
+    /// False for reads, deletes and anything else Ask leaves out.
+    pub in_ask: bool,
+}
+
+/// Every non-deprecated tool of `toolkit`, the ones Ask offers first in their
+/// own order, the rest by name.
+pub fn toolkit_catalog(toolkit: &'static str, tools: &[Value], offered: &[AppAction]) -> Vec<ToolkitAction> {
+    let mut seen = std::collections::HashSet::new();
+    let mut listed: Vec<ToolkitAction> = tools
+        .iter()
+        .filter(|tool| tool["is_deprecated"].as_bool() != Some(true) && tool["toolkit"]["slug"].as_str().is_none_or(|slug| slug == toolkit))
+        .filter_map(|tool| {
+            let slug = tool["slug"].as_str().filter(|slug| !slug.is_empty() && seen.insert(slug.to_owned()))?;
+            let asked = offered.iter().find(|action| action.tool == slug);
+            Some(ToolkitAction {
+                tool: slug.to_owned(),
+                name: clipped(tool["name"].as_str().filter(|n| !n.trim().is_empty()).unwrap_or(slug), 80),
+                description: clipped(tool["human_description"].as_str().or(tool["description"].as_str()).unwrap_or_default(), 280),
+                slug: asked.map(|action| action.slug.clone()),
+                in_ask: asked.is_some(),
+            })
+        })
+        .collect();
+    let rank = |item: &ToolkitAction| offered.iter().position(|action| action.tool == item.tool).unwrap_or(usize::MAX);
+    listed.sort_by(|a, b| rank(a).cmp(&rank(b)).then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+    listed
+}
+
 pub struct Composio {
     http: reqwest::Client,
     base: String,
@@ -248,6 +285,8 @@ pub struct Composio {
     auth_configs: Mutex<HashMap<&'static str, String>>,
     /// Each toolkit's actions, shared by every caller for an hour.
     actions: Mutex<HashMap<&'static str, (std::time::Instant, Vec<AppAction>)>>,
+    /// Each toolkit's full tool list, for the Integrations page, also an hour.
+    catalogs: Mutex<HashMap<&'static str, (std::time::Instant, Vec<ToolkitAction>)>>,
 }
 
 impl Composio {
@@ -260,6 +299,7 @@ impl Composio {
             pinned,
             auth_configs: Mutex::new(HashMap::new()),
             actions: Mutex::new(HashMap::new()),
+            catalogs: Mutex::new(HashMap::new()),
         }
     }
 
@@ -378,6 +418,32 @@ impl Composio {
         }
         self.actions.lock().await.insert(toolkit, (std::time::Instant::now(), found.clone()));
         Ok(found)
+    }
+
+    /// Everything an app can do through Composio, marked with what Ask uses.
+    /// Tool metadata only: nothing here reads or depends on a person's account.
+    pub async fn catalog(&self, toolkit: &'static str) -> Result<Vec<ToolkitAction>, ComposioError> {
+        if let Some((at, cached)) = self.catalogs.lock().await.get(toolkit) {
+            if at.elapsed() < ACTION_CACHE {
+                return Ok(cached.clone());
+            }
+        }
+        let offered = self.toolkit_actions(toolkit).await?;
+        let mut tools: Vec<Value> = Vec::new();
+        let mut cursor: Option<String> = None;
+        // A few pages at most: the largest toolkits have a few hundred tools.
+        for _ in 0..5 {
+            let after = cursor.as_deref().map(|c| format!("&cursor={}", url::form_urlencoded::byte_serialize(c.as_bytes()).collect::<String>())).unwrap_or_default();
+            let page = self.call(reqwest::Method::GET, &format!("/tools?toolkit_slug={toolkit}&limit=1000{after}"), None).await?;
+            tools.extend(page["items"].as_array().cloned().unwrap_or_default());
+            cursor = page["next_cursor"].as_str().filter(|c| !c.is_empty()).map(str::to_owned);
+            if cursor.is_none() {
+                break;
+            }
+        }
+        let listed = toolkit_catalog(toolkit, &tools, &offered);
+        self.catalogs.lock().await.insert(toolkit, (std::time::Instant::now(), listed.clone()));
+        Ok(listed)
     }
 
     /// Every action of every app this person has connected. A toolkit whose
@@ -635,6 +701,23 @@ mod tests {
         }
         assert!(!is_write_action("slack", "SLACK_SEND_MESSAGE", &json!(["important", "destructiveHint"])));
         assert!(!is_write_action("hubspot", "HUBSPOT_CREATE_REPORT", &json!(["readOnlyHint"])));
+    }
+
+    #[test]
+    fn the_catalog_lists_every_tool_and_marks_what_ask_uses() {
+        let tools = vec![
+            json!({"slug":"SLACK_FIND_USERS","name":"Find users","toolkit":{"slug":"slack"},"description":"Finds users."}),
+            json!({"slug":"SLACK_SEND_MESSAGE","name":"Send message","toolkit":{"slug":"slack"},"human_description":"Posts a message."}),
+            json!({"slug":"SLACK_OLD","name":"Old","toolkit":{"slug":"slack"},"is_deprecated":true}),
+            json!({"slug":"SLACK_ARCHIVE_CHANNEL","name":"archive channel","toolkit":{"slug":"slack"}}),
+            json!({"slug":"SLACK_SEND_MESSAGE","name":"Send message","toolkit":{"slug":"slack"}}),
+        ];
+        let offered = vec![action_from_tool("slack", &tools[1]).unwrap()];
+        let listed = toolkit_catalog("slack", &tools, &offered);
+        assert_eq!(listed.iter().map(|a| a.tool.as_str()).collect::<Vec<_>>(), ["SLACK_SEND_MESSAGE", "SLACK_ARCHIVE_CHANNEL", "SLACK_FIND_USERS"]);
+        assert!(listed[0].in_ask && listed[0].slug.as_deref() == Some("app.slack.sendMessage"));
+        assert_eq!(listed[0].description, "Posts a message.");
+        assert!(listed[1..].iter().all(|a| !a.in_ask && a.slug.is_none()));
     }
 
     #[test]

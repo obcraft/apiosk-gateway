@@ -122,6 +122,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/integrations", get(integrations::list))
         .route("/v2/integrations/:toolkit/connect", post(integrations::connect))
         .route("/v2/integrations/:toolkit/disconnect", post(integrations::disconnect))
+        .route("/v2/integrations/:toolkit/actions", get(integrations::toolkit_actions))
         .route("/v2/integrations/actions", get(integrations::actions))
         .route("/v2/integrations/actions/:slug/prepare", post(integrations::prepare).layer(DefaultBodyLimit::max(96 * 1024)))
         .route("/v2/integrations/actions/:slug/execute", post(integrations::execute).layer(DefaultBodyLimit::max(96 * 1024)))

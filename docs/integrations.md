@@ -46,6 +46,7 @@ app, cached an hour), in the planner's capability shape:
 
 ```http
 GET  /v2/integrations/actions                     # any person credential
+GET  /v2/integrations/{toolkit}/actions           # every tool of one app, `in_ask` marks Ask's
 POST /v2/integrations/actions/{slug}/prepare      # App session: { question, results }
 POST /v2/integrations/actions/{slug}/execute      # App session: { arguments }
 ```

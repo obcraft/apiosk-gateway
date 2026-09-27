@@ -157,3 +157,16 @@ pub(super) async fn prepare(State(state): State<ServerState>, headers: HeaderMap
         }
     }
 }
+
+/// Everything a connected app can do, for the Integrations page. Every tool is
+/// listed; `in_ask` marks the ones Ask plans and runs.
+pub(super) async fn toolkit_actions(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>) -> Response {
+    let (_, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
+        (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
+        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+    };
+    match composio.catalog(toolkit).await {
+        Ok(actions) => Json(json!({ "toolkit": toolkit, "actions": actions })).into_response(),
+        Err(error) => provider_failed("catalog", error),
+    }
+}
