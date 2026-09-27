@@ -49,6 +49,10 @@ pub struct Capability {
     pub subject_id: Option<String>,
     pub source_hint: Option<String>,
     pub confidence: f64,
+    /// Computed from the parse, never trusted from model output. A dependency
+    /// may supply these concepts before execution; they are not all questions.
+    #[serde(default)]
+    pub missing: Vec<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Deliverable {
@@ -264,6 +268,10 @@ pub fn conversation_language(request: &str) -> Option<&'static str> {
     }
 }
 pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<ParsedRequest> {
+    normalize_with_context(raw, request, request, model)
+}
+
+pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, model: &str) -> anyhow::Result<ParsedRequest> {
     let raw = if let Some(language) = conversation_language(request) {
         json!({"language":language,"subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Reply to a greeting, thanks, or small talk.","domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}})
     } else {
@@ -285,7 +293,7 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
         let label = text(&subject["label"]);
         let kind = snake(&text(&subject["type"]));
         ensure!(
-            !label.is_empty() && label.len() <= 500 && literal(request, &label) && !kind.is_empty(),
+            !label.is_empty() && label.len() <= 500 && literal(literals, &label) && !kind.is_empty(),
             "subject must be literal and have a type"
         );
         let identifiers = subject["identifiers"]
@@ -298,7 +306,7 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
                     .as_str()
                     .map(str::to_owned)
                     .or_else(|| value.as_number().map(ToString::to_string))?;
-                (literal(request, &value) && !snake(key).is_empty()).then(|| (snake(key), value))
+                (literal(literals, &value) && !snake(key).is_empty()).then(|| (snake(key), value))
             })
             .collect();
         let id = format!("s{}", normalized_subjects.len() + 1);
@@ -347,7 +355,7 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
             confidence
         };
         let source = text(&cap["source_hint"]).to_lowercase();
-        let capability = Capability {
+        let mut capability = Capability {
             slug,
             name,
             description,
@@ -355,9 +363,11 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
             inputs: names(&cap["inputs"])?,
             outputs: names(&cap["outputs"])?,
             subject_id: ids.get(&text(&cap["subject_id"])).cloned(),
-            source_hint: literal(request, &source).then_some(source),
+            source_hint: literal(literals, &source).then_some(source),
             confidence: confidence.clamp(0.0, 1.0),
+            missing: Vec::new(),
         };
+        capability.missing = missing_inputs(&capability, &normalized_subjects);
         if !normalized.iter().any(|c: &Capability| {
             c.slug == capability.slug && c.subject_id == capability.subject_id
         }) {
@@ -374,7 +384,7 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
         _ => "chat",
     }
     .to_owned();
-    let operations = deliverable["operations"]
+    let operations: Vec<String> = deliverable["operations"]
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("operations must be an array"))?
         .iter()
@@ -384,6 +394,16 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
+    // A clarified comparison is an operation on the requested source data.
+    // Some models retain the previous turn's generic analysis capability as
+    // well. Preserve the action in deliverable.operations, without demanding
+    // a separate paid source for that same analysis. Standalone ambiguity and
+    // all other (including unsupported) retrieval capabilities remain intact.
+    if operations.iter().any(|op| matches!(op.as_str(), "analyze" | "compare"))
+        && normalized.iter().any(|cap| cap.domain != "general")
+    {
+        normalized.retain(|cap| cap.slug != "general.analysis");
+    }
     Ok(ParsedRequest {
         language,
         subjects: normalized_subjects,
@@ -395,6 +415,21 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
             text_sha256: hex::encode(Sha256::digest(request.as_bytes())),
         },
     })
+}
+
+/// Port of WebGPU/src/parse/schema.ts::missingInputs. This describes what the
+/// user supplied, not whether an execution dependency can obtain that input.
+fn missing_inputs(capability: &Capability, subjects: &[Subject]) -> Vec<String> {
+    capability.inputs.iter().filter(|input| {
+        let identifier = ["_number", "_id", "_code"].iter().any(|suffix| input.ends_with(suffix))
+            || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn"].contains(&input.as_str());
+        if identifier {
+            !subjects.iter().filter(|subject| capability.subject_id.as_ref().is_none_or(|id| id == &subject.id))
+                .any(|subject| subject.identifiers.get(*input).is_some_and(|value| !value.is_empty()))
+        } else {
+            subjects.is_empty()
+        }
+    }).cloned().collect()
 }
 
 /// Same generic query fields as WebGPU. The external query is also scrubbed

@@ -50,7 +50,9 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     if input["known_slugs"].is_array() {
         model.stages.lock().unwrap().push("parse");
         let question=input["question"].as_str().unwrap();
-        let label=question.strip_prefix("Jaarrekening van ").map(|s| s.rsplit(' ').next().unwrap());
+        let continued = question == "De jaarrekening" && input["previous_context"].to_string().contains("Coolblue");
+        let label=question.strip_prefix("Jaarrekening van ").or_else(|| question.strip_prefix("Controleer "))
+            .map(|s| s.rsplit(' ').next().unwrap()).or(continued.then_some("Coolblue"));
         let content=json!({"language":"nl","subjects":label.map(|label| vec![json!({"id":"s1","label":label,"type":"company","identifiers":{}})]).unwrap_or_default(),
             "capabilities":[{"slug":if label.is_some(){"company.financial.statements"}else{"general.conversation"},"name":"Company financial statements","description":"Retrieve financial statements for a company.","domain":"company","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":0.9}],
             "deliverable":{"format":"chat","operations":[]}});
@@ -64,14 +66,15 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     model.stages.lock().unwrap().push("plan");
     model.chats.lock().unwrap().push(input.clone());
     let question = input["question"].as_str().unwrap();
-    let content = match question.strip_prefix("Jaarrekening van ") {
+    let continued = question == "De jaarrekening" && input["context"].to_string().contains("Coolblue");
+    let content = match question.strip_prefix("Jaarrekening van ").or(continued.then_some("Coolblue")) {
         Some(label) => {
             let label = label.rsplit(' ').next().unwrap();
             json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{
-                "subjects":[{"entity_ref":null,"label":label,"values":{"company.name":label}}],
+                "subjects":[if input.get("bindings").is_some() {json!({"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}})} else {json!({"entity_ref":null,"label":label,"values":{"company.name":label}})}],
                 "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
         }
-        None => json!({"message":"Waar kan ik je mee helpen?","discover":false,"intent":null}),
+        None => json!({"message":if question.starts_with("Controleer ") {"Welke gegevens wil je controleren?"} else {"Waar kan ik je mee helpen?"},"discover":false,"intent":null}),
     };
     Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
@@ -371,4 +374,25 @@ async fn capability_object_precedes_discovery_and_survives_recovery_without_purc
     assert_eq!(recovered["context_view"]["capability_intake"],*object);
     let calls:i64=sqlx::query_scalar("SELECT count(*) FROM executions WHERE task_id=$1").bind(id.parse::<Uuid>().unwrap()).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(calls,0,"discovery and recovery must never buy source data");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn clarification_continues_the_saved_question_without_losing_its_subject() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let initial = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Controleer Coolblue","state":null})).await;
+    assert_eq!(initial["status"], "needs_input", "{initial}");
+    assert!(initial["errors"].as_array().unwrap().is_empty());
+    assert_eq!(initial["context_view"]["capability_intake"]["parsed_request"]["subjects"][0]["label"], "Coolblue");
+    let followup = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"De jaarrekening","state":initial["state"]})).await;
+    assert_eq!(followup["status"], "ready", "{followup}");
+    assert_eq!(followup["state"]["state_ref"], initial["state"]["state_ref"]);
+    let object = &followup["context_view"]["capability_intake"]["parsed_request"];
+    assert_eq!(object["subjects"][0]["label"], "Coolblue");
+    assert_eq!(object["meta"]["text_sha256"], { use sha2::Digest; hex::encode(sha2::Sha256::digest("De jaarrekening")) });
+    let id: Uuid = followup["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let calls: i64 = sqlx::query_scalar("SELECT count(*) FROM executions WHERE task_id=$1")
+        .bind(id).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(calls, 0, "clarification and quoting do not execute a source");
 }

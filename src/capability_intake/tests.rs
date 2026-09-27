@@ -45,6 +45,49 @@ fn webgpu_shape_normalizes_literals_slug_aliases_and_adds_app_metadata() {
     );
     assert_eq!(p.meta.model, "fixture-model");
     assert!(chrono::DateTime::parse_from_rfc3339(&p.meta.parsed_at).is_ok());
+    assert!(p.capabilities[0].missing.is_empty());
+}
+
+#[test]
+fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
+    let mut input = raw();
+    input["subjects"][0]["identifiers"] = json!({});
+    input["capabilities"][0]["inputs"] = json!(["company_name", "kvk_number", "postcode"]);
+    input["capabilities"][0]["missing"] = json!(["model_supplied_garbage"]);
+    let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
+    assert_eq!(parsed.capabilities[0].missing, ["kvk_number", "postcode"]);
+    input["subjects"] = json!([]);
+    let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
+    assert_eq!(parsed.capabilities[0].missing, ["company_name", "kvk_number", "postcode"]);
+    input["subjects"] = json!([
+        {"id":"original","label":"Coolblue","type":"company","identifiers":{}},
+        {"id":"second","label":"KVK","type":"company","identifiers":{"kvk_number":"12345678"}}
+    ]);
+    assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["kvk_number", "postcode"], "another subject's identifier cannot satisfy this one");
+    input["capabilities"][0]["subject_id"] = Value::Null;
+    assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["postcode"]);
+}
+
+#[test]
+fn clarification_uses_user_literals_but_hashes_the_current_message() {
+    let parsed = normalize_with_context(&raw().to_string(), "De jaarrekening", QUESTION, "fixture").unwrap();
+    assert_eq!(parsed.subjects[0].label, "Coolblue");
+    assert_eq!(parsed.meta.text_sha256, hex::encode(Sha256::digest("De jaarrekening")));
+    assert!(normalize(&raw().to_string(), "De jaarrekening", "fixture").is_err());
+}
+
+#[test]
+fn clarified_analysis_is_a_deliverable_operation_not_an_extra_source() {
+    let mut input = raw();
+    let analysis = json!({"slug":"general.analysis","name":"Comparative analysis","description":"Compare entities; the aspects to compare are unspecified.","domain":"general","inputs":[],"outputs":["comparison"],"subject_id":null,"source_hint":null,"confidence":0.75});
+    input["capabilities"].as_array_mut().unwrap().push(analysis.clone());
+    input["deliverable"]["operations"] = json!(["analyze", "compare"]);
+    let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
+    assert_eq!(parsed.capabilities.len(), 1);
+    assert_eq!(parsed.deliverable.operations, ["analyze", "compare"]);
+    assert_eq!(parsed.deliverable.format, "xlsx");
+    input["capabilities"] = json!([analysis]);
+    assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].slug, "general.analysis", "standalone ambiguity still requires clarification");
 }
 #[test]
 fn malformed_output_is_not_a_successful_empty_parse() {
@@ -224,7 +267,7 @@ fn matched() -> Value {
     json!({"matches":[{"slug":"company.financial.statements","candidate_ids":["c1"]}]})
 }
 fn planned() -> Value {
-    json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{"subjects":[{"entity_ref":null,"label":"Coolblue","values":{"company.name":"Coolblue"}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
+    json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{"subjects":[{"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
 }
 
 #[tokio::test]
@@ -247,6 +290,9 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
         .await
         .unwrap();
     assert!(reply.discover);
+    let intent = reply.intent.unwrap();
+    assert_eq!(intent.subjects[0].label, intake.parsed_request.subjects[0].label);
+    assert_eq!(intent.subjects[0].values["company.name"], intake.parsed_request.subjects[0].label);
     assert_eq!(
         *mock.events.lock().unwrap(),
         vec!["parse", "search", "bazaar", "plan"]
@@ -259,6 +305,51 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
         .as_array()
         .unwrap()
         .contains(&json!("company.search"))); // dependency retained
+    server.abort();
+}
+
+#[tokio::test]
+async fn clarification_answer_keeps_prior_user_subject_and_deliverable() {
+    let (parser, _, bazaar, server) = fixture(vec![raw(), matched(),
+        json!({"message":"Welke gegevens wil je controleren?","discover":false,"intent":null}),
+        raw(), matched(), planned()], false).await;
+    let c = catalog();
+    let mut task = Task::default();
+    let intake = parser.prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar).await.unwrap();
+    let clarification = parser.chat_from_capabilities(QUESTION, None, &task, &c, &intake).await.unwrap();
+    assert!(!clarification.discover);
+    assert!(clarification.intent.is_none());
+    task.record_turn(QUESTION, Some(clarification.message));
+    let followup = "De jaarrekening";
+    let intake = parser.prepare_ask_with_bazaar(followup, None, &task, &c, &bazaar).await.unwrap();
+    assert_eq!(intake.parsed_request.deliverable.format, "xlsx");
+    let reply = parser.chat_from_capabilities(followup, None, &task, &c, &intake).await.unwrap();
+    assert!(reply.discover);
+    let mut intent = reply.intent.unwrap();
+    assert_eq!(intent.subjects[0].label, "Coolblue");
+    crate::engine::bind_subjects(&mut task, &c, &mut intent).unwrap();
+    assert!(matches!(crate::resolver::resolve(&c, &task, &intent), crate::resolver::Resolution::Plan(_)));
+    server.abort();
+}
+
+#[tokio::test]
+async fn two_companies_cannot_be_reduced_to_one_retrieval() {
+    let question = format!("{QUESTION} en Example");
+    let mut parsed = raw();
+    parsed["subjects"].as_array_mut().unwrap().push(json!({"id":"second","label":"Example","type":"company","identifiers":{}}));
+    let mut second = parsed["capabilities"][0].clone();
+    second["subject_id"] = json!("second");
+    parsed["capabilities"].as_array_mut().unwrap().push(second);
+    let mut complete = planned();
+    complete["intent"]["subjects"].as_array_mut().unwrap().push(json!({"subject_ref":"s2","values":{"company.name":{"ref":"s2.label"}}}));
+    complete["intent"]["goals"].as_array_mut().unwrap().push(json!({"capability":"company.accounts","subject":1,"constraints":{}}));
+    let (parser, mock, bazaar, server) = fixture(vec![parsed, matched(), planned(), complete], false).await;
+    let c = catalog();
+    let task = Task::default();
+    let intake = parser.prepare_ask_with_bazaar(&question, None, &task, &c, &bazaar).await.unwrap();
+    let reply = parser.chat_from_capabilities(&question, None, &task, &c, &intake).await.unwrap();
+    assert_eq!(reply.intent.unwrap().goals.len(), 2);
+    assert_eq!(*mock.events.lock().unwrap(), vec!["parse", "search", "bazaar", "plan", "plan"]);
     server.abort();
 }
 #[tokio::test]

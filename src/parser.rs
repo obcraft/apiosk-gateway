@@ -16,6 +16,9 @@ use std::{
 };
 use uuid::Uuid;
 
+mod capability_binding;
+use capability_binding::Bindings;
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -265,6 +268,8 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "parser invented a value" => "non_literal_input",
         "subject label must be explicit in question" => "non_literal_subject",
         "unknown entity reference" => "unknown_entity",
+        "unknown parsed subject reference" => "unknown_subject_binding",
+        "unknown parsed value reference" => "unknown_value_binding",
         "unknown input type" => "unknown_input_type",
         "explicit values must be scalar literals" => "non_scalar_input",
         "invalid subject index" => "invalid_subject_index",
@@ -273,6 +278,7 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "unmatched capabilities need clarification before a quote" => "unmatched_capabilities",
         "intent must use discovered operations" => "undiscovered_operation",
         "every matched capability needs a retrieval goal" => "missing_capability_goal",
+        "every parsed subject needs its requested retrieval" => "missing_subject_goal",
         "unexpected intent for conversational reply" => "conversation_requires_null_intent",
         _ => "invalid_intent_schema",
     }
@@ -280,7 +286,7 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
     let shape = if surface == "chat" {
-        "Return the chat envelope with message, discover and intent. If discover=false, intent MUST be null. If discover=true, place the corrected intent inside intent. Use exact apiosk_operations from source_matches when supplied; parsed_request slugs describe meaning and are not executable operations."
+        "Return the chat envelope with message, discover and intent. If discover=false, intent MUST be null. If discover=true, place the corrected intent inside intent. Use exact apiosk_operations from source_matches when supplied; parsed_request slugs describe meaning and are not executable operations. When bindings are supplied, subjects contain only subject_ref and values: choose subject_ref from bindings.subjects, and each value is {\"ref\": an exact bindings.values key} or {\"literal\": exact user text or number}. Never emit label or entity_ref in that format."
     } else {
         "Return only the Intent object with subjects, goals, answer_operations and unresolved_references."
     };
@@ -370,27 +376,20 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
 
 /// Constrain the planning model to the vocabulary actually selected for this
 /// request. A syntactically valid open map still allowed invented fact names.
-fn capability_reply_schema(view: &Value, task: &Task, selected: &std::collections::BTreeSet<String>) -> Value {
+fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::collections::BTreeSet<String>, matches_complete: bool) -> Value {
     let mut schema = intent_reply_schema("chat").unwrap();
-    if selected.is_empty() {
+    if selected.is_empty() || !matches_complete {
         schema["properties"]["intent"] = json!({"type":"null"});
         schema["properties"]["discover"] = json!({"type":"boolean","enum":[false]});
         return schema;
     }
     let intent = &mut schema["properties"]["intent"]["anyOf"][0];
-    let mut properties = serde_json::Map::new();
-    for definition in view["input_definitions"].as_array().into_iter().flatten() {
-        if let Some(kind) = definition["type"].as_str() {
-            properties.insert(kind.to_owned(), json!({"type":["string","number"]}));
-        }
-    }
+    let input_types = view["input_definitions"].as_array().into_iter().flatten()
+        .filter_map(|definition| definition["type"].as_str().map(str::to_owned));
     let subjects = &mut intent["properties"]["subjects"];
     subjects["minItems"] = json!(1);
     subjects["maxItems"] = json!(8);
-    subjects["items"]["properties"]["values"] = json!({"type":"object","properties":properties,"additionalProperties":false});
-    let mut references = vec![Value::Null];
-    references.extend(task.entities.iter().map(|entity| json!(entity.entity_ref)));
-    subjects["items"]["properties"]["entity_ref"]["enum"] = json!(references);
+    subjects["items"] = bindings.subject_schema(input_types);
     let goals = &mut intent["properties"]["goals"];
     goals["minItems"] = json!(1);
     goals["maxItems"] = json!(8);
@@ -406,11 +405,20 @@ fn capability_planning_view(mut view: Value) -> Value {
         sources.retain(|source| source["available"] == false
             || source["capabilities"].as_array().is_some_and(|caps| !caps.is_empty()));
         for source in sources {
+            let repeated_reason = source["reason"].as_str().map(|reason|
+                format!("{}: {reason}", source["name"].as_str().unwrap_or_default()));
             if let Some(fields) = source.as_object_mut() {
                 fields.retain(|key, _| matches!(key.as_str(), "slug" | "name" | "capabilities" | "available" | "reason" | "readiness" | "capability_descriptions"));
             }
             if let Some(readiness) = source["readiness"].as_object_mut() {
                 readiness.retain(|key, _| matches!(key.as_str(), "status" | "restrictions" | "coverage_notices"));
+                if let Some(repeated) = repeated_reason {
+                    if let Some(restrictions) = readiness.get_mut("restrictions").and_then(Value::as_array_mut) {
+                        // This identical source restriction is already present
+                        // in `reason`; retain it once, without truncating it.
+                        restrictions.retain(|restriction| restriction.as_str() != Some(repeated.as_str()));
+                    }
+                }
             }
         }
     }
@@ -953,14 +961,15 @@ impl Parser {
         use crate::capability_intake as intake;
         let known: Vec<_> = catalog.by_capability.keys().filter(|slug| !slug.starts_with("operation."))
             .filter_map(|slug| intake::normalize_slug(slug, "").map(|(slug, _)| slug)).take(100).collect();
+        let literals = capability_binding::literal_context(question, task, selection);
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":3000,
             "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
             "messages":[{"role":"system","content":include_str!("../contracts/capability-intake-prompt.txt")},
-                {"role":"user","content":json!({"question":question,"known_slugs":known,"previous_context":task.parser_context()}).to_string()}]});
+                {"role":"user","content":json!({"question":question,"known_slugs":known,"previous_context":task.parser_context(),"selection":selection.map(|s| &s.view)}).to_string()}]});
         let parsed = if intake::conversation_language(question).is_some() {
             intake::normalize("", question, &self.model)?
         } else {
-            self.completion("capability-intake", &payload, |raw| intake::normalize(raw, question, &self.model)).await?
+            self.completion("capability-intake", &payload, |raw| intake::normalize_with_context(raw, question, &literals, &self.model)).await?
         };
         let mut input = intake::search_model_input(&intake::search_input(&parsed, task, catalog));
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
@@ -995,15 +1004,23 @@ impl Parser {
         crate::telemetry::set_parser_cache(Cache::Miss);
         let mut input=chat_input(question, task, catalog);
         input["catalog"]=view;
+        let bindings = intake.map(|i| Bindings::new(&i.parsed_request, question, task, selection));
+        if let Some(bindings) = &bindings { input["bindings"] = bindings.view(); }
         if let Some(intake) = intake {
             input.as_object_mut().unwrap().remove("source_groups");
             input["parsed_request"] = json!(intake.parsed_request);
-            input["source_matches"] = json!(intake.matches.iter().map(|m| json!({"parsed_capability":m.slug,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})).collect::<Vec<_>>());
+            input["source_matches"] = json!(intake.parsed_request.capabilities.iter().filter_map(|cap| intake.matches.iter().find(|m| m.slug == cap.slug).map(|m|
+                json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})
+            )).collect::<Vec<_>>());
             input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
-        let literals = selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"));
+        let literals = if intake.is_some() {
+            Some(capability_binding::literal_context(question, task, selection))
+        } else {
+            selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"))
+        };
         let system = if intake.is_some() {
             format!("{}\n\nThe language code for your message is {}. Write the entire message in that language, including clarification questions.", include_str!("../contracts/capability-planning-prompt.txt"), intake.unwrap().parsed_request.language)
         } else {
@@ -1011,7 +1028,7 @@ impl Parser {
         };
         let response_format = if let Some(intake) = intake {
             json!({"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,
-                "schema":capability_reply_schema(&input["catalog"], task, &intake.selected_capabilities)}})
+                "schema":capability_reply_schema(&input["catalog"], bindings.as_ref().unwrap(), &intake.selected_capabilities, intake.matches.iter().all(|m| !m.operations.is_empty()))}})
         } else {
             json!({"type":"json_object"})
         };
@@ -1026,7 +1043,10 @@ impl Parser {
             ]
         });
         self.completion("chat", &payload, |raw| {
-            let mut reply: ChatReply = serde_json::from_str(raw)?;
+            let mut reply: ChatReply = match &bindings {
+                Some(bindings) => bindings.decode(raw)?,
+                None => serde_json::from_str(raw)?,
+            };
             reply.validate()?;
             if intake.is_some() {
                 anyhow::ensure!(!reply.discover || reply.intent.is_some(), "discovery requires a matched intent");
@@ -1037,6 +1057,15 @@ impl Parser {
                 if intake.is_some() {
                     anyhow::ensure!(intent.goals.iter().all(|goal| input["catalog"]["capabilities"].as_array().is_some_and(|caps| caps.iter().any(|c| c == &goal.capability))), "intent must use discovered operations");
                     anyhow::ensure!(intake.is_none_or(|i| i.matches.iter().all(|m| intent.goals.iter().any(|goal| m.operations.contains(&goal.capability)))), "every matched capability needs a retrieval goal");
+                    // A match for the same capability on another entity does
+                    // not satisfy this request (e.g. comparing two companies).
+                    for cap in &intake.unwrap().parsed_request.capabilities {
+                        if let Some(subject) = cap.subject_id.as_ref().and_then(|id| intake.unwrap().parsed_request.subjects.iter().find(|s| &s.id == id)) {
+                            let matched = intake.unwrap().matches.iter().find(|m| m.slug == cap.slug);
+                            anyhow::ensure!(intent.goals.iter().any(|goal| matched.is_some_and(|m| m.operations.contains(&goal.capability))
+                                && intent.subjects.get(goal.subject).is_some_and(|s| s.label.to_lowercase() == subject.label.to_lowercase())), "every parsed subject needs its requested retrieval");
+                        }
+                    }
                 }
                 intent.restore_question_literals(question);
                 intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
@@ -1128,7 +1157,7 @@ impl Parser {
 
     /// Retrying interpretation is safe: this boundary cannot call a data
     /// provider, authorize a quote or execute a purchase. Both attempts share
-    /// the original 25-second stage deadline.
+    /// a single bounded stage deadline.
     async fn completion<T>(
         &self,
         surface: &'static str,
@@ -1145,6 +1174,11 @@ impl Parser {
         // Keep both retries bounded and below the app's 80-second request limit.
         let (attempt_seconds, total_seconds) = if surface == "capability-intake" || surface == "capability-search" {
             (10, 20)
+        } else if surface == "chat" {
+            // Selected contracts and multiple subject bindings can take more
+            // than 12 seconds on the configured model. Both attempts share 30
+            // seconds; intake + search + Bazaar + chat remain under 80 seconds.
+            (20, 30)
         } else if surface == "clarification" {
             (6, 12)
         } else if surface == "analysis" || surface == "invoice" {
@@ -1624,12 +1658,28 @@ mod tests {
             let selected = [capability.to_owned()].into_iter().collect();
             let original = catalog.selected_parser_view(&selected);
             let view = capability_planning_view(original.clone());
-            let schema = capability_reply_schema(&view, &Task::default(), &selected);
+            let schema = capability_reply_schema(&view, &Bindings::default(), &selected, true);
             println!("{capability}: planning catalog {} -> {} bytes; constrained schema {} bytes, input types {}", original.to_string().len(), view.to_string().len(), schema.to_string().len(), view["input_types"].as_array().unwrap().len());
             for (key, value) in view.as_object().unwrap() { println!("  {key}: {} bytes", value.to_string().len()); }
             assert!(view.to_string().len() < 35_000);
             assert!(view["input_types"].as_array().unwrap().contains(&json!("company.name")));
             assert_eq!(schema["properties"]["intent"]["anyOf"][0]["properties"]["subjects"]["items"]["properties"]["values"]["additionalProperties"], false);
+            // Offline contract check only: no model, task persistence or source
+            // call. The exact production contracts must accept the bound name.
+            let question = "Check Coolblue B.V.";
+            let parsed = crate::capability_intake::normalize(&json!({"language":"en",
+                "subjects":[{"id":"s1","label":"Coolblue B.V.","type":"company","identifiers":{}}],
+                "capabilities":[{"slug":capability,"name":"Company check","description":"Check company data","domain":"company","inputs":["company_name"],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],
+                "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "offline fixture").unwrap();
+            let mut task = Task::default();
+            let bindings = Bindings::new(&parsed, question, &task, None);
+            let mut intent = bindings.decode(&json!({"message":"Price first","discover":true,"intent":{
+                "subjects":[{"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}}],
+                "goals":[{"capability":capability,"subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}}).to_string()).unwrap().intent.unwrap();
+            intent.validate(question, &task, &catalog).unwrap();
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            assert!(matches!(crate::resolver::resolve(&catalog, &task, &intent), crate::resolver::Resolution::Plan(_)));
+            println!("{capability}: parsed subject binding compiles against the local contract snapshot; no model or source request");
         }
     }
 
@@ -1638,19 +1688,25 @@ mod tests {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
         let selected = ["company.accounts".to_owned()].into_iter().collect();
         let view = capability_planning_view(catalog.selected_parser_view(&selected));
-        let schema = capability_reply_schema(&view, &Task::default(), &selected);
+        let schema = capability_reply_schema(&view, &Bindings::default(), &selected, true);
         let intent = &schema["properties"]["intent"]["anyOf"][0];
         let values = &intent["properties"]["subjects"]["items"]["properties"]["values"];
-        assert!(catalog_core::facts::schema::validate(values, &json!({"company.name":"Coolblue"})).is_ok());
-        assert!(catalog_core::facts::schema::validate(values, &json!({"company_name":"Coolblue"})).is_err());
-        assert!(catalog_core::facts::schema::validate(values, &json!({"company.kvk_number":"12345678"})).is_err());
+        assert_eq!(values["additionalProperties"], false);
+        assert!(values["properties"].get("company.name").is_some());
+        assert!(values["properties"].get("company_name").is_none());
+        assert!(values["properties"].get("company.kvk_number").is_none());
+        let literal = &values["properties"]["company.name"]["anyOf"][1];
+        catalog_core::facts::schema::validate(literal, &json!({"literal":"Coolblue"})).unwrap();
         assert_eq!(intent["properties"]["goals"]["items"]["properties"]["capability"]["enum"], json!(["company.accounts"]));
         assert!(view["capabilities"].as_array().unwrap().contains(&json!("company.search")), "dependency still supplies the name input");
         let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-3-12b-it".into());
         let payload = json!({"response_format":{"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,"schema":schema}}});
         assert_eq!(parser.routed_payload("chat", &payload)["response_format"], payload["response_format"], "routing must retain per-request vocabulary constraints");
-        let empty = capability_reply_schema(&view, &Task::default(), &Default::default());
+        let empty = capability_reply_schema(&view, &Bindings::default(), &Default::default(), true);
         assert_eq!(empty["properties"]["intent"], json!({"type":"null"}));
+        let partial = capability_reply_schema(&view, &Bindings::default(), &selected, false);
+        assert_eq!(partial["properties"]["intent"], json!({"type":"null"}));
+        assert_eq!(partial["properties"]["discover"]["enum"], json!([false]), "an unmatched essential capability requires a clarification, even if another capability has a match");
     }
 
     #[test]
@@ -1658,13 +1714,16 @@ mod tests {
         let view = capability_planning_view(json!({"sources":[
             {"slug":"selected","available":true,"capabilities":["company.accounts"],"tags":["unrelated"],"readiness":{"status":"ready","restrictions":["latest filing only"],"operations":["large repeated catalog"]}},
             {"slug":"unrelated","available":true,"capabilities":[]},
-            {"slug":"blocked","available":false,"capabilities":[],"reason":"No active execution contract"}
+            {"slug":"blocked","name":"Blocked source","available":false,"capabilities":[],"reason":"No active execution contract",
+                "readiness":{"status":"blocked","restrictions":["Blocked source: No active execution contract","A separate restriction"],"coverage_notices":["Limited coverage"]}}
         ]}));
         assert_eq!(view["sources"].as_array().unwrap().len(), 2);
         assert_eq!(view["sources"][0]["readiness"]["restrictions"], json!(["latest filing only"]));
         assert!(view["sources"][0].get("tags").is_none());
         assert!(view["sources"][0]["readiness"].get("operations").is_none());
         assert_eq!(view["sources"][1]["reason"], "No active execution contract");
+        assert_eq!(view["sources"][1]["readiness"]["restrictions"], json!(["A separate restriction"]));
+        assert_eq!(view["sources"][1]["readiness"]["coverage_notices"], json!(["Limited coverage"]));
     }
 
     #[test]

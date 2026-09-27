@@ -125,7 +125,7 @@ async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<V
     fake.chat.fetch_add(1, SeqCst);
     // "Jaarrekening van <Label>": the label names the fixture behaviour.
     let label = input["question"].as_str().unwrap().rsplit(' ').next().unwrap().to_owned();
-    let intent = json!({"subjects":[{"entity_ref":null,"label":label,"values":{"company.name":label}}],
+    let intent = json!({"subjects":[if input.get("bindings").is_some() {json!({"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}})} else {json!({"entity_ref":null,"label":label,"values":{"company.name":label}})}],
         "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]});
     let content = if input["surface"] == "ask-chat" {
         json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":intent})
