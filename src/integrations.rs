@@ -330,7 +330,7 @@ impl Composio {
     /// one would be an open redirect.
     pub async fn connect(&self, owner: Uuid, toolkit: &'static str) -> Result<Link, ComposioError> {
         let auth_config_id = self.auth_config(toolkit).await?;
-        let callback = format!("{}/connections?integration={toolkit}", self.app_origin);
+        let callback = format!("{}/integrations?integration={toolkit}", self.app_origin);
         let session = self
             .call(reqwest::Method::POST, "/connected_accounts/link", Some(json!({"auth_config_id": auth_config_id, "user_id": composio_user_id(owner), "callback_url": callback})))
             .await?;
@@ -567,7 +567,7 @@ mod tests {
         let links: Vec<&String> = log.iter().filter(|l| l.starts_with("POST /connected_accounts/link")).collect();
         assert_eq!(links.len(), 3);
         assert!(links[0].contains(r#""auth_config_id":"ac_hubspot""#) && links[0].contains(r#""user_id":"apiosk_user_00000000-0000-4000-8000-000000000001""#));
-        assert!(links[0].contains(r#""callback_url":"https://app.apiosk.com/connections?integration=hubspot""#));
+        assert!(links[0].contains(r#""callback_url":"https://app.apiosk.com/integrations?integration=hubspot""#));
         assert!(links[2].contains(r#""auth_config_id":"ac_slack""#));
         // Never somebody else's account, even when the filter was ignored.
         assert_eq!(log.iter().filter(|l| l.starts_with("DELETE")).cloned().collect::<Vec<_>>(), ["DELETE ca_mine", "DELETE ca_old"]);
