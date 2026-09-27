@@ -336,6 +336,7 @@ pub enum ModelFailure {
 
 pub struct Parser {
     http: reqwest::Client,
+    discovery_http: reqwest::Client,
     url: String,
     key: String,
     model: String,
@@ -836,6 +837,7 @@ impl Parser {
     pub fn new(http: reqwest::Client, url: String, key: String, model: String) -> Self {
         Self {
             http,
+            discovery_http: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().expect("public discovery HTTP client"),
             url,
             key,
             analysis_model: model.clone(),
@@ -987,8 +989,7 @@ impl Parser {
         let mut matches = intake::local_matches(&parsed, &queries, &selected, catalog);
         // Directory discovery is public and carries no user credentials. Never
         // follow redirects to an arbitrary host or fetch the discovered resource.
-        let discovery_http = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build()?;
-        intake::add_coinbase(&discovery_http, &mut matches, bazaar).await;
+        intake::add_coinbase(&self.discovery_http, &mut matches, bazaar).await;
         Ok(intake::Intake { parsed_request: parsed, matches,
             apiosk_sources_searched: intake::source_count(catalog), catalog_version: catalog.version.clone(),
             selected_capabilities: selected.into_values().flatten().collect() })

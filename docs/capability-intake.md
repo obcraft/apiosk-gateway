@@ -12,6 +12,43 @@ The App exposes the latest capability object and ordered source matches in a col
 
 Main code: `src/capability_intake.rs`, `Parser::prepare_ask`, `Parser::chat_from_capabilities`, and `Engine::intake_question`. The independent App repository renders `context_view.capability_intake` in `CapabilityDiscovery`.
 
+## Recovery and bounded caches
+
+A temporary interpretation failure saves `intake_recovery` on the same scoped task:
+the original question, exact structured context, and the paused parsing/planning
+stage. The response remains a technical failure with signed state, rather than
+pretending the question was ambiguous. The App offers Resume and Edit and keeps
+the diagnostic explanation available. Previous quotes are removed from the
+active task; saved results remain in conversation history.
+
+Resume uses a new request ID only after the previous request has finished or is
+confirmed interrupted. A lost response is checked through its read-only receipt;
+only an unknown receipt permits one identical resend. Completed request replay
+does not call the model again. A matching question and context can reuse successful
+capability discovery for five minutes, only while the catalog version is unchanged.
+Changed questions, source restrictions, workflows, stale timestamps, or catalog
+updates require fresh parsing. Quotes and paid execution are never reused by this
+recovery path. Refreshing an expired quote uses `/requote` without reinterpretation
+and still needs a new explicit approval.
+
+Coinbase directory metadata uses a separate five-minute, success-only cache of
+already scrubbed generic queries, keyed by endpoint/query/version/limit. Concurrent
+identical lookups share one request. The weighted capacity is approximately 2 MiB
+and at most 128 retained entries; failed HTTP/schema/size checks are not cached.
+Valid empty replies can be cached. The no-redirect HTTP client is reused for
+connection pooling. Private user questions, inputs, credentials and paid source
+results are not stored in this shared cache. Cold requests retain the existing
+four-second timeout, four-request concurrency and top-three result filtering.
+
+Recovery validation on 2026-09-27: 279 Gateway unit tests passed. The isolated
+PGlite intake suite passed 13 scenarios, followed by the additional edited-workflow
+regression (both parsing and workflow-model outage cases). All seven isolated
+release-gate scenarios passed. These assert retained context/history, scoped reads,
+request replay, cache invalidation, fresh quote approval and zero unintended
+purchases. The full workspace suite reported 505 passed, 64 ignored and the same
+previously reproduced baseline `quality_set` q01 failure. External production
+model replay remains subject to the approval limitation documented below.
+
 Checks: `cargo test --offline --lib capability_intake`, the isolated `scripts/test-intake-flow.mjs` suite, and the App's capability-discovery and gateway-v2 tests. `tests/capability_intake_live.rs` contains explicit opt-in checks: an entirely local catalog inspection and a separate live model/public discovery check. The latter sends metadata to the configured model and must only be run with appropriately authorized data. Synthetic diagnostic capture refuses a real catalog.
 
 The planning stage uses its own prompt to translate generic parsed slugs into exact matched operations. Validation rejects a generic slug used as an executable operation, an omitted requested retrieval, and a dependency lookup substituted for the actual result. Shared verbs such as “search” cannot by themselves shortlist unrelated data. An unspecified comparison is clarified rather than assumed to require financial statements.

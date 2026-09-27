@@ -11,6 +11,7 @@ mod supplier;
 mod workflows;
 mod worker;
 mod direct;
+mod intake_recovery;
 use crate::{
     auth::Principal,
     catalog::{Catalog, CatalogCache},
@@ -309,8 +310,13 @@ impl Engine {
             "existing execution must finish or reconcile before a new question"
         );
         self.prepare_conversation(p.owner, id, &mut task).await?;
-        let pending_workflow = task.workflow.clone().filter(|workflow| workflow.collecting || (task.proposal.is_some() && task.completed.is_empty() && task.active_results.is_empty() && task.analysis.is_none()));
-        task.workflow = workflow.clone();
+        let recovery = task.intake_recovery.take();
+        let resuming = recovery.as_ref().is_some_and(|saved| saved.matches(req));
+        if resuming && task.conversation.last().is_some_and(|turn| turn.question == req.question && turn.output.is_none()) {
+            task.conversation.pop();
+        }
+        let pending_workflow = task.workflow.clone().filter(|workflow| recovery.is_some() || workflow.collecting || (task.proposal.is_some() && task.completed.is_empty() && task.active_results.is_empty() && task.analysis.is_none()));
+        task.workflow = workflow.clone().or_else(|| (app_chat && !direct).then(|| pending_workflow.clone()).flatten());
         for focus in &req.context_delta.requested_focus_refs {
             anyhow::ensure!(
                 task.entities.iter().any(|e| e.entity_ref == *focus),
@@ -334,10 +340,22 @@ impl Engine {
         // already name an exact operation and keep their separate contract.
         task.capability_intake = if app_chat && !direct {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
-            Some(self.parser.prepare_ask(&req.question, model_selection.as_ref(), &task, &catalog).await?)
+            let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
+                .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version));
+            if reusable {
+                task.capability_intake.take()
+            } else {
+                task.capability_intake = None;
+                match self.parser.prepare_ask(&req.question, model_selection.as_ref(), &task, &catalog).await {
+                    Ok(intake) => Some(intake),
+                    Err(error) => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Parsing, false, error).await,
+                }
+            }
         } else { None };
         let selected_workflow = req.context_delta.workflow_slug.as_deref();
-        anyhow::ensure!(selected_workflow.is_none() || (app_chat && req.state.is_none()), "Start a workflow in a new App chat.");
+        let recovering_workflow = selected_workflow.is_some() && recovery.as_ref()
+            .is_some_and(|saved| saved.context_delta.workflow_slug.as_deref() == selected_workflow);
+        anyhow::ensure!(selected_workflow.is_none() || (app_chat && (req.state.is_none() || recovering_workflow)), "Start a workflow in a new App chat.");
         let conversational_workflow = forced.is_none() && app_chat && (selected_workflow.is_some() || pending_workflow.is_some());
         if conversational_workflow && selection.is_some() {
             return Err(endpoint_selection::Invalid::workflow().into());
@@ -346,12 +364,16 @@ impl Engine {
             task.workflow = match selected_workflow {
                 Some(slug) => {
                     let recipe = crate::workflow_catalog::recipe(slug).ok_or_else(|| anyhow::anyhow!("Unknown workflow."))?;
-                    Some(crate::workflow_catalog::WorkflowContext { collecting: true, slug: recipe.slug, title: recipe.name, input: Default::default(), limitations: recipe.limitations })
+                    pending_workflow.clone().filter(|saved| recovering_workflow && saved.slug == slug)
+                        .or_else(|| Some(crate::workflow_catalog::WorkflowContext { collecting: true, slug: recipe.slug, title: recipe.name, input: Default::default(), limitations: recipe.limitations }))
                 }
                 None => pending_workflow,
             };
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
-            forced = self.collect_workflow(&req.question, &mut task, &catalog).await?;
+            forced = match self.collect_workflow(&req.question, &mut task, &catalog).await {
+                Ok(intent) => intent,
+                Err(error) => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
+            };
             workflow = task.workflow.clone();
             if forced.is_none() {
                 self.store.save_intent(p.owner, id, revision, &task).await?;
@@ -411,6 +433,7 @@ impl Engine {
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
+                (Err(error), None) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
                 (Err(error), None) => return Err(error),
             };
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
@@ -483,7 +506,11 @@ impl Engine {
         // A selected endpoint is the person's own choice: the model reviews
         // neither a direct call nor a selection, and their refusal stands.
         if let (false, Resolution::Unsupported(reason)) = (direct || selection.is_some(), resolver::resolve(&catalog, &task, &intent)) {
-            let review = self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await?;
+            let review = match self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await {
+                Ok(review) => review,
+                Err(error) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, true, error).await,
+                Err(error) => return Err(error),
+            };
             if let Some(revised) = review.intent {
                 task.intent = Some(serde_json::to_value(&revised)?);
                 status = self.plan(&mut task, &catalog, &revised)?;
@@ -637,7 +664,7 @@ impl Engine {
                 )
             });
         }
-        let inferred = if task.execution_error.is_some() && task.result_refs.is_empty() {
+        let inferred = if task.intake_recovery.is_some() || (task.execution_error.is_some() && task.result_refs.is_empty()) {
             Status::Failed
         } else if task.cancelled {
             Status::Cancelled

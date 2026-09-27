@@ -11,6 +11,7 @@ use std::{
     time::Duration,
 };
 
+mod discovery_cache;
 #[cfg(test)]
 mod tests;
 
@@ -674,6 +675,14 @@ fn coinbase_candidates(body: Value) -> anyhow::Result<Vec<Candidate>> {
         .collect())
 }
 pub async fn fetch_coinbase(
+    http: &reqwest::Client,
+    search_url: &str,
+    query: &str,
+) -> anyhow::Result<Vec<Candidate>> {
+    discovery_cache::fetch(http, search_url, query).await
+}
+
+async fn fetch_coinbase_uncached(
     http: &reqwest::Client,
     search_url: &str,
     query: &str,

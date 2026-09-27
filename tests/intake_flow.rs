@@ -27,11 +27,26 @@ const ORGANISATION_KEY: &str = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 #[derive(Default)]
 struct Model {
     chats: Mutex<Vec<Value>>,
+    workflow_chats: Mutex<Vec<Value>>,
     stages: Mutex<Vec<&'static str>>,
+    failures: Mutex<std::collections::BTreeMap<&'static str, usize>>,
 }
 impl Model {
     fn chats(&self) -> Vec<Value> {
         self.chats.lock().unwrap().clone()
+    }
+    fn fail_next(&self, stage: &'static str, attempts: usize) {
+        self.failures.lock().unwrap().insert(stage, attempts);
+    }
+    fn failure(&self, stage: &'static str) -> Option<Json<Value>> {
+        let mut failures = self.failures.lock().unwrap();
+        let remaining = failures.get_mut(stage)?;
+        if *remaining == 0 { return None; }
+        *remaining -= 1;
+        Some(Json(json!({"choices":[{"message":{"content":"deliberately invalid model output"}}]})))
+    }
+    fn count(&self, stage: &str) -> usize {
+        self.stages.lock().unwrap().iter().filter(|&&found| found == stage).count()
     }
 }
 
@@ -49,6 +64,7 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input["known_slugs"].is_array() {
         model.stages.lock().unwrap().push("parse");
+        if let Some(failure) = model.failure("parse") { return failure; }
         let question=input["question"].as_str().unwrap();
         let continued = question == "De jaarrekening" && input["previous_context"].to_string().contains("Coolblue");
         let label=question.strip_prefix("Jaarrekening van ").or_else(|| question.strip_prefix("Controleer "))
@@ -60,11 +76,24 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     }
     if let Some(queries)=input["queries"].as_object() {
         model.stages.lock().unwrap().push("search");
+        if let Some(failure) = model.failure("search") { return failure; }
         let content=json!({"matches":queries.keys().map(|slug|json!({"slug":slug,"candidate_ids":["c1"]})).collect::<Vec<_>>()});
+        return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
+    }
+    if input["workflow"].is_string() && input["fields"].is_array() {
+        model.stages.lock().unwrap().push("workflow");
+        model.workflow_chats.lock().unwrap().push(input.clone());
+        if let Some(failure) = model.failure("workflow") { return failure; }
+        let question = input["question"].as_str().unwrap();
+        let mut values = serde_json::Map::new();
+        if question.contains("Amsterdam") { values.insert("location".into(), json!("Amsterdam")); }
+        if question.contains("software") { values.insert("topic".into(), json!("software")); }
+        let content = json!({"message":"Welke bedrijven zoek je precies?","input":values,"ready":false});
         return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
     }
     model.stages.lock().unwrap().push("plan");
     model.chats.lock().unwrap().push(input.clone());
+    if let Some(failure) = model.failure("plan") { return failure; }
     let question = input["question"].as_str().unwrap();
     let continued = question == "De jaarrekening" && input["context"].to_string().contains("Coolblue");
     let content = match question.strip_prefix("Jaarrekening van ").or(continued.then_some("Coolblue")) {
@@ -395,4 +424,299 @@ async fn clarification_continues_the_saved_question_without_losing_its_subject()
     let calls: i64 = sqlx::query_scalar("SELECT count(*) FROM executions WHERE task_id=$1")
         .bind(id).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(calls, 0, "clarification and quoting do not execute a source");
+}
+
+fn recovery_delta(known_company_id: bool) -> Value {
+    json!({"explicit_values":[],"requested_focus_refs":[],"selection":selection(json!([
+        {"endpoint_id":endpoint("company.search"),"inputs":[]},
+        {"endpoint_id":endpoint("company.accounts"),"inputs":if known_company_id {
+            json!([{"fact_type":"company.id","subject_role":"subject","value":"12345678"}])
+        } else { json!([]) }}
+    ]))})
+}
+
+fn paused_task(person: &Person, response: &Value, stage: &str, question: &str, delta: &Value) -> Uuid {
+    assert_eq!(response["status"], "failed", "{response}");
+    assert!(response["proposal"].is_null(), "paused interpretation cannot expose an old quote");
+    assert_eq!(response["next_actions"], json!([]), "paused interpretation cannot expose executable actions");
+    assert_eq!(response["errors"], json!([]), "the structured recovery explains the pause");
+    let recovery = &response["context_view"]["intake_recovery"];
+    assert_eq!(recovery["stage"], stage);
+    assert_eq!(recovery["question"], question);
+    assert_eq!(&recovery["context_delta"], delta);
+    let signed: apiosk_gateway_v2::state::Envelope = serde_json::from_value(response["state"].clone()).unwrap();
+    Signer::new(vec![7; 32]).unwrap().verify(person.owner, &signed, false).unwrap();
+    signed.state_ref
+}
+
+async fn assert_no_purchase(intake: &Intake, person: &Person, task: Uuid) {
+    let executions: i64 = sqlx::query_scalar("SELECT count(*) FROM executions WHERE task_id=$1")
+        .bind(task).fetch_one(&intake.pool).await.unwrap();
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations WHERE task_id=$1")
+        .bind(task).fetch_one(&intake.pool).await.unwrap();
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!((executions, approvals, charges), (0, 0, 0), "recovery cannot buy, approve, or charge source data");
+}
+
+/// Both interpretation stages before planning must survive malformed model
+/// output without losing the submitted text or creating an executable task.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn intake_failures_save_scoped_recovery_and_replay_without_model_calls() {
+    let intake = Intake::start().await;
+    for stage in ["parse", "search"] {
+        let person = Person::new();
+        let question = "Jaarrekening van Coolblue";
+        let delta = recovery_delta(false);
+        intake.model.fail_next(stage, 2);
+        let request = json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta});
+        let failed = intake.chat(&person, request.clone()).await;
+        let task = paused_task(&person, &failed, "parsing", question, &delta);
+        assert!(failed["context_view"]["capability_intake"].is_null());
+        assert_eq!(failed["context_view"]["conversation"].as_array().unwrap().len(), 1);
+        let calls = intake.model.stages.lock().unwrap().clone();
+
+        assert_eq!(intake.chat(&person, request).await, failed, "same request id replays the persisted failure");
+        assert_eq!(*intake.model.stages.lock().unwrap(), calls, "replay must not interpret again");
+        let (status, recovered) = intake.send(&person.bearer, &format!("/v2/tasks/{task}"), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(recovered["context_view"]["intake_recovery"], failed["context_view"]["intake_recovery"]);
+        assert_eq!(paused_task(&person, &recovered, "parsing", question, &delta), task);
+        let stored: Value = sqlx::query_scalar("SELECT document->'intake_recovery' FROM tasks WHERE id=$1")
+            .bind(task).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(stored["question"], question);
+        assert_eq!(stored["context_delta"], delta);
+        assert!(stored["created_at"].is_string());
+
+        let other = Person::new();
+        let (status, denied) = intake.send(&other.bearer, &format!("/v2/tasks/{task}"), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "another account cannot read a saved prompt: {denied}");
+        assert!(!denied.to_string().contains("Coolblue"));
+        assert_no_purchase(&intake, &person, task).await;
+
+        let parse_calls = intake.model.count("parse");
+        let resumed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+            "state":recovered["state"],"context_delta":recovered["context_view"]["intake_recovery"]["context_delta"]})).await;
+        assert_eq!(resumed["status"], "ready", "{resumed}");
+        assert_eq!(resumed["state"]["state_ref"], json!(task));
+        assert!(resumed["context_view"]["intake_recovery"].is_null());
+        assert_eq!(intake.model.count("parse"), parse_calls + 1, "an incomplete parse/search restarts extraction");
+        assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 1, "retry replaces the paused turn");
+        assert_no_purchase(&intake, &person, task).await;
+    }
+}
+
+/// A recent validated object survives a planner outage. Resume skips repeated
+/// extraction/discovery, creates a price, and still needs explicit approval.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn planning_recovery_reuses_discovery_and_requires_a_fresh_explicit_approval() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Jaarrekening van Coolblue";
+    let delta = recovery_delta(true);
+    intake.model.fail_next("plan", 2);
+    let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta})).await;
+    let task = paused_task(&person, &failed, "planning", question, &delta);
+    let parsed = failed["context_view"]["capability_intake"].clone();
+    assert_eq!(parsed["parsed_request"]["subjects"][0]["label"], "Coolblue");
+    assert!(!parsed["matches"][0]["apiosk"].as_array().unwrap().is_empty());
+    assert_eq!((intake.model.count("parse"), intake.model.count("search"), intake.model.count("plan")), (1, 1, 2));
+    let (status, recovered) = intake.send(&person.bearer, &format!("/v2/tasks/{task}"), None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(recovered["context_view"]["capability_intake"], parsed);
+    assert_eq!(recovered["context_view"]["intake_recovery"]["context_delta"], delta);
+    assert_no_purchase(&intake, &person, task).await;
+
+    let request = json!({"request_id":Uuid::new_v4(),"question":question,"state":recovered["state"],"context_delta":delta});
+    let resumed = intake.chat(&person, request.clone()).await;
+    assert_eq!(resumed["status"], "ready", "{resumed}");
+    assert_eq!(resumed["state"]["state_ref"], json!(task));
+    assert_eq!(resumed["context_view"]["capability_intake"], parsed, "the exact validated object is reused");
+    assert!(resumed["context_view"]["intake_recovery"].is_null());
+    assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 1);
+    assert_eq!(resumed["context_view"]["conversation"][0]["question"], question);
+    assert_eq!((intake.model.count("parse"), intake.model.count("search"), intake.model.count("plan")), (1, 1, 3));
+    assert_eq!(resumed["proposal"]["max_total_atomic"], "115");
+    assert_eq!(resumed["proposal"]["steps"], json!(["company.accounts"]));
+    assert_eq!(intake.chat(&person, request).await, resumed, "successful resume also has an idempotent receipt");
+    assert_eq!(intake.model.count("plan"), 3);
+
+    let action = resumed["next_actions"].as_array().unwrap().iter()
+        .find(|action| action["kind"] == "execute_quoted_step").unwrap();
+    assert_eq!(action["requires_authorization"], true);
+    let (status, blocked) = intake.send(&person.bearer, "/v2/execute", Some(json!({"request_id":Uuid::new_v4(),
+        "action_id":action["action_id"],"state":resumed["state"],"quote_ref":resumed["proposal"]["quote_ref"],
+        "authorization_ref":null,"idempotency_key":action["action_id"],"input":null}))).await;
+    assert_eq!(status, StatusCode::OK, "{blocked}");
+    assert_eq!(blocked["status"], "requires_approval", "retry must not inherit or create approval: {blocked}");
+    assert_no_purchase(&intake, &person, task).await;
+}
+
+/// Editing either the request or source/input selection invalidates discovery
+/// reuse, even if the task's previous validated object is only seconds old.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn recovery_reparses_changed_questions_and_selections() {
+    let intake = Intake::start().await;
+    for changed in ["question", "selection"] {
+        let person = Person::new();
+        let question = "Jaarrekening van Coolblue";
+        let delta = recovery_delta(false);
+        intake.model.fail_next("plan", 2);
+        let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta})).await;
+        let task = paused_task(&person, &failed, "planning", question, &delta);
+        let before = (intake.model.count("parse"), intake.model.count("search"));
+        let new_question = if changed == "question" { "Jaarrekening van Example" } else { question };
+        let new_delta = if changed == "selection" { recovery_delta(true) } else { delta };
+        let resumed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":new_question,
+            "state":failed["state"],"context_delta":new_delta})).await;
+        assert_eq!(resumed["status"], "ready", "{changed}: {resumed}");
+        assert_eq!(resumed["state"]["state_ref"], json!(task));
+        assert_eq!((intake.model.count("parse"), intake.model.count("search")), (before.0 + 1, before.1 + 1), "changed {changed} must rerun extraction and matching");
+        assert_eq!(resumed["context_view"]["capability_intake"]["parsed_request"]["subjects"][0]["label"],
+            if changed == "question" { "Example" } else { "Coolblue" });
+        assert_no_purchase(&intake, &person, task).await;
+    }
+}
+
+/// A workflow's collected fields belong to its saved task, including while
+/// extraction or the dedicated workflow conversation model is unavailable.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn workflow_recovery_preserves_collected_input_across_model_outages() {
+    let intake = Intake::start().await;
+    for failure_stage in ["parse", "workflow"] {
+        let person = Person::new();
+        let initial = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Zoek klanten in Amsterdam",
+            "state":null,"context_delta":{"workflow_slug":"prospect-shortlist"}})).await;
+        assert_eq!(initial["status"], "needs_input", "{initial}");
+        let task: Uuid = initial["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+        let prior: Value = sqlx::query_scalar("SELECT document->'workflow' FROM tasks WHERE id=$1")
+            .bind(task).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(prior["input"]["location"], "Amsterdam");
+        let first_turn = initial["context_view"]["conversation"][0].clone();
+
+        intake.model.fail_next(failure_stage, 2);
+        let delta = json!({"explicit_values":[],"requested_focus_refs":[]});
+        let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"software",
+            "state":initial["state"],"context_delta":delta})).await;
+        assert_eq!(paused_task(&person, &failed, if failure_stage == "parse" { "parsing" } else { "planning" }, "software", &delta), task);
+        let saved: Value = sqlx::query_scalar("SELECT document->'workflow' FROM tasks WHERE id=$1")
+            .bind(task).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(saved["input"], prior["input"], "{failure_stage} outage cannot erase collected inputs");
+        assert_eq!(saved["collecting"], true);
+        assert_eq!(failed["context_view"]["conversation"][0], first_turn);
+        assert_eq!(failed["context_view"]["conversation"].as_array().unwrap().len(), 2);
+        let parses = intake.model.count("parse");
+        let resumed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"software",
+            "state":failed["state"],"context_delta":delta})).await;
+        assert_eq!(resumed["status"], "needs_input", "{failure_stage}: {resumed}");
+        assert!(resumed["context_view"]["intake_recovery"].is_null());
+        assert_eq!(resumed["context_view"]["conversation"][0], first_turn);
+        assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 2);
+        assert_eq!(intake.model.count("parse"), parses + usize::from(failure_stage == "parse"));
+        let continued: Value = sqlx::query_scalar("SELECT document->'workflow' FROM tasks WHERE id=$1")
+            .bind(task).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(continued["input"], json!({"location":"Amsterdam","topic":"software"}));
+        let workflow_calls = intake.model.workflow_chats.lock().unwrap();
+        assert_eq!(workflow_calls.last().unwrap()["collected"]["location"], "Amsterdam", "resume passes prior inputs to the workflow model");
+        drop(workflow_calls);
+        assert_no_purchase(&intake, &person, task).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn retrying_an_identical_question_preserves_the_prior_clarification_turn() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Controleer Coolblue";
+    let initial = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null})).await;
+    assert_eq!(initial["status"], "needs_input", "{initial}");
+    let first_turn = initial["context_view"]["conversation"][0].clone();
+    assert!(first_turn["reply"].is_string());
+    intake.model.fail_next("plan", 2);
+    let delta = json!({"explicit_values":[],"requested_focus_refs":[]});
+    let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+        "state":initial["state"],"context_delta":delta})).await;
+    let task = paused_task(&person, &failed, "planning", question, &delta);
+    assert_eq!(failed["context_view"]["conversation"].as_array().unwrap().len(), 2);
+    assert_eq!(failed["context_view"]["conversation"][0], first_turn);
+    assert!(failed["context_view"]["conversation"][1]["reply"].is_null());
+    let resumed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+        "state":failed["state"],"context_delta":delta})).await;
+    assert_eq!(resumed["status"], "needs_input", "{resumed}");
+    assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 2);
+    assert_eq!(resumed["context_view"]["conversation"][0], first_turn, "resume removes only its own pending turn");
+    assert_eq!(resumed["context_view"]["conversation"][1]["question"], question);
+    assert!(resumed["context_view"]["conversation"][1]["reply"].is_string());
+    assert_no_purchase(&intake, &person, task).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn planner_outage_clears_old_price_and_resume_creates_a_new_quote() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let prior = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Example","state":null})).await;
+    assert_eq!(prior["status"], "ready", "{prior}");
+    let question = "Jaarrekening van Coolblue";
+    let delta = recovery_delta(true);
+    intake.model.fail_next("plan", 2);
+    let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+        "state":prior["state"],"context_delta":delta})).await;
+    let task = paused_task(&person, &failed, "planning", question, &delta);
+    assert_eq!(failed["context_view"]["conversation"][0]["output"]["proposal"]["quote_ref"], prior["proposal"]["quote_ref"], "old price remains read-only conversation history");
+    let resumed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+        "state":failed["state"],"context_delta":delta})).await;
+    assert_eq!(resumed["status"], "ready", "{resumed}");
+    assert_ne!(resumed["proposal"]["quote_ref"], prior["proposal"]["quote_ref"], "resume never revives an old quote");
+    assert_eq!(resumed["proposal"]["max_total_atomic"], "115");
+    assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 2);
+    assert_no_purchase(&intake, &person, task).await;
+}
+
+/// Editing a paused workflow starter keeps its workflow selection on the same
+/// task; recovery cannot be used to switch that task to a different workflow.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn edited_workflow_starter_recovers_only_its_original_workflow() {
+    let intake = Intake::start().await;
+    let other_workflow = apiosk_gateway_v2::workflow_catalog::recipes().into_iter()
+        .find(|recipe| recipe.slug != "prospect-shortlist").unwrap().slug;
+    for failure_stage in ["parse", "workflow"] {
+        let person = Person::new();
+        let question = "Zoek klanten in Amsterdam";
+        let delta = json!({"workflow_slug":"prospect-shortlist","explicit_values":[],"requested_focus_refs":[]});
+        intake.model.fail_next(failure_stage, 2);
+        let failed = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,
+            "state":null,"context_delta":delta})).await;
+        let task = paused_task(&person, &failed, if failure_stage == "parse" { "parsing" } else { "planning" }, question, &delta);
+        let edited_question = "Zoek klanten in Amsterdam software";
+
+        let wrong_workflow = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":edited_question,
+            "state":failed["state"],"context_delta":{"workflow_slug":other_workflow}})).await;
+        assert_eq!(wrong_workflow["status"], "failed", "{wrong_workflow}");
+        assert_eq!(codes(&wrong_workflow), ["operation_failed"]);
+        assert!(wrong_workflow["errors"][0]["message"].as_str().unwrap().contains("Start a workflow in a new App chat"), "a different workflow remains disallowed: {wrong_workflow}");
+        let (status, still_paused) = intake.send(&person.bearer, &format!("/v2/tasks/{task}"), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(still_paused["context_view"]["intake_recovery"], failed["context_view"]["intake_recovery"], "rejected switching cannot replace the saved starter");
+
+        let parses = intake.model.count("parse");
+        let edited = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":edited_question,
+            "state":still_paused["state"],"context_delta":delta})).await;
+        assert_eq!(edited["status"], "needs_input", "an edited starter continues its own workflow: {failure_stage}: {edited}");
+        assert_eq!(edited["errors"], json!([]));
+        assert_eq!(edited["state"]["state_ref"], json!(task));
+        assert!(edited["context_view"]["intake_recovery"].is_null());
+        assert_eq!(edited["context_view"]["workflow"]["slug"], "prospect-shortlist");
+        assert_eq!(intake.model.count("parse"), parses + 1, "edited text must be parsed again");
+        let stored: Value = sqlx::query_scalar("SELECT document->'workflow' FROM tasks WHERE id=$1")
+            .bind(task).fetch_one(&intake.pool).await.unwrap();
+        assert_eq!(stored["input"], json!({"location":"Amsterdam","topic":"software"}));
+        assert_no_purchase(&intake, &person, task).await;
+    }
 }

@@ -156,8 +156,38 @@ pub struct TurnOutput {
     #[serde(default)]
     pub analysis: Option<Value>,
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntakeStage { Parsing, Planning }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IntakeRecovery {
+    pub question: String,
+    pub context_delta: crate::protocol::ContextDelta,
+    pub stage: IntakeStage,
+    pub created_at: DateTime<Utc>,
+}
+impl IntakeRecovery {
+    pub fn matches(&self, request: &crate::protocol::DiscoverRequest) -> bool {
+        self.question == request.question && digest(&self.context_delta) == digest(&request.context_delta)
+    }
+    pub fn reusable(&self, intake: &crate::capability_intake::Intake, catalog_version: &str) -> bool {
+        intake.catalog_version == catalog_version
+            && DateTime::parse_from_rfc3339(&intake.parsed_request.meta.parsed_at).is_ok_and(|parsed| {
+                let age = Utc::now().signed_duration_since(parsed);
+                age >= chrono::Duration::zero() && age < chrono::Duration::minutes(5)
+            })
+    }
+    pub fn view(&self) -> Value {
+        serde_json::json!({"question":self.question,"context_delta":self.context_delta,"stage":self.stage,
+            "message": "Processing paused because the planning service is temporarily unavailable. Your question is saved. Resume to continue, or edit your question."})
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intake_recovery: Option<IntakeRecovery>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capability_intake: Option<crate::capability_intake::Intake>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -268,6 +298,7 @@ impl Task {
         object.remove("analysis");
         object.remove("result_refs");
         object.remove("capability_intake");
+        object.remove("intake_recovery");
         if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
             for turn in turns {
                 let summary = turn.pointer("/output/analysis").filter(|value| !value.is_null()).map(&answer);
@@ -285,7 +316,7 @@ impl Task {
         context
     }
     pub fn context_view(&self) -> Value {
-        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,"capability_intake":self.capability_intake,
+        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,"capability_intake":self.capability_intake,"intake_recovery":self.intake_recovery.as_ref().map(IntakeRecovery::view),
             "known_facts":self.facts.iter().filter(|f| f.expires_at > Utc::now() && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer" | "company.name")).collect::<Vec<_>>(),
             "analysis":self.analysis,"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
     }
@@ -301,6 +332,37 @@ impl Task {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn intake_reuse_expires_and_is_scoped_to_exact_question_context_and_catalog() {
+        let question = "Company accounts for Example";
+        let request = crate::protocol::DiscoverRequest { request_id: Uuid::new_v4(), question: question.into(), state: None, context_delta: Default::default() };
+        let recovery = IntakeRecovery { question: question.into(), context_delta: Default::default(), stage: IntakeStage::Planning, created_at: Utc::now() };
+        assert!(recovery.matches(&request));
+        let mut changed = request.clone();
+        changed.question.push('?');
+        assert!(!recovery.matches(&changed));
+        changed = request.clone();
+        changed.context_delta.requested_focus_refs.push(Uuid::new_v4());
+        assert!(!recovery.matches(&changed));
+        changed = request.clone();
+        changed.context_delta.workflow_slug = Some("another-workflow".into());
+        assert!(!recovery.matches(&changed));
+        let mut intake: crate::capability_intake::Intake = serde_json::from_value(serde_json::json!({
+            "parsed_request":{"language":"en","subjects":[],"capabilities":[],"deliverable":{"format":"chat","operations":[]},
+                "meta":{"model":"fixture","parsed_at":Utc::now().to_rfc3339(),"text_sha256":"fixture"}},
+            "matches":[],"apiosk_sources_searched":37,"catalog_version":"v1","selected_capabilities":[]
+        })).unwrap();
+        assert!(recovery.reusable(&intake, "v1"));
+        assert!(!recovery.reusable(&intake, "v2"));
+        for parsed_at in [(Utc::now() - chrono::Duration::minutes(6)).to_rfc3339(), (Utc::now() + chrono::Duration::minutes(1)).to_rfc3339(), "invalid".into()] {
+            intake.parsed_request.meta.parsed_at = parsed_at;
+            assert!(!recovery.reusable(&intake, "v1"));
+        }
+        let task = Task { intake_recovery: Some(recovery), ..Task::default() };
+        assert_eq!(task.context_view()["intake_recovery"]["question"], question);
+        assert!(task.parser_context().get("intake_recovery").is_none(), "operational recovery messages are not user intent");
+    }
+
     #[test]
     fn asset_links_are_scoped_to_one_image_and_never_accept_a_report_signature() {
         let signer = Signer::new(vec![7; 32]).unwrap();

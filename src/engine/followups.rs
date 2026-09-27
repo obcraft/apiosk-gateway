@@ -97,6 +97,7 @@ impl Engine {
         };
         self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
         task.workflow = None;
+        task.intake_recovery = None;
         task.supplier_check = None;
         task.active_results.clear();
         task.analysis = None;
