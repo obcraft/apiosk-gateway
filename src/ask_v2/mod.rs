@@ -18,7 +18,9 @@ pub const DEFAULT_MODEL: &str = crate::parser::MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
-const DEADLINE: Duration = Duration::from_secs(12);
+// Qwen3 30B streams this parse in about 1–4 s on the preferred provider; the
+// deadline leaves room for a slower fallback provider.
+const DEADLINE: Duration = Duration::from_secs(20);
 const MAX_STREAM_BYTES: usize = 256 * 1024;
 const WINDOW: Duration = Duration::from_secs(60);
 const MAX_OWNERS: usize = 4096;
@@ -198,7 +200,9 @@ impl Client {
         let mut body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
-            "stream": true, "temperature": 0, "max_tokens": 1024
+            "stream": true, "temperature": 0, "max_tokens": 1024,
+            // Only providers that honour the strict schema; the fastest first.
+            "provider": {"order": crate::parser::PROVIDERS, "require_parameters": true}
         })
         .to_string();
         // Serialize all dynamic fields normally, but embed the trusted schema
@@ -220,7 +224,7 @@ impl Client {
             .await
             .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
         // Match WebGPU's two bounded retries for a rejected free/provider pool.
-        // The complete operation, including waits and the stream, remains 12s.
+        // The complete operation, including waits and the stream, stays within DEADLINE.
         for delay in [1500, 4000] {
             if response.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
                 break;
@@ -576,6 +580,7 @@ mod tests {
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"temperature":0,"max_tokens":1024,
+                "provider":{"order":["nebius"],"require_parameters":true},
                 "response_format":{"type":"json_schema","json_schema":{"name":"capability_request","strict":true,"schema":schema}}
             })
         );
