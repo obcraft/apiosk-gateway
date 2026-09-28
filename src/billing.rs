@@ -223,7 +223,10 @@ impl Store {
         .bind(owner).bind(task)
         .fetch_optional(&self.pool)
         .await?;
-        let authorized:Option<i64>=sqlx::query_scalar("SELECT cap_atomic FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;
+        // How it was approved, too: `connection_auto` is the connection's
+        // standing rule, which the card and chatbot must not present as a click.
+        let authorization:Option<(i64,String)>=sqlx::query_as("SELECT cap_atomic,approved_via FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3 AND revoked_at IS NULL AND expires_at>now()").bind(owner).bind(task).bind(quote).fetch_optional(&self.pool).await?;
+        let (authorized, approved_via) = (authorization.as_ref().map(|a| a.0), authorization.map(|a| a.1));
         let mut executions = vec![];
         let (mut total, mut provider, mut fee, mut held) = (0i64, 0i64, 0i64, 0i64);
         let (mut pending, mut refunded, mut reserved, mut charged, mut breakdown_known) =
@@ -290,7 +293,7 @@ impl Store {
             "released"
         };
         Ok(
-            json!({"scope":"quote","quote_ref":quote,"status":status,"funding_source":"apiosk_balance","currency":"USD","unit":"micro","pricing_rule":"provider_cost_plus_15_v1","cost_basis":"existing_gateway_provider_tariff","apiosk_fee_bps":1500,"provider_cost":if breakdown_known{Some(provider.to_string())}else{None},"apiosk_fee":if breakdown_known{Some(fee.to_string())}else{None},"total_charged":total.to_string(),"reserved":held.to_string(),"quote_cap":cap.to_string(),"authorization_active":authorized.is_some(),"max_authorized":authorized.unwrap_or(0).to_string(),"balance_available":balance.map(|n|n.to_string()),"executions":executions,"external_settlement":"managed_by_existing_gateway"}),
+            json!({"scope":"quote","quote_ref":quote,"status":status,"funding_source":"apiosk_balance","currency":"USD","unit":"micro","pricing_rule":"provider_cost_plus_15_v1","cost_basis":"existing_gateway_provider_tariff","apiosk_fee_bps":1500,"provider_cost":if breakdown_known{Some(provider.to_string())}else{None},"apiosk_fee":if breakdown_known{Some(fee.to_string())}else{None},"total_charged":total.to_string(),"reserved":held.to_string(),"quote_cap":cap.to_string(),"authorization_active":authorized.is_some(),"approved_via":approved_via,"max_authorized":authorized.unwrap_or(0).to_string(),"balance_available":balance.map(|n|n.to_string()),"executions":executions,"external_settlement":"managed_by_existing_gateway"}),
         )
     }
 }

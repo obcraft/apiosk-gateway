@@ -1,5 +1,6 @@
 use crate::{
     auth::Principal,
+    auto_approval::{Budget, Denial, Policy, Quote},
     parser::bounded_json_sized,
     resolver::{Plan, Step},
     state::{digest, Task},
@@ -50,6 +51,23 @@ fn refusal_class(body: &Value) -> ErrorClass {
     }
 }
 
+/// What a standing automatic-approval rule did for one task's current plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AutoApproval {
+    Approved(Uuid),
+    /// Already approved (in the card, or by an earlier request): continue it.
+    AlreadyAuthorized(Uuid),
+    Declined(Denial),
+}
+
+fn budget_from(row: &sqlx::postgres::PgRow) -> Budget {
+    Budget {
+        per_request_atomic: row.get("per_call_atomic"),
+        daily_remaining_atomic: row.get("daily_remaining_atomic"),
+        balance_atomic: row.get("balance_atomic"),
+    }
+}
+
 pub struct Executor {
     pub store: Store,
     pub http: reqwest::Client,
@@ -95,17 +113,113 @@ impl Executor {
     }
 
     pub async fn connection_can_approve(&self, p: &Principal) -> anyhow::Result<bool> {
+        Ok(self.connection_budget(p).await?.is_some())
+    }
+
+    /// The connection's spending mandate, or None for a person or for a
+    /// connection without a per-request and daily limit.
+    pub async fn connection_budget(&self, p: &Principal) -> anyhow::Result<Option<Budget>> {
         let Some(connection) = p.connection else {
-            return Ok(false);
+            return Ok(None);
         };
-        Ok(
-            sqlx::query("SELECT 1 FROM gateway_v2.connection_budget($1,$2)")
-                .bind(p.owner)
-                .bind(connection)
-                .fetch_optional(&self.store.pool)
-                .await?
-                .is_some(),
-        )
+        let row = sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)")
+            .bind(p.owner)
+            .bind(connection)
+            .fetch_optional(&self.store.pool)
+            .await?;
+        Ok(row.map(|row| budget_from(&row)))
+    }
+
+    /// The connection's automatic-approval rule, if it has one (expired
+    /// included, so the chatbot can be told it ended). A database that has
+    /// not been migrated yet answers None: every request asks, as before.
+    pub async fn auto_policy(&self, p: &Principal) -> anyhow::Result<Option<Policy>> {
+        let Some(connection) = p.connection else {
+            return Ok(None);
+        };
+        let row = sqlx::query("SELECT limit_atomic,expires_at,monthly_remaining_atomic FROM gateway_v2.connection_auto_approval($1,$2)")
+            .bind(p.owner)
+            .bind(connection)
+            .fetch_optional(&self.store.pool)
+            .await;
+        match row {
+            Ok(row) => Ok(row.map(|row| Policy {
+                limit_atomic: row.get("limit_atomic"),
+                expires_at: row.get("expires_at"),
+                monthly_remaining_atomic: row.get("monthly_remaining_atomic"),
+            })),
+            Err(sqlx::Error::Database(error)) if error.code().as_deref() == Some("42883") => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    /// Apply the person's standing rule to the task's current plan: approve it
+    /// under the connection's mandate when it qualifies, recorded as
+    /// `connection_auto`. Everything that does not qualify is left exactly as
+    /// it was, waiting for Approve. Never starts a worker; the caller does.
+    pub async fn auto_approve_connection(&self, p: &Principal, task_id: Uuid) -> anyhow::Result<AutoApproval> {
+        let Some(connection) = p.connection else {
+            return Ok(AutoApproval::Declined(Denial::Off));
+        };
+        // The common case, cheaply: no rule, nothing to lock.
+        let Some(policy) = self.auto_policy(p).await? else {
+            return Ok(AutoApproval::Declined(Denial::Off));
+        };
+        if !policy.active(Utc::now()) {
+            return Ok(AutoApproval::Declined(Denial::Expired));
+        }
+        if !self.enabled {
+            return Ok(AutoApproval::Declined(Denial::PurchasesUnavailable));
+        }
+        if self.store.check_spending(p).await.is_err() {
+            return Ok(AutoApproval::Declined(Denial::SpendingNotPermitted));
+        }
+        let mut tx = self.store.pool.begin().await?;
+        let Some(row) = sqlx::query("SELECT connection_id,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
+            .bind(task_id).bind(p.owner).fetch_optional(&mut *tx).await? else {
+            return Ok(AutoApproval::Declined(Denial::NotReady));
+        };
+        anyhow::ensure!(
+            row.get::<Option<Uuid>, _>("connection_id") == Some(connection),
+            "task belongs to another connection"
+        );
+        let task: Task = serde_json::from_value(row.get("document"))?;
+        anyhow::ensure!(task.workspace_id == p.workspace, "task belongs to another workspace");
+        // Only a complete, runnable plan: the same moment the card offers Approve.
+        let runnable = task.pending_candidates.is_empty()
+            && task.actions.iter().any(|action| action["kind"] == "run");
+        let Some(plan) = task.proposal.clone().filter(|_| runnable && !task.cancelled) else {
+            return Ok(AutoApproval::Declined(Denial::NotReady));
+        };
+        let plan: Plan = serde_json::from_value(plan)?;
+        if let Some(existing) = sqlx::query("SELECT id,revoked_at FROM authorizations WHERE task_id=$1 AND quote_ref=$2")
+            .bind(task_id).bind(plan.quote_ref).fetch_optional(&mut *tx).await?
+        {
+            // A withdrawn approval is never renewed by a standing rule.
+            return Ok(if existing.get::<Option<chrono::DateTime<Utc>>, _>("revoked_at").is_some() {
+                AutoApproval::Declined(Denial::NotReady)
+            } else {
+                AutoApproval::AlreadyAuthorized(existing.get("id"))
+            });
+        }
+        let budget = sqlx::query("SELECT * FROM gateway_v2.connection_budget($1,$2)")
+            .bind(p.owner).bind(connection).fetch_optional(&mut *tx).await?
+            .map(|row| budget_from(&row));
+        let quote = Quote {
+            cap_atomic: plan.cap_atomic,
+            expires_at: plan.expires_at,
+            unverified_source: plan.steps.iter().any(|step| step.service.unverified),
+        };
+        if let Err(denial) = crate::auto_approval::decide(&quote, Some(&policy), budget.as_ref(), Utc::now()) {
+            return Ok(AutoApproval::Declined(denial));
+        }
+        let id = Uuid::new_v4();
+        sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at,approved_via,approved_connection_id) VALUES($1,$2,$3,$4,$5,$6,$7,'connection_auto',$8)")
+            .bind(id).bind(task_id).bind(p.owner).bind(plan.quote_ref).bind(&plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).bind(connection).execute(&mut *tx).await?;
+        tx.commit().await?;
+        tracing::info!(trace = telemetry::id(), task = %task_id, quote = %plan.quote_ref, milestone = "approved", via = "connection_auto", "request milestone");
+        telemetry::milestone(Milestone::Approved, task_id, Some(plan.quote_ref), MilestoneFields { cap_micro_usd: Some(plan.cap_atomic), ..Default::default() });
+        Ok(AutoApproval::Approved(id))
     }
 
     /// The caller's existing connection mandate is the authority. A host's

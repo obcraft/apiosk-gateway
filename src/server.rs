@@ -479,7 +479,8 @@ async fn discover(
         Err(r) => return r,
     };
     match state.engine.discover(&p, req).await {
-        Ok(r) => Json(r).into_response(),
+        // A connection's automatic-approval rule may continue the new plan.
+        Ok(r) => Json(state.engine.continue_automatically(&p, token(&headers).unwrap_or_default(), r).await).into_response(),
         Err(e) => {
             tracing::error!(error=%e,"discover persistence failure");
             failure(
@@ -540,7 +541,7 @@ async fn start_workflow(State(state): State<ServerState>, headers: HeaderMap, Pa
     let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
     let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
     match state.engine.start_workflow(&p, &slug, request).await {
-        Ok(response) => Json(response).into_response(),
+        Ok(response) => Json(state.engine.continue_automatically(&p, token(&headers).unwrap_or_default(), response).await).into_response(),
         Err(error) => {
             tracing::warn!(error=%error, "workflow start failed");
             failure(StatusCode::SERVICE_UNAVAILABLE, "workflow_unavailable", "The workflow could not be prepared. Try again.")
@@ -624,10 +625,13 @@ async fn execute(
             }
         }
         let response = engine.execute(&p, &bearer, req).await?;
-        if continuation && response.state.is_some() && response.errors.is_empty() && !matches!(response.status, Status::RequiresApproval | Status::StateConflict) {
-            engine.start_worker(p.clone(), bearer, id).await?;
-            engine.view(&p, id, response.request_id, None).await
-        } else { Ok(response) }
+        let response = if continuation && response.state.is_some() && response.errors.is_empty() && !matches!(response.status, Status::RequiresApproval | Status::StateConflict) {
+            engine.start_worker(p.clone(), bearer.clone(), id).await?;
+            engine.view(&p, id, response.request_id, None).await?
+        } else { response };
+        // A plan that still waits for approval (a new quote after a choice,
+        // or a run without one) may be covered by the connection's rule.
+        Ok(engine.continue_automatically(&p, &bearer, response).await)
     })
     .await
     {

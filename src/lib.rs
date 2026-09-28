@@ -3,6 +3,7 @@ pub mod ask_v2;
 pub mod answer_blocks;
 pub mod answer_presentation;
 mod approval_feedback;
+pub mod auto_approval;
 pub mod billing;
 mod completeness;
 pub mod browser_fallback;

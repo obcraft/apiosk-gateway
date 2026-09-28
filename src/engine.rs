@@ -10,6 +10,7 @@ mod selection;
 mod supplier;
 mod workflows;
 mod worker;
+mod auto;
 mod direct;
 mod intake_recovery;
 use crate::{
@@ -807,9 +808,15 @@ impl Engine {
             goals.iter().any(|g| g["capability"] == crate::uk_supplier::screening_cap(0)))) {
             r.context_view["coverage_notices"] = crate::uk_supplier::limitations();
         }
-        r.context_view["approval_mode"] = json!(if self.executor.connection_can_approve(p).await.unwrap_or(false) {
-            "chatbot"
-        } else { "app" });
+        // A connection with a spending mandate approves in the chat card. Its
+        // automatic-approval rule, when it has one, is reported separately in
+        // `auto_approval` (below), so a card that predates it keeps working.
+        let budget = self.executor.connection_budget(p).await.unwrap_or(None);
+        let auto_policy = self.executor.auto_policy(p).await.unwrap_or_else(|error| {
+            tracing::warn!(task = %id, error = %error, "automatic approval rule unavailable");
+            None
+        });
+        r.context_view["approval_mode"] = json!(if budget.is_some() { "chatbot" } else { "app" });
         r.context_view["execution_owner"] = json!(if connection.is_some() {
             "connected_agent"
         } else {
@@ -871,6 +878,22 @@ impl Engine {
                 )
                 .await?,
         );
+        if let Some(policy) = auto_policy.as_ref() {
+            let now = Utc::now();
+            let authorized = r.billing.as_ref().is_some_and(|b| b["authorization_active"] == true);
+            let applied = authorized && r.billing.as_ref().is_some_and(|b| b["approved_via"] == "connection_auto");
+            // Why the current plan is waiting, when it is: the same decision
+            // the gateway makes, read without a lock and without writing.
+            let denial = match billing_plan.as_ref() {
+                Some(plan) if !authorized && !task.cancelled => crate::auto_approval::decide(&crate::auto_approval::Quote {
+                    cap_atomic: plan.cap_atomic,
+                    expires_at: plan.expires_at,
+                    unverified_source: plan.steps.iter().any(|step| step.service.unverified),
+                }, Some(policy), budget.as_ref(), now).err(),
+                _ => None,
+            };
+            r.context_view["auto_approval"] = crate::auto_approval::context_view(policy, now, applied, denial);
+        }
         if let (Some(billing), Some(plan)) = (r.billing.as_mut(), billing_plan.as_ref()) {
             billing["fee_percent"] = json!(plan.fee_bps / 100);
             billing["apiosk_fee_bps"] = json!(plan.fee_bps);

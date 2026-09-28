@@ -101,8 +101,10 @@ pub(super) async fn prepare(
     State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<PrepareRequest>,
 ) -> Response {
     // A connected chatbot gets the same quote as the App; paying still needs
-    // its approval within the connection's spending limits.
+    // its approval within the connection's spending limits — a click in the
+    // card, or the connection's own automatic-approval rule when it covers it.
     let person = match caller(&state, &headers).await { Ok(p) => p, Err(response) => return response };
+    let bearer = super::token(&headers).unwrap_or_default().to_owned();
     if !request.valid() {
         return failure(StatusCode::BAD_REQUEST, "invalid_endpoint_input", "Choose an endpoint and review its input fields. Nothing was charged.");
     }
@@ -111,10 +113,12 @@ pub(super) async fn prepare(
     };
     let engine = state.engine.clone();
     // Finish saving the quote/receipt if the browser disconnects. Repeating
-    // this request ID can recover it, and can never authorize a purchase.
+    // this request ID can recover it; only a connection's own standing rule
+    // (never this request) can approve the purchase.
     match crate::telemetry::spawn(async move {
         let _permit = permit;
-        engine.prepare_endpoint(&person, request.request_id, request.endpoint_id, request.capability.as_deref(), &request.input).await
+        let response = engine.prepare_endpoint(&person, request.request_id, request.endpoint_id, request.capability.as_deref(), &request.input).await?;
+        Ok::<_, anyhow::Error>(engine.continue_automatically(&person, &bearer, response).await)
     }).await {
         Ok(Ok(response)) => Json(response).into_response(),
         _ => failure(StatusCode::SERVICE_UNAVAILABLE, "prepare_unavailable", "The quote could not be confirmed. Your inputs are kept; retry this request to recover it."),
