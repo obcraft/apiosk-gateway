@@ -327,10 +327,10 @@ pub struct WorkflowChatReply {
 /// Apiosk's one model, served through OpenRouter, for every stage: intent,
 /// planning, analysis and the Ask parse. No other model may be called.
 pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
-/// Preferred OpenRouter providers of [`MODEL`], fallbacks allowed. Measured on
-/// 2026-09-28 for the streamed Ask parse: Nebius 0.9 s; StreamLake, the price
-/// default, 2–11 s (past the parse deadline).
-pub const PROVIDERS: &[&str] = &["nebius"];
+// No fixed provider order for [`MODEL`]: OpenRouter's `sort` (latency by
+// default, INTENT_PROVIDER_SORT) picks among the healthy providers. A pinned
+// Nebius first measured 0.9 s in the morning of 2026-09-28 and 13.9 s or 429
+// that night, when it was degraded. The Ask parse routes itself (ask_v2).
 
 /// The deployment boundary: a variable naming any other model is ignored,
 /// loudly, so a stale setting can never reintroduce it.
@@ -946,9 +946,6 @@ impl Parser {
             let sort = if analysis { &self.analysis_provider_sort } else { &self.intent_provider_sort };
             if let Some(sort) = sort {
                 payload["provider"]["sort"] = json!(sort);
-            }
-            if payload["model"] == MODEL {
-                payload["provider"]["order"] = json!(PROVIDERS);
             }
         }
         payload
