@@ -984,7 +984,7 @@ impl Parser {
     /// Connected agents and API callers read a question the way the Ask page
     /// does: the Ask v2 capability parse, then the deterministic source search.
     /// No model pass ever sees the whole catalog.
-    pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
+    pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
         let parsed = if intake::conversation_language(question).is_some() {
             intake::normalize("", question, "")?
@@ -1013,10 +1013,24 @@ impl Parser {
                 }
             }
         };
-        let matches = crate::ask_v2::search::search(&parsed, catalog);
+        let mut matches = crate::ask_v2::search::search(&parsed, catalog);
+        let mut selected_capabilities: std::collections::BTreeSet<String> = matches.iter().flat_map(|m| m.operations.iter().cloned()).collect();
+        // A follow-up about the same subject continues the earlier request
+        // ("yes, search by name first"): the operations found for it remain
+        // valid ways to answer. A new subject starts from its own search.
+        if let Some(earlier) = earlier.filter(|_| !task.conversation.is_empty()) {
+            let subjects: std::collections::BTreeSet<_> = earlier.parsed_request.subjects.iter().map(|s| s.label.to_lowercase()).collect();
+            for found in &mut matches {
+                let subject = parsed.capabilities.iter().find(|c| c.slug == found.slug).and_then(|c| c.subject_id.as_deref())
+                    .and_then(|id| parsed.subjects.iter().find(|s| s.id == id));
+                if subject.is_some_and(|s| subjects.contains(&s.label.to_lowercase())) {
+                    found.operations.extend(earlier.selected_capabilities.iter().cloned());
+                    selected_capabilities.extend(earlier.selected_capabilities.iter().cloned());
+                }
+            }
+        }
         Ok(intake::Intake {
-            selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(),
-            parsed_request: parsed, matches,
+            selected_capabilities, parsed_request: parsed, matches,
             apiosk_sources_searched: intake::source_count(catalog), catalog_version: catalog.version.clone(),
         })
     }

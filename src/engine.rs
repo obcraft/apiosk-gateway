@@ -347,6 +347,9 @@ impl Engine {
                 f.value.clone(),
             )?;
         }
+        // A connected follow-up may continue what the last turn found; the
+        // intake itself is rebuilt below, as for every non-App question.
+        let earlier_intake = if app_chat { None } else { task.capability_intake.clone() };
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract.
@@ -446,7 +449,7 @@ impl Engine {
             } else {
                 // Connected agents plan from the Ask page's parse and source
                 // search, never from a model pass over the whole catalog.
-                match self.parser.ask_intake(&req.question, &task, &catalog).await {
+                match self.parser.ask_intake(&req.question, &task, &catalog, earlier_intake.as_ref()).await {
                     Ok(intake) => {
                         let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, &intake).await;
                         task.capability_intake = Some(intake);
