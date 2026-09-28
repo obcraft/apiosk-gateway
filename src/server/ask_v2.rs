@@ -1,7 +1,7 @@
 //! Capability discovery and explicit endpoint preparation. Parsing and search
 //! never create tasks. Preparation saves a quote; existing task approval owns
 //! every paid action.
-use super::{app_person, failure, ServerState};
+use super::{app_person, caller, failure, ServerState};
 use crate::capability_intake::{self, Match, ParsedRequest};
 use axum::{
     extract::{Path, Query, State},
@@ -47,10 +47,11 @@ pub(super) struct EndpointQuery { capability: Option<String> }
 
 /// Inputs and prices come from the current executable contract, never from a
 /// directory card or the model's parsed metadata. This does not create a task.
+/// Connected chatbots read it too: they fill in the inputs they are shown.
 pub(super) async fn endpoint(
     State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Query(query): Query<EndpointQuery>,
 ) -> Response {
-    if let Err(response) = app_person(&state, &headers).await { return response; }
+    if let Err(response) = caller(&state, &headers).await { return response; }
     if query.capability.as_deref().is_some_and(|value| !valid_operation(value)) {
         return failure(StatusCode::BAD_REQUEST, "invalid_capability", "Choose the source's published capability.");
     }
@@ -99,7 +100,9 @@ fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &crate::catal
 pub(super) async fn prepare(
     State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<PrepareRequest>,
 ) -> Response {
-    let person = match app_person(&state, &headers).await { Ok(p) => p, Err(response) => return response };
+    // A connected chatbot gets the same quote as the App; paying still needs
+    // its approval within the connection's spending limits.
+    let person = match caller(&state, &headers).await { Ok(p) => p, Err(response) => return response };
     if !request.valid() {
         return failure(StatusCode::BAD_REQUEST, "invalid_endpoint_input", "Choose an endpoint and review its input fields. Nothing was charged.");
     }
@@ -263,7 +266,8 @@ pub(super) async fn search(
     headers: HeaderMap,
     Json(request): Json<SearchRequest>,
 ) -> Response {
-    let person = match app_person(&state, &headers).await {
+    // A connected chatbot sends the capability object it filled in itself.
+    let person = match caller(&state, &headers).await {
         Ok(p) => p,
         Err(r) => return r,
     };
@@ -312,11 +316,11 @@ pub(super) async fn search(
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             // Branding is cached separately from contracts. A slow directory
             // refresh must not hold up capability matches indefinitely.
-            if let Ok(Ok(sources)) =
-                tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.sources()).await
-            {
-                brand_matches(&mut matches, &sources);
+            let sources = tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.sources()).await.ok().and_then(Result::ok);
+            if let Some(sources) = &sources {
+                brand_matches(&mut matches, sources);
             }
+            describe_endpoints(&mut matches, &catalog, sources.as_ref().map(|sources| sources.as_slice()));
             (
                 matches,
                 capability_intake::source_count(&catalog),
@@ -372,6 +376,20 @@ fn buyer_discovery_price(price: &str) -> Option<String> {
     if !(0..1_000_000_000_000).contains(&provider) { return None; }
     let total = catalog_core::fees::quote(provider.into(), catalog_core::fees::ProviderClass::Federated).buyer_total_atomic;
     Some(format!("{}.{:06} USD", total / 1_000_000, total % 1_000_000))
+}
+
+/// Every executable candidate carries its contract's own inputs and price, so
+/// a caller can fill in the input object that prepare accepts.
+fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, sources: Option<&[crate::sources::Source]>) {
+    for found in matches.as_array_mut().into_iter().flatten() {
+        for candidate in found["apiosk"].as_array_mut().into_iter().flatten() {
+            if candidate["availability"] != "supported" { continue; }
+            let Some(id) = candidate["endpoint_id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) else { continue };
+            let Ok(service) = crate::engine::Engine::endpoint_service(catalog, id, candidate["capability"].as_str()) else { continue };
+            let source = sources.and_then(|sources| sources.iter().find(|source| source.slug == service.api_slug));
+            candidate["endpoint"] = endpoint_descriptor(catalog, service, source);
+        }
+    }
 }
 
 fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Source]) {

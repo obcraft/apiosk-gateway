@@ -14,7 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const DEFAULT_MODEL: &str = "google/gemma-3-4b-it";
+pub const DEFAULT_MODEL: &str = crate::parser::MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
@@ -385,8 +385,16 @@ mod tests {
     }
 
     #[test]
-    fn default_model_is_total_four_billion_and_fixture_endpoint_is_loopback_only() {
-        assert_eq!(DEFAULT_MODEL, "google/gemma-3-4b-it");
+    fn connected_chatbots_fill_in_the_ask_parse_schema_exactly() {
+        let tools: serde_json::Value = serde_json::from_str(include_str!("../../contracts/tool-schemas.json")).unwrap();
+        let parse: serde_json::Value = serde_json::from_str(SCHEMA).unwrap();
+        assert_eq!(tools["search"]["properties"]["parsed_request"], parse);
+        assert_eq!(tools["search"]["required"], serde_json::json!(["parsed_request"]));
+    }
+
+    #[test]
+    fn default_model_is_apiosks_one_model_and_fixture_endpoint_is_loopback_only() {
+        assert_eq!(DEFAULT_MODEL, "qwen/qwen3-30b-a3b-instruct-2507");
         assert_eq!(
             Client::new(reqwest::Client::new(), "fixture".into(), String::new()).model,
             DEFAULT_MODEL

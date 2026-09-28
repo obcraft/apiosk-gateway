@@ -439,8 +439,21 @@ impl Engine {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
             let reply = if let Some(intake) = &task.capability_intake {
                 self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, intake).await
-            } else {
+            } else if app_chat || self.parser.ask_v2().is_none() {
+                // Without an Ask v2 model (local fixtures) the full-catalog
+                // interpreter remains the only reader.
                 self.parser.chat_selected(&req.question, model_selection.as_ref(), &task, &catalog).await
+            } else {
+                // Connected agents plan from the Ask page's parse and source
+                // search, never from a model pass over the whole catalog.
+                match self.parser.ask_intake(&req.question, &task, &catalog).await {
+                    Ok(intake) => {
+                        let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, &intake).await;
+                        task.capability_intake = Some(intake);
+                        reply
+                    }
+                    Err(error) => Err(error),
+                }
             };
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,

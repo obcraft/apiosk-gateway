@@ -324,6 +324,19 @@ pub struct WorkflowChatReply {
     pub ready: bool,
 }
 
+/// Apiosk's one model, served through OpenRouter, for every stage: intent,
+/// planning, analysis and the Ask parse. No other model may be called.
+pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
+
+/// The deployment boundary: a variable naming any other model is ignored,
+/// loudly, so a stale setting can never reintroduce it.
+pub fn pinned_model(variable: &str) -> String {
+    if let Some(configured) = std::env::var(variable).ok().map(|v| v.trim().to_owned()).filter(|v| !v.is_empty() && v != MODEL) {
+        tracing::warn!(variable, %configured, model = MODEL, "ignoring a model other than Apiosk's OpenRouter model");
+    }
+    MODEL.to_owned()
+}
+
 /// Only these public classifications leave the model boundary. Provider
 /// envelopes, JSON errors and model internals stay out of client responses.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -908,16 +921,17 @@ impl Parser {
         let mut payload = payload.clone();
         let analysis = surface == "analysis";
         payload["model"] = json!(if analysis { &self.analysis_model } else { &self.model });
-        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma")) {
-            // Gemma 3 providers do not support a reasoning parameter. Gemma 4
-            // supports it, but needs thinking disabled to keep chat bounded.
-            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-")) {
+        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma") || model == MODEL) {
+            // Neither Qwen3 Instruct 2507 nor Gemma 3 providers support a
+            // reasoning parameter; with require_parameters it would match no
+            // provider at all. Gemma 4 supports it, but needs thinking disabled.
+            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-") || model == MODEL) {
                 payload.as_object_mut().unwrap().remove("reasoning");
             } else if payload.get("reasoning").is_some() {
                 payload["reasoning"] = json!({"enabled": false});
             }
-            // Gemma follows the prompt's shape less closely than Gemini (it
-            // wrote answer_operations as objects), so it gets the schema.
+            // These models follow the prompt's shape less closely than Gemini
+            // (Gemma wrote answer_operations as objects), so they get the schema.
             if payload["response_format"]["type"] == "json_object" {
                 if let Some(schema) = intent_reply_schema(surface) {
                     payload["response_format"] = json!({"type":"json_schema","json_schema":{"name":surface.replace('-', "_"),"strict":false,"schema":schema}});
@@ -958,6 +972,46 @@ impl Parser {
     async fn chat_baseline(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<ChatReply> {
         let view = self.planning_view(question, task, catalog).await?;
         self.chat_with_view(question, selection, task, catalog, view, None).await
+    }
+
+    /// Connected agents and API callers read a question the way the Ask page
+    /// does: the Ask v2 capability parse, then the deterministic source search.
+    /// No model pass ever sees the whole catalog.
+    pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
+        use crate::capability_intake as intake;
+        let parsed = if intake::conversation_language(question).is_some() {
+            intake::normalize("", question, "")?
+        } else {
+            let client = self.ask_v2.as_ref().ok_or(ModelFailure::Unavailable)?;
+            let known: Vec<_> = catalog.by_capability.keys().filter(|slug| !slug.starts_with("operation."))
+                .filter_map(|slug| intake::normalize_slug(slug, "").map(|(slug, _)| slug)).take(100).collect();
+            // A follow-up is parsed as the Ask page sends it: the previous
+            // request is context only, and its values stay literal.
+            let asked = match task.conversation.last() {
+                Some(turn) => format!("Previous request (context only): {}\n\nCurrent request: {question}", turn.question),
+                None => question.to_owned(),
+            };
+            let literals = capability_binding::literal_context(question, task, None);
+            let unavailable = |error: anyhow::Error| {
+                tracing::warn!(surface = "ask-intake", reason = %error, "Ask v2 capability parse failed");
+                anyhow::Error::from(ModelFailure::Unavailable)
+            };
+            // One correction, as the Ask page gives its parser.
+            let first = client.parse(&asked, &known, None).await.map_err(unavailable)?;
+            match intake::normalize_with_context(&first.text, question, &literals, &first.model) {
+                Ok(parsed) => parsed,
+                Err(error) => {
+                    let second = client.parse(&asked, &known, Some(&error.to_string())).await.map_err(unavailable)?;
+                    intake::normalize_with_context(&second.text, question, &literals, &second.model).map_err(unavailable)?
+                }
+            }
+        };
+        let matches = crate::ask_v2::search::search(&parsed, catalog);
+        Ok(intake::Intake {
+            selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(),
+            parsed_request: parsed, matches,
+            apiosk_sources_searched: intake::source_count(catalog), catalog_version: catalog.version.clone(),
+        })
     }
 
     /// Ask must finish capability extraction before any source search starts.
@@ -1598,6 +1652,20 @@ mod tests {
             assert_eq!(routed["provider"]["require_parameters"], true);
             assert_eq!(routed["response_format"]["type"], if matches!(surface, "chat" | "intent") { "json_schema" } else { "json_object" });
         }
+    }
+    #[test]
+    fn apiosks_one_model_gets_no_reasoning_parameter_and_the_intent_schema() {
+        // Qwen3 Instruct 2507 providers list no `reasoning` parameter: with
+        // require_parameters it would match no provider and every call fails.
+        let qwen = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), MODEL.into());
+        let payload = json!({"reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},"response_format":{"type":"json_object"}});
+        for surface in ["chat", "intent", "analysis", "capability-intake"] {
+            let routed = qwen.routed_payload(surface, &payload);
+            assert_eq!(routed["model"], MODEL);
+            assert!(routed.get("reasoning").is_none(), "{surface}");
+            assert_eq!(routed["provider"]["require_parameters"], true);
+        }
+        assert_eq!(qwen.routed_payload("chat", &payload)["response_format"]["type"], "json_schema");
     }
     #[test]
     fn gemma_answers_without_thinking_and_other_models_keep_their_effort() {

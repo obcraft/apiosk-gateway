@@ -320,7 +320,7 @@ async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
     let parse = json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Coolblue"});
     let parsed = apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(), "Jaarrekening van Coolblue", "fixture").unwrap();
     let search = json!({"parsed_request":parsed,"origin":"apiosk"});
-    for (path, body) in [("/v2/ask-v2/parse", parse.clone()), ("/v2/ask-v2/search", search)] {
+    for (path, body) in [("/v2/ask-v2/parse", parse.clone()), ("/v2/ask-v2/search", search.clone())] {
         let response = intake.http.post(format!("{}{path}",intake.gateway)).json(&body).send().await.unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "anonymous {path}");
         let (status, response) = intake.send("invalid-fixture-bearer", path, Some(body.clone())).await;
@@ -328,6 +328,17 @@ async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
         let (status, response) = intake.send(ORGANISATION_KEY, path, Some(body)).await;
         assert_eq!(status, StatusCode::FORBIDDEN, "App-only {path}: {response}");
     }
+    // A connected chatbot fills in the capability object itself: it may
+    // search, and sees each executable source's inputs, but never parses.
+    let (status, response) = intake.send("apk_access_local_fixture", "/v2/ask-v2/parse", Some(parse.clone())).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{response}");
+    let (status, found) = intake.send("apk_access_local_fixture", "/v2/ask-v2/search", Some(search)).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    let candidate = &found["matches"][0]["apiosk"][0];
+    assert_eq!(candidate["availability"], "supported", "{found}");
+    assert_eq!(candidate["endpoint"]["endpoint_id"], candidate["endpoint_id"], "{found}");
+    assert!(candidate["endpoint"]["inputs"].as_array().is_some_and(|inputs| !inputs.is_empty()), "{found}");
+    assert!(candidate["endpoint"]["price"]["buyer_atomic"].is_string(), "{found}");
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
     assert!(intake.model.stages.lock().unwrap().is_empty());
     let first = Person::new();
@@ -371,13 +382,16 @@ async fn intake_counts_characters_not_bytes() {
     let ask = |question: String| {
         intake.http.post(format!("{}/v2/ask", intake.gateway)).bearer_auth(ORGANISATION_KEY).json(&json!({"question":question})).send()
     };
+    // API and connected-agent questions are read by the Ask v2 parse first.
+    let parses = || intake.model.ask_v2_requests.lock().unwrap().len();
     let public = ask(full.clone()).await.unwrap();
     assert_ne!(public.status(), StatusCode::BAD_REQUEST, "the public API counts the same way");
-    assert_eq!(intake.model.chats().len(), 2);
+    let reached = parses();
+    assert!(reached > 0, "the question reached interpretation");
     let public = ask(format!("{full}?")).await.unwrap();
     assert_eq!(public.status(), StatusCode::BAD_REQUEST);
     assert_eq!(public.json::<Value>().await.unwrap()["error"]["code"], "invalid_request");
-    assert_eq!(intake.model.chats().len(), 2);
+    assert_eq!(parses(), reached, "an over-long question is refused before interpretation");
     let owned: i64 = sqlx::query_scalar("SELECT count(*) FROM tasks WHERE owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(owned, 1, "only the accepted App question created a task");
     println!("intake_counts_characters_not_bytes: 4000 characters accepted by App chat and /v2/ask, 4001 refused");
@@ -481,12 +495,21 @@ async fn ask_v2_prepare_rejects_unknown_inputs_and_authenticates_before_task_cre
     let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":Uuid::new_v4(),"input":{}}))).await;
     assert_eq!(status, StatusCode::OK);
     assert!(codes(&response).contains(&"endpoint_unavailable"));
-    for bearer in ["invalid", "apk_access_local_fixture", ORGANISATION_KEY] {
+    for bearer in ["invalid", ORGANISATION_KEY] {
         let (status, _) = intake.send(bearer, "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":{"company.id":"123"}}))).await;
         assert!(!status.is_success());
         let (status, _) = intake.send(bearer, &format!("/v2/ask-v2/endpoints/{endpoint}"), None).await;
         assert!(!status.is_success());
     }
+    // A connected chatbot reads the same inputs and prepares the same kind of
+    // quote; paying still needs its approval.
+    let (status, described) = intake.send("apk_access_local_fixture", &format!("/v2/ask-v2/endpoints/{endpoint}"), None).await;
+    assert_eq!(status, StatusCode::OK, "{described}");
+    assert!(described["inputs"].is_array(), "{described}");
+    let (status, prepared) = intake.send("apk_access_local_fixture", "/v2/ask-v2/prepare", Some(json!({"request_id":Uuid::new_v4(),"endpoint_id":endpoint,"input":{}}))).await;
+    assert_eq!(status, StatusCode::OK, "{prepared}");
+    assert_eq!(prepared["protocol_version"], "2", "{prepared}");
+    assert!(prepared["billing"].is_null() || prepared["billing"]["total_charged"] == "0", "{prepared}");
     assert_eq!(task_count(&intake, &person).await, 0);
     assert!(intake.model.stages.lock().unwrap().is_empty());
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());

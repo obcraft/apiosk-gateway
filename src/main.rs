@@ -130,11 +130,10 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    let intent_model = env::var("INTENT_MODEL")
-        .ok()
-        .map(|v| v.trim().to_owned())
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| "google/gemma-3-12b-it".into());
+    // One model for every stage (planning, analysis, Ask parse), via OpenRouter.
+    let intent_model = apiosk_gateway_v2::parser::pinned_model("INTENT_MODEL");
+    let analysis_model = apiosk_gateway_v2::parser::pinned_model("ANALYSIS_MODEL");
+    let ask_model = apiosk_gateway_v2::parser::pinned_model("ASK_V2_MODEL");
     tracing::info!(model=%intent_model, "intent parser configured");
     let engine = Arc::new(Engine {
         store: store.clone(),
@@ -149,14 +148,14 @@ async fn main() -> anyhow::Result<()> {
             env::var("INTENT_API_KEY").unwrap_or_default(),
             intent_model,
         ).with_routing(
-            env::var("ANALYSIS_MODEL").ok(),
+            Some(analysis_model),
             Some(env::var("INTENT_PROVIDER_SORT").unwrap_or_else(|_| "latency".into())),
             env::var("ANALYSIS_PROVIDER_SORT").ok(),
         )?.with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(
             http.clone(),
             env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
                 .or_else(|| env::var("INTENT_API_KEY").ok()).unwrap_or_default(),
-            env::var("ASK_V2_MODEL").unwrap_or_else(|_| apiosk_gateway_v2::ask_v2::DEFAULT_MODEL.into()),
+            ask_model,
         )),
         signer: Signer::new(required("STATE_SIGNING_KEY")?.into_bytes())?,
         executor: Executor {

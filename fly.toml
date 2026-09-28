@@ -10,8 +10,10 @@ kill_timeout = "120s"
   APP_ORIGIN = "https://app.apiosk.com"
   SUPABASE_URL = "https://api.apiosk.com"
   BIND_ADDRESS = "0.0.0.0:8082"
-  INTENT_MODEL = "google/gemma-3-12b-it"
-  ASK_V2_MODEL = "google/gemma-3-4b-it"
+  # Apiosk's one model, via OpenRouter, for every stage. The code pins it and
+  # ignores any other value; these lines only document it.
+  INTENT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
+  ASK_V2_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.
@@ -20,7 +22,7 @@ kill_timeout = "120s"
   WORKSPACE_CONTEXT_ENABLED = "true"
   EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"
   EMBEDDED_EXECUTOR_PORT = "8080"
-  APIOSK_ENGINE_MODEL = "google/gemma-3-12b-it"
+  APIOSK_ENGINE_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
   # The one embedded executor process shares the 60-connection database with
   # v2; it gets 4 request + 1 log + 2 telemetry connections.
   GATEWAY_DB_POOL_SIZE = "4"
