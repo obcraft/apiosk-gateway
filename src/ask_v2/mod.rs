@@ -17,7 +17,16 @@ use std::{
 pub const DEFAULT_MODEL: &str = crate::parser::MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
+// The parse contract: connected chatbots fill in exactly this shape
+// (contracts/tool-schemas.json), and the App validates the model's parse
+// against it. The model itself is asked for a JSON object; see `parse`.
+#[cfg_attr(not(test), allow(dead_code))]
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
+/// Qwen's own provider first. Measured on 2026-09-28 for this parse: Alibaba
+/// 1.4–2.4 s; the providers with strict json_schema 3–14 s (Nebius degraded
+/// and rate-limited, StreamLake 3–7 s, SiliconFlow 7 s). The others stay as
+/// fallbacks.
+const PARSE_PROVIDERS: &[&str] = &["alibaba"];
 // Qwen3 30B streams this parse in about 1–4 s on the preferred provider; the
 // deadline leaves room for a slower fallback provider.
 const DEADLINE: Duration = Duration::from_secs(20);
@@ -197,21 +206,19 @@ impl Client {
         if let Some(correction) = correction {
             prompt.push_str(&format!("\nPrevious output failed validation: {correction}\nParse the user's request again. Return only one complete JSON object with every required field."));
         }
-        let mut body = json!({
+        // A JSON object, not a strict json_schema: Alibaba, the fastest Qwen
+        // provider, has no strict schema mode. The prompt spells out the shape,
+        // and the App validates and mechanically repairs every parse exactly as
+        // before (a missing `domain` is the slug's first part), with its one
+        // correction attempt for anything else.
+        let body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
             "stream": true, "temperature": 0, "max_tokens": 1024,
-            // Only providers that honour the strict schema; the fastest first.
-            "provider": {"order": crate::parser::PROVIDERS, "require_parameters": true}
+            "provider": {"order": PARSE_PROVIDERS, "require_parameters": true},
+            "response_format": {"type": "json_object"}
         })
         .to_string();
-        // Serialize all dynamic fields normally, but embed the trusted schema
-        // verbatim: Value's sorted maps reorder its properties and can change
-        // the model's generation order relative to WebGPU's requested shape.
-        body.pop();
-        body.push_str(",\"response_format\":{\"type\":\"json_schema\",\"json_schema\":{\"name\":\"capability_request\",\"strict\":true,\"schema\":");
-        body.push_str(SCHEMA);
-        body.push_str("}}}");
         let mut response = self
             .http
             .post(&self.endpoint)
@@ -574,14 +581,13 @@ mod tests {
             captured[0]["messages"],
             json!([{"role":"system","content":PROMPT},{"role":"user","content":"Hoi!"}])
         );
-        let schema: Value = serde_json::from_str(SCHEMA).unwrap();
         assert_eq!(
             captured[0],
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"temperature":0,"max_tokens":1024,
-                "provider":{"order":["nebius"],"require_parameters":true},
-                "response_format":{"type":"json_schema","json_schema":{"name":"capability_request","strict":true,"schema":schema}}
+                "provider":{"order":["alibaba"],"require_parameters":true},
+                "response_format":{"type":"json_object"}
             })
         );
         assert_eq!(captured[1]["messages"][0]["content"], format!("{}Known slugs: company.profile\nPrevious output failed validation: subjects must be an array.\nParse the user's request again. Return only one complete JSON object with every required field.", PROMPT.strip_suffix("Known slugs: none").unwrap()));
@@ -590,12 +596,9 @@ mod tests {
             captured[1]["messages"][1]["content"],
             "Geef \"KVK\" details\né"
         );
+        // The shape reaches the model through the prompt alone; no strict schema.
         for request in raw_requests.lock().unwrap().iter() {
-            let schema = request.split_once("\"schema\":").unwrap().1;
-            assert!(schema.starts_with(SCHEMA));
-            let positions = ["language", "subjects", "capabilities", "deliverable"]
-                .map(|field| schema.find(&format!("\"{field}\":")).unwrap());
-            assert!(positions.windows(2).all(|pair| pair[0] < pair[1]));
+            assert!(!request.contains("json_schema"));
         }
         assert_eq!(first.text, "{\"language\":\"nl\"}");
         assert_eq!(first.model, DEFAULT_MODEL);
