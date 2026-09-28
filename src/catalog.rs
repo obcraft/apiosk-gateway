@@ -377,12 +377,20 @@ impl Catalog {
 
     /// Reviewed API contracts for semantic planning. No credentials, payloads
     /// or fixed parameters belong in the model's context.
-    pub fn planning_view(&self, intent: &crate::parser::Intent) -> Value {
+    /// `available`: operations the Ask search already found for this question.
+    /// A large catalogue is narrowed to them and the intent's own goals, as
+    /// the planner is: the whole index no longer fits a model's context.
+    pub fn planning_view(&self, intent: &crate::parser::Intent, available: Option<&std::collections::BTreeSet<String>>) -> Value {
         let capabilities: std::collections::BTreeSet<_> = intent
             .goals
             .iter()
             .map(|goal| goal.capability.as_str())
             .collect();
+        let catalog = if self.services.len() <= 400 { self.parser_view() } else {
+            let mut selected: std::collections::BTreeSet<String> = capabilities.iter().map(|c| c.to_string()).collect();
+            selected.extend(available.into_iter().flatten().cloned());
+            self.selected_parser_view(&selected)
+        };
         let services: Vec<_> = self
             .services
             .iter()
@@ -395,7 +403,7 @@ impl Catalog {
                 "pagination":s.pagination})
             })
             .collect();
-        json!({"catalog":self.parser_view(),"requested_services":services})
+        json!({"catalog":catalog,"requested_services":services})
     }
 }
 /// The planning catalogue and source list, refreshed in the background

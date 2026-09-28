@@ -1188,7 +1188,7 @@ impl Parser {
                 {"role":"system","content":include_str!("../contracts/planning-prompt.txt")},
                 {"role":"user","content":json!({"surface":"planning-review","question":question,
                     "context":task.parser_context(),"intent":intent,"compiler_feedback":reason,
-                    "available":catalog.planning_view(intent)}).to_string()}]});
+                    "available":catalog.planning_view(intent, task.capability_intake.as_ref().map(|i| &i.selected_capabilities))}).to_string()}]});
         self.completion("planning", &payload, |raw| {
             let review: PlanningReview = serde_json::from_str(raw)?;
             review.validate(intent, question, task, catalog)?;
