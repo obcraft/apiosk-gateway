@@ -2,7 +2,7 @@
 //! never create tasks. Preparation saves a quote; existing task approval owns
 //! every paid action.
 use super::{app_person, caller, failure, ServerState};
-use crate::capability_intake::{self, Match, ParsedRequest};
+use crate::{capability_intake::{self, Match, ParsedRequest}, parser::conversation_reply};
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -210,6 +210,72 @@ pub(super) async fn parse(
                 "The model could not finish parsing. Your question is kept; try again.",
             )
         }
+    }
+}
+
+/// What the Ask page sends when a question is not yet a clear data question:
+/// the latest message, the conversation before it, why nothing was found, and
+/// the page's own reply, which it shows whenever this one does not come.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ReplyRequest {
+    question: String,
+    #[serde(default)]
+    context: Vec<conversation_reply::Turn>,
+    reason: conversation_reply::Reason,
+    language: Option<String>,
+    draft: Option<String>,
+}
+
+impl ReplyRequest {
+    fn valid(&self) -> bool {
+        let text = |value: &str, limit: usize| value.encode_utf16().count() <= limit;
+        !self.question.trim().is_empty()
+            && text(&self.question, 16_000)
+            && self.context.len() <= 12
+            && self.context.iter().all(|turn| text(&turn.text, 16_000))
+            && self.language.as_deref().is_none_or(conversation_reply::valid_language)
+            && self.draft.as_deref().is_none_or(|draft| text(draft, 2_000))
+    }
+}
+
+/// The written reply to small talk, an unclear request or a search that found
+/// nothing. It creates no task and calls no source; it only writes text.
+pub(super) async fn reply(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Json(request): Json<ReplyRequest>,
+) -> Response {
+    // A connected chatbot may ask for the same reply as the App.
+    let person = match caller(&state, &headers).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if !request.valid() {
+        return failure(StatusCode::BAD_REQUEST, "invalid_reply_request", "Send the latest message and why nothing was found.");
+    }
+    let (Some(limits), Some(client)) = (state.engine.parser.ask_v2(), state.engine.parser.conversation_replies()) else {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "reply_unavailable", "A written reply is temporarily unavailable.");
+    };
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "The service is busy. Try again shortly.");
+    };
+    if !limits.admit_reply(&person.owner.to_string()) {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before trying another question.");
+    }
+    // The catalog only names what the reply may mention; without it the reply
+    // names no source at all.
+    let catalog = match tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.get()).await {
+        Ok(Ok(catalog)) => conversation_reply::catalog_summary(&catalog, None),
+        _ => json!({}),
+    };
+    let asked = conversation_reply::Request {
+        question: request.question.trim(), earlier: request.context, reason: request.reason,
+        language: request.language.as_deref(), draft: request.draft.as_deref(),
+    };
+    match client.reply(&asked, catalog).await {
+        Ok(written) => Json(json!({"reply":written.text,"model":written.model})).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "reply_unavailable", "A written reply is temporarily unavailable."),
     }
 }
 

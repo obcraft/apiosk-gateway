@@ -84,6 +84,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/chat", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
+        .route("/v2/ask-v2/reply", post(ask_v2::reply).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/endpoints/:id", get(ask_v2::endpoint))
         .route("/v2/ask-v2/prepare", post(ask_v2::prepare))
         .route("/v2/ask-v2/external/source", post(ask_v2_external::source))

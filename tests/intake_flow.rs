@@ -31,6 +31,8 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 #[derive(Default)]
 struct Model {
     ask_v2_requests: Mutex<Vec<Value>>,
+    /// Requests to the conversation-reply model (OpenRouter in production).
+    replies: Mutex<Vec<Value>>,
     chats: Mutex<Vec<Value>>,
     workflow_chats: Mutex<Vec<Value>>,
     stages: Mutex<Vec<&'static str>>,
@@ -50,6 +52,16 @@ async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(
     model.ask_v2_requests.lock().unwrap().push(body);
     let event = json!({"choices":[{"delta":{"content":ask_v2_capabilities().to_string()}}]});
     ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
+}
+/// The conversation-reply model's written reply, or a failure when one is due.
+const WRITTEN_REPLY: &str = "Goed dat je het vraagt! Welke gegevens over Coolblue wil je controleren, bijvoorbeeld de jaarrekening?";
+async fn conversation_reply_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
+    assert_eq!(headers.get("authorization").unwrap(), "Bearer reply-fixture-key");
+    model.replies.lock().unwrap().push(body);
+    if model.failure("reply").is_some() {
+        return (StatusCode::BAD_GATEWAY, Json(json!({"error":{"message":"private provider detail"}})));
+    }
+    (StatusCode::OK, Json(json!({"provider":"Alibaba","choices":[{"finish_reason":"stop","message":{"content":WRITTEN_REPLY}}]})))
 }
 impl Model {
     fn chats(&self) -> Vec<Value> {
@@ -220,6 +232,7 @@ impl Intake {
         let mock = Router::new()
             .route("/chat", post(interpret))
             .route("/ask-v2-model", post(ask_v2_model))
+            .route("/conversation-reply", post(conversation_reply_model))
             .route("/bazaar", get(|State(model): State<Arc<Model>>| async move {
                 model.stages.lock().unwrap().push("bazaar");
                 Json(json!({"resources":[]}))
@@ -237,7 +250,9 @@ impl Intake {
             catalog: CatalogCache::new(pool.clone()),
             parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap()
                 .with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(http.clone(), "ask-v2-fixture-key".into(), "ask-v2-fixture-model".into())
-                    .with_local_endpoint(format!("{base}/ask-v2-model")).unwrap()),
+                    .with_local_endpoint(format!("{base}/ask-v2-model")).unwrap())
+                .with_conversation_replies(apiosk_gateway_v2::parser::conversation_reply::Client::new(http.clone(), "reply-fixture-key".into())
+                    .with_local_endpoint(format!("{base}/conversation-reply")).unwrap()),
             signer: Signer::new(vec![7; 32]).unwrap(),
             executor: Executor { store, http: http.clone(), supabase_url: base.clone(), enabled: true },
             app_url: "http://localhost:5173".into(),
@@ -272,6 +287,74 @@ impl Intake {
         let principal = Principal { owner: person.owner, connection: None, workspace: None };
         serde_json::to_value(self.engine.chat(&principal, request).await.unwrap()).unwrap()
     }
+}
+
+/// A declined question's reply comes from the conversation model (MCP and API
+/// discover), with the planner's text kept whenever that model fails; the Ask
+/// page asks the same model through its own route, which creates nothing.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn a_declined_question_is_answered_by_the_conversation_model_or_keeps_the_planner_reply() {
+    let intake = Intake::start().await;
+    let discover = |person: &Person, question: &str| {
+        let request: DiscoverRequest = serde_json::from_value(json!({"request_id":Uuid::new_v4(),"question":question,"state":null})).unwrap();
+        let principal = Principal { owner: person.owner, connection: None, workspace: None };
+        let engine = intake.engine.clone();
+        async move { serde_json::to_value(engine.discover(&principal, request).await.unwrap()).unwrap() }
+    };
+    let person = Person::new();
+    let written = discover(&person, "Controleer Coolblue").await;
+    assert_eq!(written["status"], "needs_input", "{written}");
+    assert_eq!(written["context_view"]["conversation"][0]["reply"], WRITTEN_REPLY, "{written}");
+    let replies = intake.model.replies.lock().unwrap().clone();
+    assert_eq!(replies.len(), 1);
+    assert_eq!(replies[0]["model"], "qwen/qwen3-235b-a22b-2507");
+    let input: Value = serde_json::from_str(replies[0]["messages"][1]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(input["question"], "Controleer Coolblue");
+    assert_eq!(input["reason"], "ambiguous_request");
+    assert_eq!(input["language"], "nl");
+    assert_eq!(input["draft"], "Welke gegevens wil je controleren?", "the planner's reply is the draft");
+    assert!(intake.model.count("plan") >= 1, "the planner still reads the question");
+
+    // The conversation model fails: the planner's reply, same status and actions.
+    intake.model.fail_next("reply", 1);
+    let other = Person::new();
+    let kept = discover(&other, "Controleer Coolblue").await;
+    assert_eq!(kept["context_view"]["conversation"][0]["reply"], "Welke gegevens wil je controleren?", "{kept}");
+    for field in ["status", "next_actions", "proposal"] {
+        assert_eq!(kept[field], written[field], "{field}");
+    }
+
+    // A plan is never rewritten by the conversation model.
+    let planned = discover(&Person::new(), "Jaarrekening van Coolblue").await;
+    assert_ne!(planned["status"], "needs_input", "{planned}");
+    assert_eq!(intake.model.replies.lock().unwrap().len(), 2);
+
+    // The Ask page's route: the same model, no task, the page's own text on failure.
+    let tasks = task_count(&intake, &person).await;
+    let body = json!({"question":"How are you?","context":[{"role":"user","text":"Hi"},{"role":"assistant","text":"Hello!"}],
+        "reason":"conversation","language":"en","draft":"What data do you need, and about which company, person or place?"});
+    let (status, reply) = intake.send(&person.bearer, "/v2/ask-v2/reply", Some(body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{reply}");
+    assert_eq!(reply, json!({"reply":WRITTEN_REPLY,"model":"qwen/qwen3-235b-a22b-2507"}));
+    let sent = intake.model.replies.lock().unwrap().last().cloned().unwrap();
+    let input: Value = serde_json::from_str(sent["messages"][1]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(input["earlier_turns"], body["context"]);
+    assert_eq!(input["reason"], "conversation");
+    assert_eq!(task_count(&intake, &person).await, tasks, "a written reply creates no task");
+    let (status, _) = intake.send("not-a-session", "/v2/ask-v2/reply", Some(body.clone())).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    for invalid in [json!({"question":" ","reason":"conversation"}), json!({"question":"Hi","reason":"conversation","language":"english"})] {
+        let (status, _) = intake.send(&person.bearer, "/v2/ask-v2/reply", Some(invalid)).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+    let (status, _) = intake.send(&person.bearer, "/v2/ask-v2/reply", Some(json!({"question":"Hi","reason":"none"}))).await;
+    assert!(status.is_client_error(), "only the three decline reasons get a reply");
+    intake.model.fail_next("reply", 1);
+    let (status, failed) = intake.send(&person.bearer, "/v2/ask-v2/reply", Some(body)).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(codes(&failed), ["reply_unavailable"]);
+    assert!(!failed.to_string().contains("private provider detail"));
 }
 
 fn codes(response: &Value) -> Vec<&str> {

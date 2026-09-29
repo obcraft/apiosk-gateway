@@ -130,11 +130,15 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    // One model for every stage (planning, analysis, Ask parse), via OpenRouter.
+    // One model for every stage (planning, analysis, Ask parse), via OpenRouter;
+    // the conversation replies alone use their own constant model
+    // (parser::conversation_reply), never a setting.
     let intent_model = apiosk_gateway_v2::parser::pinned_model("INTENT_MODEL");
     let analysis_model = apiosk_gateway_v2::parser::pinned_model("ANALYSIS_MODEL");
     let ask_model = apiosk_gateway_v2::parser::pinned_model("ASK_V2_MODEL");
     tracing::info!(model=%intent_model, "intent parser configured");
+    let openrouter_key = env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
+        .or_else(|| env::var("INTENT_API_KEY").ok()).unwrap_or_default();
     let engine = Arc::new(Engine {
         store: store.clone(),
         catalog: CatalogCache::new(pool.clone()),
@@ -153,9 +157,11 @@ async fn main() -> anyhow::Result<()> {
             env::var("ANALYSIS_PROVIDER_SORT").ok(),
         )?.with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(
             http.clone(),
-            env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
-                .or_else(|| env::var("INTENT_API_KEY").ok()).unwrap_or_default(),
+            openrouter_key.clone(),
             ask_model,
+        )).with_conversation_replies(apiosk_gateway_v2::parser::conversation_reply::Client::new(
+            http.clone(),
+            openrouter_key,
         )),
         signer: Signer::new(required("STATE_SIGNING_KEY")?.into_bytes())?,
         executor: Executor {

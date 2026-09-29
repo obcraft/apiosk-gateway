@@ -462,12 +462,19 @@ impl Engine {
             };
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
-                (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) },
+                (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None },
                 (Err(error), None) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
                 (Err(error), None) => return Err(error),
             };
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
-                reply = crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()) };
+                reply = crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None };
+            }
+            // A genuinely declined question (small talk, an unclear request, a
+            // requirement no source covers) is answered by the conversation
+            // model; on any failure the planner's own reply stands. The status
+            // and actions are the planner's either way.
+            if let Some(written) = self.parser.decline_reply(&req.question, &task, &catalog, &reply).await {
+                reply.message = written;
             }
             chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;

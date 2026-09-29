@@ -137,6 +137,7 @@ pub fn browse_reply(
         ),
         discover: false,
         intent: None,
+        decline_reason: None,
     })
 }
 

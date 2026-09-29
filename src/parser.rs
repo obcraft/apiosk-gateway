@@ -19,7 +19,7 @@ use uuid::Uuid;
 mod capability_binding;
 use capability_binding::Bindings;
 mod explicit_request;
-
+pub mod conversation_reply;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -311,6 +311,10 @@ pub struct ChatReply {
     pub discover: bool,
     #[serde(default)]
     pub intent: Option<Intent>,
+    /// Why the planner returned no plan (`explicit_request::DECLINE_REASONS`);
+    /// a genuine one gets its written reply from [`CHAT_MODEL`].
+    #[serde(default)]
+    pub decline_reason: Option<String>,
 }
 impl ChatReply {
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -329,16 +333,25 @@ pub struct WorkflowChatReply {
     pub ready: bool,
 }
 
-/// Apiosk's one model, served through OpenRouter, for every stage: intent,
-/// planning, analysis and the Ask parse. No other model may be called.
+/// Apiosk's model, served through OpenRouter, for every stage: intent,
+/// planning, analysis and the Ask parse. The only other model Apiosk calls is
+/// [`CHAT_MODEL`], and only for the conversation replies below.
 pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
+/// Qwen3 235B A22B Instruct 2507, via OpenRouter: the written reply to a
+/// message that is not yet a clear data question (small talk, an unclear
+/// request, a requirement no source covers), in `conversation_reply` and
+/// nowhere else. It writes text for the person to answer; it never reads a
+/// request into a plan, quotes, analyses or chooses a source. No setting can
+/// select it for another stage, or replace it (see [`pinned_model`]).
+pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
 // No fixed provider order for [`MODEL`]: OpenRouter's `sort` (latency by
 // default, INTENT_PROVIDER_SORT) picks among the healthy providers. A pinned
 // Nebius first measured 0.9 s in the morning of 2026-09-28 and 13.9 s or 429
 // that night, when it was degraded. The Ask parse routes itself (ask_v2).
 
-/// The deployment boundary: a variable naming any other model is ignored,
-/// loudly, so a stale setting can never reintroduce it.
+/// The deployment boundary: a variable naming any other model (including
+/// [`CHAT_MODEL`]) is ignored, loudly, so a stale setting can never
+/// reintroduce it. The conversation replies' model is a constant, not a setting.
 pub fn pinned_model(variable: &str) -> String {
     if let Some(configured) = std::env::var(variable).ok().map(|v| v.trim().to_owned()).filter(|v| !v.is_empty() && v != MODEL) {
         tracing::warn!(variable, %configured, model = MODEL, "ignoring a model other than Apiosk's OpenRouter model");
@@ -358,6 +371,7 @@ pub enum ModelFailure {
 
 pub struct Parser {
     ask_v2: Option<crate::ask_v2::Client>,
+    conversation: Option<conversation_reply::Client>,
     http: reqwest::Client,
     discovery_http: reqwest::Client,
     url: String,
@@ -879,6 +893,7 @@ impl Parser {
     pub fn new(http: reqwest::Client, url: String, key: String, model: String) -> Self {
         Self {
             ask_v2: None,
+            conversation: None,
             http,
             discovery_http: reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().expect("public discovery HTTP client"),
             url,
@@ -901,6 +916,32 @@ impl Parser {
     }
     pub fn ask_v2(&self) -> Option<&crate::ask_v2::Client> {
         self.ask_v2.as_ref()
+    }
+    /// Written replies from [`CHAT_MODEL`] when a message is not yet a clear
+    /// data question. Without it, the planner's own reply is shown.
+    pub fn with_conversation_replies(mut self, client: conversation_reply::Client) -> Self {
+        self.conversation = Some(client);
+        self
+    }
+    pub fn conversation_replies(&self) -> Option<&conversation_reply::Client> {
+        self.conversation.as_ref()
+    }
+    /// The reply to a question the planner genuinely declined (conversation,
+    /// an unclear request, a requirement no source covers), written by
+    /// [`CHAT_MODEL`] from the conversation so far and the live catalog, with
+    /// the planner's text as its draft. None keeps the planner's text: no
+    /// genuine reason, no configured client, a failure or the deadline.
+    pub async fn decline_reply(&self, question: &str, task: &Task, catalog: &Catalog, reply: &ChatReply) -> Option<String> {
+        if reply.discover { return None; }
+        let reason = conversation_reply::Reason::from_decline(reply.decline_reason.as_deref())?;
+        let client = self.conversation.as_ref()?;
+        let intake = task.capability_intake.as_ref();
+        let request = conversation_reply::Request {
+            question, earlier: conversation_reply::earlier_turns(task), reason,
+            language: intake.map(|intake| intake.parsed_request.language.as_str()),
+            draft: Some(&reply.message),
+        };
+        client.reply(&request, conversation_reply::catalog_summary(catalog, intake)).await.ok().map(|written| written.text)
     }
     pub fn discovery_http(&self) -> &reqwest::Client {
         &self.discovery_http
@@ -1133,13 +1174,13 @@ impl Parser {
         // repair; declined again, it is planned from the source search.
         let declined = std::sync::atomic::AtomicBool::new(false);
         self.completion("chat", &payload, |raw| {
-            let (mut reply, decline_reason): (ChatReply, Option<String>) = match &bindings {
+            let mut reply: ChatReply = match &bindings {
                 Some(bindings) => bindings.decode_reply(raw)?,
-                None => (serde_json::from_str(raw)?, None),
+                None => serde_json::from_str(raw)?,
             };
             reply.validate()?;
             if let Some(intake) = intake.filter(|intake| !reply.discover && explicit_request::data_request(intake)) {
-                if !explicit_request::genuine_decline(decline_reason.as_deref(), &reply.message) {
+                if !explicit_request::genuine_decline(reply.decline_reason.as_deref(), &reply.message) {
                     anyhow::ensure!(declined.swap(true, Ordering::Relaxed), explicit_request::DECLINED);
                     tracing::warn!(surface = "chat", "planner declined an explicit request twice; planning from the source search");
                     reply = explicit_request::planned_reply(intake, catalog).ok_or_else(|| anyhow::anyhow!(explicit_request::DECLINED))?;
@@ -2072,6 +2113,7 @@ mod tests {
             message: " ".into(),
             discover: false,
             intent: None,
+            decline_reason: None,
         }
         .validate()
         .is_err());
@@ -2079,6 +2121,7 @@ mod tests {
             message: "x".repeat(3001),
             discover: false,
             intent: None,
+            decline_reason: None,
         }
         .validate()
         .is_err());

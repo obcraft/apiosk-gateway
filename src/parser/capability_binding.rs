@@ -93,11 +93,11 @@ impl Bindings {
 
     #[cfg(test)]
     pub fn decode(&self, raw: &str) -> anyhow::Result<ChatReply> {
-        Ok(self.decode_reply(raw)?.0)
+        self.decode_reply(raw)
     }
 
-    /// The reply and the planner's stated reason for returning no plan.
-    pub fn decode_reply(&self, raw: &str) -> anyhow::Result<(ChatReply, Option<String>)> {
+    /// The reply, with the planner's stated reason for returning no plan.
+    pub fn decode_reply(&self, raw: &str) -> anyhow::Result<ChatReply> {
         let reply: Reply = serde_json::from_str(raw)?;
         let decline_reason = reply.decline_reason;
         let intent = reply
@@ -136,11 +136,12 @@ impl Bindings {
                 })
             })
             .transpose()?;
-        Ok((ChatReply {
+        Ok(ChatReply {
             message: reply.message,
             discover: reply.discover,
             intent,
-        }, decline_reason))
+            decline_reason,
+        })
     }
 }
 

@@ -63,6 +63,13 @@ struct Window {
 struct OwnerLimits {
     parse: Window,
     search: Window,
+    reply: Window,
+}
+#[derive(Clone, Copy)]
+enum Operation {
+    Parse,
+    Search,
+    Reply,
 }
 
 impl Client {
@@ -100,13 +107,17 @@ impl Client {
     }
 
     pub fn admit(&self, owner: &str) -> bool {
-        self.admit_at(owner, false, Instant::now())
+        self.admit_at(owner, Operation::Parse, Instant::now())
     }
     pub fn admit_search(&self, owner: &str) -> bool {
-        self.admit_at(owner, true, Instant::now())
+        self.admit_at(owner, Operation::Search, Instant::now())
+    }
+    /// A written conversation reply: at most one per parse, so the same budget.
+    pub fn admit_reply(&self, owner: &str) -> bool {
+        self.admit_at(owner, Operation::Reply, Instant::now())
     }
 
-    fn admit_at(&self, owner: &str, search: bool, now: Instant) -> bool {
+    fn admit_at(&self, owner: &str, operation: Operation, now: Instant) -> bool {
         if owner.is_empty() || owner.len() > 256 {
             return false;
         }
@@ -116,6 +127,7 @@ impl Client {
         limits.retain(|_, entry| {
             now.duration_since(entry.parse.start) < WINDOW
                 || now.duration_since(entry.search.start) < WINDOW
+                || now.duration_since(entry.reply.start) < WINDOW
         });
         if !limits.contains_key(owner) && limits.len() >= MAX_OWNERS {
             return false;
@@ -131,11 +143,15 @@ impl Client {
                     start: now,
                     count: 0,
                 },
+                reply: Window {
+                    start: now,
+                    count: 0,
+                },
             });
-        let (window, maximum) = if search {
-            (&mut entry.search, 60)
-        } else {
-            (&mut entry.parse, 30)
+        let (window, maximum) = match operation {
+            Operation::Parse => (&mut entry.parse, 30),
+            Operation::Search => (&mut entry.search, 60),
+            Operation::Reply => (&mut entry.reply, 30),
         };
         if now.duration_since(window.start) >= WINDOW {
             window.start = now;
@@ -511,6 +527,10 @@ mod tests {
             assert!(cloned.admit_search("owner-a"));
         }
         assert!(!original.admit_search("owner-a"));
+        for _ in 0..30 {
+            assert!(original.admit_reply("owner-a"), "replies have their own window");
+        }
+        assert!(!cloned.admit_reply("owner-a"));
         assert!(!original.admit(""));
         assert!(!original.admit(&"x".repeat(257)));
     }
@@ -520,15 +540,15 @@ mod tests {
         let client = client();
         let start = Instant::now();
         for i in 0..MAX_OWNERS {
-            assert!(client.admit_at(&format!("owner-{i}"), false, start));
+            assert!(client.admit_at(&format!("owner-{i}"), Operation::Parse, start));
         }
         assert_eq!(client.limits.lock().unwrap().len(), MAX_OWNERS);
-        assert!(!client.admit_at("overflow", false, start));
+        assert!(!client.admit_at("overflow", Operation::Parse, start));
         for _ in 1..30 {
-            assert!(client.admit_at("owner-0", false, start));
+            assert!(client.admit_at("owner-0", Operation::Parse, start));
         }
-        assert!(!client.admit_at("owner-0", false, start));
-        assert!(client.admit_at("overflow", false, start + WINDOW));
+        assert!(!client.admit_at("owner-0", Operation::Parse, start));
+        assert!(client.admit_at("overflow", Operation::Parse, start + WINDOW));
         assert_eq!(client.limits.lock().unwrap().len(), 1);
     }
 
