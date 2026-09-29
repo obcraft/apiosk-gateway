@@ -12,6 +12,11 @@ use std::{
     sync::{Arc, Mutex, OnceLock},
 };
 
+#[cfg(test)]
+mod calibration;
+mod country;
+mod relevance;
+
 const FINANCIAL: u8 = 1;
 const OFFICERS: u8 = 2;
 const CONTROL: u8 = 4;
@@ -28,6 +33,18 @@ struct Document {
     tokens: BTreeSet<String>,
     facets: u8,
     capabilities: BTreeSet<String>,
+    /// Meaningful words of the endpoint's reviewed capability id (see
+    /// `relevance::contract_words`); empty for sources.
+    contract: BTreeSet<String>,
+    /// Facets named by the capability id itself (`company.accounts`,
+    /// `company.officers`), not merely by a description.
+    contract_facets: u8,
+    /// Words of the reviewed capability id's namespace (`company` and
+    /// `registry` for `company_registry.lookup`); empty for sources and
+    /// generated `operation.*` ids.
+    namespace: BTreeSet<String>,
+    /// Where the candidate can answer, for the country signal.
+    coverage: country::Coverage,
 }
 struct Index {
     documents: Vec<Document>,
@@ -49,10 +66,11 @@ fn index(catalog: &Catalog) -> Arc<Index> {
     }
     let mut documents = Vec::with_capacity(catalog.services.len() + catalog.known_sources.len());
     for (position, service) in catalog.services.iter().enumerate() {
-        let described = catalog
+        let known = catalog
             .known_sources
             .iter()
-            .find(|source| source.slug == service.api_slug)
+            .find(|source| source.slug == service.api_slug);
+        let described = known
             .and_then(|source| {
                 source
                     .metadata
@@ -94,6 +112,13 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         )
         .facets;
         let mut indexed = document(Target::Endpoint(position), &text, capabilities);
+        indexed.coverage = country::endpoint(service, known);
+        indexed.contract = relevance::contract_words(&service.contract.capability_slug);
+        indexed.contract_facets = primary;
+        indexed.namespace = match service.contract.capability_slug.split_once('.') {
+            Some(("operation", _)) | None => BTreeSet::new(),
+            Some((namespace, _)) => words(namespace),
+        };
         if primary != 0 {
             // The operation's own concept takes precedence over a description
             // explaining what a caller might do afterwards. A director roster
@@ -128,7 +153,9 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 .into_iter()
                 .flat_map(|object| object.keys().map(String::as_str)),
         );
-        documents.push(document(Target::Source(position), &text, capabilities));
+        let mut indexed = document(Target::Source(position), &text, capabilities);
+        indexed.coverage = country::source(source);
+        documents.push(indexed);
     }
     let mut frequency = BTreeMap::new();
     for document in &documents {
@@ -172,6 +199,12 @@ fn words(text: &str) -> BTreeSet<String> {
             "companies" => "company".into(),
             "addresses" => "address".into(),
             "jaarrekeningen" => "jaarrekening".into(),
+            // Not the plural of "new": Reuters headlines are not "new rules".
+            "news" => "news".into(),
+            // bankruptcies/bankruptcy, activities/activity, entities/entity.
+            _ if word.len() > 4 && word.ends_with("ies") => {
+                format!("{}y", &word[..word.len() - 3])
+            }
             _ if word.len() > 3
                 && word.ends_with('s')
                 && !word.ends_with("ss")
@@ -183,6 +216,101 @@ fn words(text: &str) -> BTreeSet<String> {
         })
         .collect()
 }
+
+/// Words too general to identify what a document is about.
+const VAGUE: &[&str] = &[
+    "the",
+    "for",
+    "and",
+    "from",
+    "with",
+    "that",
+    "this",
+    "which",
+    "about",
+    "any",
+    "all",
+    "are",
+    "its",
+    "into",
+    "retrieve",
+    "provide",
+    "get",
+    "find",
+    "search",
+    "list",
+    "lookup",
+    "query",
+    "show",
+    "check",
+    "fetch",
+    "data",
+    "information",
+    "detail",
+    "record",
+    "result",
+    "response",
+    "overview",
+    "current",
+    "latest",
+    "available",
+    "company",
+    "business",
+    "entity",
+    "general",
+    "location",
+    "compliance",
+    "finance",
+    "legal",
+    "document",
+    "research",
+    "api",
+    "endpoint",
+    "service",
+    "source",
+    "name",
+    "identifier",
+    "number",
+    "input",
+    "output",
+    "type",
+    "string",
+    "matching",
+    "match",
+    "score",
+    "link",
+    "based",
+    "using",
+    "specified",
+    "supplied",
+    "requested",
+    "return",
+];
+
+/// The words behind the concept facets in `document`.
+const FACET_WORDS: &[&str] = &[
+    "jaarrekening",
+    "financial",
+    "statement",
+    "annual",
+    "account",
+    "balance",
+    "sheet",
+    "officer",
+    "director",
+    "bestuurder",
+    "psc",
+    "ubo",
+    "significant",
+    "control",
+    "controller",
+    "beneficial",
+    "ultimate",
+    "owner",
+    "ownership",
+    "sanction",
+    "sanctie",
+];
 
 fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Document {
     let mut tokens = words(text);
@@ -204,74 +332,6 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         | u8::from(officers) * OFFICERS
         | u8::from(control) * CONTROL
         | u8::from(sanctions) * SANCTIONS;
-    const VAGUE: &[&str] = &[
-        "the",
-        "for",
-        "and",
-        "from",
-        "with",
-        "that",
-        "this",
-        "which",
-        "about",
-        "any",
-        "all",
-        "are",
-        "its",
-        "into",
-        "retrieve",
-        "provide",
-        "get",
-        "find",
-        "search",
-        "list",
-        "lookup",
-        "query",
-        "show",
-        "check",
-        "fetch",
-        "data",
-        "information",
-        "detail",
-        "record",
-        "result",
-        "response",
-        "overview",
-        "current",
-        "latest",
-        "available",
-        "company",
-        "business",
-        "entity",
-        "general",
-        "location",
-        "compliance",
-        "finance",
-        "legal",
-        "document",
-        "research",
-        "api",
-        "endpoint",
-        "service",
-        "source",
-        "name",
-        "identifier",
-        "number",
-        "input",
-        "output",
-        "type",
-        "string",
-        "matching",
-        "match",
-        "score",
-        "link",
-        "based",
-        "using",
-        "specified",
-        "supplied",
-        "requested",
-        "return",
-    ];
     tokens.retain(|token| !VAGUE.contains(&token.as_str()));
     for (present, marker) in [
         (financial, "@financial"),
@@ -288,6 +348,10 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         tokens,
         facets,
         capabilities,
+        contract: BTreeSet::new(),
+        contract_facets: 0,
+        namespace: BTreeSet::new(),
+        coverage: country::Coverage::Unknown,
     }
 }
 
@@ -444,8 +508,19 @@ fn source(source: &KnownSource) -> Candidate {
     }
 }
 
+/// A relevant candidate and its place in the ranking.
+struct Ranked<T> {
+    /// Bound to another country than the subject's (see `country`).
+    demoted: bool,
+    /// Lexical relevance times the country factor.
+    score: f64,
+    item: T,
+}
+
 /// Rank each generic capability independently across the whole local directory.
-/// Entity labels and identifiers never participate in relevance scoring.
+/// Subject labels and identifiers never make a source relevant: they are
+/// scrubbed from the lexical query and the relevance floor. They only order
+/// the relevant candidates by the subject's country (see `country`).
 pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
     let index = index(catalog);
     let empty_task = Task::default();
@@ -470,6 +545,8 @@ pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
                 normalized_capabilities(std::iter::once(capability.slug.as_str())),
             );
             let restricted = hinted_sources(capability, catalog);
+            let floor = relevance::Request::new(capability, parsed);
+            let signal = country::Signal::infer(parsed, capability);
             let mut endpoints = Vec::new();
             let mut sources = Vec::new();
             for candidate in &index.documents {
@@ -484,34 +561,51 @@ pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
                     continue;
                 }
                 let score = score(&wanted, candidate, &index);
-                if score <= 0.0 {
+                if score <= 0.0 || !floor.passes(&wanted, candidate, &index, restricted.is_some()) {
                     continue;
                 }
+                let adjustment = signal.adjustment(&candidate.coverage);
+                let (demoted, score) = (adjustment.demoted, score * adjustment.factor);
                 match candidate.target {
-                    Target::Endpoint(_) => endpoints.push((score, &catalog.services[position])),
-                    Target::Source(_) => sources.push((score, &catalog.known_sources[position])),
+                    Target::Endpoint(_) => endpoints.push(Ranked {
+                        demoted,
+                        score,
+                        item: &catalog.services[position],
+                    }),
+                    Target::Source(_) => sources.push(Ranked {
+                        demoted,
+                        score,
+                        item: &catalog.known_sources[position],
+                    }),
                 }
             }
             endpoints.sort_by(|a, b| {
-                b.0.total_cmp(&a.0)
-                    .then(a.1.unverified.cmp(&b.1.unverified))
-                    .then(a.1.total().cmp(&b.1.total()))
-                    .then(a.1.api_slug.cmp(&b.1.api_slug))
-                    .then(a.1.endpoint_id.cmp(&b.1.endpoint_id))
+                a.demoted
+                    .cmp(&b.demoted)
+                    .then(b.score.total_cmp(&a.score))
+                    .then(a.item.unverified.cmp(&b.item.unverified))
+                    .then(a.item.total().cmp(&b.item.total()))
+                    .then(a.item.api_slug.cmp(&b.item.api_slug))
+                    .then(a.item.endpoint_id.cmp(&b.item.endpoint_id))
             });
-            sources.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.slug.cmp(&b.1.slug)));
+            sources.sort_by(|a, b| {
+                a.demoted
+                    .cmp(&b.demoted)
+                    .then(b.score.total_cmp(&a.score))
+                    .then(a.item.slug.cmp(&b.item.slug))
+            });
             let mut seen_endpoints = BTreeSet::new();
             let mut apiosk: Vec<_> = endpoints
-                .into_iter()
-                .filter(|(_, service)| seen_endpoints.insert(service.endpoint_id))
+                .iter()
+                .filter(|ranked| seen_endpoints.insert(ranked.item.endpoint_id))
                 .take(3)
-                .map(|(_, service)| endpoint(service))
+                .map(|ranked| endpoint(ranked.item))
                 .collect();
             let mut seen_sources: BTreeSet<_> = apiosk
                 .iter()
                 .filter_map(|candidate| candidate.source_slug.clone())
                 .collect();
-            for (_, candidate) in sources {
+            for candidate in sources.iter().map(|ranked| ranked.item) {
                 if apiosk.len() == 3 {
                     break;
                 }

@@ -92,6 +92,20 @@ pub struct SourceQuery {
     pub limit: Option<usize>,
 }
 impl SourceQuery {
+    /// Offset 0 without a search or filter: the page that carries the
+    /// directory-wide tag and capability facets. Blank filters select nothing.
+    pub fn is_first_directory_page(&self) -> bool {
+        self.offset.unwrap_or(0) == 0
+            && [
+                &self.search,
+                &self.category,
+                &self.tag,
+                &self.sector,
+                &self.capability,
+            ]
+            .iter()
+            .all(|filter| filter.as_deref().is_none_or(|value| value.trim().is_empty()))
+    }
     pub fn valid(&self) -> bool {
         [
             &self.search,
@@ -269,6 +283,30 @@ pub fn directory_name(source: &Source) -> &str {
         None => &source.name,
     }
 }
+/// The directory-wide tag facet names the most common tags only: hundreds of
+/// one-off provider tags cost a chatbot tokens on every page without helping
+/// it choose a filter. Each source's own tags stay on its row.
+pub const TAG_FACET_CAP: usize = 60;
+/// Tags carried by the most directory entries (a grouped provider such as
+/// Pulse Network counts once), then by the most listings, most common first.
+fn frequent_tags<'a>(groups: &BTreeMap<&str, Vec<(usize, &'a Source)>>, limit: usize) -> Vec<&'a str> {
+    let mut counts: BTreeMap<&str, (usize, usize)> = BTreeMap::new();
+    for members in groups.values() {
+        let mut seen = BTreeSet::new();
+        for (_, source) in members {
+            for tag in &source.tags {
+                let count = counts.entry(tag.as_str()).or_default();
+                count.1 += 1;
+                if seen.insert(tag.as_str()) {
+                    count.0 += 1;
+                }
+            }
+        }
+    }
+    let mut ranked: Vec<_> = counts.into_iter().collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+    ranked.into_iter().take(limit).map(|(tag, _)| tag).collect()
+}
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
     // Keep every verified listing in the directory. Readiness and executable
     // capabilities remain separate: a discovery-only source is visible, but
@@ -280,7 +318,6 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     let categories: BTreeSet<_> = sources.iter()
         .flat_map(|s| s.categories.iter().chain(std::iter::once(&s.category)))
         .filter(|s| !s.is_empty()).collect();
-    let tags: BTreeSet<_> = sources.iter().flat_map(|s| &s.tags).collect();
     let sectors: BTreeSet<_> = sources.iter().flat_map(|s| &s.sectors).collect();
     let executable_capabilities_for = |slug: &str| {
         catalog
@@ -306,9 +343,12 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         .or_else(|| if capability_filter.is_none() {
             query.search.as_deref().and_then(crate::eu_capabilities::find)
         } else { None });
+    // Generated `operation.*` ids name one provider route each; they stay on
+    // the source rows but would dominate a directory-wide facet.
     let capabilities: BTreeSet<_> = sources
         .iter()
         .flat_map(|s| capabilities_for(s))
+        .filter(|slug| !slug.starts_with("operation."))
         .collect();
     let mut groups: BTreeMap<&str, Vec<(usize, &Source)>> = BTreeMap::new();
     for (index, source) in sources.iter().enumerate() {
@@ -318,6 +358,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             .push((index, source));
     }
     let catalog_total = groups.len();
+    let tags = frequent_tags(&groups, TAG_FACET_CAP);
     let search = query
         .search
         .as_deref()
@@ -450,12 +491,22 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
             "primary_sources":visible(&group.primary_sources),
             "supplementary_sources":visible(&group.supplementary_sources)})
     };
-    json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
+    let mut result = json!({"protocol_version":"2","sources":page,"total":matches.len(),"catalog_total":catalog_total,
         "offset":offset,"next_offset":if end < matches.len() {Some(end)} else {None},
-        "categories":categories,"tags":tags,"sectors":sectors,"capabilities":capabilities,
+        "categories":categories,"sectors":sectors,
         "capability_groups":crate::eu_capabilities::definitions().iter().map(group_view).collect::<Vec<_>>(),
         "selected_capability":selected_group.map(group_view),
-        "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under a grouped provider such as Pulse Network or Coinbase Bazaar are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."})
+        "notice":"Browsing is free. Every verified source is listed, including discovery-only and restricted sources. Each source is counted once; services under a grouped provider such as Pulse Network or Coinbase Bazaar are not separate sources. Only runtime-accepted capabilities can be quoted, and Apiosk checks the exact price before any purchase."});
+    // The tag and capability facets describe the whole directory. Send them
+    // once, with the first unfiltered page; filtered calls and later pages
+    // carry each source's own tags and capabilities on its row.
+    if query.is_first_directory_page() {
+        result["tags"] = json!(tags);
+        result["capabilities"] = json!(capabilities);
+    } else {
+        result["notice"] = json!(format!("{} The tag and capability lists come with the first unfiltered page.", result["notice"].as_str().unwrap_or_default()));
+    }
+    result
 }
 
 #[cfg(test)]
@@ -718,6 +769,70 @@ mod tests {
         let discovery = browse(&rows(), &catalog, &SourceQuery::default());
         assert_eq!(discovery["total"], 2);
         assert_eq!(discovery["sources"][1]["available_in_v2"], false);
+    }
+    #[test]
+    fn directory_facets_come_once_with_the_first_unfiltered_page() {
+        let mut rows = rows();
+        rows[0].offered_capabilities = vec![
+            "company.registry-profile".into(),
+            "operation.registry.get-filings-1234abcd".into(),
+        ];
+        let c = catalog();
+        let first = browse(&rows, &c, &SourceQuery { limit: Some(1), ..Default::default() });
+        assert_eq!(first["tags"], json!(["registry"]));
+        // Generated route ids stay on the source's row, not in the facet.
+        assert_eq!(first["capabilities"], json!(["company.registry-profile"]));
+        assert!(first["sources"][0]["capabilities"].as_array().unwrap()
+            .contains(&json!("operation.registry.get-filings-1234abcd")));
+        assert!(!first["notice"].as_str().unwrap().contains("first unfiltered page"));
+        // Blank filters select nothing, so they are still the first page.
+        let blank = browse(&rows, &c, &SourceQuery { search: Some("  ".into()), tag: Some("".into()), ..Default::default() });
+        assert_eq!(blank["tags"], first["tags"]);
+        for query in [
+            SourceQuery { offset: Some(1), limit: Some(1), ..Default::default() },
+            SourceQuery { search: Some("annual".into()), ..Default::default() },
+            SourceQuery { category: Some("finance".into()), ..Default::default() },
+            SourceQuery { tag: Some("registry".into()), ..Default::default() },
+            SourceQuery { sector: Some("business".into()), ..Default::default() },
+            SourceQuery { capability: Some("company.registry-profile".into()), ..Default::default() },
+            SourceQuery { capability: Some("eu.company.profile".into()), ..Default::default() },
+        ] {
+            let result = browse(&rows, &c, &query);
+            assert!(result.get("tags").is_none() && result.get("capabilities").is_none(), "{result}");
+            // Small facets and the curated groups stay on every call.
+            assert_eq!(result["categories"], first["categories"]);
+            assert_eq!(result["sectors"], first["sectors"]);
+            assert_eq!(result["capability_groups"], first["capability_groups"]);
+            assert!(result["notice"].as_str().unwrap().ends_with("The tag and capability lists come with the first unfiltered page."));
+            // Each source keeps its own tags.
+            for source in result["sources"].as_array().unwrap() {
+                assert!(source["tags"].is_array());
+            }
+        }
+    }
+    #[test]
+    fn the_tag_facet_keeps_the_most_common_tags_and_counts_a_grouped_provider_once() {
+        let mut rows: Vec<Source> = (0..70)
+            .map(|index| serde_json::from_value(json!({
+                "slug":format!("source-{index:02}"),"name":format!("Source {index}"),"description":"Data","category":"data",
+                "tags":[if index < 40 {"shared"} else {"other"}, format!("unique-{index:02}"), if index < 2 {"pair"} else {"single"}],
+                "sectors":[],"endpoint_count":1
+            })).unwrap())
+            .collect();
+        // Eighty-seven Pulse services are one directory entry: their common
+        // tag counts once, after tags that several entries share.
+        for index in 0..87 {
+            rows.push(serde_json::from_value(json!({
+                "slug":format!("pulse-{index}"),"provider_slug":"pulsenetwork","name":"Pulse service","description":"x",
+                "category":"intelligence","tags":["pulse-only"],"sectors":[],"endpoint_count":1
+            })).unwrap());
+        }
+        let facet = browse(&rows, &catalog(), &SourceQuery::default())["tags"].clone();
+        let tags: Vec<_> = facet.as_array().unwrap().iter().map(|tag| tag.as_str().unwrap()).collect();
+        assert_eq!(tags.len(), TAG_FACET_CAP);
+        assert_eq!(tags[..5], ["single", "shared", "other", "pair", "pulse-only"]);
+        assert!(tags[5..].iter().all(|tag| tag.starts_with("unique-")));
+        assert!(!tags.contains(&"unique-69"), "one-off tags beyond the cap are left to the rows");
     }
     #[test]
     fn offered_capability_is_browsable_without_becoming_executable() {
