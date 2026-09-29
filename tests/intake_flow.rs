@@ -129,7 +129,8 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
                 "subjects":[if input.get("bindings").is_some() {json!({"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}})} else {json!({"entity_ref":null,"label":label,"values":{"company.name":label}})}],
                 "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
         }
-        None => json!({"message":if question.starts_with("Controleer ") {"Welke gegevens wil je controleren?"} else {"Waar kan ik je mee helpen?"},"discover":false,"intent":null}),
+        None => json!({"message":if question.starts_with("Controleer ") {"Welke gegevens wil je controleren?"} else {"Waar kan ik je mee helpen?"},"discover":false,"intent":null,
+            "decline_reason":if question.starts_with("Controleer ") {"ambiguous_request"} else {"conversation"}}),
     };
     Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }

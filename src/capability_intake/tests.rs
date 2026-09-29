@@ -326,7 +326,7 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
 #[tokio::test]
 async fn clarification_answer_keeps_prior_user_subject_and_deliverable() {
     let (parser, _, bazaar, server) = fixture(vec![raw(), matched(),
-        json!({"message":"Welke gegevens wil je controleren?","discover":false,"intent":null}),
+        json!({"message":"Welke gegevens wil je controleren?","discover":false,"intent":null,"decline_reason":"ambiguous_request"}),
         raw(), matched(), planned()], false).await;
     let c = catalog();
     let mut task = Task::default();

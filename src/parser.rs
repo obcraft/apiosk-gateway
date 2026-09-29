@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 mod capability_binding;
 use capability_binding::Bindings;
+mod explicit_request;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -280,6 +281,7 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "every matched capability needs a retrieval goal" => "missing_capability_goal",
         "every parsed subject needs its requested retrieval" => "missing_subject_goal",
         "unexpected intent for conversational reply" => "conversation_requires_null_intent",
+        explicit_request::DECLINED => "declined_explicit_request",
         _ => "invalid_intent_schema",
     }
 }
@@ -290,6 +292,9 @@ fn intent_repair_message(surface: &str, reason: &str) -> String {
     } else {
         "Return only the Intent object with subjects, goals, answer_operations and unresolved_references."
     };
+    if reason == "declined_explicit_request" {
+        return format!("The previous response failed validation ({reason}). {} {shape}", explicit_request::DECLINED_REPAIR);
+    }
     format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and eight goals.")
 }
 /// The endpoints a person selected in the App next to the question: shown to
@@ -410,6 +415,9 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
 /// request. A syntactically valid open map still allowed invented fact names.
 fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::collections::BTreeSet<String>, matches_complete: bool) -> Value {
     let mut schema = intent_reply_schema("chat").unwrap();
+    // Why there is no plan: only a genuine reason keeps a clarification.
+    schema["properties"]["decline_reason"] = json!({"type":"string","enum":explicit_request::DECLINE_REASONS});
+    schema["required"].as_array_mut().unwrap().push(json!("decline_reason"));
     if selected.is_empty() || !matches_complete {
         schema["properties"]["intent"] = json!({"type":"null"});
         schema["properties"]["discover"] = json!({"type":"boolean","enum":[false]});
@@ -1121,12 +1129,22 @@ impl Parser {
                 {"role":"user","content":input.to_string()}
             ]
         });
+        // An explicit data request declined without a genuine reason gets one
+        // repair; declined again, it is planned from the source search.
+        let declined = std::sync::atomic::AtomicBool::new(false);
         self.completion("chat", &payload, |raw| {
-            let mut reply: ChatReply = match &bindings {
-                Some(bindings) => bindings.decode(raw)?,
-                None => serde_json::from_str(raw)?,
+            let (mut reply, decline_reason): (ChatReply, Option<String>) = match &bindings {
+                Some(bindings) => bindings.decode_reply(raw)?,
+                None => (serde_json::from_str(raw)?, None),
             };
             reply.validate()?;
+            if let Some(intake) = intake.filter(|intake| !reply.discover && explicit_request::data_request(intake)) {
+                if !explicit_request::genuine_decline(decline_reason.as_deref(), &reply.message) {
+                    anyhow::ensure!(declined.swap(true, Ordering::Relaxed), explicit_request::DECLINED);
+                    tracing::warn!(surface = "chat", "planner declined an explicit request twice; planning from the source search");
+                    reply = explicit_request::planned_reply(intake, catalog).ok_or_else(|| anyhow::anyhow!(explicit_request::DECLINED))?;
+                }
+            }
             if intake.is_some() {
                 anyhow::ensure!(!reply.discover || reply.intent.is_some(), "discovery requires a matched intent");
                 anyhow::ensure!(!reply.discover || intake.is_none_or(|i| i.matches.iter().all(|m| !m.operations.is_empty())), "unmatched capabilities need clarification before a quote");

@@ -178,6 +178,63 @@ mod tests {
         }
     }
 
+    /// The live report after the lookup fix: the planning model answered the
+    /// KVK question with "Would you like to retrieve this information now?"
+    /// (needs_input, no action). It is told once, declines again, and the
+    /// request is planned from the search: KVK name search, then the profile.
+    #[tokio::test]
+    async fn a_confirmation_reply_still_plans_the_name_search_and_the_profile() {
+        use axum::{extract::State, routing::post, Json, Router};
+        use std::sync::{Arc, Mutex};
+        let confirmation = json!({"message":"The KVK Business Register can provide the registered name, status, and address for Coolblue B.V. Would you like to retrieve this information now?",
+            "discover":false,"intent":null,"decline_reason":"none"});
+        let calls = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
+        let app = Router::new().route("/model", post(move |State(calls): State<Arc<Mutex<Vec<serde_json::Value>>>>, Json(body): Json<serde_json::Value>| {
+            let reply = confirmation.clone();
+            async move {
+                calls.lock().unwrap().push(body);
+                Json(json!({"choices":[{"message":{"content":reply.to_string()}}]}))
+            }
+        })).with_state(calls.clone());
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}/model", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+        let catalog = catalog();
+        let ranked = ["company.registry-profile", "company.branch-profile", "company.registered-names"];
+        let candidate = |op: &str| crate::capability_intake::Candidate { origin: "apiosk".into(), name: "KVK Business Register".into(),
+            description: String::new(), source_slug: Some(KVK.into()), capability: Some(op.into()), endpoint_id: None, url: None,
+            method: "GET".into(), price: None, network: None, calls_30d: None, availability: "supported".into() };
+        let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"Coolblue B.V.","type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.registry.profile","name":"Company registry profile","description":"Retrieve a company's registered name, status and address.","domain":"company","inputs":["kvk_number"],"outputs":["registered_name","status","address"],"subject_id":"s1","source_hint":"kvk","confidence":0.95}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(), QUESTION, "fixture").unwrap();
+        assert_eq!(parsed_request.capabilities[0].missing, ["kvk_number"], "as in the live parse");
+        let intake = Intake { parsed_request,
+            matches: vec![crate::capability_intake::Match { slug: "company.registry.profile".into(), query: String::new(),
+                operations: ranked.iter().map(|op| op.to_string()).collect(), apiosk: ranked.iter().map(|op| candidate(op)).collect(),
+                coinbase: vec![], coinbase_status: "skipped".into() }],
+            apiosk_sources_searched: 1, catalog_version: catalog.version.clone(),
+            selected_capabilities: ranked.iter().map(|op| op.to_string()).collect() };
+        let parser = crate::parser::Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+        let mut task = Task { capability_intake: Some(intake.clone()), ..Task::default() };
+        let reply = parser.chat_from_capabilities(QUESTION, None, &task, &catalog, &intake).await.unwrap();
+        server.abort();
+        assert!(reply.discover, "an explicit request is planned, not confirmed");
+        let calls = calls.lock().unwrap().clone();
+        assert_eq!(calls.len(), 2, "one repair, then the search's plan");
+        assert!(calls[1]["messages"].to_string().contains("declined_explicit_request"));
+        assert_eq!(calls[0]["response_format"]["json_schema"]["schema"]["properties"]["decline_reason"]["enum"],
+            json!(["none", "conversation", "ambiguous_request", "unavailable_requirement"]));
+
+        let mut intent = reply.intent.unwrap();
+        input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        seed(&mut task, &catalog, &mut intent).unwrap();
+        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected a quote") };
+        let steps: Vec<_> = plan.steps.iter().map(|s| (s.service.api_slug.as_str(), s.service.contract.capability_slug.as_str())).collect();
+        assert_eq!(steps, [(KVK, "company_registry.search"), (KVK, "company.registry-profile")]);
+    }
+
     #[test]
     fn a_supplied_identifier_is_used_directly_and_nothing_is_seeded() {
         let catalog = catalog();

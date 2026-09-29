@@ -91,8 +91,15 @@ impl Bindings {
         }})
     }
 
+    #[cfg(test)]
     pub fn decode(&self, raw: &str) -> anyhow::Result<ChatReply> {
+        Ok(self.decode_reply(raw)?.0)
+    }
+
+    /// The reply and the planner's stated reason for returning no plan.
+    pub fn decode_reply(&self, raw: &str) -> anyhow::Result<(ChatReply, Option<String>)> {
         let reply: Reply = serde_json::from_str(raw)?;
+        let decline_reason = reply.decline_reason;
         let intent = reply
             .intent
             .map(|intent| -> anyhow::Result<Intent> {
@@ -129,11 +136,11 @@ impl Bindings {
                 })
             })
             .transpose()?;
-        Ok(ChatReply {
+        Ok((ChatReply {
             message: reply.message,
             discover: reply.discover,
             intent,
-        })
+        }, decline_reason))
     }
 }
 
@@ -143,6 +150,8 @@ struct Reply {
     message: String,
     discover: bool,
     intent: Option<BoundIntent>,
+    #[serde(default)]
+    decline_reason: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
