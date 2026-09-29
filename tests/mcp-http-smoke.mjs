@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
-const { createApioskMcpRuntime } = await import(process.env.TEST_MCP_RUNTIME_URL || new URL('../../mcp/src/runtime.mjs', import.meta.url).href);
+// The Gateway v2 MCP (2.0, the mcp repo's main branch, deployed on push).
+// ../mcp is whatever that sibling checkout has checked out; other branches
+// serve other gateways, so name the runtime explicitly when they differ.
+const runtimeUrl=process.env.TEST_MCP_RUNTIME_URL || new URL('../../mcp/src/runtime.mjs', import.meta.url).href;
+const needsV2=`The MCP smoke needs the Gateway v2 MCP runtime: check out the mcp repo's main branch in ../mcp, or set TEST_MCP_RUNTIME_URL to the src/runtime.mjs of such a checkout.`;
+const { createApioskMcpRuntime } = await import(runtimeUrl).catch(error=>{throw new Error(`Cannot load ${runtimeUrl} (${error.message}). ${needsV2}`);});
 const base=process.env.FIXTURE_GATEWAY_URL;
 assert.match(base,/^http:\/\/127\.0\.0\.1:\d+$/);
 const runtime=createApioskMcpRuntime({env:{APIOSK_GATEWAY_V2_URL:base,APIOSK_CONNECT_TOKEN:'apk_access_local_fixture'}});
-assert.deepEqual((await runtime.listTools()).map(t=>t.name).sort(),
-  ['apiosk_approve','apiosk_discover','apiosk_execute','apiosk_prepare','apiosk_search','apiosk_sources','apiosk_status']);
+const tools=(await runtime.listTools()).map(t=>t.name).sort();
+assert.deepEqual(tools,
+  ['apiosk_approve','apiosk_discover','apiosk_execute','apiosk_prepare','apiosk_search','apiosk_sources','apiosk_status'],
+  `${runtimeUrl} exposes [${tools.join(', ')}], not the Gateway v2 tool surface. ${needsV2}`);
 async function tool(name,args){const r=await runtime.callTool(name,args);assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent;}
 const sources=await tool('apiosk_sources',{category:'finance',tag:'registry',limit:1});
 assert.equal(sources.sources.length,1);

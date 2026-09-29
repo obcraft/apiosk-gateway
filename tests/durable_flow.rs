@@ -1,7 +1,8 @@
 //! The durable Gateway v2 flow against an isolated PGlite database: quote,
 //! approval, execution, replay, recovery, workspace scope and the MCP HTTP
 //! adapter (tests/mcp-http-smoke.mjs, which imports ../mcp/src/runtime.mjs or
-//! TEST_MCP_RUNTIME_URL). Model, billing and providers are local fixtures.
+//! TEST_MCP_RUNTIME_URL; it must be the Gateway v2 MCP from the mcp repo's
+//! main branch). Model, billing and providers are local fixtures.
 //!
 //! Run: `node scripts/test-integration.mjs` (a fresh tests/support-db.mjs per
 //! suite; PGTEST_PORT, default 54330). By hand: start
