@@ -820,7 +820,7 @@ mod tests {
         });
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let origin = format!("http://{}", listener.local_addr().unwrap());
-        tokio::spawn(async move { axum::serve(listener, legacy).await.unwrap() });
+        crate::telemetry::spawn(async move { axum::serve(listener, legacy).await.unwrap() });
 
         // Nothing here may touch the database: the pool never connects.
         let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://unused@127.0.0.1:1/unused").unwrap();
