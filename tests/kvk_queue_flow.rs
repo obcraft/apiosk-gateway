@@ -2,9 +2,10 @@
 //! Source fetch/concurrency is tested separately by the kvk-accounts crate.
 use apiosk_gateway_v2::{
     auth::Principal,
-    catalog::Service,
+    catalog::{CatalogCache, Service},
     execution::{Dispatch, Executor},
     resolver::{Plan, Step},
+    state::Task,
     store::Store,
 };
 use axum::{extract::State, routing::post, Json, Router};
@@ -41,7 +42,13 @@ async fn pay(State(s): State<Payment>, Json(request): Json<Value>) -> Json<Value
 #[tokio::test]
 #[ignore = "requires scripts/test-kvk-accounts.py"]
 async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
-    let database = std::env::var("KVK_TEST_DATABASE_URL").unwrap();
+    // Concurrent admission needs a real multi-connection PostgreSQL; the
+    // one-connection PGlite adapter (tests/support-db.mjs) cannot serve it.
+    // scripts/test-kvk-accounts.py starts a disposable server and sets this.
+    let Ok(database) = std::env::var("KVK_TEST_DATABASE_URL") else {
+        eprintln!("SKIPPED kvk_queue_flow: KVK_TEST_DATABASE_URL is not set. This test needs a disposable multi-connection PostgreSQL; run `python3 scripts/test-kvk-accounts.py`.");
+        return;
+    };
     assert!(database.starts_with("postgresql://postgres@127.0.0.1:"));
     // Deliberately fewer connections than requests: queue admission must reuse
     // its transaction connection, rather than deadlocking on a second checkout.
@@ -67,6 +74,35 @@ async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
     let mut service: Service = serde_json::from_value(fixture["services"][0].clone()).unwrap();
     service.api_slug = kvk_accounts::PROVIDER.into();
     service.path = kvk_accounts::ENDPOINT.into();
+    // Dispatch re-reads every quoted service from the catalog before it
+    // reserves anything, so the quoted KVK service is a catalog row here too.
+    // Only the columns the execution catalog query reads.
+    sqlx::raw_sql("CREATE TABLE public.apis(id uuid primary key,owner_id uuid,slug text,name text,listing_type text,status text,active boolean,is_verified boolean,discoverable boolean,suspended_at timestamptz,docs_url text,website_url text,description text,category text,listing_metadata jsonb DEFAULT '{}');
+        CREATE TABLE public.api_endpoints(id uuid primary key,api_id uuid,method text,path text,price numeric,active boolean);
+        CREATE TABLE public.capabilities(slug text primary key,status text,description text);
+        CREATE TABLE public.fact_types(slug text primary key,status text,value_schema jsonb,jurisdiction text);
+        CREATE TABLE public.capability_execution_contracts(id uuid primary key,endpoint_id uuid,capability_slug text,version int,status text,requires jsonb,input_map jsonb,output_map jsonb,identifies text,cardinality text,max_fan_out int,fixed_params jsonb,preconditions jsonb,pagination jsonb,freshness_seconds int,sample_payload jsonb,validated_at timestamptz,effect text,price_model text,produces jsonb NOT NULL DEFAULT '[]',adapter_version text);").execute(&pool).await.unwrap();
+    for fact in fixture["vocabulary"].as_array().unwrap() {
+        sqlx::query("INSERT INTO fact_types VALUES($1,'active',$2,NULL)")
+            .bind(fact["slug"].as_str().unwrap()).bind(&fact["value_schema"]).execute(&pool).await.unwrap();
+    }
+    sqlx::query("INSERT INTO capabilities(slug,status) VALUES($1,'active')")
+        .bind(&service.contract.capability_slug).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO apis(id,slug,name,listing_type,status,active,is_verified,discoverable) VALUES($1,$2,$3,'api','active',true,true,true)")
+        .bind(service.id).bind(&service.api_slug).bind(&service.name).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO api_endpoints VALUES($1,$2,$3,$4,$5::bigint::numeric/1000000,true)")
+        .bind(service.endpoint_id).bind(service.id).bind(&service.method).bind(&service.path).bind(service.list_atomic).execute(&pool).await.unwrap();
+    let contract = serde_json::to_value(&service.contract).unwrap();
+    sqlx::query("INSERT INTO capability_execution_contracts VALUES($1,$2,$3,$4,'active',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now(),'read','per_call')")
+        .bind(service.id).bind(service.endpoint_id).bind(&service.contract.capability_slug).bind(contract["version"].as_i64().unwrap() as i32)
+        .bind(&contract["requires"]).bind(&contract["input_map"]).bind(&contract["output_map"]).bind(contract["identifies"].as_str())
+        .bind(contract["cardinality"].as_str()).bind(contract["max_fan_out"].as_i64().map(|n| n as i32))
+        .bind(&service.fixed_params).bind(&service.preconditions).bind(&service.pagination)
+        .bind(service.freshness_seconds.map(|n| n as i32)).bind(&service.sample_payload).execute(&pool).await.unwrap();
+    let catalog = CatalogCache::new(pool.clone()).fresh_execution(&[service.id]).await.unwrap();
+    assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+    let service = catalog.services.iter().find(|s| s.id == service.id).unwrap().clone();
+    assert_eq!((service.api_slug.as_str(), service.path.as_str()), (kvk_accounts::PROVIDER, kvk_accounts::ENDPOINT));
     let step = Step {
         service,
         entity_ref: Uuid::new_v4(),
@@ -107,9 +143,10 @@ async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
             connection: None, workspace: None, };
         let task = Uuid::new_v4();
         let authorization = Uuid::new_v4();
-        sqlx::query("INSERT INTO actions.tasks(id,owner_id,document) VALUES($1,$2,'{}')")
+        sqlx::query("INSERT INTO actions.tasks(id,owner_id,document) VALUES($1,$2,$3)")
             .bind(task)
             .bind(p.owner)
+            .bind(serde_json::to_value(Task::default()).unwrap())
             .execute(&pool)
             .await
             .unwrap();
