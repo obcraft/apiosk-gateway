@@ -74,6 +74,13 @@ async fn model(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Valu
     }
     let input: Value =
         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input["known_slugs"].is_array() {
+        // Every App chat submission, workflow input included, first crosses
+        // the Ask capability parse. A workflow's field values are no data
+        // request of their own; with no data capability, no source search runs.
+        let parsed = json!({"language":"en","subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Workflow input without a data request of its own.","domain":"general","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":0.9}],"deliverable":{"format":"chat","operations":[]}});
+        return Json(json!({"choices":[{"message":{"content":parsed.to_string()}}]}));
+    }
     if input.get("workflow").is_some() {
         let patch: Value = serde_json::from_str(input["question"].as_str().unwrap()).unwrap_or(json!({}));
         let mut values = input["collected"].as_object().unwrap().clone();
@@ -509,6 +516,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     }
     // Cancellation prevents purchase and appears in history.
     let r = workflow_catalog::recipe("company-news").unwrap();
+    let models = state.model.load(Ordering::SeqCst);
     let start = engine
         .start_workflow(
             &person,
@@ -520,6 +528,10 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         )
         .await
         .unwrap();
+    // A workflow page's recipe is its plan: its quote needs no model call,
+    // not even the Ask capability parse.
+    assert_eq!(start.status, Status::Ready, "{start:?}");
+    assert_eq!(state.model.load(Ordering::SeqCst), models, "a workflow page start calls no model");
     let task = start.state.as_ref().unwrap().state_ref;
     let cancelled = engine
         .execute(

@@ -354,8 +354,11 @@ impl Engine {
         let earlier_intake = if app_chat { None } else { task.capability_intake.clone() };
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
-        // already name an exact operation and keep their separate contract.
-        task.capability_intake = if app_chat && !direct {
+        // already name an exact operation and keep their separate contract,
+        // and a workflow page's recipe is its plan: a code-built intent is
+        // never interpreted, so it is not parsed either (a parse outage must
+        // not stop a workflow that needs no model before its quote).
+        task.capability_intake = if app_chat && forced.is_none() {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
             let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
                 .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version));
