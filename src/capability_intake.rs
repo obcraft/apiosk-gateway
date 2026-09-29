@@ -1,6 +1,9 @@
 //! Ask intake: validated capabilities first, catalog discovery second. Discovery
 //! returns metadata; only the existing planner and approval can execute a source.
-use crate::{catalog::Catalog, state::Task};
+use crate::{
+    catalog::{Catalog, Service},
+    state::Task,
+};
 use anyhow::ensure;
 use futures_util::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -522,6 +525,14 @@ pub fn source_count(catalog: &Catalog) -> usize {
         .collect::<BTreeSet<_>>()
         .len()
 }
+/// Whether `service` is the source the person named (a lowercase
+/// `source_hint`). Discovery ranks it first and the planner holds the plan to
+/// it, so the source listed first is the source that is quoted.
+pub fn names_source(service: &Service, hint: &str) -> bool {
+    format!("{} {}", service.api_slug, service.name)
+        .to_lowercase()
+        .contains(hint)
+}
 pub fn local_matches(
     parsed: &ParsedRequest,
     query: &BTreeMap<String, String>,
@@ -543,11 +554,7 @@ pub fn local_matches(
                 .filter(|s| selected.contains(&s.contract.capability_slug))
                 .collect();
             services.sort_by_key(|s| {
-                let named = hint.is_some_and(|hint| {
-                    format!("{} {}", s.api_slug, s.name)
-                        .to_lowercase()
-                        .contains(hint)
-                });
+                let named = hint.is_some_and(|hint| names_source(s, hint));
                 (!named, s.unverified, s.total(), s.api_slug.clone(), s.id)
             });
             let mut seen = BTreeSet::new();
