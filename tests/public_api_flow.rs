@@ -315,20 +315,23 @@ async fn organisation_key_public_api() {
     assert_eq!(fixture.provider.load(Ordering::SeqCst), before_ask + 2);
     println!("PASS ask: plan then run, idempotent run, per-key isolation, auto within and above max_spend");
 
-    // ── Parity: the Ask page, a connected chatbot and the API plan alike ─
+    // ── Parity: a person in the App, a connected chatbot and the API plan alike ─
+    // The App's own chat intake (`Engine::chat`) lost its route when the Ask
+    // chat routes were retired (`/v2/chat` answers 410); a person's question
+    // is planned through `/v2/discover` (the App's WebMCP tools), as a chatbot's is.
     let plan_of = |steps: &Value| steps.as_array().unwrap().iter().map(|s| (s["source_id"].as_str().unwrap().to_owned(), s["operation"].as_str().unwrap().to_owned())).collect::<Vec<_>>();
     let question = "Search only Example";
     let (_, via_api) = api.post("/v2/ask", KEY, json!({"question": question}), None).await;
     let person = apiosk_gateway_v2::auth::Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
     let chatbot = apiosk_gateway_v2::auth::Principal { owner: Uuid::parse_str(ACCOUNT).unwrap(), connection: Some(Uuid::parse_str("00000000-0000-4000-8000-000000000002").unwrap()), workspace: None };
     let request = |q: &str| apiosk_gateway_v2::protocol::DiscoverRequest { request_id: Uuid::new_v4(), question: q.into(), state: None, context_delta: Default::default() };
-    let app = shared.chat(&person, request(question)).await.unwrap();
+    let app = shared.discover(&person, request(question)).await.unwrap();
     let mcp = shared.discover(&chatbot, request(question)).await.unwrap();
     let steps = |r: &apiosk_gateway_v2::protocol::Response| r.proposal.as_ref().unwrap().step_details.iter().map(|d| (d["source"]["slug"].as_str().unwrap().to_owned(), d["capability"].as_str().unwrap().to_owned())).collect::<Vec<_>>();
-    assert_eq!(steps(&app), plan_of(&via_api["plan"]["steps"]), "the Ask page and the API plan the same question the same way");
+    assert_eq!(steps(&app), plan_of(&via_api["plan"]["steps"]), "a person in the App and the API plan the same question the same way");
     assert_eq!(steps(&mcp), plan_of(&via_api["plan"]["steps"]), "a connected chatbot and the API plan the same question the same way");
     assert_eq!(app.proposal.as_ref().unwrap().max_total_atomic, mcp.proposal.as_ref().unwrap().max_total_atomic, "one price on every surface");
-    println!("PASS parity: Ask page, chatbot connector and API produce the same plan and price");
+    println!("PASS parity: App person, chatbot connector and API produce the same plan and price");
 
     // ── Result metadata: source, time, identifiers, link, cost ──────────
     let (_, run) = api.post("/v1/execute/fixture/company.search", KEY, json!({"company.name": "Example"}), Some("metadata-1")).await;

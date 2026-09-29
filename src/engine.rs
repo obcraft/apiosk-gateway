@@ -13,6 +13,7 @@ mod worker;
 mod auto;
 mod direct;
 mod intake_recovery;
+mod name_lookup;
 use crate::{
     auth::Principal,
     catalog::{Catalog, CatalogCache},
@@ -512,6 +513,12 @@ impl Engine {
                 self.user_fact(&mut task, &catalog, expansion.invoice.entity_ref, kind, value.clone())?;
             }
             task.supplier_check = Some(serde_json::to_value(&expansion.invoice)?);
+        }
+        // A company the person named is looked up by that name before they
+        // are asked for its identifier. Read questions only: a direct call or
+        // workflow intent is priced exactly as it was asked.
+        if interpreted {
+            name_lookup::seed(&mut task, &catalog, &mut intent)?;
         }
         task.focus.entity_refs = intent
             .subjects

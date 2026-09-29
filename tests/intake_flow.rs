@@ -23,6 +23,9 @@ use uuid::Uuid;
 
 /// The organisation key seeded by tests/support-db.mjs.
 const ORGANISATION_KEY: &str = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+/// A request whose planner reply binds no company name: the matched operation
+/// takes only the registry id (as KVK's profile takes only a KVK number).
+const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
@@ -112,6 +115,12 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     model.chats.lock().unwrap().push(input.clone());
     if let Some(failure) = model.failure("plan") { return failure; }
     let question = input["question"].as_str().unwrap();
+    if question == NAMELESS {
+        let content = json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{
+            "subjects":[{"subject_ref":"s1","values":{}}],
+            "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}});
+        return Json(json!({"choices":[{"message":{"content":content.to_string()}}]}));
+    }
     let continued = question == "De jaarrekening" && input["context"].to_string().contains("Coolblue");
     let content = match question.strip_prefix("Jaarrekening van ").or(continued.then_some("Coolblue")) {
         Some(label) => {
@@ -296,7 +305,8 @@ async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task(
     assert_eq!(calls[0]["stream"], true);
     assert_eq!(calls[0]["model"], "ask-v2-fixture-model");
     assert_eq!(calls[0]["messages"][1]["content"], question);
-    assert_eq!(calls[0]["response_format"]["type"], "json_schema");
+    // JSON mode on Qwen's own provider since 998f35f; the gateway validates.
+    assert_eq!(calls[0]["response_format"]["type"], "json_object");
     assert!(intake.model.stages.lock().unwrap().is_empty(), "the old parser, discovery model, Bazaar and planner must remain untouched");
     for response in [&output, &found] {
         for field in ["state", "proposal", "next_actions", "task_id"] {
@@ -477,6 +487,32 @@ async fn ask_v2_prepare_includes_native_name_lookup_in_one_quote() {
     let (_, replay) = intake.send(&person.bearer, "/v2/ask-v2/prepare", Some(request)).await;
     assert_eq!(replay, quote);
     assert_eq!(task_count(&intake, &person).await, 1);
+}
+
+/// `apiosk_discover` for a named company whose matched operation takes only a
+/// registry number: the planner binds no name, and the quote still starts
+/// with the name search (as Ask v2's endpoint `lookup` does) instead of asking
+/// the chatbot's person for the number. Nothing is bought or approved.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn discover_looks_up_a_named_company_instead_of_asking_for_its_number() {
+    let intake = Intake::start().await;
+    let (status, quote) = intake.send("apk_access_local_fixture", "/v2/discover", Some(json!({"request_id":Uuid::new_v4(),"question":NAMELESS}))).await;
+    assert_eq!(status, StatusCode::OK, "{quote}");
+    assert_eq!(quote["status"], "ready", "{quote}");
+    assert!(quote["next_actions"].as_array().unwrap().iter().all(|action| action["kind"] != "supply_input"), "{quote}");
+    assert_eq!(quote["proposal"]["steps"], json!(["company.search", "company.accounts"]));
+    assert_eq!(quote["proposal"]["max_total_atomic"], "138");
+    assert_eq!(quote["proposal"]["step_details"][1]["dependencies"][0]["field"], "company.id");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1, "one Ask v2 parse");
+    assert_eq!(intake.model.count("plan"), 1, "one planning pass");
+    let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let saved: Value = sqlx::query_scalar("SELECT document->'intent' FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(saved["subjects"][0]["values"]["company.name"], "Coolblue", "the parsed name seeds the lookup and is kept for a requote");
+    let bought: i64 = sqlx::query_scalar("SELECT (SELECT count(*) FROM executions WHERE task_id=$1)+(SELECT count(*) FROM authorizations WHERE task_id=$1)")
+        .bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(bought, 0);
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

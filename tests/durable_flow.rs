@@ -1,3 +1,18 @@
+//! The durable Gateway v2 flow against an isolated PGlite database: quote,
+//! approval, execution, replay, recovery, workspace scope and the MCP HTTP
+//! adapter (tests/mcp-http-smoke.mjs, which imports ../mcp/src/runtime.mjs or
+//! TEST_MCP_RUNTIME_URL). Model, billing and providers are local fixtures.
+//!
+//! Run: `node scripts/test-integration.mjs` (a fresh tests/support-db.mjs per
+//! suite; PGTEST_PORT, default 54330). By hand: start
+//! `PGTEST_PORT=54329 node tests/support-db.mjs`, then
+//! `RUST_MIN_STACK=16777216 cargo test --test durable_flow -- --ignored`.
+//! RUST_MIN_STACK is needed in debug builds: polling the engine's question
+//! intake nests large unoptimised async frames that outgrow the default 2 MiB
+//! test-thread stack (it passes from about 8 MiB; boxing the test future does
+//! not help). This is bounded frame size, not unbounded recursion; the
+//! optimised release server runs on tokio's default worker stack.
+
 use apiosk_gateway_v2::{
     auth::{Auth, Principal},
     catalog::CatalogCache,
@@ -136,7 +151,12 @@ async fn model(State(c): State<Arc<Counters>>, Json(body): Json<Value>) -> Json<
         Some(question) if question.starts_with("Named-source ") => json!({"source":"fixture"}),
         _ => json!({}),
     };
-    let intent = json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":if input["question"].as_str().is_some_and(|q| q.starts_with("Named-source ")) {json!(["Summarize the saved filing"])} else {json!([])},"unresolved_references":[]});
+    let answer_operations = match input["question"].as_str() {
+        Some(question) if question.starts_with("Named-source ") => json!(["Summarize the saved filing"]),
+        Some("Search only Example and name its identifier") => json!(["Name the company identifier"]),
+        _ => json!([]),
+    };
+    let intent = json!({"subjects":[subject],"goals":[{"capability":capability,"subject":0,"constraints":constraints}],"answer_operations":answer_operations,"unresolved_references":[]});
     let content = if input["surface"] == "ask-chat" {
         json!({"message":"Ik zoek het op en toon eerst de prijs.","discover":true,"intent":intent})
     } else {
@@ -915,7 +935,21 @@ async fn durable_flow_and_authorization_boundary() {
         String::from_utf8_lossy(&smoke.stderr)
     );
     println!("{}", String::from_utf8_lossy(&smoke.stdout));
+    // The App's own chat intake (`Engine::chat`: capability intake, then
+    // planning) lost its route when the Ask chat routes were retired:
+    // `/v2/chat` answers 410. Questions now reach the engine through
+    // `/v2/discover` (the MCP `apiosk_discover` tool, the App's WebMCP tools)
+    // and `/v2/ask`, so the conversation guarantees below are asserted on that
+    // live path, for the person and for a connected client alike.
     let chats_before = counts.parser.load(Ordering::Relaxed);
+    let retired = reqwest::Client::new()
+        .post(format!("{api_url}/v2/chat"))
+        .bearer_auth("apk_access_local_fixture")
+        .json(&json!({"request_id":Uuid::new_v4(),"question":"Hallo"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(retired.status(), StatusCode::GONE);
     assert!(engine
         .chat(
             &agent,
@@ -935,7 +969,7 @@ async fn durable_flow_and_authorization_boundary() {
     );
     let before_single_pass = counts.parser.load(Ordering::Relaxed);
     let one_pass = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -955,7 +989,7 @@ async fn durable_flow_and_authorization_boundary() {
     );
     let providers_before_failure = counts.provider.load(Ordering::Relaxed);
     let transient = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -975,7 +1009,7 @@ async fn durable_flow_and_authorization_boundary() {
         state: None,
         context_delta: Default::default(),
     };
-    let failed = engine.chat(&person, failed_request.clone()).await.unwrap();
+    let failed = engine.discover(&person, failed_request.clone()).await.unwrap();
     assert_eq!(failed.status, Status::Failed);
     assert_eq!(failed.errors[0]["code"], "question_unavailable");
     assert!(!failed.errors[0]["message"]
@@ -986,14 +1020,14 @@ async fn durable_flow_and_authorization_boundary() {
     assert!(failed.proposal.is_none());
     assert!(failed.next_actions.is_empty());
     let model_calls_after_failure = counts.parser.load(Ordering::Relaxed);
-    let replayed = engine.chat(&person, failed_request).await.unwrap();
+    let replayed = engine.discover(&person, failed_request).await.unwrap();
     assert_eq!(replayed.errors, failed.errors);
     assert_eq!(
         counts.parser.load(Ordering::Relaxed),
         model_calls_after_failure
     );
     let unsupported = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -1012,20 +1046,16 @@ async fn durable_flow_and_authorization_boundary() {
         providers_before_failure,
         "interpretation retries and failures cannot purchase data"
     );
-    // Both App and connected clients get a saved AI clarification rather
-    // than the compiler's unsupported error. Reloading does not replan.
-    for app_chat in [true, false] {
+    // Both the person and a connected client get a saved AI clarification
+    // rather than the compiler's unsupported error. Reloading does not replan.
+    for asker in [&person, &agent] {
         let request = DiscoverRequest {
             request_id: Uuid::new_v4(),
             question: "Period Example 2024 en 2025".into(),
             state: None,
             context_delta: Default::default(),
         };
-        let clarification = if app_chat {
-            engine.chat(&person, request).await.unwrap()
-        } else {
-            engine.discover(&person, request).await.unwrap()
-        };
+        let clarification = engine.discover(asker, request).await.unwrap();
         assert_eq!(
             clarification.status,
             Status::NeedsInput,
@@ -1046,14 +1076,14 @@ async fn durable_flow_and_authorization_boundary() {
         );
         let model_calls = counts.parser.load(Ordering::Relaxed);
         let recovered = engine
-            .view(&person, task_id, Uuid::new_v4(), None)
+            .view(asker, task_id, Uuid::new_v4(), None)
             .await
             .unwrap();
         assert_eq!(recovered.status, Status::NeedsInput);
         assert_eq!(counts.parser.load(Ordering::Relaxed), model_calls);
         let continued = engine
-            .chat(
-                &person,
+            .discover(
+                asker,
                 DiscoverRequest {
                     request_id: Uuid::new_v4(),
                     question: "Haal de beschikbare jaarrekening op".into(),
@@ -1067,7 +1097,7 @@ async fn durable_flow_and_authorization_boundary() {
         assert_eq!(continued.proposal.as_ref().unwrap().steps.len(), 2);
     }
     let corrected = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -1088,7 +1118,7 @@ async fn durable_flow_and_authorization_boundary() {
     );
     let before = counts.provider.load(Ordering::Relaxed);
     let greeting = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -1194,7 +1224,7 @@ async fn durable_flow_and_authorization_boundary() {
         "a different authenticated person must not see this chat"
     );
     let planned = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -1208,7 +1238,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(planned.status, Status::Ready);
     assert_eq!(planned.proposal.unwrap().max_total_atomic, "138");
     let chatting = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
@@ -1226,12 +1256,14 @@ async fn durable_flow_and_authorization_boundary() {
     );
     assert_eq!(counts.provider.load(Ordering::Relaxed), before);
     // Actual fixture purchase -> related service -> fresh approval -> second result.
+    // On discover a plan runs exactly as its intent asks: this question asks
+    // for an answer, so the saved result is analysed (a bare lookup is not).
     let lookup = engine
-        .chat(
+        .discover(
             &person,
             DiscoverRequest {
                 request_id: Uuid::new_v4(),
-                question: "Search only Example".into(),
+                question: "Search only Example and name its identifier".into(),
                 state: None,
                 context_delta: Default::default(),
             },
@@ -1256,7 +1288,7 @@ async fn durable_flow_and_authorization_boundary() {
     assert_eq!(found.status, Status::Running);
     assert_eq!(
         found.context_view["analyzing"], true,
-        "Ask must answer even a simple lookup"
+        "a lookup asked with a question must be answered"
     );
     let before_answer = counts.provider.load(Ordering::Relaxed);
     let action = found
@@ -2125,10 +2157,11 @@ async fn durable_flow_and_authorization_boundary() {
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
 
     // Transport/task scope contract. Real tenant permission and ledger functions
-    // are separately exercised by app/scripts/test-workspaces-db.mjs.
-    sqlx::raw_sql("CREATE TABLE public.test_workspace_access(actor uuid,workspace uuid,active boolean); CREATE FUNCTION public.workspace_gateway_context(a uuid,c uuid,w uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN IF NOT EXISTS(SELECT 1 FROM public.test_workspace_access WHERE actor=a AND workspace=w AND active) THEN RAISE EXCEPTION 'forbidden'; END IF; RETURN jsonb_build_object('workspace_id',w,'name','Team Research'); END $$").execute(&pool).await.unwrap();
+    // are separately exercised by app/scripts/test-workspaces-db.mjs. The
+    // scope function is tests/support-db.mjs's fixture: a member who may read
+    // but not spend, then a removed member (no row).
     let workspace = Uuid::new_v4();
-    sqlx::query("INSERT INTO public.test_workspace_access VALUES($1,$2,true)")
+    sqlx::query("INSERT INTO public.fixture_workspace_access(actor_id,workspace_id,can_spend) VALUES($1,$2,false)")
         .bind(user.owner)
         .bind(workspace)
         .execute(&pool)
@@ -2164,7 +2197,7 @@ async fn durable_flow_and_authorization_boundary() {
             .workspace_id,
         Some(workspace)
     );
-    sqlx::query("UPDATE public.test_workspace_access SET active=false WHERE workspace=$1")
+    sqlx::query("DELETE FROM public.fixture_workspace_access WHERE workspace_id=$1")
         .bind(workspace)
         .execute(&pool)
         .await
