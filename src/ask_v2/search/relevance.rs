@@ -181,9 +181,16 @@ impl Request {
         } else {
             OUTPUT_ANCHOR
         };
+        // A reviewed contract of another domain says what it is: it must share
+        // a key word of the request. Overlapping outputs are not enough — a
+        // cadastral parcel lookup ("registered surface area", "status" filters,
+        // "PDOK Maps & Addresses") is not a company profile. Unreviewed
+        // services have no such id, so their outputs may still anchor them.
+        let foreign = !candidate.contract.is_empty() && !candidate.namespace.contains(&self.domain);
         let anchored = facet
             || self.key.iter().any(|word| counted(&word))
-            || (outputs.len() >= 2
+            || (!foreign
+                && outputs.len() >= 2
                 && outputs.iter().map(|word| weight(word)).sum::<f64>() >= output_anchor);
         if !anchored {
             return false;

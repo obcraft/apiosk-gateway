@@ -153,6 +153,65 @@ fn webbersites(template: &Service) -> (Vec<Service>, KnownSource) {
     (services, source)
 }
 
+/// PDOK's cadastral parcel lookup as the live catalog carries it. Live search
+/// offered it second for "Coolblue B.V." company profile: its land-register
+/// wording ("national land register", "registered surface area", status
+/// history filters) overlaps a company profile's outputs, and the Dutch
+/// subject lifted it.
+fn pdok_parcel_lookup(template: &Service) -> Service {
+    const DESCRIPTION: &str = "Retrieve the cadastral parcel covering a point or area from a national land register: its official designation, boundary geometry and registered surface area. Answers which plot a location sits on and how big that plot is. Carries no ownership or personal data — a public cadastral map records the parcel, never who owns it. Dutch BRK coverage: kadastrale kaart, perceel, kadastrale gemeente, sectie,";
+    let fields = [
+        ("property.input.bbox", "bbox", false),
+        ("property.sectie", "sectie", true),
+        ("property.input.perceelnummer", "perceelnummer", true),
+        ("property.input.statushistoriecode", "statusHistorieCode", true),
+        ("property.statushistoriewaarde", "statusHistorieWaarde", true),
+        ("property.kadastralegemeentecode", "kadastraleGemeenteCode", true),
+        ("property.kadastralegemeentewaarde", "kadastraleGemeenteWaarde", true),
+    ];
+    let mut service = template.clone();
+    service.id = uuid::Uuid::from_u128(0x9d0c_0001);
+    service.endpoint_id = uuid::Uuid::from_u128(0x9d0c_1001);
+    service.unverified = false;
+    service.name = "PDOK Maps & Addresses".into();
+    service.description = Some(DESCRIPTION.into());
+    service.contract.capability_slug = "property.parcel-lookup".into();
+    let extract = template
+        .contract
+        .output_map
+        .produces
+        .values()
+        .next()
+        .cloned()
+        .expect("template output");
+    service.contract.output_map.produces = [
+        "property.perceel.designation",
+        "property.perceel.registered_area",
+        "property.perceel.status",
+        "property.perceel.geometry",
+    ]
+    .iter()
+    .map(|key| ((*key).to_owned(), extract.clone()))
+    .collect();
+    service.contract.requires = fields
+        .iter()
+        .map(|(fact, _, optional)| Requirement {
+            fact_type: (*fact).into(),
+            subject_role: "subject".into(),
+            optional: *optional,
+        })
+        .collect();
+    service.contract.input_map = fields
+        .iter()
+        .map(|(fact, name, _)| {
+            let binding: InputBinding =
+                serde_json::from_value(json!({"in":"query","name":name})).unwrap();
+            ((*fact).to_owned(), binding)
+        })
+        .collect();
+    service
+}
+
 /// Built once: the merged directory is large and immutable.
 pub(super) fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
@@ -205,6 +264,12 @@ pub(super) fn catalog() -> &'static Catalog {
             .expect("IBAN Check fixture");
         let (lookups, source) = webbersites(&template);
         services.extend(lookups);
+        let parcels = services
+            .iter()
+            .find(|service| service.contract.capability_slug == "property.linked-parcels")
+            .cloned()
+            .expect("PDOK linked parcels fixture");
+        services.push(pdok_parcel_lookup(&parcels));
         known_sources.retain(|known| known.slug != "webbersites");
         known_sources.push(source);
         let version = crate::state::digest(&(&services, &known_sources));
@@ -563,6 +628,22 @@ fn real_capabilities_keep_their_sources_and_lose_look_alikes() {
                 ask.slug
             );
         }
+    }
+}
+
+#[test]
+fn a_company_profile_is_never_answered_by_a_land_register() {
+    // Live, 2026-09-29: PDOK's parcel lookup came second for Coolblue B.V.,
+    // with the parse's own wording ("…from an official business register").
+    for subject in ["Coolblue B.V.", "Coolblue", "Acme Ltd"] {
+        let offered = offered(&Ask {
+            description: "Returns a company's registered profile, such as its legal name, status and address, from an official business register.",
+            ..profile(subject)
+        });
+        assert!(
+            !offered.iter().any(|candidate| candidate.contains("property.")),
+            "{subject}: {offered:?}"
+        );
     }
 }
 
