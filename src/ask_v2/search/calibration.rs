@@ -5,9 +5,12 @@
 //! fixtures omit, and adds the WebberSites lookups seen in live testing.
 use super::*;
 use crate::catalog::{Catalog, KnownSource, Service, Snapshot};
+use crate::english::{tags_text, tests::{runtime, translate_catalog}, English};
 use catalog_core::facts::contract::{InputBinding, Requirement};
 use serde_json::json;
 use std::sync::OnceLock;
+
+mod multilingual;
 
 fn snapshot(text: &str) -> Snapshot {
     serde_json::from_str(text).expect("fixture catalog")
@@ -349,8 +352,75 @@ fn bazaar_distractors(template: &Service) -> (Vec<Service>, Vec<KnownSource>) {
     (services, sources)
 }
 
-/// Built once: the merged directory is large and immutable.
+/// English renderings of the directory's texts that are not English, as the
+/// model gives them: the WebberSites keyword list, CBS's Dutch tags and a
+/// Dutch name. Only these; the cheap check sends the directory's brand names
+/// too, and the model returns those unchanged.
+fn base_dictionary(base: &Catalog) -> Vec<(String, String)> {
+    let mut entries = vec![
+        (
+            "Webgereedschap: opzoeken. Zoekwoorden: blocked, catalog, citations, city, cleanup, collection, collections, content, coordinates, country, csv, datastore.".to_owned(),
+            "Web tools: lookup. Keywords: blocked, catalog, citations, city, cleanup, collection, collections, content, coordinates, country, csv, datastore.".to_owned(),
+        ),
+        ("PDOK Ruimtelijke Plannen".to_owned(), "PDOK Spatial Plans".to_owned()),
+    ];
+    let english_tag = |tag: &str| -> String {
+        match tag {
+            "afschrijvingen" => "depreciation",
+            "balanstotaal" => "balance sheet total",
+            "bedrijfsgrootte" => "company size",
+            "bedrijfsopbrengsten" => "operating revenue",
+            "bedrijfsresultaat" => "operating result",
+            "bedrijfstak" => "branch of industry",
+            "bedrijven" => "companies",
+            "branche" => "sector",
+            "dalers" => "decliners",
+            "eigen vermogen" => "equity",
+            "faillissementen" => "bankruptcies",
+            "insolventie" => "insolvency",
+            "jaarrekening context" => "annual accounts context",
+            other => other,
+        }
+        .to_owned()
+    };
+    if let Some(cbs) = base.known_sources.iter().find(|source| source.slug == "cbs-statline") {
+        entries.push((
+            tags_text(&cbs.metadata.tags),
+            cbs.metadata.tags.iter().map(|tag| english_tag(tag)).collect::<Vec<_>>().join(", "),
+        ));
+    }
+    entries
+}
+
+/// English renderings of parses left in the question's language, as the
+/// model gives them (see `English::request`).
+const QUERY_DICTIONARY: &[(&str, &str)] = &[
+    ("Faillissementen per sector", "Bankruptcies per sector"),
+    ("Vergelijkt het aantal faillissementen per sector.", "Compares the number of bankruptcies per sector."),
+    ("sector, aantal faillissementen", "sector, number of bankruptcies"),
+];
+
+/// The directory as production serves it: the texts that are not English
+/// have English renderings (see `crate::english`), and the translator that
+/// made them also reads requests. Built once.
 pub(super) fn catalog() -> &'static Catalog {
+    &translated().0
+}
+fn translated() -> &'static (Catalog, std::sync::Arc<English>) {
+    static TRANSLATED: OnceLock<(Catalog, std::sync::Arc<English>)> = OnceLock::new();
+    TRANSLATED.get_or_init(|| {
+        let mut catalog = plain().clone();
+        let mut dictionary = base_dictionary(&catalog);
+        dictionary.extend(QUERY_DICTIONARY.iter().map(|(text, english)| ((*text).to_owned(), (*english).to_owned())));
+        let borrowed: Vec<(&str, &str)> = dictionary.iter().map(|(text, english)| (text.as_str(), english.as_str())).collect();
+        let (english, _, _) = translate_catalog(&mut catalog, &borrowed);
+        (catalog, english)
+    })
+}
+
+/// The directory without English renderings: search as it is when
+/// translation is off or unavailable. Built once: it is large and immutable.
+pub(super) fn plain() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
     CATALOG.get_or_init(|| {
         let fixtures = [
@@ -425,6 +495,7 @@ pub(super) fn catalog() -> &'static Catalog {
             by_capability: Default::default(),
             by_output: Default::default(),
             known_sources,
+            english: Default::default(),
         }
     })
 }
@@ -494,9 +565,17 @@ fn profile(subject: &'static str) -> Ask<'static> {
     }
 }
 
-/// `source:capability` of each offered candidate, in order.
+/// `source:capability` of each offered candidate, in order, as the search
+/// endpoint offers them: the request read in English where it is not
+/// (`English::request`), then searched in both wordings.
 fn offered(ask: &Ask) -> Vec<String> {
-    search(&ask.parsed(), catalog())[0]
+    let (catalog, english) = translated();
+    offered_by(ask, catalog, english)
+}
+fn offered_by(ask: &Ask, catalog: &Catalog, english: &English) -> Vec<String> {
+    let parsed = ask.parsed();
+    let normalized = runtime().block_on(english.request(&parsed));
+    search_in_english(&normalized.original, &normalized.english, catalog)[0]
         .apiosk
         .iter()
         .map(|candidate| {
@@ -982,7 +1061,7 @@ fn bankruptcies_per_sector_find_cbs_however_the_question_is_parsed() {
     // Dutch, with or without the country, finds CBS's bankruptcy tables.
     let netherlands = Some(("Netherlands", "country"));
     let nederland = Some(("Nederland", "country"));
-    for ask in [
+    let asks = [
         Ask {
             slug: "research.bankruptcies.bySector",
             name: "Bankruptcies by sector",
@@ -1090,7 +1169,20 @@ fn bankruptcies_per_sector_find_cbs_however_the_question_is_parsed() {
             language: "nl",
             ..Default::default()
         },
-    ] {
+    ];
+    // Without any translation (off, late or failed) as well: the Dutch word
+    // map in `words` still carries a Dutch-worded parse to CBS.
+    let off = English::disabled();
+    for ask in &asks {
+        let untranslated = offered_by(ask, plain(), &off);
+        assert!(
+            untranslated.first().is_some_and(|first| first.starts_with("cbs-statline:statistics.cbs-bankrupt")),
+            "untranslated {} / {}: {untranslated:?}",
+            ask.slug,
+            ask.name
+        );
+    }
+    for ask in asks {
         let found = offered(&ask);
         let first = found.first().map(String::as_str).unwrap_or_default();
         assert!(
@@ -1139,3 +1231,5 @@ fn a_country_subject_lifts_its_national_statistics_office() {
         "{german:?}"
     );
 }
+
+

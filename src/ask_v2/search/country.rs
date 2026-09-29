@@ -90,6 +90,8 @@ fn factor(factor: f64) -> Adjustment {
 #[derive(Clone, Debug, Default)]
 pub(super) struct Signal {
     weights: BTreeMap<String, f64>,
+    /// The request language's country: a weak weight of its own.
+    language: Option<&'static str>,
 }
 
 impl Signal {
@@ -119,8 +121,23 @@ impl Signal {
         }
         if let Some(country) = language_country(&parsed.language) {
             signal.add(country, WEAK);
+            signal.language = Some(country);
         }
         signal
+    }
+
+    /// Whether `country` is a reading of the subject itself (an identifier,
+    /// a legal form, a named source), not merely the request's language: a
+    /// Dutch question about Germany does not make a Dutch source plausible.
+    fn read(&self, country: &str) -> bool {
+        let language = if self.language == Some(country) {
+            WEAK
+        } else {
+            0.0
+        };
+        self.weights
+            .get(country)
+            .is_some_and(|weight| *weight > language)
     }
 
     fn add(&mut self, country: &str, weight: f64) {
@@ -209,19 +226,17 @@ impl Signal {
             self.add("NL", LEGAL_FORM);
         }
         for word in &words {
-            if let Some(country) = country_word(word) {
+            if let Some(country) = country_word(&crate::english::fold(word)) {
                 self.add(country, WEAK);
             }
         }
     }
 
-    /// A subject of type country: its name names the country outright.
+    /// A subject of type country: its name names the country outright, in
+    /// whichever language the person wrote it ("España", "Pays-Bas").
     /// Returns whether the name was recognised.
     fn country(&mut self, label: &str) -> bool {
-        let named: BTreeSet<&str> = label
-            .split(|c: char| !c.is_alphanumeric())
-            .filter_map(|word| country_word(&word.to_lowercase()))
-            .collect();
+        let named = named_countries(label);
         for country in &named {
             self.add(country, COUNTRY);
         }
@@ -297,9 +312,7 @@ impl Signal {
             return match coverage {
                 Coverage::Country(country) if country == primary => factor(MATCH),
                 // A plausible second reading (Belgian N.V., Irish Limited).
-                Coverage::Country(country) if self.weights.contains_key(country) => {
-                    Adjustment::default()
-                }
+                Coverage::Country(country) if self.read(country) => Adjustment::default(),
                 Coverage::Country(_) => DEMOTED,
                 Coverage::Europe if EUROPE.contains(&primary) => factor(EUROPE_MATCH),
                 Coverage::Europe if NEAR_EUROPE.contains(&primary) => Adjustment::default(),
@@ -417,15 +430,69 @@ const LEGAL_FORMS: &[(&str, &[(&str, f64)])] = &[
     ("nyrt", &[("HU", LEGAL_FORM)]),
 ];
 
+/// A country named by one folded word (see `crate::english::fold`), or by
+/// two written together ("paysbas", "reinounido"): in English, Dutch, French,
+/// German, Spanish, Italian or its own language.
 fn country_word(word: &str) -> Option<&'static str> {
     Some(match word {
-        "nederland" | "netherlands" | "holland" | "dutch" => "NL",
-        "uk" | "britain" | "british" | "england" | "scotland" | "wales" => "GB",
-        "france" | "français" | "française" | "francaise" => "FR",
-        "deutschland" | "germany" => "DE",
-        "belgië" | "belgie" | "belgique" | "belgium" => "BE",
+        "nederland" | "netherlands" | "holland" | "dutch" | "niederlande" | "paysbas"
+        | "paisesbajos" | "paesibassi" | "holanda" | "olanda" => "NL",
+        "uk"
+        | "britain"
+        | "british"
+        | "england"
+        | "scotland"
+        | "wales"
+        | "unitedkingdom"
+        | "greatbritain"
+        | "grootbrittannie"
+        | "verenigdkoninkrijk"
+        | "royaumeuni"
+        | "angleterre"
+        | "grossbritannien"
+        | "vereinigteskonigreich"
+        | "reinounido"
+        | "inglaterra"
+        | "regnounito"
+        | "inghilterra" => "GB",
+        "france" | "francais" | "francaise" | "frankrijk" | "frankreich" | "francia" | "franca" => {
+            "FR"
+        }
+        "deutschland" | "germany" | "duitsland" | "allemagne" | "alemania" | "germania"
+        | "alemanha" => "DE",
+        "belgie" | "belgique" | "belgium" | "belgien" | "belgica" | "belgio" => "BE",
+        "spain" | "espana" | "spanje" | "espagne" | "spanien" | "spagna" | "espanha" => "ES",
+        "italy" | "italia" | "italie" | "italien" => "IT",
+        "portugal" | "portogallo" => "PT",
+        "austria" | "oostenrijk" | "autriche" | "osterreich" => "AT",
+        "switzerland" | "zwitserland" | "suisse" | "schweiz" | "suiza" | "svizzera" => "CH",
+        "ireland" | "ierland" | "irlande" | "irland" | "irlanda" | "eire" => "IE",
+        "luxembourg" | "luxemburg" | "lussemburgo" | "luxemburgo" => "LU",
+        "denmark" | "denemarken" | "danemark" | "dinamarca" | "danimarca" | "danmark" => "DK",
+        "sweden" | "zweden" | "suede" | "schweden" | "suecia" | "svezia" | "sverige" => "SE",
+        "norway" | "noorwegen" | "norvege" | "norwegen" | "noruega" | "norvegia" | "norge" => "NO",
+        "finland" | "finlande" | "finnland" | "finlandia" | "suomi" => "FI",
+        "poland" | "polen" | "pologne" | "polonia" | "polska" => "PL",
         _ => return None,
     })
+}
+
+/// The countries a place name names, one word or two at a time.
+fn named_countries(text: &str) -> BTreeSet<&'static str> {
+    let folded = crate::english::fold(text);
+    let words: Vec<&str> = folded
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect();
+    words
+        .iter()
+        .filter_map(|word| country_word(word))
+        .chain(
+            words
+                .windows(2)
+                .filter_map(|pair| country_word(&format!("{}{}", pair[0], pair[1]))),
+        )
+        .collect()
 }
 
 fn language_country(language: &str) -> Option<&'static str> {
@@ -785,6 +852,26 @@ mod tests {
             Some("DE")
         );
         assert!(signal("Coolblue", json!({}), None, "en").is_empty());
+    }
+
+    #[test]
+    fn the_request_language_is_no_second_reading_of_another_countrys_subject() {
+        // "Wer sind die Geschäftsführer der Exemple SAS?": French, asked in
+        // German. The language still settles a shared form (a German AG).
+        let french = signal("Exemple SAS", json!({}), None, "de");
+        assert_eq!(french.primary(), Some("FR"));
+        assert_eq!(french.adjustment(&Coverage::Country("DE".into())), DEMOTED);
+        assert_eq!(
+            french.adjustment(&Coverage::Country("FR".into())),
+            factor(MATCH)
+        );
+        // A reading of the subject itself still protects its country.
+        let dutch = signal("Coolblue B.V.", json!({}), None, "fr");
+        assert_eq!(
+            dutch.adjustment(&Coverage::Country("BE".into())),
+            Adjustment::default()
+        );
+        assert_eq!(dutch.adjustment(&Coverage::Country("FR".into())), DEMOTED);
     }
 
     #[test]

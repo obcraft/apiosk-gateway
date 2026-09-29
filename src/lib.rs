@@ -13,6 +13,7 @@ pub mod catalog;
 pub mod capability_intake;
 pub mod compat;
 pub mod engine;
+pub mod english;
 mod entity_resolution;
 mod evidence_selection;
 pub mod execution;

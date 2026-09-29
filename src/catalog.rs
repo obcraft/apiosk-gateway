@@ -143,6 +143,9 @@ pub struct Catalog {
     pub by_capability: BTreeMap<String, Vec<usize>>,
     pub by_output: BTreeMap<String, Vec<usize>>,
     pub known_sources: Vec<KnownSource>,
+    /// English renderings of this catalog's texts for Ask search, shared
+    /// across refreshes by `CatalogCache`; empty when translation is off.
+    pub english: Arc<crate::english::Memory>,
 }
 impl Catalog {
     pub fn build(snapshot: Snapshot) -> Self {
@@ -232,6 +235,7 @@ impl Catalog {
             by_capability,
             by_output,
             known_sources: snapshot.known_sources,
+            english: Arc::default(),
         }
     }
     pub fn parser_view(&self) -> Value {
@@ -412,22 +416,42 @@ pub struct CatalogCache {
     pool: PgPool,
     catalog: Arc<Refreshing<Catalog>>,
     sources: Arc<Refreshing<Vec<crate::sources::Source>>>,
+    /// English renderings for Ask search, kept across catalog refreshes.
+    english: Arc<crate::english::English>,
 }
 impl CatalogCache {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool, catalog: Refreshing::new(Policy::CATALOG), sources: Refreshing::new(Policy::CATALOG) }
+        Self { pool, catalog: Refreshing::new(Policy::CATALOG), sources: Refreshing::new(Policy::CATALOG),
+            english: Arc::new(crate::english::English::disabled()) }
+    }
+    /// Translate the catalog's non-English texts after each load (see
+    /// `english`). Without this, search reads the original texts only.
+    pub fn with_english(mut self, english: crate::english::English) -> Self {
+        self.english = Arc::new(english);
+        self
+    }
+    pub fn english(&self) -> &Arc<crate::english::English> {
+        &self.english
+    }
+    fn load(&self) -> impl std::future::Future<Output = anyhow::Result<Catalog>> + Send + 'static {
+        let (pool, english) = (self.pool.clone(), self.english.clone());
+        async move {
+            let mut catalog = load_catalog(pool).await?;
+            english.attach(&mut catalog);
+            Ok(catalog)
+        }
     }
     pub async fn get(&self) -> anyhow::Result<Arc<Catalog>> {
         use crate::telemetry::{ErrorClass, Outcome};
         let started = std::time::Instant::now();
-        let (catalog, cache) = self.catalog.get(|| load_catalog(self.pool.clone())).await;
+        let (catalog, cache) = self.catalog.get(|| self.load()).await;
         crate::telemetry::catalog(cache, started, if catalog.is_ok() { Outcome::Ok } else { Outcome::Failed(ErrorClass::Db) });
         catalog.map_err(|error| anyhow::anyhow!("catalog unavailable: {error}"))
     }
     /// Reads the directory now instead of serving the cached catalogue, and
     /// keeps the result for later questions.
     pub async fn fresh(&self) -> anyhow::Result<Arc<Catalog>> {
-        self.catalog.reload(load_catalog(self.pool.clone())).await
+        self.catalog.reload(self.load()).await
     }
     pub async fn fresh_execution(&self, service_ids: &[Uuid]) -> anyhow::Result<Arc<Catalog>> {
         let value: Value = sqlx::query_scalar(&execution_catalog_sql())

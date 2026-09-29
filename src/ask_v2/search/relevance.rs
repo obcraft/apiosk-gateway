@@ -28,7 +28,7 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{words, Document, Index, DELIVERABLE_OPERATIONS, FACET_WORDS, VAGUE};
+use super::{vague, words, Document, Index, DELIVERABLE_OPERATIONS, FACET_WORDS};
 use crate::{
     capability_intake::{capability_query, Capability, ParsedRequest},
     state::Task,
@@ -55,7 +55,7 @@ pub(super) fn contract_words(slug: &str) -> BTreeSet<String> {
     }
     words(slug)
         .into_iter()
-        .filter(|word| !VAGUE.contains(&word.as_str()) && action(word).is_none())
+        .filter(|word| !vague(word) && action(word).is_none())
         .collect()
 }
 
@@ -82,6 +82,10 @@ pub(super) struct Request {
     actions: BTreeSet<&'static str>,
     contract: BTreeSet<String>,
     domain: String,
+    /// Key words without the domain alone: `research` in
+    /// `research.bankruptcies.bySector` is a bucket, not the topic, unless the
+    /// name or description says it too. What a Bazaar listing must mention.
+    anchors: BTreeSet<String>,
 }
 
 /// `text` with the subjects' names and identifiers removed, as in the query.
@@ -96,7 +100,7 @@ fn scrubbed(text: &str, capability: &Capability, parsed: &ParsedRequest) -> Stri
 
 impl Request {
     pub fn new(capability: &Capability, parsed: &ParsedRequest) -> Self {
-        let meaningful = |word: &String| !VAGUE.contains(&word.as_str()) && action(word).is_none();
+        let meaningful = |word: &String| !vague(word) && action(word).is_none();
         let identity = words(&scrubbed(
             &format!("{} {}", capability.domain, capability.slug),
             capability,
@@ -146,7 +150,23 @@ impl Request {
             contract = described.clone();
         }
         key.extend(described);
+        let bucket = words(&capability.domain);
+        let said: BTreeSet<String> = name
+            .iter()
+            .cloned()
+            .chain(words(&scrubbed(
+                &capability.description,
+                capability,
+                parsed,
+            )))
+            .collect();
+        let anchors = key
+            .iter()
+            .filter(|word| !bucket.contains(*word) || said.contains(*word))
+            .cloned()
+            .collect();
         Self {
+            anchors,
             topic: key
                 .iter()
                 .cloned()
@@ -173,6 +193,36 @@ impl Request {
             contract,
             domain: capability.domain.to_lowercase(),
         }
+    }
+
+    /// This request with another wording's words (the same capability in
+    /// English): a candidate may match either.
+    pub fn union(mut self, other: Request) -> Self {
+        self.key.extend(other.key);
+        self.topic.extend(other.topic);
+        self.outputs.extend(other.outputs);
+        self.actions.extend(other.actions);
+        self.contract.extend(other.contract);
+        self.anchors.extend(other.anchors);
+        self
+    }
+
+    /// Whether a listing outside the catalog (a Bazaar resource) is about
+    /// what is asked: it shares a concept facet, a key word of the request
+    /// (not merely its domain) or two of its output words. Words alone, as
+    /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
+    pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        wanted.facets & listing.facets != 0
+            || self
+                .anchors
+                .iter()
+                .any(|word| listing.tokens.contains(word))
+            || self
+                .outputs
+                .iter()
+                .filter(|word| listing.tokens.contains(*word))
+                .count()
+                >= 2
     }
 
     /// Whether `candidate`, already scored above zero, is offered at all.

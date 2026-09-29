@@ -596,7 +596,7 @@ mod tests {
             .await
             .unwrap();
         let captured = captured.lock().unwrap();
-        assert_eq!(PROMPT.len(), 3353);
+        assert_eq!(PROMPT.len(), 3462);
         assert_eq!(
             captured[0]["messages"],
             json!([{"role":"system","content":PROMPT},{"role":"user","content":"Hoi!"}])

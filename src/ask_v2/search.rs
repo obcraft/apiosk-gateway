@@ -51,20 +51,28 @@ struct Index {
     frequency: BTreeMap<String, usize>,
 }
 
+/// A catalog version and the state of its English renderings.
+type IndexKey = (String, u64, u64);
+
 // A single catalog version is retained. Concurrent readers may finish with the
 // previous Arc, but new versions replace the cache rather than accumulating.
+// New English renderings (see `crate::english`) rebuild it too.
 fn index(catalog: &Catalog) -> Arc<Index> {
-    static LAST: OnceLock<Mutex<Option<(String, Arc<Index>)>>> = OnceLock::new();
+    static LAST: OnceLock<Mutex<Option<(IndexKey, Arc<Index>)>>> = OnceLock::new();
     let cache = LAST.get_or_init(|| Mutex::new(None));
+    let english = &catalog.english;
+    let version = (catalog.version.clone(), english.id(), english.generation());
     if let Some((_, value)) = cache
         .lock()
         .unwrap_or_else(|p| p.into_inner())
         .as_ref()
-        .filter(|(version, _)| version == &catalog.version)
+        .filter(|(indexed, _)| indexed == &version)
     {
         return value.clone();
     }
     let mut documents = Vec::with_capacity(catalog.services.len() + catalog.known_sources.len());
+    // Each document's words that only its English rendering has.
+    let mut rendered: Vec<BTreeSet<String>> = Vec::with_capacity(documents.capacity());
     for (position, service) in catalog.services.iter().enumerate() {
         let known = catalog
             .known_sources
@@ -81,7 +89,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             .unwrap_or("");
         // Do not attach a provider's broad description to each endpoint: that
         // would make its officers endpoint falsely match beneficial ownership.
-        let text = format!(
+        let mut text = format!(
             "{} {} {} {} {} {}",
             service.contract.capability_slug,
             service.name,
@@ -103,6 +111,14 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 .collect::<Vec<_>>()
                 .join(" ")
         );
+        // The English rendering of each text, next to the original wording.
+        let rendering = english.render(&[
+            &service.name,
+            service.description.as_deref().unwrap_or(""),
+            described,
+        ]);
+        let original = (!rendering.is_empty()).then(|| text.clone());
+        append(&mut text, rendering);
         let capabilities =
             normalized_capabilities(std::iter::once(service.contract.capability_slug.as_str()));
         let primary = document(
@@ -135,11 +151,12 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 }
             }
         }
+        rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
     }
     for (position, source) in catalog.known_sources.iter().enumerate() {
         let descriptions = &source.metadata.capability_descriptions;
-        let text = format!(
+        let mut text = format!(
             "{} {} {} {} {}",
             source.name,
             source.metadata.description,
@@ -147,6 +164,22 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             source.metadata.tags.join(" "),
             descriptions
         );
+        let tags = crate::english::tags_text(&source.metadata.tags);
+        let mut texts = vec![
+            source.name.as_str(),
+            source.metadata.description.as_str(),
+            source.metadata.category.as_str(),
+            tags.as_str(),
+        ];
+        texts.extend(
+            descriptions
+                .as_object()
+                .into_iter()
+                .flat_map(|object| object.values().filter_map(serde_json::Value::as_str)),
+        );
+        let rendering = english.render(&texts);
+        let original = (!rendering.is_empty()).then(|| text.clone());
+        append(&mut text, rendering);
         let capabilities = normalized_capabilities(
             descriptions
                 .as_object()
@@ -155,20 +188,31 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         );
         let mut indexed = document(Target::Source(position), &text, capabilities);
         indexed.coverage = country::source(source);
+        rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
     }
-    let mut frequency = BTreeMap::new();
-    for document in &documents {
+    // How common a word is, as the original texts use it: English renderings
+    // may only add a candidate's evidence, never make a word the original
+    // texts share more common (a lower idf, half weight at the relevance
+    // floor) and so lose a candidate the original wording found. A word only
+    // renderings use counts the renderings.
+    let mut frequency: BTreeMap<String, usize> = BTreeMap::new();
+    let mut translated: BTreeMap<String, usize> = BTreeMap::new();
+    for (document, rendered) in documents.iter().zip(&rendered) {
         for token in &document.tokens {
-            *frequency.entry(token.clone()).or_default() += 1;
+            let counts = if rendered.contains(token) { &mut translated } else { &mut frequency };
+            *counts.entry(token.clone()).or_default() += 1;
         }
+    }
+    for (token, count) in translated {
+        frequency.entry(token).or_insert(count);
     }
     let value = Arc::new(Index {
         documents,
         frequency,
     });
     *cache.lock().unwrap_or_else(|p| p.into_inner()) =
-        Some((catalog.version.clone(), value.clone()));
+        Some((version, value.clone()));
     value
 }
 
@@ -178,7 +222,34 @@ fn normalized_capabilities<'a>(slugs: impl Iterator<Item = &'a str>) -> BTreeSet
         .collect()
 }
 
-fn words(text: &str) -> BTreeSet<String> {
+/// The words `indexed` has only thanks to the English rendering appended to
+/// `original`; none without a rendering.
+fn rendered_only(indexed: &Document, original: Option<&str>) -> BTreeSet<String> {
+    let Some(original) = original else {
+        return BTreeSet::new();
+    };
+    let original = document(indexed.target, original, BTreeSet::new());
+    indexed.tokens.difference(&original.tokens).cloned().collect()
+}
+
+fn append(text: &mut String, english: String) {
+    if !english.is_empty() {
+        text.push(' ');
+        text.push_str(&english);
+    }
+}
+
+/// The words of `text` as search compares them: camelCase split, lowercase
+/// without accents (`Économie` is `economie`, `Straße` is `strasse`) and in
+/// the singular. Latin words need three letters, words of other scripts two;
+/// Han, kana and Hangul, written without spaces, become overlapping pairs of
+/// characters. No script is dropped.
+pub(crate) fn stems(text: &str) -> BTreeSet<String> {
+    tokens(text).iter().filter_map(|word| singular(word)).collect()
+}
+
+/// `text` split into folded words, before the singular.
+fn tokens(text: &str) -> Vec<String> {
     let chars: Vec<_> = text.chars().collect();
     let mut separated = String::with_capacity(text.len());
     for (index, &character) in chars.iter().enumerate() {
@@ -190,35 +261,73 @@ fn words(text: &str) -> BTreeSet<String> {
         {
             separated.push(' ');
         }
-        separated.extend(character.to_lowercase());
+        crate::english::push_folded(character, &mut separated);
     }
-    separated
+    let mut tokens = Vec::new();
+    for word in separated
         .split(|character: char| !character.is_alphanumeric())
-        .filter(|word| word.len() >= 3 && word.chars().count() <= 64)
-        .map(|word| {
-            DUTCH_STATISTICS
-                .iter()
-                .find(|(dutch, _)| *dutch == word)
-                .map_or(word, |(_, english)| *english)
-        })
-        .map(|word| match word {
-            "companies" => "company".into(),
-            "addresses" => "address".into(),
-            "jaarrekeningen" => "jaarrekening".into(),
-            // Not the plural of "new": Reuters headlines are not "new rules".
-            "news" => "news".into(),
-            // bankruptcies/bankruptcy, activities/activity, entities/entity.
-            _ if word.len() > 4 && word.ends_with("ies") => {
-                format!("{}y", &word[..word.len() - 3])
+        .filter(|word| !word.is_empty())
+    {
+        if !word.chars().any(crate::english::unspaced) {
+            tokens.push(word.to_owned());
+            continue;
+        }
+        let characters: Vec<char> = word.chars().collect();
+        let mut start = 0;
+        while start < characters.len() {
+            let unspaced = crate::english::unspaced(characters[start]);
+            let end = (start..characters.len())
+                .find(|&position| crate::english::unspaced(characters[position]) != unspaced)
+                .unwrap_or(characters.len());
+            let run = &characters[start..end];
+            if !unspaced || run.len() == 1 {
+                tokens.push(run.iter().collect());
+            } else {
+                tokens.extend(run.windows(2).map(|pair| pair.iter().collect::<String>()));
             }
-            _ if word.len() > 3
-                && word.ends_with('s')
-                && !word.ends_with("ss")
-                && !word.ends_with("us") =>
-            {
-                word[..word.len() - 1].to_owned()
+            start = end;
+        }
+    }
+    tokens
+}
+
+fn singular(word: &str) -> Option<String> {
+    let length = word.chars().count();
+    let shortest = if word.is_ascii() {
+        3
+    } else if word.chars().all(crate::english::unspaced) {
+        1
+    } else {
+        2
+    };
+    if length > 64 || length < shortest {
+        return None;
+    }
+    Some(match word {
+        "companies" => "company".into(),
+        "addresses" => "address".into(),
+        "jaarrekeningen" => "jaarrekening".into(),
+        // Not the plural of "new": Reuters headlines are not "new rules".
+        "news" => "news".into(),
+        // bankruptcies/bankruptcy, activities/activity, entities/entity.
+        _ if word.len() > 4 && word.ends_with("ies") => {
+            format!("{}y", &word[..word.len() - 3])
+        }
+        _ if word.len() > 3 && word.ends_with('s') && !word.ends_with("ss") && !word.ends_with("us") => {
+            word[..word.len() - 1].to_owned()
+        }
+        _ => word.to_owned(),
+    })
+}
+
+fn words(text: &str) -> BTreeSet<String> {
+    tokens(text)
+        .iter()
+        .filter_map(|word| {
+            match DUTCH_STATISTICS.iter().find(|(dutch, _)| dutch == word) {
+                Some((_, english)) => Some((*english).to_owned()),
+                None => singular(word),
             }
-            _ => word.to_owned(),
         })
         .collect()
 }
@@ -229,6 +338,13 @@ fn words(text: &str) -> BTreeSet<String> {
 /// English; a Dutch-worded parse or listing meets the English one here. Exact
 /// translations only: "insolventie" is not "bankruptcy", and the English
 /// plural "branches" (a company's offices) is not "branche" (an industry).
+///
+/// English renderings (`crate::english`) now bridge every language, and the
+/// calibration passes without this map when they are available. It stays for
+/// when they are not (translation off, or a request's translation late or
+/// failed): a parse worded in Dutch, "Faillissementen per sector", then still
+/// finds CBS's bankruptcy tables, where without it only the CBS source is
+/// offered.
 const DUTCH_STATISTICS: &[(&str, &str)] = &[
     ("faillissement", "bankruptcy"),
     ("faillissementen", "bankruptcy"),
@@ -241,6 +357,14 @@ const DUTCH_STATISTICS: &[(&str, &str)] = &[
     ("statistiek", "statistic"),
     ("statistieken", "statistic"),
 ];
+
+/// Too general to identify what a document is about: a word of [`VAGUE`],
+/// or a function word of a language other than English (see
+/// `crate::english`), which a wording in that language would otherwise
+/// make its rarest, strongest words.
+fn vague(word: &str) -> bool {
+    VAGUE.contains(&word) || crate::english::function_word(word)
+}
 
 /// Words too general to identify what a document is about.
 const VAGUE: &[&str] = &[
@@ -343,6 +467,16 @@ const FACET_WORDS: &[&str] = &[
     "sanctie",
 ];
 
+impl Document {
+    /// This request document with another wording's words, facets and ids.
+    fn union(mut self, other: Document) -> Document {
+        self.tokens.extend(other.tokens);
+        self.facets |= other.facets;
+        self.capabilities.extend(other.capabilities);
+        self
+    }
+}
+
 fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Document {
     let mut tokens = words(text);
     let has = |word: &str| tokens.contains(word);
@@ -363,7 +497,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         | u8::from(officers) * OFFICERS
         | u8::from(control) * CONTROL
         | u8::from(sanctions) * SANCTIONS;
-    tokens.retain(|token| !VAGUE.contains(&token.as_str()));
+    tokens.retain(|token| !vague(token));
     for (present, marker) in [
         (financial, "@financial"),
         (officers, "@officers"),
@@ -387,9 +521,9 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
 }
 
 fn identity(text: &str) -> String {
-    text.chars()
+    crate::english::fold(text)
+        .chars()
         .filter(|character| character.is_alphanumeric())
-        .flat_map(char::to_lowercase)
         .collect()
 }
 fn identity_matches(hint: &str, value: &str) -> bool {
@@ -425,29 +559,101 @@ fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet
 /// Apply the parsed, explicit source preference to public Bazaar metadata.
 /// This runs after discovery and preserves its ranking, bound and status; it
 /// never fetches another page or relaxes the preference when nothing matches.
+/// Without a named source, a listing must share the capability's topic (see
+/// [`filter_coinbase_in_english`]).
 pub fn filter_coinbase(parsed: &ParsedRequest, matches: &mut [Match]) {
+    filter_coinbase_in_english(parsed, parsed, matches, &|_| None);
+}
+
+/// The text of a Bazaar listing that its topic check reads.
+pub fn listing_text(candidate: &Candidate) -> String {
+    format!("{}. {}", candidate.name, candidate.description)
+}
+
+/// [`filter_coinbase`] with the capabilities in English (`english`, see
+/// `crate::english`) and the English rendering of a listing's text (see
+/// [`listing_text`]). A listing of the source the person named is kept. Any
+/// other must share the capability's topic in either wording, as an Apiosk
+/// candidate must (`relevance::Request::mentions`): the Stock Trends portfolio
+/// comparison is no answer to "bankruptcies per sector". A listing that is
+/// not English and has no rendering is kept, as before this check.
+pub fn filter_coinbase_in_english(
+    parsed: &ParsedRequest,
+    english: &ParsedRequest,
+    matches: &mut [Match],
+    rendered: &dyn Fn(&str) -> Option<Arc<str>>,
+) {
     for found in matches {
-        let Some(hint) = parsed
+        let Some((position, capability)) = parsed
             .capabilities
             .iter()
-            .find(|capability| capability.slug == found.slug)
-            .and_then(|capability| capability.source_hint.as_deref())
-            .map(identity)
-            .filter(|hint| !hint.is_empty())
+            .enumerate()
+            .find(|(_, capability)| capability.slug == found.slug)
         else {
             continue;
         };
+        let hint = capability
+            .source_hint
+            .as_deref()
+            .map(identity)
+            .filter(|hint| !hint.is_empty());
+        let translated = translated(english, position, capability);
+        let wanted = wanted(capability, parsed).union(wanted(translated, english));
+        let floor = relevance::Request::new(capability, parsed)
+            .union(relevance::Request::new(translated, english));
         found.coinbase.retain(|candidate| {
-            [
-                candidate.name.as_str(),
-                candidate.description.as_str(),
-                candidate.source_slug.as_deref().unwrap_or(""),
-                candidate.url.as_deref().unwrap_or(""),
-            ]
-            .into_iter()
-            .any(|field| identity_matches(&hint, field))
+            if let Some(hint) = &hint {
+                return [
+                    candidate.name.as_str(),
+                    candidate.description.as_str(),
+                    candidate.source_slug.as_deref().unwrap_or(""),
+                    candidate.url.as_deref().unwrap_or(""),
+                ]
+                .into_iter()
+                .any(|field| identity_matches(hint, field));
+            }
+            let text = listing_text(candidate);
+            let english = rendered(&text);
+            if english.is_none() && crate::english::detect(&text) == crate::english::Language::Other {
+                return true;
+            }
+            let listing = document(
+                Target::Source(0),
+                &format!("{text} {}", english.as_deref().unwrap_or("")),
+                BTreeSet::new(),
+            );
+            floor.mentions(&wanted, &listing)
         });
     }
+}
+
+/// The capability at `position` of `english`, when it is `capability` in
+/// English; otherwise `capability` itself.
+fn translated<'a>(english: &'a ParsedRequest, position: usize, capability: &'a Capability) -> &'a Capability {
+    english
+        .capabilities
+        .get(position)
+        .filter(|translated| translated.slug == capability.slug && translated.subject_id == capability.subject_id)
+        .unwrap_or(capability)
+}
+
+/// The request side of the lexical score: the capability's id, name, outputs,
+/// description and inputs, without the subjects' names and identifiers.
+fn wanted(capability: &Capability, parsed: &ParsedRequest) -> Document {
+    let mut generic = capability.clone();
+    generic.name = format!(
+        "{} {} {}",
+        capability.slug,
+        capability.name,
+        capability.outputs.join(" ")
+    );
+    generic.source_hint = None;
+    let text = capability_query(&generic, parsed, &Task::default());
+    document(
+        Target::Source(0),
+        &text,
+        normalized_capabilities(std::iter::once(capability.slug.as_str())),
+    )
 }
 
 /// Stems of the operations Apiosk itself performs on retrieved data, the
@@ -573,30 +779,29 @@ struct Ranked<T> {
 /// scrubbed from the lexical query and the relevance floor. They only order
 /// the relevant candidates by the subject's country (see `country`).
 pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
+    search_in_english(parsed, parsed, catalog)
+}
+
+/// [`search`] reading each capability in its own wording and in English:
+/// `english` is `parsed` with its capabilities in English (see
+/// `crate::english::English::request`). A candidate matching either wording
+/// is found; the query, country signal and source preference are the
+/// original's.
+pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
     let index = index(catalog);
     let empty_task = Task::default();
     parsed
         .capabilities
         .iter()
-        .filter(|capability| capability.slug != "general.conversation")
-        .map(|capability| {
+        .enumerate()
+        .filter(|(_, capability)| capability.slug != "general.conversation")
+        .map(|(position, capability)| {
             let query = capability_query(capability, parsed, &empty_task);
-            let mut generic = capability.clone();
-            generic.name = format!(
-                "{} {} {}",
-                capability.slug,
-                capability.name,
-                capability.outputs.join(" ")
-            );
-            generic.source_hint = None;
-            let text = capability_query(&generic, parsed, &empty_task);
-            let wanted = document(
-                Target::Source(0),
-                &text,
-                normalized_capabilities(std::iter::once(capability.slug.as_str())),
-            );
+            let translated = translated(english, position, capability);
+            let wanted = wanted(capability, parsed).union(wanted(translated, english));
             let restricted = hinted_sources(capability, catalog);
-            let floor = relevance::Request::new(capability, parsed);
+            let floor = relevance::Request::new(capability, parsed)
+                .union(relevance::Request::new(translated, english));
             let signal = country::Signal::infer(parsed, capability);
             let mut endpoints = Vec::new();
             let mut sources = Vec::new();
@@ -817,6 +1022,103 @@ mod tests {
         assert_eq!(matches[1].coinbase.len(), 1);
         assert_eq!(matches[0].apiosk.len(), 1);
         assert!(matches[0].operations.is_empty());
+    }
+
+    fn bankruptcies(language: &str, name: &str, description: &str, outputs: &[&str]) -> ParsedRequest {
+        crate::capability_intake::normalize(
+            &json!({"language":language,"subjects":[{"id":"s1","label":"Nederland","type":"country","identifiers":{}}],
+                "capabilities":[{"slug":"research.bankruptcies.bySector","name":name,"description":description,"domain":"research",
+                    "inputs":["country"],"outputs":outputs,"subject_id":"s1","source_hint":null,"confidence":0.9}],
+                "deliverable":{"format":"chat","operations":["compare"]}})
+            .to_string(),
+            "Nederland",
+            "fixture",
+        )
+        .unwrap()
+    }
+    fn listing(name: &str, description: &str) -> Candidate {
+        let mut candidate = bazaar(description);
+        candidate.name = name.into();
+        candidate
+    }
+
+    #[test]
+    fn bazaar_listings_must_share_the_capabilitys_topic() {
+        // Live, 2026-09-29: "Compare bankruptcies per sector in the
+        // Netherlands" showed Stock Trends' portfolio comparison.
+        let request = bankruptcies("en", "Bankruptcies by sector", "Compares the number of bankruptcies per sector in a country.", &["sector", "bankruptcy_count"]);
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        let dutch = listing("CBS Open Data", "Faillissementen per bedrijfstak en maand, uitgesproken door de rechtbank.");
+        let weather = listing("Weerdienst", "Het weerbericht voor de komende dagen per provincie en per stad.");
+        matches[0].coinbase = vec![
+            listing("Stock Trends Market Intelligence", "Compares two user-supplied portfolios using Stock Trends decision scoring, alignment, and regime context."),
+            listing("scopeapi.dev", "Python Data Analysis: run pandas over a supplied dataset to compute statistics, compare groups per category and summarize the results."),
+            listing("Stock Trends Market Intelligence", "Latest sector, industry-group, or industry breadth snapshot derived from Stock Trends signal distribution."),
+            listing("Insolvency Watch", "Company bankruptcy filings across Europe, updated daily."),
+            dutch.clone(),
+            weather.clone(),
+        ];
+        let mut unrendered = matches.clone();
+        filter_coinbase(&request, &mut unrendered);
+        let kept = |matches: &[Match]| -> Vec<String> { matches[0].coinbase.iter().map(|candidate| candidate.description.chars().take(24).collect()).collect() };
+        // Without English renderings a listing in another language cannot be
+        // judged and is kept, as before the topic check.
+        assert_eq!(
+            kept(&unrendered),
+            ["Latest sector, industry-", "Company bankruptcy filin", "Faillissementen per bedr", "Het weerbericht voor de "]
+        );
+        // With them, it is judged in English like any other.
+        let renderings: std::collections::HashMap<String, Arc<str>> = [
+            (listing_text(&dutch), Arc::from("Bankruptcies per branch of industry and month, declared by the court.")),
+            (listing_text(&weather), Arc::from("The weather forecast for the coming days per province and per city.")),
+        ]
+        .into_iter()
+        .collect();
+        filter_coinbase_in_english(&request, &request, &mut matches, &|text| renderings.get(text).cloned());
+        assert_eq!(kept(&matches), ["Latest sector, industry-", "Company bankruptcy filin", "Faillissementen per bedr"]);
+        assert_eq!(matches[0].coinbase_status, "pending");
+    }
+
+    #[test]
+    fn a_capability_read_in_english_keeps_the_english_bazaar_listings_about_it() {
+        let dutch = bankruptcies("nl", "Faillissementen per sector", "Vergelijkt het aantal faillissementen per bedrijfstak.", &["aantal_faillissementen"]);
+        let mut english = dutch.clone();
+        english.capabilities[0].name = "Bankruptcies per sector".into();
+        english.capabilities[0].description = "Compares the number of bankruptcies per sector.".into();
+        english.capabilities[0].outputs = vec!["number_of_bankruptcies".into()];
+        let mut matches = search_in_english(&dutch, &english, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![
+            listing("Insolvency Watch", "Company bankruptcy filings across Europe, updated daily."),
+            listing("Stock Trends Market Intelligence", "Compares two user-supplied portfolios using Stock Trends decision scoring."),
+        ];
+        filter_coinbase_in_english(&dutch, &english, &mut matches, &|_| None);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        assert_eq!(matches[0].coinbase[0].name, "Insolvency Watch");
+        // The query stays the person's own; Bazaar gets the English one.
+        assert!(matches[0].query.starts_with("Faillissementen"));
+    }
+
+    #[test]
+    fn unicode_words_fold_accents_and_keep_other_scripts() {
+        assert!(words("Économie française, Straße").is_superset(&BTreeSet::from(["economie".into(), "francaise".into(), "strasse".into()])));
+        assert_eq!(words("Défaillances"), words("defaillances"));
+        assert!(words("Безработица по регионам").contains("безработица"));
+        // Han and kana have no spaces: pairs of characters.
+        let japanese = words("都道府県別の失業率");
+        assert!(japanese.contains("失業") && japanese.contains("業率"), "{japanese:?}");
+        // Foreign function words are no topic.
+        assert!(document(Target::Source(0), "het aantal van de faillissementen", BTreeSet::new()).tokens.iter().all(|token| !["het", "van"].contains(&token.as_str())));
+        // A capability worded in another script still searches its English id.
+        let request = crate::capability_intake::normalize(
+            &json!({"language":"ja","subjects":[],"capabilities":[{"slug":"company.officers","name":"会社役員","description":"会社の現在の取締役を取得します。",
+                "domain":"company","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":0.9}],
+                "deliverable":{"format":"chat","operations":[]}}).to_string(),
+            "会社役員",
+            "fixture",
+        )
+        .unwrap();
+        let catalog = catalog(vec![service(1, "company.officers", "Company officers", "Current directors and officers", "registry")], vec![]);
+        assert_eq!(search(&request, &catalog)[0].apiosk.len(), 1);
     }
 
     #[test]

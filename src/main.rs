@@ -141,7 +141,11 @@ async fn main() -> anyhow::Result<()> {
         .or_else(|| env::var("INTENT_API_KEY").ok()).unwrap_or_default();
     let engine = Arc::new(Engine {
         store: store.clone(),
-        catalog: CatalogCache::new(pool.clone()),
+        // Ask search also reads the catalog in English, translated in the
+        // background by the same model (ASK_V2_TRANSLATION=0 turns it off).
+        catalog: CatalogCache::new(pool.clone()).with_english(
+            apiosk_gateway_v2::english::English::from_env(http.clone(), &openrouter_key),
+        ),
         parser: Parser::new(
             http.clone(),
             checked_url(

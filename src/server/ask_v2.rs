@@ -370,6 +370,10 @@ pub(super) async fn search(
         );
     }
     let started = Instant::now();
+    // Search reads each capability in English too (see crate::english); a
+    // request already in English, or any failure, is searched as it came.
+    let english = state.engine.catalog.english().clone();
+    let normalized = english.request(&request.parsed_request).await;
     let (matches, count, version) = match request.origin {
         Origin::Apiosk => {
             let catalog = match state.engine.catalog.get().await {
@@ -382,7 +386,7 @@ pub(super) async fn search(
                     )
                 }
             };
-            let matches = crate::ask_v2::search::search(&request.parsed_request, &catalog);
+            let matches = crate::ask_v2::search::search_in_english(&normalized.original, &normalized.english, &catalog);
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             // Branding is cached separately from contracts. A slow directory
             // refresh must not hold up capability matches indefinitely.
@@ -398,8 +402,10 @@ pub(super) async fn search(
             )
         }
         Origin::Coinbase => {
+            // Bazaar is searched in English; the query is also what a
+            // purchase re-resolves the listing with.
             let mut matches: Vec<_> =
-                capability_intake::queries(&request.parsed_request, &crate::state::Task::default())
+                capability_intake::queries(&normalized.english, &crate::state::Task::default())
                     .into_iter()
                     .map(|(slug, query)| Match {
                         slug,
@@ -416,7 +422,12 @@ pub(super) async fn search(
                 capability_intake::BAZAAR_SEARCH,
             )
             .await;
-            crate::ask_v2::search::filter_coinbase(&request.parsed_request, &mut matches);
+            let listings: Vec<String> = matches.iter()
+                .flat_map(|found| found.coinbase.iter().map(crate::ask_v2::search::listing_text))
+                .collect();
+            let rendered = english.listings(&listings).await;
+            crate::ask_v2::search::filter_coinbase_in_english(&normalized.original, &normalized.english, &mut matches,
+                &|text| rendered.get(text).cloned());
             // Compare buyer totals in the table. This is still a discovery
             // estimate; the selected offer is independently resolved at quote.
             for candidate in matches.iter_mut().flat_map(|found| &mut found.coinbase) {

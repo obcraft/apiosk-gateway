@@ -38,6 +38,7 @@ genpdf = { version = "0.2.0", features = ["images"] }
 image = { version = "0.23", default-features = false, features = ["png", "jpeg"] }
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 scraper = "=0.24.0"
+unicode-normalization = "0.1"
 
 [profile.release]
 strip = true
