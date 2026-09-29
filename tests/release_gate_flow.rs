@@ -234,7 +234,10 @@ impl Gate {
             UPDATE public.api_endpoints SET price=0.0001 WHERE path='/company.accounts';
             CREATE TABLE IF NOT EXISTS public.gate_workspace_access(actor uuid,workspace uuid,active boolean);
             CREATE TABLE IF NOT EXISTS public.gate_workspace_bindings(workspace uuid,selection uuid,task uuid,amount bigint);
-            CREATE OR REPLACE FUNCTION public.workspace_gateway_context(a uuid,c uuid,w uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN
+            -- support-db.mjs seeds its own fixture with other parameter names,
+            -- which CREATE OR REPLACE cannot rename (42P13).
+            DROP FUNCTION IF EXISTS public.workspace_gateway_context(uuid,uuid,uuid);
+            CREATE FUNCTION public.workspace_gateway_context(a uuid,c uuid,w uuid) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN
               IF w IS NULL THEN RETURN jsonb_build_object('workspace_id',NULL); END IF;
               IF NOT EXISTS(SELECT 1 FROM public.gate_workspace_access WHERE actor=a AND workspace=w AND active) THEN RAISE EXCEPTION 'forbidden' USING ERRCODE='42501'; END IF;
               RETURN jsonb_build_object('workspace_id',w,'name','Gate workspace','can_spend',true); END $$;
