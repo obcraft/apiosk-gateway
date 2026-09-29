@@ -1144,7 +1144,10 @@ async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response
             // A clarification has no form to fill; its question is the reply.
             body["message"] = json!(task.conversation.last().and_then(|turn| turn.reply.as_deref()));
         }
-        "needs_selection" => body["candidates"] = r.context_view["candidates"].clone(),
+        "needs_selection" => {
+            body["candidates"] = r.context_view["candidates"].clone();
+            if r.context_view["candidates_note"].is_string() { body["candidates_note"] = r.context_view["candidates_note"].clone(); }
+        }
         "running" => body["retry_after_ms"] = json!(r.retry_after_ms.unwrap_or(2000)),
         "failed" => {
             let code = r.errors.iter().filter_map(|e| e["code"].as_str()).find_map(|code| {

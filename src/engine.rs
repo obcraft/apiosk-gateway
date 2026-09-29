@@ -844,7 +844,8 @@ impl Engine {
             }
         }
         if !paused_plan && !task.pending_candidates.is_empty() {
-            r.context_view["candidates"] = json!(task.pending_candidates)
+            r.context_view["candidates"] = json!(task.pending_candidates);
+            r.context_view["candidates_note"] = json!(task.candidate_note);
         }
         r.next_actions = actions.iter().map(Action::public).collect();
         if worker_active { r.next_actions.retain(|a| !matches!(a.kind.as_str(), "execute_quoted_step" | "poll")); }

@@ -1,5 +1,54 @@
 use super::*;
+use catalog_core::facts::contract::SubjectFacts;
 use std::collections::BTreeSet;
+
+/// The most matches one choice lists. A longer list is a request to narrow
+/// the search, and every listed match is saved on the task.
+pub(super) const MAX_CANDIDATES: usize = 20;
+
+/// The facts another unfinished call for the source step's subject requires,
+/// that a candidate can supply and the task does not know yet. Empty:
+/// choosing unblocks nothing.
+pub(super) fn needed_facts(task: &Task, plan: &Plan, source: &resolver::Step, candidate_types: &BTreeSet<&str>) -> BTreeSet<String> {
+    plan.steps.iter()
+        .filter(|step| step.entity_ref == source.entity_ref && step.key() != source.key() && !task.step_finished(&step.key()))
+        .flat_map(|step| &step.service.contract.requires)
+        .filter(|requirement| !requirement.optional
+            && candidate_types.contains(requirement.fact_type.as_str())
+            && !crate::catalog::fact_value(&task.facts, source.entity_ref, &requirement.fact_type).is_ok_and(|value| value.is_some()))
+        .map(|requirement| requirement.fact_type.clone())
+        .collect()
+}
+
+/// One candidate per distinct value of the needed facts, in source order.
+/// Rows that repeat a KVK number are one company for the dependent call;
+/// a later row only adds facts the first lacked. Rows without any needed
+/// fact cannot continue the call and are not offered.
+pub(super) fn distinct_candidates(subjects: &[SubjectFacts], needed: &BTreeSet<String>) -> Vec<SubjectFacts> {
+    let mut keys: Vec<Vec<Option<&Value>>> = Vec::new();
+    let mut out: Vec<SubjectFacts> = Vec::new();
+    for subject in subjects {
+        let key: Vec<_> = needed.iter().map(|kind| subject.fact(kind).map(|fact| &fact.value)).collect();
+        if key.iter().all(Option::is_none) { continue; }
+        match keys.iter().position(|seen| *seen == key) {
+            Some(index) => for fact in &subject.facts {
+                if out[index].fact(&fact.fact_type).is_none() { out[index].facts.push(fact.clone()); }
+            },
+            None => { keys.push(key); out.push(subject.clone()); }
+        }
+    }
+    out
+}
+
+/// The leading candidates that fit the list and the task's saved capacity.
+pub(super) fn offered(task: &Task, candidates: &[SubjectFacts]) -> usize {
+    let (mut entities, mut facts) = (task.entities.len(), task.facts.len());
+    candidates.iter().take(MAX_CANDIDATES).take_while(|candidate| {
+        entities += 1;
+        facts += candidate.facts.len();
+        entities <= 100 && facts <= 1000
+    }).count()
+}
 
 // Multiple search hits are evidence, not automatically an unresolved company.
 // Ask only when choosing supplies a missing fact needed by an unfinished call.

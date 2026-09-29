@@ -1,4 +1,5 @@
 use super::*;
+use catalog_core::facts::contract::{ContractError, Extraction, SubjectFacts};
 
 /// The provider's own response, trimmed to its shape: three items per array,
 /// 600 characters per string, 60 keys per object, nine levels.
@@ -121,11 +122,7 @@ impl Engine {
                 && e.subjects.iter().any(|s| !s.facts.is_empty()));
             self.settle_unverified(&step.service, usable.then_some(&data)).await;
         }
-        let capacity_exceeded = extraction.as_ref().is_ok_and(|e| {
-            task.entities.len() + e.subjects.len() > 100
-                || task.facts.len() + e.subjects.iter().map(|s| s.facts.len()).sum::<usize>() > 1000
-                || serde_json::to_vec(&data).is_ok_and(|b| b.len() > 512 * 1024)
-        });
+        let capacity_exceeded = extraction.as_ref().is_ok_and(|e| capacity_exceeded(task, e, &data));
         let mut document = json!({"data":data,"source":{"provider":step.service.api_slug,"name":step.service.name,"url":step.service.source_url,"endpoint_id":step.service.endpoint_id,"contract_version":step.service.contract.version,"retrieved_at":Utc::now()},"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USD","missing_fields":[],"coverage":"source_response"});
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
@@ -179,6 +176,12 @@ impl Engine {
             Err(_) => vec!["output_schema_mismatch".into()],
         };
         let missing_required = !missing.is_empty();
+        let truncated = body["result_truncated"] == true;
+        // A remaining call that needs one of these rows continues on the
+        // person's choice among the distinct ones, however many the source
+        // returned or the task could hold: only the listed ones are saved.
+        let plan = task.proposal.clone().and_then(|plan| serde_json::from_value::<Plan>(plan).ok());
+        let choices = if missing_required || incomplete_sirenic_search { Vec::new() } else { choices(task, plan.as_ref(), step, &extraction) };
         let empty_records = crate::browser_fallback::empty_records(step, &data);
         if empty_records { document["coverage"] = json!("empty"); }
         if confirmed_empty_search(&step.service, &data) && !missing_required {
@@ -196,7 +199,7 @@ impl Engine {
             document["coverage"] = json!("partial");
             document["coverage_note"] = json!("Sirenic reported an incomplete or unreliable search; dependent purchases were stopped.");
         }
-        if capacity_exceeded {
+        if capacity_exceeded && choices.is_empty() {
             document["coverage"] = json!("partial");
             document["missing_fields"] = json!(["automatic_fact_binding_capacity_exceeded"]);
         }
@@ -230,52 +233,26 @@ impl Engine {
             self.fail_step(task, step, json!({"code":"empty_source","message":"The source returned no usable records for this check. Any quoted browser fallback can search for alternative evidence."}))?;
             return Ok(());
         }
-        let extraction = match extraction {
-            Ok(e)
-                if body["result_truncated"] != true
-                    && !missing_required
-                    && !capacity_exceeded
-                    && !incomplete_sirenic_search =>
-            {
-                e
-            }
-            _ => {
+        anyhow::ensure!(plan.is_some(), "missing plan");
+        let complete = !truncated && !missing_required && !capacity_exceeded && !incomplete_sirenic_search;
+        let (subjects, ambiguous, needs_choice) = match rows(task, step, extraction, choices, complete, truncated, &data) {
+            Rows::Incomplete => {
                 self.fail_step(task, step, json!({"code":"incomplete_source","message":"The source response is incomplete; dependent calls were not made."}))?;
                 return Ok(());
             }
-        };
-        if extraction.picked_out_of.is_some() {
-            self.fail_step(task, step, json!({"code":"incomplete_selection","message":"The source did not return all candidates; dependent calls were not made."}))?;
-            return Ok(());
-        }
-        let selected = if extraction.is_ambiguous() {
-            crate::entity_resolution::confident_candidate(
-                task,
-                step.entity_ref,
-                &extraction.subjects,
-            )
-        } else {
-            None
-        };
-        let ambiguous = extraction.is_ambiguous() && selected.is_none();
-        // A completed search is a result in its own right. Only a remaining
-        // dependency needs the user to disambiguate before spending again.
-        let plan: Plan = serde_json::from_value(
-            task.proposal
-                .clone()
-                .ok_or_else(|| anyhow::anyhow!("missing plan"))?,
-        )?;
-        let candidate_types = extraction.subjects.iter()
-            .flat_map(|subject| subject.facts.iter().map(|fact| fact.fact_type.as_str()))
-            .collect();
-        let needs_choice = ambiguous && plan.steps.iter().any(|remaining| {
-            selection::needs_candidate_facts(task, remaining, step.entity_ref, &candidate_types)
-        });
-        let mut candidate_ids = vec![];
-        for (index, subject) in extraction.subjects.iter().enumerate() {
-            if selected.is_some_and(|selected| selected != index) {
-                continue;
+            Rows::IncompleteSelection => {
+                self.fail_step(task, step, json!({"code":"incomplete_selection","message":"The source did not return all candidates; dependent calls were not made."}))?;
+                return Ok(());
             }
+            Rows::Bind(subjects) => (subjects, false, false),
+            Rows::Evidence(subjects) => (subjects, true, false),
+            Rows::Choose(subjects, note) => {
+                task.candidate_note = note;
+                (subjects, true, true)
+            }
+        };
+        let mut candidate_ids = vec![];
+        for subject in &subjects {
             let entity = if ambiguous {
                 Uuid::new_v4()
             } else {
@@ -340,6 +317,76 @@ impl Engine {
     }
 }
 
+/// Saving every row as its own subject would outgrow the task.
+fn capacity_exceeded(task: &Task, extraction: &Extraction, data: &Value) -> bool {
+    task.entities.len() + extraction.subjects.len() > 100
+        || task.facts.len() + extraction.subjects.iter().map(|s| s.facts.len()).sum::<usize>() > 1000
+        || serde_json::to_vec(data).is_ok_and(|b| b.len() > 512 * 1024)
+}
+
+/// The distinct rows another call of the plan could continue with.
+fn choices(task: &Task, plan: Option<&Plan>, step: &resolver::Step, extraction: &Result<Extraction, ContractError>) -> Vec<SubjectFacts> {
+    match (extraction, plan) {
+        (Ok(e), Some(plan)) if e.picked_out_of.is_none() => {
+            let types = e.subjects.iter().flat_map(|s| s.facts.iter().map(|f| f.fact_type.as_str())).collect();
+            selection::distinct_candidates(&e.subjects, &selection::needed_facts(task, plan, step, &types))
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// What a source step's rows do next.
+#[derive(Debug)]
+enum Rows {
+    /// The subject's own facts: no row, one row, or the one sure match.
+    Bind(Vec<SubjectFacts>),
+    /// Several rows kept as evidence; no remaining call needs one of them.
+    Evidence(Vec<SubjectFacts>),
+    /// The person picks one; the note says when these are not every match.
+    Choose(Vec<SubjectFacts>, Option<String>),
+    Incomplete,
+    IncompleteSelection,
+}
+
+/// A completed search is a result in its own right. Only a remaining
+/// dependency needs the person to disambiguate before spending again, and
+/// then among the distinct `choices` only, however many rows the source sent
+/// or the task can hold. One distinct match continues by itself, unless the
+/// source cut the list short: then even one is the person's to confirm.
+fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, ContractError>, mut choices: Vec<SubjectFacts>,
+    complete: bool, truncated: bool, data: &Value) -> Rows {
+    let extraction = match extraction {
+        Ok(e) if complete || !choices.is_empty() => e,
+        _ => return Rows::Incomplete,
+    };
+    if extraction.picked_out_of.is_some() {
+        return Rows::IncompleteSelection;
+    }
+    if !choices.is_empty() {
+        let sure = if truncated { None } else if choices.len() == 1 { Some(0) }
+            else { crate::entity_resolution::confident_candidate(task, step.entity_ref, &choices) };
+        if let Some(index) = sure {
+            return Rows::Bind(vec![choices.swap_remove(index)]);
+        }
+        let listed = selection::offered(task, &choices);
+        if listed == 0 {
+            return Rows::Incomplete;
+        }
+        let note = (truncated || listed < choices.len() || more_pages(&step.service, data)).then(|| format!(
+            "{} returned more matches than are listed. Only the first {listed} distinct {} shown; if yours is not here, ask again with a more specific name or its identifier. Nothing more is charged until you choose.",
+            step.service.name, if listed == 1 { "match is" } else { "matches are" }));
+        choices.truncate(listed);
+        return Rows::Choose(choices, note);
+    }
+    if !extraction.is_ambiguous() {
+        return Rows::Bind(extraction.subjects);
+    }
+    match crate::entity_resolution::confident_candidate(task, step.entity_ref, &extraction.subjects) {
+        Some(index) => Rows::Bind(vec![extraction.subjects[index].clone()]),
+        None => Rows::Evidence(extraction.subjects),
+    }
+}
+
 // Optional projections describe alternative record shapes (for example, the
 // national identifier for each country). Their absence is not partial data.
 fn missing_required_outputs(
@@ -369,6 +416,13 @@ fn missing_required_outputs(
         })
         .cloned()
         .collect()
+}
+
+/// The page links to a next one, by the contract's own pagination path.
+fn more_pages(service: &crate::catalog::Service, data: &Value) -> bool {
+    service.pagination["next"].as_str()
+        .and_then(|next| catalog_core::facts::path::parse(next).ok())
+        .is_some_and(|path| path.select(data).iter().any(|link| link.as_str().is_some_and(|link| !link.is_empty())))
 }
 
 fn confirmed_empty_search(service: &crate::catalog::Service, data: &Value) -> bool {
@@ -448,5 +502,169 @@ mod completeness_tests {
         }
         service.api_slug = "another-source".into();
         assert!(!missing_required_outputs(&service, &extraction, &empty).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod candidate_tests {
+    use super::*;
+
+    /// The production OpenKvK search and profile contracts.
+    fn catalog() -> Catalog {
+        Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/overheid-openkvk/catalog.json")).unwrap())
+    }
+
+    /// The reported page: 22 establishments, bol.com's four under one KVK number.
+    fn page(rows: usize) -> Value {
+        let mut bedrijf = vec![json!({"kvknummer":"63768917","naam":"Bol Holding B.V.","slug":"hoofdvestiging-bol-holding-63768917-000033089418"})];
+        for branch in 0..4 {
+            let kind = if branch == 0 { "hoofdvestiging" } else { "nevenvestiging" };
+            bedrijf.push(json!({"kvknummer":"24330087","naam":"bol.com B.V.","slug":format!("{kind}-bol-com-24330087-0000198177{branch:02}")}));
+        }
+        for n in 0..rows.saturating_sub(5) {
+            bedrijf.push(json!({"kvknummer":format!("{:08}", 70000000 + n),"naam":format!("Bol Winkel {n}"),"slug":format!("hoofdvestiging-bol-winkel-{n}")}));
+        }
+        bedrijf.truncate(rows);
+        json!({"totalItemCount":rows,"pageCount":1,"size":100,"_links":{"self":{"href":"/v3/openkvk?query=bol"}},"_embedded":{"bedrijf":bedrijf}})
+    }
+
+    /// A name search followed by the call that needs one of its rows.
+    fn plan(search: crate::catalog::Service, dependent: crate::catalog::Service, name: &str) -> (Task, resolver::Step) {
+        let subject = Uuid::new_v4();
+        let mut task = Task::default();
+        task.entities.push(Entity { entity_ref: subject, label: name.into(), selected: false });
+        task.facts.push(Fact { entity_ref: subject, semantic_type: "company.name".into(), value: json!(name),
+            provenance: json!({"kind":"user"}), observed_at: Utc::now(), expires_at: Utc::now() + chrono::Duration::hours(1), verification: "user".into() });
+        let step = |service| resolver::Step { service, entity_ref: subject, goal_index: 0, browser_fallback: None };
+        let plan = Plan { quote_ref: Uuid::new_v4(), steps: vec![step(search), step(dependent)], cap_atomic: 200_000,
+            expires_at: Utc::now() + chrono::Duration::minutes(10), hash: "fixture".into(), fee_bps: 1500, workflow_slug: None };
+        task.proposal = Some(serde_json::to_value(&plan).unwrap());
+        (task, plan.steps[0].clone())
+    }
+
+    fn openkvk(name: &str) -> (Task, resolver::Step, Catalog) {
+        let catalog = catalog();
+        let (task, step) = plan(catalog.services[0].clone(), catalog.services[1].clone(), name);
+        (task, step, catalog)
+    }
+
+    /// The decision `ingest` takes for this response, from the same parts.
+    fn decide(task: &Task, step: &resolver::Step, catalog: &Catalog, data: &Value, truncated: bool) -> Rows {
+        let extraction = step.service.contract.extract(data, &catalog.vocabulary);
+        let missing = extraction.as_ref().map_or(true, |e| !missing_required_outputs(&step.service, e, data).is_empty());
+        let capacity = extraction.as_ref().is_ok_and(|e| capacity_exceeded(task, e, data));
+        let plan: Plan = serde_json::from_value(task.proposal.clone().unwrap()).unwrap();
+        let options = if missing { Vec::new() } else { choices(task, Some(&plan), step, &extraction) };
+        rows(task, step, extraction, options, !truncated && !missing && !capacity, truncated, data)
+    }
+
+    fn kvk(candidate: &SubjectFacts) -> &str {
+        candidate.fact("company_registry.kvknummer").unwrap().value.as_str().unwrap()
+    }
+
+    #[test]
+    fn a_page_of_companies_is_one_choice_per_kvk_number() {
+        let (task, step, catalog) = openkvk("bol");
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &page(22), false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 19, "four establishments of 24330087 are one candidate");
+        assert_eq!(candidates.iter().filter(|c| kvk(c) == "24330087").count(), 1);
+        let bol = candidates.iter().find(|c| kvk(c) == "24330087").unwrap();
+        assert_eq!(bol.fact("company_registry.openkvk_slug").unwrap().value, "hoofdvestiging-bol-com-24330087-000019817700", "the first row the source ranked");
+        assert_eq!(kvk(&candidates[0]), "63768917", "source order is kept");
+        assert!(note.is_none(), "the page held every match");
+    }
+
+    #[test]
+    fn a_task_near_capacity_offers_what_fits_instead_of_failing() {
+        let (mut task, step, catalog) = openkvk("bol");
+        // Earlier turns of the same chat left 90 subjects on the task: the
+        // automatic binding capacity is exceeded, which used to fail the step.
+        for n in 0..89 { task.entities.push(Entity { entity_ref: Uuid::new_v4(), label: format!("Earlier {n}"), selected: false }); }
+        let data = page(22);
+        let extraction = step.service.contract.extract(&data, &catalog.vocabulary).unwrap();
+        assert!(capacity_exceeded(&task, &extraction, &data));
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 10);
+        assert!(note.unwrap().contains("Only the first 10 distinct matches are shown"));
+    }
+
+    #[test]
+    fn a_long_list_is_bounded_and_says_so() {
+        let (task, step, catalog) = openkvk("bol");
+        let mut data = page(60);
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), selection::MAX_CANDIDATES);
+        assert!(note.unwrap().starts_with("Overheid.io Public Data returned more matches than are listed. Only the first 20 distinct matches"));
+        // A further page is also said, even when this page fits the list.
+        data = page(3);
+        data["_links"]["next"] = json!({"href":"/v3/openkvk?query=bol&page=2"});
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 2);
+        assert!(note.unwrap().contains("Only the first 2 distinct matches"));
+    }
+
+    #[test]
+    fn one_distinct_company_continues_without_asking() {
+        let (task, step, catalog) = openkvk("bol");
+        let mut data = page(5);
+        data["_embedded"]["bedrijf"].as_array_mut().unwrap().remove(0);
+        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a binding") };
+        assert_eq!(subjects.len(), 1);
+        assert_eq!(kvk(&subjects[0]), "24330087");
+        // Without a declared identity the repeated number is still one company
+        // for a call that needs the number.
+        let mut search = catalog.services[0].clone();
+        search.contract.identifies = None;
+        let mut profile = catalog.services[1].clone();
+        profile.contract.requires[0].fact_type = "company_registry.kvknummer".into();
+        let (task, step) = plan(search, profile, "bol");
+        assert_eq!(step.service.contract.extract(&data, &catalog.vocabulary).unwrap().subjects.len(), 4);
+        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a binding") };
+        assert_eq!(kvk(&subjects[0]), "24330087");
+        let Rows::Choose(candidates, _) = decide(&task, &step, &catalog, &page(22), false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 19);
+    }
+
+    #[test]
+    fn an_exact_name_match_continues_without_asking() {
+        let (task, step, catalog) = openkvk("bol.com B.V.");
+        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &page(22), false) else { panic!("expected a binding") };
+        assert_eq!(kvk(&subjects[0]), "24330087");
+    }
+
+    #[test]
+    fn a_cut_short_list_is_offered_and_never_guessed() {
+        let (task, step, catalog) = openkvk("bol.com B.V.");
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &page(22), true) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 19, "no automatic match from a truncated list");
+        assert!(note.is_some());
+        let mut single = page(5);
+        single["_embedded"]["bedrijf"].as_array_mut().unwrap().remove(0);
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &single, true) else { panic!("expected a confirmation") };
+        assert_eq!(candidates.len(), 1);
+        assert!(note.unwrap().contains("Only the first 1 distinct match is shown"));
+    }
+
+    #[test]
+    fn genuinely_incomplete_responses_still_stop_dependent_calls() {
+        let (task, step, catalog) = openkvk("bol");
+        // Storage kept only a text preview: nothing to choose from.
+        let preview = json!({"truncated_preview":"{\"_embedded\":{\"bedrijf\":[","original_bytes":900000});
+        assert!(matches!(decide(&task, &step, &catalog, &preview, true), Rows::Incomplete));
+        // Rows without the identifier the dependent call needs.
+        let mut unusable = page(22);
+        for row in unusable["_embedded"]["bedrijf"].as_array_mut().unwrap() { row.as_object_mut().unwrap().remove("slug"); }
+        assert!(matches!(decide(&task, &step, &catalog, &unusable, false), Rows::Incomplete));
+        // No room left on the task for even one listed match.
+        let mut full = task.clone();
+        for n in 0..99 { full.entities.push(Entity { entity_ref: Uuid::new_v4(), label: format!("Earlier {n}"), selected: false }); }
+        assert!(matches!(decide(&full, &step, &catalog, &page(22), false), Rows::Incomplete));
+    }
+
+    #[test]
+    fn rows_no_remaining_call_needs_stay_evidence() {
+        let (mut task, step, catalog) = openkvk("bol");
+        task.completed.push(serde_json::from_value::<Plan>(task.proposal.clone().unwrap()).unwrap().steps[1].key());
+        assert!(matches!(decide(&task, &step, &catalog, &page(22), false), Rows::Evidence(subjects) if subjects.len() == 19));
     }
 }

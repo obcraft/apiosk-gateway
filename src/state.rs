@@ -215,6 +215,9 @@ pub struct Task {
     pub skipped_steps: std::collections::BTreeSet<String>,
     pub result_refs: Vec<Uuid>,
     pub pending_candidates: Vec<Value>,
+    /// Why the listed candidates are not every match; shown with them only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_note: Option<String>,
     pub original_subject: Option<Uuid>,
     pub cancelled: bool,
     #[serde(default)]

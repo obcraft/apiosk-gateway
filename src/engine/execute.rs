@@ -376,6 +376,7 @@ impl Engine {
                     e.selected = true;
                 }
                 task.pending_candidates.clear();
+                task.candidate_note = None;
                 self.advance(&mut task)?;
             }
             Action::Run { step, .. } => {

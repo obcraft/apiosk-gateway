@@ -1,0 +1,184 @@
+{
+ "services": [
+  {
+   "id": "81748e89-9e52-42fc-95db-44fea0f48ea9",
+   "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+   "api_slug": "overheid-io",
+   "name": "Overheid.io Public Data",
+   "method": "GET",
+   "path": "/v3/openkvk",
+   "listing_type": "api",
+   "list_atomic": 50000,
+   "source_url": "https://overheid.io/documentatie/v3/openkvk",
+   "contract": {
+    "capability_slug": "company_registry.search",
+    "version": 1,
+    "cardinality": "many",
+    "requires": [
+     {
+      "fact_type": "company.name",
+      "subject_role": "subject",
+      "optional": false
+     }
+    ],
+    "input_map": {
+     "company.name": {
+      "in": "query",
+      "name": "query"
+     }
+    },
+    "output_map": {
+     "base": "$._embedded.bedrijf[*]",
+     "produces": {
+      "company.name": {
+       "path": "$.naam"
+      },
+      "company_registry.kvknummer": {
+       "path": "$.kvknummer"
+      },
+      "company_registry.openkvk_slug": {
+       "path": "$.slug"
+      }
+     }
+    },
+    "identifies": "company_registry.kvknummer",
+    "max_fan_out": 1
+   },
+   "fixed_params": {},
+   "preconditions": {},
+   "pagination": {
+    "kind": "hal",
+    "next": "$._links.next.href"
+   },
+   "freshness_seconds": 86400,
+   "jurisdiction": "NL",
+   "optional_outputs": [],
+   "sample_payload": {
+    "totalItemCount": 58,
+    "pageCount": 58,
+    "size": 1,
+    "_embedded": {
+     "bedrijf": [
+      {
+       "kvknummer": "66076986",
+       "slug": "hoofdvestiging-gastouder-mollie-66076986-34733841",
+       "naam": "Gastouder Mollie"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c7e42d13-b3cd-4230-b6db-fac4585cb2b9",
+   "endpoint_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+   "api_slug": "overheid-io",
+   "name": "Overheid.io Public Data",
+   "method": "GET",
+   "path": "/v3/openkvk/{id}",
+   "listing_type": "api",
+   "list_atomic": 75000,
+   "source_url": "https://overheid.io/documentatie/v3/openkvk",
+   "contract": {
+    "capability_slug": "company_registry.lookup",
+    "version": 1,
+    "cardinality": "one",
+    "requires": [
+     {
+      "fact_type": "company_registry.openkvk_slug",
+      "subject_role": "subject",
+      "optional": false
+     }
+    ],
+    "input_map": {
+     "company_registry.openkvk_slug": {
+      "in": "path",
+      "name": "id"
+     }
+    },
+    "output_map": {
+     "base": "$",
+     "produces": {
+      "company.name": {
+       "path": "$.naam"
+      },
+      "company_registry.kvknummer": {
+       "path": "$.kvknummer"
+      },
+      "company_registry.openkvk_slug": {
+       "path": "$.slug"
+      },
+      "company.profile": {
+       "fields": {
+        "legal_name": {
+         "path": "$.naam"
+        },
+        "trade_names": {
+         "path": "$.huidigeHandelsNamen[*]",
+         "collect": true
+        },
+        "legal_form": {
+         "path": "$.rechtsvormOmschrijving"
+        },
+        "sbi_codes": {
+         "path": "$.sbi[*]",
+         "collect": true
+        }
+       }
+      }
+     }
+    },
+    "identifies": "company_registry.kvknummer",
+    "max_fan_out": 1
+   },
+   "fixed_params": {},
+   "preconditions": {},
+   "pagination": {},
+   "freshness_seconds": 86400,
+   "jurisdiction": "NL",
+   "optional_outputs": [],
+   "sample_payload": {
+    "kvknummer": "66076986",
+    "slug": "hoofdvestiging-gastouder-mollie-66076986-34733841",
+    "naam": "Gastouder Mollie",
+    "huidigeHandelsNamen": [
+     "Gastouder Mollie"
+    ],
+    "rechtsvormOmschrijving": "Eenmanszaak",
+    "sbi": [
+     "88911"
+    ]
+   }
+  }
+ ],
+ "vocabulary": [
+  {
+   "slug": "company.name",
+   "value_schema": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 500
+   }
+  },
+  {
+   "slug": "company.profile",
+   "value_schema": {
+    "type": "object"
+   }
+  },
+  {
+   "slug": "company_registry.kvknummer",
+   "value_schema": {
+    "type": "string",
+    "pattern": "^[0-9]{8}$"
+   }
+  },
+  {
+   "slug": "company_registry.openkvk_slug",
+   "value_schema": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 500
+   }
+  }
+ ]
+}
