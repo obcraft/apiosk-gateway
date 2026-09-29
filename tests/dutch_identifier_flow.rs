@@ -30,10 +30,16 @@ struct TestState {
     http: reqwest::Client,
     count: Arc<AtomicUsize>,
 }
+/// PDOK and TED are read live only on request; the default run is offline.
+fn live() -> bool {
+    std::env::var("DUTCH_SOURCE_LIVE").as_deref() == Ok("1")
+}
 fn fixture() -> Value {
     serde_json::from_str(include_str!("fixtures/dutch-links/catalog.json")).unwrap()
 }
-async fn model(Json(_body): Json<Value>) -> Json<Value> {
+async fn model(Json(body): Json<Value>) -> Json<Value> {
+    let input: Value =
+        serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     let goals = [
         "building.bag-building",
         "area.cbs-neighbourhood-2025",
@@ -43,9 +49,15 @@ async fn model(Json(_body): Json<Value>) -> Json<Value> {
         "procurement.ted-kvk-notices",
         "procurement.ted-rsin-notices",
     ];
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[{"entity_ref":null,"label":"30204462","values":{"company_registry.kvknummer":"30204462"}}],"goals":goals.iter().map(|cap|json!({"capability":cap,"subject":0,"constraints":{}})).collect::<Vec<_>>(),"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
-    )
+    let intent = json!({"subjects":[{"entity_ref":null,"label":"30204462","values":{"company_registry.kvknummer":"30204462"}}],"goals":goals.iter().map(|cap|json!({"capability":cap,"subject":0,"constraints":{}})).collect::<Vec<_>>(),"answer_operations":[],"unresolved_references":[]});
+    // Discover reads the question through the Ask chat envelope
+    // (message, discover, intent); the bare intent is the older parser shape.
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"I'll look up the linked Dutch sources.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();
@@ -80,9 +92,15 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
                     .unwrap_or_else(|| v.to_string()),
             );
         }
+        // The adapter must accept the inputs the engine bound from earlier
+        // steps. It reads the public upstream only with DUTCH_SOURCE_LIVE=1;
+        // otherwise the catalog's recorded normalized sample stands in.
         let p = adapter::prepare(source, "GET", url.as_str())
             .unwrap()
             .unwrap();
+        if !live() {
+            service["sample_payload"].clone()
+        } else {
         let request = if let Some(body) = &p.json_body {
             s.http.post(&p.url).json(body)
         } else {
@@ -99,6 +117,7 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
             .await
             .unwrap();
         adapter::normalize(&p, &raw).unwrap()
+        }
     } else {
         service["sample_payload"].clone()
     };
@@ -136,7 +155,17 @@ async fn identifier_graph_requires_one_approval_and_reuses_each_dependency() {
         db.contains("127.0.0.1:"),
         "This test must never seed a remote database"
     );
+    // Production resolves the runtime tables (requests, tasks, ...) through the
+    // connection search_path set in main.rs; the fixture pool must match it.
     let pool = PgPoolOptions::new()
+        .after_connect(|conn, _| {
+            Box::pin(async move {
+                sqlx::query("SET search_path TO public, gateway_v2")
+                    .execute(conn)
+                    .await?;
+                Ok(())
+            })
+        })
         .max_connections(1)
         .connect(&db)
         .await
@@ -268,8 +297,13 @@ async fn identifier_graph_requires_one_approval_and_reuses_each_dependency() {
         .await
         .unwrap();
     assert_eq!(authorizations, 1);
-    std::fs::write(if missing_optional {"output/dutch-links-20260911/durable-missing-rsin.json"}else{"output/dutch-links-20260911/durable-graph.json"},serde_json::to_vec_pretty(&json!({"quote":quote.max_total_atomic,"steps":10,"approvals":1,"kvk_calls":kvk,"replay_extra_calls":0,"result":response})).unwrap()).unwrap();
-    println!("Ten-step graph passed: one approval, one shared KVK lookup, source-backed PDOK/TED reads, zero replay calls. KVK/TenderNed/model/billing are fixtures.");
+    // Evidence (gitignored) records live upstream reads only; an offline run
+    // must not overwrite it with recorded samples.
+    if live() {
+        std::fs::create_dir_all("output/dutch-links-20260911").unwrap();
+        std::fs::write(if missing_optional {"output/dutch-links-20260911/durable-missing-rsin.json"}else{"output/dutch-links-20260911/durable-graph.json"},serde_json::to_vec_pretty(&json!({"quote":quote.max_total_atomic,"steps":10,"approvals":1,"kvk_calls":kvk,"replay_extra_calls":0,"result":response})).unwrap()).unwrap();
+    }
+    println!("Ten-step graph passed: one approval, one shared KVK lookup, {} PDOK/TED reads, zero replay calls. KVK/TenderNed/model/billing are fixtures.", if live() {"live"} else {"recorded"});
     server.abort();
     pool.close().await;
 }

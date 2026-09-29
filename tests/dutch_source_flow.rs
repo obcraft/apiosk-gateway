@@ -64,9 +64,15 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
         .unwrap();
     let (cap, values) = case(key);
     let source = if key == "koop-detail" { "koop" } else { key };
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[{"entity_ref":null,"label":key,"values":values}],"goals":[{"capability":cap,"subject":0,"constraints":{"source":source}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
-    )
+    let intent = json!({"subjects":[{"entity_ref":null,"label":key,"values":values}],"goals":[{"capability":cap,"subject":0,"constraints":{"source":source}}],"answer_operations":[],"unresolved_references":[]});
+    // Discover reads the question through the Ask chat envelope
+    // (message, discover, intent); the bare intent is the older parser shape.
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"I'll look this up in the Dutch public source.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();
@@ -161,7 +167,17 @@ async fn new_sources_require_approval_and_reuse_saved_results() {
         db.contains("127.0.0.1:"),
         "This test must never seed a remote database"
     );
+    // Production resolves the runtime tables (requests, tasks, ...) through the
+    // connection search_path set in main.rs; the fixture pool must match it.
     let pool = PgPoolOptions::new()
+        .after_connect(|conn, _| {
+            Box::pin(async move {
+                sqlx::query("SET search_path TO public, gateway_v2")
+                    .execute(conn)
+                    .await?;
+                Ok(())
+            })
+        })
         .max_connections(1)
         .connect(&db)
         .await
