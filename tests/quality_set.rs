@@ -60,12 +60,16 @@ async fn quality_set_scores_every_replayed_case() {
         let stored: Vec<replay::StoredStep> = serde_json::from_value(read_json(&dir.join("sources.json"))["steps"].clone()).unwrap();
         let catalog = Catalog::build(serde_json::from_str(&std::fs::read_to_string(repo.join(&replayed.catalog)).unwrap()).unwrap());
         tape::load(&server, &dir);
-        let outcome = replay::run(&parser, &catalog, &replayed, &stored).await.unwrap_or_else(|error| panic!("{}: {error}", case.id));
+        let outcome = replay::run(&parser, &catalog, &replayed, &stored).await;
+        // A tape miss (a changed prompt or input) fails the model call that
+        // needed it: the case was not run, as in replay_set. Only a case whose
+        // tape answered every request can fail on its own outcome.
         let (misses, _) = tape::finish(&server, &dir);
         if !misses.is_empty() {
             not_run.push(format!("{} (tape: {})", case.id, misses.join(", ")));
             continue;
         }
+        let outcome = outcome.unwrap_or_else(|error| panic!("{}: {error}", case.id));
         scores.insert(case.id.clone(), score::score(case, &outcome));
     }
 

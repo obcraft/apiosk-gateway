@@ -7,8 +7,8 @@
     "analysis": "replay-fixture"
   },
   "prompt_hashes": {
-    "chat": "d69262f7377ec8d0fe27471335208e72b1277326ad2f04b1c9d7ca6419674674",
-    "analysis": "0d30948beac69e0e8a0bee4daebc3c24e06c3ff3ce2cb77a74af05e681fd2afd"
+    "chat": "6e06480a2577270f7776c97dd90c9a07ad4432919734004c6fcd6e92d3d0f77e",
+    "analysis": "745ace6ff2ac61932b086fafcd4652e7aa13b39e3ded8f2ffe5bc335d228aac2"
   },
   "catalog_fixtures": {
     "tests/fixtures/supplier-check/catalog.json": "79622a9f523cc465eab4c97b18d64b10b08453534fd8394516a88239231b6a2a",
@@ -22,7 +22,8 @@
     "at": null
   },
   "changelog": [
-    "v1: hand-authored model responses that pass the production validators; source documents from test fixtures (synthetic edits documented per case). Record live responses into v2 with REPLAY_TAPE=live REPLAY_RECORD=1."
+    "v1: hand-authored model responses that pass the production validators; source documents from test fixtures (synthetic edits documented per case). Record live responses into v2 with REPLAY_TAPE=live REPLAY_RECORD=1.",
+    "v1 (2026-09-30): the hand-authored chat and analysis entries re-keyed by position (REPLAY_TAPE=by-position REPLAY_BLESS=1) for the Ask chat prompt changed in 9505abb and the analysis prompt changed in cd52b6b. Responses unchanged; all five goldens still equal."
   ],
   "cases": {
     "full_tapes": [
