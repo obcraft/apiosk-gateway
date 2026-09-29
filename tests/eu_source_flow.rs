@@ -73,9 +73,15 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
         .find(|s| s["contract"]["capability_slug"] == key)
         .unwrap()["api_slug"]
         .clone();
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":[{"entity_ref":null,"label":key,"values":values}],"goals":[{"capability":cap,"subject":0,"constraints":{"source":source}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
-    )
+    let intent = json!({"subjects":[{"entity_ref":null,"label":key,"values":values}],"goals":[{"capability":cap,"subject":0,"constraints":{"source":source}}],"answer_operations":[],"unresolved_references":[]});
+    // Every surface reads a question through the Ask chat pass: a concrete
+    // request returns its intent together with the reply.
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"I will look that up and show the price first.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();

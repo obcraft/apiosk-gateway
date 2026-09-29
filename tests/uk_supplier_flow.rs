@@ -50,7 +50,14 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
             .unwrap();
         json!({"observations":[{"text":"The registry identifies {{a}}.","evidence":[{"result_ref":s["result_ref"],"pointer":"/data/company_name"}]}],"limitations":["Synthetic acceptance fixture; not a live supplier verification."]})
     } else {
-        json!({"subjects":[{"entity_ref":null,"label":"Anthropic","values":{}}],"goals":[{"capability":"company.uk-supplier-verification","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]})
+        let intent = json!({"subjects":[{"entity_ref":null,"label":"Anthropic","values":{}}],"goals":[{"capability":"company.uk-supplier-verification","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]});
+        // Every surface reads a question through the Ask chat pass: a
+        // concrete request returns its intent together with the reply.
+        if input["surface"] == "ask-chat" {
+            json!({"message":"I will prepare the supplier checks and show the total price first.","discover":true,"intent":intent})
+        } else {
+            intent
+        }
     };
     Json(json!({"choices":[{"message":{"content":reply.to_string()}}]}))
 }

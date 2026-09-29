@@ -61,8 +61,11 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
         return Json(json!({"provider":"Fixture Provider","choices":[{"message":{"content":answer.to_string()}}],
             "usage":{"prompt_tokens":900,"completion_tokens":40,"prompt_tokens_details":{"cached_tokens":512},"cost":0.00021}}));
     }
+    // The question asks for a written summary: discover (unlike the retired
+    // App chat) answers only the operations the intent names, so the answer
+    // operation is what takes the question through analysis.
     let intent = json!({"subjects":[{"entity_ref":null,"label":CANARY,"values":{"company.name":CANARY}}],
-        "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]});
+        "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":["Summarize the annual accounts"],"unresolved_references":[]});
     // No `cost` here: the trace must report the model cost as incomplete, not 0.
     Json(json!({"provider":"Fixture Provider","choices":[{"message":{"content":json!({"message":"Ik zoek de jaarrekening op.","discover":true,"intent":intent}).to_string()}}],
         "usage":{"prompt_tokens":1200,"completion_tokens":80}}))
@@ -136,8 +139,9 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
     let client = reqwest::Client::new();
     let send = |request: reqwest::RequestBuilder| request.bearer_auth(BEARER).header("x-apiosk-trace", &trace).send();
     // A question over HTTP: /v2/discover shares the App chat's intake (the
-    // App's own /v2/chat route is retired and answers 410).
-    let asked = send(client.post(format!("{gateway}/v2/discover")).json(&json!({"request_id":Uuid::new_v4(),"question":format!("Jaarrekening van {CANARY}"),"state":null})))
+    // App's own /v2/chat route is retired and answers 410). Discover writes
+    // an answer only when asked for one, so this question asks for a summary.
+    let asked = send(client.post(format!("{gateway}/v2/discover")).json(&json!({"request_id":Uuid::new_v4(),"question":format!("Vat de jaarrekening van {CANARY} samen"),"state":null})))
         .await.unwrap();
     assert_eq!(asked.headers()["x-apiosk-trace"], trace.as_str());
     let priced: Value = asked.json().await.unwrap();

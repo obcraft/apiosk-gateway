@@ -19,7 +19,7 @@ use std::{
     collections::HashSet,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc,
+        Arc, Mutex,
     },
 };
 use uuid::Uuid;
@@ -28,6 +28,9 @@ use uuid::Uuid;
 struct TestState {
     pool: PgPool,
     count: Arc<AtomicUsize>,
+    /// Every model request by stage: `parse` (the Ask capability parse that
+    /// every App chat submission crosses first) or `plan`.
+    models: Arc<Mutex<Vec<&'static str>>>,
 }
 fn fixture() -> Value {
     let mut catalog: Value = serde_json::from_str(include_str!("fixtures/supplier-check/catalog.json")).unwrap();
@@ -38,15 +41,27 @@ fn fixture() -> Value {
     catalog["vocabulary"].as_array_mut().unwrap().extend(iban["vocabulary"].as_array().unwrap().iter().cloned());
     catalog
 }
-async fn model(Json(body): Json<Value>) -> Json<Value> {
+async fn model(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input["known_slugs"].is_array() {
+        // The Ask capability parse. What it reads does not decide an invoice
+        // check: the deterministic invoice routing below it does. A reading
+        // without a data capability also keeps source discovery offline.
+        s.models.lock().unwrap().push("parse");
+        let parsed = json!({"language":"nl","subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"A message without a data request.","domain":"general","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":0.9}],"deliverable":{"format":"chat","operations":[]}});
+        return Json(json!({"choices":[{"message":{"content":parsed.to_string()}}]}));
+    }
+    s.models.lock().unwrap().push("plan");
     if input["question"].as_str().unwrap().contains("klopt deze factuur") {
         // The model misreads the request; code must still route the invoice check.
         return Json(json!({"choices":[{"message":{"content":"not json"}}]}));
     }
     assert!(input["question"].as_str().unwrap().contains("veilig betalen"));
     assert!(input["catalog"]["workflow_presets"][0]["capability"] == "payment.supplier-check");
-    Json(json!({"choices":[{"message":{"content":json!({"subjects":[{"entity_ref":null,"label":"Mollie B.V.","values":{}}],"goals":[{"capability":"payment.supplier-check","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}).to_string()}}]}))
+    let intent = json!({"subjects":[{"entity_ref":null,"label":"Mollie B.V.","values":{}}],"goals":[{"capability":"payment.supplier-check","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]});
+    // Every surface reads a question through the Ask chat pass.
+    let content = if input["surface"] == "ask-chat" { json!({"message":"Ik controleer de leverancier en toon eerst de prijs.","discover":true,"intent":intent}) } else { intent };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();
@@ -148,7 +163,7 @@ async fn supplier_check_holds_payment_when_invoice_details_change() {
         sqlx::query("UPDATE capability_execution_contracts SET produces=$1 WHERE id=$2").bind(json!(produces)).bind(id).execute(&pool).await.unwrap();
     }
     let http = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build().unwrap();
-    let state = TestState { pool: pool.clone(), count: Arc::new(AtomicUsize::new(0)) };
+    let state = TestState { pool: pool.clone(), count: Arc::new(AtomicUsize::new(0)), models: Arc::default() };
     let mock = Router::new().route("/chat", post(model)).route("/functions/v1/use-selection", post(provider)).with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
@@ -157,7 +172,9 @@ async fn supplier_check_holds_payment_when_invoice_details_change() {
     let engine = Engine {
         store: store.clone(),
         catalog: CatalogCache::new(pool.clone()),
-        parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()),
+        // Public source discovery stays on loopback: this mock has no such route.
+        parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into())
+            .with_local_bazaar(format!("{base}/bazaar")).unwrap(),
         signer: Signer::new(vec![3; 32]).unwrap(),
         executor: Executor { store, http, supabase_url: base, enabled: true },
         app_url: "http://localhost:5173".into(),
@@ -197,9 +214,12 @@ async fn supplier_check_holds_payment_when_invoice_details_change() {
     assert_eq!(routed.context_view["analysis"]["kind"], "supplier_payment_check", "{routed:?}");
 
     // Workflows open in Ask: the starter question gets an upload action without a
-    // model call; the question read from the invoice runs the normal flow.
+    // planning model call (like every Ask submission it first crosses the
+    // capability parse); the question read from the invoice runs the normal flow.
+    let models = state.models.lock().unwrap().len();
     let starter = engine.chat(&person, DiscoverRequest { request_id: Uuid::new_v4(), question: "Kan ik deze leverancier veilig betalen?".into(), state: None, context_delta: Default::default() }).await.unwrap();
     assert_eq!(starter.status, Status::NeedsInput, "{starter:?}");
+    assert_eq!(state.models.lock().unwrap()[models..], ["parse"], "the upload request needs no planning model call");
     let upload = starter.next_actions.iter().find(|a| a.kind == "upload_document").expect("upload action");
     assert_eq!(upload.input_schema["x-purpose"], "invoice");
     assert!(!upload.requires_authorization);

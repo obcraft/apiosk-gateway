@@ -39,9 +39,15 @@ async fn model(State(c): State<Arc<Counts>>, Json(body): Json<Value>) -> Json<Va
     } else {
         vec!["FirstCo", "SecondCo"]
     };
-    Json(
-        json!({"choices":[{"message":{"content":json!({"subjects":labels.iter().map(|name|json!({"entity_ref":null,"label":name,"values":{"company.name":name}})).collect::<Vec<_>>(),"goals":(0..labels.len()).map(|subject|json!({"capability":"company.accounts","subject":subject,"constraints":{}})).collect::<Vec<_>>(),"answer_operations":[],"unresolved_references":[]}).to_string()}}]}),
-    )
+    let intent = json!({"subjects":labels.iter().map(|name|json!({"entity_ref":null,"label":name,"values":{"company.name":name}})).collect::<Vec<_>>(),"goals":(0..labels.len()).map(|subject|json!({"capability":"company.accounts","subject":subject,"constraints":{}})).collect::<Vec<_>>(),"answer_operations":[],"unresolved_references":[]});
+    // Every surface reads a question through the Ask chat pass: a concrete
+    // request returns its intent together with the reply.
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"I will look that up and show the price first.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(c): State<Arc<Counts>>, Json(body): Json<Value>) -> Json<Value> {
     let active = c.active.fetch_add(1, Ordering::SeqCst) + 1;

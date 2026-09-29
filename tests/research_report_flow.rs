@@ -67,7 +67,14 @@ async fn model(Json(body): Json<Value>) -> Json<Value> {
     }
     let mut intent=json!({"subjects":[{"entity_ref":null,"label":"30204462","values":{"company_registry.kvknummer":"30204462"}}],"goals":[{"capability":"company.financial-statements","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registry-profile","subject":0,"constraints":{"source":"kvk-dutch-business-register"}},{"capability":"company.registered-address-context","subject":0,"constraints":{"source":"pdok"}}],"answer_operations":["Vat de jaarrekening, het profiel en de locaties samen en analyseer ze in een PDF."],"unresolved_references":[]});
     if fallback_case() { intent["subjects"][0]["label"]=json!("Mollie B.V."); intent["subjects"][0]["values"]["company.name"]=json!("Mollie B.V."); intent["goals"][0]["constraints"]=json!({}); }
-    Json(json!({"choices":[{"message":{"content":intent.to_string()}}]}))
+    // Every surface reads a question through the Ask chat pass: a concrete
+    // request returns its intent together with the reply.
+    let content = if input["surface"] == "ask-chat" {
+        json!({"message":"Ik stel het bedrijfsbeeld samen en toon eerst de prijs.","discover":true,"intent":intent})
+    } else {
+        intent
+    };
+    Json(json!({"choices":[{"message":{"content":content.to_string()}}]}))
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
     let id: Uuid = serde_json::from_value(body["selection_id"].clone()).unwrap();
