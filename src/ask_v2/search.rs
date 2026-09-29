@@ -195,6 +195,12 @@ fn words(text: &str) -> BTreeSet<String> {
     separated
         .split(|character: char| !character.is_alphanumeric())
         .filter(|word| word.len() >= 3 && word.chars().count() <= 64)
+        .map(|word| {
+            DUTCH_STATISTICS
+                .iter()
+                .find(|(dutch, _)| *dutch == word)
+                .map_or(word, |(_, english)| *english)
+        })
         .map(|word| match word {
             "companies" => "company".into(),
             "addresses" => "address".into(),
@@ -217,6 +223,25 @@ fn words(text: &str) -> BTreeSet<String> {
         .collect()
 }
 
+/// Dutch statistics words and the English word the parser writes for them.
+/// CBS publishes in Dutch ("Faillissementen; bedrijven en instellingen, SBI
+/// 2008", tags `faillissementen`, `bedrijfstak`) while the parser writes
+/// English; a Dutch-worded parse or listing meets the English one here. Exact
+/// translations only: "insolventie" is not "bankruptcy", and the English
+/// plural "branches" (a company's offices) is not "branche" (an industry).
+const DUTCH_STATISTICS: &[(&str, &str)] = &[
+    ("faillissement", "bankruptcy"),
+    ("faillissementen", "bankruptcy"),
+    ("insolventie", "insolvency"),
+    ("insolventies", "insolvency"),
+    ("bedrijfstak", "sector"),
+    ("bedrijfstakken", "sector"),
+    ("branche", "sector"),
+    ("sectoren", "sector"),
+    ("statistiek", "statistic"),
+    ("statistieken", "statistic"),
+];
+
 /// Words too general to identify what a document is about.
 const VAGUE: &[&str] = &[
     "the",
@@ -233,6 +258,12 @@ const VAGUE: &[&str] = &[
     "are",
     "its",
     "into",
+    // "Bankruptcies per sector", "compared across sectors": a relation, not
+    // a topic. As a token, "per" matched every price "per call".
+    "per",
+    "across",
+    "between",
+    "each",
     "retrieve",
     "provide",
     "get",
@@ -419,6 +450,17 @@ pub fn filter_coinbase(parsed: &ParsedRequest, matches: &mut [Match]) {
     }
 }
 
+/// Stems of the operations Apiosk itself performs on retrieved data, the
+/// parser's `deliverable.operations` (compare, analyze, summarize, export;
+/// "list" is already vague). Rare in the catalog, they have a high idf, yet
+/// they say what will be done with the data, not which data: "Compare
+/// bankruptcies per sector" made "Compares two user-supplied portfolios" look
+/// as relevant as the bankruptcy table. A source's own action (validate,
+/// verify, screen) does identify it and keeps its full weight.
+const DELIVERABLE_OPERATIONS: &[&str] = &["compar", "analy", "summar", "export"];
+/// Share of its idf that a deliverable operation's word keeps.
+const OPERATION_WEIGHT: f64 = 0.25;
+
 fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
     // Explicit concepts keep otherwise overlapping descriptions apart: annual
     // accounts are not bank accounts, and officers are not PSC records.
@@ -450,7 +492,16 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
                 / (index.frequency.get(token).copied().unwrap_or(0) + 1) as f64)
                 .ln()
                 + 1.0;
-            idf * if token.starts_with('@') { 8.0 } else { 1.0 }
+            idf * if token.starts_with('@') {
+                8.0
+            } else if DELIVERABLE_OPERATIONS
+                .iter()
+                .any(|stem| token.starts_with(stem))
+            {
+                OPERATION_WEIGHT
+            } else {
+                1.0
+            }
         })
         .sum::<f64>()
         + if exact { 1000.0 } else { 0.0 }
@@ -697,6 +748,19 @@ mod tests {
             calls_30d: None,
             availability: "discovery_only".into(),
         }
+    }
+
+    #[test]
+    fn dutch_statistics_words_meet_the_parsers_english() {
+        assert_eq!(
+            words("Faillissementen; bedrijven en instellingen, bedrijfstak"),
+            words("bankruptcies bedrijven instellingen sector")
+        );
+        assert!(words("CBS-statistieken per branche").contains("statistic"));
+        assert!(words("CBS-statistieken per branche").contains("sector"));
+        // A company's branches (offices) are not an industry.
+        assert!(!words("addresses, website and branches").contains("sector"));
+        assert!(!words("insolventie").contains("bankruptcy"));
     }
 
     #[test]

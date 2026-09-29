@@ -10,14 +10,16 @@
 //!
 //! 1. be anchored: share a key word of the request (the words of its
 //!    capability id and the head noun of its name: "tender" in "Public
-//!    tenders", "time" in "Current local time"), a concept facet (officers,
-//!    control, financial statements, sanctions) or two output words (both
-//!    specific unless the candidate is a reviewed contract of the requested
-//!    domain);
+//!    tenders", "time" in "Current local time"; when the name is headed by an
+//!    action, "Sector comparison", also the words of its description), a
+//!    concept facet (officers, control, financial statements, sanctions) or
+//!    two output words (both specific unless the candidate is a reviewed
+//!    contract of the requested domain);
 //! 2. carry enough evidence: one point per matched topic or output word, half
 //!    for a word so common in the catalog that it proves little (`time`,
 //!    `local`, `address`), one for a shared facet and half for the requested
-//!    action (validate, verify, screen);
+//!    action (validate, verify, screen; not an operation Apiosk performs on
+//!    the data itself, such as compare or analyze);
 //! 3. reach 1 point when its reviewed capability id shares a word with the
 //!    requested one (`vat.eu.validate` for `finance.vat.validate`,
 //!    `company.registry-profile` for `company.profile`) or it belongs to the
@@ -26,7 +28,7 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{words, Document, Index, FACET_WORDS, VAGUE};
+use super::{words, Document, Index, DELIVERABLE_OPERATIONS, FACET_WORDS, VAGUE};
 use crate::{
     capability_intake::{capability_query, Capability, ParsedRequest},
     state::Task,
@@ -119,6 +121,31 @@ impl Request {
         {
             key.insert(head);
         }
+        // A name headed by an action ("Comparison", "Sector comparison") or
+        // one without a topic word names what to do, not which data: the
+        // description then says what is compared ("Compares the number of
+        // bankruptcies across sectors"). Its words, less what the person
+        // supplies, are key words too.
+        let action_named = name_text
+            .split(|character: char| !character.is_alphanumeric())
+            .rev()
+            .find(|raw| !raw.is_empty())
+            .is_some_and(|raw| words(raw).iter().any(|word| action(word).is_some()));
+        let described: BTreeSet<String> = if action_named || key.is_empty() {
+            words(&scrubbed(&capability.description, capability, parsed))
+                .into_iter()
+                .filter(|word| meaningful(word) && !supplied.contains(word))
+                .collect()
+        } else {
+            BTreeSet::new()
+        };
+        let mut contract = contract_words(&format!("{}.{}", capability.domain, capability.slug));
+        // A generic id ("research.comparison") names no family of its own;
+        // the description's words stand in for it.
+        if contract.is_empty() {
+            contract = described.clone();
+        }
+        key.extend(described);
         Self {
             topic: key
                 .iter()
@@ -133,13 +160,17 @@ impl Request {
                 .filter(|word| meaningful(word) && !supplied.contains(*word))
                 .cloned()
                 .collect(),
+            // Only a source's own action is evidence: that a listing
+            // "compares portfolios" says nothing about comparing bankruptcies,
+            // which Apiosk does itself once it has the data.
             actions: identity
                 .iter()
                 .chain(&name)
                 .chain(&produced)
                 .filter_map(|word| action(word))
+                .filter(|stem| !DELIVERABLE_OPERATIONS.contains(stem))
                 .collect(),
-            contract: contract_words(&format!("{}.{}", capability.domain, capability.slug)),
+            contract,
             domain: capability.domain.to_lowercase(),
         }
     }

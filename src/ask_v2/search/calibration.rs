@@ -13,6 +13,10 @@ fn snapshot(text: &str) -> Snapshot {
     serde_json::from_str(text).expect("fixture catalog")
 }
 
+/// The live description of every CBS StatLine page contract: it names no
+/// topic, so the capability id carries what the table is about.
+const CBS_PAGE: &str = "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.";
+
 /// Live `capabilities.description` values (first 400 characters, as the
 /// catalog query serves them), for fixtures recorded without descriptions.
 const DESCRIPTIONS: &[(&str, &str)] = &[
@@ -59,9 +63,19 @@ const DESCRIPTIONS: &[(&str, &str)] = &[
     ("news.reuters-section-uk", "Current Reuters UK news headlines: up to 12 article links and headlines from the Reuters UK section front page, in page order. Headlines only, not article text."),
     ("news.reuters-section-business", "Current Reuters business news headlines: up to 12 article links and headlines from the Reuters business section front page, in page order. Headlines only, not article text."),
     ("news.bloomberg-latest", "Latest Bloomberg news stories with headline, link and publication time."),
-    ("statistics.cbs-bankruptcies", "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."),
-    ("statistics.cbs-company-counts", "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."),
-    ("statistics.cbs-business-closures", "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."),
+    ("statistics.cbs-bankruptcies", CBS_PAGE),
+    ("statistics.cbs-company-counts", CBS_PAGE),
+    ("statistics.cbs-business-closures", CBS_PAGE),
+    ("statistics.cbs-datasets", CBS_PAGE),
+    ("statistics.cbs-dimensions", CBS_PAGE),
+    ("statistics.cbs-branch-codes", CBS_PAGE),
+    ("statistics.cbs-measure-codes", CBS_PAGE),
+    ("statistics.cbs-sector-income", CBS_PAGE),
+    ("statistics.cbs-sector-balance", CBS_PAGE),
+    ("statistics.cbs-turnover-trend", CBS_PAGE),
+    ("statistics.cbs-bankruptcy-measures", "Official measures codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."),
+    ("statistics.cbs-bankruptcy-sectors", "Official sectors codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."),
+    ("statistics.cbs-bankruptcy-entity-types", "Official entity-types codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units."),
     ("statistics.eurostat-data", "Eurostat response with dimensions, labels, units and periods; preserve all metadata."),
     ("statistics.eurostat-dataset-search", "Eurostat response with dimensions, labels, units and periods; preserve all metadata."),
     ("procurement.ted-kvk-notices", "Search TED notices by exact numeric KVK/RSIN in buyer or winner identifier fields. Identifier scheme and legal-entity identity require confirmation. Includes historical notices."),
@@ -212,6 +226,129 @@ fn pdok_parcel_lookup(template: &Service) -> Service {
     service
 }
 
+/// CBS StatLine as the catalog query serves it: the listing description, the
+/// first 32 endpoint tags (sorted) and every capability description. The
+/// fixtures recorded the source without metadata.
+fn cbs_statline(services: &[Service]) -> KnownSource {
+    let descriptions: serde_json::Map<_, _> = services
+        .iter()
+        .filter(|service| service.api_slug == "cbs-statline")
+        .map(|service| {
+            (
+                service.contract.capability_slug.clone(),
+                json!(service.description.as_deref().unwrap_or_default()),
+            )
+        })
+        .collect();
+    serde_json::from_value(json!({
+        "slug":"cbs-statline","name":"CBS Statistics","block_reason":null,
+        "metadata":{"provider_slug":"apiosk-basics",
+            "description":"Official Dutch statistics per economic sector (SBI): bankruptcies, sector balance sheets and profit-and-loss, company counts by size class, closures and turnover momentum.",
+            "category":"data",
+            "tags":["81156ned","81589NED","81837NED","82244NED","83149NED","86414NED","afschrijvingen","balanstotaal","bankruptcies","bedrijfsgrootte","bedrijfsopbrengsten","bedrijfsresultaat","bedrijfstak","bedrijven","branche","business exit","catalogue","cbs","closures","code resolution","company count","dalers","dataset search","denominator","distress","eigen vermogen","equity","faillissementen","insolventie","jaarrekening context","measure codes","metadata"],
+            "capability_descriptions":descriptions}
+    }))
+    .unwrap()
+}
+
+/// The Coinbase Bazaar listings the live Ask page showed for "Compare
+/// bankruptcies per sector in the Netherlands." instead of CBS: Stock Trends'
+/// portfolio comparison and scopeapi.dev's Python data analysis (paraphrased;
+/// its listing was not recorded), plus Stock Trends' sector breadth snapshot,
+/// which says "sector". The Bazaar pilot did not import them (over the price
+/// cap; an untyped body); they are staged here as `scripts/bazaar-sync.mjs`
+/// stages an import, should they be: generated `operation.*` ids, the
+/// endpoint description as the capability description, one opaque document.
+fn bazaar_distractors(template: &Service) -> (Vec<Service>, Vec<KnownSource>) {
+    let staged = |id: u128,
+                  source: &str,
+                  name: &str,
+                  path: &str,
+                  price: i64,
+                  description: &str,
+                  inputs: &[&str]| {
+        let mut service = template.clone();
+        service.id = uuid::Uuid::from_u128(0xcb2_0000 + id);
+        service.endpoint_id = uuid::Uuid::from_u128(0xcb2_1000 + id);
+        service.unverified = true;
+        service.api_slug = source.into();
+        service.name = name.into();
+        service.description = Some(description.into());
+        service.jurisdiction = None;
+        service.list_atomic = price;
+        service.contract.capability_slug = format!(
+            "operation.{source}.post-{}-{:08x}",
+            path.trim_matches('/').replace('/', "-"),
+            0xcb2_1000 + id
+        );
+        let fact = |input: &str| format!("source_input.e{id:032x}.{input}");
+        service.contract.requires = inputs
+            .iter()
+            .map(|input| Requirement {
+                fact_type: fact(input),
+                subject_role: "subject".into(),
+                optional: false,
+            })
+            .collect();
+        service.contract.input_map = inputs
+            .iter()
+            .map(|input| {
+                let binding: InputBinding =
+                    serde_json::from_value(json!({"in":"body","name":input})).unwrap();
+                (fact(input), binding)
+            })
+            .collect();
+        let extract = template
+            .contract
+            .output_map
+            .produces
+            .values()
+            .next()
+            .cloned()
+            .expect("template output");
+        service.contract.output_map.produces =
+            [(format!("source_document.e{id:032x}.response"), extract)]
+                .into_iter()
+                .collect();
+        service
+    };
+    const STOCK_TRENDS: (&str, &str) = (
+        "cbz-api-stocktrends-com",
+        "Stock Trends Market Intelligence",
+    );
+    const SCOPEAPI: (&str, &str) = ("cbz-scopeapi-dev", "scopeapi.dev");
+    let services = vec![
+        staged(1, STOCK_TRENDS.0, STOCK_TRENDS.1, "/v1/portfolio/compare", 1_250_000,
+            "Compares two user-supplied portfolios using Stock Trends decision scoring, alignment, and regime context.",
+            &["portfolio_a", "portfolio_b"]),
+        staged(2, STOCK_TRENDS.0, STOCK_TRENDS.1, "/v1/breadth/sector/latest", 100_000,
+            "Latest sector, industry-group, or industry breadth snapshot derived from Stock Trends signal distribution.",
+            &["group_level", "exchange"]),
+        staged(3, SCOPEAPI.0, SCOPEAPI.1, "/data-analysis", 65_000,
+            "Python Data Analysis: run pandas over a supplied dataset to compute statistics, compare groups per category and summarize the results.",
+            &["data", "question"]),
+    ];
+    let source = |slug: &str, name: &str, description: &str, tags: &[&str]| -> KnownSource {
+        serde_json::from_value(json!({
+            "slug":slug,"name":name,"block_reason":null,
+            "metadata":{"provider_slug":"coinbase-bazaar","description":description,"category":"finance","tags":tags,
+                "capability_descriptions":services.iter().filter(|service| service.api_slug == slug)
+                    .map(|service| (service.contract.capability_slug.clone(), json!(service.description)))
+                    .collect::<serde_json::Map<_, _>>()}
+        }))
+        .unwrap()
+    };
+    let sources = vec![
+        source(STOCK_TRENDS.0, STOCK_TRENDS.1,
+            "Pay-per-call x402 service at api.stocktrends.com, listed in the Coinbase Bazaar. Current weekly stock analytics for equity research and pre-trade analysis.",
+            &["equities", "finance", "market-breadth", "sector-analysis", "sector-breadth", "stock-analytics", "trend-analysis"]),
+        source(SCOPEAPI.0, SCOPEAPI.1,
+            "Pay-per-call x402 service at scopeapi.dev, listed in the Coinbase Bazaar. Python data analysis, research and comparisons.",
+            &["analysis", "data", "python", "research"]),
+    ];
+    (services, sources)
+}
+
 /// Built once: the merged directory is large and immutable.
 pub(super) fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
@@ -223,6 +360,7 @@ pub(super) fn catalog() -> &'static Catalog {
             include_str!("../../../tests/fixtures/dutch-links/catalog.json"),
             include_str!("../../../tests/fixtures/eu-public-sources/catalog.json"),
             include_str!("../../../tests/fixtures/public-statistics/catalog.json"),
+            include_str!("../../../tests/fixtures/statistics-presets.json"),
             include_str!("../../../tests/fixtures/rapidapi-news/catalog.json"),
             include_str!("../../../tests/fixtures/uk-supplier/catalog.json"),
             include_str!("../../../tests/fixtures/iban-check/services.json"),
@@ -270,8 +408,14 @@ pub(super) fn catalog() -> &'static Catalog {
             .cloned()
             .expect("PDOK linked parcels fixture");
         services.push(pdok_parcel_lookup(&parcels));
-        known_sources.retain(|known| known.slug != "webbersites");
+        let (distractors, bazaar) = bazaar_distractors(&template);
+        services.extend(distractors);
+        let cbs = cbs_statline(&services);
+        known_sources
+            .retain(|known| !["webbersites", "cbs-statline"].contains(&known.slug.as_str()));
         known_sources.push(source);
+        known_sources.push(cbs);
+        known_sources.extend(bazaar);
         let version = crate::state::digest(&(&services, &known_sources));
         Catalog {
             services,
@@ -786,4 +930,212 @@ fn without_a_country_signal_the_lexical_order_is_unchanged() {
             .collect();
         assert_eq!(found, expected, "{}", ask.slug);
     }
+}
+
+/// `source:capability` of every candidate that passes the relevance floor,
+/// before the top three are taken.
+fn relevant(ask: &Ask) -> Vec<String> {
+    let catalog = catalog();
+    let index = index(catalog);
+    let parsed = ask.parsed();
+    let capability = &parsed.capabilities[0];
+    let mut generic = capability.clone();
+    generic.name = format!(
+        "{} {} {}",
+        capability.slug,
+        capability.name,
+        capability.outputs.join(" ")
+    );
+    generic.source_hint = None;
+    let wanted = document(
+        Target::Source(0),
+        &capability_query(&generic, &parsed, &Task::default()),
+        normalized_capabilities(std::iter::once(capability.slug.as_str())),
+    );
+    let floor = relevance::Request::new(capability, &parsed);
+    index
+        .documents
+        .iter()
+        .filter(|candidate| {
+            score(&wanted, candidate, &index) > 0.0
+                && floor.passes(&wanted, candidate, &index, false)
+        })
+        .map(|candidate| match candidate.target {
+            Target::Endpoint(position) => format!(
+                "{}:{}",
+                catalog.services[position].api_slug,
+                catalog.services[position].contract.capability_slug
+            ),
+            Target::Source(position) => format!("{}:-", catalog.known_sources[position].slug),
+        })
+        .collect()
+}
+
+#[test]
+fn bankruptcies_per_sector_find_cbs_however_the_question_is_parsed() {
+    // Live, 2026-09-29: "Compare bankruptcies per sector in the Netherlands."
+    // offered no Apiosk source, only Coinbase Bazaar's Stock Trends portfolio
+    // comparison and a Python data analysis. A parse may put the data in its
+    // id, only in its description ("Comparison": nothing anchored, nothing
+    // offered) or in Dutch ("faillissementen" met no English word), and
+    // "compare" counted as much as the topic. Each reading, English or
+    // Dutch, with or without the country, finds CBS's bankruptcy tables.
+    let netherlands = Some(("Netherlands", "country"));
+    let nederland = Some(("Nederland", "country"));
+    for ask in [
+        Ask {
+            slug: "research.bankruptcies.bySector",
+            name: "Bankruptcies by sector",
+            description: "Compares the number of bankruptcies per sector in a country.",
+            inputs: &["country"],
+            outputs: &["sector", "bankruptcy_count"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.bankruptcies.bySector",
+            name: "Bankruptcies by sector",
+            description: "Compare the number of bankruptcies per sector in the Netherlands.",
+            outputs: &["bankruptcy_count", "sector"],
+            ..Default::default()
+        },
+        Ask {
+            slug: "finance.bankruptcy.statistics",
+            name: "Bankruptcy statistics by sector",
+            description: "Retrieves bankruptcy statistics broken down by economic sector.",
+            inputs: &["country"],
+            outputs: &["sector", "bankruptcy_count", "period"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        Ask {
+            slug: "company.bankruptcy.statistics",
+            name: "Company bankruptcy statistics",
+            description: "Retrieves the number of company bankruptcies per sector.",
+            outputs: &["sector", "bankruptcy_count"],
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.bankruptcy.sectorComparison",
+            name: "Bankruptcy comparison by sector",
+            description: "Compares bankruptcy counts across economic sectors.",
+            inputs: &["country"],
+            outputs: &["sector", "bankruptcy_count"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.compare.bankruptcies",
+            name: "Compare bankruptcies per sector",
+            description: "Compares bankruptcies between sectors.",
+            outputs: &["sector", "bankruptcies"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        // The topic only in the description, after an action-named id.
+        Ask {
+            slug: "research.sector.comparison",
+            name: "Sector comparison",
+            description:
+                "Compares the number of bankruptcies across economic sectors in a country.",
+            inputs: &["country"],
+            outputs: &["sector", "bankruptcy_count"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.comparison",
+            name: "Comparison",
+            description: "Compare bankruptcies per sector.",
+            outputs: &["comparison"],
+            subject: netherlands,
+            ..Default::default()
+        },
+        // "Vergelijk faillissementen per sector in Nederland."
+        Ask {
+            slug: "research.bankruptcies.bySector",
+            name: "Bankruptcies per sector",
+            description: "Compares the number of bankruptcies per sector.",
+            inputs: &["country"],
+            outputs: &["sector", "number_of_bankruptcies"],
+            subject: nederland,
+            language: "nl",
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.bankruptcies.sector",
+            name: "Bankruptcies by sector",
+            description: "Compare bankruptcies per sector.",
+            inputs: &["sector"],
+            outputs: &["bankruptcy_count"],
+            subject: nederland,
+            language: "nl",
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.bankruptcies.bySector",
+            name: "Bankruptcies by sector",
+            description: "Compares the number of bankruptcies per sector.",
+            outputs: &["bedrijfstak", "aantal_faillissementen"],
+            subject: nederland,
+            language: "nl",
+            ..Default::default()
+        },
+        Ask {
+            slug: "research.faillissementen.perSector",
+            name: "Faillissementen per sector",
+            description: "Vergelijkt het aantal faillissementen per sector.",
+            outputs: &["sector", "aantal_faillissementen"],
+            subject: nederland,
+            language: "nl",
+            ..Default::default()
+        },
+    ] {
+        let found = offered(&ask);
+        let first = found.first().map(String::as_str).unwrap_or_default();
+        assert!(
+            first.starts_with("cbs-statline:statistics.cbs-bankrupt"),
+            "{} / {}: {found:?}",
+            ask.slug,
+            ask.name
+        );
+        // Not offered, and not even relevant: a catalog with fewer CBS
+        // tables must not fill the list with them.
+        let bazaar: Vec<_> = relevant(&ask)
+            .into_iter()
+            .filter(|candidate| candidate.starts_with("cbz-"))
+            .collect();
+        assert!(bazaar.is_empty(), "{} / {}: {bazaar:?}", ask.slug, ask.name);
+    }
+}
+
+#[test]
+fn a_country_subject_lifts_its_national_statistics_office() {
+    // The subject is the Netherlands itself: CBS is its statistics office.
+    let ask = |subject: &'static str| Ask {
+        slug: "research.bankruptcies.bySector",
+        name: "Bankruptcies by sector",
+        description: "Compares the number of bankruptcies per sector in a country.",
+        inputs: &["country"],
+        outputs: &["sector", "bankruptcy_count"],
+        subject: Some((subject, "country")),
+        ..Default::default()
+    };
+    let parsed = ask("Netherlands").parsed();
+    let signal = country::Signal::infer(&parsed, &parsed.capabilities[0]);
+    assert_eq!(signal.primary(), Some("NL"));
+    let cbs = catalog()
+        .known_sources
+        .iter()
+        .find(|source| source.slug == "cbs-statline")
+        .unwrap();
+    assert!(signal.adjustment(&country::source(cbs)).factor > 1.0);
+    // Another country's question demotes CBS but still lists it.
+    let german = offered(&ask("Germany"));
+    assert!(
+        german
+            .iter()
+            .any(|candidate| candidate.starts_with("cbs-statline:")),
+        "{german:?}"
+    );
 }

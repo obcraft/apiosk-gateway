@@ -31,6 +31,8 @@ const NUDGE: f64 = 0.05;
 
 const IDENTIFIER: f64 = 3.0;
 const NAMED_SOURCE: f64 = 3.0;
+/// A subject that is itself a country ("the Netherlands").
+const COUNTRY: f64 = 3.0;
 const INPUT: f64 = 2.0;
 const LEGAL_FORM: f64 = 2.0;
 const SHARED_FORM: f64 = 1.0;
@@ -102,7 +104,10 @@ impl Signal {
             for (key, value) in &subject.identifiers {
                 signal.identifier(key, value);
             }
-            if !matches!(subject.kind.as_str(), "person" | "individual" | "people") {
+            // The subject may be the country itself ("bankruptcies per sector
+            // in the Netherlands"), not a company named after one.
+            let country = subject.kind == "country" && signal.country(&subject.label);
+            if !country && !matches!(subject.kind.as_str(), "person" | "individual" | "people") {
                 signal.label(&subject.label);
             }
         }
@@ -208,6 +213,19 @@ impl Signal {
                 self.add(country, WEAK);
             }
         }
+    }
+
+    /// A subject of type country: its name names the country outright.
+    /// Returns whether the name was recognised.
+    fn country(&mut self, label: &str) -> bool {
+        let named: BTreeSet<&str> = label
+            .split(|c: char| !c.is_alphanumeric())
+            .filter_map(|word| country_word(&word.to_lowercase()))
+            .collect();
+        for country in &named {
+            self.add(country, COUNTRY);
+        }
+        !named.is_empty()
     }
 
     fn source_hint(&mut self, hint: &str) {
