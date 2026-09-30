@@ -161,10 +161,10 @@ grant select(owner_id,workspace_id,reserved_micro_usd) on billing.recurring_orde
 create policy recurring_personal_hold on billing.recurring_orders for select to authenticated
  using(owner_id=(select auth.uid()) and workspace_id is null);
 create or replace function public.balance_summary()
-returns jsonb language sql stable security invoker set search_path=public as $$
-  select jsonb_build_object('available_micro_usd',coalesce((select balance_micro_usd from public.user_balances where user_id=auth.uid()),0),
-    'held_micro_usd',coalesce((select sum(reserved_micro_usd) from billing.recurring_orders where owner_id=auth.uid() and workspace_id is null),0)+coalesce((select sum(reserved_micro_usd) from public.job_budget_reservations where user_id=auth.uid() and status in ('open','unresolved')),0)
-      +coalesce((select sum(charged_micro_usd) from public.balance_charges where user_id=auth.uid() and job_id is null and status in ('reserved','unresolved')),0))
+returns jsonb language sql stable security invoker set search_path='' as $$
+  select jsonb_build_object('available_micro_usd',coalesce((select balance_micro_usd from billing.user_balances where user_id=auth.uid()),0),
+    'held_micro_usd',coalesce((select sum(reserved_micro_usd) from billing.recurring_orders where owner_id=auth.uid() and workspace_id is null),0)+coalesce((select sum(reserved_micro_usd) from billing.job_budget_reservations where user_id=auth.uid() and status in ('open','unresolved')),0)
+      +coalesce((select sum(charged_micro_usd) from billing.balance_charges where user_id=auth.uid() and job_id is null and status in ('reserved','unresolved')),0))
 $$;
 create or replace function public.workspace_finances(p_actor uuid,p_workspace uuid) returns jsonb
 language plpgsql security invoker set search_path='' as $$
@@ -173,7 +173,7 @@ begin
  return jsonb_build_object('workspace_id',p_workspace,'currency','USD','unit','micro',
  'available_micro_usd',(select balance_micro_usd::text from billing.user_balances where workspace_id=p_workspace),
  'reversal_debt_micro_usd',(select reversal_debt_micro_usd::text from billing.user_balances where workspace_id=p_workspace),
- 'held_micro_usd',(coalesce((select sum(reserved_micro_usd) from billing.recurring_orders where owner_id=account and workspace_id is null),0)+coalesce((select sum(charged_micro_usd) from billing.balance_charges where workspace_id=p_workspace and status in ('reserved','unresolved')),0)+coalesce((select sum(reserved_micro_usd) from billing.recurring_orders where workspace_id=p_workspace),0))::text,
+ 'held_micro_usd',(coalesce((select sum(charged_micro_usd) from billing.balance_charges where workspace_id=p_workspace and status in ('reserved','unresolved')),0)+coalesce((select sum(reserved_micro_usd) from billing.recurring_orders where workspace_id=p_workspace),0))::text,
  'charges',coalesce((select jsonb_agg(to_jsonb(c)) from (select id,user_id actor_id,(select email from auth.users where id=bc.user_id) actor_email,status,charged_micro_usd::text,provider_price_micro_usd::text,fee_micro_usd::text,created_at,settled_at from billing.balance_charges bc where workspace_id=p_workspace order by created_at desc limit 100)c),'[]'::jsonb),
  'topups',coalesce((select jsonb_agg(to_jsonb(t)) from (select id,status,amount_micro_eur::text,origin,credited_at,created_at from billing.balance_topups where workspace_id=p_workspace order by created_at desc limit 50)t),'[]'::jsonb));
 end $$;
