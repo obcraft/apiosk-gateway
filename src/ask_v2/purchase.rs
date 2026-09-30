@@ -86,8 +86,8 @@ pub async fn prepare(engine: &Engine, person: &Principal, id: Uuid, hash: String
         execution_id: Uuid::new_v4(), selection_id: Uuid::new_v4(), approved_at: None, refusal: None, receipt: None };
     let task = Task { workspace_id: person.workspace, external_purchase: Some(purchase), ..Task::default() };
     anyhow::ensure!(task.bounded(), "input_too_large");
-    sqlx::query("INSERT INTO tasks(id,owner_id,connection_id,document) VALUES($1,$2,NULL,$3) ON CONFLICT(id) DO NOTHING")
-        .bind(id).bind(person.owner).bind(serde_json::to_value(task)?).execute(&engine.store.pool).await?;
+    sqlx::query("INSERT INTO tasks(id,owner_id,connection_id,document) VALUES($1,$2,$4,$3) ON CONFLICT(id) DO NOTHING")
+        .bind(id).bind(person.owner).bind(serde_json::to_value(task)?).bind(person.connection).execute(&engine.store.pool).await?;
     let saved = load(engine, person, id).await?;
     anyhow::ensure!(saved.request_hash == hash, "idempotency_conflict");
     view(engine, person, id).await
@@ -95,7 +95,7 @@ pub async fn prepare(engine: &Engine, person: &Principal, id: Uuid, hash: String
 
 async fn load(engine: &Engine, person: &Principal, id: Uuid) -> anyhow::Result<Purchase> {
     let (_, task, connection) = engine.store.load_scoped(person, id).await?;
-    anyhow::ensure!(connection.is_none(), "purchase_unavailable");
+    if connection != person.connection { return Err(StoreAccessError::TaskUnavailable.into()); }
     task.external_purchase.ok_or_else(|| StoreAccessError::TaskUnavailable.into())
 }
 
@@ -198,7 +198,9 @@ pub async fn authorize(engine: Arc<Engine>, person: Principal, bearer: String, i
     let row = sqlx::query("SELECT document,connection_id FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
         .bind(id).bind(person.owner).fetch_optional(&mut *tx).await?.ok_or(StoreAccessError::TaskUnavailable)?;
     let mut task: Task = serde_json::from_value(row.get("document"))?;
-    anyhow::ensure!(task.workspace_id == person.workspace && row.get::<Option<Uuid>,_>("connection_id").is_none(), "purchase_unavailable");
+    if task.workspace_id != person.workspace || row.get::<Option<Uuid>,_>("connection_id") != person.connection {
+        return Err(StoreAccessError::TaskUnavailable.into());
+    }
     anyhow::ensure!(!task.cancelled, "purchase_cancelled");
     let purchase = task.external_purchase.as_mut().ok_or(StoreAccessError::TaskUnavailable)?;
     purchase.check_approval(quote, cap)?;
@@ -207,16 +209,16 @@ pub async fn authorize(engine: Arc<Engine>, person: Principal, bearer: String, i
         purchase.approved_at = Some(Utc::now());
         // The source, price and input are the saved server-verified offer.
         // Nothing in the approval body can replace them.
-        sqlx::query("INSERT INTO user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,resource_url,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,NULL,$3,'external','coinbase-x402-bazaar',$4,'external.request',$5,$6,$7,$8,$9)")
+        sqlx::query("INSERT INTO user_selected_apis(id,user_id,connection_id,prompt,kind,source,name,capability,resource_url,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,$10,$3,'external','coinbase-x402-bazaar',$4,'external.request',$5,$6,$7,$8,$9)")
             .bind(purchase.selection_id).bind(person.owner).bind(format!("Ask v2: {}", purchase.source.name))
             .bind(&purchase.source.name).bind(&purchase.source.resource).bind(&purchase.source.method)
             .bind(purchase.source.provider_atomic).bind(purchase.source.total_atomic)
-            .bind(json!({"ask_v2":true,"purchase_id":id,"quote_ref":purchase.quote_ref,"inputs":purchase.input.inputs,"fields":purchase.source.inputs}))
+            .bind(json!({"ask_v2":true,"purchase_id":id,"quote_ref":purchase.quote_ref,"inputs":purchase.input.inputs,"fields":purchase.source.inputs})).bind(person.connection)
             .execute(&mut *tx).await?;
         if let Some(workspace) = person.workspace {
-            sqlx::query("SELECT public.workspace_bind_execution($1,NULL,$2,$3,$4,$5,$6)")
+            sqlx::query("SELECT public.workspace_bind_execution($1,$7,$2,$3,$4,$5,$6)")
                 .bind(person.owner).bind(workspace).bind(purchase.selection_id).bind(id)
-                .bind(purchase.source.total_atomic).bind(purchase.expires_at).execute(&mut *tx).await?;
+                .bind(purchase.source.total_atomic).bind(purchase.expires_at).bind(person.connection).execute(&mut *tx).await?;
         }
         sqlx::query("UPDATE tasks SET document=$3,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2")
             .bind(id).bind(person.owner).bind(serde_json::to_value(&task)?).execute(&mut *tx).await?;
@@ -227,7 +229,7 @@ pub async fn authorize(engine: Arc<Engine>, person: Principal, bearer: String, i
         let engine = engine.clone();
         let person = person.clone();
         tokio::spawn(async move {
-            let response = engine.executor.http.post(format!("{}/functions/v1/use-selection", engine.executor.supabase_url))
+            let response = engine.executor.http.post(format!("{}/functions/v1/{}", engine.executor.supabase_url, if person.connection.is_some() { "agent-gateway/v1/run" } else { "use-selection" }))
                 .bearer_auth(bearer).timeout(Duration::from_secs(90))
                 .json(&json!({"selection_id":saved.selection_id,"idempotency_key":saved.execution_id,
                     "inputs":saved.input.inputs,"input_parts":saved.input.input_parts,"deterministic":true})).send().await;
@@ -258,7 +260,12 @@ pub async fn authorize(engine: Arc<Engine>, person: Principal, bearer: String, i
 }
 
 pub fn request_hash(person: &Principal, resource: &str, method: &str, query: &str, input: &Value) -> String {
-    digest(&("ask-v2-external", person.owner, person.workspace, resource, method, query, input))
+    // Preserve recovery of App quotes saved before connected callers were
+    // supported. A connection gets its own distinct request namespace.
+    match person.connection {
+        Some(connection) => digest(&("ask-v2-external", person.owner, connection, person.workspace, resource, method, query, input)),
+        None => digest(&("ask-v2-external", person.owner, person.workspace, resource, method, query, input)),
+    }
 }
 
 #[cfg(test)]

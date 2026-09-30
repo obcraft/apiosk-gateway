@@ -358,7 +358,11 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
         } else {
             confidence
         };
-        let source = text(&cap["source_hint"]).to_lowercase();
+        let mut source = text(&cap["source_hint"]).to_lowercase();
+        if !literal(literals, &source) {
+            let phrase = source.replace('_', " ");
+            if literal(literals, &phrase) { source = phrase; }
+        }
         let mut capability = Capability {
             slug,
             name,

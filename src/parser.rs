@@ -943,6 +943,8 @@ impl Parser {
         };
         client.reply(&request, conversation_reply::catalog_summary(catalog, intake)).await.ok().map(|written| written.text)
     }
+    pub fn bazaar_search_url(&self) -> &str { &self.bazaar_search_url }
+
     pub fn discovery_http(&self) -> &reqwest::Client {
         &self.discovery_http
     }

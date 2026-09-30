@@ -2,7 +2,7 @@
 
 One API for machine-to-machine data purchases. Your server authenticates with an
 organisation API key, discovers sources, and either calls one source directly or
-asks a question and lets Apiosk plan across sources. Every paid call is charged
+asks a question and selects one of the same API choices as the Ask page. Every paid call is charged
 to your organisation's main balance, within the key's limits.
 
 Base URL: `https://gateway.apiosk.com`
@@ -42,8 +42,8 @@ Authorization: Bearer apk_org_live_…
 |---|---|
 | `sources:read` | `GET /v2/sources`, `GET /v2/sources/{id}`, `GET /v2/sources/{id}/endpoints` |
 | `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{id}/run` |
-| `ask:create` | `POST /v2/ask` with `execution_mode: "plan"` |
-| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask` with `execution_mode: "auto"` |
+| `ask:create` | `POST /v2/ask` discovery and `POST /v2/ask/plan` planning |
+| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask/plan` with `execution_mode: "auto"` |
 | `billing:read` | `GET /v2/balance`, `GET /v2/usage` |
 
 A key belongs to the organisation, not to the person who created it. Its money
@@ -186,8 +186,36 @@ The response has the same shape as any run; see [Run a plan](#6-run-a-plan).
 
 ## 5. Ask Apiosk
 
+`POST /v2/ask` with `{"question":"..."}` returns `apis` from the same
+interpreter and source searches as the Ask page. Each executable choice has
+`api_id`, `capability`, `inputs`, `input_values`, `missing_inputs`, `outputs`
+(output schemas, not fabricated values), and `buyer_price`. Discovery creates
+no paid call or plan. Fill the missing inputs, select an API, then send:
+
 ```http
-POST /v2/ask
+POST /v2/execute
+Authorization: Bearer apk_org_live_…
+Idempotency-Key: selected-request-1
+Content-Type: application/json
+
+{"api_id":"COPY_FROM_ASK","capability":"COPY_FROM_ASK","input":{},"max_spend":"0.10"}
+```
+
+Selected execution requires `sources:execute`, the idempotency header and an
+explicit approved spending cap. It shares the App's selected preparation and
+payment path. Copy input keys exactly. Registered results use `completed` and
+`results`/`data`/`usage`; external results use `succeeded` and
+`result`/`result_present`/`billing`. Both use `id`; read `/v2/runs/{id}` for
+recovery. Repeating the same key and selection/input cannot buy twice.
+
+### Optional question-to-plan contract
+
+Existing question clients using plan/auto options must move to `/v2/ask/plan`.
+Workflow objects remain accepted at `/v2/ask`.
+
+
+```http
+POST /v2/ask/plan
 ```
 
 ```json
@@ -350,7 +378,7 @@ Every refusal before a purchase says **"Nothing was charged."**
 
 ## 9. Idempotency
 
-Send `Idempotency-Key` (1–255 visible ASCII characters) on `POST /v2/ask`,
+Send `Idempotency-Key` (1–255 visible ASCII characters) on `POST /v2/ask/plan`,
 `POST /v1/execute/{source}/{operation}` and `POST /v2/sources/{id}/run`.
 
 - **A retry with the same key and body** returns the same ask or run, and pays at most once.

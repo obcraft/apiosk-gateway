@@ -21,7 +21,7 @@ use tokio::sync::Semaphore;
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
-mod ask_v2;
+pub(crate) mod ask_v2;
 mod ask_v2_external;
 mod integrations;
 mod recurring;
@@ -116,6 +116,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v1/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/ask", post(crate::public_api::ask))
+        .route("/v2/ask/plan", post(crate::public_api::plan_ask))
         .route("/v2/ask/workflows", get(crate::public_api::ask_workflows))
         .route("/v2/asks/:id", get(crate::public_api::run_status))
         .route("/v2/asks/:id/run", post(crate::public_api::run_ask))
@@ -604,8 +605,15 @@ async fn followup(
 async fn execute(
     State(state): State<ServerState>,
     headers: HeaderMap,
-    Json(req): Json<ExecuteRequest>,
+    body: Bytes,
 ) -> HttpResponse {
+    if serde_json::from_slice::<serde_json::Value>(&body).ok().is_some_and(|value| value.get("api_id").is_some()) {
+        return crate::public_api::execute_selected(State(state), headers, body).await;
+    }
+    let req: ExecuteRequest = match serde_json::from_slice(&body) {
+        Ok(request) => request,
+        Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY, "invalid_request", "Supply api_id and input, or a saved execution action."),
+    };
     let Ok(permit) = state.permits.clone().try_acquire_owned() else {
         return failure(
             StatusCode::TOO_MANY_REQUESTS,

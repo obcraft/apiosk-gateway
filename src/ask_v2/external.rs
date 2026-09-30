@@ -8,6 +8,23 @@ use serde_json::{json, Map, Value};
 use std::{collections::BTreeMap, str::FromStr, time::Duration};
 
 pub const SOURCE: &str = "coinbase-x402-bazaar";
+
+/// Opaque selection identity, not a trusted offer. Execution always resolves
+/// it again against the server's directory and never accepts a client price.
+pub fn selection_id(resource: &str, method: &str, query: &str) -> String {
+    use base64::Engine;
+    format!("bazaar:{}", base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(
+        serde_json::to_vec(&(resource, method, query)).unwrap()))
+}
+
+pub fn selection(value: &str) -> Option<(String, String, String)> {
+    use base64::Engine;
+    if value.len() > 8192 { return None; }
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(value.strip_prefix("bazaar:")?).ok()?;
+    let (resource, method, query): (String, String, String) = serde_json::from_slice(&bytes).ok()?;
+    (resource.len() <= 4096 && query.len() <= 500 && matches!(method.as_str(), "GET" | "POST" | "PUT" | "PATCH" | "DELETE"))
+        .then_some((resource, method, query))
+}
 const MAX_DIRECTORY_BYTES: usize = 2 * 1024 * 1024;
 const MAX_SCHEMA_BYTES: usize = 64 * 1024;
 

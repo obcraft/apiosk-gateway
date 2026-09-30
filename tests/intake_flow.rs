@@ -482,13 +482,13 @@ async fn intake_counts_characters_not_bytes() {
     assert_ne!(public.status(), StatusCode::BAD_REQUEST, "the public API counts the same way");
     let reached = parses();
     assert!(reached > 0, "the question reached interpretation");
-    let public = ask(format!("{full}?")).await.unwrap();
+    let public = ask("é".repeat(16_001)).await.unwrap();
     assert_eq!(public.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(public.json::<Value>().await.unwrap()["error"]["code"], "invalid_request");
+    assert_eq!(public.json::<Value>().await.unwrap()["error"]["code"], "invalid_question");
     assert_eq!(parses(), reached, "an over-long question is refused before interpretation");
     let owned: i64 = sqlx::query_scalar("SELECT count(*) FROM tasks WHERE owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(owned, 1, "only the accepted App question created a task");
-    println!("intake_counts_characters_not_bytes: 4000 characters accepted by App chat and /v2/ask, 4001 refused");
+    println!("intake_counts_characters_not_bytes: legacy chat limit preserved; public Ask uses the composer 16000-character limit");
 }
 
 /// The endpoint id of the fixture service with this capability.

@@ -49,6 +49,15 @@ fn webgpu_shape_normalizes_literals_slug_aliases_and_adds_app_metadata() {
 }
 
 #[test]
+fn source_hint_recovers_only_a_source_literally_named_in_the_question() {
+    let mut input = raw();
+    input["capabilities"][0]["source_hint"] = json!("companies_house");
+    let parsed = normalize(&input.to_string(), &format!("{QUESTION} via Companies House"), "fixture").unwrap();
+    assert_eq!(parsed.capabilities[0].source_hint.as_deref(), Some("companies house"));
+    assert!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].source_hint.is_none());
+}
+
+#[test]
 fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
     let mut input = raw();
     input["subjects"][0]["identifiers"] = json!({});

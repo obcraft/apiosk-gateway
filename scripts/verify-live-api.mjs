@@ -2,11 +2,11 @@
 // Verify the public API against production for the Revact/Nomi checklist.
 //
 //   APIOSK_KEY=apk_org_live_… node scripts/verify-live-api.mjs           # free checks only
-//   APIOSK_KEY=apk_org_live_… node scripts/verify-live-api.mjs --paid    # plus a few paid calls (< $0.50 total)
+//   APIOSK_KEY=apk_org_live_… node scripts/verify-live-api.mjs --paid    # plus a few paid calls (up to $0.75 total)
 //
 // Free: authentication, balance, the sources for tenders, funding, news and
-// KVK, the Pulse Network group and Sirenic, operation variants, and priced
-// plans from Ask. Paid (opt-in): one direct call per signal type, checking
+// KVK, the Pulse Network group and Sirenic, operation variants, and executable
+// choices from Ask. Paid (opt-in): one direct call per signal type, checking
 // that every result carries its metadata and that usage sums to the cost.
 const base = process.env.APIOSK_BASE_URL || 'https://gateway.apiosk.com'
 const key = process.env.APIOSK_KEY
@@ -53,11 +53,17 @@ pulse.status === 200 && pulse.json.sources?.length > 1 ? pass(`pulsenetwork reso
 const list = await call('GET', '/v2/sources?search=tender&limit=10')
 list.status === 200 && list.json.sources?.length ? pass(`search "tender" finds ${list.json.total} sources`) : fail('search tender', list.json)
 
-// ── Ask plans (free) ─────────────────────────────────────────────────────
+// ── Ask choices (free) ─────────────────────────────────────────────────────
 for (const question of ['New Dutch government tenders about cybersecurity', 'Latest news about Mollie', 'KVK details for Mollie B.V.']) {
   const r = await call('POST', '/v2/ask', { question })
-  const steps = r.json?.plan?.steps?.map((s) => `${s.source_id}/${s.operation}`) || []
-  r.status === 200 && (steps.length || r.json?.status === 'needs_input') ? pass(`ask "${question}" → ${r.json.status}${steps.length ? `: ${steps.join(', ')} (max ${r.json.plan.estimated_total.amount} USD)` : ''}`) : fail(`ask "${question}"`, r.json)
+  const apis = r.json?.apis || []
+  const runnable = apis.filter(api => api.executable)
+  const valid = runnable.every(api => typeof api.api_id === 'string' && typeof api.capability === 'string'
+    && Array.isArray(api.inputs) && (api.outputs === null || Array.isArray(api.outputs))
+    && api.input_values && Array.isArray(api.missing_inputs) && /^\d+$/.test(api.buyer_price?.buyer_atomic))
+  r.status === 200 && Array.isArray(r.json?.apis) && valid && !r.json.plan && !r.json.id && !r.json.errors?.length
+    ? pass(`ask "${question}" → ${apis.length} choices, ${runnable.length} executable contracts`)
+    : fail(`ask "${question}"`, r.json)
 }
 
 // ── Paid calls (opt-in) ──────────────────────────────────────────────────

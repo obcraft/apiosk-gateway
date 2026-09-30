@@ -1,5 +1,5 @@
-//! Isolated Ask v2 model transport. Validation and normalization stay in the
-//! unchanged WebGPU TypeScript parser; this client never plans or executes data.
+//! Ask model transport and canonical interpretation, shared by the App and
+//! public API. This client never plans or executes a data-source request.
 
 pub mod search;
 pub mod external;
@@ -73,6 +73,29 @@ enum Operation {
 }
 
 impl Client {
+    /// Canonical interpretation for the App and public Ask API. Both callers
+    /// consume this saved shape rather than normalizing the model differently.
+    pub async fn interpret(&self, question: &str, known_slugs: &[String]) -> Result<Value> {
+        let started = Instant::now();
+        let mut correction = None;
+        for attempt in 1..=2 {
+            let output = self.parse(question, known_slugs, correction.as_deref()).await?;
+            match crate::capability_intake::normalize(&output.text, question, &output.model) {
+                Ok(parsed) => {
+                    let mut parsed = serde_json::to_value(parsed)?;
+                    for capability in parsed["capabilities"].as_array_mut().into_iter().flatten() {
+                        capability["status"] = Value::Null;
+                    }
+                    return Ok(json!({"text":output.text,"model":output.model,"parsed_request":parsed,
+                        "attempts":attempt,"timing":{"parse_ms":started.elapsed().as_millis() as u64}}));
+                }
+                Err(error) if attempt == 1 => correction = Some(error.to_string()),
+                Err(error) => return Err(error),
+            }
+        }
+        unreachable!()
+    }
+
     pub fn new(http: reqwest::Client, key: String, model: String) -> Self {
         Self {
             http,
@@ -224,9 +247,8 @@ impl Client {
         }
         // A JSON object, not a strict json_schema: Alibaba, the fastest Qwen
         // provider, has no strict schema mode. The prompt spells out the shape,
-        // and the App validates and mechanically repairs every parse exactly as
-        // before (a missing `domain` is the slug's first part), with its one
-        // correction attempt for anything else.
+        // and `interpret` validates and mechanically repairs the parse, with
+        // one correction attempt for anything else.
         let body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],

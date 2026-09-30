@@ -71,7 +71,7 @@ pub(super) async fn endpoint(
     Json(endpoint_descriptor(&catalog, service, source)).into_response()
 }
 
-fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &crate::catalog::Service, source: Option<&crate::sources::Source>) -> Value {
+pub(crate) fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &crate::catalog::Service, source: Option<&crate::sources::Source>) -> Value {
     let inputs: Vec<_> = service.contract.requires.iter().map(|required| {
         let mut schema = catalog.vocabulary.get(&required.fact_type).map(|fact| fact.value_schema.clone()).unwrap_or_else(|| json!({}));
         if required.optional {
@@ -85,10 +85,11 @@ fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &crate::catal
     }).collect();
     let lookup_fields = crate::engine::Engine::endpoint_lookup_fields(catalog, service);
     json!({
-        "endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
+        "api_id":service.endpoint_id,"endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
         "source":{"slug":service.api_slug,"name":source.map(|s| s.name.as_str()).unwrap_or(&service.api_slug),
             "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url},
         "inputs":inputs,
+        "outputs":service.contract.output_map.produces.keys().map(|field| json!({"field":field,"schema":catalog.vocabulary.get(field).map(|fact| &fact.value_schema)})).collect::<Vec<_>>(),
         "lookup":if lookup_fields.is_empty() { Value::Null } else {
             json!({"field":"company.name","resolves":lookup_fields,
                 "schema":catalog.vocabulary.get("company.name").map(|fact| &fact.value_schema)})
@@ -190,15 +191,11 @@ pub(super) async fn parse(
         );
     }
     match client
-        .parse(
-            request.question.trim(),
-            &request.known_slugs,
-            request.correction.as_deref(),
-        )
+        .interpret(request.question.trim(), &request.known_slugs)
         .await
     {
         Ok(output) => {
-            tracing::info!(request_id=%request.request_id, model=%output.model, parse_ms=output.timing.parse_ms, "Ask v2 capabilities parsed");
+            tracing::info!(request_id=%request.request_id, model=%output["model"], parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
             Json(output).into_response()
         }
         Err(error) => {
@@ -281,7 +278,7 @@ pub(super) async fn reply(
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(super) enum Origin {
+pub(crate) enum Origin {
     Apiosk,
     Coinbase,
 }
@@ -312,7 +309,7 @@ fn valid_parsed(parsed: &ParsedRequest) -> bool {
         && parsed.capabilities.len() <= 16
         && parsed.capabilities.iter().all(|c| {
             valid_slug(&c.slug)
-                && slugs.insert(c.slug.as_str())
+                && slugs.insert((c.slug.as_str(), c.subject_id.as_deref()))
                 && short(&c.name)
                 && c.description.len() <= 16_000
                 && short(&c.domain)
@@ -369,21 +366,28 @@ pub(super) async fn search(
             "Please wait a minute before searching again.",
         );
     }
+    match search_catalog(&state, &request.parsed_request, request.origin).await {
+        Ok(value) => Json(value).into_response(),
+        Err(response) => response,
+    }
+}
+
+pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
     let started = Instant::now();
     // Search reads each capability in English too (see crate::english); a
     // request already in English, or any failure, is searched as it came.
     let english = state.engine.catalog.english().clone();
-    let normalized = english.request(&request.parsed_request).await;
-    let (matches, count, version) = match request.origin {
+    let normalized = english.request(&parsed_request).await;
+    let (matches, count, version) = match origin {
         Origin::Apiosk => {
             let catalog = match state.engine.catalog.get().await {
                 Ok(c) => c,
                 Err(_) => {
-                    return failure(
+                    return Err(failure(
                         StatusCode::SERVICE_UNAVAILABLE,
                         "catalog_unavailable",
                         "Apiosk sources are temporarily unavailable. Retry the source search.",
-                    )
+                    ))
                 }
             };
             let matches = crate::ask_v2::search::search_in_english(&normalized.original, &normalized.english, &catalog);
@@ -395,6 +399,7 @@ pub(super) async fn search(
                 brand_matches(&mut matches, sources);
             }
             describe_endpoints(&mut matches, &catalog, sources.as_ref().map(|sources| sources.as_slice()));
+            bind_inputs(&mut matches, parsed_request);
             (
                 matches,
                 capability_intake::source_count(&catalog),
@@ -419,7 +424,7 @@ pub(super) async fn search(
             capability_intake::add_coinbase(
                 state.engine.parser.discovery_http(),
                 &mut matches,
-                capability_intake::BAZAAR_SEARCH,
+                state.engine.parser.bazaar_search_url(),
             )
             .await;
             let listings: Vec<String> = matches.iter()
@@ -433,11 +438,10 @@ pub(super) async fn search(
             for candidate in matches.iter_mut().flat_map(|found| &mut found.coinbase) {
                 candidate.price = candidate.price.as_deref().and_then(buyer_discovery_price);
             }
-            (
-                serde_json::to_value(matches).unwrap_or_else(|_| json!([])),
-                0,
-                String::new(),
-            )
+            let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
+            describe_external(&mut matches, state).await;
+            bind_inputs(&mut matches, parsed_request);
+            (matches, 0, String::new())
         }
     };
     let search_ms = started.elapsed().as_millis() as u64;
@@ -447,7 +451,7 @@ pub(super) async fn search(
         sources_searched = count,
         "Ask v2 sources searched"
     );
-    Json(json!({"matches":matches,"apiosk_sources_searched":count,"catalog_version":version,"timing":{"search_ms":search_ms}})).into_response()
+    Ok(json!({"matches":matches,"apiosk_sources_searched":count,"catalog_version":version,"timing":{"search_ms":search_ms}}))
 }
 
 fn buyer_discovery_price(price: &str) -> Option<String> {
@@ -468,7 +472,90 @@ fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, so
             let Some(id) = candidate["endpoint_id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) else { continue };
             let Ok(service) = crate::engine::Engine::endpoint_service(catalog, id, candidate["capability"].as_str()) else { continue };
             let source = sources.and_then(|sources| sources.iter().find(|source| source.slug == service.api_slug));
+            candidate["api_id"] = json!(id);
             candidate["endpoint"] = endpoint_descriptor(catalog, service, source);
+        }
+    }
+}
+
+/// Reuse literal values under the same rules as the App's input review. A
+/// schema or requested output is never confused with a returned source value.
+fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
+    let subject = (parsed.subjects.len() == 1).then(|| &parsed.subjects[0]);
+    for found in matches.as_array_mut().into_iter().flatten() {
+        for candidate in found.as_object_mut().into_iter().flat_map(|found| found.iter_mut())
+            .filter(|(origin, _)| matches!(origin.as_str(), "apiosk" | "coinbase"))
+            .flat_map(|(_, candidates)| candidates.as_array_mut().into_iter().flatten()) {
+            let endpoint = &mut candidate["endpoint"];
+            if !endpoint.is_object() { continue; }
+            let mut values = serde_json::Map::new();
+            for field in endpoint["inputs"].as_array().into_iter().flatten() {
+                let Some(name) = field["field"].as_str() else { continue; };
+                if let Some(default) = field["schema"].get("default") { values.insert(name.into(), default.clone()); }
+                if let Some(subject) = subject {
+                    let identifiers: Vec<_> = subject.identifiers.iter().filter(|(key, _)| name == *key || name.ends_with(&format!(".{key}"))).collect();
+                    if identifiers.len() == 1 { values.insert(name.into(), json!(identifiers[0].1)); }
+                    else if name == format!("{}.name", subject.kind) || name == format!("{}.registered_name", subject.kind) {
+                        values.insert(name.into(), json!(subject.label));
+                    }
+                }
+                if let Some(value) = values.get(name).cloned() {
+                    if catalog_core::facts::schema::validate(&field["schema"], &value).is_err() {
+                        // Browser number/boolean controls coerce their text;
+                        // API callers need the same schema-valid wire value.
+                        let typed = value.as_str().and_then(|s| serde_json::from_str::<Value>(s).ok())
+                            .filter(|typed| catalog_core::facts::schema::validate(&field["schema"], typed).is_ok());
+                        values.remove(name);
+                        if let Some(typed) = typed { values.insert(name.into(), typed); }
+                    }
+                }
+            }
+            let resolves: Vec<_> = endpoint["lookup"]["resolves"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+            let by_name = !resolves.is_empty() && resolves.iter().any(|field| !values.contains_key(*field))
+                && subject.is_some_and(|s| s.kind == "company");
+            if by_name {
+                for field in &resolves { values.remove(*field); }
+                values.insert("company.name".into(), json!(subject.unwrap().label));
+            }
+            let missing: Vec<_> = endpoint["inputs"].as_array().into_iter().flatten()
+                .filter(|field| field["required"] == true)
+                .filter_map(|field| field["field"].as_str())
+                .filter(|field| !values.contains_key(*field) && !(by_name && resolves.contains(field)))
+                .map(str::to_owned).collect();
+            endpoint["input_values"] = Value::Object(values);
+            endpoint["missing_inputs"] = json!(missing);
+        }
+    }
+}
+
+async fn describe_external(matches: &mut Value, state: &ServerState) {
+    use futures_util::{stream, StreamExt};
+    use crate::ask_v2::external;
+    let Some(directory) = state.executor_compat.as_ref() else { return; };
+    let mut selections = BTreeSet::new();
+    for found in matches.as_array().into_iter().flatten() {
+        for candidate in found["coinbase"].as_array().into_iter().flatten() {
+            if let (Some(url), Some(method), Some(query)) = (candidate["url"].as_str(), candidate["method"].as_str(), found["query"].as_str()) {
+                selections.insert((url.to_owned(), method.to_owned(), query.to_owned()));
+            }
+        }
+    }
+    let offers: BTreeMap<_, _> = stream::iter(selections).map(|key| async move {
+        let offer = external::resolve(&state.engine.executor.http, directory.directory_origin(), &key.0, &key.1, &key.2).await.ok();
+        (key, offer)
+    }).buffer_unordered(4).collect().await;
+    for found in matches.as_array_mut().into_iter().flatten() {
+        let query = found["query"].as_str().unwrap_or_default().to_owned();
+        for candidate in found["coinbase"].as_array_mut().into_iter().flatten() {
+            let key = (candidate["url"].as_str().unwrap_or_default().to_owned(), candidate["method"].as_str().unwrap_or_default().to_owned(), query.clone());
+            let Some(Some(offer)) = offers.get(&key) else { continue; };
+            let id = external::selection_id(&key.0, &key.1, &key.2);
+            candidate["api_id"] = json!(id);
+            candidate["availability"] = json!("supported");
+            candidate["capability"] = json!("external.request");
+            candidate["endpoint"] = json!({"api_id":id,"capability":"external.request","inputs":offer.inputs,
+                "outputs":null,"output_schema":null,"lookup":null,
+                "price":{"currency":"USDC","provider_atomic":offer.provider_atomic.to_string(),"buyer_atomic":offer.total_atomic.to_string()}});
         }
     }
 }
@@ -493,6 +580,19 @@ fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Sou
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn discovered_values_are_typed_and_invalid_literals_remain_missing() {
+        let parsed = capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"Example","type":"company","identifiers":{"number":"42","bad":"nope"}}],
+            "capabilities":[{"slug":"company.profile","name":"Company profile","description":"Company registry profile","domain":"company","inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"json","operations":[]}}).to_string(), "Example 42 nope", "fixture").unwrap();
+        let mut matches = json!([{"coinbase":[{"endpoint":{"inputs":[
+            {"field":"query.number","required":true,"schema":{"type":"integer"}},
+            {"field":"query.bad","required":true,"schema":{"type":"integer"}}
+        ]}}]}]);
+        bind_inputs(&mut matches, &parsed);
+        assert_eq!(matches[0]["coinbase"][0]["endpoint"]["input_values"], json!({"query.number":42}));
+        assert_eq!(matches[0]["coinbase"][0]["endpoint"]["missing_inputs"], json!(["query.bad"]));
+    }
     #[test]
     fn coinbase_table_compares_buyer_totals_with_integer_fee_rounding() {
         assert_eq!(buyer_discovery_price("0.010000 USD").as_deref(), Some("0.011500 USD"));

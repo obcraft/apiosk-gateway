@@ -1,5 +1,5 @@
 //! The public Gateway v2 API: discover sources, run one source directly, or
-//! Ask and let Apiosk plan across sources.
+//! ask for the App's source choices and execute a selected API.
 //!
 //! Built for organisation API keys (`apk_org_live_…`), and open to every
 //! other credential alike: after `server::authenticated` a caller is an
@@ -7,7 +7,7 @@
 //! to check a key's scopes.
 //!
 //! Thin adapters only. A direct run is a one-goal intent pinned to its source
-//! (`Engine::direct`); an Ask is `Engine::discover`. Both are priced by the
+//! (`Engine::direct`); the optional `/ask/plan` uses `Engine::discover`. Both are priced by the
 //! same planner, approved against the same connection budget, run by the same
 //! server worker and paid through the same ledger reservation as the App and
 //! the MCP server. There are no API-only sources and no API-only prices: the
@@ -36,6 +36,9 @@ use std::{
     time::{Duration, Instant},
 };
 use uuid::Uuid;
+
+mod discovery;
+pub use discovery::{ask, execute_selected};
 
 const DEFAULT_WAIT_SECONDS: u64 = 25;
 const MAX_WAIT_SECONDS: u64 = 55;
@@ -795,8 +798,8 @@ pub async fn ask_workflows(State(state): State<ServerState>, headers: HeaderMap)
     }
 }
 
-/// `POST /v2/ask`: a question in, a priced plan (and in `auto` mode, results) out.
-pub async fn ask(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
+/// `POST /v2/ask/plan`: a question in, a priced plan (and in `auto` mode, results) out.
+pub async fn plan_ask(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
     ask_inner(&state, &headers, &body).await.unwrap_or_else(|r| r)
 }
 async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answer {
@@ -968,6 +971,14 @@ pub async fn run_status(State(state): State<ServerState>, headers: HeaderMap, Pa
         Ok(limit) => limit,
         Err(r) => return r,
     };
+    if let Ok((_, task, _)) = state.engine.store.load_scoped(&ctx.principal, id).await {
+        if task.external_purchase.is_some() {
+            return match crate::ask_v2::purchase::view(&state.engine, &ctx.principal, id).await {
+                Ok(view) => discovery::external_response(view),
+                Err(error) => not_found(&error),
+            };
+        }
+    }
     if let Ok(bearer) = token(&headers) {
         if authorized(&state, &ctx, id).await.unwrap_or(false) && !state.engine.worker_active(id).await.unwrap_or(true) {
             if let Err(error) = state.engine.start_worker(ctx.principal.clone(), bearer.to_owned(), id).await {

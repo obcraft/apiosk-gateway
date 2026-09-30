@@ -799,7 +799,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     assert!(!saved.facts.iter().any(|fact|fact.semantic_type == "company.name"));
     let replay: Value = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&body).send().await.unwrap().json().await.unwrap();
     assert_eq!(replay["id"], planned["id"]);
-    let conflict = client.post(format!("{api_url}/v2/ask")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&json!({"question":"different request"})).send().await.unwrap();
+    let conflict = client.post(format!("{api_url}/v2/ask/plan")).bearer_auth(key).header("Idempotency-Key", "partner-dossier").json(&json!({"question":"different request"})).send().await.unwrap();
     assert_eq!(conflict.status(), 409);
     for invalid in [json!({}), json!({"question":"both","workflow":body["workflow"]})] {
         assert_eq!(client.post(format!("{api_url}/v2/ask")).bearer_auth(key).json(&invalid).send().await.unwrap().status(), 400);

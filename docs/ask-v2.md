@@ -1,47 +1,43 @@
 # Ask v2 capability search
 
-The App's `/ask-v2` page searches independently of the existing Ask planner.
-It ports the current WebGPU project's parser, normalization and validation into
-`app/src/lib/domain/ask-v2-parser`. It accepts the current question only.
+The App's `/ask` page and public `POST /v2/ask` share canonical interpretation,
+source search, executable descriptors and literal input binding. Neither
+creates a paid source request. The public API returns both origins as one JSON
+response; the App requests them separately so each table can appear and retry
+independently.
 
-1. `POST /v2/ask-v2/parse` sends the WebGPU system prompt and question to OpenRouter.
-   The server keeps the API key. The default is **Gemma 3 4B**
-   (`google/gemma-3-4b-it`), four billion total parameters. This is deliberately
-   different from the prototype's 26B A4B default. `ASK_V2_MODEL` controls only
-   this route; it does not change the existing planner.
-2. The App applies the original WebGPU validation and normalization. It permits
-   the original one correction attempt for invalid model output and adds the
-   model, parse timestamp and SHA-256 metadata.
-3. The App retains the validated object and sends independent
-   `/v2/ask-v2/search` requests for `apiosk` and `coinbase`. Results appear directly
-   in a table with source logo, name, short description and price. Parsing
-   metadata is not part of the main result view.
-4. Apiosk searches the full catalog locally, ranking metadata per capability.
-   Admitted operations retain their contract identifiers; directory-only sources
-   are explicitly marked `discovery_only`. The catalog index retains one version.
-5. Coinbase searches the fixed public Bazaar endpoint with generic capability
-   queries, scrubbed of parsed subject labels and identifiers. Its matches appear
-   after Apiosk in the UI. Only successful discovery metadata is cached, with a
-   bounded five-minute cache. Failure does not discard the parsed object or the
-   other origin's results. Retrying a source search does not rerun the model.
-   An explicitly named source also filters Bazaar candidates by their metadata.
+1. `POST /v2/ask-v2/parse` sends the fixed prompt and question to the configured
+   Ask model. `Client::interpret` validates and normalizes the response, allows
+   one correction, and returns `parsed_request`, `attempts` and elapsed time
+   alongside the raw text for older clients. The App consumes that canonical
+   object; its old TypeScript normalization is a fallback for older Gateways.
+2. `/v2/ask-v2/search` and public Ask both call `search_catalog`. Apiosk matches
+   registered contracts and directory metadata; Coinbase uses generic queries
+   scrubbed of subject labels and identifiers. Search outages remain visible.
+3. Admitted choices carry `api_id`, the exact capability, required input fields,
+   schemas, known `input_values`, `missing_inputs`, output contracts and buyer
+   prices. External offers are re-resolved against the executor's authoritative
+   directory before being marked executable. Unpublished output schemas are
+   `null`. Actual output values exist only after execution.
+4. Public `POST /v2/execute` accepts the selected `api_id`, capability and input,
+   plus an explicit total `max_spend` and required `Idempotency-Key`. It calls
+   the same `Engine::prepare_endpoint` or external purchase functions as the
+   App. Registered execution uses existing authorization and worker machinery;
+   external execution uses the same balance executor with the caller's
+   connection scope. `GET /v2/runs/:id` recovers its saved result.
+5. The old question-to-plan API is `/v2/ask/plan`. Explicit workflow requests
+   retain `/v2/ask`; their saved plan, run and continuation paths are unchanged.
 
-The fixed prompt in `contracts/ask-v2-webgpu-prompt.txt` is the prototype's
-`parsePrompt([])` output. Known slugs and the original correction directive are
-the only additions. For the 4B model, `ask-v2-webgpu-schema.json` enforces that
-same output shape through OpenRouter structured output. This transport difference
-prevents malformed array/object types from causing an unnecessary second request.
-The schema is sent verbatim, retaining the prototype's field order. Serializing
-it through an alphabetically sorted map changed the 4B model's behavior and
-roughly doubled generation time in the same-question comparison.
-The generation remains streaming, temperature zero, and capped at 1,024 tokens.
-It has a twelve-second total server deadline and bounded response size.
+The prompt remains streaming, temperature zero, with bounded output and a
+20-second transport deadline per parse attempt. `ASK_V2_MODEL` selects the
+configured model; production's default is defined in `parser::MODEL`.
 
-Both routes require an authenticated App user and apply the existing workspace
+The App parse/search routes require an authenticated App user and apply the existing workspace
 membership checks. Separate bounded per-owner limits cover parsing and search,
 and the existing concurrent-request semaphore applies. No task, quote, approval,
 payment, source execution or answer synthesis is created by these routes. Client
-metadata is validated and used only for directory search.
+metadata is validated and used only for directory search. Public discovery
+requires `ask:create`; selected execution requires `sources:execute`.
 
 ## Selected-source purchases
 
@@ -59,9 +55,10 @@ For Coinbase Bazaar, `/v2/ask-v2/external/source` resolves the exact resource an
 method against the server's settled source directory. It requires a supported
 input schema, an eligible payment rail and an authoritative buyer total. The
 client cannot supply a price or settlement policy. `/external/prepare` saves a
-ten-minute, owner/workspace-scoped quote under the immutable request UUID.
+ten-minute, owner/workspace/connection-scoped quote under the immutable request UUID.
 `/external/:id/authorize` accepts the displayed quote and cap, atomically records
-one approval and selection, and starts one existing `use-selection` execution.
+one approval and selection, and starts one existing `use-selection` execution for an App user, or
+`agent-gateway/v1/run` for a connected API caller.
 That executor reserves internal balance, pays x402 from the Apiosk treasury, and
 settles or refunds through the same ledger as V1. The migration granting only
 `INSERT(resource_url)` on the selection table must ship before this route.
@@ -74,6 +71,6 @@ purchase through read-only requests after a reload. The browser needs no wallet.
 
 The parser records actual elapsed parse time, model and number of attempts. Provider
 speed and semantic extraction quality vary; neither two-second latency nor
-complete extraction of every sub-question is guaranteed. Tests cover exact
-WebGPU normalization parity, cancellation and stale responses, origin retries,
+complete extraction of every sub-question is guaranteed. Tests cover canonical App/API interpretation and contract parity, legacy
+browser normalization, cancellation and stale responses, origin retries,
 catalog relevance, stream decoding, bounds, and the isolated route contract.

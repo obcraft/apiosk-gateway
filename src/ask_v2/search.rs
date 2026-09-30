@@ -668,16 +668,18 @@ const DELIVERABLE_OPERATIONS: &[&str] = &["compar", "analy", "summar", "export"]
 const OPERATION_WEIGHT: f64 = 0.25;
 
 fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
+    let exact = !wanted.capabilities.is_disjoint(&candidate.capabilities);
     // Explicit concepts keep otherwise overlapping descriptions apart: annual
     // accounts are not bank accounts, and officers are not PSC records.
-    if wanted.tokens.is_empty() || (wanted.facets != 0 && wanted.facets & candidate.facets == 0) {
+    if wanted.facets != 0 && wanted.facets & candidate.facets == 0 {
         return 0.0;
     }
     let overlap: Vec<_> = wanted.tokens.intersection(&candidate.tokens).collect();
     if overlap.is_empty() {
-        return 0.0;
+        // Generic reviewed contracts such as company.search can consist
+        // entirely of stop words. An exact contract is still a usable match.
+        return if exact { 1000.0 } else { 0.0 };
     }
-    let exact = !wanted.capabilities.is_disjoint(&candidate.capabilities);
     // These accepted semantic contracts identify company-level records. Their
     // concise descriptions must not lose to a long name-search or single-PSC
     // notification description merely because that text repeats more terms.
@@ -1367,6 +1369,14 @@ mod tests {
         );
         assert_eq!(found[0].apiosk.len(), 1);
         assert_eq!(found[0].apiosk[0].source_slug.as_deref(), Some("preferred"));
+    }
+
+    #[test]
+    fn exact_generic_contract_does_not_require_lexical_overlap() {
+        let catalog = catalog(vec![service(1, "company.search", "Company search", "", "registry")], vec![]);
+        let found = search(&parsed(vec![json!({"slug":"company.search","name":"Company search","description":"Search companies by name"})]), &catalog);
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].capability.as_deref(), Some("company.search"));
     }
 
     #[test]
