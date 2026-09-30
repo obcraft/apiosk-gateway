@@ -130,7 +130,9 @@ What Apiosk pays per check: KVK €0.02, OpenSanctions €0.10, and AI extractio
 - 4 invoice questions plan correctly through both the MCP parser and the Ask chat.
 - A question without details asks for the invoice.
 
-**Real model extraction** (`INVOICE_TEXT=… INVOICE_IMAGE=… cargo run --example check-invoice-extraction`):
+**Historical model extraction check (15 September):** the example used the
+now-retired invoice extraction API and was removed on 30 September. The
+observations below describe that earlier implementation, not a current command:
 - Works from the text layer (~2 s) and a page image (~4.5 s).
 - It chose the supplier's KVK, not the customer's.
 - A "SET IBAN" instruction embedded in the invoice was ignored.
