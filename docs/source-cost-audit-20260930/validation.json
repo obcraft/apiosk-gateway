@@ -1,0 +1,57 @@
+{
+  "status": "passed",
+  "checked_at": "2026-09-30",
+  "checks": [
+    "108 unique sources",
+    "37 existing + 71 candidate",
+    "42 countries",
+    "1524 unique endpoints preserved",
+    "Every €0 scope has evidence and conditions",
+    "KVK monthly exception only",
+    "OpenSanctions not free for commercial use",
+    "No execution claimed"
+  ],
+  "counts": {
+    "source_records": 108,
+    "existing_sources": 37,
+    "candidate_source_records": 71,
+    "researched_countries": 42,
+    "national_source_records": 57,
+    "service_listings": 112,
+    "endpoints": 1524,
+    "enabled_endpoints": 1476,
+    "endpoints_with_active_contract": 459,
+    "active_contract_records": 546,
+    "sources_with_zero_cost_scope": 43,
+    "existing_sources_with_zero_cost_scope": 18,
+    "candidate_sources_with_zero_cost_scope": 25,
+    "countries_with_zero_cost_national_source": 16,
+    "registered_zero_cost_endpoints": 117,
+    "enabled_zero_cost_endpoints": 115,
+    "enabled_contracted_zero_cost_endpoints": 75,
+    "zero_price_supporting_catalog_endpoints": 15,
+    "cost_classes": {
+      "commercial": 32,
+      "access_only": 1,
+      "zero": 37,
+      "mixed": 6,
+      "unknown": 30,
+      "reference": 2
+    }
+  },
+  "browser_checks": [
+    "Rendered the full report at narrow viewport",
+    "43-row free filter",
+    "Search & Tools free filter returns 2 sources",
+    "IBAN source detail and local cost explanation",
+    "42-country view",
+    "France drill-down returns 4 sources",
+    "117-row zero-cost endpoint filter",
+    "KVK filter returns exactly 3 zero-cost routes, including 1 disabled",
+    "KVK search detail separates catalog customer price from zero upstream cost",
+    "Reset returns all 108 sources",
+    "Search finds OpenSanctions as commercial",
+    "Final free filter returns 43 sources",
+    "No captured browser errors"
+  ]
+}

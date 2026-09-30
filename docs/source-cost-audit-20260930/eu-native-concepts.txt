@@ -1,0 +1,476 @@
+APIOSK — EU NATIVE CONCEPTBRONNEN
+Peildatum brononderzoek: 30 september 2026
+
+41 officiële nationale conceptbronnen voor 27 EU-landen.
+20 bronnen met een bevestigd gratis onderdeel; 5 commerciële producten; 16 nog onbevestigd.
+
+Zero upstream source fees only for the named free_scope, subject to registration, quota and reuse conditions. Hosting, indexing, storage and AI are excluded.
+All 41 records are source specifications; none is activated as a new Apiosk integration by this report.
+
+België (BE)
+
+KBO / BCE — Crossroads Bank for Enterprises — €0-deel + overige producten
+  Gratis: Open Data CSV: actieve entiteiten, vestigingen en dagelijkse wijzigingen
+  Gegevens: Open KBO/BCE CSV-bestanden: volledige actieve populatie en dagelijkse wijzigingen
+  Aanbod: Downloads
+  Toegang: Gratis Open Data-account/SFTP; eigen lokale zoekindex bouwen. Persoonsgegevens niet voor direct marketing hergebruiken.
+  Type: Bulk → eigen index
+  Buiten gratis onderdeel: Public Search webservice en volledige commerciële hergebruikbestanden zijn aparte producten; niet als gratis meegenomen.
+  Conceptacties: be.company.search, be.company.profile, be.company.branches.list, be.company.changes.list
+  Nog nodig: Start with registered Open Data full + daily update files and build an indexed query service; For live lookups obtain Public Search Web Services access and current charge schedule; Do not use administration-only CBE services as a commercial access route
+  Onderbouwing: https://economie.fgov.be/en/themes/enterprises/crossroads-bank-enterprises/services-everyone/public-data-available-reuse/cbe-open-data | https://kbopub.economie.fgov.be/kbo-open-data/login%3Blang%3Den
+
+NBB — Central Balance Sheet Office — €0-deel + overige producten
+  Gratis: Authentic Data Query; Daily Extract; Authentic Archive
+  Gegevens: Authentieke jaarrekeningen en dagelijkse extracts
+  Aanbod: API + downloads
+  Toegang: Deze authentieke jaarrekeningproducten zijn gratis; registratie, client-ID en toegangsafspraken nodig. Gestructureerde JSON-dekking verschilt per jaar/formaat.
+  Type: API + bulk
+  Buiten gratis onderdeel: Improved Data en Improved Archive blijven betaald.
+  Conceptacties: be.company.filings.list, be.company.filing.document, be.company.accounts.get, be.company.financials.get
+  Nog nodig: Complete administrative subscription and developer CLIENT_ID approval; Implement filing query and bounded authentic-document retrieval separately; Preserve original/improved-data product and filing/correction periods
+  Onderbouwing: https://www.nbb.be/en/central-balance-sheet-office/consultation/web-services
+
+Bulgarije (BG)
+
+Commercial Register / Registry Agency — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Aanbod: Nog te bevestigen
+  Toegang: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Type: Open data en contract onderzoeken
+  Conceptacties: bg.company.search, bg.company.profile, bg.company.filings.list
+  Nog nodig: Verify current public reusable dataset/API, including the commercial-access route; Do not select government-only service access for Apiosk; Map EIK and filing identifiers; request reuse terms and sample data
+  Onderbouwing: https://portal.registryagency.bg/ | https://www.registryagency.bg/bg/registri/targovski-registar/predostavyane-na-dostap-do-bazata-danni-na-targovskiya-registar/
+
+Cyprus (CY)
+
+Registrar of Companies — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Aanbod: Nog te bevestigen
+  Toegang: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: cy.company.search, cy.company.profile, cy.company.filings.list
+  Nog nodig: Ask the registrar for supported bulk/API access and redistribution rights; Preserve HE/company category and registration number; Keep paid documents and restricted beneficial ownership separate
+  Onderbouwing: https://www.companies.gov.cy/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Denemarken (DK)
+
+CVR — Det Centrale Virksomhedsregister — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Systeem-toegang via CVR/Elasticsearch bestaat; exact gratis commercieel toegangscontract niet bevestigd. UBO heeft aparte toegangsregels.
+  Aanbod: Nog te bevestigen
+  Toegang: Systeem-toegang via CVR/Elasticsearch bestaat; exact gratis commercieel toegangscontract niet bevestigd. UBO heeft aparte toegangsregels.
+  Type: API na registratie
+  Conceptacties: dk.company.search, dk.company.profile, dk.company.branches.list, dk.company.filings.list, dk.company.changes.list
+  Nog nodig: Request official system-to-system CVR access; Confirm current CVR/Datafordeler interface, authentication and supported version; Split registry identity, financial report retrieval and restricted ownership into separate contracts
+  Onderbouwing: https://erhvervsstyrelsen.dk/det-centrale-virksomhedsregister-cvr | https://erhvervsstyrelsen.dk/kom-godt-igang-med-elasticSearch | https://datacvr.virk.dk/artikel/system-til-system-adgang-til-cvr-data | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Duitsland (DE)
+
+Bundesanzeiger — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Publicatieportal; machinegebruik en productkosten niet bevestigd.
+  Aanbod: Nog te bevestigen
+  Toegang: Publicatieportal; machinegebruik en productkosten niet bevestigd.
+  Type: Toegangscontract onderzoeken
+  Conceptacties: de.company.filings.list, de.company.changes.list
+  Nog nodig: Confirm dataset/reuse product and time coverage; Link to Unternehmensregister where the current filing regime places records there; Deduplicate notices by publication ID; do not treat duplicate portals as independent confirmation
+  Onderbouwing: https://www.bundesanzeiger.de/
+
+Handelsregister — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Kosteloze portaalinzage is geen bevestigde vrij herbruikbare machine-API. Automatiseer niet op basis van een gevonden intern endpoint.
+  Aanbod: Nog te bevestigen
+  Toegang: Kosteloze portaalinzage is geen bevestigde vrij herbruikbare machine-API. Automatiseer niet op basis van een gevonden intern endpoint.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: de.company.search, de.company.profile, de.company.filings.list, de.company.filing.document
+  Nog nodig: Identify approved machine-access or redistribution channel with the publisher; Preserve court, register type and number as a compound identity; Portal availability is insufficient for autonomous API resale; no scraping adapter specified
+  Onderbouwing: https://www.handelsregister.de/rp_web/information/welcome.xhtml | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Insolvenzbekanntmachungen — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Zoekportal voor insolventie; hergebruik, bewaartermijnen en toegestane machine-interface vastleggen.
+  Aanbod: Nog te bevestigen
+  Toegang: Zoekportal voor insolventie; hergebruik, bewaartermijnen en toegestane machine-interface vastleggen.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: de.company.insolvency.notices
+  Nog nodig: Obtain permitted automated query/reuse channel; Apply publication-retention and search-window constraints; Return proceeding evidence with dates; no-result is not clearance
+  Onderbouwing: https://neu.insolvenzbekanntmachungen.de/
+
+Unternehmensregister — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Open inzage en documentkosten verschillen; publieke machine-toegang/contract niet bevestigd.
+  Aanbod: Nog te bevestigen
+  Toegang: Open inzage en documentkosten verschillen; publieke machine-toegang/contract niet bevestigd.
+  Type: Toegangscontract onderzoeken
+  Conceptacties: de.company.filings.list, de.company.filing.document, de.company.accounts.get
+  Nog nodig: Request supported retrieval/distribution channel; Preserve filing period, consolidated scope and document origin; Separate retrieved document, XBRL extraction and portal search into priced contracts
+  Onderbouwing: https://www.unternehmensregister.de/
+
+Estland (EE)
+
+e-Business Register / Äriregister — €0 — genoemde scope
+  Gratis: Open bedrijfsgegevens; bulk; toegelaten XML-webservices
+  Gegevens: Open bedrijfsregisterbestanden en overeengekomen webservices
+  Aanbod: API + downloads
+  Toegang: API-only contract is gratis; overeenkomst en credentials nodig. Alleen de overeengekomen openbare diensten en velden.
+  Type: API + bulk
+  Conceptacties: ee.company.search, ee.company.profile, ee.company.filings.list, ee.company.accounts.get, ee.company.representatives.list, ee.company.changes.list
+  Nog nodig: Use open files for indexed identity search; Sign RIK XML-services agreement for detailed automated queries; Separate public company data from restricted beneficial-owner services and record report period
+  Onderbouwing: https://avaandmed.ariregister.rik.ee/en/open-data-api/introduction-api-services
+
+Finland (FI)
+
+PRH / YTJ — Company basic information — €0 — genoemde scope
+  Gratis: Finse bedrijfsbasisgegevens zoeken/ophalen
+  Gegevens: Open YTJ/PRH-bedrijfsbasisgegevens
+  Aanbod: API
+  Toegang: Gratis openbare PRH/YTJ-interface; rechtsvormen en beschikbare velden volgens productdekking.
+  Type: API
+  Conceptacties: fi.company.search, fi.company.profile
+  Nog nodig: Use current YTJ v3 API; Resolve current main name by type and validity, never take the first historical alias blindly; Retain source codes and Finnish/Swedish/English descriptions; digital financials are a separate source product; Name-search and pagination contract remain documentation work: only businessId lookup was verified here. Do not infer a per_page parameter from another API.
+  Onderbouwing: https://www.prh.fi/en/companiesandorganisations/tietopalvelut/prhopendata.html
+
+PRH — Digital financial statements — €0 — genoemde scope
+  Gratis: Gestructureerde digitale jaarrekeningen ophalen
+  Gegevens: Beschikbare digitale iXBRL-jaarrekeningen
+  Aanbod: API
+  Toegang: Gratis digitale retrievalinterface; alleen ingediende iXBRL-jaarrekeningen, geen volledige historische PDF-collectie.
+  Type: API
+  Conceptacties: fi.company.accounts.get, fi.company.financials.get
+  Nog nodig: Use the dedicated retrieval API, not the filing/submission interface; Keep financial year, currency, taxonomy and consolidated basis; Return unavailable for non-digital filings; do not promise all Finnish accounts
+  Onderbouwing: https://www.prh.fi/en/companiesandorganisations/financial_statements/digital-financial-reporting/what.html
+
+Frankrijk (FR)
+
+BODACC — €0 — genoemde scope
+  Gratis: Bedrijfsmededelingen; insolventie- en deponeringspublicaties zoeken
+  Gegevens: Open BODACC-publicaties en bedrijfsmededelingen
+  Aanbod: API + downloads
+  Toegang: Vrij hergebruik met bron, datum en oorspronkelijke publicatiecontext; een publicatie is niet automatisch de actuele status.
+  Type: API + bulk
+  Conceptacties: fr.company.changes.list, fr.company.insolvency.notices
+  Nog nodig: Import official dataset query schema; Match entity identifiers where present; preserve notice type, publication and effective dates; Do not turn absence of a notice into insolvency clearance
+  Onderbouwing: https://www.bodacc.fr/pages/donnees-ouvertes-et-api/
+
+INPI — Registre national des entreprises — €0 — genoemde scope
+  Gratis: RNE-profiel; wijzigingen; openbare akten en beschikbare jaarrekeningen
+  Gegevens: Open RNE-registerdata, akten en beschikbare jaarrekeningen
+  Aanbod: API + downloads
+  Toegang: DATA INPI-account en technische toegang/licentie nodig; beschermde en vertrouwelijke gegevens ontbreken.
+  Type: API + bulk
+  Conceptacties: fr.company.profile, fr.company.filings.list, fr.company.filing.document, fr.company.accounts.get, fr.company.changes.list
+  Nog nodig: Create DATA INPI technical access for API/SFTP; Implement token lifecycle, company-by-SIREN and separately priced document retrieval; Index daily changes; respect non-diffusible and confidential fields; UBO needs separate eligibility
+  Onderbouwing: https://www.inpi.fr/ressources/formalites-dentreprises/acces-lapi-formalite-rne | https://data.inpi.fr/content/editorial/Acces_API_Entreprises
+
+INSEE — Sirene — €0 — genoemde scope
+  Gratis: SIREN/SIRET-profielen; vestigingen; status; historische perioden
+  Gegevens: Open Sirene-datasets: ondernemingen en vestigingen
+  Aanbod: API + downloads
+  Toegang: Open Sirene API/bulk; volg actuele API-registratie en quotaregels. Niet-diffuseerbare velden respecteren.
+  Type: API + bulk
+  Conceptacties: fr.company.search, fr.company.profile, fr.company.branches.list, fr.company.changes.list
+  Nog nodig: Register current INSEE API product and authentication; Ingest stock/change resources if bulk search is needed; Respect diffusion status and keep legal unit separate from establishment
+  Onderbouwing: https://www.insee.fr/fr/information/3591226
+
+Recherche d’entreprises — €0 — genoemde scope
+  Gratis: Bedrijf zoeken; publieke identifiers en basisgegevens
+  Gegevens: Zoekbare officiële afgeleide bedrijfsindex
+  Aanbod: API
+  Toegang: Publieke afgeleide index van officiële bronnen. Rate limits en beperkte velden; niet het volledige RNE.
+  Type: API
+  Conceptacties: fr.company.search, fr.company.profile
+  Nog nodig: Implement GET /search with bounded q, page and per_page; Verify exact SIREN/SIRET match for identifier lookup; SIREN/SIRET queries ignore other filters; distinguish omitted/restricted records from not found
+  Onderbouwing: https://recherche-entreprises.api.gouv.fr/docs/
+
+Griekenland (GR)
+
+GEMI — General Commercial Registry — €0 — genoemde scope
+  Gratis: GEMI open bedrijfsgegevens zoeken/ophalen
+  Gegevens: GEMI open bedrijfsdata onder ODC-BY
+  Aanbod: API
+  Toegang: Open API onder ODC-BY 1.0. Registratie/key, bronvermelding en quota; alleen openbaar product.
+  Type: API
+  Conceptacties: gr.company.search, gr.company.profile
+  Nog nodig: Request a personal production API key; Import the current Swagger spec for search and company details; Use ISO GR internally, applying EL only for services that require it (for example VIES)
+  Onderbouwing: https://opendata.businessportal.gr/ | https://opendata.businessportal.gr/license/
+
+Hongarije (HU)
+
+Cégnyilvántartás / e-Cégjegyzék — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Aanbod: Nog te bevestigen
+  Toegang: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Type: Toegangscontract onderzoeken
+  Conceptacties: hu.company.search, hu.company.profile, hu.company.filings.list
+  Nog nodig: Obtain a documented commercial information-service connection and reuse terms; Normalize Hungarian forms and court-qualified numbers; Treat e-beszámoló annual reports as a separate document source
+  Onderbouwing: https://occsz.e-cegjegyzek.hu/info/page/ceginfo | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Ierland (IE)
+
+Companies Registration Office — €0-deel + overige producten
+  Gratis: Nieuwe CRO Open Data: bedrijfsgegevens en gepubliceerde financiële gegevens
+  Gegevens: CRO Open Data: bedrijven en gepubliceerde financiële gegevens
+  Aanbod: API + downloads
+  Toegang: Open-data-portaal met API/bulk en CC BY 4.0. Exacte datasetdekking en actualiteit in adapter vastleggen.
+  Type: API + bulk
+  Buiten gratis onderdeel: Legacy documentproducten, certificaten en andere betaalde CRO-diensten niet inbegrepen.
+  Conceptacties: ie.company.search, ie.company.profile, ie.company.filings.list, ie.company.accounts.get
+  Nog nodig: Select new open-data portal datasets or CRO Open Services and register access as required; Separate daily master-data ingestion, submission listing and document content; Check dataset resources rather than treating a CKAN catalogue API as company-record lookup
+  Onderbouwing: https://cro.ie/the-companies-registration-office-cro-announces-the-launch-of-new-open-data-portal/ | https://opendata.cro.ie/
+
+Italië (IT)
+
+Registro Imprese / InfoCamere — Commercieel / geen €0-garantie
+  Gratis: Niet bevestigd
+  Gegevens: Commerciële overeenkomst en producttarieven.
+  Aanbod: Nog te bevestigen
+  Toegang: Commerciële overeenkomst en producttarieven.
+  Type: licensed api
+  Conceptacties: it.company.search, it.company.profile, it.company.officers.list, it.company.filing.document, it.company.accounts.get
+  Nog nodig: Contract the InfoCamere database-access web services; Obtain API specifications, test access, tariff and redistribution rights; Bind REA with its chamber; keep Codice Fiscale and VAT in separate identifiers
+  Onderbouwing: https://accessoallebanchedati.registroimprese.it/abdo/api
+
+Kroatië (HR)
+
+Sudski registar — Court Register — €0 — genoemde scope
+  Gratis: Open rechtbankregister: entiteiten; identifiers; status; adres; rechtsvorm
+  Gegevens: Open data van het rechtbankregister
+  Aanbod: API
+  Toegang: Gratis REST API met registratie en client-credentials. Werkdagupdates; openbare subset volgens OpenAPI.
+  Type: API
+  Conceptacties: hr.company.search, hr.company.profile
+  Nog nodig: Register at sudreg-data.gov.hr and obtain client credentials; Use OAuth client_credentials and public /api/javni operations; Keep public current data separate from state-only extended/historical services
+  Onderbouwing: https://sudreg-data.gov.hr/ords/r/srn_rep/vanjski-srn-rep/home | https://sudreg-data.gov.hr/api/javni/dokumentacija/open_api
+
+Letland (LV)
+
+Register of Enterprises / Uzņēmumu reģistrs — €0 — genoemde scope
+  Gratis: Open registerdatasets en toegelaten registerwebservices
+  Gegevens: Open datasets van het ondernemingsregister en registerwebservices
+  Aanbod: API + downloads
+  Toegang: Autoriteit vermeldt geautomatiseerde gegevensuitwisseling als gratis. Servicekeuze, registratie en veldrechten nog in adapter vastleggen.
+  Type: API + bulk
+  Conceptacties: lv.company.search, lv.company.profile, lv.company.officers.list, lv.company.shareholders.list, lv.company.changes.list
+  Nog nodig: Ingest official open datasets with snapshot date and deletion handling; Apply for public-information API services through the VDAA API Manager; Model public/current/historical/document access separately; restricted services require eligibility
+  Onderbouwing: https://www.ur.gov.lv/en/services/request-automated-dissemination-data-between-different-information-systems-latvia-and-europe | https://www.ur.gov.lv/en/registry-api-web-services-service-list
+
+Litouwen (LT)
+
+Register of Legal Entities / Juridinių asmenų registras — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: JAR-datasets gepubliceerd; exact bedrijfsproduct en hergebruik nog afbakenen
+  Aanbod: Datasets; scope open
+  Toegang: Open JAR-datasets bestaan, maar exact geselecteerde bedrijfsdataset, API-licentie en commerciële productkosten nog afbakenen.
+  Type: Open data en contract onderzoeken
+  Conceptacties: lt.company.search, lt.company.profile, lt.company.filings.list
+  Nog nodig: Select exact JAR open-data dataset and current distribution/schema; Build basic lookup from permitted open fields; Obtain Centre of Registers agreement for documents, financials and participant data; do not substitute tax-register data for a certified extract
+  Onderbouwing: https://www.registrucentras.lt/ | https://data.gov.lt/datasets/
+
+Luxemburg (LU)
+
+Luxembourg Business Registers / RCS — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Aanbod: Nog te bevestigen
+  Toegang: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: lu.company.search, lu.company.profile, lu.company.filings.list, lu.company.filing.document
+  Nog nodig: Request supported data-distribution/API access from LBR; Keep section letter, document ID, filing date and effective date; Handle RBE beneficial-owner access separately
+  Onderbouwing: https://www.lbr.lu/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Malta (MT)
+
+Malta Business Registry — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: API-pakketten en HVD-eligibility/tarieven niet voldoende bevestigd.
+  Aanbod: Nog te bevestigen
+  Toegang: API-pakketten en HVD-eligibility/tarieven niet voldoende bevestigd.
+  Type: eligibility gated api
+  Conceptacties: mt.company.search, mt.company.profile, mt.company.filings.list
+  Nog nodig: Confirm Apiosk eligibility and redistribution rights for MBR API packages; Obtain BAROS gateway specifications and credentials; Assess the public high-value/basic-information product separately; do not assume restricted package access
+  Onderbouwing: https://mbr.mt/wp-content/uploads/2026/03/API-Onboarding.pdf | https://www.mbr.mt/post/mbr-s-launch-of-the-api-packages-for-subject-persons | https://gateway.baros.mbr.mt/
+
+Nederland (NL)
+
+Centraal Insolventieregister — €0 — genoemde scope
+  Gratis: Open insolventiepublicaties en wijzigingen via CIR-webservice
+  Gegevens: Gratis insolventiepublicaties na overeenkomst
+  Aanbod: Webservice
+  Toegang: Abonnement én gebruik gratis. Organisatie aanmelden en overeenkomst sluiten; gebruiksvoorwaarden, bewaartermijnen en seriële verzoeken toepassen.
+  Type: API
+  Conceptacties: nl.company.insolvency.notices
+  Nog nodig: Obtain current Rechtspraak CIR web-service terms and credentials; Limit company products to legal-entity cases and link KVK where present; Preserve case type, publication and termination dates
+  Onderbouwing: https://www.rechtspraak.nl/registers/webservice-centraal-insolventieregister | https://www.rechtspraak.nl/registers/voorwaarden-voor-gebruik-cir
+
+Oostenrijk (AT)
+
+Firmenbuch — Commercieel / geen €0-garantie
+  Gratis: Niet bevestigd
+  Gegevens: Registerquerykosten en mogelijke toeslag van erkende distributeur.
+  Aanbod: Nog te bevestigen
+  Toegang: Registerquerykosten en mogelijke toeslag van erkende distributeur.
+  Type: Erkende distributeur / overeenkomst
+  Conceptacties: at.company.search, at.company.profile, at.company.filing.document, at.company.accounts.get
+  Nog nodig: Select an authorised Verrechnungsstelle with a supported API; Record original registry and transport provider separately; Obtain account, per-request tariff and onward redistribution terms
+  Onderbouwing: https://www.justiz.gv.at/service/datenbanken/firmenbuch/firmenbuchabfrage.2c9484852308c2a601240b693e1c0860.de.html | https://www.justiz.gv.at/service/datenbanken/verrechnungsstellen.795.de.html
+
+Polen (PL)
+
+CEIDG — €0 — genoemde scope
+  Gratis: Eenmanszaken zoeken; openbare bedrijfsprofielen
+  Gegevens: Open CEIDG-bedrijfsgegevens
+  Aanbod: API
+  Toegang: Gratis CEIDG-dataplatform, registratie/token en gebruiksvoorwaarden toepassen. Geen volledige KRS-dekking.
+  Type: API
+  Conceptacties: pl.company.search, pl.company.profile
+  Nog nodig: Obtain current official Data Warehouse/CEIDG API access and scope; Confirm auth, terms and public-field restrictions; Resolve NIP/REGON to registry records without treating individuals as companies in another register
+  Onderbouwing: https://www.gov.pl/web/ia/portale-interoperacyjnosci | https://www.gov.pl/web/rozwoj-technologia/e-uslugi-dla-biznesu
+
+KRS — National Court Register — €0 — genoemde scope
+  Gratis: Huidig en volledig KRS-uittreksel ophalen
+  Gegevens: Open KRS-registeruittreksels
+  Aanbod: API
+  Toegang: Open API; KRS-nummer nodig. Persoonsvelden zijn gefilterd; CEIDG-eenmanszaken zijn een ander register.
+  Type: API
+  Conceptacties: pl.company.profile, pl.company.registry.record
+  Nog nodig: Add current and full extract contracts with required KRS and register selector; Normalize nested Polish fields and keep status/history dates; Add CEIDG/REGON separately for sole traders and discovery; KRS lookup is not name search
+  Onderbouwing: https://www.gov.pl/web/sprawiedliwosc/uruchomienie-otwartego-api-krajowego-rejestru-sadowego
+
+REGON / BIR — €0 — genoemde scope
+  Gratis: Entiteit op REGON/NIP/KRS zoeken; openbare registerrapporten
+  Gegevens: Gratis REGON/BIR-registerrapporten na sleutelregistratie
+  Aanbod: API
+  Toegang: BIR is ook voor commerciële partijen gratis. Productiesleutel aanvragen bij GUS; SOAP-adapter en tijdsgebonden limieten.
+  Type: API
+  Conceptacties: pl.company.search, pl.company.profile, pl.company.identifiers.get
+  Nog nodig: Request official BIR service key and current SOAP schema; Distinguish 9-digit units from 14-digit local units; Retain statistics-register provenance and do not replace judicial KRS extracts
+  Onderbouwing: https://api.stat.gov.pl/Home/RegonApi?lang=pl
+
+Portugal (PT)
+
+Registo Comercial / IRN — Commercieel / geen €0-garantie
+  Gratis: Niet bevestigd
+  Gegevens: Certificaten en databaseprotocol hebben product-/contractkosten.
+  Aanbod: Nog te bevestigen
+  Toegang: Certificaten en databaseprotocol hebben product-/contractkosten.
+  Type: Toegangscontract onderzoeken
+  Conceptacties: pt.company.search, pt.company.profile, pt.company.filing.document, pt.company.accounts.get
+  Nog nodig: Request an authorised data-access protocol and machine interface; Keep company identification separate from purchased certificate access codes; Quote document or subscription charges separately from basic identity
+  Onderbouwing: https://irn.justica.gov.pt/online | https://justica.gov.pt/en-gb/Registos/Comercial/Documentos
+
+Roemenië (RO)
+
+ONRC — National Trade Register — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: ONRC publiceert bedrijfs-CSV-snapshots; exacte hergebruiklicentie nog bevestigen
+  Aanbod: Downloads; rechten open
+  Toegang: ONRC publiceert open CSV-snapshots; actuele snapshot van 2 september 2026 gevonden. Datasetlicentie nog exact vastleggen; geen gratis live-API geclaimd.
+  Type: Open data en contract onderzoeken
+  Conceptacties: ro.company.search, ro.company.profile, ro.company.filings.list
+  Nog nodig: Locate current publisher-owned open-data resources and schemas; Request ONRC automated information products for current details/documents; Version CAEN industry codes and retain CUI separately from registry number
+  Onderbouwing: https://data.gov.ro/organization/onrc | https://www.onrc.ro/index.php/en | https://myportal.onrc.ro/
+
+Slovenië (SI)
+
+AJPES — Slovenian Business Register — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Gratis ePRS-portaal is geen gratis machinecontract. Gebruik actuele REST-productvoorwaarden; oude SOAP is vervallen.
+  Aanbod: Nog te bevestigen
+  Toegang: Gratis ePRS-portaal is geen gratis machinecontract. Gebruik actuele REST-productvoorwaarden; oude SOAP is vervallen.
+  Type: API na registratie
+  Conceptacties: si.company.search, si.company.profile
+  Nog nodig: Use restPrsInfo REST; legacy wsPrsInfo SOAP was retired 28 February 2026; Obtain credentials and authorised data tier; Add annual reports as a separate product with its own contract
+  Onderbouwing: https://www.ajpes.si/za_razvijalce_programske_opreme | https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Opis_servisa_za_razvijalce.pdf | https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Documentation_for_DevOps.pdf
+
+Slowakije (SK)
+
+Obchodný register — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: ORSR-portal staat los van RÚZ en RPO; machinecontract niet bevestigd.
+  Aanbod: Nog te bevestigen
+  Toegang: ORSR-portal staat los van RÚZ en RPO; machinecontract niet bevestigd.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: sk.company.search, sk.company.profile, sk.company.filing.document
+  Nog nodig: Use official RPO for registry identity and RÚZ for accounts where supported; Verify current ORSR machine interface and redistribution terms; Keep court-register record and RÚZ internal unit ID separate
+  Onderbouwing: https://www.orsr.sk/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+RPO — Register of Legal Entities — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Publieke RPO-gegevens bestaan; na overdracht in juni 2026 actuele productiehost en toegangsvoorwaarden bevestigen. Testhost niet als productie activeren.
+  Aanbod: Nog te bevestigen
+  Toegang: Publieke RPO-gegevens bestaan; na overdracht in juni 2026 actuele productiehost en toegangsvoorwaarden bevestigen. Testhost niet als productie activeren.
+  Type: public api assessment
+  Conceptacties: sk.company.search, sk.company.profile
+  Nog nodig: Review current REST API and entity-ID search routes; Connect IČO to internal RPO identity; Preserve source-register linkage and distinguish identity from RÚZ account content
+  Onderbouwing: https://www.susr.sk/ExportPdf2/PdfExportSrvlt?Document=ac07a838-4ff2-4f67-86ac-a1ed11fa18e0
+
+RÚZ — Register of Financial Statements — €0 — genoemde scope
+  Gratis: Rapporterende entiteiten; jaarrekeningen; staten; wijzigingen; codelijsten
+  Gegevens: Open financiële datasets onder CC0, ontsloten via de RÚZ API
+  Aanbod: API
+  Toegang: Open API onder CC0. Alleen openbaar gepubliceerde documenten; RÚZ-ID en IČO apart bewaren.
+  Type: API
+  Conceptacties: sk.company.profile, sk.company.filings.list, sk.company.accounts.get, sk.company.financials.get, sk.company.changes.list, sk.company.identifiers.get
+  Nog nodig: Resolve IČO to RÚZ unit ID before unit/statement/report fetches; Use each object type’s change cursor; linked-object changes need independent polling; Preserve template, reporting period, units and consolidation; missing fields are not zero
+  Onderbouwing: https://www.registeruz.sk/cruz-public/home/api
+
+Spanje (ES)
+
+Registro Mercantil / Registradores — Commercieel / geen €0-garantie
+  Gratis: Niet bevestigd
+  Gegevens: Uittreksels/informatieproducten hebben tarieven; machinecontract apart nodig.
+  Aanbod: Nog te bevestigen
+  Toegang: Uittreksels/informatieproducten hebben tarieven; machinecontract apart nodig.
+  Type: Toegangscontract onderzoeken
+  Conceptacties: es.company.search, es.company.profile, es.company.filings.list, es.company.accounts.get
+  Nog nodig: Request the commercial machine-access product and redistribution terms from Registradores; Confirm eligible API access; an institutional API agreement is not public API access; Preserve NIF versus territorial registry references and document fees
+  Onderbouwing: https://www.registradores.org/ | https://boe.es/diario_boe/txt.php?id=BOE-A-2024-24833
+
+Tsjechië (CZ)
+
+ARES — Economic entities — €0 — genoemde scope
+  Gratis: ARES zoeken; economische entiteit op IČO ophalen
+  Gegevens: Officiële ARES-gegevens over economische entiteiten
+  Aanbod: API
+  Toegang: Publieke REST-interface; afgeleide officiële aggregatie, geen complete rechtbankdocumentenservice.
+  Type: API
+  Conceptacties: cz.company.search, cz.company.profile
+  Nog nodig: Add exact-IČO GET and bounded POST search adapter; Preserve source register and update date; Rate-limit below publisher ceiling; avoid random enumeration and duplicate requests
+  Onderbouwing: https://data.mf.gov.cz/api/ares.html | https://mf.gov.cz/cs/ministerstvo/informacni-systemy/ares
+
+Veřejný rejstřík / Obchodní rejstřík — Onbekend voor machinegebruik
+  Gratis: Niet bevestigd
+  Gegevens: Rechtbankportal staat los van gratis ARES; directe machinecontracten/documenttoegang nog niet bevestigd.
+  Aanbod: Nog te bevestigen
+  Toegang: Rechtbankportal staat los van gratis ARES; directe machinecontracten/documenttoegang nog niet bevestigd.
+  Type: Portaal; machine-toegang onbevestigd
+  Conceptacties: cz.company.search, cz.company.profile, cz.company.filings.list, cz.company.filing.document
+  Nog nodig: Use ARES for machine-readable identity first; Obtain documented justice-register document access before adding filings; Preserve court/file references and distinguish informational ARES data from a formal court extract
+  Onderbouwing: https://or.justice.cz/ias/ui/rejstrik | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Zweden (SE)
+
+Bolagsverket — Company information — Commercieel / geen €0-garantie
+  Gratis: Niet bevestigd
+  Gegevens: Reguliere company-information API heeft een betaald contract; gebruik apart HVD-product voor €0.
+  Aanbod: Nog te bevestigen
+  Toegang: Reguliere company-information API heeft een betaald contract; gebruik apart HVD-product voor €0.
+  Type: licensed api
+  Conceptacties: se.company.profile, se.company.officers.list, se.company.filings.list, se.company.filing.document
+  Nog nodig: Sign product agreement and select transaction tier; Add OAuth client_credentials and separately eligible mTLS UBO product only when authorised; Route HVD-scope requests to the free HVD product
+  Onderbouwing: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/apiforatthamtaforetagsinformation.3988.html
+
+Bolagsverket — High-value datasets — €0 — genoemde scope
+  Gratis: HVD-bedrijfsgegevens; beschikbare digitale jaarrekeningen; classificaties
+  Gegevens: Open high-value datasets: bedrijven en beschikbare digitale jaarrekeningen
+  Aanbod: API
+  Toegang: Gratis HVD-product; aanmelden met contactgegevens. HVD staat los van de betaalde reguliere company-information API en beperkte UBO-toegang.
+  Type: API
+  Conceptacties: se.company.profile, se.company.filings.list, se.company.accounts.get
+  Nog nodig: Register the technical client in the API portal and verify OAuth configuration; Choose HVD operations explicitly so free data does not use the paid product; Preserve digital-filing coverage and distinguish report indexes from financial statement contents
+  Onderbouwing: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/apiforvardefulladatamangder.5513.html
+

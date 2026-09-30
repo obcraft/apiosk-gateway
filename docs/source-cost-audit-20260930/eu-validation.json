@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "counts": {
+    "id": "eu-native-concepts",
+    "source_records": 41,
+    "countries": 27,
+    "zero_cost_sources": 20,
+    "zero_cost_countries": 13,
+    "commercial_sources": 5,
+    "unknown_sources": 16
+  },
+  "checks": [
+    "41 unique national official concepts",
+    "27 EU members represented",
+    "20 free scopes / 5 commercial / 16 unknown",
+    "No existing source or non-EU country",
+    "Commercial aggregator Company.info excluded",
+    "Original report identity preserved"
+  ],
+  "browser_checks": []
+}

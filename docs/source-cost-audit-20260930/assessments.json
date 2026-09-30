@@ -1,0 +1,1214 @@
+{
+  "kvk-dutch-business-register": {
+    "cost_code": "mixed",
+    "free_scope": "Zoeken; HVD basisbedrijfsgegevens; HVD jaarrekeningen",
+    "conditions": "Zoeken: API-key. Op verzoek telt €6,40 per maand niet mee. HVD: alleen beschikbare BV/NV-gegevens, beperkte identificatievelden; CC BY 4.0, 1 aanvraag/minuut/IP. HVD basisgegevens staat uit in de catalogus.",
+    "evidence_urls": [
+      "https://developers.kvk.nl/nl/faq",
+      "https://developers.kvk.nl/nl/documentation/open-dataset-basis-bedrijfsgegevens-api",
+      "https://developers.kvk.nl/nl/documentation/open-dataset-jaarrekeningen-api"
+    ],
+    "access_kind": "API",
+    "excluded_scope": "Basisprofiel, Vestigingsprofiel en Naamgevingen: betaald per aanvraag; HVD is geen volledig bedrijfsdossier."
+  },
+  "companies-house": {
+    "cost_code": "zero",
+    "free_scope": "Bedrijf zoeken; profiel; bestuurders; PSC; deponeringen; charges; insolventie",
+    "conditions": "Gratis public-data-API met eigen key en rate limits. Alleen openbare gegevens; betaalde certificaten en filing-acties vallen buiten deze scope.",
+    "evidence_urls": [
+      "https://developer.company-information.service.gov.uk/get-started/",
+      "https://developer-specs.company-information.service.gov.uk/guides/rateLimiting"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "vies": {
+    "cost_code": "zero",
+    "free_scope": "EU-btw-nummer controleren",
+    "conditions": "Landcode en btw-nummer nodig. Geen algemene bedrijfszoekmachine. Storing of onbeschikbaarheid is niet hetzelfde als ongeldig.",
+    "evidence_urls": [
+      "https://europa.eu/youreurope/business/finance-and-tax/vat/check-vat-number-vies/index_en.htm"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "gleif": {
+    "cost_code": "zero",
+    "free_scope": "LEI zoeken; entiteit; consolidatie-relaties; referentiecodes",
+    "conditions": "Open LEI-data onder CC0. Relaties betreffen accounting consolidation; geen compleet UBO-register.",
+    "evidence_urls": [
+      "https://www.gleif.org/en/lei-data/gleif-api/",
+      "https://www.gleif.org/de/about/open-data/"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "rdw": {
+    "cost_code": "zero",
+    "free_scope": "Open voertuiggegevens op kenteken",
+    "conditions": "Alleen openbare RDW/Socrata-data; geen eigenaar of persoonsgegevens.",
+    "evidence_urls": [
+      "https://opendata.rdw.nl/",
+      "https://www.rdw.nl/zakelijke-partners/verzekeraar/regels-over-gegevens-uit-onze-registers-opvragen"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "cbs-statline": {
+    "cost_code": "zero",
+    "free_scope": "Datasets zoeken; metadata; dimensies; statistische cijfers",
+    "conditions": "Open OData. Bewaar tabelcode, filters, periode, eenheid en bronvermelding; paginateer omvangrijke resultaten.",
+    "evidence_urls": [
+      "https://www.cbs.nl/nl-nl/onze-diensten/open-data",
+      "https://www.cbs.nl/nl-nl/onze-diensten/open-data/statline-als-open-data/snelstartgids-odata-v4"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "eurostat": {
+    "cost_code": "zero",
+    "free_scope": "Datasetmetadata; dimensies; Europese statistiek",
+    "conditions": "Gratis REST/SDMX/JSON-stat. Comext heeft aparte routes. Gepubliceerde revisies kunnen cijfers wijzigen.",
+    "evidence_urls": [
+      "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-introduction"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "pdok": {
+    "cost_code": "zero",
+    "free_scope": "Adressen; gebouwen; kaarten; perceelgeometrie; geografische kenmerken",
+    "conditions": "Gratis publieke services. Licentie verschilt per dataset; geometrie levert geen eigendomsbewijs.",
+    "evidence_urls": [
+      "https://www.pdok.nl/veelgestelde-vragen-over-pdok-services"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "pdok-ruimtelijke-plannen": {
+    "cost_code": "zero",
+    "free_scope": "Kaartlagen van ruimtelijke plannen raadplegen",
+    "conditions": "Publieke PDOK-service; verifieer actualiteit van het plan. Een kaartlaag bewijst geen vergunning of bouwrecht.",
+    "evidence_urls": [
+      "https://www.pdok.nl/veelgestelde-vragen-over-pdok-services"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "koop": {
+    "cost_code": "zero",
+    "free_scope": "Officiële publicaties en regelgeving zoeken via SRU",
+    "conditions": "Open hergebruik. BUS is uitgefaseerd; gebruik de ondersteunde SRU-route en bronmetadata.",
+    "evidence_urls": [
+      "https://www.koopoverheid.nl/actueel/nieuws/2024/07/05/uitfaseren-bus",
+      "https://www.koopoverheid.nl/voor-overheden/gemeenten-provincies-en-waterschappen/drop/meer-weten-over-drop/kennisbank-kwaliteit"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "data-overheid-nl": {
+    "cost_code": "zero",
+    "free_scope": "Datasetcatalogus doorzoeken; metadata ophalen",
+    "conditions": "Gratis catalogusmetadata. Beschikbaarheid en licentie van de gevonden dataset moeten afzonderlijk worden gecontroleerd.",
+    "evidence_urls": [
+      "https://data.overheid.nl/opvragen-van-dataset-informatie-de-api-van-dataoverheidnl"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "rvo": {
+    "cost_code": "zero",
+    "free_scope": "Open subsidieregelingen en financieringsmetadata",
+    "conditions": "CC0-dataset. De huidige Apiosk-route is begrensd tot de eerste 50 records en bewijst geen volledigheid of subsidiegeschiktheid.",
+    "evidence_urls": [
+      "https://data.overheid.nl/en/dataset/subsidies-en-financiering-rvo-nl",
+      "https://www.rvo.nl/open-data-van-rvonl"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "tenderned": {
+    "cost_code": "zero",
+    "free_scope": "Open aankondigingen en aanbestedingsdatasets",
+    "conditions": "Publieke data/XML-services; onderscheid van ingelogde diensten voor aanbestedende organisaties. Publicatie is geen bewezen omzet.",
+    "evidence_urls": [
+      "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+      "https://www.tenderned.nl/info/swagger/"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "ted": {
+    "cost_code": "zero",
+    "free_scope": "Europese aanbestedingsaankondigingen zoeken",
+    "conditions": "Publieke Search API zonder authenticatie; commercieel hergebruik beschreven. Bestaande Apiosk-actie zoekt organisatienotices op identifiers.",
+    "evidence_urls": [
+      "https://docs.ted.europa.eu/api/latest/search.html",
+      "https://docs.ted.europa.eu/ODS/latest/reuse/search-api.html"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "eu-funding-tenders": {
+    "cost_code": "zero",
+    "free_scope": "EU-calls, topics, projecten en organisaties raadplegen",
+    "conditions": "Publieke Funding & Tenders-services. Geen subsidieaanvraag indienen en geen eligibility-besluit.",
+    "evidence_urls": [
+      "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/apis"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "eurlex-cellar": {
+    "cost_code": "zero",
+    "free_scope": "EU-wetgeving en publicatiemetadata zoeken/ophalen",
+    "conditions": "Publieke Cellar REST/SPARQL-data; vermeld versie, datum en bron. Documentrechten waar van toepassing behouden.",
+    "evidence_urls": [
+      "https://op.europa.eu/en/web/cellar/cellar-data",
+      "https://op.europa.eu/en/web/eu-vocabularies/cellar"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "bodemloket": {
+    "cost_code": "access_only",
+    "free_scope": "Publieke bodemkaartlagen via WMS",
+    "conditions": "Publieke WMS-toegang beschreven, maar commerciële hergebruiklicentie en eventuele specifieke voorwaarden niet afdoende bevestigd. Daarom buiten de bevestigde €0-selectie.",
+    "evidence_urls": [
+      "https://www.bodemloket.nl/content/kan-ik-bodemloket-ook-mijn-gis-inladen"
+    ],
+    "access_kind": "API",
+    "excluded_scope": "Geen volledige bodemrapporten; ontbreken van een feature betekent niet dat grond schoon is."
+  },
+  "iban-check": {
+    "cost_code": "zero",
+    "free_scope": "IBAN-formaat; checksum; land/SEPA; beperkte NL-bankcode/BIC-mapping",
+    "conditions": "Bestaande adapter rekent lokaal; geen upstream API of providerfee. Geen bewijs van bestaand rekeningnummer, saldo of rekeninghouder.",
+    "evidence_urls": [
+      "/Users/olivier/Documents/Apiosk/Production/gateway/legacy-executor/src/proxy/iban_check.rs"
+    ],
+    "access_kind": "Lokale berekening",
+    "excluded_scope": ""
+  },
+  "domain-intelligence": {
+    "cost_code": "zero",
+    "free_scope": "DNS/MX opvragen; openbare RDAP-registratiegegevens",
+    "conditions": "Bestaande adapter gebruikt Google Public DNS en register-RDAP zonder betaald abonnement. RDAP: com/net/org/nl/uk/fr/app/dev; registryvoorwaarden en throttling blijven gelden. Geen universele WHOIS- of eigenaarcontrole.",
+    "evidence_urls": [
+      "/Users/olivier/Documents/Apiosk/Production/gateway/legacy-executor/src/proxy/domain_intel.rs"
+    ],
+    "access_kind": "Publieke API",
+    "excluded_scope": ""
+  },
+  "fr-inpi-rne": {
+    "cost_code": "zero",
+    "free_scope": "RNE-profiel; wijzigingen; openbare akten en beschikbare jaarrekeningen",
+    "conditions": "DATA INPI-account en technische toegang/licentie nodig; beschermde en vertrouwelijke gegevens ontbreken.",
+    "evidence_urls": [
+      "https://www.inpi.fr/ressources/formalites-dentreprises/acces-lapi-formalite-rne",
+      "https://data.inpi.fr/content/editorial/Acces_API_Entreprises"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "fr-dinum-recherche": {
+    "cost_code": "zero",
+    "free_scope": "Bedrijf zoeken; publieke identifiers en basisgegevens",
+    "conditions": "Publieke afgeleide index van officiële bronnen. Rate limits en beperkte velden; niet het volledige RNE.",
+    "evidence_urls": [
+      "https://recherche-entreprises.api.gouv.fr/docs/"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "fr-insee-sirene": {
+    "cost_code": "zero",
+    "free_scope": "SIREN/SIRET-profielen; vestigingen; status; historische perioden",
+    "conditions": "Open Sirene API/bulk; volg actuele API-registratie en quotaregels. Niet-diffuseerbare velden respecteren.",
+    "evidence_urls": [
+      "https://www.insee.fr/fr/information/3591226"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "fr-bodacc": {
+    "cost_code": "zero",
+    "free_scope": "Bedrijfsmededelingen; insolventie- en deponeringspublicaties zoeken",
+    "conditions": "Vrij hergebruik met bron, datum en oorspronkelijke publicatiecontext; een publicatie is niet automatisch de actuele status.",
+    "evidence_urls": [
+      "https://www.bodacc.fr/pages/donnees-ouvertes-et-api/"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "be-kbo-bce": {
+    "cost_code": "mixed",
+    "free_scope": "Open Data CSV: actieve entiteiten, vestigingen en dagelijkse wijzigingen",
+    "conditions": "Gratis Open Data-account/SFTP; eigen lokale zoekindex bouwen. Persoonsgegevens niet voor direct marketing hergebruiken.",
+    "evidence_urls": [
+      "https://economie.fgov.be/en/themes/enterprises/crossroads-bank-enterprises/services-everyone/public-data-available-reuse/cbe-open-data",
+      "https://kbopub.economie.fgov.be/kbo-open-data/login%3Blang%3Den"
+    ],
+    "access_kind": "Bulk → eigen index",
+    "excluded_scope": "Public Search webservice en volledige commerciële hergebruikbestanden zijn aparte producten; niet als gratis meegenomen."
+  },
+  "be-nbb-accounts": {
+    "cost_code": "mixed",
+    "free_scope": "Authentic Data Query; Daily Extract; Authentic Archive",
+    "conditions": "Deze authentieke jaarrekeningproducten zijn gratis; registratie, client-ID en toegangsafspraken nodig. Gestructureerde JSON-dekking verschilt per jaar/formaat.",
+    "evidence_urls": [
+      "https://www.nbb.be/en/central-balance-sheet-office/consultation/web-services"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": "Improved Data en Improved Archive blijven betaald."
+  },
+  "no-brreg": {
+    "cost_code": "zero",
+    "free_scope": "Enhetsregisteret: organisaties; subeenheden; zoeken; bulk",
+    "conditions": "Publieke API en downloads onder NLOD. Financiële producten en afgeschermde persoonsgegevens niet automatisch inbegrepen.",
+    "evidence_urls": [
+      "https://data.brreg.no/enhetsregisteret/api/dokumentasjon/en/index.html"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "fi-prh-ytj": {
+    "cost_code": "zero",
+    "free_scope": "Finse bedrijfsbasisgegevens zoeken/ophalen",
+    "conditions": "Gratis openbare PRH/YTJ-interface; rechtsvormen en beschikbare velden volgens productdekking.",
+    "evidence_urls": [
+      "https://www.prh.fi/en/companiesandorganisations/tietopalvelut/prhopendata.html"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "fi-prh-financials": {
+    "cost_code": "zero",
+    "free_scope": "Gestructureerde digitale jaarrekeningen ophalen",
+    "conditions": "Gratis digitale retrievalinterface; alleen ingediende iXBRL-jaarrekeningen, geen volledige historische PDF-collectie.",
+    "evidence_urls": [
+      "https://www.prh.fi/en/companiesandorganisations/financial_statements/digital-financial-reporting/what.html"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "ee-rik-business-register": {
+    "cost_code": "zero",
+    "free_scope": "Open bedrijfsgegevens; bulk; toegelaten XML-webservices",
+    "conditions": "API-only contract is gratis; overeenkomst en credentials nodig. Alleen de overeengekomen openbare diensten en velden.",
+    "evidence_urls": [
+      "https://avaandmed.ariregister.rik.ee/en/open-data-api/introduction-api-services"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "lv-ur": {
+    "cost_code": "zero",
+    "free_scope": "Open registerdatasets en toegelaten registerwebservices",
+    "conditions": "Autoriteit vermeldt geautomatiseerde gegevensuitwisseling als gratis. Servicekeuze, registratie en veldrechten nog in adapter vastleggen.",
+    "evidence_urls": [
+      "https://www.ur.gov.lv/en/services/request-automated-dissemination-data-between-different-information-systems-latvia-and-europe",
+      "https://www.ur.gov.lv/en/registry-api-web-services-service-list"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": ""
+  },
+  "se-bolagsverket-hvd": {
+    "cost_code": "zero",
+    "free_scope": "HVD-bedrijfsgegevens; beschikbare digitale jaarrekeningen; classificaties",
+    "conditions": "Gratis HVD-product; aanmelden met contactgegevens. HVD staat los van de betaalde reguliere company-information API en beperkte UBO-toegang.",
+    "evidence_urls": [
+      "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/apiforvardefulladatamangder.5513.html"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "ie-cro": {
+    "cost_code": "mixed",
+    "free_scope": "Nieuwe CRO Open Data: bedrijfsgegevens en gepubliceerde financiële gegevens",
+    "conditions": "Open-data-portaal met API/bulk en CC BY 4.0. Exacte datasetdekking en actualiteit in adapter vastleggen.",
+    "evidence_urls": [
+      "https://cro.ie/the-companies-registration-office-cro-announces-the-launch-of-new-open-data-portal/",
+      "https://opendata.cro.ie/"
+    ],
+    "access_kind": "API + bulk",
+    "excluded_scope": "Legacy documentproducten, certificaten en andere betaalde CRO-diensten niet inbegrepen."
+  },
+  "pl-krs": {
+    "cost_code": "zero",
+    "free_scope": "Huidig en volledig KRS-uittreksel ophalen",
+    "conditions": "Open API; KRS-nummer nodig. Persoonsvelden zijn gefilterd; CEIDG-eenmanszaken zijn een ander register.",
+    "evidence_urls": [
+      "https://www.gov.pl/web/sprawiedliwosc/uruchomienie-otwartego-api-krajowego-rejestru-sadowego"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "pl-ceidg": {
+    "cost_code": "zero",
+    "free_scope": "Eenmanszaken zoeken; openbare bedrijfsprofielen",
+    "conditions": "Gratis CEIDG-dataplatform, registratie/token en gebruiksvoorwaarden toepassen. Geen volledige KRS-dekking.",
+    "evidence_urls": [
+      "https://www.gov.pl/web/ia/portale-interoperacyjnosci",
+      "https://www.gov.pl/web/rozwoj-technologia/e-uslugi-dla-biznesu"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "pl-regon": {
+    "cost_code": "zero",
+    "free_scope": "Entiteit op REGON/NIP/KRS zoeken; openbare registerrapporten",
+    "conditions": "BIR is ook voor commerciële partijen gratis. Productiesleutel aanvragen bij GUS; SOAP-adapter en tijdsgebonden limieten.",
+    "evidence_urls": [
+      "https://api.stat.gov.pl/Home/RegonApi?lang=pl"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "cz-ares": {
+    "cost_code": "zero",
+    "free_scope": "ARES zoeken; economische entiteit op IČO ophalen",
+    "conditions": "Publieke REST-interface; afgeleide officiële aggregatie, geen complete rechtbankdocumentenservice.",
+    "evidence_urls": [
+      "https://data.mf.gov.cz/api/ares.html",
+      "https://mf.gov.cz/cs/ministerstvo/informacni-systemy/ares"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "sk-ruz": {
+    "cost_code": "zero",
+    "free_scope": "Rapporterende entiteiten; jaarrekeningen; staten; wijzigingen; codelijsten",
+    "conditions": "Open API onder CC0. Alleen openbaar gepubliceerde documenten; RÚZ-ID en IČO apart bewaren.",
+    "evidence_urls": [
+      "https://www.registeruz.sk/cruz-public/home/api"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "hr-sudreg": {
+    "cost_code": "zero",
+    "free_scope": "Open rechtbankregister: entiteiten; identifiers; status; adres; rechtsvorm",
+    "conditions": "Gratis REST API met registratie en client-credentials. Werkdagupdates; openbare subset volgens OpenAPI.",
+    "evidence_urls": [
+      "https://sudreg-data.gov.hr/ords/r/srn_rep/vanjski-srn-rep/home",
+      "https://sudreg-data.gov.hr/api/javni/dokumentacija/open_api"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "gr-gemi": {
+    "cost_code": "zero",
+    "free_scope": "GEMI open bedrijfsgegevens zoeken/ophalen",
+    "conditions": "Open API onder ODC-BY 1.0. Registratie/key, bronvermelding en quota; alleen openbaar product.",
+    "evidence_urls": [
+      "https://opendata.businessportal.gr/",
+      "https://opendata.businessportal.gr/license/"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "nl-cir": {
+    "cost_code": "zero",
+    "free_scope": "Open insolventiepublicaties en wijzigingen via CIR-webservice",
+    "conditions": "Abonnement én gebruik gratis. Organisatie aanmelden en overeenkomst sluiten; gebruiksvoorwaarden, bewaartermijnen en seriële verzoeken toepassen.",
+    "evidence_urls": [
+      "https://www.rechtspraak.nl/registers/webservice-centraal-insolventieregister",
+      "https://www.rechtspraak.nl/registers/voorwaarden-voor-gebruik-cir"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "ch-zefix": {
+    "cost_code": "mixed",
+    "free_scope": "Zefix Linked Data/LINDAS: actuele kerngegevens van actieve entiteiten",
+    "conditions": "Publieke SPARQL-dataset met open-use voorwaarden; naam, zetel, adres en rechtsvorm. REST-accountvoorwaarden apart bevestigen.",
+    "evidence_urls": [
+      "https://opendata.swiss/de/dataset/zefix-zentraler-firmenindex",
+      "https://ckan.opendata.swiss/api/3/action/package_show?id=zefix-zentraler-firmenindex"
+    ],
+    "access_kind": "Linked data / SPARQL",
+    "excluded_scope": "Geen gratisgarantie voor alle Zefix REST-, Regix-, historische of gecertificeerde producten."
+  },
+  "gleif-registration-authorities": {
+    "cost_code": "reference",
+    "free_scope": "Registration Authorities-codebestand",
+    "conditions": "Gratis openbare referentielijst voor registeridentificatie; geen afzonderlijke bedrijfszoek-API.",
+    "evidence_urls": [
+      "https://www.gleif.org/en/about-lei/code-lists/gleif-registration-authorities-list"
+    ],
+    "access_kind": "Referentiedataset",
+    "excluded_scope": ""
+  },
+  "ebra-directory": {
+    "cost_code": "reference",
+    "free_scope": "Directory van nationale registers",
+    "conditions": "Vrij raadpleegbare directory; geen bewijs van gratis API-toegang of hergebruik van de onderliggende registers.",
+    "evidence_urls": [
+      "https://ebra.be/worldwide-registers/"
+    ],
+    "access_kind": "Directory",
+    "excluded_scope": ""
+  },
+  "openownership-datasets": {
+    "cost_code": "mixed",
+    "free_scope": "Geselecteerde BODS-downloads, waaronder UK-publicatie onder CC0",
+    "conditions": "Licentie en peildatum per dataset. Het oude Open Ownership Register sloot in november 2024; downloads zijn geen live wereldwijde ownership-API.",
+    "evidence_urls": [
+      "https://www.openownership.org/en/topics/open-ownership-register/",
+      "https://bods-data.openownership.org/source/uk_version_0_4/"
+    ],
+    "access_kind": "Bulk → eigen index",
+    "excluded_scope": "Geen blanketlicentie voor alle datasets en geen universeel actueel UBO-register."
+  },
+  "icij-offshore-leaks": {
+    "cost_code": "zero",
+    "free_scope": "Offshore Leaks CSV/graaf; entiteiten en relaties; publieke API/reconciliation als kandidaat",
+    "conditions": "Gratis dataset: ODbL; inhoud CC BY-SA. ICIJ-attributie en share-alikeverplichtingen behouden. Historische onderzoeksdata, geen bewijs van actuele eigendom of misstanden.",
+    "evidence_urls": [
+      "https://offshoreleaks.icij.org/pages/database",
+      "https://offshoreleaks.icij.org/docs/reconciliation"
+    ],
+    "access_kind": "Bulk / onderzoeksdata",
+    "excluded_scope": ""
+  },
+  "us-sec-edgar": {
+    "cost_code": "zero",
+    "free_scope": "Submissions; filings; XBRL companyfacts/concepts/frames",
+    "conditions": "Gratis data-API zonder key; identificerende User-Agent en SEC fair-accesslimiet. Alleen SEC-filers; VS-aanvulling buiten de 42 Europese landen.",
+    "evidence_urls": [
+      "https://www.sec.gov/search-filings/edgar-application-programming-interfaces"
+    ],
+    "access_kind": "API",
+    "excluded_scope": ""
+  },
+  "opensanctions": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commercieel gebruik binnen Apiosk vereist API-/datalicentie. Gratis download of proefkey maakt het commerciële gebruik niet gratis.",
+    "evidence_urls": [
+      "https://www.opensanctions.org/docs/commercial/exemption/",
+      "https://www.opensanctions.org/docs/api/"
+    ],
+    "access_kind": "API",
+    "excluded_scope": "Trial en gratis niet-commerciële toegang niet meetellen."
+  },
+  "agentbodega": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalbare x402-utilities; discovery is geen gratis uitvoering.",
+    "evidence_urls": [
+      "https://agentbodega.store/openapi.json"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "ask-merlin": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële UK-VAT-route; HMRC-herkomst maakt deze providerroute niet gratis.",
+    "evidence_urls": [
+      "https://askmerlin.com/api"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "bloomberg": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Catalogus gebruikt een RapidAPI-route; geen directe gratis Bloomberg-licentie.",
+    "evidence_urls": [
+      "https://rapidapi.com/search/bloomberg"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "browserbase": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Cloudbrowser-sessies verbruiken betaalde resources; gratis status/close is geen gratis sessie.",
+    "evidence_urls": [
+      "https://x402.browserbase.com/"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "cityfalcon-financial-api": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële financiële nieuws-API; plan en distributierechten vereist.",
+    "evidence_urls": [
+      "https://www.cityfalcon.ai/blog/the-startup-journey/building-financial-intelligence-a-developers-guide-to-our-news-sentiment-and-sector-data-apis/"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "crowdpull": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële/x402-route voor verzameling en verrijking.",
+    "evidence_urls": [
+      "https://crowdpull.click/openapi.json"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "eodhd": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële marktdata; beperkte free tier is geen algemene commerciële distributielicentie.",
+    "evidence_urls": [
+      "https://eodhd.com/financial-apis/"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "exa": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde zoek-/extractiediensten; proefcredits niet meetellen.",
+    "evidence_urls": [
+      "https://exa.ai/docs/reference/x402-guide"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "linkup": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde zoek-/research-diensten; proefcredits niet meetellen.",
+    "evidence_urls": [
+      "https://docs.linkup.so/pages/documentation/api-reference/endpoint/post-search"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "overheid-io": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële tussenpartij voor o.a. KVK/BAG/RDW; open oorspronkelijke data maakt deze route niet gratis.",
+    "evidence_urls": [
+      "https://overheid.io/documentatie/"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "pixelforge-x402-data-services": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Bestaande x402-utilities hebben providerprijzen. Een lokale vervanging zou een nieuwe implementatie zijn.",
+    "evidence_urls": [
+      "https://fixed-improved-liver-besides.trycloudflare.com/docs"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "pulsenetwork": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "76 service-listings met verschillende x402-prijzen; beoordeel iedere gekozen route.",
+    "evidence_urls": [
+      "https://airdroppulse.theaslangroupllc.com/llms.txt",
+      "https://alphapulse.theaslangroupllc.com/llms.txt",
+      "https://arbipulse.theaslangroupllc.com/llms.txt",
+      "https://autopulse.theaslangroupllc.com/llms.txt",
+      "https://biopulse.theaslangroupllc.com/llms.txt",
+      "https://buildpulse.theaslangroupllc.com/llms.txt",
+      "https://careerpulse.theaslangroupllc.com/llms.txt",
+      "https://chronicapulse.theaslangroupllc.com/llms.txt",
+      "https://citepulse.theaslangroupllc.com/llms.txt",
+      "https://clearcarepulse.theaslangroupllc.com/llms.txt",
+      "https://climatepulse.theaslangroupllc.com/llms.txt",
+      "https://clinicalintelpulse.theaslangroupllc.com/llms.txt",
+      "https://collectablespulse.theaslangroupllc.com/llms.txt",
+      "https://compliancepulse.theaslangroupllc.com/llms.txt",
+      "https://cryptopulse.theaslangroupllc.com/llms.txt",
+      "https://cyberpulse.theaslangroupllc.com/llms.txt",
+      "https://dealpulse.theaslangroupllc.com/llms.txt",
+      "https://debtpulse.theaslangroupllc.com/llms.txt",
+      "https://econsignalpulse.theaslangroupllc.com/llms.txt",
+      "https://edupulse.theaslangroupllc.com/llms.txt",
+      "https://esgpulse.theaslangroupllc.com/llms.txt",
+      "https://fanpulse.theaslangroupllc.com/llms.txt",
+      "https://fieldpulse.theaslangroupllc.com/llms.txt",
+      "https://filingspulse.theaslangroupllc.com/llms.txt",
+      "https://findpulse.theaslangroupllc.com/llms.txt",
+      "https://fitpulse.theaslangroupllc.com/llms.txt",
+      "https://footballpulse.theaslangroupllc.com/llms.txt",
+      "https://franchisepulse.theaslangroupllc.com/llms.txt",
+      "https://gamepulse.theaslangroupllc.com/llms.txt",
+      "https://geopoliticalpulse.theaslangroupllc.com/llms.txt",
+      "https://glowpulse.theaslangroupllc.com/llms.txt",
+      "https://govspendpulse.theaslangroupllc.com/llms.txt",
+      "https://grantpulse.theaslangroupllc.com/llms.txt",
+      "https://gridpulse.theaslangroupllc.com/llms.txt",
+      "https://harvestpulse.theaslangroupllc.com/llms.txt",
+      "https://herbapulse.theaslangroupllc.com/llms.txt",
+      "https://homepulse.theaslangroupllc.com/llms.txt",
+      "https://immigrationpulse.theaslangroupllc.com/llms.txt",
+      "https://insurepulse.theaslangroupllc.com/llms.txt",
+      "https://legalpulse.theaslangroupllc.com/llms.txt",
+      "https://longevitypulse.theaslangroupllc.com/llms.txt",
+      "https://macropulse.theaslangroupllc.com/llms.txt",
+      "https://mailpulse.theaslangroupllc.com/llms.txt",
+      "https://marketpulse.theaslangroupllc.com/llms.txt",
+      "https://mealpulse.theaslangroupllc.com/llms.txt",
+      "https://mindpulse.theaslangroupllc.com/llms.txt",
+      "https://nutripulse.theaslangroupllc.com/llms.txt",
+      "https://onchainpulse.theaslangroupllc.com/llms.txt",
+      "https://parentpulse.theaslangroupllc.com/llms.txt",
+      "https://patentpulse.theaslangroupllc.com/llms.txt",
+      "https://petpulse.theaslangroupllc.com/llms.txt",
+      "https://policypulse.theaslangroupllc.com/llms.txt",
+      "https://proppulse.theaslangroupllc.com/llms.txt",
+      "https://prospectpulse.theaslangroupllc.com/llms.txt",
+      "https://racingpulse.theaslangroupllc.com/llms.txt",
+      "https://remittancepulse.theaslangroupllc.com/llms.txt",
+      "https://riskpulse.theaslangroupllc.com/llms.txt",
+      "https://safepulse.theaslangroupllc.com/llms.txt",
+      "https://scentpulse.theaslangroupllc.com/llms.txt",
+      "https://scholarpulse.theaslangroupllc.com/llms.txt",
+      "https://seniorpulse.theaslangroupllc.com/llms.txt",
+      "https://shopperpulse.theaslangroupllc.com/llms.txt",
+      "https://signalpulse.theaslangroupllc.com/llms.txt",
+      "https://stablecoinpulse.theaslangroupllc.com/llms.txt",
+      "https://stateedge.theaslangroupllc.com/llms.txt",
+      "https://tablepulse.theaslangroupllc.com/llms.txt",
+      "https://talentpulse.theaslangroupllc.com/llms.txt",
+      "https://taxpulse.theaslangroupllc.com/llms.txt",
+      "https://tradepulse.theaslangroupllc.com/llms.txt",
+      "https://transitpulse.theaslangroupllc.com/llms.txt",
+      "https://travelpulse.theaslangroupllc.com/llms.txt",
+      "https://truthpulse.theaslangroupllc.com/llms.txt",
+      "https://venturepulse.theaslangroupllc.com/llms.txt",
+      "https://api.vetpulse.theaslangroupllc.com/llms.txt",
+      "https://waterpulse.theaslangroupllc.com/llms.txt",
+      "https://wealthpulse.theaslangroupllc.com/llms.txt"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "reuters": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Catalogus gebruikt een RapidAPI-route; geen directe gratis Reuters-feed.",
+    "evidence_urls": [
+      "https://rapidapi.com/mahmudulhasandev/api/reuters-api"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "sirenic": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde verrijkingsacties; prijs en dekking per actie.",
+    "evidence_urls": [
+      "https://api.sirenic.eu/openapi.json"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "stableenrich": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde verrijkingsacties; prijs en dekking per actie.",
+    "evidence_urls": [
+      "https://stableenrich.dev/openapi.json"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "tavily": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde productiecapaciteit; gratis credits zijn begrensd en geen blijvende nulgarantie.",
+    "evidence_urls": [
+      "https://docs.tavily.com/documentation/api-reference/endpoint/search"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "webbersites": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde uitvoering; eventueel gratis board/discovery is geen gratis uitvoeringsdienst.",
+    "evidence_urls": [
+      "https://x402.webbersites.com/docs/"
+    ],
+    "access_kind": "API / x402",
+    "excluded_scope": ""
+  },
+  "de-handelsregister": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Kosteloze portaalinzage is geen bevestigde vrij herbruikbare machine-API. Automatiseer niet op basis van een gevonden intern endpoint.",
+    "evidence_urls": [
+      "https://www.handelsregister.de/rp_web/information/welcome.xhtml",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "dk-cvr": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Systeem-toegang via CVR/Elasticsearch bestaat; exact gratis commercieel toegangscontract niet bevestigd. UBO heeft aparte toegangsregels.",
+    "evidence_urls": [
+      "https://erhvervsstyrelsen.dk/det-centrale-virksomhedsregister-cvr",
+      "https://erhvervsstyrelsen.dk/kom-godt-igang-med-elasticSearch",
+      "https://datacvr.virk.dk/artikel/system-til-system-adgang-til-cvr-data",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "registered_api",
+    "excluded_scope": ""
+  },
+  "lt-registru-centras": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Open JAR-datasets bestaan, maar exact geselecteerde bedrijfsdataset, API-licentie en commerciële productkosten nog afbakenen.",
+    "evidence_urls": [
+      "https://www.registrucentras.lt/",
+      "https://data.gov.lt/datasets/"
+    ],
+    "access_kind": "open_data_and_contract_assessment",
+    "excluded_scope": ""
+  },
+  "it-infocamere": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële overeenkomst en producttarieven.",
+    "evidence_urls": [
+      "https://accessoallebanchedati.registroimprese.it/abdo/api"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "es-registro-mercantil": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Uittreksels/informatieproducten hebben tarieven; machinecontract apart nodig.",
+    "evidence_urls": [
+      "https://www.registradores.org/",
+      "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-24833"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "pt-irn": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Certificaten en databaseprotocol hebben product-/contractkosten.",
+    "evidence_urls": [
+      "https://irn.justica.gov.pt/online",
+      "https://justica.gov.pt/en-gb/Registos/Comercial/Documentos"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "at-firmenbuch": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Registerquerykosten en mogelijke toeslag van erkende distributeur.",
+    "evidence_urls": [
+      "https://www.justiz.gv.at/service/datenbanken/firmenbuch/firmenbuchabfrage.2c9484852308c2a601240b693e1c0860.de.html",
+      "https://www.justiz.gv.at/service/datenbanken/verrechnungsstellen.795.de.html"
+    ],
+    "access_kind": "licensed_distribution",
+    "excluded_scope": ""
+  },
+  "cz-commercial-register": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Rechtbankportal staat los van gratis ARES; directe machinecontracten/documenttoegang nog niet bevestigd.",
+    "evidence_urls": [
+      "https://or.justice.cz/ias/ui/rejstrik",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "sk-commercial-register": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "ORSR-portal staat los van RÚZ en RPO; machinecontract niet bevestigd.",
+    "evidence_urls": [
+      "https://www.orsr.sk/",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "si-ajpes": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Gratis ePRS-portaal is geen gratis machinecontract. Gebruik actuele REST-productvoorwaarden; oude SOAP is vervallen.",
+    "evidence_urls": [
+      "https://www.ajpes.si/za_razvijalce_programske_opreme",
+      "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Opis_servisa_za_razvijalce.pdf",
+      "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Documentation_for_DevOps.pdf"
+    ],
+    "access_kind": "registered_api",
+    "excluded_scope": ""
+  },
+  "hu-company-register": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://occsz.e-cegjegyzek.hu/info/page/ceginfo",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "ro-onrc": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "ONRC publiceert open CSV-snapshots; actuele snapshot van 2 september 2026 gevonden. Datasetlicentie nog exact vastleggen; geen gratis live-API geclaimd.",
+    "evidence_urls": [
+      "https://data.gov.ro/organization/onrc",
+      "https://www.onrc.ro/index.php/en",
+      "https://myportal.onrc.ro/"
+    ],
+    "access_kind": "open_data_and_contract_assessment",
+    "excluded_scope": ""
+  },
+  "bg-registry-agency": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://portal.registryagency.bg/",
+      "https://www.registryagency.bg/bg/registri/targovski-registar/predostavyane-na-dostap-do-bazata-danni-na-targovskiya-registar/"
+    ],
+    "access_kind": "open_data_and_contract_assessment",
+    "excluded_scope": ""
+  },
+  "cy-registrar": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://www.companies.gov.cy/",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "lu-lbr-rcs": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://www.lbr.lu/",
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "mt-mbr": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "API-pakketten en HVD-eligibility/tarieven niet voldoende bevestigd.",
+    "evidence_urls": [
+      "https://mbr.mt/wp-content/uploads/2026/03/API-Onboarding.pdf",
+      "https://www.mbr.mt/post/mbr-s-launch-of-the-api-packages-for-subject-persons",
+      "https://gateway.baros.mbr.mt/"
+    ],
+    "access_kind": "eligibility_gated_api",
+    "excluded_scope": ""
+  },
+  "is-skatturinn": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Actueel API-product en tarief verifiëren; oude v2 niet als actuele v2.1 activeren.",
+    "evidence_urls": [
+      "https://api.skatturinn.is/apis",
+      "https://api.skatturinn.is/product"
+    ],
+    "access_kind": "registered_api",
+    "excluded_scope": ""
+  },
+  "li-handelsregister": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Gedeeltelijk portaaluittreksel gratis; volledig gecertificeerd uittreksel betaald. Gratis API niet bevestigd.",
+    "evidence_urls": [
+      "https://handelsregister.li/cr-portal/suche/suche.xhtml"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "rs-apr": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://www.apr.gov.rs/searches.4090.html",
+      "https://www.apr.gov.rs/home.4742.html"
+    ],
+    "access_kind": "contracted_webservice",
+    "excluded_scope": ""
+  },
+  "al-qkb": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://qkb.gov.al/en/business-register/"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "me-crps": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://www.crps.me/",
+      "https://ebra.be/worldwide-registers/"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "mk-central-registry": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Betaalde/prepaid informatieproducten; machinetarief nog vastleggen.",
+    "evidence_urls": [
+      "https://www.crm.com.mk/en/services/obtain-information-or-confirmation-/information-and-certificate-packages/access-to-data-via-the-online-distribution-system"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "ba-business-registers": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://bizreg.pravosudje.ba/",
+      "https://ebra.be/worldwide-registers/"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "md-asp": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://asp.gov.md/ru/servicii/persoane-juridice/informatii-afaceri",
+      "https://dataset.gov.md/"
+    ],
+    "access_kind": "open_data_and_contract_assessment",
+    "excluded_scope": ""
+  },
+  "ge-napr": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://www.napr.gov.ge/en/page/frequently-asked-questions/business-registration-faq",
+      "https://www.napr.gov.ge/en/statistic"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "tr-mersis": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://mersis.ticaret.gov.tr/",
+      "https://www.turkiye.gov.tr/ticaret-bakanligi-mersis-giris"
+    ],
+    "access_kind": "restricted_access_assessment",
+    "excluded_scope": ""
+  },
+  "ua-edr": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://usr.minjust.gov.ua/",
+      "https://ebra.be/worldwide-registers/"
+    ],
+    "access_kind": "restricted_access_assessment",
+    "excluded_scope": ""
+  },
+  "az-state-tax-register": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.",
+    "evidence_urls": [
+      "https://taxes.gov.az/en/page/qeydiyyat"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "de-unternehmensregister": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Open inzage en documentkosten verschillen; publieke machine-toegang/contract niet bevestigd.",
+    "evidence_urls": [
+      "https://www.unternehmensregister.de/"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "de-bundesanzeiger": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Publicatieportal; machinegebruik en productkosten niet bevestigd.",
+    "evidence_urls": [
+      "https://www.bundesanzeiger.de/"
+    ],
+    "access_kind": "contract_access_assessment",
+    "excluded_scope": ""
+  },
+  "de-insolvency-notices": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Zoekportal voor insolventie; hergebruik, bewaartermijnen en toegestane machine-interface vastleggen.",
+    "evidence_urls": [
+      "https://neu.insolvenzbekanntmachungen.de/"
+    ],
+    "access_kind": "portal_integration_unverified",
+    "excluded_scope": ""
+  },
+  "se-bolagsverket-information": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Reguliere company-information API heeft een betaald contract; gebruik apart HVD-product voor €0.",
+    "evidence_urls": [
+      "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/apiforatthamtaforetagsinformation.3988.html"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "sk-rpo": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Publieke RPO-gegevens bestaan; na overdracht in juni 2026 actuele productiehost en toegangsvoorwaarden bevestigen. Testhost niet als productie activeren.",
+    "evidence_urls": [
+      "https://www.susr.sk/ExportPdf2/PdfExportSrvlt?Document=ac07a838-4ff2-4f67-86ac-a1ed11fa18e0"
+    ],
+    "access_kind": "public_api_assessment",
+    "excluded_scope": ""
+  },
+  "bris": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Vrije basisinzage via EU-portaal; nationale documenten kunnen betaald zijn. Geen algemeen publiek machinecontract bevestigd.",
+    "evidence_urls": [
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en"
+    ],
+    "access_kind": "portal_interconnection",
+    "excluded_scope": ""
+  },
+  "opencorporates": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commercieel API-/hergebruikplan vereist; open-projecttoegang niet automatisch beschikbaar voor Apiosk.",
+    "evidence_urls": [
+      "https://api.opencorporates.com/documentation/API-Reference"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "orbis": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commercieel abonnement.",
+    "evidence_urls": [
+      "https://www.moodys.com/web/en/us/site-assets/ma-kyc-orbis-product-brochure.pdf"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "dnb-directplus": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële datablocks en contract.",
+    "evidence_urls": [
+      "https://directplus.documentation.dnb.com/",
+      "https://docs.dnb.com/partner/en-US/plus/token/1.0/authentication"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "creditsafe-connect": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële rapport-/API-eenheden.",
+    "evidence_urls": [
+      "https://doc.creditsafe.com/connect-apis-catalog/product-catalog/connect-api-full/connectapi"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "company-info": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commercieel abonnement.",
+    "evidence_urls": [
+      "https://companyinfo.nl/apis/",
+      "https://companyinfo.nl/veelgestelde-vragen/waar-vind-ik-de-technische-informatie-over-company-info-apis/"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "graydoncreditsafe-legacy": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Bestaande klant-/legacy-overeenkomst nodig.",
+    "evidence_urls": [
+      "https://cs-apix.apps.creditsafe.com/documentation/"
+    ],
+    "access_kind": "legacy_commercial_api",
+    "excluded_scope": ""
+  },
+  "sayari": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commercieel API-plan.",
+    "evidence_urls": [
+      "https://documentation.sayari.com/api/key-concepts/introduction",
+      "https://documentation.sayari.com/home/faq"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "north-data": {
+    "cost_code": "commercial",
+    "free_scope": "",
+    "conditions": "Commerciële API-/exportproducten.",
+    "evidence_urls": [
+      "https://help.northdata.com/en/center/where-can-i-find-documentation-for-the-api",
+      "https://github.com/northdata/api/blob/master/doc/data-api-userguide/data-api-userguide.md"
+    ],
+    "access_kind": "licensed_api",
+    "excluded_scope": ""
+  },
+  "boris": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Toegang tot UBO-gegevens is afhankelijk van land en bevoegdheid; niet als openbare gratis API behandelen.",
+    "evidence_urls": [
+      "https://e-justice.europa.eu/topics/registers-business-insolvency-land/beneficial-ownership-registers-interconnection-system-boris_en",
+      "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32021R0369"
+    ],
+    "access_kind": "eligibility_gated_interconnection",
+    "excluded_scope": ""
+  },
+  "occrp-aleph": {
+    "cost_code": "unknown",
+    "free_scope": "",
+    "conditions": "Software is open source; toegang en hergebruik van collecties verschillen. Geen gratis commerciële bulklicentie bevestigd.",
+    "evidence_urls": [
+      "https://docs.aleph.occrp.org/"
+    ],
+    "access_kind": "permissioned_research_api",
+    "excluded_scope": ""
+  }
+}

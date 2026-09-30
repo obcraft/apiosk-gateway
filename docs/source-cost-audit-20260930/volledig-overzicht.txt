@@ -1,0 +1,1084 @@
+APIOSK BRONNEN- EN KOSTENOVERZICHT — 30 september 2026
+
+Zero upstream marginal source fee for the explicitly listed scope, including commercial-use conditions; excludes hosting, storage, indexing, compute/AI, maintenance, VAT and Apiosk customer prices.
+42 countries contain 57 national product records. 76 research records overlap 5 existing sources, giving 37 + 71 = 108 distinct source/product records. References and datasets are not all executable APIs.
+KVK: €6,40 maandfee telt op uitdrukkelijk verzoek als €0 in deze vergelijking.
+
+{
+  "source_records": 108,
+  "existing_sources": 37,
+  "candidate_source_records": 71,
+  "researched_countries": 42,
+  "national_source_records": 57,
+  "service_listings": 112,
+  "endpoints": 1524,
+  "enabled_endpoints": 1476,
+  "endpoints_with_active_contract": 459,
+  "active_contract_records": 546,
+  "sources_with_zero_cost_scope": 43,
+  "existing_sources_with_zero_cost_scope": 18,
+  "candidate_sources_with_zero_cost_scope": 25,
+  "countries_with_zero_cost_national_source": 16,
+  "registered_zero_cost_endpoints": 117,
+  "enabled_zero_cost_endpoints": 115,
+  "enabled_contracted_zero_cost_endpoints": 75,
+  "zero_price_supporting_catalog_endpoints": 15,
+  "cost_classes": {
+    "commercial": 32,
+    "access_only": 1,
+    "zero": 37,
+    "mixed": 6,
+    "unknown": 30,
+    "reference": 2
+  }
+}
+
+ALLE 108 BRON-/PRODUCTRECORDS
+
+AgentBodega [agentbodega] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalbare x402-utilities; discovery is geen gratis uitvoering.
+  Catalogus: 71 endpoints, 71 aan, 0 met actief contract.
+  Conceptacties: 
+  Bronnen: https://agentbodega.store/openapi.json
+
+Ask Merlin UK VAT [ask-merlin] — GB — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële UK-VAT-route; HMRC-herkomst maakt deze providerroute niet gratis.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://askmerlin.com/api
+
+Bloomberg News [bloomberg] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Catalogus gebruikt een RapidAPI-route; geen directe gratis Bloomberg-licentie.
+  Catalogus: 6 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://rapidapi.com/search/bloomberg
+
+Bodemloket [bodemloket] — NL — Open Data
+  Bestaande catalogus | Publieke toegang; rechten open | API
+  Gratis: Publieke bodemkaartlagen via WMS
+  Voorwaarden: Publieke WMS-toegang beschreven, maar commerciële hergebruiklicentie en eventuele specifieke voorwaarden niet afdoende bevestigd. Daarom buiten de bevestigde €0-selectie.
+  Buiten gratis scope: Geen volledige bodemrapporten; ontbreken van een feature betekent niet dat grond schoon is.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.bodemloket.nl/content/kan-ik-bodemloket-ook-mijn-gis-inladen
+
+Browserbase [browserbase] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Cloudbrowser-sessies verbruiken betaalde resources; gratis status/close is geen gratis sessie.
+  Catalogus: 6 endpoints, 6 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://x402.browserbase.com/
+
+CBS Statistics [cbs-statline] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Datasets zoeken; metadata; dimensies; statistische cijfers
+  Voorwaarden: Open OData. Bewaar tabelcode, filters, periode, eenheid en bronvermelding; paginateer omvangrijke resultaten.
+  Catalogus: 23 endpoints, 23 aan, 17 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.cbs.nl/nl-nl/onze-diensten/open-data | https://www.cbs.nl/nl-nl/onze-diensten/open-data/statline-als-open-data/snelstartgids-odata-v4
+
+CityFALCON Financial API [cityfalcon-financial-api] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële financiële nieuws-API; plan en distributierechten vereist.
+  Catalogus: 4 endpoints, 4 aan, 4 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.cityfalcon.ai/blog/the-startup-journey/building-financial-intelligence-a-developers-guide-to-our-news-sentiment-and-sector-data-apis/
+
+Companies House [companies-house] — GB — Countries & Registries
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Bedrijf zoeken; profiel; bestuurders; PSC; deponeringen; charges; insolventie
+  Voorwaarden: Gratis public-data-API met eigen key en rate limits. Alleen openbare gegevens; betaalde certificaten en filing-acties vallen buiten deze scope.
+  Catalogus: 15 endpoints, 15 aan, 11 met actief contract.
+  Conceptacties: gb.company.search, gb.company.profile, gb.company.officers.list, gb.company.psc.list, gb.company.filings.list, gb.company.charges.list, gb.company.insolvency.get
+  Bronnen: https://developer.company-information.service.gov.uk/get-started/ | https://developer-specs.company-information.service.gov.uk/guides/rateLimiting
+
+CrowdPull [crowdpull] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële/x402-route voor verzameling en verrijking.
+  Catalogus: 28 endpoints, 28 aan, 0 met actief contract.
+  Conceptacties: 
+  Bronnen: https://crowdpull.click/openapi.json
+
+Dutch Open Data Register [data-overheid-nl] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Datasetcatalogus doorzoeken; metadata ophalen
+  Voorwaarden: Gratis catalogusmetadata. Beschikbaarheid en licentie van de gevonden dataset moeten afzonderlijk worden gecontroleerd.
+  Catalogus: 3 endpoints, 3 aan, 3 met actief contract.
+  Conceptacties: 
+  Bronnen: https://data.overheid.nl/opvragen-van-dataset-informatie-de-api-van-dataoverheidnl
+
+Domain Intelligence (RDAP & DNS) [domain-intelligence] — Internationaal — Search & Tools
+  Bestaande catalogus | €0 — genoemde scope | Publieke API
+  Gratis: DNS/MX opvragen; openbare RDAP-registratiegegevens
+  Voorwaarden: Bestaande adapter gebruikt Google Public DNS en register-RDAP zonder betaald abonnement. RDAP: com/net/org/nl/uk/fr/app/dev; registryvoorwaarden en throttling blijven gelden. Geen universele WHOIS- of eigenaarcontrole.
+  Catalogus: 2 endpoints, 2 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: /Users/olivier/Documents/Apiosk/Production/gateway/legacy-executor/src/proxy/domain_intel.rs
+
+EODHD Market Data [eodhd] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële marktdata; beperkte free tier is geen algemene commerciële distributielicentie.
+  Catalogus: 60 endpoints, 60 aan, 0 met actief contract.
+  Conceptacties: 
+  Bronnen: https://eodhd.com/financial-apis/
+
+EU Funding & Tenders [eu-funding-tenders] — EU — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: EU-calls, topics, projecten en organisaties raadplegen
+  Voorwaarden: Publieke Funding & Tenders-services. Geen subsidieaanvraag indienen en geen eligibility-besluit.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/apis
+
+EUR-Lex Cellar [eurlex-cellar] — EU — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: EU-wetgeving en publicatiemetadata zoeken/ophalen
+  Voorwaarden: Publieke Cellar REST/SPARQL-data; vermeld versie, datum en bron. Documentrechten waar van toepassing behouden.
+  Catalogus: 2 endpoints, 2 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://op.europa.eu/en/web/cellar/cellar-data | https://op.europa.eu/en/web/eu-vocabularies/cellar
+
+Eurostat [eurostat] — EU — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Datasetmetadata; dimensies; Europese statistiek
+  Voorwaarden: Gratis REST/SDMX/JSON-stat. Comext heeft aparte routes. Gepubliceerde revisies kunnen cijfers wijzigen.
+  Catalogus: 10 endpoints, 10 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-introduction
+
+Exa [exa] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde zoek-/extractiediensten; proefcredits niet meetellen.
+  Catalogus: 2 endpoints, 2 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://exa.ai/docs/reference/x402-guide
+
+GLEIF [gleif] — Internationaal — Countries & Registries
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: LEI zoeken; entiteit; consolidatie-relaties; referentiecodes
+  Voorwaarden: Open LEI-data onder CC0. Relaties betreffen accounting consolidation; geen compleet UBO-register.
+  Catalogus: 18 endpoints, 17 aan, 6 met actief contract.
+  Conceptacties: company.resolve, company.identifiers.get, company.group_structure.get
+  Bronnen: https://www.gleif.org/en/lei-data/gleif-api/ | https://www.gleif.org/de/about/open-data/
+
+IBAN Check [iban-check] — Internationaal — Search & Tools
+  Bestaande catalogus | €0 — genoemde scope | Lokale berekening
+  Gratis: IBAN-formaat; checksum; land/SEPA; beperkte NL-bankcode/BIC-mapping
+  Voorwaarden: Bestaande adapter rekent lokaal; geen upstream API of providerfee. Geen bewijs van bestaand rekeningnummer, saldo of rekeninghouder.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: /Users/olivier/Documents/Apiosk/Production/gateway/legacy-executor/src/proxy/iban_check.rs
+
+KOOP Official Publications and Regulations [koop] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Officiële publicaties en regelgeving zoeken via SRU
+  Voorwaarden: Open hergebruik. BUS is uitgefaseerd; gebruik de ondersteunde SRU-route en bronmetadata.
+  Catalogus: 2 endpoints, 2 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.koopoverheid.nl/actueel/nieuws/2024/07/05/uitfaseren-bus | https://www.koopoverheid.nl/voor-overheden/gemeenten-provincies-en-waterschappen/drop/meer-weten-over-drop/kennisbank-kwaliteit
+
+KVK Business Register [kvk-dutch-business-register] — NL — Countries & Registries
+  Bestaande catalogus | €0-deel + overige producten | API
+  Gratis: Zoeken; HVD basisbedrijfsgegevens; HVD jaarrekeningen
+  Voorwaarden: Zoeken: API-key. Op verzoek telt €6,40 per maand niet mee. HVD: alleen beschikbare BV/NV-gegevens, beperkte identificatievelden; CC BY 4.0, 1 aanvraag/minuut/IP. HVD basisgegevens staat uit in de catalogus.
+  Buiten gratis scope: Basisprofiel, Vestigingsprofiel en Naamgevingen: betaald per aanvraag; HVD is geen volledig bedrijfsdossier.
+  Catalogus: 6 endpoints, 5 aan, 5 met actief contract.
+  Conceptacties: nl.company.search, nl.company.profile, nl.company.branches.list, nl.company.names.list, nl.company.accounts.get
+  Bronnen: https://developers.kvk.nl/nl/faq | https://developers.kvk.nl/nl/documentation/open-dataset-basis-bedrijfsgegevens-api | https://developers.kvk.nl/nl/documentation/open-dataset-jaarrekeningen-api
+
+Linkup [linkup] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde zoek-/research-diensten; proefcredits niet meetellen.
+  Catalogus: 2 endpoints, 2 aan, 2 met actief contract.
+  Conceptacties: 
+  Bronnen: https://docs.linkup.so/pages/documentation/api-reference/endpoint/post-search
+
+OpenSanctions [opensanctions] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API
+  Gratis: Niet bevestigd
+  Voorwaarden: Commercieel gebruik binnen Apiosk vereist API-/datalicentie. Gratis download of proefkey maakt het commerciële gebruik niet gratis.
+  Buiten gratis scope: Trial en gratis niet-commerciële toegang niet meetellen.
+  Catalogus: 7 endpoints, 7 aan, 5 met actief contract.
+  Conceptacties: company.sanctions.screen
+  Bronnen: https://www.opensanctions.org/docs/commercial/exemption/ | https://www.opensanctions.org/docs/api/
+
+Overheid.io Public Data [overheid-io] — NL — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële tussenpartij voor o.a. KVK/BAG/RDW; open oorspronkelijke data maakt deze route niet gratis.
+  Catalogus: 10 endpoints, 10 aan, 10 met actief contract.
+  Conceptacties: 
+  Bronnen: https://overheid.io/documentatie/
+
+PDOK Maps & Addresses [pdok] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Adressen; gebouwen; kaarten; perceelgeometrie; geografische kenmerken
+  Voorwaarden: Gratis publieke services. Licentie verschilt per dataset; geometrie levert geen eigendomsbewijs.
+  Catalogus: 27 endpoints, 27 aan, 19 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.pdok.nl/veelgestelde-vragen-over-pdok-services
+
+PDOK Ruimtelijke Plannen [pdok-ruimtelijke-plannen] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Kaartlagen van ruimtelijke plannen raadplegen
+  Voorwaarden: Publieke PDOK-service; verifieer actualiteit van het plan. Een kaartlaag bewijst geen vergunning of bouwrecht.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.pdok.nl/veelgestelde-vragen-over-pdok-services
+
+PixelForge x402 Data Services [pixelforge-x402-data-services] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Bestaande x402-utilities hebben providerprijzen. Een lokale vervanging zou een nieuwe implementatie zijn.
+  Catalogus: 5 endpoints, 5 aan, 0 met actief contract.
+  Conceptacties: 
+  Bronnen: https://fixed-improved-liver-besides.trycloudflare.com/docs
+
+Pulse Network [pulsenetwork] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: 76 service-listings met verschillende x402-prijzen; beoordeel iedere gekozen route.
+  Catalogus: 980 endpoints, 980 aan, 202 met actief contract.
+  Conceptacties: 
+  Bronnen: https://airdroppulse.theaslangroupllc.com/llms.txt | https://alphapulse.theaslangroupllc.com/llms.txt | https://arbipulse.theaslangroupllc.com/llms.txt | https://autopulse.theaslangroupllc.com/llms.txt | https://biopulse.theaslangroupllc.com/llms.txt | https://buildpulse.theaslangroupllc.com/llms.txt | https://careerpulse.theaslangroupllc.com/llms.txt | https://chronicapulse.theaslangroupllc.com/llms.txt | https://citepulse.theaslangroupllc.com/llms.txt | https://clearcarepulse.theaslangroupllc.com/llms.txt | https://climatepulse.theaslangroupllc.com/llms.txt | https://clinicalintelpulse.theaslangroupllc.com/llms.txt | https://collectablespulse.theaslangroupllc.com/llms.txt | https://compliancepulse.theaslangroupllc.com/llms.txt | https://cryptopulse.theaslangroupllc.com/llms.txt | https://cyberpulse.theaslangroupllc.com/llms.txt | https://dealpulse.theaslangroupllc.com/llms.txt | https://debtpulse.theaslangroupllc.com/llms.txt | https://econsignalpulse.theaslangroupllc.com/llms.txt | https://edupulse.theaslangroupllc.com/llms.txt | https://esgpulse.theaslangroupllc.com/llms.txt | https://fanpulse.theaslangroupllc.com/llms.txt | https://fieldpulse.theaslangroupllc.com/llms.txt | https://filingspulse.theaslangroupllc.com/llms.txt | https://findpulse.theaslangroupllc.com/llms.txt | https://fitpulse.theaslangroupllc.com/llms.txt | https://footballpulse.theaslangroupllc.com/llms.txt | https://franchisepulse.theaslangroupllc.com/llms.txt | https://gamepulse.theaslangroupllc.com/llms.txt | https://geopoliticalpulse.theaslangroupllc.com/llms.txt | https://glowpulse.theaslangroupllc.com/llms.txt | https://govspendpulse.theaslangroupllc.com/llms.txt | https://grantpulse.theaslangroupllc.com/llms.txt | https://gridpulse.theaslangroupllc.com/llms.txt | https://harvestpulse.theaslangroupllc.com/llms.txt | https://herbapulse.theaslangroupllc.com/llms.txt | https://homepulse.theaslangroupllc.com/llms.txt | https://immigrationpulse.theaslangroupllc.com/llms.txt | https://insurepulse.theaslangroupllc.com/llms.txt | https://legalpulse.theaslangroupllc.com/llms.txt | https://longevitypulse.theaslangroupllc.com/llms.txt | https://macropulse.theaslangroupllc.com/llms.txt | https://mailpulse.theaslangroupllc.com/llms.txt | https://marketpulse.theaslangroupllc.com/llms.txt | https://mealpulse.theaslangroupllc.com/llms.txt | https://mindpulse.theaslangroupllc.com/llms.txt | https://nutripulse.theaslangroupllc.com/llms.txt | https://onchainpulse.theaslangroupllc.com/llms.txt | https://parentpulse.theaslangroupllc.com/llms.txt | https://patentpulse.theaslangroupllc.com/llms.txt | https://petpulse.theaslangroupllc.com/llms.txt | https://policypulse.theaslangroupllc.com/llms.txt | https://proppulse.theaslangroupllc.com/llms.txt | https://prospectpulse.theaslangroupllc.com/llms.txt | https://racingpulse.theaslangroupllc.com/llms.txt | https://remittancepulse.theaslangroupllc.com/llms.txt | https://riskpulse.theaslangroupllc.com/llms.txt | https://safepulse.theaslangroupllc.com/llms.txt | https://scentpulse.theaslangroupllc.com/llms.txt | https://scholarpulse.theaslangroupllc.com/llms.txt | https://seniorpulse.theaslangroupllc.com/llms.txt | https://shopperpulse.theaslangroupllc.com/llms.txt | https://signalpulse.theaslangroupllc.com/llms.txt | https://stablecoinpulse.theaslangroupllc.com/llms.txt | https://stateedge.theaslangroupllc.com/llms.txt | https://tablepulse.theaslangroupllc.com/llms.txt | https://talentpulse.theaslangroupllc.com/llms.txt | https://taxpulse.theaslangroupllc.com/llms.txt | https://tradepulse.theaslangroupllc.com/llms.txt | https://transitpulse.theaslangroupllc.com/llms.txt | https://travelpulse.theaslangroupllc.com/llms.txt | https://truthpulse.theaslangroupllc.com/llms.txt | https://venturepulse.theaslangroupllc.com/llms.txt | https://api.vetpulse.theaslangroupllc.com/llms.txt | https://waterpulse.theaslangroupllc.com/llms.txt | https://wealthpulse.theaslangroupllc.com/llms.txt
+
+RDW Vehicle Technical Data [rdw] — NL — Countries & Registries
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Open voertuiggegevens op kenteken
+  Voorwaarden: Alleen openbare RDW/Socrata-data; geen eigenaar of persoonsgegevens.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://opendata.rdw.nl/ | https://www.rdw.nl/zakelijke-partners/verzekeraar/regels-over-gegevens-uit-onze-registers-opvragen
+
+Reuters News [reuters] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Catalogus gebruikt een RapidAPI-route; geen directe gratis Reuters-feed.
+  Catalogus: 5 endpoints, 4 aan, 4 met actief contract.
+  Conceptacties: 
+  Bronnen: https://rapidapi.com/mahmudulhasandev/api/reuters-api
+
+RVO Subsidy Descriptions — First Page [rvo] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Open subsidieregelingen en financieringsmetadata
+  Voorwaarden: CC0-dataset. De huidige Apiosk-route is begrensd tot de eerste 50 records en bewijst geen volledigheid of subsidiegeschiktheid.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://data.overheid.nl/en/dataset/subsidies-en-financiering-rvo-nl | https://www.rvo.nl/open-data-van-rvonl
+
+Sirenic [sirenic] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde verrijkingsacties; prijs en dekking per actie.
+  Catalogus: 102 endpoints, 63 aan, 63 met actief contract.
+  Conceptacties: 
+  Bronnen: https://api.sirenic.eu/openapi.json
+
+StableEnrich [stableenrich] — Internationaal — Enrichment
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde verrijkingsacties; prijs en dekking per actie.
+  Catalogus: 36 endpoints, 36 aan, 16 met actief contract.
+  Conceptacties: 
+  Bronnen: https://stableenrich.dev/openapi.json
+
+Tavily [tavily] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde productiecapaciteit; gratis credits zijn begrensd en geen blijvende nulgarantie.
+  Catalogus: 2 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://docs.tavily.com/documentation/api-reference/endpoint/search
+
+TED European Procurement Notices [ted] — EU — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Europese aanbestedingsaankondigingen zoeken
+  Voorwaarden: Publieke Search API zonder authenticatie; commercieel hergebruik beschreven. Bestaande Apiosk-actie zoekt organisatienotices op identifiers.
+  Catalogus: 1 endpoints, 1 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://docs.ted.europa.eu/api/latest/search.html | https://docs.ted.europa.eu/ODS/latest/reuse/search-api.html
+
+TenderNed [tenderned] — NL — Open Data
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: Open aankondigingen en aanbestedingsdatasets
+  Voorwaarden: Publieke data/XML-services; onderscheid van ingelogde diensten voor aanbestedende organisaties. Publicatie is geen bewezen omzet.
+  Catalogus: 3 endpoints, 3 aan, 1 met actief contract.
+  Conceptacties: 
+  Bronnen: https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen | https://www.tenderned.nl/info/swagger/
+
+VIES EU VAT Validation [vies] — EU — Countries & Registries
+  Bestaande catalogus | €0 — genoemde scope | API
+  Gratis: EU-btw-nummer controleren
+  Voorwaarden: Landcode en btw-nummer nodig. Geen algemene bedrijfszoekmachine. Storing of onbeschikbaarheid is niet hetzelfde als ongeldig.
+  Catalogus: 3 endpoints, 3 aan, 3 met actief contract.
+  Conceptacties: company.vat.validate
+  Bronnen: https://europa.eu/youreurope/business/finance-and-tax/vat/check-vat-number-vies/index_en.htm
+
+WebberSites x402 Data API [webbersites] — Internationaal — Search & Tools
+  Bestaande catalogus | Commercieel / geen €0-garantie | API / x402
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde uitvoering; eventueel gratis board/discovery is geen gratis uitvoeringsdienst.
+  Catalogus: 76 endpoints, 76 aan, 66 met actief contract.
+  Conceptacties: 
+  Bronnen: https://x402.webbersites.com/docs/
+
+INPI — Registre national des entreprises [fr-inpi-rne] — FR — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: RNE-profiel; wijzigingen; openbare akten en beschikbare jaarrekeningen
+  Voorwaarden: DATA INPI-account en technische toegang/licentie nodig; beschermde en vertrouwelijke gegevens ontbreken.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fr.company.profile, fr.company.filings.list, fr.company.filing.document, fr.company.accounts.get, fr.company.changes.list
+  Bronnen: https://www.inpi.fr/ressources/formalites-dentreprises/acces-lapi-formalite-rne | https://data.inpi.fr/content/editorial/Acces_API_Entreprises
+
+Handelsregister [de-handelsregister] — DE — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Kosteloze portaalinzage is geen bevestigde vrij herbruikbare machine-API. Automatiseer niet op basis van een gevonden intern endpoint.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: de.company.search, de.company.profile, de.company.filings.list, de.company.filing.document
+  Bronnen: https://www.handelsregister.de/rp_web/information/welcome.xhtml | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+KBO / BCE — Crossroads Bank for Enterprises [be-kbo-bce] — BE — Countries & Registries
+  Concept | €0-deel + overige producten | Bulk → eigen index
+  Gratis: Open Data CSV: actieve entiteiten, vestigingen en dagelijkse wijzigingen
+  Voorwaarden: Gratis Open Data-account/SFTP; eigen lokale zoekindex bouwen. Persoonsgegevens niet voor direct marketing hergebruiken.
+  Buiten gratis scope: Public Search webservice en volledige commerciële hergebruikbestanden zijn aparte producten; niet als gratis meegenomen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: be.company.search, be.company.profile, be.company.branches.list, be.company.changes.list
+  Bronnen: https://economie.fgov.be/en/themes/enterprises/crossroads-bank-enterprises/services-everyone/public-data-available-reuse/cbe-open-data | https://kbopub.economie.fgov.be/kbo-open-data/login%3Blang%3Den
+
+CVR — Det Centrale Virksomhedsregister [dk-cvr] — DK — Countries & Registries
+  Concept | Onbekend voor machinegebruik | registered_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Systeem-toegang via CVR/Elasticsearch bestaat; exact gratis commercieel toegangscontract niet bevestigd. UBO heeft aparte toegangsregels.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: dk.company.search, dk.company.profile, dk.company.branches.list, dk.company.filings.list, dk.company.changes.list
+  Bronnen: https://erhvervsstyrelsen.dk/det-centrale-virksomhedsregister-cvr | https://erhvervsstyrelsen.dk/kom-godt-igang-med-elasticSearch | https://datacvr.virk.dk/artikel/system-til-system-adgang-til-cvr-data | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Brønnøysundregistrene — Enhetsregisteret [no-brreg] — NO — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: Enhetsregisteret: organisaties; subeenheden; zoeken; bulk
+  Voorwaarden: Publieke API en downloads onder NLOD. Financiële producten en afgeschermde persoonsgegevens niet automatisch inbegrepen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: no.company.search, no.company.profile, no.company.branches.list, no.company.changes.list
+  Bronnen: https://data.brreg.no/enhetsregisteret/api/dokumentasjon/en/index.html
+
+PRH / YTJ — Company basic information [fi-prh-ytj] — FI — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Finse bedrijfsbasisgegevens zoeken/ophalen
+  Voorwaarden: Gratis openbare PRH/YTJ-interface; rechtsvormen en beschikbare velden volgens productdekking.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fi.company.search, fi.company.profile
+  Bronnen: https://www.prh.fi/en/companiesandorganisations/tietopalvelut/prhopendata.html
+
+e-Business Register / Äriregister [ee-rik-business-register] — EE — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: Open bedrijfsgegevens; bulk; toegelaten XML-webservices
+  Voorwaarden: API-only contract is gratis; overeenkomst en credentials nodig. Alleen de overeengekomen openbare diensten en velden.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ee.company.search, ee.company.profile, ee.company.filings.list, ee.company.accounts.get, ee.company.representatives.list, ee.company.changes.list
+  Bronnen: https://avaandmed.ariregister.rik.ee/en/open-data-api/introduction-api-services
+
+Register of Enterprises / Uzņēmumu reģistrs [lv-ur] — LV — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: Open registerdatasets en toegelaten registerwebservices
+  Voorwaarden: Autoriteit vermeldt geautomatiseerde gegevensuitwisseling als gratis. Servicekeuze, registratie en veldrechten nog in adapter vastleggen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: lv.company.search, lv.company.profile, lv.company.officers.list, lv.company.shareholders.list, lv.company.changes.list
+  Bronnen: https://www.ur.gov.lv/en/services/request-automated-dissemination-data-between-different-information-systems-latvia-and-europe | https://www.ur.gov.lv/en/registry-api-web-services-service-list
+
+Register of Legal Entities / Juridinių asmenų registras [lt-registru-centras] — LT — Countries & Registries
+  Concept | Onbekend voor machinegebruik | open_data_and_contract_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Open JAR-datasets bestaan, maar exact geselecteerde bedrijfsdataset, API-licentie en commerciële productkosten nog afbakenen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: lt.company.search, lt.company.profile, lt.company.filings.list
+  Bronnen: https://www.registrucentras.lt/ | https://data.gov.lt/datasets/
+
+Bolagsverket — High-value datasets [se-bolagsverket-hvd] — SE — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: HVD-bedrijfsgegevens; beschikbare digitale jaarrekeningen; classificaties
+  Voorwaarden: Gratis HVD-product; aanmelden met contactgegevens. HVD staat los van de betaalde reguliere company-information API en beperkte UBO-toegang.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: se.company.profile, se.company.filings.list, se.company.accounts.get
+  Bronnen: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/apiforvardefulladatamangder.5513.html
+
+Registro Imprese / InfoCamere [it-infocamere] — IT — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële overeenkomst en producttarieven.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: it.company.search, it.company.profile, it.company.officers.list, it.company.filing.document, it.company.accounts.get
+  Bronnen: https://accessoallebanchedati.registroimprese.it/abdo/api
+
+Registro Mercantil / Registradores [es-registro-mercantil] — ES — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Uittreksels/informatieproducten hebben tarieven; machinecontract apart nodig.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: es.company.search, es.company.profile, es.company.filings.list, es.company.accounts.get
+  Bronnen: https://www.registradores.org/ | https://boe.es/diario_boe/txt.php?id=BOE-A-2024-24833
+
+Registo Comercial / IRN [pt-irn] — PT — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Certificaten en databaseprotocol hebben product-/contractkosten.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: pt.company.search, pt.company.profile, pt.company.filing.document, pt.company.accounts.get
+  Bronnen: https://irn.justica.gov.pt/online | https://justica.gov.pt/en-gb/Registos/Comercial/Documentos
+
+Companies Registration Office [ie-cro] — IE — Countries & Registries
+  Concept | €0-deel + overige producten | API + bulk
+  Gratis: Nieuwe CRO Open Data: bedrijfsgegevens en gepubliceerde financiële gegevens
+  Voorwaarden: Open-data-portaal met API/bulk en CC BY 4.0. Exacte datasetdekking en actualiteit in adapter vastleggen.
+  Buiten gratis scope: Legacy documentproducten, certificaten en andere betaalde CRO-diensten niet inbegrepen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ie.company.search, ie.company.profile, ie.company.filings.list, ie.company.accounts.get
+  Bronnen: https://cro.ie/the-companies-registration-office-cro-announces-the-launch-of-new-open-data-portal/ | https://opendata.cro.ie/
+
+Firmenbuch [at-firmenbuch] — AT — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | licensed_distribution
+  Gratis: Niet bevestigd
+  Voorwaarden: Registerquerykosten en mogelijke toeslag van erkende distributeur.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: at.company.search, at.company.profile, at.company.filing.document, at.company.accounts.get
+  Bronnen: https://www.justiz.gv.at/service/datenbanken/firmenbuch/firmenbuchabfrage.2c9484852308c2a601240b693e1c0860.de.html | https://www.justiz.gv.at/service/datenbanken/verrechnungsstellen.795.de.html
+
+KRS — National Court Register [pl-krs] — PL — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Huidig en volledig KRS-uittreksel ophalen
+  Voorwaarden: Open API; KRS-nummer nodig. Persoonsvelden zijn gefilterd; CEIDG-eenmanszaken zijn een ander register.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: pl.company.profile, pl.company.registry.record
+  Bronnen: https://www.gov.pl/web/sprawiedliwosc/uruchomienie-otwartego-api-krajowego-rejestru-sadowego
+
+Veřejný rejstřík / Obchodní rejstřík [cz-commercial-register] — CZ — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Rechtbankportal staat los van gratis ARES; directe machinecontracten/documenttoegang nog niet bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: cz.company.search, cz.company.profile, cz.company.filings.list, cz.company.filing.document
+  Bronnen: https://or.justice.cz/ias/ui/rejstrik | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Obchodný register [sk-commercial-register] — SK — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: ORSR-portal staat los van RÚZ en RPO; machinecontract niet bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: sk.company.search, sk.company.profile, sk.company.filing.document
+  Bronnen: https://www.orsr.sk/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+AJPES — Slovenian Business Register [si-ajpes] — SI — Countries & Registries
+  Concept | Onbekend voor machinegebruik | registered_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Gratis ePRS-portaal is geen gratis machinecontract. Gebruik actuele REST-productvoorwaarden; oude SOAP is vervallen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: si.company.search, si.company.profile
+  Bronnen: https://www.ajpes.si/za_razvijalce_programske_opreme | https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Opis_servisa_za_razvijalce.pdf | https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Documentation_for_DevOps.pdf
+
+Cégnyilvántartás / e-Cégjegyzék [hu-company-register] — HU — Countries & Registries
+  Concept | Onbekend voor machinegebruik | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: hu.company.search, hu.company.profile, hu.company.filings.list
+  Bronnen: https://occsz.e-cegjegyzek.hu/info/page/ceginfo | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+ONRC — National Trade Register [ro-onrc] — RO — Countries & Registries
+  Concept | Onbekend voor machinegebruik | open_data_and_contract_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: ONRC publiceert open CSV-snapshots; actuele snapshot van 2 september 2026 gevonden. Datasetlicentie nog exact vastleggen; geen gratis live-API geclaimd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ro.company.search, ro.company.profile, ro.company.filings.list
+  Bronnen: https://data.gov.ro/organization/onrc | https://www.onrc.ro/index.php/en | https://myportal.onrc.ro/
+
+Commercial Register / Registry Agency [bg-registry-agency] — BG — Countries & Registries
+  Concept | Onbekend voor machinegebruik | open_data_and_contract_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: bg.company.search, bg.company.profile, bg.company.filings.list
+  Bronnen: https://portal.registryagency.bg/ | https://www.registryagency.bg/bg/registri/targovski-registar/predostavyane-na-dostap-do-bazata-danni-na-targovskiya-registar/
+
+Sudski registar — Court Register [hr-sudreg] — HR — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Open rechtbankregister: entiteiten; identifiers; status; adres; rechtsvorm
+  Voorwaarden: Gratis REST API met registratie en client-credentials. Werkdagupdates; openbare subset volgens OpenAPI.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: hr.company.search, hr.company.profile
+  Bronnen: https://sudreg-data.gov.hr/ords/r/srn_rep/vanjski-srn-rep/home | https://sudreg-data.gov.hr/api/javni/dokumentacija/open_api
+
+GEMI — General Commercial Registry [gr-gemi] — GR — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: GEMI open bedrijfsgegevens zoeken/ophalen
+  Voorwaarden: Open API onder ODC-BY 1.0. Registratie/key, bronvermelding en quota; alleen openbaar product.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: gr.company.search, gr.company.profile
+  Bronnen: https://opendata.businessportal.gr/ | https://opendata.businessportal.gr/license/
+
+Registrar of Companies [cy-registrar] — CY — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: cy.company.search, cy.company.profile, cy.company.filings.list
+  Bronnen: https://www.companies.gov.cy/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Luxembourg Business Registers / RCS [lu-lbr-rcs] — LU — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: lu.company.search, lu.company.profile, lu.company.filings.list, lu.company.filing.document
+  Bronnen: https://www.lbr.lu/ | https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+Malta Business Registry [mt-mbr] — MT — Countries & Registries
+  Concept | Onbekend voor machinegebruik | eligibility_gated_api
+  Gratis: Niet bevestigd
+  Voorwaarden: API-pakketten en HVD-eligibility/tarieven niet voldoende bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: mt.company.search, mt.company.profile, mt.company.filings.list
+  Bronnen: https://mbr.mt/wp-content/uploads/2026/03/API-Onboarding.pdf | https://www.mbr.mt/post/mbr-s-launch-of-the-api-packages-for-subject-persons | https://gateway.baros.mbr.mt/
+
+Skatturinn — Register of Enterprises [is-skatturinn] — IS — Countries & Registries
+  Concept | Onbekend voor machinegebruik | registered_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Actueel API-product en tarief verifiëren; oude v2 niet als actuele v2.1 activeren.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: is.company.search, is.company.profile
+  Bronnen: https://api.skatturinn.is/apis | https://api.skatturinn.is/product
+
+Handelsregister Liechtenstein [li-handelsregister] — LI — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Gedeeltelijk portaaluittreksel gratis; volledig gecertificeerd uittreksel betaald. Gratis API niet bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: li.company.search, li.company.profile, li.company.filing.document
+  Bronnen: https://handelsregister.li/cr-portal/suche/suche.xhtml
+
+Zefix — Central Business Name Index [ch-zefix] — CH — Countries & Registries
+  Concept | €0-deel + overige producten | Linked data / SPARQL
+  Gratis: Zefix Linked Data/LINDAS: actuele kerngegevens van actieve entiteiten
+  Voorwaarden: Publieke SPARQL-dataset met open-use voorwaarden; naam, zetel, adres en rechtsvorm. REST-accountvoorwaarden apart bevestigen.
+  Buiten gratis scope: Geen gratisgarantie voor alle Zefix REST-, Regix-, historische of gecertificeerde producten.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ch.company.search, ch.company.profile
+  Bronnen: https://opendata.swiss/de/dataset/zefix-zentraler-firmenindex | https://ckan.opendata.swiss/api/3/action/package_show?id=zefix-zentraler-firmenindex
+
+Serbian Business Registers Agency / APR [rs-apr] — RS — Countries & Registries
+  Concept | Onbekend voor machinegebruik | contracted_webservice
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: rs.company.search, rs.company.profile, rs.company.accounts.get
+  Bronnen: https://www.apr.gov.rs/searches.4090.html | https://www.apr.gov.rs/home.4742.html
+
+National Business Center / QKB [al-qkb] — AL — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: al.company.search, al.company.profile, al.company.changes.list
+  Bronnen: https://qkb.gov.al/en/business-register/
+
+Central Registry of Business Entities / CRPS [me-crps] — ME — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: me.company.search, me.company.profile
+  Bronnen: https://www.crps.me/ | https://ebra.be/worldwide-registers/
+
+Central Registry of North Macedonia [mk-central-registry] — MK — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Betaalde/prepaid informatieproducten; machinetarief nog vastleggen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: mk.company.search, mk.company.profile, mk.company.accounts.get
+  Bronnen: https://www.crm.com.mk/en/services/obtain-information-or-confirmation-/information-and-certificate-packages/access-to-data-via-the-online-distribution-system
+
+Court business registers of Bosnia and Herzegovina [ba-business-registers] — BA — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ba.company.search, ba.company.profile
+  Bronnen: https://bizreg.pravosudje.ba/ | https://ebra.be/worldwide-registers/
+
+State Register of Legal Entities [md-asp] — MD — Countries & Registries
+  Concept | Onbekend voor machinegebruik | open_data_and_contract_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: md.company.search, md.company.profile
+  Bronnen: https://asp.gov.md/ru/servicii/persoane-juridice/informatii-afaceri | https://dataset.gov.md/
+
+National Agency of Public Registry [ge-napr] — GE — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ge.company.search, ge.company.profile
+  Bronnen: https://www.napr.gov.ge/en/page/frequently-asked-questions/business-registration-faq | https://www.napr.gov.ge/en/statistic
+
+MERSİS / Trade Registry Gazette [tr-mersis] — TR — Countries & Registries
+  Concept | Onbekend voor machinegebruik | restricted_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: tr.company.search, tr.company.profile, tr.company.changes.list
+  Bronnen: https://mersis.ticaret.gov.tr/ | https://www.turkiye.gov.tr/ticaret-bakanligi-mersis-giris
+
+Unified State Register / EDR [ua-edr] — UA — Countries & Registries
+  Concept | Onbekend voor machinegebruik | restricted_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: ua.company.search, ua.company.profile
+  Bronnen: https://usr.minjust.gov.ua/ | https://ebra.be/worldwide-registers/
+
+State Tax Service business register [az-state-tax-register] — AZ — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Autoritatieve registerbron gevonden; gratis commerciële machine-toegang, voorwaarden en eventueel tarief nog niet bevestigd. Portaalinzage telt niet als werkende Apiosk-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: az.company.search, az.company.profile
+  Bronnen: https://taxes.gov.az/en/page/qeydiyyat
+
+Recherche d’entreprises [fr-dinum-recherche] — FR — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Bedrijf zoeken; publieke identifiers en basisgegevens
+  Voorwaarden: Publieke afgeleide index van officiële bronnen. Rate limits en beperkte velden; niet het volledige RNE.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fr.company.search, fr.company.profile
+  Bronnen: https://recherche-entreprises.api.gouv.fr/docs/
+
+INSEE — Sirene [fr-insee-sirene] — FR — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: SIREN/SIRET-profielen; vestigingen; status; historische perioden
+  Voorwaarden: Open Sirene API/bulk; volg actuele API-registratie en quotaregels. Niet-diffuseerbare velden respecteren.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fr.company.search, fr.company.profile, fr.company.branches.list, fr.company.changes.list
+  Bronnen: https://www.insee.fr/fr/information/3591226
+
+BODACC [fr-bodacc] — FR — Countries & Registries
+  Concept | €0 — genoemde scope | API + bulk
+  Gratis: Bedrijfsmededelingen; insolventie- en deponeringspublicaties zoeken
+  Voorwaarden: Vrij hergebruik met bron, datum en oorspronkelijke publicatiecontext; een publicatie is niet automatisch de actuele status.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fr.company.changes.list, fr.company.insolvency.notices
+  Bronnen: https://www.bodacc.fr/pages/donnees-ouvertes-et-api/
+
+Unternehmensregister [de-unternehmensregister] — DE — Countries & Registries
+  Concept | Onbekend voor machinegebruik | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Open inzage en documentkosten verschillen; publieke machine-toegang/contract niet bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: de.company.filings.list, de.company.filing.document, de.company.accounts.get
+  Bronnen: https://www.unternehmensregister.de/
+
+Bundesanzeiger [de-bundesanzeiger] — DE — Countries & Registries
+  Concept | Onbekend voor machinegebruik | contract_access_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Publicatieportal; machinegebruik en productkosten niet bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: de.company.filings.list, de.company.changes.list
+  Bronnen: https://www.bundesanzeiger.de/
+
+Insolvenzbekanntmachungen [de-insolvency-notices] — DE — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_integration_unverified
+  Gratis: Niet bevestigd
+  Voorwaarden: Zoekportal voor insolventie; hergebruik, bewaartermijnen en toegestane machine-interface vastleggen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: de.company.insolvency.notices
+  Bronnen: https://neu.insolvenzbekanntmachungen.de/
+
+Centraal Insolventieregister [nl-cir] — NL — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Open insolventiepublicaties en wijzigingen via CIR-webservice
+  Voorwaarden: Abonnement én gebruik gratis. Organisatie aanmelden en overeenkomst sluiten; gebruiksvoorwaarden, bewaartermijnen en seriële verzoeken toepassen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: nl.company.insolvency.notices
+  Bronnen: https://www.rechtspraak.nl/registers/webservice-centraal-insolventieregister | https://www.rechtspraak.nl/registers/voorwaarden-voor-gebruik-cir
+
+NBB — Central Balance Sheet Office [be-nbb-accounts] — BE — Countries & Registries
+  Concept | €0-deel + overige producten | API + bulk
+  Gratis: Authentic Data Query; Daily Extract; Authentic Archive
+  Voorwaarden: Deze authentieke jaarrekeningproducten zijn gratis; registratie, client-ID en toegangsafspraken nodig. Gestructureerde JSON-dekking verschilt per jaar/formaat.
+  Buiten gratis scope: Improved Data en Improved Archive blijven betaald.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: be.company.filings.list, be.company.filing.document, be.company.accounts.get, be.company.financials.get
+  Bronnen: https://www.nbb.be/en/central-balance-sheet-office/consultation/web-services
+
+PRH — Digital financial statements [fi-prh-financials] — FI — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Gestructureerde digitale jaarrekeningen ophalen
+  Voorwaarden: Gratis digitale retrievalinterface; alleen ingediende iXBRL-jaarrekeningen, geen volledige historische PDF-collectie.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: fi.company.accounts.get, fi.company.financials.get
+  Bronnen: https://www.prh.fi/en/companiesandorganisations/financial_statements/digital-financial-reporting/what.html
+
+Bolagsverket — Company information [se-bolagsverket-information] — SE — Countries & Registries
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Reguliere company-information API heeft een betaald contract; gebruik apart HVD-product voor €0.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: se.company.profile, se.company.officers.list, se.company.filings.list, se.company.filing.document
+  Bronnen: https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/apiforatthamtaforetagsinformation.3988.html
+
+ARES — Economic entities [cz-ares] — CZ — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: ARES zoeken; economische entiteit op IČO ophalen
+  Voorwaarden: Publieke REST-interface; afgeleide officiële aggregatie, geen complete rechtbankdocumentenservice.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: cz.company.search, cz.company.profile
+  Bronnen: https://data.mf.gov.cz/api/ares.html | https://mf.gov.cz/cs/ministerstvo/informacni-systemy/ares
+
+CEIDG [pl-ceidg] — PL — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Eenmanszaken zoeken; openbare bedrijfsprofielen
+  Voorwaarden: Gratis CEIDG-dataplatform, registratie/token en gebruiksvoorwaarden toepassen. Geen volledige KRS-dekking.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: pl.company.search, pl.company.profile
+  Bronnen: https://www.gov.pl/web/ia/portale-interoperacyjnosci | https://www.gov.pl/web/rozwoj-technologia/e-uslugi-dla-biznesu
+
+REGON / BIR [pl-regon] — PL — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Entiteit op REGON/NIP/KRS zoeken; openbare registerrapporten
+  Voorwaarden: BIR is ook voor commerciële partijen gratis. Productiesleutel aanvragen bij GUS; SOAP-adapter en tijdsgebonden limieten.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: pl.company.search, pl.company.profile, pl.company.identifiers.get
+  Bronnen: https://api.stat.gov.pl/Home/RegonApi?lang=pl
+
+RPO — Register of Legal Entities [sk-rpo] — SK — Countries & Registries
+  Concept | Onbekend voor machinegebruik | public_api_assessment
+  Gratis: Niet bevestigd
+  Voorwaarden: Publieke RPO-gegevens bestaan; na overdracht in juni 2026 actuele productiehost en toegangsvoorwaarden bevestigen. Testhost niet als productie activeren.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: sk.company.search, sk.company.profile
+  Bronnen: https://www.susr.sk/ExportPdf2/PdfExportSrvlt?Document=ac07a838-4ff2-4f67-86ac-a1ed11fa18e0
+
+RÚZ — Register of Financial Statements [sk-ruz] — SK — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Rapporterende entiteiten; jaarrekeningen; staten; wijzigingen; codelijsten
+  Voorwaarden: Open API onder CC0. Alleen openbaar gepubliceerde documenten; RÚZ-ID en IČO apart bewaren.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: sk.company.profile, sk.company.filings.list, sk.company.accounts.get, sk.company.financials.get, sk.company.changes.list, sk.company.identifiers.get
+  Bronnen: https://www.registeruz.sk/cruz-public/home/api
+
+GLEIF Registration Authorities List [gleif-registration-authorities] — Internationaal — Open Data
+  Concept | €0 — alleen referentie | Referentiedataset
+  Gratis: Registration Authorities-codebestand
+  Voorwaarden: Gratis openbare referentielijst voor registeridentificatie; geen afzonderlijke bedrijfszoek-API.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.registry.authorities.list
+  Bronnen: https://www.gleif.org/en/about-lei/code-lists/gleif-registration-authorities-list
+
+BRIS — Find a company [bris] — EU — Countries & Registries
+  Concept | Onbekend voor machinegebruik | portal_interconnection
+  Gratis: Niet bevestigd
+  Voorwaarden: Vrije basisinzage via EU-portaal; nationale documenten kunnen betaald zijn. Geen algemeen publiek machinecontract bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile
+  Bronnen: https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en
+
+EBRA Worldwide Registers [ebra-directory] — Internationaal — Open Data
+  Concept | €0 — alleen referentie | Directory
+  Gratis: Directory van nationale registers
+  Voorwaarden: Vrij raadpleegbare directory; geen bewijs van gratis API-toegang of hergebruik van de onderliggende registers.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.registry.authorities.list
+  Bronnen: https://ebra.be/worldwide-registers/
+
+OpenCorporates [opencorporates] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commercieel API-/hergebruikplan vereist; open-projecttoegang niet automatisch beschikbaar voor Apiosk.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile, company.officers.list, company.filings.list
+  Bronnen: https://api.opencorporates.com/documentation/API-Reference
+
+Moody’s Orbis [orbis] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commercieel abonnement.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile, company.ownership.get, company.financials.get
+  Bronnen: https://www.moodys.com/web/en/us/site-assets/ma-kyc-orbis-product-brochure.pdf
+
+Dun & Bradstreet Direct+ [dnb-directplus] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële datablocks en contract.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.resolve, company.profile, company.group_structure.get
+  Bronnen: https://directplus.documentation.dnb.com/ | https://docs.dnb.com/partner/en-US/plus/token/1.0/authentication
+
+Creditsafe Connect [creditsafe-connect] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële rapport-/API-eenheden.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile, company.financials.get, company.group_structure.get
+  Bronnen: https://doc.creditsafe.com/connect-apis-catalog/product-catalog/connect-api-full/connectapi
+
+Company.info [company-info] — NL — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commercieel abonnement.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: nl.company.search, nl.company.profile, nl.company.financials.get, nl.company.ownership.get
+  Bronnen: https://companyinfo.nl/apis/ | https://companyinfo.nl/veelgestelde-vragen/waar-vind-ik-de-technische-informatie-over-company-info-apis/
+
+GraydonCreditsafe legacy APIs [graydoncreditsafe-legacy] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | legacy_commercial_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Bestaande klant-/legacy-overeenkomst nodig.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile, company.financials.get
+  Bronnen: https://cs-apix.apps.creditsafe.com/documentation/
+
+Sayari [sayari] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commercieel API-plan.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.resolve, company.ownership.get, company.group_structure.get
+  Bronnen: https://documentation.sayari.com/api/key-concepts/introduction | https://documentation.sayari.com/home/faq
+
+North Data [north-data] — Internationaal — Enrichment
+  Concept | Commercieel / geen €0-garantie | licensed_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Commerciële API-/exportproducten.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.profile, company.ownership.get, company.financials.get
+  Bronnen: https://help.northdata.com/en/center/where-can-i-find-documentation-for-the-api | https://github.com/northdata/api/blob/master/doc/data-api-userguide/data-api-userguide.md
+
+BORIS / national beneficial-owner registers [boris] — EU — Countries & Registries
+  Concept | Onbekend voor machinegebruik | eligibility_gated_interconnection
+  Gratis: Niet bevestigd
+  Voorwaarden: Toegang tot UBO-gegevens is afhankelijk van land en bevoegdheid; niet als openbare gratis API behandelen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.ubo.get
+  Bronnen: https://e-justice.europa.eu/topics/registers-business-insolvency-land/beneficial-ownership-registers-interconnection-system-boris_en | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32021R0369
+
+Open Ownership BODS datasets [openownership-datasets] — Internationaal — Open Data
+  Concept | €0-deel + overige producten | Bulk → eigen index
+  Gratis: Geselecteerde BODS-downloads, waaronder UK-publicatie onder CC0
+  Voorwaarden: Licentie en peildatum per dataset. Het oude Open Ownership Register sloot in november 2024; downloads zijn geen live wereldwijde ownership-API.
+  Buiten gratis scope: Geen blanketlicentie voor alle datasets en geen universeel actueel UBO-register.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.ownership.get
+  Bronnen: https://www.openownership.org/en/topics/open-ownership-register/ | https://bods-data.openownership.org/source/uk_version_0_4/
+
+ICIJ Offshore Leaks [icij-offshore-leaks] — Internationaal — Open Data
+  Concept | €0 — genoemde scope | Bulk / onderzoeksdata
+  Gratis: Offshore Leaks CSV/graaf; entiteiten en relaties; publieke API/reconciliation als kandidaat
+  Voorwaarden: Gratis dataset: ODbL; inhoud CC BY-SA. ICIJ-attributie en share-alikeverplichtingen behouden. Historische onderzoeksdata, geen bewijs van actuele eigendom of misstanden.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.ownership.evidence
+  Bronnen: https://offshoreleaks.icij.org/pages/database | https://offshoreleaks.icij.org/docs/reconciliation
+
+OCCRP Aleph [occrp-aleph] — Internationaal — Open Data
+  Concept | Onbekend voor machinegebruik | permissioned_research_api
+  Gratis: Niet bevestigd
+  Voorwaarden: Software is open source; toegang en hergebruik van collecties verschillen. Geen gratis commerciële bulklicentie bevestigd.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: company.search, company.ownership.evidence
+  Bronnen: https://docs.aleph.occrp.org/
+
+SEC EDGAR [us-sec-edgar] — US — Countries & Registries
+  Concept | €0 — genoemde scope | API
+  Gratis: Submissions; filings; XBRL companyfacts/concepts/frames
+  Voorwaarden: Gratis data-API zonder key; identificerende User-Agent en SEC fair-accesslimiet. Alleen SEC-filers; VS-aanvulling buiten de 42 Europese landen.
+  Catalogus: 0 endpoints, 0 aan, 0 met actief contract.
+  Conceptacties: us.company.filings.list, us.company.filing.document, us.company.financials.get
+  Bronnen: https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+
+ALLE 42 LANDEN
+
+NL — Netherlands
+KVK Business Register; Centraal Insolventieregister
+Gratis: KVK Business Register; Centraal Insolventieregister
+
+GB — United Kingdom
+Companies House
+Gratis: Companies House
+
+FR — France
+INPI — Registre national des entreprises; Recherche d’entreprises; INSEE — Sirene; BODACC
+Gratis: INPI — Registre national des entreprises; Recherche d’entreprises; INSEE — Sirene; BODACC
+
+DE — Germany
+Handelsregister; Unternehmensregister; Bundesanzeiger; Insolvenzbekanntmachungen
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+BE — Belgium
+KBO / BCE — Crossroads Bank for Enterprises; NBB — Central Balance Sheet Office
+Gratis: KBO / BCE — Crossroads Bank for Enterprises; NBB — Central Balance Sheet Office
+
+DK — Denmark
+CVR — Det Centrale Virksomhedsregister
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+NO — Norway
+Brønnøysundregistrene — Enhetsregisteret
+Gratis: Brønnøysundregistrene — Enhetsregisteret
+
+FI — Finland
+PRH / YTJ — Company basic information; PRH — Digital financial statements
+Gratis: PRH / YTJ — Company basic information; PRH — Digital financial statements
+
+EE — Estonia
+e-Business Register / Äriregister
+Gratis: e-Business Register / Äriregister
+
+LV — Latvia
+Register of Enterprises / Uzņēmumu reģistrs
+Gratis: Register of Enterprises / Uzņēmumu reģistrs
+
+LT — Lithuania
+Register of Legal Entities / Juridinių asmenų registras
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+SE — Sweden
+Bolagsverket — High-value datasets; Bolagsverket — Company information
+Gratis: Bolagsverket — High-value datasets
+
+IT — Italy
+Registro Imprese / InfoCamere
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+ES — Spain
+Registro Mercantil / Registradores
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+PT — Portugal
+Registo Comercial / IRN
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+IE — Ireland
+Companies Registration Office
+Gratis: Companies Registration Office
+
+AT — Austria
+Firmenbuch
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+PL — Poland
+KRS — National Court Register; CEIDG; REGON / BIR
+Gratis: KRS — National Court Register; CEIDG; REGON / BIR
+
+CZ — Czechia
+Veřejný rejstřík / Obchodní rejstřík; ARES — Economic entities
+Gratis: ARES — Economic entities
+
+SK — Slovakia
+Obchodný register; RPO — Register of Legal Entities; RÚZ — Register of Financial Statements
+Gratis: RÚZ — Register of Financial Statements
+
+SI — Slovenia
+AJPES — Slovenian Business Register
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+HU — Hungary
+Cégnyilvántartás / e-Cégjegyzék
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+RO — Romania
+ONRC — National Trade Register
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+BG — Bulgaria
+Commercial Register / Registry Agency
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+HR — Croatia
+Sudski registar — Court Register
+Gratis: Sudski registar — Court Register
+
+GR — Greece
+GEMI — General Commercial Registry
+Gratis: GEMI — General Commercial Registry
+
+CY — Cyprus
+Registrar of Companies
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+LU — Luxembourg
+Luxembourg Business Registers / RCS
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+MT — Malta
+Malta Business Registry
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+IS — Iceland
+Skatturinn — Register of Enterprises
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+LI — Liechtenstein
+Handelsregister Liechtenstein
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+CH — Switzerland
+Zefix — Central Business Name Index
+Gratis: Zefix — Central Business Name Index
+
+RS — Serbia
+Serbian Business Registers Agency / APR
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+AL — Albania
+National Business Center / QKB
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+ME — Montenegro
+Central Registry of Business Entities / CRPS
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+MK — North Macedonia
+Central Registry of North Macedonia
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+BA — Bosnia and Herzegovina
+Court business registers of Bosnia and Herzegovina
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+MD — Moldova
+State Register of Legal Entities
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+GE — Georgia
+National Agency of Public Registry
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+TR — Türkiye
+MERSİS / Trade Registry Gazette
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+UA — Ukraine
+Unified State Register / EDR
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+AZ — Azerbaijan
+State Tax Service business register
+Gratis: Geen bevestigde gratis machinebron in deze review
+
+ALLE ENDPOINTS
+Volledige methode, pad, status, prijsveld, contracten en kostenscope: inventory.json → endpoints.
+
+Catalog registration / enabled flag / active execution contract are different. None establishes a fresh successful execution in this audit.
+Unknown means no confirmed zero-cost commercial machine-use path in this review, not proof that none exists.

@@ -1,95 +1,79 @@
-import React from "react";
+import React, { useState } from "react";
+import { DataComponent, DataTable, MetricCard, ReportSection, RichNarrative, useDataApp } from "../../data-app-public.jsx";
+import "./source-audit.css";
 
-import {
-  ChartRenderer, DataComponent, MetricCard, ReportSection, RichNarrative,
-  SortableItem, SortableRegion, useDataApp,
-} from "../../data-app-public.jsx";
-import { adoptionBrief, rate } from "./adoption-brief.js";
-import { ReportTaskLink } from "../shared/ReportTaskLink.jsx";
-
-// A complete short operating readout. Replace its question, analysis, and
-// composition for another task; none of these sections is required by the shell.
-const growthBridge = { type: "waterfall", x: "driver", y: "change",
-  xLabel: "Growth driver", yLabel: "Active accounts", startAtZero: false };
-const sectionOrder = ["report-trend", "report-methods"];
-
+const col=(key,label)=>({key,label});
+const sourceColumns=[col("name","Officiële bron"),col("country","Land"),col("delivery","API / datasettoegang"),col("cost_status","Bronkosten"),col("data_offer","Gegevens")];
+const countryColumns=[col("country","EU-land"),col("source_count","Conceptbronnen"),col("sources","Alle officiële conceptbronnen"),col("free_sources","Bronnen met gratis onderdeel")];
+function Pick({label,value,onChange,options}) {
+  return <label className="audit-pick">{label}<select aria-label={label} value={value} onChange={e=>onChange(e.target.value)}>{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>;
+}
+function EvidenceLinks({urls}) {
+  return <ul className="audit-links" data-reviewed-rows>{urls.filter(Boolean).map(url=><li key={url}><a href={url} target="_blank" rel="noreferrer">{new URL(url).hostname} · {decodeURI(new URL(url).pathname).split('/').filter(Boolean).slice(-1)[0]||'documentatie'}</a></li>)}</ul>;
+}
 export function ReportContent() {
-  const { snapshot, reviewedPeriodRows, reviewedAggregatePeriodRows, chartOverrides, chartProps, visible,
-    canEdit, mode, appTitle, setAppTitle } = useDataApp();
-  const history = reviewedAggregatePeriodRows("usage_summary");
-  const latestRows = reviewedAggregatePeriodRows("usage_summary", { period: "latest" });
-  const previousRows = reviewedAggregatePeriodRows("usage_summary", { period: "previous" });
-  const [latest] = latestRows;
-  const [previous] = previousRows;
-  const drivers = reviewedAggregatePeriodRows("growth_drivers").filter((row) => row.week === latest?.week);
-  const segments = reviewedPeriodRows("segment_usage").filter((row) => row.week === latest?.week);
-  const summary = adoptionBrief(latest, previous, drivers, segments, reviewedPeriodRows("account_health"));
-  const trend = chartOverrides["report-trend"] ?? growthBridge;
-  const sources = { usage_summary: [...latestRows, ...previousRows], growth_drivers: drivers };
-
-  return <article className="report-content" aria-label="Analytical report">
+  const {snapshot,appTitle,setAppTitle,canEdit,mode,visible}=useDataApp();
+  const rows=snapshot.queries.source_inventory.rows;
+  const countries=snapshot.queries.countries.rows;
+  const totals=snapshot.queries.inventory_totals.rows[0];
+  const [view,setView]=useState('sources');
+  const [cost,setCost]=useState('');
+  const [country,setCountry]=useState('');
+  const [delivery,setDelivery]=useState('');
+  const [selectedId,setSelectedId]=useState('fr-dinum-recherche');
+  const filtered=rows.filter(r=>(!country||r.country_codes.includes(country))&&(!cost||(cost==='free'?r.zero_cost_scope_confirmed:r.cost_code===cost))&&(!delivery||(delivery==='downloads'?r.delivery.includes('downloads')||r.delivery.startsWith('Downloads'):delivery==='api'?r.delivery.includes('API'):r.delivery==='Nog te bevestigen')));
+  const selected=filtered.find(r=>r.id===selectedId)||filtered[0];
+  const filteredCountryIds=new Set(filtered.flatMap(r=>r.country_codes));
+  const countryRows=countries.filter(c=>filteredCountryIds.has(c.id));
+  const sourceForSelectedCountry=countries.find(c=>c.id===country);
+  const reset=()=>{setCost('');setCountry('');setDelivery('');};
+  return <article className="report-content audit-report" aria-label="Officiële EU native conceptbronnen">
     <header className="report-hero">
-      <h1 data-data-app-title contentEditable={canEdit && mode === "edit"} suppressContentEditableWarning
-        aria-label={canEdit && mode === "edit" ? "Edit report heading" : undefined}
-        onBlur={canEdit && mode === "edit" ? (event) => setAppTitle(event.currentTarget.textContent.trim() || appTitle) : undefined}
-        onKeyDown={canEdit && mode === "edit" ? (event) => {
-          if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
-        } : undefined}>{appTitle}</h1>
-      <RichNarrative id="report:description" value="Are we growing against plan, what explains the movement, and where should attention go?"
-        className="report-deck" label="Edit report introduction" />
+      <div className="audit-eyebrow">EU27 · OFFICIËLE NATIONALE BRONNEN · CONCEPT</div>
+      <h1 data-data-app-title contentEditable={canEdit&&mode==='edit'} suppressContentEditableWarning onBlur={canEdit&&mode==='edit'?e=>setAppTitle(e.currentTarget.textContent.trim()||appTitle):undefined}>{appTitle}</h1>
+      <RichNarrative id="eu-audit:intro" className="report-deck" value="**Open bedrijfsdata is beschikbaar in veel EU-landen.** Frankrijk, België, Estland, Letland en Ierland bieden bijvoorbeeld registerdatasets of jaarrekeningdownloads. Finland, Zweden en Slowakije ontsluiten ook openbare datasets via API’s.\n\nBinnen deze selectie hebben **20 van de 41 officiële conceptbronnen een bevestigd gratis onderdeel**, verdeeld over 13 EU-landen." />
     </header>
-
-    {visible("report-summary") && <ReportSection id="report-summary" title={summary.title}
-      queryId="usage_summary" sourceRows={[...latestRows, ...previousRows]} showHeading={false} className="report-summary">
-      <RichNarrative id="report-summary:body" className="report-summary-lead" label="Edit finding"
-        value={`## ${summary.title}\n\n${summary.text}`} />
-    </ReportSection>}
-
-    <div className="report-facts" aria-label="Key metrics">
-      {visible("report-metric-active") && <MetricCard id="report-metric-active" title="Active accounts"
-        queryId="usage_summary" sourceRows={history} value={summary.number(latest?.activeUsers)}
-        comparison={summary.accountComparison} negative={summary.change < 0}
-        description="Distinct active accounts; change versus the preceding reviewed week."
-        trendValues={history.map((row) => row.activeUsers)} />}
-      {visible("report-metric-conversion") && <MetricCard id="report-metric-conversion" title="Activation rate"
-        queryId="usage_summary" sourceRows={history} value={rate(latest?.conversion)}
-        comparison={summary.conversionComparison} negative={latest?.conversion < previous?.conversion}
-        description={summary.conversionDescription} trendValues={history.map((row) => row.conversion)} />}
+    <div className="audit-metrics">
+      <MetricCard id="eu-audit-free" title="Met gratis onderdeel" queryId="inventory_totals" sourceRows={[totals]} displayRows={[totals]} value={totals.zero_cost_sources} description="€0 bronkosten voor de genoemde scope; registratie en voorwaarden kunnen gelden." />
+      <MetricCard id="eu-audit-commercial" title="Commerciële producten" queryId="inventory_totals" sourceRows={[totals]} displayRows={[totals]} value={totals.commercial_sources} description="Betaalde producten of contracten; geen blijvend gratis gebruik bevestigd." />
+      <MetricCard id="eu-audit-unknown" title="Nog te bevestigen" queryId="inventory_totals" sourceRows={[totals]} displayRows={[totals]} value={totals.unknown_sources} description="Machine-toegang, tarief of hergebruik nog onvoldoende bevestigd." />
     </div>
-
-    <SortableRegion id="report:sections" label="Report sections" variant="stack" authoredOrder={sectionOrder}
-      className="report-sortable-sections">
-      {visible("report-trend") && <SortableItem id="report-trend" label="What explains the movement" kind="chart">
-        <section className="report-section">
-          {visible("report-drivers") && <ReportSection id="report-drivers" title="What explains the movement" queryId="growth_drivers"
-            queryIds={["growth_drivers", "usage_summary"]} sourceRowsByQuery={sources} showHeading={false}>
-            <RichNarrative id="report-trend:interpretation" className="report-analysis" label="Edit growth analysis"
-              value={`## What explains the movement\n\n${summary.bridgeText}`} />
-          </ReportSection>}
-          {summary.bridgeValid && <DataComponent id="report-trend" title="How the account base changed" queryId="growth_drivers"
-            kind="chart" chart={trend} displayRows={drivers} sourceRows={drivers} description="Recorded contributions to the latest weekly change.">
-            <ChartRenderer spec={trend} rows={drivers} height={300} {...chartProps("report-trend")} />
-          </DataComponent>}
-        </section>
-      </SortableItem>}
-      {visible("report-methods") && <SortableItem id="report-methods" label="Where attention should go" kind="narrative">
-        <ReportSection id="report-methods" title="Where attention should go" queryId="segment_usage"
-          queryIds={summary.accounts.length ? ["segment_usage", "account_health"] : ["segment_usage"]}
-          sourceRowsByQuery={summary.accounts.length
-            ? { segment_usage: segments, account_health: summary.accounts } : { segment_usage: segments }}
-          sourceRows={segments} showHeading={false} className="report-methods">
-          <RichNarrative id="report-methods:body" className="report-caveat" label="Edit implication and evidence notes"
-            value={`## Where attention should go\n\n${summary.attention}`} />
-          <ReportTaskLink id="report-methods" narrativeId="report-methods:body"
-            text={`## Where attention should go\n\n${summary.attention}`}
-            queryId="segment_usage" queryIds={summary.accounts.length ? ["segment_usage", "account_health"] : ["segment_usage"]}>
-            Review retention risks
-          </ReportTaskLink>
-          {snapshot.status === "fixture" && <RichNarrative id="report:disclosure" className="report-disclosure"
-            value="Synthetic example. Source panels contain the reviewed definitions, rows, and queries. The growth bridge accounts for active-account movement; it does not establish the cause of the activation-rate change."
-            label="Edit source disclosure" />}
-        </ReportSection>
-      </SortableItem>}
-    </SortableRegion>
+    <ReportSection id="eu-audit-scope" title="Scope en status" queryId="source_inventory" sourceRows={rows} showHeading={false}>
+      <RichNarrative id="eu-audit:scope" value="**Land, open data en toegang zijn verschillende eigenschappen.** Een Frans bedrijfsregister kan tegelijk een nationale bron, een open dataset én een API zijn. Een API is een manier om gegevens op te vragen; downloads zijn een andere manier. De tabel maakt dat per bron zichtbaar.\n\nAlle bronnen zijn conceptintegraties voor Apiosk. Gratis betekent €0 bronkosten voor het genoemde onderdeel, met eventuele registratie en gebruiksvoorwaarden. Onderzoekspeildatum: 30 september 2026. Bij onbevestigde toegang of rechten blijft de status open." />
+    </ReportSection>
+    <nav className="audit-nav" aria-label="Overzicht kiezen">
+      <button aria-pressed={view==='sources'} onClick={()=>setView('sources')}>41 conceptbronnen</button>
+      <button aria-pressed={view==='countries'} onClick={()=>setView('countries')}>27 EU-landen</button>
+      <button className="audit-reset" onClick={reset}>Wis filters</button>
+    </nav>
+    <div className="audit-controls">
+      <Pick label="Kosten" value={cost} onChange={setCost} options={[["","Alle kostenstatussen"],["free","Alleen gratis onderdelen"],["commercial","Commerciële producten"],["unknown","Nog te bevestigen"]]}/>
+      <Pick label="EU-land" value={country} onChange={setCountry} options={[["","Alle 27 EU-landen"],...countries.map(c=>[c.id,c.country])]} />
+      <Pick label="Aanbod" value={delivery} onChange={setDelivery} options={[["","Alle toegangsvormen"],["downloads","Met datasetdownloads"],["api","Met API"],["unknown","Nog te bevestigen"]]}/>
+    </div>
+    {view==='sources'&&<>
+      {visible('audit-source-table')&&<DataComponent id="audit-source-table" title={`EU-conceptbronnen · ${filtered.length} van 41${sourceForSelectedCountry?' · '+sourceForSelectedCountry.country:''}`} queryId="source_inventory" kind="table" sourceRows={filtered} displayRows={filtered}>
+        <DataTable key={`${cost}-${country}-${delivery}`} rows={filtered} columns={sourceColumns} caption="Officiële nationale EU-conceptbronnen" rowKey="id" selectedRowKey={selected?.id} onRowSelect={r=>setSelectedId(r.id)} rowActionLabel={r=>`Bekijk ${r.name}`}/>
+      </DataComponent>}
+      {selected&&visible('audit-source-detail')&&<DataComponent id="audit-source-detail" title={selected.name} queryId="source_inventory" kind="table" sourceRows={[selected]} displayRows={[selected]} variant="card">
+        <div className="audit-detail" data-reviewed-rows>
+          <div className="audit-detail-meta"><span>{selected.country}</span><span>Conceptintegratie</span><strong>{selected.cost_status}</strong></div>
+          <dl><dt>Gegevens</dt><dd>{selected.data_offer}</dd><dt>Aanbod</dt><dd>{selected.delivery}</dd><dt>Gratis gegevens / acties</dt><dd>{selected.free_scope||'Gratis machinegebruik nog niet bevestigd.'}</dd>
+            <dt>Toegang</dt><dd>{selected.access_kind}</dd><dt>Voorwaarden</dt><dd>{selected.conditions}</dd>
+            {selected.excluded_scope&&<><dt>Overige producten</dt><dd>{selected.excluded_scope}</dd></>}
+          </dl>
+          <details><summary>{selected.proposed_actions.length} voorgestelde Apiosk-acties</summary>
+            <ul className="audit-actions">{selected.proposed_actions.map(a=><li key={a.public_name}><strong>{a.public_name}</strong><div>Invoer: {a.inputs.join(' · ')}</div><div>Uitvoer: {a.outputs.join(' · ')}</div></li>)}</ul>
+            <p>Voorgestelde contracten; de gratis scope hierboven bepaalt welke onderdelen zonder bronkosten kunnen worden geïntegreerd.</p>
+          </details>
+          <details><summary>Wat nodig is voor integratie</summary><ul>{selected.required_work.map(w=><li key={w}>{w}</li>)}</ul><p>Daarna zijn een passende adapter, gevalideerd uitvoeringscontract en succesvolle Apiosk-uitvoering nodig.</p></details>
+          <div className="audit-label">Officiële onderbouwing</div><EvidenceLinks urls={selected.evidence_urls}/>
+        </div>
+      </DataComponent>}
+    </>}
+    {view==='countries'&&visible('audit-country-table')&&<DataComponent id="audit-country-table" title={`EU-landen · ${countryRows.length} van 27`} queryId="countries" kind="table" sourceRows={countryRows} displayRows={countryRows}>
+      <RichNarrative id="eu-audit:country-guide" value="De selectie toont landen met minstens één bron die aan je kostenfilter voldoet. Iedere landenrij bevat het volledige onderzochte bronnenpakket voor dat land. Klik op een land voor de afzonderlijke bronnen."/>
+      <DataTable key={`${cost}-${country}`} rows={countryRows} columns={countryColumns} caption="Officiële conceptbronnen per EU-land" rowKey="id" onRowSelect={c=>{setCountry(c.id);setView('sources');setSelectedId(c.source_ids[0]);}} rowActionLabel={c=>`Bronnen voor ${c.country}`}/>
+    </DataComponent>}
   </article>;
 }
