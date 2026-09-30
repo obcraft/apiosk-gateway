@@ -1,0 +1,239 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "SI",
+    "name": "Slovenia",
+    "region": "EU27",
+    "native_source_ids": [
+      "si-ajpes"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000529",
+        "register": "Slovenian Business Register",
+        "jurisdiction": "Slovenia",
+        "website": "http://www.ajpes.si/?language=english"
+      },
+      {
+        "ra_code": "RA000997",
+        "register": "Register of Management Companies and Investment Funds",
+        "jurisdiction": "Slovenia",
+        "website": "https://www.a-tvp.si/eng/lists-of-issued-licences-/list-of-issued-licences"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 2
+  },
+  "sources": [
+    {
+      "source_id": "si-ajpes",
+      "name": "AJPES — Slovenian Business Register",
+      "publisher": "AJPES",
+      "country_codes": [
+        "SI"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "si",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "si.maticna",
+          "description": "Registration number; distinguish branch suffix",
+          "value_type": "string"
+        },
+        {
+          "scheme": "si.davcna",
+          "description": "Tax identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "PRS identity search and details through restPrsInfo; data tiers differ.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_api",
+        "authentication": "Contracted REST access; verify current token workflow",
+        "upstream_cost": "Tier/contract tariff to confirm",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "si.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "si.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Use restPrsInfo REST; legacy wsPrsInfo SOAP was retired 28 February 2026",
+        "Obtain credentials and authorised data tier",
+        "Add annual reports as a separate product with its own contract"
+      ],
+      "references": [
+        {
+          "url": "https://www.ajpes.si/za_razvijalce_programske_opreme",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Opis_servisa_za_razvijalce.pdf",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Documentation_for_DevOps.pdf",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000529"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "si-ajpes",
+      "name": "AJPES — Slovenian Business Register",
+      "country_codes": [
+        "SI"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Use restPrsInfo REST; legacy wsPrsInfo SOAP was retired 28 February 2026",
+      "required_work": [
+        "Use restPrsInfo REST; legacy wsPrsInfo SOAP was retired 28 February 2026",
+        "Obtain credentials and authorised data tier",
+        "Add annual reports as a separate product with its own contract"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.ajpes.si/za_razvijalce_programske_opreme",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Opis_servisa_za_razvijalce.pdf",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.ajpes.si/Doc/AJPES/Za_razvijalce/restPrsInfo_Documentation_for_DevOps.pdf",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

@@ -1,0 +1,281 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Proposed normalized company record (adapter output, not a live contract)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "source",
+    "records",
+    "coverage",
+    "missing_fields"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "status": {
+      "enum": [
+        "found",
+        "not_found",
+        "ambiguous",
+        "restricted",
+        "unavailable",
+        "unsupported"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "publisher",
+        "source_url",
+        "retrieved_at",
+        "source_updated_at"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string"
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "country_code",
+          "registration",
+          "legal_name",
+          "legal_status",
+          "legal_form",
+          "registered_address",
+          "alternate_identifiers",
+          "source_record_url"
+        ],
+        "properties": {
+          "country_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "registration": {
+            "type": "object",
+            "required": [
+              "scheme",
+              "number",
+              "authority_code"
+            ],
+            "properties": {
+              "scheme": {
+                "type": "string"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authority_code": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "court": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "register_type": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "legal_name": {
+            "type": "string"
+          },
+          "legal_status": {
+            "type": "object",
+            "required": [
+              "original",
+              "normalized"
+            ],
+            "properties": {
+              "original": {},
+              "normalized": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "legal_form": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "registered_address": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "alternate_identifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "scheme",
+                "value"
+              ],
+              "properties": {
+                "scheme": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "source_record_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "scope",
+        "complete",
+        "as_of"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string"
+        },
+        "complete": {
+          "const": false
+        },
+        "as_of": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pagination": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "missing_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "field",
+          "reason"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "not_reported",
+              "restricted",
+              "not_applicable",
+              "not_supported",
+              "unknown"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "found"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "not_found",
+              "restricted",
+              "unavailable",
+              "unsupported"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ambiguous"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "minItems": 2
+          }
+        }
+      }
+    }
+  ]
+}

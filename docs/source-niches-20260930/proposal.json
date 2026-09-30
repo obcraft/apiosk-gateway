@@ -1,0 +1,494 @@
+{
+  "schema_version": 1,
+  "status": "research_proposal_not_runtime_configuration",
+  "checked_at": "2026-09-30",
+  "scope": "Classify the existing Apiosk source universe and the new country-source specifications; evaluate public-data plus x402 combinations. No UI, production configuration, purchases or activation changed.",
+  "live_catalog": {
+    "method": "Read-only SQL using the source-browser visibility predicates and provider grouping",
+    "main_sources": 37,
+    "services": 112,
+    "pulse_services": 76,
+    "bazaar": {
+      "imported_services": 161,
+      "visible_services": 0,
+      "pending_hidden_services": 161,
+      "note": "Separate Ask-v2 external Bazaar discovery/prepare/purchase code exists. Hidden imports do not prove external discovery unavailable. Paid execution was not tested."
+    }
+  },
+  "niches": [
+    {
+      "id": "country_apis",
+      "label": "Country APIs",
+      "purpose": "Registers en concrete controles per land: bedrijven, voertuigen, identifiers en fiscale registratie.",
+      "existing_primary_source_count": 5
+    },
+    {
+      "id": "open_government_datasets",
+      "label": "Open Government & Datasets",
+      "purpose": "Statistiek, geodata, wetgeving, publicaties, subsidies, aanbestedingen en datasetcatalogi.",
+      "existing_primary_source_count": 12
+    },
+    {
+      "id": "enrichment",
+      "label": "Enrichment",
+      "purpose": "Aanvullende bedrijfs-, markt-, nieuws- en risico-informatie, inclusief beheerde toegang tot registers.",
+      "existing_primary_source_count": 10
+    },
+    {
+      "id": "search_tools",
+      "label": "Search & Tools",
+      "purpose": "Zoeken, webinhoud ophalen, extractie, domeincontroles en hulpmiddelen voor verwerking.",
+      "existing_primary_source_count": 10
+    }
+  ],
+  "display_rules": [
+    "Country remains a shared coverage filter across all four niches. A country landing page shows its registers, datasets and relevant enrichment together.",
+    "Primary niche is a navigation home, not an exclusive source type or execution constraint. Secondary listings point to the same source and contracts.",
+    "Within a network, classify the individual service/endpoint. A Pulse or Bazaar logo does not describe the capability or evidence quality.",
+    "Dataset catalog entries are discovery metadata until a data distribution and executable operation are resolved.",
+    "Show official publisher, actual API operator, discovery channel and payment method separately. x402 is not a data-quality class.",
+    "Use Known / Access pending / Execution verified as separate states; this research changes none of them."
+  ],
+  "existing_source_assignments": [
+    {
+      "source_slug": "agentbodega",
+      "name": "AgentBodega",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "ask-merlin",
+      "name": "Ask Merlin UK VAT",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "country_apis"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "bloomberg",
+      "name": "Bloomberg News",
+      "primary_niche": "enrichment",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "bodemloket",
+      "name": "Bodemloket",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "browserbase",
+      "name": "Browserbase",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "cbs-statline",
+      "name": "CBS Statistics",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "cityfalcon-financial-api",
+      "name": "CityFALCON Financial API",
+      "primary_niche": "enrichment",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "companies-house",
+      "name": "Companies House",
+      "primary_niche": "country_apis",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "crowdpull",
+      "name": "CrowdPull",
+      "primary_niche": "search_tools",
+      "secondary_niches": [
+        "enrichment"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "data-overheid-nl",
+      "name": "Dutch Open Data Register",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "primary_niche": "search_tools",
+      "secondary_niches": [
+        "enrichment"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "eodhd",
+      "name": "EODHD Market Data",
+      "primary_niche": "enrichment",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "eu-funding-tenders",
+      "name": "EU Funding & Tenders",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "eurlex-cellar",
+      "name": "EUR-Lex Cellar",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "eurostat",
+      "name": "Eurostat",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "exa",
+      "name": "Exa",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "gleif",
+      "name": "GLEIF",
+      "primary_niche": "country_apis",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "iban-check",
+      "name": "IBAN Check",
+      "primary_niche": "search_tools",
+      "secondary_niches": [
+        "country_apis"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "koop",
+      "name": "KOOP Official Publications and Regulations",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "primary_niche": "country_apis",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "linkup",
+      "name": "Linkup",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "country_apis"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "overheid-io",
+      "name": "Overheid.io Public Data",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "country_apis",
+        "open_government_datasets"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "pdok",
+      "name": "PDOK Maps & Addresses",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "pdok-ruimtelijke-plannen",
+      "name": "PDOK Ruimtelijke Plannen",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "pixelforge-x402-data-services",
+      "name": "PixelForge x402 Data Services",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "pulsenetwork",
+      "name": "Pulse Network",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "country_apis",
+        "open_government_datasets",
+        "search_tools"
+      ],
+      "service_count": 76,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "rdw",
+      "name": "RDW Vehicle Technical Data",
+      "primary_niche": "country_apis",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "reuters",
+      "name": "Reuters News",
+      "primary_niche": "enrichment",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "rvo",
+      "name": "RVO Subsidy Descriptions — First Page",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "sirenic",
+      "name": "Sirenic",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "country_apis",
+        "open_government_datasets"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "stableenrich",
+      "name": "StableEnrich",
+      "primary_niche": "enrichment",
+      "secondary_niches": [
+        "search_tools"
+      ],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "tavily",
+      "name": "Tavily",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "ted",
+      "name": "TED European Procurement Notices",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "tenderned",
+      "name": "TenderNed",
+      "primary_niche": "open_government_datasets",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "vies",
+      "name": "VIES EU VAT Validation",
+      "primary_niche": "country_apis",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    },
+    {
+      "source_slug": "webbersites",
+      "name": "WebberSites x402 Data API",
+      "primary_niche": "search_tools",
+      "secondary_niches": [],
+      "service_count": 1,
+      "classification_level": "Proposed source home; classify individual services and endpoints before filtering capabilities",
+      "execution_verified_by_this_review": false
+    }
+  ],
+  "enrichment_channels": [
+    {
+      "id": "stableenrich",
+      "role": "Commercial API aggregation",
+      "selection": "Use a specific CompanyEnrich, FullEnrich, Exa, Firecrawl or other documented operation for a missing requested field.",
+      "reference": "https://stableenrich.dev/llms.txt"
+    },
+    {
+      "id": "pulsenetwork",
+      "role": "Specialist data and analysis services",
+      "selection": "Separate deterministic data endpoints from AI synthesis; require country scope, original citations and an advantage over Apiosk processing its own data.",
+      "reference": "https://pulse.theaslangroupllc.com/"
+    },
+    {
+      "id": "coinbase-bazaar",
+      "role": "Discovery index for third-party x402 resources",
+      "selection": "Use for gaps after suitable existing accepted sources. Deduplicate already integrated merchants/endpoints; inspect the real publisher.",
+      "reference": "https://docs.cdp.coinbase.com/x402/buyer/discover-services"
+    }
+  ],
+  "sirenic_position": {
+    "role": "Specialist registry aggregator and additional company products",
+    "primary_niche": "enrichment",
+    "secondary_niches": [
+      "country_apis",
+      "open_government_datasets"
+    ],
+    "decision": "For the same national identity record, choose direct registry OR Sirenic according to tested coverage, freshness, rights, reliability and total cost. Buy both only for a specifically requested independent check with genuinely independent evidence.",
+    "reference": "https://api.sirenic.eu/.well-known/agent-card.json"
+  },
+  "routing_proposal": [
+    "Normalize the request into capabilities, subject identities, country, period and requested fields.",
+    "Match exact registered contracts. Retrieve required authoritative records or existing saved results.",
+    "Use a tested aggregator as an alternative when it offers suitable coverage/access; do not force direct access at any cost.",
+    "Compute requested field gaps; enrich only the missing fields with accepted provider operations.",
+    "Search Bazaar for unresolved capability gaps; require admission and a price before execution.",
+    "Bind country plus identifier and verify legal-entity-to-domain matches before company enrichment.",
+    "Detect duplicate endpoint offers and shared upstream facts across direct, aggregator and discovery routes.",
+    "Quote one bounded total/cap, obtain one approval, execute on the backend and preserve saved-result recovery.",
+    "Return field-level provenance, observation dates, coverage gaps and clearly separated official facts, third-party estimates and generated analysis."
+  ],
+  "implementation_changes": [
+    {
+      "area": "Catalog model",
+      "change": "Add primary_niche, secondary_niches, country coverage, publisher, operator, discovery_channels, upstream_data_family, payment_rail and output_kind at appropriate source/service/operation levels."
+    },
+    {
+      "area": "Source browser",
+      "change": "Apply four niche filters before pagination and compute counts after grouping; retain Pulse and Bazaar as grouped providers. Add shared country and readiness filters."
+    },
+    {
+      "area": "Country pages",
+      "change": "Join national registry specifications with existing public datasets and geographically applicable enrichment; do not invent coverage from a global marketing label."
+    },
+    {
+      "area": "Planner",
+      "change": "Add field-gap and alternative-route logic on exact accepted contracts. A UI tab alone must never make a source executable."
+    },
+    {
+      "area": "Result normalization",
+      "change": "Preserve country-qualified identity, verified website mapping, original units/dates and factual-versus-estimated fields."
+    },
+    {
+      "area": "Procurement and execution",
+      "change": "Reuse existing approval/treasury/receipt/recovery paths. Validate provider rights and bounded total cost before admitting a new route."
+    },
+    {
+      "area": "Integration screens",
+      "change": "Expose provider network > service > operation > evidence in source administration. Keep connected-app actions such as CRM export distinct from buying data."
+    }
+  ],
+  "evaluation": {
+    "status": "Proposed benchmark, not executed",
+    "design": "Compare official-only, official plus selected enrichment, and aggregator alternative on the same 20 public-company cases across NL, FR, FI, CZ and NO. Quote bounded costs before paid runs.",
+    "measure": [
+      "identity match correctness",
+      "requested-field completeness",
+      "facts with verifiable citations",
+      "freshness",
+      "duplicate-data rate",
+      "total charged cost",
+      "latency"
+    ],
+    "decision": "Keep enrichment only where it adds requested information or measurable integration/reliability value; reject unsupported exact numbers and redundant generic summaries."
+  }
+}

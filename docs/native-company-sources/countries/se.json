@@ -1,0 +1,481 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "SE",
+    "name": "Sweden",
+    "region": "EU27",
+    "native_source_ids": [
+      "se-bolagsverket-hvd",
+      "se-bolagsverket-information"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000544",
+        "register": "Companies Register",
+        "jurisdiction": "Sweden",
+        "website": "www.bolagsverket.se"
+      },
+      {
+        "ra_code": "RA000545",
+        "register": "",
+        "jurisdiction": "Sweden",
+        "website": "www.scb.se/en_/"
+      },
+      {
+        "ra_code": "RA000546",
+        "register": "",
+        "jurisdiction": "Sweden",
+        "website": "www.skatteverket.se/servicelankar/otherlanguages/inenglish.4.12815e4f14a62bc048f4edc.html"
+      },
+      {
+        "ra_code": "RA000547",
+        "register": "",
+        "jurisdiction": "Sweden",
+        "website": "http://www.fi.se/Folder-EN/Startpage/"
+      },
+      {
+        "ra_code": "RA000735",
+        "register": "The county administrative boards' common foundation database",
+        "jurisdiction": "Sweden",
+        "website": "https://stiftelser.lansstyrelsen.se/StiftWeb/SSearch.aspx"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 2
+  },
+  "sources": [
+    {
+      "source_id": "se-bolagsverket-hvd",
+      "name": "Bolagsverket — High-value datasets",
+      "publisher": "Bolagsverket / Statistics Sweden",
+      "country_codes": [
+        "SE"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "se",
+        "profile",
+        "filings.list",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "se.organisationsnummer",
+          "description": "10 digits; preserve original display and entity category",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Basic company information, SNI activity and digitally submitted annual reports in the HVD product.",
+        "limitations": "HVD is a specific dataset scope. Rich company information and UBO are different products.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_public_api",
+        "authentication": "Technical API access setup to confirm in portal",
+        "upstream_cost": "HVD is free and no commercial agreement required",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "se.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "se.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "se.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Register the technical client in the API portal and verify OAuth configuration",
+        "Choose HVD operations explicitly so free data does not use the paid product",
+        "Preserve digital-filing coverage and distinguish report indexes from financial statement contents"
+      ],
+      "references": [
+        {
+          "url": "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/apiforvardefulladatamangder.5513.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://bolagsverket.se/apierochoppnadata/driftochsupport/fragorochsvaromapierna.4611.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000544"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "se-bolagsverket-information",
+      "name": "Bolagsverket — Company information",
+      "publisher": "Bolagsverket",
+      "country_codes": [
+        "SE"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "se",
+        "profile",
+        "officers.list",
+        "filings.list",
+        "filing.document"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "se.organisationsnummer",
+          "description": "Organisation number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Broader registered company information, representatives, status and document metadata.",
+        "limitations": "Public company-data contract is not UBO entitlement; official advertised throughput 20 requests/sec per user.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "licensed_api",
+        "authentication": "OAuth 2 client credentials; UBO uses separate eligibility/mTLS",
+        "upstream_cost": "Transaction-tier agreement",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "se.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "se.company.officers.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "officers.list",
+          "inputs": [
+            "resolved registry entity"
+          ],
+          "outputs": [
+            "public role",
+            "person/organisation identity as disclosed",
+            "appointment/resignation dates",
+            "source"
+          ],
+          "coverage_rule": "Officer is not necessarily shareholder or UBO.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "se.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "se.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Sign product agreement and select transaction tier",
+        "Add OAuth client_credentials and separately eligible mTLS UBO product only when authorised",
+        "Route HVD-scope requests to the free HVD product"
+      ],
+      "references": [
+        {
+          "url": "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/apiforatthamtaforetagsinformation.3988.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000544"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "se-bolagsverket-hvd",
+      "name": "Bolagsverket — High-value datasets",
+      "country_codes": [
+        "SE"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Register the technical client in the API portal and verify OAuth configuration",
+      "required_work": [
+        "Register the technical client in the API portal and verify OAuth configuration",
+        "Choose HVD operations explicitly so free data does not use the paid product",
+        "Preserve digital-filing coverage and distinguish report indexes from financial statement contents"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/apiforvardefulladatamangder.5513.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://bolagsverket.se/apierochoppnadata/driftochsupport/fragorochsvaromapierna.4611.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "se-bolagsverket-information",
+      "name": "Bolagsverket — Company information",
+      "country_codes": [
+        "SE"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Sign product agreement and select transaction tier",
+      "required_work": [
+        "Sign product agreement and select transaction tier",
+        "Add OAuth client_credentials and separately eligible mTLS UBO product only when authorised",
+        "Route HVD-scope requests to the free HVD product"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/apiforatthamtaforetagsinformation.3988.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

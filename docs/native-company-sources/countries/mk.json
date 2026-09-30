@@ -1,0 +1,244 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "MK",
+    "name": "North Macedonia",
+    "region": "European_neighbour_or_UK",
+    "native_source_ids": [
+      "mk-central-registry"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000437",
+        "register": "Central Register (Trade Register)",
+        "jurisdiction": "North Macedonia",
+        "website": "www.crm.com.mk"
+      },
+      {
+        "ra_code": "RA000968",
+        "register": "Registry of Investment Funds, Fund Management Entities",
+        "jurisdiction": "North Macedonia",
+        "website": "https://sec.gov.mk/"
+      },
+      {
+        "ra_code": "RA000969",
+        "register": "",
+        "jurisdiction": "North Macedonia",
+        "website": "https://www.nbrm.mk/pocetna-en.nspx"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 4
+  },
+  "sources": [
+    {
+      "source_id": "mk-central-registry",
+      "name": "Central Registry of North Macedonia",
+      "publisher": "Central Registry of the Republic of North Macedonia",
+      "country_codes": [
+        "MK"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "mk",
+        "search",
+        "profile",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "mk.embs",
+          "description": "Entity registration number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "mk.edb",
+          "description": "Tax identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Registered entity profiles, certificates and financial information products.",
+        "limitations": "Outside EU/EEA; a distribution portal is not by itself an API.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "contract_access_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "Prepaid information products; machine-access tariff to confirm",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "mk.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "mk.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "mk.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 4,
+      "required_work": [
+        "Assess prepaid distribution-system products and request supported automated access",
+        "Confirm product tariff and onward-use agreement",
+        "Separate basic entity information from ordered certified products"
+      ],
+      "references": [
+        {
+          "url": "https://www.crm.com.mk/en/services/obtain-information-or-confirmation-/information-and-certificate-packages/access-to-data-via-the-online-distribution-system",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000437"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "European_neighbour_or_UK",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "mk-central-registry",
+      "name": "Central Registry of North Macedonia",
+      "country_codes": [
+        "MK"
+      ],
+      "catalog_section": "countries",
+      "priority": 4,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Assess prepaid distribution-system products and request supported automated access",
+      "required_work": [
+        "Assess prepaid distribution-system products and request supported automated access",
+        "Confirm product tariff and onward-use agreement",
+        "Separate basic entity information from ordered certified products"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.crm.com.mk/en/services/obtain-information-or-confirmation-/information-and-certificate-packages/access-to-data-via-the-online-distribution-system",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

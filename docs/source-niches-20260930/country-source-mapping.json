@@ -1,0 +1,885 @@
+{
+  "status": "proposal_not_activation",
+  "checked_at": "2026-09-30",
+  "source_catalog": "../native-company-sources/catalog.json",
+  "records": [
+    {
+      "source_id": "kvk-dutch-business-register",
+      "name": "KVK Handelsregister",
+      "country_codes": [
+        "NL"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": true,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "companies-house",
+      "name": "Companies House",
+      "country_codes": [
+        "GB"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": true,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fr-inpi-rne",
+      "name": "INPI — Registre national des entreprises",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "de-handelsregister",
+      "name": "Handelsregister",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "be-kbo-bce",
+      "name": "KBO / BCE — Crossroads Bank for Enterprises",
+      "country_codes": [
+        "BE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "dk-cvr",
+      "name": "CVR — Det Centrale Virksomhedsregister",
+      "country_codes": [
+        "DK"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "no-brreg",
+      "name": "Brønnøysundregistrene — Enhetsregisteret",
+      "country_codes": [
+        "NO"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fi-prh-ytj",
+      "name": "PRH / YTJ — Company basic information",
+      "country_codes": [
+        "FI"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ee-rik-business-register",
+      "name": "e-Business Register / Äriregister",
+      "country_codes": [
+        "EE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "lv-ur",
+      "name": "Register of Enterprises / Uzņēmumu reģistrs",
+      "country_codes": [
+        "LV"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "lt-registru-centras",
+      "name": "Register of Legal Entities / Juridinių asmenų registras",
+      "country_codes": [
+        "LT"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "se-bolagsverket-hvd",
+      "name": "Bolagsverket — High-value datasets",
+      "country_codes": [
+        "SE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "it-infocamere",
+      "name": "Registro Imprese / InfoCamere",
+      "country_codes": [
+        "IT"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "es-registro-mercantil",
+      "name": "Registro Mercantil / Registradores",
+      "country_codes": [
+        "ES"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "pt-irn",
+      "name": "Registo Comercial / IRN",
+      "country_codes": [
+        "PT"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ie-cro",
+      "name": "Companies Registration Office",
+      "country_codes": [
+        "IE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "at-firmenbuch",
+      "name": "Firmenbuch",
+      "country_codes": [
+        "AT"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "pl-krs",
+      "name": "KRS — National Court Register",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "cz-commercial-register",
+      "name": "Veřejný rejstřík / Obchodní rejstřík",
+      "country_codes": [
+        "CZ"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "sk-commercial-register",
+      "name": "Obchodný register",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "si-ajpes",
+      "name": "AJPES — Slovenian Business Register",
+      "country_codes": [
+        "SI"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "hu-company-register",
+      "name": "Cégnyilvántartás / e-Cégjegyzék",
+      "country_codes": [
+        "HU"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ro-onrc",
+      "name": "ONRC — National Trade Register",
+      "country_codes": [
+        "RO"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "bg-registry-agency",
+      "name": "Commercial Register / Registry Agency",
+      "country_codes": [
+        "BG"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "hr-sudreg",
+      "name": "Sudski registar — Court Register",
+      "country_codes": [
+        "HR"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "gr-gemi",
+      "name": "GEMI — General Commercial Registry",
+      "country_codes": [
+        "GR"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "cy-registrar",
+      "name": "Registrar of Companies",
+      "country_codes": [
+        "CY"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "lu-lbr-rcs",
+      "name": "Luxembourg Business Registers / RCS",
+      "country_codes": [
+        "LU"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "mt-mbr",
+      "name": "Malta Business Registry",
+      "country_codes": [
+        "MT"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "is-skatturinn",
+      "name": "Skatturinn — Register of Enterprises",
+      "country_codes": [
+        "IS"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "li-handelsregister",
+      "name": "Handelsregister Liechtenstein",
+      "country_codes": [
+        "LI"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ch-zefix",
+      "name": "Zefix — Central Business Name Index",
+      "country_codes": [
+        "CH"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "rs-apr",
+      "name": "Serbian Business Registers Agency / APR",
+      "country_codes": [
+        "RS"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "al-qkb",
+      "name": "National Business Center / QKB",
+      "country_codes": [
+        "AL"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "me-crps",
+      "name": "Central Registry of Business Entities / CRPS",
+      "country_codes": [
+        "ME"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "mk-central-registry",
+      "name": "Central Registry of North Macedonia",
+      "country_codes": [
+        "MK"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ba-business-registers",
+      "name": "Court business registers of Bosnia and Herzegovina",
+      "country_codes": [
+        "BA"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "md-asp",
+      "name": "State Register of Legal Entities",
+      "country_codes": [
+        "MD"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ge-napr",
+      "name": "National Agency of Public Registry",
+      "country_codes": [
+        "GE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "tr-mersis",
+      "name": "MERSİS / Trade Registry Gazette",
+      "country_codes": [
+        "TR"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ua-edr",
+      "name": "Unified State Register / EDR",
+      "country_codes": [
+        "UA"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "az-state-tax-register",
+      "name": "State Tax Service business register",
+      "country_codes": [
+        "AZ"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fr-dinum-recherche",
+      "name": "Recherche d’entreprises",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_derived_index",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fr-insee-sirene",
+      "name": "INSEE — Sirene",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_statistical_register",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fr-bodacc",
+      "name": "BODACC",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_gazette",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "de-unternehmensregister",
+      "name": "Unternehmensregister",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_filings",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "de-bundesanzeiger",
+      "name": "Bundesanzeiger",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_gazette",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "de-insolvency-notices",
+      "name": "Insolvenzbekanntmachungen",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_insolvency",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "nl-cir",
+      "name": "Centraal Insolventieregister",
+      "country_codes": [
+        "NL"
+      ],
+      "source_class": "official_insolvency",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "be-nbb-accounts",
+      "name": "NBB — Central Balance Sheet Office",
+      "country_codes": [
+        "BE"
+      ],
+      "source_class": "official_filings",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "fi-prh-financials",
+      "name": "PRH — Digital financial statements",
+      "country_codes": [
+        "FI"
+      ],
+      "source_class": "official_filings",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "se-bolagsverket-information",
+      "name": "Bolagsverket — Company information",
+      "country_codes": [
+        "SE"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "cz-ares",
+      "name": "ARES — Economic entities",
+      "country_codes": [
+        "CZ"
+      ],
+      "source_class": "official_derived_index",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "pl-ceidg",
+      "name": "CEIDG",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "national_registry",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "pl-regon",
+      "name": "REGON / BIR",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "official_statistical_register",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "sk-rpo",
+      "name": "RPO — Register of Legal Entities",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "official_master_register",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "sk-ruz",
+      "name": "RÚZ — Register of Financial Statements",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "official_filings",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "gleif",
+      "name": "GLEIF LEI data",
+      "country_codes": [],
+      "source_class": "cross_border_identity",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": true,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "gleif-registration-authorities",
+      "name": "GLEIF Registration Authorities List",
+      "country_codes": [],
+      "source_class": "registry_directory",
+      "primary_niche": "open_government_datasets",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": true,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "bris",
+      "name": "BRIS — Find a company",
+      "country_codes": [],
+      "source_class": "register_interconnection",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "ebra-directory",
+      "name": "EBRA Worldwide Registers",
+      "country_codes": [],
+      "source_class": "registry_directory",
+      "primary_niche": "open_government_datasets",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": true,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "vies",
+      "name": "VIES EU VAT Validation",
+      "country_codes": [],
+      "source_class": "tax_validation",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": true,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "opencorporates",
+      "name": "OpenCorporates",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "orbis",
+      "name": "Moody’s Orbis",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "dnb-directplus",
+      "name": "Dun & Bradstreet Direct+",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "creditsafe-connect",
+      "name": "Creditsafe Connect",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "company-info",
+      "name": "Company.info",
+      "country_codes": [
+        "NL"
+      ],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "graydoncreditsafe-legacy",
+      "name": "GraydonCreditsafe legacy APIs",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "sayari",
+      "name": "Sayari",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "north-data",
+      "name": "North Data",
+      "country_codes": [],
+      "source_class": "commercial_aggregator",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "boris",
+      "name": "BORIS / national beneficial-owner registers",
+      "country_codes": [],
+      "source_class": "restricted_ownership",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "openownership-datasets",
+      "name": "Open Ownership BODS datasets",
+      "country_codes": [],
+      "source_class": "ownership_dataset",
+      "primary_niche": "open_government_datasets",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "opensanctions",
+      "name": "OpenSanctions",
+      "country_codes": [],
+      "source_class": "risk_enrichment",
+      "primary_niche": "enrichment",
+      "already_in_37_source_inventory": true,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "icij-offshore-leaks",
+      "name": "ICIJ Offshore Leaks",
+      "country_codes": [],
+      "source_class": "investigative_dataset",
+      "primary_niche": "open_government_datasets",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "occrp-aleph",
+      "name": "OCCRP Aleph",
+      "country_codes": [],
+      "source_class": "investigative_dataset",
+      "primary_niche": "open_government_datasets",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    },
+    {
+      "source_id": "us-sec-edgar",
+      "name": "SEC EDGAR",
+      "country_codes": [
+        "US"
+      ],
+      "source_class": "official_filings",
+      "primary_niche": "country_apis",
+      "already_in_37_source_inventory": false,
+      "discovery_reference_only": false,
+      "note": "Proposed navigation mapping only; preserves access/readiness limitations from native-company-sources/catalog.json."
+    }
+  ]
+}

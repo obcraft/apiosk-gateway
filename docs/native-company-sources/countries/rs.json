@@ -1,0 +1,254 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "RS",
+    "name": "Serbia",
+    "region": "European_neighbour_or_UK",
+    "native_source_ids": [
+      "rs-apr"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000517",
+        "register": "Business Entities Register - Companies",
+        "jurisdiction": "Serbia",
+        "website": "www.apr.gov.rs/eng/home.aspx"
+      },
+      {
+        "ra_code": "RA000518",
+        "register": "",
+        "jurisdiction": "Serbia",
+        "website": "http://www.crhov.rs/"
+      },
+      {
+        "ra_code": "RA000684",
+        "register": "Register of Investment Funds",
+        "jurisdiction": "Serbia",
+        "website": "http://www.sec.gov.rs/index.php/en/public-registers-of-information/register-of-investment-funds"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 4
+  },
+  "sources": [
+    {
+      "source_id": "rs-apr",
+      "name": "Serbian Business Registers Agency / APR",
+      "publisher": "APR / SBRA",
+      "country_codes": [
+        "RS"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "rs",
+        "search",
+        "profile",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "rs.maticni_broj",
+          "description": "Registration number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "rs.pib",
+          "description": "Tax identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Serbian company/entrepreneur registry and separate financial-statement products.",
+        "limitations": "Outside EU/EEA. APR expressly distinguishes supported browser/web-service access from unauthorised automated downloading.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "contracted_webservice",
+        "authentication": "Authorised web-service agreement",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "rs.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "rs.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "rs.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 4,
+      "required_work": [
+        "Request authorised automated issuance/web-service access",
+        "Obtain schema, current price and redistribution entitlement",
+        "Preserve Serbian names and transliteration without merging entities by name"
+      ],
+      "references": [
+        {
+          "url": "https://www.apr.gov.rs/searches.4090.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.apr.gov.rs/home.4742.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000517"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "European_neighbour_or_UK",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "rs-apr",
+      "name": "Serbian Business Registers Agency / APR",
+      "country_codes": [
+        "RS"
+      ],
+      "catalog_section": "countries",
+      "priority": 4,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request authorised automated issuance/web-service access",
+      "required_work": [
+        "Request authorised automated issuance/web-service access",
+        "Obtain schema, current price and redistribution entitlement",
+        "Preserve Serbian names and transliteration without merging entities by name"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.apr.gov.rs/searches.4090.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.apr.gov.rs/home.4742.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

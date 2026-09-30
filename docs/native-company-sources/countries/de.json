@@ -1,0 +1,1849 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "DE",
+    "name": "Germany",
+    "region": "EU27",
+    "native_source_ids": [
+      "de-handelsregister",
+      "de-unternehmensregister",
+      "de-bundesanzeiger",
+      "de-insolvency-notices"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000197",
+        "register": "Commercial Register",
+        "jurisdiction": "Aachen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000199",
+        "register": "Commercial Register",
+        "jurisdiction": "Altenburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000200",
+        "register": "Commercial Register",
+        "jurisdiction": "Amberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000201",
+        "register": "Commercial Register",
+        "jurisdiction": "Ansbach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000202",
+        "register": "Commercial Register",
+        "jurisdiction": "Apolda",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000203",
+        "register": "Commercial Register",
+        "jurisdiction": "Arnsberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000204",
+        "register": "Commercial Register",
+        "jurisdiction": "Arnstadt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000205",
+        "register": "Commercial Register",
+        "jurisdiction": "Aschaffenburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000206",
+        "register": "Commercial Register",
+        "jurisdiction": "Augsburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000207",
+        "register": "Commercial Register",
+        "jurisdiction": "Aurich",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000208",
+        "register": "Commercial Register",
+        "jurisdiction": "Bad Hersfeld",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000209",
+        "register": "Commercial Register",
+        "jurisdiction": "Bad Homburg v. d. Höhe",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000210",
+        "register": "Commercial Register",
+        "jurisdiction": "Bad Kreuznach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000213",
+        "register": "Commercial Register",
+        "jurisdiction": "Bad Oeynhausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000214",
+        "register": "Commercial Register",
+        "jurisdiction": "Bad Salzungen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000215",
+        "register": "Commercial Register",
+        "jurisdiction": "Bamberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000704",
+        "register": "Foundations Directory",
+        "jurisdiction": "Bavaria",
+        "website": "http://www.stiftungen.bayern.de/"
+      },
+      {
+        "ra_code": "RA000216",
+        "register": "Commercial Register",
+        "jurisdiction": "Bayreuth",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000217",
+        "register": "Commercial Register",
+        "jurisdiction": "Berlin-Charlottenburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000727",
+        "register": "Foundations Directory",
+        "jurisdiction": "Berlin",
+        "website": "https://www.berlin.de/sen/justiz/service/stiftungsaufsicht/artikel.275316.php"
+      },
+      {
+        "ra_code": "RA000218",
+        "register": "Commercial Register",
+        "jurisdiction": "Bielefeld",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000219",
+        "register": "Commercial Register",
+        "jurisdiction": "Bochum",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000220",
+        "register": "Commercial Register",
+        "jurisdiction": "Bonn",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000733",
+        "register": "Foundations Directory",
+        "jurisdiction": "Brandenburg",
+        "website": "https://mik.brandenburg.de/sixcms/detail.php/bb1.c.243051.de"
+      },
+      {
+        "ra_code": "RA000221",
+        "register": "Commercial Register",
+        "jurisdiction": "Braunschweig",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000772",
+        "register": "Foundations Directory",
+        "jurisdiction": "Braunschweig",
+        "website": "https://www.arl-bs.niedersachsen.de/startseite/grundbesitz_stiftungen/stiftungen/stiftungen-125836.html"
+      },
+      {
+        "ra_code": "RA000222",
+        "register": "Commercial Register",
+        "jurisdiction": "Bremen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000742",
+        "register": "Foundations Directory",
+        "jurisdiction": "Bremen",
+        "website": "https://www.inneres.bremen.de/inneres/buerger_und_staat/stiftungen-2121"
+      },
+      {
+        "ra_code": "RA000224",
+        "register": "Commercial Register",
+        "jurisdiction": "Chemnitz",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000225",
+        "register": "Commercial Register",
+        "jurisdiction": "Coburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000226",
+        "register": "Commercial Register",
+        "jurisdiction": "Coesfeld",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000227",
+        "register": "Commercial Register",
+        "jurisdiction": "Cottbus",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000233",
+        "register": "Commercial Register",
+        "jurisdiction": "Düren",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000234",
+        "register": "Commercial Register",
+        "jurisdiction": "Düsseldorf",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000228",
+        "register": "Commercial Register",
+        "jurisdiction": "Darmstadt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000229",
+        "register": "Commercial Register",
+        "jurisdiction": "Deggendorf",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000230",
+        "register": "Commercial Register",
+        "jurisdiction": "Dortmund",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000712",
+        "register": "Foundations Directory for Dortmund",
+        "jurisdiction": "Dortmund",
+        "website": "https://www.dortmunder-stiftungsportal.de/stiftungen/register"
+      },
+      {
+        "ra_code": "RA000231",
+        "register": "Commercial Register",
+        "jurisdiction": "Dresden",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000232",
+        "register": "Commercial Register",
+        "jurisdiction": "Duisburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000235",
+        "register": "Commercial Register",
+        "jurisdiction": "Eisenach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000236",
+        "register": "Commercial Register",
+        "jurisdiction": "Erfurt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000238",
+        "register": "Commercial Register",
+        "jurisdiction": "Eschwege",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000239",
+        "register": "Commercial Register",
+        "jurisdiction": "Essen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000247",
+        "register": "Commercial Register",
+        "jurisdiction": "Fürth",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000240",
+        "register": "Commercial Register",
+        "jurisdiction": "Flensburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000241",
+        "register": "Commercial Register",
+        "jurisdiction": "Frankfurt (Oder)",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000242",
+        "register": "Commercial Register",
+        "jurisdiction": "Frankfurt am Main",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000243",
+        "register": "Commercial Register",
+        "jurisdiction": "Freiburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000770",
+        "register": "Foundations Directory",
+        "jurisdiction": "Freiburg",
+        "website": "http://www.rp.landbw.de/stvz/apex/f?p=110:1::NO:::P1_RP:FRE"
+      },
+      {
+        "ra_code": "RA000244",
+        "register": "Commercial Register",
+        "jurisdiction": "Friedberg (Hessen)",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000245",
+        "register": "Commercial Register",
+        "jurisdiction": "Fritzlar",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000246",
+        "register": "Commercial Register",
+        "jurisdiction": "Fulda",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000253",
+        "register": "Commercial Register",
+        "jurisdiction": "Göttingen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000257",
+        "register": "Commercial Register",
+        "jurisdiction": "Gütersloh",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000249",
+        "register": "Commercial Register",
+        "jurisdiction": "Gelsenkirchen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000250",
+        "register": "Commercial Register",
+        "jurisdiction": "Gera",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000372",
+        "register": "Company Register",
+        "jurisdiction": "Germany",
+        "website": "https://www.unternehmensregister.de"
+      },
+      {
+        "ra_code": "RA000373",
+        "register": "",
+        "jurisdiction": "Germany",
+        "website": "https://www.bafin.de/EN/Aufsicht/unternehmen_node_en.html"
+      },
+      {
+        "ra_code": "RA000663",
+        "register": "",
+        "jurisdiction": "Germany",
+        "website": "https://www.statistikportal.de/de/produkte/gemeindeverzeichnis"
+      },
+      {
+        "ra_code": "RA000764",
+        "register": "Official Nationwide Register Of Lawyers",
+        "jurisdiction": "Germany",
+        "website": "https://www.bea-brak.de/bravsearch/search.brak"
+      },
+      {
+        "ra_code": "RA000765",
+        "register": "Official directory of tax advisors",
+        "jurisdiction": "Germany",
+        "website": "https://www.bstbk.de/de/"
+      },
+      {
+        "ra_code": "RA000766",
+        "register": "Register of Statutory Auditors",
+        "jurisdiction": "Germany",
+        "website": "https://www.wpk.de/eng/"
+      },
+      {
+        "ra_code": "RA001076",
+        "register": "",
+        "jurisdiction": "Germany",
+        "website": "https://www.bundeswahlleiterin.de/parteien.html"
+      },
+      {
+        "ra_code": "RA000251",
+        "register": "Commercial Register",
+        "jurisdiction": "Gießen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000252",
+        "register": "Commercial Register",
+        "jurisdiction": "Gotha",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000255",
+        "register": "Commercial Register",
+        "jurisdiction": "Greiz",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000258",
+        "register": "Commercial Register",
+        "jurisdiction": "Hagen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000259",
+        "register": "Commercial Register",
+        "jurisdiction": "Hamburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000738",
+        "register": "Foundations Directory",
+        "jurisdiction": "Hamburg",
+        "website": "https://gateway.hamburg.de/hamburggateway/fvp/fv/Justiz/Stiftungsdatenbank/?sid=55"
+      },
+      {
+        "ra_code": "RA000260",
+        "register": "Commercial Register",
+        "jurisdiction": "Hamm",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000261",
+        "register": "Commercial Register",
+        "jurisdiction": "Hanau",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000262",
+        "register": "Commercial Register",
+        "jurisdiction": "Hannover",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000263",
+        "register": "Commercial Register",
+        "jurisdiction": "Heilbad Heiligenstadt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000722",
+        "register": "Foundations Directory",
+        "jurisdiction": "Hesse",
+        "website": "https://service.hessen.de/html/Einsicht-in-das-Stiftungsverzeichnis-9109.htm"
+      },
+      {
+        "ra_code": "RA000266",
+        "register": "Commercial Register",
+        "jurisdiction": "Hildburghausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000267",
+        "register": "Commercial Register",
+        "jurisdiction": "Hildesheim",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000268",
+        "register": "Commercial Register",
+        "jurisdiction": "Hof",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000269",
+        "register": "Commercial Register",
+        "jurisdiction": "Homburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000271",
+        "register": "Commercial Register",
+        "jurisdiction": "Ingolstadt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000272",
+        "register": "Commercial Register",
+        "jurisdiction": "Iserlohn",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000273",
+        "register": "Commercial Register",
+        "jurisdiction": "Jena",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000280",
+        "register": "Commercial Register",
+        "jurisdiction": "Köln",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000281",
+        "register": "Commercial Register",
+        "jurisdiction": "Königstein im Taunus",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000274",
+        "register": "Commercial Register",
+        "jurisdiction": "Kaiserslautern",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000769",
+        "register": "Foundations Directory",
+        "jurisdiction": "Karlsruhe",
+        "website": "http://www.rp.landbw.de/stvz/apex/f?p=110:1::NO:::P1_RP:KAR"
+      },
+      {
+        "ra_code": "RA000275",
+        "register": "Commercial Register",
+        "jurisdiction": "Kassel",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000276",
+        "register": "Commercial Register",
+        "jurisdiction": "Kempten",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000277",
+        "register": "Commercial Register",
+        "jurisdiction": "Kiel",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000278",
+        "register": "Commercial Register",
+        "jurisdiction": "Kleve",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000279",
+        "register": "Commercial Register",
+        "jurisdiction": "Koblenz",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000282",
+        "register": "Commercial Register",
+        "jurisdiction": "Korbach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000283",
+        "register": "Commercial Register",
+        "jurisdiction": "Krefeld",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000290",
+        "register": "Commercial Register",
+        "jurisdiction": "Lübeck",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000293",
+        "register": "Commercial Register",
+        "jurisdiction": "Lüneburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000774",
+        "register": "Foundations Directory",
+        "jurisdiction": "Lüneburg",
+        "website": "https://www.arl-lg.niedersachsen.de/startseite/unsere_themen_neu/beratung_und_genehmigung_von_stiftungen/im-dialog-mit-den-stiftungen-125375.html"
+      },
+      {
+        "ra_code": "RA000284",
+        "register": "Commercial Register",
+        "jurisdiction": "Landau in der Pfalz",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000285",
+        "register": "Commercial Register",
+        "jurisdiction": "Landshut",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000286",
+        "register": "Commercial Register",
+        "jurisdiction": "Lebach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000773",
+        "register": "Foundations Directory",
+        "jurisdiction": "Leine Weser",
+        "website": "https://www.arl-lw.niedersachsen.de/stiftungen"
+      },
+      {
+        "ra_code": "RA000287",
+        "register": "Commercial Register",
+        "jurisdiction": "Leipzig",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000288",
+        "register": "Commercial Register",
+        "jurisdiction": "Lemgo",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000289",
+        "register": "Commercial Register",
+        "jurisdiction": "Limburg a. d. Lahn",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000291",
+        "register": "Commercial Register",
+        "jurisdiction": "Ludwigshafen am Rhein",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000301",
+        "register": "Commercial Register",
+        "jurisdiction": "Mönchengladbach",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000303",
+        "register": "Commercial Register",
+        "jurisdiction": "Mühlhausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000304",
+        "register": "Commercial Register",
+        "jurisdiction": "München",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000305",
+        "register": "Commercial Register",
+        "jurisdiction": "Münster",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000295",
+        "register": "Commercial Register",
+        "jurisdiction": "Mainz",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000296",
+        "register": "Commercial Register",
+        "jurisdiction": "Mannheim",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000297",
+        "register": "Commercial Register",
+        "jurisdiction": "Marburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000743",
+        "register": "Foundations Directory",
+        "jurisdiction": "Mecklenburg-Western Pomerania",
+        "website": "https://www.regierung-mv.de/Landesregierung/jm/Zustaendigkeiten/Stiftungswesen/"
+      },
+      {
+        "ra_code": "RA000298",
+        "register": "Commercial Register",
+        "jurisdiction": "Meiningen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000299",
+        "register": "Commercial Register",
+        "jurisdiction": "Memmingen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000300",
+        "register": "Commercial Register",
+        "jurisdiction": "Merzig",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000302",
+        "register": "Commercial Register",
+        "jurisdiction": "Montabaur",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000311",
+        "register": "Commercial Register",
+        "jurisdiction": "Nürnberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000306",
+        "register": "Commercial Register",
+        "jurisdiction": "Neubrandenburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000307",
+        "register": "Commercial Register",
+        "jurisdiction": "Neunkirchen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000308",
+        "register": "Commercial Register",
+        "jurisdiction": "Neuruppin",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000309",
+        "register": "Commercial Register",
+        "jurisdiction": "Neuss",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000310",
+        "register": "Commercial Register",
+        "jurisdiction": "Nordhausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000711",
+        "register": "Foundations Directory",
+        "jurisdiction": "North Rhine-Westphalia",
+        "website": "https://www.im.nrw/stiftungsverzeichnis/stiftungen-suchen"
+      },
+      {
+        "ra_code": "RA000313",
+        "register": "Commercial Register",
+        "jurisdiction": "Offenbach am Main",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000314",
+        "register": "Commercial Register",
+        "jurisdiction": "Oldenburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000315",
+        "register": "Commercial Register",
+        "jurisdiction": "Osnabrück",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000316",
+        "register": "Commercial Register",
+        "jurisdiction": "Ottweiler",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000321",
+        "register": "Commercial Register",
+        "jurisdiction": "Pößneck",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000317",
+        "register": "Commercial Register",
+        "jurisdiction": "Paderborn",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000319",
+        "register": "Commercial Register",
+        "jurisdiction": "Passau",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000320",
+        "register": "Commercial Register",
+        "jurisdiction": "Pinneberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000322",
+        "register": "Commercial Register",
+        "jurisdiction": "Potsdam",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000324",
+        "register": "Commercial Register",
+        "jurisdiction": "Recklinghausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000325",
+        "register": "Commercial Register",
+        "jurisdiction": "Regensburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000737",
+        "register": "Foundations Directory",
+        "jurisdiction": "Rhineland-Palatinate",
+        "website": "http://addinter.service24.rlp.de/cgi-bin-inter/stiftung1.mbr/start"
+      },
+      {
+        "ra_code": "RA000328",
+        "register": "Commercial Register",
+        "jurisdiction": "Rostock",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000329",
+        "register": "Commercial Register",
+        "jurisdiction": "Rudolstadt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000342",
+        "register": "Commercial Register",
+        "jurisdiction": "Sömmerda",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000331",
+        "register": "Commercial Register",
+        "jurisdiction": "Saarbrücken",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000741",
+        "register": "Foundations Directory",
+        "jurisdiction": "Saarland",
+        "website": "https://www.saarland.de/4402.htm"
+      },
+      {
+        "ra_code": "RA000332",
+        "register": "Commercial Register",
+        "jurisdiction": "Saarlouis",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000333",
+        "register": "Commercial Register",
+        "jurisdiction": "Sankt Ingbert",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000334",
+        "register": "Commercial Register",
+        "jurisdiction": "Sankt Wendel",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000740",
+        "register": "Foundations Directory",
+        "jurisdiction": "Saxony-Anhalt",
+        "website": "https://stiftungen.sachsen-anhalt.de/"
+      },
+      {
+        "ra_code": "RA000739",
+        "register": "Foundations Directory",
+        "jurisdiction": "Saxony",
+        "website": "https://www.lds.sachsen.de/kommunal21/?ID=104&art_param=12"
+      },
+      {
+        "ra_code": "RA000723",
+        "register": "Foundations Directory",
+        "jurisdiction": "Schleswig-Holstein",
+        "website": "https://www.schleswig-holstein.de/DE/Fachinhalte/S/stiftungen/stiftungsdatenbank.html"
+      },
+      {
+        "ra_code": "RA000336",
+        "register": "Commercial Register",
+        "jurisdiction": "Schweinfurt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000337",
+        "register": "Commercial Register",
+        "jurisdiction": "Schwerin",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000338",
+        "register": "Commercial Register",
+        "jurisdiction": "Siegburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000339",
+        "register": "Commercial Register",
+        "jurisdiction": "Siegen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000343",
+        "register": "Commercial Register",
+        "jurisdiction": "Sondershausen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000344",
+        "register": "Commercial Register",
+        "jurisdiction": "Sonneberg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000345",
+        "register": "Commercial Register",
+        "jurisdiction": "Stadthagen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000346",
+        "register": "Commercial Register",
+        "jurisdiction": "Stadtroda",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000347",
+        "register": "Commercial Register",
+        "jurisdiction": "Steinfurt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000348",
+        "register": "Commercial Register",
+        "jurisdiction": "Stendal",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000349",
+        "register": "Commercial Register",
+        "jurisdiction": "Stralsund",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000350",
+        "register": "Commercial Register",
+        "jurisdiction": "Straubing",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000351",
+        "register": "Commercial Register",
+        "jurisdiction": "Stuttgart",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000768",
+        "register": "Foundations Directory",
+        "jurisdiction": "Stuttgart",
+        "website": "http://www.rp.landbw.de/stvz/apex/f?p=110:1::NO:::P1_RP:STU"
+      },
+      {
+        "ra_code": "RA000352",
+        "register": "Commercial Register",
+        "jurisdiction": "Suhl",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000771",
+        "register": "Foundations Directory",
+        "jurisdiction": "Tübingen",
+        "website": "http://www.rp.landbw.de/stvz/apex/f?p=110:1:0:NO:::P1_RP:TUE"
+      },
+      {
+        "ra_code": "RA000736",
+        "register": "Foundations Directory",
+        "jurisdiction": "Thuringia",
+        "website": "https://www.thueringen.de/th3/tlvwa/anwendungen/stiftungsverzeichnis/index.aspx"
+      },
+      {
+        "ra_code": "RA000353",
+        "register": "Commercial Register",
+        "jurisdiction": "Tostedt",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000354",
+        "register": "Commercial Register",
+        "jurisdiction": "Traunstein",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000355",
+        "register": "Commercial Register",
+        "jurisdiction": "Ulm",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000356",
+        "register": "Commercial Register",
+        "jurisdiction": "Völklingen",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000370",
+        "register": "Commercial Register",
+        "jurisdiction": "Würzburg",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000358",
+        "register": "Commercial Register",
+        "jurisdiction": "Walsrode",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000362",
+        "register": "Commercial Register",
+        "jurisdiction": "Weiden i.d. OPf.",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000363",
+        "register": "Commercial Register",
+        "jurisdiction": "Weimar",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000775",
+        "register": "Foundations Directory",
+        "jurisdiction": "Weser-Ems",
+        "website": "https://www.arl-we.niedersachsen.de/startseite/grundbesitz_und_stiftungen/stiftungen/"
+      },
+      {
+        "ra_code": "RA000364",
+        "register": "Commercial Register",
+        "jurisdiction": "Wetzlar",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000365",
+        "register": "Commercial Register",
+        "jurisdiction": "Wiesbaden",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000368",
+        "register": "Commercial Register",
+        "jurisdiction": "Wittlich",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000369",
+        "register": "Commercial Register",
+        "jurisdiction": "Wuppertal",
+        "website": "www.handelsregister.de"
+      },
+      {
+        "ra_code": "RA000371",
+        "register": "Commercial Register",
+        "jurisdiction": "Zweibrücken",
+        "website": "www.handelsregister.de"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "de-handelsregister",
+      "name": "Handelsregister",
+      "publisher": "German state justice administrations",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "de",
+        "search",
+        "profile",
+        "filings.list",
+        "filing.document"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "de.register",
+          "description": "Registration court + register type (HRB/HRA/etc.) + number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official company register entries and filed registry documents.",
+        "limitations": "No supported general public API established in this review. National business coverage is not equivalent to all tax-registered businesses.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "de.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Identify approved machine-access or redistribution channel with the publisher",
+        "Preserve court, register type and number as a compound identity",
+        "Portal availability is insufficient for autonomous API resale; no scraping adapter specified"
+      ],
+      "references": [
+        {
+          "url": "https://www.handelsregister.de/rp_web/information/welcome.xhtml",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "de-unternehmensregister",
+      "name": "Unternehmensregister",
+      "publisher": "Bundesanzeiger Verlag on behalf of German authorities",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_filings",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "de",
+        "filings.list",
+        "filing.document",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "de.register",
+          "description": "Court + register type + number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Company disclosures, accounts and corporate publications.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "contract_access_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "de.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Request supported retrieval/distribution channel",
+        "Preserve filing period, consolidated scope and document origin",
+        "Separate retrieved document, XBRL extraction and portal search into priced contracts"
+      ],
+      "references": [
+        {
+          "url": "https://www.unternehmensregister.de/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "de-bundesanzeiger",
+      "name": "Bundesanzeiger",
+      "publisher": "Bundesanzeiger Verlag",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_gazette",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "de",
+        "filings.list",
+        "changes.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "de.notice_id",
+          "description": "Publication identifier",
+          "value_type": "string"
+        },
+        {
+          "scheme": "de.register",
+          "description": "Court-qualified registration when supplied",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official notices and historical publication records.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "contract_access_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "de.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "de.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Confirm dataset/reuse product and time coverage",
+        "Link to Unternehmensregister where the current filing regime places records there",
+        "Deduplicate notices by publication ID; do not treat duplicate portals as independent confirmation"
+      ],
+      "references": [
+        {
+          "url": "https://www.bundesanzeiger.de/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "de-insolvency-notices",
+      "name": "Insolvenzbekanntmachungen",
+      "publisher": "German justice administrations",
+      "country_codes": [
+        "DE"
+      ],
+      "source_class": "official_insolvency",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "de",
+        "insolvency.notices"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "de.insolvency_case",
+          "description": "Court + case identifier",
+          "value_type": "string"
+        },
+        {
+          "scheme": "de.register",
+          "description": "Company reference where disclosed",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official insolvency court publications.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "de.company.insolvency.notices",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "insolvency.notices",
+          "inputs": [
+            "country-qualified entity",
+            "supported dates"
+          ],
+          "outputs": [
+            "case/notice identity",
+            "court",
+            "type",
+            "publication and effective dates"
+          ],
+          "coverage_rule": "No match is not a clearance certificate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Obtain permitted automated query/reuse channel",
+        "Apply publication-retention and search-window constraints",
+        "Return proceeding evidence with dates; no-result is not clearance"
+      ],
+      "references": [
+        {
+          "url": "https://neu.insolvenzbekanntmachungen.de/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "de-handelsregister",
+      "name": "Handelsregister",
+      "country_codes": [
+        "DE"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Identify approved machine-access or redistribution channel with the publisher",
+      "required_work": [
+        "Identify approved machine-access or redistribution channel with the publisher",
+        "Preserve court, register type and number as a compound identity",
+        "Portal availability is insufficient for autonomous API resale; no scraping adapter specified"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.handelsregister.de/rp_web/information/welcome.xhtml",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "de-unternehmensregister",
+      "name": "Unternehmensregister",
+      "country_codes": [
+        "DE"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request supported retrieval/distribution channel",
+      "required_work": [
+        "Request supported retrieval/distribution channel",
+        "Preserve filing period, consolidated scope and document origin",
+        "Separate retrieved document, XBRL extraction and portal search into priced contracts"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://www.unternehmensregister.de/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "de-bundesanzeiger",
+      "name": "Bundesanzeiger",
+      "country_codes": [
+        "DE"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Confirm dataset/reuse product and time coverage",
+      "required_work": [
+        "Confirm dataset/reuse product and time coverage",
+        "Link to Unternehmensregister where the current filing regime places records there",
+        "Deduplicate notices by publication ID; do not treat duplicate portals as independent confirmation"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://www.bundesanzeiger.de/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "de-insolvency-notices",
+      "name": "Insolvenzbekanntmachungen",
+      "country_codes": [
+        "DE"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Obtain permitted automated query/reuse channel",
+      "required_work": [
+        "Obtain permitted automated query/reuse channel",
+        "Apply publication-retention and search-window constraints",
+        "Return proceeding evidence with dates; no-result is not clearance"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://neu.insolvenzbekanntmachungen.de/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

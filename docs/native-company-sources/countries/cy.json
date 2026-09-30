@@ -1,0 +1,263 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "CY",
+    "name": "Cyprus",
+    "region": "EU27",
+    "native_source_ids": [
+      "cy-registrar"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000161",
+        "register": "Companies Section",
+        "jurisdiction": "Cyprus",
+        "website": "http://www.mcit.gov.cy/mcit/drcor/drcor.nsf/index_en/index_en?OpenDocument"
+      },
+      {
+        "ra_code": "RA000162",
+        "register": "",
+        "jurisdiction": "Cyprus",
+        "website": "http://www.cysec.gov.cy/en-GB/home/"
+      },
+      {
+        "ra_code": "RA001052",
+        "register": "Register of Occupational Retirement Funds",
+        "jurisdiction": "Cyprus",
+        "website": "https://www.mlsi.gov.cy/mlsi/sid/sidv2.nsf/All/184DE19994527BCDC2258AAF0028BCC7?OpenDocument"
+      },
+      {
+        "ra_code": "RA001074",
+        "register": "Provident Funds",
+        "jurisdiction": "Cyprus",
+        "website": "https://www.treasury.gov.cy/treasury/treasurynew.nsf/index_gr/index_gr?opendocument"
+      },
+      {
+        "ra_code": "RA001128",
+        "register": "Cooperative Societies Directory",
+        "jurisdiction": "Cyprus",
+        "website": "https://www.cssda.gov.cy/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "cy-registrar",
+      "name": "Registrar of Companies",
+      "publisher": "Department of Registrar of Companies and Intellectual Property",
+      "country_codes": [
+        "CY"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "cy",
+        "search",
+        "profile",
+        "filings.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "cy.registration",
+          "description": "Entity type/prefix + registration number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Cypriot company register and filed documents.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "cy.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "cy.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "cy.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Ask the registrar for supported bulk/API access and redistribution rights",
+        "Preserve HE/company category and registration number",
+        "Keep paid documents and restricted beneficial ownership separate"
+      ],
+      "references": [
+        {
+          "url": "https://www.companies.gov.cy/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        },
+        {
+          "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000161"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_directory_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "cy-registrar",
+      "name": "Registrar of Companies",
+      "country_codes": [
+        "CY"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Ask the registrar for supported bulk/API access and redistribution rights",
+      "required_work": [
+        "Ask the registrar for supported bulk/API access and redistribution rights",
+        "Preserve HE/company category and registration number",
+        "Keep paid documents and restricted beneficial ownership separate"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_directory_identified",
+        "references": [
+          {
+            "url": "https://www.companies.gov.cy/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          },
+          {
+            "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

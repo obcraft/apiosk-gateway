@@ -1,0 +1,259 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "GR",
+    "name": "Greece",
+    "region": "EU27",
+    "native_source_ids": [
+      "gr-gemi"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000376",
+        "register": "",
+        "jurisdiction": "Greece",
+        "website": "http://www.protodikeio-ath.gr/opencms_prot/opencms/ProtSite/"
+      },
+      {
+        "ra_code": "RA000377",
+        "register": "",
+        "jurisdiction": "Greece",
+        "website": "http://www.hcmc.gr/en_US/web/portal/foreis"
+      },
+      {
+        "ra_code": "RA000685",
+        "register": "General Commercial Registry (G.E.MI.)",
+        "jurisdiction": "Greece",
+        "website": "https://www.businessregistry.gr"
+      },
+      {
+        "ra_code": "RA001115",
+        "register": "",
+        "jurisdiction": "Greece",
+        "website": "https://www.et.gr/SearchFekLektiko"
+      },
+      {
+        "ra_code": "RA001118",
+        "register": "Register of Shipping Companies of Pleasure Vessels",
+        "jurisdiction": "Greece",
+        "website": "https://www.gov.gr/en/upourgeia/upourgeio-nautilias-kai-nesiotikes-politikes/nautilias-kai-nesiotikes-politikes/metroo-nautiliakon-etaireion-ploion-anapsukhes-nepa"
+      },
+      {
+        "ra_code": "RA001132",
+        "register": "National Register of Agricultural Cooperatives and other collective bodies",
+        "jurisdiction": "Greece",
+        "website": "https://www.minagric.gr/for-farmer-2/sillogikes-agrotikes-organoseis"
+      },
+      {
+        "ra_code": "RA001133",
+        "register": "Tax Register",
+        "jurisdiction": "Greece",
+        "website": "https://www.aade.gr/en"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 2
+  },
+  "sources": [
+    {
+      "source_id": "gr-gemi",
+      "name": "GEMI — General Commercial Registry",
+      "publisher": "Union of Hellenic Chambers / GEMI",
+      "country_codes": [
+        "GR"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "gr",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "gr.gemi",
+          "description": "GEMI registration number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "gr.afm",
+          "description": "Tax identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Public GEMI company search and basic register details.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_public_api",
+        "authentication": "API key; documentation test key is not production access",
+        "upstream_cost": "Open-data service; confirm quotas and reuse terms",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "gr.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gr.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Request a personal production API key",
+        "Import the current Swagger spec for search and company details",
+        "Use ISO GR internally, applying EL only for services that require it (for example VIES)"
+      ],
+      "references": [
+        {
+          "url": "https://opendata.businessportal.gr/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://opendata.businessportal.gr/techdocs/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000685"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "gr-gemi",
+      "name": "GEMI — General Commercial Registry",
+      "country_codes": [
+        "GR"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request a personal production API key",
+      "required_work": [
+        "Request a personal production API key",
+        "Import the current Swagger spec for search and company details",
+        "Use ISO GR internally, applying EL only for services that require it (for example VIES)"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://opendata.businessportal.gr/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://opendata.businessportal.gr/techdocs/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

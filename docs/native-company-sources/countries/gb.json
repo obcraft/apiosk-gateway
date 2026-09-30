@@ -1,0 +1,417 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "GB",
+    "name": "United Kingdom",
+    "region": "European_neighbour_or_UK",
+    "native_source_ids": [
+      "companies-house"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000585",
+        "register": "Companies Register",
+        "jurisdiction": "England and Wales",
+        "website": "www.companieshouse.gov.uk"
+      },
+      {
+        "ra_code": "RA000589",
+        "register": "",
+        "jurisdiction": "England and Wales",
+        "website": "https://www.gov.uk/government/organisations/charity-commission"
+      },
+      {
+        "ra_code": "RA000726",
+        "register": "Regulated Law Firms",
+        "jurisdiction": "England and Wales",
+        "website": "https://www.sra.org.uk/consumers/find-use-instruct-solicitor/find-solicitor/"
+      },
+      {
+        "ra_code": "RA000788",
+        "register": "",
+        "jurisdiction": "England",
+        "website": "https://www.achurchnearyou.com/"
+      },
+      {
+        "ra_code": "RA000586",
+        "register": "Companies Register",
+        "jurisdiction": "Northern Ireland",
+        "website": "www.companieshouse.gov.uk"
+      },
+      {
+        "ra_code": "RA000701",
+        "register": "Register of Charities",
+        "jurisdiction": "Northern Ireland",
+        "website": "https://www.charitycommissionni.org.uk/"
+      },
+      {
+        "ra_code": "RA001032",
+        "register": "Solicitor Directory",
+        "jurisdiction": "Northern Ireland",
+        "website": "https://www.lawsoc-ni.org/solicitors"
+      },
+      {
+        "ra_code": "RA000587",
+        "register": "Companies Register",
+        "jurisdiction": "Scotland",
+        "website": "www.companieshouse.gov.uk"
+      },
+      {
+        "ra_code": "RA000590",
+        "register": "Scottish Charity Register",
+        "jurisdiction": "Scotland",
+        "website": "http://www.oscr.org.uk/"
+      },
+      {
+        "ra_code": "RA000588",
+        "register": "Mutuals Public Register",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "https://mutuals.fca.org.uk/"
+      },
+      {
+        "ra_code": "RA000591",
+        "register": "",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "http://www.thepensionsregulator.gov.uk/"
+      },
+      {
+        "ra_code": "RA000592",
+        "register": "Financial Services Register",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "https://register.fca.org.uk"
+      },
+      {
+        "ra_code": "RA000789",
+        "register": "List of Trade Unions",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "https://www.gov.uk/government/publications/public-list-of-active-trade-unions-official-list-and-schedule"
+      },
+      {
+        "ra_code": "RA000790",
+        "register": "Register Of Statutory Auditors",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "www.auditregister.org.uk"
+      },
+      {
+        "ra_code": "RA000791",
+        "register": "Register of Learning Providers",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": "https://www.ukrlp.co.uk/ukrlp/ukrlp.first"
+      },
+      {
+        "ra_code": "RA001124",
+        "register": "",
+        "jurisdiction": "United Kingdom of Great Britain and Northern Ireland",
+        "website": ""
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 0
+  },
+  "sources": [
+    {
+      "source_id": "companies-house",
+      "name": "Companies House",
+      "publisher": "Companies House",
+      "country_codes": [
+        "GB"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "gb",
+        "search",
+        "profile",
+        "officers.list",
+        "psc.list",
+        "filings.list",
+        "charges.list",
+        "insolvency.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "gb.company_number",
+          "description": "Retain prefixes and leading zeroes; UK registration jurisdiction matters",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Registered UK companies, public officers, PSC statements and filing metadata.",
+        "limitations": "UK is outside EU; public registry filings are not independently audited truth. 600 requests per 5 minutes per application.",
+        "freshness": "Public register API; no freshness SLA verified"
+      },
+      "access": {
+        "mode": "existing_api",
+        "authentication": "API key as HTTP Basic username; blank password",
+        "upstream_cost": "Public data API free upstream",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "gb.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.officers.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "officers.list",
+          "inputs": [
+            "resolved registry entity"
+          ],
+          "outputs": [
+            "public role",
+            "person/organisation identity as disclosed",
+            "appointment/resignation dates",
+            "source"
+          ],
+          "coverage_rule": "Officer is not necessarily shareholder or UBO.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.psc.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "psc.list",
+          "inputs": [
+            "resolved Companies House number"
+          ],
+          "outputs": [
+            "published persons with significant control",
+            "nature of control and effective dates",
+            "statement or restriction status"
+          ],
+          "coverage_rule": "PSC is a specific UK disclosure regime; officers are separate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.charges.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "charges.list",
+          "inputs": [
+            "resolved company identifier",
+            "bounded page"
+          ],
+          "outputs": [
+            "charge identifiers",
+            "status and dates",
+            "filing links"
+          ],
+          "coverage_rule": "A registered charge is not a complete current-debt balance.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "gb.company.insolvency.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "insolvency.get",
+          "inputs": [
+            "resolved company identifier"
+          ],
+          "outputs": [
+            "published insolvency cases",
+            "case types and dates",
+            "source coverage"
+          ],
+          "coverage_rule": "No published case is not a solvency certificate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 0,
+      "required_work": [
+        "Reuse active listing; verify upstream key and existing path-append behavior",
+        "Treat Document API and Streaming API as separate upstream products",
+        "Keep filing metadata separate from downloaded accounts and extracted financial metrics"
+      ],
+      "references": [
+        {
+          "url": "https://developer.company-information.service.gov.uk/get-started/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://developer-specs.company-information.service.gov.uk/guides/rateLimiting",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000585",
+        "RA000586",
+        "RA000587"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "catalog_active_execution_not_retested",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": {
+        "slug": "companies-house",
+        "name": "Companies House",
+        "status": "active",
+        "active": true,
+        "discoverable": true,
+        "is_verified": true,
+        "origin_url": "https://api.company-information.service.gov.uk",
+        "docs_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+        "active_endpoint_count": 15,
+        "active_contract_count": 11,
+        "validated_contract_count": 4
+      },
+      "region": "European_neighbour_or_UK",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "companies-house",
+      "name": "Companies House",
+      "country_codes": [
+        "GB"
+      ],
+      "catalog_section": "countries",
+      "priority": 0,
+      "evidence_group": "existing",
+      "reference_only": false,
+      "next_action": "Reuse active listing; verify upstream key and existing path-append behavior",
+      "required_work": [
+        "Reuse active listing; verify upstream key and existing path-append behavior",
+        "Treat Document API and Streaming API as separate upstream products",
+        "Keep filing metadata separate from downloaded accounts and extracted financial metrics"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Existing route to revalidate",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Existing listing observed",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Existing prices to revalidate",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://developer.company-information.service.gov.uk/get-started/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://developer-specs.company-information.service.gov.uk/guides/rateLimiting",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

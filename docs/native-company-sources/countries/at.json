@@ -1,0 +1,352 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "AT",
+    "name": "Austria",
+    "region": "EU27",
+    "native_source_ids": [
+      "at-firmenbuch"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000017",
+        "register": "Commercial Register",
+        "jurisdiction": "Austria",
+        "website": "https://www.justiz.gv.at/web2013/html/default/2c9484852308c2a601240b693e1c0860.de.html"
+      },
+      {
+        "ra_code": "RA000018",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://www.fma.gv.at/en/"
+      },
+      {
+        "ra_code": "RA000687",
+        "register": "Trade Information System Austria",
+        "jurisdiction": "Austria",
+        "website": "https://www.wien.gv.at/english/e-government/business/register/public-query-gisa.html"
+      },
+      {
+        "ra_code": "RA000707",
+        "register": "Supplementary Register",
+        "jurisdiction": "Austria",
+        "website": "https://www.bmdw.gv.at/DigitalisierungundEGovernment/Stammzahlenregisterbehoerde/Ergaenzungsregister/Seiten/Ergaenzungsregister-fuer-sonstige-Betroffene-.aspx"
+      },
+      {
+        "ra_code": "RA000710",
+        "register": "Register of Associations",
+        "jurisdiction": "Austria",
+        "website": "https://citizen.bmi.gv.at/at.gv.bmi.fnsweb-p/zvn/public/Registerauszug"
+      },
+      {
+        "ra_code": "RA000725",
+        "register": "Parishes",
+        "jurisdiction": "Austria",
+        "website": "https://evang.at/service/adressen/pfarrgemeinden/a-bis-z/"
+      },
+      {
+        "ra_code": "RA000734",
+        "register": "Funds register",
+        "jurisdiction": "Austria",
+        "website": "https://www.bmi.gv.at/409/start.aspx"
+      },
+      {
+        "ra_code": "RA001051",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://info.bml.gv.at/themen/wasser/wisa/datenverbund/wis-bl.html"
+      },
+      {
+        "ra_code": "RA001069",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://citizen.bmi.gv.at/at.gv.bmi.fnsweb-p/par/public/Parteienregister"
+      },
+      {
+        "ra_code": "RA001088",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://www.aerztekammer.at/arztsuche#%C3%84rzteliste"
+      },
+      {
+        "ra_code": "RA001089",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://www.zahnaerztekammer.at/patientinnen/zahnarztsuche#Zahn%C3%A4rzteliste"
+      },
+      {
+        "ra_code": "RA001090",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://hebammen.at/gremium/hebammenregister/"
+      },
+      {
+        "ra_code": "RA001091",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://www.gesundheit.gv.at/gesundheitsleistungen/gesundheitsberuferegister/oeffentliches-register.html"
+      },
+      {
+        "ra_code": "RA001092",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://klinischepsychologie.ehealth.gv.at/"
+      },
+      {
+        "ra_code": "RA001125",
+        "register": "Dentist Directory",
+        "jurisdiction": "Austria",
+        "website": "https://www.zahnaerztekammer.at/zahnarztsuche/suche"
+      },
+      {
+        "ra_code": "RA001126",
+        "register": "Civil Engineer Directory",
+        "jurisdiction": "Austria",
+        "website": "https://ziviltechniker.at/"
+      },
+      {
+        "ra_code": "RA001186",
+        "register": "",
+        "jurisdiction": "Austria",
+        "website": "https://www.statistik.at/atlas/blick/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "at-firmenbuch",
+      "name": "Firmenbuch",
+      "publisher": "Austrian Federal Ministry of Justice",
+      "country_codes": [
+        "AT"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "at",
+        "search",
+        "profile",
+        "filing.document",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "at.firmenbuchnummer",
+          "description": "FN number with check letter",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official Austrian commercial-register entries and documents.",
+        "limitations": "Authorised distributor is a transport intermediary; do not label it a direct government API.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "licensed_distribution",
+        "authentication": "Contracted distributor account",
+        "upstream_cost": "Statutory query fees plus authorised distributor surcharge",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "at.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "at.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "at.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "at.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Select an authorised Verrechnungsstelle with a supported API",
+        "Record original registry and transport provider separately",
+        "Obtain account, per-request tariff and onward redistribution terms"
+      ],
+      "references": [
+        {
+          "url": "https://www.justiz.gv.at/service/datenbanken/firmenbuch/firmenbuchabfrage.2c9484852308c2a601240b693e1c0860.de.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.justiz.gv.at/service/datenbanken/verrechnungsstellen.795.de.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000017"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "at-firmenbuch",
+      "name": "Firmenbuch",
+      "country_codes": [
+        "AT"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Select an authorised Verrechnungsstelle with a supported API",
+      "required_work": [
+        "Select an authorised Verrechnungsstelle with a supported API",
+        "Record original registry and transport provider separately",
+        "Obtain account, per-request tariff and onward redistribution terms"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.justiz.gv.at/service/datenbanken/firmenbuch/firmenbuchabfrage.2c9484852308c2a601240b693e1c0860.de.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.justiz.gv.at/service/datenbanken/verrechnungsstellen.795.de.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

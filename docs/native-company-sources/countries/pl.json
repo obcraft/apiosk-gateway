@@ -1,0 +1,889 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "PL",
+    "name": "Poland",
+    "region": "EU27",
+    "native_source_ids": [
+      "pl-krs",
+      "pl-ceidg",
+      "pl-regon"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000484",
+        "register": "National Court Register",
+        "jurisdiction": "Poland",
+        "website": "https://ekrs.ms.gov.pl/web/wyszukiwarka-krs/strona-glowna"
+      },
+      {
+        "ra_code": "RA000485",
+        "register": "Investment Fund Management Companies, Investment Funds and Pension Funds",
+        "jurisdiction": "Poland",
+        "website": "https://www.knf.gov.pl/podmioty"
+      },
+      {
+        "ra_code": "RA000486",
+        "register": "Central Registration and Information on Business",
+        "jurisdiction": "Poland",
+        "website": "https://prod.ceidg.gov.pl/CEIDG/CEIDG.Public.UI/Search.aspx"
+      },
+      {
+        "ra_code": "RA000654",
+        "register": "National Official Business Register (REGON)",
+        "jurisdiction": "Poland",
+        "website": "https://wyszukiwarkaregon.stat.gov.pl/appBIR/index.aspx"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "pl-krs",
+      "name": "KRS — National Court Register",
+      "publisher": "Ministry of Justice of Poland",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "pl",
+        "profile",
+        "registry.record"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "pl.krs",
+          "description": "10-digit KRS string",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.nip",
+          "description": "10-digit tax number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.regon",
+          "description": "9 or 14-digit statistical identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Current/full registry extracts by KRS number for register categories P and S.",
+        "limitations": "Not a complete Polish-business universe. A current extract is not a set of annual accounts or unrestricted UBO access.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None for open KRS extract API",
+        "upstream_cost": "Open API free",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://api-krs.ms.gov.pl"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "pl.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "pl.profile"
+          ]
+        },
+        {
+          "public_name": "pl.company.registry.record",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "registry.record",
+          "inputs": [
+            "registry number and register type",
+            "current/full extract selection"
+          ],
+          "outputs": [
+            "original registry extract",
+            "record date",
+            "typed sections and history"
+          ],
+          "coverage_rule": "Retain historical versus current entries.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "pl.full-record"
+          ]
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Add current and full extract contracts with required KRS and register selector",
+        "Normalize nested Polish fields and keep status/history dates",
+        "Add CEIDG/REGON separately for sole traders and discovery; KRS lookup is not name search"
+      ],
+      "references": [
+        {
+          "url": "https://www.gov.pl/web/sprawiedliwosc/uruchomienie-otwartego-api-krajowego-rejestru-sadowego",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://prs.ms.gov.pl/krs/openApi",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000484"
+      ],
+      "endpoints": [
+        {
+          "spec_id": "pl.profile",
+          "method": "GET",
+          "path": "/api/krs/OdpisAktualny/{krs}",
+          "verification": "live_sample_verified"
+        },
+        {
+          "spec_id": "pl.full-record",
+          "method": "GET",
+          "path": "/api/krs/OdpisPelny/{krs}",
+          "verification": "documentation_only"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "pl-ceidg",
+      "name": "CEIDG",
+      "publisher": "Polish ministry responsible for economic development",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "pl",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "pl.nip",
+          "description": "Tax identifier",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.regon",
+          "description": "Statistical identifier",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.ceidg_id",
+          "description": "Record identity",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Sole-trader registry complementary to KRS.",
+        "limitations": "Natural-person businesses require different disclosure handling; API not called.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_api_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "pl.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "pl.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Obtain current official Data Warehouse/CEIDG API access and scope",
+        "Confirm auth, terms and public-field restrictions",
+        "Resolve NIP/REGON to registry records without treating individuals as companies in another register"
+      ],
+      "references": [
+        {
+          "url": "https://dane.biznes.gov.pl/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000486"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "pl-regon",
+      "name": "REGON / BIR",
+      "publisher": "Statistics Poland (GUS)",
+      "country_codes": [
+        "PL"
+      ],
+      "source_class": "official_statistical_register",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "pl",
+        "search",
+        "profile",
+        "identifiers.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "pl.regon",
+          "description": "9 or 14 digits",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.nip",
+          "description": "Tax number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "pl.krs",
+          "description": "KRS when present",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Statistical business identity and cross-identifier resolution.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_webservice",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "pl.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "pl.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "pl.company.identifiers.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "identifiers.get",
+          "inputs": [
+            "known country/registry identifier"
+          ],
+          "outputs": [
+            "source-asserted alternate identifiers and schemes"
+          ],
+          "coverage_rule": "Never invent EUID or collapse tax and branch IDs.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Request official BIR service key and current SOAP schema",
+        "Distinguish 9-digit units from 14-digit local units",
+        "Retain statistics-register provenance and do not replace judicial KRS extracts"
+      ],
+      "references": [
+        {
+          "url": "https://api.stat.gov.pl/Home/RegonApi",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_location_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000654"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_service_location_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "pl-krs",
+      "name": "KRS — National Court Register",
+      "country_codes": [
+        "PL"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Add current and full extract contracts with required KRS and register selector",
+      "required_work": [
+        "Add current and full extract contracts with required KRS and register selector",
+        "Normalize nested Polish fields and keep status/history dates",
+        "Add CEIDG/REGON separately for sole traders and discovery; KRS lookup is not name search"
+      ],
+      "operation_spec_ids": [
+        "pl.profile",
+        "pl.full-record"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://www.gov.pl/web/sprawiedliwosc/uruchomienie-otwartego-api-krajowego-rejestru-sadowego",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://prs.ms.gov.pl/krs/openApi",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/pl-krs-profile.json"
+        ]
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "pl-ceidg",
+      "name": "CEIDG",
+      "country_codes": [
+        "PL"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Obtain current official Data Warehouse/CEIDG API access and scope",
+      "required_work": [
+        "Obtain current official Data Warehouse/CEIDG API access and scope",
+        "Confirm auth, terms and public-field restrictions",
+        "Resolve NIP/REGON to registry records without treating individuals as companies in another register"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://dane.biznes.gov.pl/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "pl-regon",
+      "name": "REGON / BIR",
+      "country_codes": [
+        "PL"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request official BIR service key and current SOAP schema",
+      "required_work": [
+        "Request official BIR service key and current SOAP schema",
+        "Distinguish 9-digit units from 14-digit local units",
+        "Retain statistics-register provenance and do not replace judicial KRS extracts"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_service_location_identified",
+        "references": [
+          {
+            "url": "https://api.stat.gov.pl/Home/RegonApi",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_location_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "pl.profile",
+      "source_id": "pl-krs",
+      "country_code": "PL",
+      "status": "draft_not_registered",
+      "public_capability": "pl.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://api-krs.ms.gov.pl",
+      "path": "/api/krs/OdpisAktualny/{krs}",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "krs": {
+            "type": "string",
+            "pattern": "^[0-9]{10}$"
+          },
+          "register": {
+            "type": "string",
+            "enum": [
+              "P",
+              "S"
+            ]
+          }
+        },
+        "required": [
+          "krs",
+          "register"
+        ]
+      },
+      "input_map": {
+        "krs": {
+          "in": "path",
+          "name": "krs",
+          "fact_type": "company.registration.pl.national_id"
+        },
+        "register": {
+          "in": "query",
+          "name": "rejestr"
+        }
+      },
+      "fixed_params": {
+        "query": {
+          "format": "json"
+        }
+      },
+      "upstream_output_map": {
+        "registration_number": "$.odpis.naglowekA.numerKRS",
+        "legal_name": "$.odpis.dane.dzial1.danePodmiotu.nazwa",
+        "legal_form": "$.odpis.dane.dzial1.danePodmiotu.formaPrawna",
+        "other_identifiers": "$.odpis.dane.dzial1.danePodmiotu.identyfikatory",
+        "record_date": "$.odpis.naglowekA.stanZDnia"
+      },
+      "normalization_requirements": [
+        "Require returned KRS and register to match input.",
+        "Preserve NIP/REGON as alternate schemes; 14-digit REGON must not be truncated.",
+        "Retain publication/effective dates and disclose unavailable/redacted fields.",
+        "Saved sample is a company-identity projection; address and officer mappings require separate bounded fixtures."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/pl-krs-profile.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "krs",
+          "required": true,
+          "fact_type": "company.registration.pl.national_id",
+          "status": "reuse_if_registered"
+        },
+        {
+          "input": "register",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.odpis.naglowekA.numerKRS"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.odpis.dane.dzial1.danePodmiotu.nazwa"
+        },
+        {
+          "field": "legal_form",
+          "upstream_projection": "$.odpis.dane.dzial1.danePodmiotu.formaPrawna"
+        },
+        {
+          "field": "other_identifiers",
+          "upstream_projection": "$.odpis.dane.dzial1.danePodmiotu.identyfikatory"
+        },
+        {
+          "field": "record_date",
+          "upstream_projection": "$.odpis.naglowekA.stanZDnia"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "pl.full-record",
+      "source_id": "pl-krs",
+      "country_code": "PL",
+      "status": "draft_not_registered",
+      "public_capability": "pl.company.registry.record",
+      "proposed_execution_capability": "company.pl-full-record",
+      "method": "GET",
+      "origin_url": "https://api-krs.ms.gov.pl",
+      "path": "/api/krs/OdpisPelny/{krs}",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "krs": {
+            "type": "string",
+            "pattern": "^[0-9]{10}$"
+          },
+          "register": {
+            "type": "string",
+            "enum": [
+              "P",
+              "S"
+            ]
+          }
+        },
+        "required": [
+          "krs",
+          "register"
+        ]
+      },
+      "input_map": {
+        "krs": {
+          "in": "path",
+          "name": "krs"
+        },
+        "register": {
+          "in": "query",
+          "name": "rejestr"
+        }
+      },
+      "fixed_params": {
+        "query": {
+          "format": "json"
+        }
+      },
+      "upstream_output_map": {
+        "record": "$.odpis"
+      },
+      "normalization_requirements": [
+        "Full-extract schema differs from current extract; capture a separate fixture before implementing projections.",
+        "Do not overwrite current facts with historical entries."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "documentation_only",
+        "fixture": null,
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "krs",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "register",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "record",
+          "upstream_projection": "$.odpis"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}

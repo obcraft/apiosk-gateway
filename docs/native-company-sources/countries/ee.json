@@ -1,0 +1,311 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "EE",
+    "name": "Estonia",
+    "region": "EU27",
+    "native_source_ids": [
+      "ee-rik-business-register"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000181",
+        "register": "Commercial Register",
+        "jurisdiction": "Estonia",
+        "website": "https://ariregister.rik.ee/index.py?lang=eng"
+      },
+      {
+        "ra_code": "RA000182",
+        "register": "",
+        "jurisdiction": "Estonia",
+        "website": "http://www.fi.ee/index.php?id=769"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 2
+  },
+  "sources": [
+    {
+      "source_id": "ee-rik-business-register",
+      "name": "e-Business Register / Äriregister",
+      "publisher": "Centre of Registers and Information Systems (RIK)",
+      "country_codes": [
+        "EE"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "ee",
+        "search",
+        "profile",
+        "filings.list",
+        "accounts.get",
+        "representatives.list",
+        "changes.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "ee.registrikood",
+          "description": "Registry code, preserve string",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Estonian basic registry data, reports and document services; scope varies by dataset/service.",
+        "limitations": "Current open files cover entered/liquidating/bankrupt legal entities; not an unrestricted historical/UBO API.",
+        "freshness": "Open files daily"
+      },
+      "access": {
+        "mode": "registered_api_and_bulk",
+        "authentication": "XML agreement and credentials; exceptions exist for autocomplete/e-invoice queries",
+        "upstream_cost": "Open data available; service access and fields need agreement verification",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "ee.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "ee.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "ee.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "ee.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "ee.company.representatives.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "representatives.list",
+          "inputs": [
+            "resolved registry entity"
+          ],
+          "outputs": [
+            "representative identity",
+            "role and representation rules",
+            "effective dates"
+          ],
+          "coverage_rule": "Preserve joint/signature authority restrictions as reported.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "ee.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Use open files for indexed identity search",
+        "Sign RIK XML-services agreement for detailed automated queries",
+        "Separate public company data from restricted beneficial-owner services and record report period"
+      ],
+      "references": [
+        {
+          "url": "https://avaandmed.ariregister.rik.ee/en",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://avaandmed.ariregister.rik.ee/et/node/2",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://abiinfo.rik.ee/sites/default/files/inline-files/xml_descriptionv6_eng.pdf",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000181"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "ee-rik-business-register",
+      "name": "e-Business Register / Äriregister",
+      "country_codes": [
+        "EE"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Use open files for indexed identity search",
+      "required_work": [
+        "Use open files for indexed identity search",
+        "Sign RIK XML-services agreement for detailed automated queries",
+        "Separate public company data from restricted beneficial-owner services and record report period"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://avaandmed.ariregister.rik.ee/en",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://avaandmed.ariregister.rik.ee/et/node/2",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://abiinfo.rik.ee/sites/default/files/inline-files/xml_descriptionv6_eng.pdf",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

@@ -56,6 +56,35 @@ De integratierunner start en stopt zelf een tijdelijke PGlite-database op loopba
 
 ## Starten
 
+Vanuit de gezamenlijke `Production`-directory start één commando de App,
+MCP en Gateway/API en opent daarna de App:
+
+```sh
+./dev
+```
+
+De versiebeheerbare launcher staat in `scripts/dev-local.mjs`; vanuit deze
+gateway-directory werkt ook `node scripts/dev-local.mjs`. Vereist Node 22.12+,
+Rust/Cargo en geïnstalleerde App/MCP-dependencies. Bestaande `gateway/.env`,
+`app/.env.local` en optionele `mcp/.env.v2.local` worden ingelezen zonder ze te
+wijzigen. Gateway/API draait op `127.0.0.1:8082`, MCP op `127.0.0.1:3000/mcp`
+en App op `localhost:5276`. Supabase API/Auth/database en de uitvoeringsfuncties
+blijven de bestaande geconfigureerde omgeving gebruiken. De lokale Gateway
+gebruikt dus dezelfde data; dit is geen geïsoleerde database.
+
+De launcher zet betaalde uitvoering, KVK-workers, automatische vertaling en
+recurring orders standaard uit. `./dev --execute` staat expliciet goedgekeurde
+uitvoering via de geconfigureerde Supabase-functies toe; de workers blijven uit.
+OAuth blijft de geconfigureerde `agent-gateway` gebruiken, inclusief diens
+`APP_ORIGIN` voor de toestemmingspagina. Een volledig lokale OAuth-/betaalketen
+vereist daarnaast lokale Edge Functions en de provider-/betaalexecutor.
+
+`Ctrl+C` stopt alle drie processen, ook als één service onderweg uitvalt.
+Bezette poorten worden gemeld; bestaande processen worden nooit afgesloten.
+Logs staan in `.local/dev-stack/`. Gebruik `./dev --check` voor configuratie en
+poortcontrole, `./dev --smoke` voor starten/controleren/stoppen, of `./dev --no-open`
+om de browser gesloten te laten. De eerste Rust-build kan enkele minuten duren.
+
 Gebruik [.env.example](.env.example), vul serverconfiguratie in en volg eerst [de runbook](docs/runbook.md). De binary past geen migraties toe. Met de private tabellen en runtime-role beschikbaar:
 
 ```sh

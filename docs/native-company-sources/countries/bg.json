@@ -1,0 +1,257 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "BG",
+    "name": "Bulgaria",
+    "region": "EU27",
+    "native_source_ids": [
+      "bg-registry-agency"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000065",
+        "register": "Commercial Register",
+        "jurisdiction": "Bulgaria",
+        "website": "http://www.brra.bg/Default.ra"
+      },
+      {
+        "ra_code": "RA000066",
+        "register": "Public register and filing cabinet",
+        "jurisdiction": "Bulgaria",
+        "website": "http://www.fsc.bg/en/"
+      },
+      {
+        "ra_code": "RA000730",
+        "register": "Bulstat Registry",
+        "jurisdiction": "Bulgaria",
+        "website": "http://reports.bulstat.bg:8081/bulstat-ireports/report.jsf?x_rpt=rpt1"
+      },
+      {
+        "ra_code": "RA000731",
+        "register": "Register of non-profit legal entities for public benefit",
+        "jurisdiction": "Bulgaria",
+        "website": "https://ngo.mjs.bg/bg"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "bg-registry-agency",
+      "name": "Commercial Register / Registry Agency",
+      "publisher": "Bulgarian Registry Agency",
+      "country_codes": [
+        "BG"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "bg",
+        "search",
+        "profile",
+        "filings.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "bg.eik",
+          "description": "EIK/UIC entity identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Commercial and non-profit register entries and filings.",
+        "limitations": "Official machine access found for government users does not establish commercial eligibility.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "open_data_and_contract_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "bg.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "bg.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "bg.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Verify current public reusable dataset/API, including the commercial-access route",
+        "Do not select government-only service access for Apiosk",
+        "Map EIK and filing identifiers; request reuse terms and sample data"
+      ],
+      "references": [
+        {
+          "url": "https://portal.registryagency.bg/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.registryagency.bg/bg/registri/targovski-registar/predostavyane-na-dostap-do-bazata-danni-na-targovskiya-registar/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000065"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "bg-registry-agency",
+      "name": "Commercial Register / Registry Agency",
+      "country_codes": [
+        "BG"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Verify current public reusable dataset/API, including the commercial-access route",
+      "required_work": [
+        "Verify current public reusable dataset/API, including the commercial-access route",
+        "Do not select government-only service access for Apiosk",
+        "Map EIK and filing identifiers; request reuse terms and sample data"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://portal.registryagency.bg/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.registryagency.bg/bg/registri/targovski-registar/predostavyane-na-dostap-do-bazata-danni-na-targovskiya-registar/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

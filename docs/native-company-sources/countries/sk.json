@@ -1,0 +1,1215 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "SK",
+    "name": "Slovakia",
+    "region": "EU27",
+    "native_source_ids": [
+      "sk-commercial-register",
+      "sk-rpo",
+      "sk-ruz"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000526",
+        "register": "Business Register",
+        "jurisdiction": "Slovakia",
+        "website": "http://www.orsr.sk/Default.asp?lan=en"
+      },
+      {
+        "ra_code": "RA000527",
+        "register": "Evidence of Civil Associations",
+        "jurisdiction": "Slovakia",
+        "website": "https://ives.minv.sk/rez/registre/pages/start.aspx?type=oz"
+      },
+      {
+        "ra_code": "RA000528",
+        "register": "Register of Non-profit Organisations",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=rno"
+      },
+      {
+        "ra_code": "RA000670",
+        "register": "Trade Register",
+        "jurisdiction": "Slovakia",
+        "website": "http://www.zrsr.sk/zr_om.aspx"
+      },
+      {
+        "ra_code": "RA000671",
+        "register": "",
+        "jurisdiction": "Slovakia",
+        "website": "https://slovak.statistics.sk/wps/portal/ext/Databases/register_organizacii/"
+      },
+      {
+        "ra_code": "RA000672",
+        "register": "Register of Foundations",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=rnd"
+      },
+      {
+        "ra_code": "RA000673",
+        "register": "Register of the Interest Associations of Legal Persons",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=po"
+      },
+      {
+        "ra_code": "RA000674",
+        "register": "Register of Associations of Municipalities",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=ob"
+      },
+      {
+        "ra_code": "RA000675",
+        "register": "Register of Non-investment Funds",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=rnf"
+      },
+      {
+        "ra_code": "RA000676",
+        "register": "Organisations with the International Element",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=omp"
+      },
+      {
+        "ra_code": "RA000677",
+        "register": "Register of Political Parties and Political Movements",
+        "jurisdiction": "Slovakia",
+        "website": "http://ives.minv.sk/rez/registre/pages/start.aspx?type=ps"
+      },
+      {
+        "ra_code": "RA000706",
+        "register": "List of Investment Funds",
+        "jurisdiction": "Slovakia",
+        "website": "http://www.nbs.sk/en/statistics/financial-institutions/money-market-funds-and-investment-funds/list-of-investment-funds"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "sk-commercial-register",
+      "name": "Obchodný register",
+      "publisher": "Ministry of Justice of Slovakia",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "sk",
+        "search",
+        "profile",
+        "filing.document"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "sk.ico",
+          "description": "8-digit IČO",
+          "value_type": "string"
+        },
+        {
+          "scheme": "sk.court_record",
+          "description": "Court + section + insert number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official Slovak commercial-register identity and deeds.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "sk.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "sk.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "sk.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Use official RPO for registry identity and RÚZ for accounts where supported",
+        "Verify current ORSR machine interface and redistribution terms",
+        "Keep court-register record and RÚZ internal unit ID separate"
+      ],
+      "references": [
+        {
+          "url": "https://www.orsr.sk/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        },
+        {
+          "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000526"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_directory_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "sk-rpo",
+      "name": "RPO — Register of Legal Entities",
+      "publisher": "Statistical Office of the Slovak Republic",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "official_master_register",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "sk",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "sk.ico",
+          "description": "8-digit IČO",
+          "value_type": "string"
+        },
+        {
+          "scheme": "sk.rpo_id",
+          "description": "Internal RPO record identity",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official master-register identity for legal entities and public bodies.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "public_api_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "sk.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "sk.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Review current REST API and entity-ID search routes",
+        "Connect IČO to internal RPO identity",
+        "Preserve source-register linkage and distinguish identity from RÚZ account content"
+      ],
+      "references": [
+        {
+          "url": "https://www.susr.sk/ExportPdf2/PdfExportSrvlt?Document=ac07a838-4ff2-4f67-86ac-a1ed11fa18e0",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000671"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "sk-ruz",
+      "name": "RÚZ — Register of Financial Statements",
+      "publisher": "Slovak Ministry of Finance",
+      "country_codes": [
+        "SK"
+      ],
+      "source_class": "official_filings",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "sk",
+        "profile",
+        "filings.list",
+        "accounts.get",
+        "financials.get",
+        "changes.list",
+        "identifiers.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "sk.ico",
+          "description": "8-digit IČO",
+          "value_type": "string"
+        },
+        {
+          "scheme": "sk.ruz_unit_id",
+          "description": "Internal accounting-unit ID",
+          "value_type": "string"
+        },
+        {
+          "scheme": "sk.ruz_statement_id",
+          "description": "Statement ID",
+          "value_type": "string"
+        },
+        {
+          "scheme": "sk.ruz_report_id",
+          "description": "Report ID",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Accounting units, statements, reports and annual reports in the public RÚZ dataset.",
+        "limitations": "Accounting-unit dataset includes public bodies; it is not the commercial register. Document IDs differ from IČO.",
+        "freshness": "Updates become available with portal data"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None",
+        "upstream_cost": "Public open API; attribution/reuse licence per documentation",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://www.registeruz.sk"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "sk.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "sk.profile"
+          ]
+        },
+        {
+          "public_name": "sk.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "sk.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "sk.statement"
+          ]
+        },
+        {
+          "public_name": "sk.company.financials.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "financials.get",
+          "inputs": [
+            "statement or structured report ID"
+          ],
+          "outputs": [
+            "reported metrics",
+            "currency",
+            "unit scale",
+            "period",
+            "taxonomy",
+            "missing reasons"
+          ],
+          "coverage_rule": "Document-backed values only; estimates labelled separately.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "sk.report"
+          ]
+        },
+        {
+          "public_name": "sk.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "sk.company.identifiers.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "identifiers.get",
+          "inputs": [
+            "known country/registry identifier"
+          ],
+          "outputs": [
+            "source-asserted alternate identifiers and schemes"
+          ],
+          "coverage_rule": "Never invent EUID or collapse tax and branch IDs.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "sk.unit-resolve"
+          ]
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Resolve IČO to RÚZ unit ID before unit/statement/report fetches",
+        "Use each object type’s change cursor; linked-object changes need independent polling",
+        "Preserve template, reporting period, units and consolidation; missing fields are not zero"
+      ],
+      "references": [
+        {
+          "url": "https://www.registeruz.sk/cruz-public/home/api",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [
+        {
+          "spec_id": "sk.unit-resolve",
+          "method": "GET",
+          "path": "/cruz-public/api/uctovne-jednotky",
+          "verification": "live_sample_verified"
+        },
+        {
+          "spec_id": "sk.profile",
+          "method": "GET",
+          "path": "/cruz-public/api/uctovna-jednotka",
+          "verification": "live_sample_verified"
+        },
+        {
+          "spec_id": "sk.statement",
+          "method": "GET",
+          "path": "/cruz-public/api/uctovna-zavierka",
+          "verification": "documentation_only"
+        },
+        {
+          "spec_id": "sk.report",
+          "method": "GET",
+          "path": "/cruz-public/api/uctovny-vykaz",
+          "verification": "documentation_only"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "sk-commercial-register",
+      "name": "Obchodný register",
+      "country_codes": [
+        "SK"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Use official RPO for registry identity and RÚZ for accounts where supported",
+      "required_work": [
+        "Use official RPO for registry identity and RÚZ for accounts where supported",
+        "Verify current ORSR machine interface and redistribution terms",
+        "Keep court-register record and RÚZ internal unit ID separate"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_directory_identified",
+        "references": [
+          {
+            "url": "https://www.orsr.sk/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          },
+          {
+            "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "sk-rpo",
+      "name": "RPO — Register of Legal Entities",
+      "country_codes": [
+        "SK"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Review current REST API and entity-ID search routes",
+      "required_work": [
+        "Review current REST API and entity-ID search routes",
+        "Connect IČO to internal RPO identity",
+        "Preserve source-register linkage and distinguish identity from RÚZ account content"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.susr.sk/ExportPdf2/PdfExportSrvlt?Document=ac07a838-4ff2-4f67-86ac-a1ed11fa18e0",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "sk-ruz",
+      "name": "RÚZ — Register of Financial Statements",
+      "country_codes": [
+        "SK"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Resolve IČO to RÚZ unit ID before unit/statement/report fetches",
+      "required_work": [
+        "Resolve IČO to RÚZ unit ID before unit/statement/report fetches",
+        "Use each object type’s change cursor; linked-object changes need independent polling",
+        "Preserve template, reporting period, units and consolidation; missing fields are not zero"
+      ],
+      "operation_spec_ids": [
+        "sk.unit-resolve",
+        "sk.profile",
+        "sk.statement",
+        "sk.report"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://www.registeruz.sk/cruz-public/home/api",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/sk-ruz-identity.json",
+          "evidence/sk-ruz-profile.json"
+        ]
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "sk.unit-resolve",
+      "source_id": "sk-ruz",
+      "country_code": "SK",
+      "status": "draft_not_registered",
+      "public_capability": "sk.company.identifiers.get",
+      "proposed_execution_capability": "company.sk-unit-resolve",
+      "method": "GET",
+      "origin_url": "https://www.registeruz.sk",
+      "path": "/cruz-public/api/uctovne-jednotky",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ico": {
+            "type": "string",
+            "pattern": "^[0-9]{8}$"
+          }
+        },
+        "required": [
+          "ico"
+        ]
+      },
+      "input_map": {
+        "ico": {
+          "in": "query",
+          "name": "ico",
+          "fact_type": "company.registration.sk.national_id"
+        }
+      },
+      "fixed_params": {
+        "query": {
+          "zmenene-od": "2000-01-01",
+          "max-zaznamov": 25
+        }
+      },
+      "upstream_output_map": {
+        "accounting_unit_ids": "$.id[*]",
+        "has_more": "$.existujeDalsieId"
+      },
+      "normalization_requirements": [
+        "Return internal RÚZ IDs; never claim they are IČO numbers.",
+        "If more than one result, resolve the unit before buying document calls."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "many",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "cursor",
+        "cursor_parameter": "pokracovat-za-id"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/sk-ruz-identity.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "ico",
+          "required": true,
+          "fact_type": "company.registration.sk.national_id",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "accounting_unit_ids",
+          "upstream_projection": "$.id[*]"
+        },
+        {
+          "field": "has_more",
+          "upstream_projection": "$.existujeDalsieId"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "sk.profile",
+      "source_id": "sk-ruz",
+      "country_code": "SK",
+      "status": "draft_not_registered",
+      "public_capability": "sk.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://www.registeruz.sk",
+      "path": "/cruz-public/api/uctovna-jednotka",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "unit_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expected_ico": {
+            "type": "string",
+            "pattern": "^[0-9]{8}$"
+          }
+        },
+        "required": [
+          "unit_id",
+          "expected_ico"
+        ]
+      },
+      "input_map": {
+        "unit_id": {
+          "in": "query",
+          "name": "id",
+          "fact_type_proposal": "company.registration.sk.ruz_unit_id"
+        },
+        "expected_ico": {
+          "in": "adapter_validation_only",
+          "fact_type": "company.registration.sk.national_id"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "registration_number": "$.ico",
+        "legal_name": "$.nazovUJ",
+        "accounting_unit_id": "$.id",
+        "statement_ids": "$.idUctovnychZavierok[*]",
+        "annual_report_ids": "$.idVyrocnychSprav[*]",
+        "updated_at": "$.datumPoslednejUpravy"
+      },
+      "normalization_requirements": [
+        "Check both returned unit ID and expected IČO.",
+        "Handle deletion marker ZMAZANÉ.",
+        "Unit without statement IDs means unavailable/no public accounts, not zero accounts values."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/sk-ruz-profile.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "unit_id",
+          "required": true,
+          "fact_type": "company.registration.sk.ruz_unit_id",
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "expected_ico",
+          "required": true,
+          "fact_type": "company.registration.sk.national_id",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.ico"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.nazovUJ"
+        },
+        {
+          "field": "accounting_unit_id",
+          "upstream_projection": "$.id"
+        },
+        {
+          "field": "statement_ids",
+          "upstream_projection": "$.idUctovnychZavierok[*]"
+        },
+        {
+          "field": "annual_report_ids",
+          "upstream_projection": "$.idVyrocnychSprav[*]"
+        },
+        {
+          "field": "updated_at",
+          "upstream_projection": "$.datumPoslednejUpravy"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "sk.statement",
+      "source_id": "sk-ruz",
+      "country_code": "SK",
+      "status": "draft_not_registered",
+      "public_capability": "sk.company.accounts.get",
+      "proposed_execution_capability": "company.sk-statement",
+      "method": "GET",
+      "origin_url": "https://www.registeruz.sk",
+      "path": "/cruz-public/api/uctovna-zavierka",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "statement_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expected_unit_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "statement_id",
+          "expected_unit_id"
+        ]
+      },
+      "input_map": {
+        "statement_id": {
+          "in": "query",
+          "name": "id"
+        },
+        "expected_unit_id": {
+          "in": "adapter_validation_only"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "statement_id": "$.id",
+        "unit_id": "$.idUJ",
+        "period_start": "$.obdobieOd",
+        "period_end": "$.obdobieDo",
+        "consolidated": "$.konsolidovana",
+        "report_ids": "$.idUctovnychVykazov[*]"
+      },
+      "normalization_requirements": [
+        "Check idUJ against resolved unit.",
+        "Retrieve reports separately under a bounded approved plan.",
+        "Do not assume a statement container contains all numeric financial rows."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "documentation_only",
+        "fixture": null,
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "statement_id",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "expected_unit_id",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "statement_id",
+          "upstream_projection": "$.id"
+        },
+        {
+          "field": "unit_id",
+          "upstream_projection": "$.idUJ"
+        },
+        {
+          "field": "period_start",
+          "upstream_projection": "$.obdobieOd"
+        },
+        {
+          "field": "period_end",
+          "upstream_projection": "$.obdobieDo"
+        },
+        {
+          "field": "consolidated",
+          "upstream_projection": "$.konsolidovana"
+        },
+        {
+          "field": "report_ids",
+          "upstream_projection": "$.idUctovnychVykazov[*]"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "sk.report",
+      "source_id": "sk-ruz",
+      "country_code": "SK",
+      "status": "draft_not_registered",
+      "public_capability": "sk.company.financials.get",
+      "proposed_execution_capability": "company.sk-report",
+      "method": "GET",
+      "origin_url": "https://www.registeruz.sk",
+      "path": "/cruz-public/api/uctovny-vykaz",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "report_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "report_id"
+        ]
+      },
+      "input_map": {
+        "report_id": {
+          "in": "query",
+          "name": "id"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "report": "$"
+      },
+      "normalization_requirements": [
+        "Capture a live report/template fixture before mapping rows to metrics.",
+        "Keep template ID, unit scale, currency, period and statement relationship.",
+        "Return unknown values as null; only calculate comparisons from compatible periods and units."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "documentation_only",
+        "fixture": null,
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "report_id",
+          "required": true,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "report",
+          "upstream_projection": "$"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}

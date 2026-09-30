@@ -1,0 +1,431 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "ES",
+    "name": "Spain",
+    "region": "EU27",
+    "native_source_ids": [
+      "es-registro-mercantil"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA001105",
+        "register": "",
+        "jurisdiction": "Álava",
+        "website": "https://e-s.araba.eus/wps/portal/ConsultaCove_es"
+      },
+      {
+        "ra_code": "RA001067",
+        "register": "Registry of Foundations",
+        "jurisdiction": "Basque Country",
+        "website": "https://www.euskadi.eus/gobierno-vasco/registros-administrativos/-/registro-fundaciones-buscador/"
+      },
+      {
+        "ra_code": "RA001068",
+        "register": "Registry of Associations",
+        "jurisdiction": "Basque Country",
+        "website": "https://www.euskadi.eus/registro-asociaciones-buscador/web01-a2aderre/es/"
+      },
+      {
+        "ra_code": "RA001080",
+        "register": "Registry of Cooperatives",
+        "jurisdiction": "Basque Country",
+        "website": "https://www.euskadi.eus/buscador-de-cooperativas/web01-a2gizeko/es/"
+      },
+      {
+        "ra_code": "RA001101",
+        "register": "",
+        "jurisdiction": "Biscay",
+        "website": "https://apli.bizkaia.net/bizkaibai/castellano/aldundia/ogasuna/Certificados/caConsultaCertificados.asp"
+      },
+      {
+        "ra_code": "RA001078",
+        "register": "",
+        "jurisdiction": "Castilla and León",
+        "website": "https://www.tramitacastillayleon.jcyl.es/web/jcyl/AdministracionElectronica/es/Plantilla100Detalle/1251181050732/Servicio/1278000694977/Tramite"
+      },
+      {
+        "ra_code": "RA001113",
+        "register": "",
+        "jurisdiction": "Castilla and León",
+        "website": "https://servicios.jcyl.es/waso"
+      },
+      {
+        "ra_code": "RA000728",
+        "register": "Inventory of Regional Institutions",
+        "jurisdiction": "Catalonia",
+        "website": "http://sac.gencat.cat/sacgencat/AppJava/organismes.jsp"
+      },
+      {
+        "ra_code": "RA001064",
+        "register": "",
+        "jurisdiction": "Galicia",
+        "website": "https://sede.xunta.gal/cve"
+      },
+      {
+        "ra_code": "RA001003",
+        "register": "Foundations Registry",
+        "jurisdiction": "Madrid",
+        "website": "https://www.comunidad.madrid/servicios/asociaciones-fundaciones-colegios-profesionales/registro-fundaciones-comunidad-madrid"
+      },
+      {
+        "ra_code": "RA001060",
+        "register": "",
+        "jurisdiction": "Navarra",
+        "website": "https://www.navarra.es/es/registro-de-asociaciones-fundaciones-y-colegios-profesionales"
+      },
+      {
+        "ra_code": "RA000533",
+        "register": "Commercial Registry",
+        "jurisdiction": "Spain",
+        "website": "www.registradores.org"
+      },
+      {
+        "ra_code": "RA000534",
+        "register": "",
+        "jurisdiction": "Spain",
+        "website": "www.cnmv.es"
+      },
+      {
+        "ra_code": "RA000535",
+        "register": "",
+        "jurisdiction": "Spain",
+        "website": "www.agenciatributaria.es"
+      },
+      {
+        "ra_code": "RA000536",
+        "register": "Register of Foundations",
+        "jurisdiction": "Spain",
+        "website": "https://www.mjusticia.gob.es/es/ciudadania/registros/fundaciones-competencia/buscador-fundaciones"
+      },
+      {
+        "ra_code": "RA000537",
+        "register": "National Associations Register",
+        "jurisdiction": "Spain",
+        "website": "https://sede.mir.gob.es/nfrontal/webasocia.html"
+      },
+      {
+        "ra_code": "RA000538",
+        "register": "Register of Cooperative Societies",
+        "jurisdiction": "Spain",
+        "website": "www.empleo.gob.es"
+      },
+      {
+        "ra_code": "RA000539",
+        "register": "",
+        "jurisdiction": "Spain",
+        "website": "http://www.dgsfp.mineco.es/en/Paginas/Iniciocarrousel.aspx"
+      },
+      {
+        "ra_code": "RA000716",
+        "register": "Register of Religious Entities",
+        "jurisdiction": "Spain",
+        "website": "https://maper.mjusticia.gob.es/Maper/buscarRER.action"
+      },
+      {
+        "ra_code": "RA000767",
+        "register": "Register of Associations of Professionals",
+        "jurisdiction": "Spain",
+        "website": "https://www.mscbs.gob.es/profesionales/socCientificas/colegios.htm"
+      },
+      {
+        "ra_code": "RA000780",
+        "register": "Central Mercantile Registry",
+        "jurisdiction": "Spain",
+        "website": "http://www.rmc.es/Home.aspx"
+      },
+      {
+        "ra_code": "RA001002",
+        "register": "Invente (Inventory of state, regional and local public sector bodies)",
+        "jurisdiction": "Spain",
+        "website": "https://www.igae.pap.hacienda.gob.es/sitios/igae/es-ES/basesdatos/invente/paginas/inicio.aspx"
+      },
+      {
+        "ra_code": "RA001071",
+        "register": "",
+        "jurisdiction": "Spain",
+        "website": "https://www.educacion.gob.es/ruct/home"
+      },
+      {
+        "ra_code": "RA001084",
+        "register": "",
+        "jurisdiction": "Valencia",
+        "website": "https://atv.gva.es/va/verificacion-documentos"
+      },
+      {
+        "ra_code": "RA001147",
+        "register": "Registry of Foundations",
+        "jurisdiction": "Galicia",
+        "website": "https://fundacions.xunta.gal/consulta-fundacions/"
+      },
+      {
+        "ra_code": "RA001148",
+        "register": "Registry of Associations",
+        "jurisdiction": "Galicia",
+        "website": "https://asociacions.xunta.gal/consulta-asociacions/?locale=gl"
+      },
+      {
+        "ra_code": "RA001187",
+        "register": "Registry of Foundations",
+        "jurisdiction": "Balearic Islands",
+        "website": "https://www.caib.es/sites/fundacions/es/mapa/"
+      },
+      {
+        "ra_code": "RA001188",
+        "register": "Register of Sports Entities in the Balearic Islands",
+        "jurisdiction": "Balearic Islands",
+        "website": "https://www.caib.es/sites/entitatsesportives/es/clubs_inscrits/"
+      },
+      {
+        "ra_code": "RA001189",
+        "register": "",
+        "jurisdiction": "Canary Islands",
+        "website": "https://sede.gobiernodecanarias.org/sede/verifica_doc"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "es-registro-mercantil",
+      "name": "Registro Mercantil / Registradores",
+      "publisher": "Colegio de Registradores",
+      "country_codes": [
+        "ES"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "es",
+        "search",
+        "profile",
+        "filings.list",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "es.nif",
+          "description": "Tax identifier; legacy CIF label",
+          "value_type": "string"
+        },
+        {
+          "scheme": "es.registry_record",
+          "description": "Territorial registry + sheet/record reference",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Company extracts and filed accounts from Spanish mercantile registries.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "contract_access_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "Per-product/contract tariff to confirm",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "es.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "es.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "es.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "es.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Request the commercial machine-access product and redistribution terms from Registradores",
+        "Confirm eligible API access; an institutional API agreement is not public API access",
+        "Preserve NIF versus territorial registry references and document fees"
+      ],
+      "references": [
+        {
+          "url": "https://www.registradores.org/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_and_institutional_api_evidence"
+        },
+        {
+          "url": "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-24833",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_and_institutional_api_evidence"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000533"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_service_and_institutional_api_evidence",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "es-registro-mercantil",
+      "name": "Registro Mercantil / Registradores",
+      "country_codes": [
+        "ES"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request the commercial machine-access product and redistribution terms from Registradores",
+      "required_work": [
+        "Request the commercial machine-access product and redistribution terms from Registradores",
+        "Confirm eligible API access; an institutional API agreement is not public API access",
+        "Preserve NIF versus territorial registry references and document fees"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_service_and_institutional_api_evidence",
+        "references": [
+          {
+            "url": "https://www.registradores.org/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_and_institutional_api_evidence"
+          },
+          {
+            "url": "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-24833",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_and_institutional_api_evidence"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

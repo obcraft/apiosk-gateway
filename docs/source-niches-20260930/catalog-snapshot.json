@@ -1,0 +1,1161 @@
+{
+  "checked_at": "2026-09-30",
+  "method": "Read-only source metadata; no customer data or credentials",
+  "sources": [
+    {
+      "source_slug": "agentbodega",
+      "source_name": "AgentBodega",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "AgentBodega",
+          "slug": "agentbodega",
+          "category": "tools",
+          "docs_url": "https://agentbodega.store/openapi.json",
+          "origin_url": "https://agentbodega.store",
+          "description": "Pay-per-call agent utilities: x402 endpoint inspection, web search and answers, social and public-data catalogues, and a directory of payable routes."
+        }
+      ]
+    },
+    {
+      "source_slug": "ask-merlin",
+      "source_name": "Ask Merlin UK VAT",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Ask Merlin UK VAT",
+          "slug": "ask-merlin",
+          "category": "finance",
+          "docs_url": "https://askmerlin.com/api",
+          "origin_url": "https://askmerlin.com",
+          "description": "UK VAT validation via Ask Merlin using HMRC-derived results. Search by name is a separate Tavily step."
+        }
+      ]
+    },
+    {
+      "source_slug": "bloomberg",
+      "source_name": "Bloomberg News",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Bloomberg News",
+          "slug": "bloomberg",
+          "category": "news",
+          "docs_url": "https://rapidapi.com/search/bloomberg",
+          "origin_url": "https://bloomberg-finance.p.rapidapi.com",
+          "description": "Latest Bloomberg news stories: headline, summary, byline, publication time, category and article link. Summaries only, no full article text."
+        }
+      ]
+    },
+    {
+      "source_slug": "bodemloket",
+      "source_name": "Bodemloket",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Bodemloket",
+          "slug": "bodemloket",
+          "category": "geospatial",
+          "docs_url": "https://www.bodemloket.nl/content/kan-ik-bodemloket-ook-mijn-gis-inladen",
+          "origin_url": "https://gis.gdngeoservices.nl",
+          "description": "Query soil-investigation map layers and geographic data availability. Does not supply full soil reports; no returned feature does not establish clean soil."
+        }
+      ]
+    },
+    {
+      "source_slug": "browserbase",
+      "source_name": "Browserbase",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Browserbase",
+          "slug": "browserbase",
+          "category": "data",
+          "docs_url": "https://x402.browserbase.com/",
+          "origin_url": "https://x402.browserbase.com",
+          "description": "Pay-per-use browser infrastructure for AI agents. Create and extend cloud browser sessions, check or terminate sessions, search the web, and fetch webpage content. Browserbase is externally hosted and x402-native; pay Browserbase directly."
+        }
+      ]
+    },
+    {
+      "source_slug": "cbs-statline",
+      "source_name": "CBS Statistics",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "CBS Statistics",
+          "slug": "cbs-statline",
+          "category": "data",
+          "docs_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+          "origin_url": "https://datasets.cbs.nl",
+          "description": "Official Dutch statistics per economic sector (SBI): bankruptcies, sector balance sheets and profit-and-loss, company counts by size class, closures and turnover momentum."
+        }
+      ]
+    },
+    {
+      "source_slug": "cityfalcon-financial-api",
+      "source_name": "CityFALCON Financial API",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "CityFALCON Financial API",
+          "slug": "cityfalcon-financial-api",
+          "category": "finance",
+          "docs_url": "https://www.cityfalcon.ai/blog/the-startup-journey/building-financial-intelligence-a-developers-guide-to-our-news-sentiment-and-sector-data-apis/",
+          "origin_url": "https://api.cityfalcon.com/v0.2",
+          "description": "Financial content API for Stories, Investor Relations, Sentiment, and Insider Transactions. Over 50k listed stocks, 1500 sectors, and hundreds of topics and events like inflation, analyst ratings, and bankruptcies to query.\n\nAll calls are GET requests. Responses are JSON.\n\nResponse data is limited to the most recent 30 days. Historical data is available from CityFALCON."
+        }
+      ]
+    },
+    {
+      "source_slug": "companies-house",
+      "source_name": "Companies House",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Companies House",
+          "slug": "companies-house",
+          "category": "data",
+          "docs_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+          "origin_url": "https://api.company-information.service.gov.uk",
+          "description": "The official register of every company incorporated in the United Kingdom, from Companies House. Search the register by company name, officer name or disqualified officer; resolve a company number; and pull the full public record for any UK company — registered office address, company status and type, incorporation and dissolution dates, SIC codes, accounts and confirmation-statement due dates, it"
+        }
+      ]
+    },
+    {
+      "source_slug": "crowdpull",
+      "source_name": "CrowdPull",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "CrowdPull",
+          "slug": "crowdpull",
+          "category": "data",
+          "docs_url": "https://crowdpull.click/openapi.json",
+          "origin_url": "https://crowdpull.click",
+          "description": "Capped public-data jobs: marketplace listings, rental comparables, review complaints and hiring signals, run per call rather than per subscription."
+        }
+      ]
+    },
+    {
+      "source_slug": "data-overheid-nl",
+      "source_name": "Dutch Open Data Register",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Dutch Open Data Register",
+          "slug": "data-overheid-nl",
+          "category": "data",
+          "docs_url": "https://data.overheid.nl/ondersteuning/data-publiceren/api",
+          "origin_url": "https://data.overheid.nl",
+          "description": "Search the Dutch government's open-data register: 20,276 datasets from 33 publishers, with the publisher endpoints behind each one. Catalogue metadata, not data rows."
+        }
+      ]
+    },
+    {
+      "source_slug": "domain-intelligence",
+      "source_name": "Domain Intelligence (RDAP & DNS)",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Domain Intelligence (RDAP & DNS)",
+          "slug": "domain-intelligence",
+          "category": "security",
+          "docs_url": "https://about.rdap.org/",
+          "origin_url": "https://rdap.org",
+          "description": "Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date."
+        }
+      ]
+    },
+    {
+      "source_slug": "eodhd",
+      "source_name": "EODHD Market Data",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "EODHD Market Data",
+          "slug": "eodhd",
+          "category": "finance",
+          "docs_url": "https://eodhd.com/financial-apis/",
+          "origin_url": "https://eodhd.com",
+          "description": "Global market prices, fundamentals, corporate events, options, fixed income, news, sentiment and macro data."
+        }
+      ]
+    },
+    {
+      "source_slug": "eu-funding-tenders",
+      "source_name": "EU Funding & Tenders",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "EU Funding & Tenders",
+          "slug": "eu-funding-tenders",
+          "category": "government",
+          "docs_url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/support/apis",
+          "origin_url": "https://api.tech.ec.europa.eu",
+          "description": "Search EU funding and tender records by keyword and language, excluding FAQ records. Includes historical calls; eligibility and current application status are not inferred."
+        }
+      ]
+    },
+    {
+      "source_slug": "eurlex-cellar",
+      "source_name": "EUR-Lex Cellar",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "EUR-Lex Cellar",
+          "slug": "eurlex-cellar",
+          "category": "legal",
+          "docs_url": "https://op.europa.eu/en/web/cellar",
+          "origin_url": "https://publications.europa.eu",
+          "description": "Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text."
+        }
+      ]
+    },
+    {
+      "source_slug": "eurostat",
+      "source_name": "Eurostat",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Eurostat",
+          "slug": "eurostat",
+          "category": "data",
+          "docs_url": "https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access",
+          "origin_url": "https://ec.europa.eu/eurostat/api/dissemination",
+          "description": "Official European statistics from Eurostat, the statistical office of the European Union. Around 8,000 datasets covering GDP and national accounts, inflation and HICP, unemployment and the labour force, population and migration, trade, energy, environment and emissions, transport, health, education, income and living conditions - harmonised across the 27 member states plus EFTA and the candidate c"
+        }
+      ]
+    },
+    {
+      "source_slug": "exa",
+      "source_name": "Exa",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Exa",
+          "slug": "exa",
+          "category": "search",
+          "docs_url": "https://exa.ai/docs/reference/x402-guide",
+          "origin_url": "https://api.exa.ai",
+          "description": "Semantic and keyword web search for agents, plus clean page-content retrieval for a URL you already have."
+        }
+      ]
+    },
+    {
+      "source_slug": "gleif",
+      "source_name": "GLEIF",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "GLEIF",
+          "slug": "gleif",
+          "category": "data",
+          "docs_url": "https://www.gleif.org/en/lei-data/gleif-api",
+          "origin_url": "https://api.gleif.org/api/v1",
+          "description": "The official global LEI (Legal Entity Identifier) registry from GLEIF, the Global Legal Entity Identifier Foundation. Search or look up any legal entity by LEI, name, BIC or ISIN; trace corporate ownership (direct and ultimate parents); resolve ISIN-to-LEI mappings; and look up the accredited LOUs (issuing organizations) and reference codes (country, jurisdiction, legal form) that LEI records use."
+        }
+      ]
+    },
+    {
+      "source_slug": "iban-check",
+      "source_name": "IBAN Check",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "IBAN Check",
+          "slug": "iban-check",
+          "category": "finance",
+          "docs_url": "https://www.swift.com/standards/data-standards/iban-international-bank-account-number",
+          "origin_url": "https://iban-check.apiosk.com",
+          "description": "Validate an IBAN: country and length, ISO 7064 mod-97 check digits, SEPA membership and the bank and BIC behind Dutch bank codes. Does not confirm that the account exists or who holds it."
+        }
+      ]
+    },
+    {
+      "source_slug": "koop",
+      "source_name": "KOOP Official Publications and Regulations",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "KOOP Official Publications and Regulations",
+          "slug": "koop",
+          "category": "government",
+          "docs_url": "https://www.koopoverheid.nl/binaries/koop/documenten/instructies/2021/02/09/handleiding-voor-het-uitvragen-van-de-collectie-officiele-publicaties/HandleidingSRU2.0.pdf",
+          "origin_url": "https://repository.overheid.nl",
+          "description": "Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents."
+        }
+      ]
+    },
+    {
+      "source_slug": "kvk-dutch-business-register",
+      "source_name": "KVK Business Register",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "KVK Business Register",
+          "slug": "kvk-dutch-business-register",
+          "category": "data",
+          "docs_url": "https://developers.kvk.nl/nl/documentation",
+          "origin_url": "https://api.kvk.nl",
+          "description": "Official Dutch company register (Handelsregister) from KVK, the Netherlands Chamber of Commerce: search companies by name, resolve a KVK number (kvk-nummer), and look up the basic profile (basisprofiel), branch profile (vestigingsprofiel), registered and trade names (statutaire naam, handelsnamen), filed annual accounts (jaarrekeningen) and open company data — the employee count (how many people w"
+        }
+      ]
+    },
+    {
+      "source_slug": "linkup",
+      "source_name": "Linkup",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Linkup",
+          "slug": "linkup",
+          "category": "search",
+          "docs_url": "https://docs.linkup.so/pages/documentation/api-reference/endpoint/post-search",
+          "origin_url": "https://api.linkup.so",
+          "description": "Agentic web search that returns ranked sources, a cited answer, or JSON in a shape you define — plus clean markdown for any single page."
+        }
+      ]
+    },
+    {
+      "source_slug": "opensanctions",
+      "source_name": "OpenSanctions",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "OpenSanctions",
+          "slug": "opensanctions",
+          "category": "data",
+          "docs_url": "https://www.opensanctions.org/docs/api/",
+          "origin_url": "https://api.opensanctions.org",
+          "description": "Sanctions, PEP and watchlist screening for people and companies. Check whether a person or a company is sanctioned (OFAC SDN, EU, UK OFSI, UN and hundreds of other lists), is a politically exposed person (PEP) or a close associate of one, appears on a debarment, wanted or crime-linked list, or is a known owner or officer of an entity that is. Screen a name with fuzzy matching and scored results, s"
+        }
+      ]
+    },
+    {
+      "source_slug": "overheid-io",
+      "source_name": "Overheid.io Public Data",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Overheid.io Public Data",
+          "slug": "overheid-io",
+          "category": "data",
+          "docs_url": "https://overheid.io/documentatie/",
+          "origin_url": "https://api.overheid.io",
+          "description": "Search Dutch company, vehicle-registration and BAG address data through one managed source."
+        }
+      ]
+    },
+    {
+      "source_slug": "pdok",
+      "source_name": "PDOK Maps & Addresses",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "PDOK Maps & Addresses",
+          "slug": "pdok",
+          "category": "data",
+          "docs_url": "https://www.pdok.nl/ogc-apis",
+          "origin_url": "https://api.pdok.nl",
+          "description": "Official Dutch government geodata from PDOK (Publieke Dienstverlening Op de Kaart), the national open-data platform of the Kadaster: geocode a Dutch address to coordinates and reverse, look up buildings and addresses in the BAG (Basisregistratie Adressen en Gebouwen), cadastral parcels (kadastrale percelen) and public-law restrictions (publiekrechtelijke beperkingen, WKPB) in the BRK, CBS neighbou"
+        }
+      ]
+    },
+    {
+      "source_slug": "pdok-ruimtelijke-plannen",
+      "source_name": "PDOK Ruimtelijke Plannen",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "PDOK Ruimtelijke Plannen",
+          "slug": "pdok-ruimtelijke-plannen",
+          "category": "geospatial",
+          "docs_url": "https://www.pdok.nl/",
+          "origin_url": "https://service.pdok.nl",
+          "description": "Query spatial-plan map features at a pixel in an RD-coordinate map extent. Check the original plan documents for current legal effect."
+        }
+      ]
+    },
+    {
+      "source_slug": "pixelforge-x402-data-services",
+      "source_name": "PixelForge x402 Data Services",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "PixelForge x402 Data Services",
+          "slug": "pixelforge-x402-data-services",
+          "category": "data",
+          "docs_url": "https://fixed-improved-liver-besides.trycloudflare.com/docs",
+          "origin_url": "https://fixed-improved-liver-besides.trycloudflare.com",
+          "description": "Deterministic text, JSON, utility and public-data services payable per request over x402."
+        }
+      ]
+    },
+    {
+      "source_slug": "pulsenetwork",
+      "source_name": "Pulse Network",
+      "service_count": 76,
+      "services": [
+        {
+          "name": "AirdropPulse",
+          "slug": "airdroppulse",
+          "category": "ai",
+          "docs_url": "https://airdroppulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://airdroppulse.theaslangroupllc.com",
+          "description": "Machine-readable airdrop/points-campaign intelligence and concentrated-liquidity (LP) analytics API. 12 endpoints: live multi-chain campaign registry, GigaDex pool points-per-dollar ranking, campaign clock and value scenarios, position points audit, entry-mechanics guide, LP range modeling, impermanent-loss forecasting, position health monitoring, rebalance scenario comparison, and LONG.xyz / Dopp"
+        },
+        {
+          "name": "AlphaPulse",
+          "slug": "alphapulse",
+          "category": "crypto",
+          "docs_url": "https://alphapulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://alphapulse.theaslangroupllc.com",
+          "description": "The due-diligence layer for traders and allocators, worldwide — check before you fund. Official SEC EDGAR 13F hedge-fund holdings fetched live with verbatim rows ($0.50), prop-firm shortlists with payout-proof checks ($0.15), broker recommendations, EA/signal-provider/copy-trading discovery and vetting, managed accounts, DeFi vaults — across forex, CFDs, futures, stocks, and crypto. 13 endpoints, "
+        },
+        {
+          "name": "ArbiPulse",
+          "slug": "arbipulse",
+          "category": "crypto",
+          "docs_url": "https://arbipulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://arbipulse.theaslangroupllc.com",
+          "description": "The arbitrage layer for every market. 18 endpoints finding the same thing at two prices — prediction-market cross-venue spreads (Polymarket×Kalshi), GPU compute rental arbitrage, AI inference token-price arbitrage, stablecoin parallel-rate premiums (capital-control FX), retail resale margin checks, plus the financial lanes: DeFi yield spreads, DEX/CEX differentials, perpetual funding rates, sports"
+        },
+        {
+          "name": "AutoPulse",
+          "slug": "autopulse",
+          "category": "security",
+          "docs_url": "https://autopulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://autopulse.theaslangroupllc.com",
+          "description": "Automotive intelligence API powered by NHTSA and EPA official data plus live market synthesis. 11 endpoints: safety recall lookup by VIN, reliability and complaint analysis, step-by-step DIY repair guides, vehicle comparison, market value with sell/hold recommendation, 5-year total cost of ownership, EV break-even, dealer negotiation scripts, pre-purchase inspection checklists, parts pricing, and "
+        },
+        {
+          "name": "BioPulse",
+          "slug": "biopulse",
+          "category": "ai",
+          "docs_url": "https://biopulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://biopulse.theaslangroupllc.com",
+          "description": "Biodiversity and species intelligence API. 9 endpoints: full species profiles (GBIF + IUCN Red List), recent wildlife sightings, eBird birding intelligence, marine biodiversity (OBIS — 100M+ ocean records), invasive species alerts, endangered species deep dives, biodiversity hotspot guides, species identification, and migration timing intelligence. Built for birders, naturalists, divers, ecologist"
+        },
+        {
+          "name": "BuildPulse",
+          "slug": "buildpulse",
+          "category": "data",
+          "docs_url": "https://buildpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://buildpulse.theaslangroupllc.com",
+          "description": "Professional construction intelligence API. Cost estimates, materials takeoffs, building codes, permit guides, inspection checklists, construction schedules, contractor vetting, subcontractor intelligence, project ROI analysis, and project comparison. Global scope, any language."
+        },
+        {
+          "name": "CareerPulse",
+          "slug": "careerpulse",
+          "category": "location",
+          "docs_url": "https://careerpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://careerpulse.theaslangroupllc.com",
+          "description": "AI-powered career intelligence API. Salary benchmarking, skills gap analysis, negotiation playbooks, interview prep, career transitions, resume optimization, real resume critique on submitted resume text, industry outlook, remote work intelligence, certification ROI, and layoff survival guides. Global scope, any language."
+        },
+        {
+          "name": "ChronicaPulse",
+          "slug": "chronicapulse",
+          "category": "search",
+          "docs_url": "https://chronicapulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://chronicapulse.theaslangroupllc.com",
+          "description": "Global historical newspaper archive intelligence API. 9 endpoints covering person research, obituaries, historical events, place history, immigration records, military service, business history, chronological timelines, and full-text archive search. Primary source: Library of Congress Chronicling America (30M+ pages, 1770–1963, free). Global coverage via British Newspaper Archive, Trove (Australia"
+        },
+        {
+          "name": "CitePulse",
+          "slug": "citepulse",
+          "category": "search",
+          "docs_url": "https://citepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://citepulse.theaslangroupllc.com",
+          "description": "Academic citation analytics for AI research agents, grant offices, and PIs — the free-rebuild layer under Web of Science ($212k/yr) and Scopus (~$140k/yr), built entirely on open scholarly infrastructure (OpenAlex CC0, Crossref, Semantic Scholar, Unpaywall). Bibliography verification with retraction detection, paper/author/institution/journal metrics, rising-topic and funder-impact scans, and grou"
+        },
+        {
+          "name": "ClearCarePulse",
+          "slug": "clearcarepulse",
+          "category": "search",
+          "docs_url": "https://clearcarepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://clearcarepulse.theaslangroupllc.com",
+          "description": "Hospital price transparency intelligence API. Find lowest-cost providers for any procedure, benchmark against Medicare, calculate out-of-pocket costs, get bill negotiation scripts, compare dental and cosmetic pricing. Returns structured JSON. Requires x402 micropayment (USDC on Base mainnet)."
+        },
+        {
+          "name": "ClimatePulse",
+          "slug": "climatepulse",
+          "category": "weather",
+          "docs_url": "https://climatepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://climatepulse.theaslangroupllc.com",
+          "description": "Hyperlocal weather intelligence API for outdoor planning, travel, and activity scheduling. 11 endpoints: real-time current conditions with gear recommendations, 7-day detailed forecasts, activity-specific go/no-go assessments (hiking, skiing, surfing, camping, and more), severe weather alerts with preparedness guides, side-by-side location comparisons, real-time air quality + health guidance, wild"
+        },
+        {
+          "name": "ClinicalIntelPulse",
+          "slug": "clinicalintelpulse",
+          "category": "ai",
+          "docs_url": "https://clinicalintelpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://clinicalintelpulse.theaslangroupllc.com",
+          "description": "The medical intelligence layer for AI agents. Consumer lane: plain-language drug info, drug-drug interaction screening, and recall checks from FDA-approved labels (drug-check, interaction-check, recall-check). Institutional lane: pharmaceutical pipeline and clinical-trial intelligence from 400,000+ ClinicalTrials.gov studies, FDA OpenFDA, and PubMed. 13 endpoints, from $0.10. Pay-per-query via x40"
+        },
+        {
+          "name": "CollectablesPulse",
+          "slug": "collectablespulse",
+          "category": "finance",
+          "docs_url": "https://collectablespulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://collectablespulse.theaslangroupllc.com",
+          "description": "Collectibles market intelligence API. 8 endpoints covering current market value by grade/condition, grading service guides (PSA/BGS/CGC/PCGS/NGC), authentication for fakes, investment buy/hold/sell signals, head-to-head comparisons, where to sell for maximum value, storage and preservation guides with Amazon product recommendations, and insurance guidance. Covers sports cards, TCG/Pokémon, coins, "
+        },
+        {
+          "name": "CompliancePulse",
+          "slug": "compliancepulse",
+          "category": "weather",
+          "docs_url": "https://compliancepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://compliancepulse.theaslangroupllc.com",
+          "description": "Global regulatory intelligence API. Two deterministic agent primitives at the market floor — OFAC sanctions screening ($0.02, SDN + Consolidated lists, alias-aware) and EU VAT validation via VIES ($0.01) — returning official source rows verbatim with no LLM. Plus 12 regulatory intelligence endpoints across 145+ jurisdictions: data privacy law (GDPR/CCPA/PIPL/LGPD/PDPA/POPIA), KYC/AML requirements,"
+        },
+        {
+          "name": "CryptoPulse",
+          "slug": "cryptopulse",
+          "category": "crypto",
+          "docs_url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://cryptopulse.theaslangroupllc.com",
+          "description": "Real-time cryptocurrency intelligence API. Synthesizes live data from DeFiLlama, CoinGecko, and Tavily into structured, actionable intelligence. 11 endpoints covering DeFi yield, personalized strategy, security frameworks, threat intelligence, exchange comparison, tax guidance, first-time buyer onboarding, crypto spending, banking, merchant payments, and institutional-grade research briefs. Pay-pe"
+        },
+        {
+          "name": "CyberPulse",
+          "slug": "cyberpulse",
+          "category": "security",
+          "docs_url": "https://cyberpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://cyberpulse.theaslangroupllc.com",
+          "description": "Global cybersecurity intelligence API — CVE briefs, vulnerability scanning, CISA KEV, OSINT, threat intelligence (60+ countries, nation-state APTs + eCrime), ransomware group tracking, breach checks, compliance gap analysis (SOC2/ISO27001/GDPR/NIS2/PDPA/POPIA/LGPD), dark web monitoring, and attack surface assessment. Authoritative NVD + CISA data. x402 USDC micropayments on Base."
+        },
+        {
+          "name": "DealPulse",
+          "slug": "dealpulse",
+          "category": "search",
+          "docs_url": "https://dealpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://dealpulse.theaslangroupllc.com",
+          "description": "Deal verification and intelligence API. The anti-fake-coupon layer: deal-check verifies which offers are REAL at any store right now — first-party sources only (the merchant's own site, feeds, loyalty and newsletter perks), every offer source-linked, with claimed-code verdicts. Plus discounted gift-card rates with stacking math, best-deal search, sale-event intelligence, and live price comparison."
+        },
+        {
+          "name": "DebtPulse",
+          "slug": "debtpulse",
+          "category": "finance",
+          "docs_url": "https://debtpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://debtpulse.theaslangroupllc.com",
+          "description": "Global debt elimination intelligence API. 21 endpoints covering payoff math, creditor negotiation scripts, debt settlement analysis, statute of limitations detection, student loan strategy (US/UK/AU/CA), credit repair and building, insolvency analysis, tax debt relief (IRS/HMRC/CRA/ATO), medical bill negotiation, mortgage relief, BNPL and payday loan escape, and debt-to-wealth roadmaps."
+        },
+        {
+          "name": "EconSignalPulse",
+          "slug": "econsignalpulse",
+          "category": "finance",
+          "docs_url": "https://econsignalpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://econsignalpulse.theaslangroupllc.com",
+          "description": "Alternative economic intelligence API covering 190+ countries. Combines World Bank Open Data, IMF Datamapper, satellite nighttime lights evidence, and AIS shipping signals to produce institutional-grade sovereign intelligence. 10 endpoints covering satellite GDP verification, GDP tracking, inflation signals, sovereign country briefs, official stats divergence analysis, recession probabilities, fro"
+        },
+        {
+          "name": "EduPulse",
+          "slug": "edupulse",
+          "category": "location",
+          "docs_url": "https://edupulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://edupulse.theaslangroupllc.com",
+          "description": "The universal AI tutor and exam prep API. Every subject. Every exam. Every certification. Every language. Covers all K-12 subjects, all college courses, all professional licensing exams (NCLEX, Bar, CPA, LSAT, MCAT, Series 3/7, USMLE, CFA, CFP, real estate, electrician licensing, CDL, FAA, air traffic control, HVAC, plumbing, and any other credential worldwide), all continuing education requiremen"
+        },
+        {
+          "name": "ESGPulse",
+          "slug": "esgpulse",
+          "category": "security",
+          "docs_url": "https://esgpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://esgpulse.theaslangroupllc.com",
+          "description": "AI-powered ESG and sustainability intelligence API. Covers CSRD compliance roadmaps, EU Taxonomy alignment checks, supply chain due diligence (CSDDD), carbon emissions analysis, SASB sector materiality, greenwashing risk assessment, company ESG intelligence, and ESG disclosure guidance — plus a consumer-facing ethical-sourcing suite covering brand checks, coffee, cocoa, cruelty-free cosmetics, con"
+        },
+        {
+          "name": "FanPulse",
+          "slug": "fanpulse",
+          "category": "finance",
+          "docs_url": "https://fanpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://fanpulse.theaslangroupllc.com",
+          "description": "Super-fan intelligence API for iconic franchises and artists. 9 endpoints: lore Q&A, character profiles, trivia generation, Easter egg analysis, discography deep dives, personality sorting, canonical timelines, cross-franchise comparisons, and collectibles market intelligence (vinyl Discogs pricing, K-pop photocards, autograph authentication). Pay-per-query via x402 micropayments on Base."
+        },
+        {
+          "name": "FieldPulse",
+          "slug": "fieldpulse",
+          "category": "weather",
+          "docs_url": "https://fieldpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://fieldpulse.theaslangroupllc.com",
+          "description": "Global precision agriculture intelligence API. Synthesizes satellite NDVI, MET Norway weather forecasts (CC BY 4.0), NASA POWER soil and climate reanalysis, USDA WASDE, FAO, and EPPO into actionable intelligence for growers, traders, agronomists, and AI agents. 10 endpoints covering crop health, yield forecasting, weather risk, soil intelligence, pest/disease alerts, irrigation scheduling, commodi"
+        },
+        {
+          "name": "FilingsPulse",
+          "slug": "filingspulse",
+          "category": "finance",
+          "docs_url": "https://filingspulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://filingspulse.theaslangroupllc.com",
+          "description": "Global regulatory filing intelligence API covering 22 exchanges worldwide. SEC EDGAR (US), Companies House (UK), SEDAR (Canada), EDINET (Japan), ASIC (Australia), HKEx (Hong Kong), BSE/NSE (India), Euronext (France/Netherlands/Belgium), XETRA (Germany), SGX (Singapore), KOSPI/KOSDAQ (South Korea), B3 (Brazil), JSE (South Africa), Tadawul (Saudi Arabia), SET (Thailand), Bursa Malaysia, NZX (New Zea"
+        },
+        {
+          "name": "FindPulse",
+          "slug": "findpulse",
+          "category": "search",
+          "docs_url": "https://findpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://findpulse.theaslangroupllc.com",
+          "description": "Product discovery intelligence API — the research layer before the transaction, for shopping and buyer agents. One-call pre-purchase buy/wait/avoid verdicts with official CPSC recall screens, gift finding, Best-product-for-use-case recommendations, head-to-head comparisons, cheaper alternatives, hidden gems, used/refurbished sourcing, local professional vetting, grants and funding, scholarships, r"
+        },
+        {
+          "name": "FitPulse",
+          "slug": "fitpulse",
+          "category": "finance",
+          "docs_url": "https://fitpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://fitpulse.theaslangroupllc.com",
+          "description": "Fitness intelligence API powered by evidence-based sports science. 10 endpoints: custom workout plans by goal and equipment, exercise form guides with muscles and variations, macro and nutrition targets, evidence-based supplement stack analysis with tier ratings, phased injury recovery protocols, evidence-graded supplement efficacy tiers, sports medicine rehabilitation protocols, athletic sleep op"
+        },
+        {
+          "name": "FootballPulse",
+          "slug": "footballpulse",
+          "category": "media",
+          "docs_url": "https://footballpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://footballpulse.theaslangroupllc.com",
+          "description": "Football/soccer intelligence for fans, fantasy managers, and betting analysts — Fantasy Premier League checks grounded in the official FPL API (prices, ownership, injury status, fixture difficulty, direct buy/hold/avoid calls), match previews, World Cup and league intel, transfer news, and betting analysis (analysis, never instructions). Pay-per-query via x402 on Base."
+        },
+        {
+          "name": "FranchisePulse",
+          "slug": "franchisepulse",
+          "category": "ai",
+          "docs_url": "https://franchisepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://franchisepulse.theaslangroupllc.com",
+          "description": "Neutral franchise discovery and due diligence engine. 9 endpoints covering FDD analysis (Item 7/19/20/21), franchise opportunity discovery, comparison, due diligence vetting, total cost analysis, resale listings, online business acquisition, SBA financing, and broker conflict-of-interest education. Pay-per-query via x402 micropayments on Base."
+        },
+        {
+          "name": "GamePulse",
+          "slug": "gamepulse",
+          "category": "media",
+          "docs_url": "https://gamepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://gamepulse.theaslangroupllc.com",
+          "description": "AI-synthesized gaming, collectables, and esports intelligence API. Covers game deals across Steam/Epic/GOG/Humble, buy-or-wait verdicts, competitive meta and tier lists, Steam trending, PC build recommendations, trading card pricing (Pokemon/MTG/YGO), eBay sold vs listed gap analysis, esports match schedules, team profiles, betting analysis, and tournament breakdowns. Pay-per-query via x402 on Bas"
+        },
+        {
+          "name": "GeopoliticalPulse",
+          "slug": "geopoliticalpulse",
+          "category": "security",
+          "docs_url": "https://geopoliticalpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://geopoliticalpulse.theaslangroupllc.com",
+          "description": "Real-time geopolitical intelligence API for 195+ countries. Political risk, conflict monitoring, sanctions, elections, trade tensions, instability early warning, supply chain risk, and regional situational awareness — powered by GDELT, ACLED, World Bank, and AI synthesis."
+        },
+        {
+          "name": "GlowPulse",
+          "slug": "glowpulse",
+          "category": "security",
+          "docs_url": "https://glowpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://glowpulse.theaslangroupllc.com",
+          "description": "Real-time skincare and K-beauty ingredient intelligence API. Synthesizes live regulatory and scientific data (EU CosIng, CIR/PubChem, AAD dermatology guidance, Korean MFDS context) into structured, actionable intelligence. 12 endpoints covering ingredient lookup, conflict checking, product decoding, pregnancy/nursing safety, fungal-acne safety, dupe finding, routine building, K-beauty vs Western c"
+        },
+        {
+          "name": "GovSpendPulse",
+          "slug": "govspendpulse",
+          "category": "data",
+          "docs_url": "https://govspendpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://govspendpulse.theaslangroupllc.com",
+          "description": "Global government procurement intelligence API. Tracks $5+ trillion in annual government spending across US federal contracts (USASpending.gov), EU tenders (TED — all 27 member states), UK government contracts, international development banks (World Bank, ADB, AfDB), and UN system procurement. 9 endpoints covering vendor competitive intelligence, agency profiles, active solicitations, and full con"
+        },
+        {
+          "name": "GrantPulse",
+          "slug": "grantpulse",
+          "category": "search",
+          "docs_url": "https://grantpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://grantpulse.theaslangroupllc.com",
+          "description": "The funding-discovery layer for organisations anywhere — grounded in official sources fetched live: Grants.gov, the EU Funding & Tenders Portal (SEDIA), gov.uk Find a Grant, USAspending, and IRS Form 990 records. Match open calls to your profile (US federal/state, EU $0.25, UK $0.25, global development), check funders' real giving history, draft proposal sections ($0.20) and complete ready-to-send"
+        },
+        {
+          "name": "GridPulse",
+          "slug": "gridpulse",
+          "category": "ai",
+          "docs_url": "https://gridpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://gridpulse.theaslangroupllc.com",
+          "description": "Energy grid intelligence API — 13 endpoints. Flagship: carbon- and cost-aware COMPUTE SCHEDULING (/api/energy/compute-window) — give it a region, job length and load, and it returns the optimal window in the next 48h to run the workload, with kg CO2 and EUR saved versus running now. Deterministic: computed from the official NESO (Great Britain) and Fraunhofer ISE (EU) forward curves, no model infe"
+        },
+        {
+          "name": "HarvestPulse",
+          "slug": "harvestpulse",
+          "category": "finance",
+          "docs_url": "https://harvestpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://harvestpulse.theaslangroupllc.com",
+          "description": "Farm-to-table intelligence API. Find local farms, farmers markets, and CSAs via USDA data. Seasonal produce calendar for all US states + UK/AU/CA. Food label decoder (what 'free-range' actually means). Certified organic farm lookup (USDA Organic INTEGRITY). Dirty Dozen/Clean Fifteen pesticide guide. Regenerative agriculture certification tiers. EU/French/Italian protected food designations (DOP/PD"
+        },
+        {
+          "name": "HerbaPulse",
+          "slug": "herbapulse",
+          "category": "security",
+          "docs_url": "https://herbapulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://herbapulse.theaslangroupllc.com",
+          "description": "Plant and traditional medicine intelligence API. 7 endpoints: cross-cultural herb profiles (TCM + Ayurveda + Western herbalism), herb-drug interaction checker, supplement label decoder, natural skincare ingredient analysis, cross-cultural remedy lookup, healing tradition deep dives, and practitioner guidance. PubMed research grounds every response. Built for herb users, supplement buyers, natural "
+        },
+        {
+          "name": "HomePulse",
+          "slug": "homepulse",
+          "category": "security",
+          "docs_url": "https://homepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://homepulse.theaslangroupllc.com",
+          "description": "Global home intelligence API for buyers, sellers, owners, and renters, in any country. 10 endpoints: home value estimates with comparable sales, neighborhood analysis (schools, safety, walkability), improvement ROI with parts lists, resale cost-vs-value ROI, contractor vetting, energy efficiency incentives, seasonal maintenance checklists and calendars, smart home advice, and rental market analysi"
+        },
+        {
+          "name": "ImmigrationPulse",
+          "slug": "immigrationpulse",
+          "category": "finance",
+          "docs_url": "https://immigrationpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://immigrationpulse.theaslangroupllc.com",
+          "description": "Global immigration intelligence API serving 281M+ migrants and 35M+ digital nomads. 11 endpoints: points calculators (Express Entry CRS, SkillSelect, UK PBS, Germany), visa requirements for any nationality/destination pair, PR pathways (Green Card, Express Entry, EU Blue Card), digital nomad visa finder (50+ countries), citizenship by investment and ancestry programs, USCIS case status + Visa Bull"
+        },
+        {
+          "name": "InsurePulse",
+          "slug": "insurepulse",
+          "category": "search",
+          "docs_url": "https://insurepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://insurepulse.theaslangroupllc.com",
+          "description": "AI-synthesized insurance intelligence API. Auto coverage analysis, life insurance needs calculator (DIME method), homeowners gap finder, annual coverage review, renters insurance guidance, global health/medical insurance advisor, business insurance planner, claim should-I-file analysis, disability/income-protection calculator, life-event insurance checklist, rate/premium optimizer, and umbrella/ex"
+        },
+        {
+          "name": "LegalPulse",
+          "slug": "legalpulse",
+          "category": "finance",
+          "docs_url": "https://legalpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://legalpulse.theaslangroupllc.com",
+          "description": "The clearance layer before you sign, send, or sue. Pre-signature contract clearance with verbatim red-flag quotes ($0.50), trademark knock-out checks verified live against USPTO TSDR ($0.50), complete ready-to-send advocacy/demand letters with statute citations ($2), contract clause review, tenant rights, employment law, business formation, estate planning, consumer rights (FDCPA/FCRA), small clai"
+        },
+        {
+          "name": "LongevityPulse",
+          "slug": "longevitypulse",
+          "category": "search",
+          "docs_url": "https://longevitypulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://longevitypulse.theaslangroupllc.com",
+          "description": "Global longevity intelligence API — biomarker interpretation, supplement evidence (NMN/NR/rapamycin/metformin/senolytics), personalized protocols (Peter Attia/Bryan Johnson frameworks), active clinical trials (ClinicalTrials.gov), Blue Zone research, WHO country longevity profiles (195+ countries), epigenetic clocks (GrimAge/DunedinPACE), dietary analysis, longevity drug intelligence, consumer-DNA"
+        },
+        {
+          "name": "MacroPulse",
+          "slug": "macropulse",
+          "category": "crypto",
+          "docs_url": "https://macropulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://macropulse.theaslangroupllc.com",
+          "description": "Real-time macro intelligence API for forex and CFD traders, plus deterministic market primitives. 14 endpoints: session briefs, economic events, COT positioning, commodities, equities, economic calendar, crypto, EIA inventory, directional sentiment, intermarket synthesis, rate differentials and macro regime classification (LLM-synthesized from FRED, CFTC, Alpha Vantage, EIA, CoinGecko and Tavily) "
+        },
+        {
+          "name": "MailPulse",
+          "slug": "mailpulse",
+          "category": "communications",
+          "docs_url": "https://mailpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://mailpulse.theaslangroupllc.com",
+          "description": "Send a REAL physical letter — US First-Class, US Certified Mail (with optional electronic return receipt), or international — via Lob's Print & Mail network. ACTION API, not a data lookup: paying causes a real letter to be printed and mailed. Flow: free quote -> paid send -> optional status/tracking poll. Pay-per-call via x402 on Base."
+        },
+        {
+          "name": "MarketPulse",
+          "slug": "marketpulse",
+          "category": "finance",
+          "docs_url": "https://marketpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://marketpulse.theaslangroupllc.com",
+          "description": "The AI-visibility layer for businesses anywhere in the world — get found by the assistants doing the choosing. Live AI-visibility check with verbatim site evidence ($0.50: robots.txt AI-crawler rules, llms.txt, Schema.org, sitemap), LLM visibility strategy, local SEO for any country, channel mix, content briefs, ad copy, email sequences, competitor gap, social strategy, ROI forecasting, technical "
+        },
+        {
+          "name": "MealPulse",
+          "slug": "mealpulse",
+          "category": "data",
+          "docs_url": "https://mealpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://mealpulse.theaslangroupllc.com",
+          "description": "Meal planning intelligence API. Weekly meal plans by dietary needs and budget, recipes with technique tips, grocery lists by store section, pantry-to-meal improvisation, batch cooking guides, dietary restriction guidance, budget meal strategies, ingredient substitutions with ratios, leftover transformation, and kitchen equipment advice. Pay-per-query via x402 micropayments on Base."
+        },
+        {
+          "name": "MindPulse",
+          "slug": "mindpulse",
+          "category": "ai",
+          "docs_url": "https://mindpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://mindpulse.theaslangroupllc.com",
+          "description": "Global mental health intelligence API — 12 endpoints covering therapy platform matching (BetterHelp, Talkspace), mental health self-assessment, burnout recovery, psychiatric medication context, evidence-based coping techniques, sleep disorder guidance, grief support, relationship counseling, workplace mental health, postpartum/perinatal mental health, addiction/harm-reduction support, and crisis r"
+        },
+        {
+          "name": "NutriPulse",
+          "slug": "nutripulse",
+          "category": "security",
+          "docs_url": "https://nutripulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://nutripulse.theaslangroupllc.com",
+          "description": "AI-powered nutrition intelligence grounded in real PubMed peer-reviewed research and USDA FoodData Central. Evidence-based supplement analysis ranked by strength of evidence, personalized nutrition plans, food profiles, meal analysis, supplement stacks, CGM glucose pattern review, supplement-interaction checks, lab-result interpretation, longevity protocols, and prenatal nutrition for any health g"
+        },
+        {
+          "name": "OnchainPulse",
+          "slug": "onchainpulse",
+          "category": "crypto",
+          "docs_url": "https://onchainpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://onchainpulse.theaslangroupllc.com",
+          "description": "Intelligence API for the onchain financial transition. Decodes legislation, tracks real world asset tokenization in depth (yield comparison, issuer/redemption risk, tokenized gold), models sector impact scenarios, guides onchain integration, monitors institutional adoption, tracks crypto ETF flows, and tracks the CLARITY Act, and ships a full token due-diligence engine (safety scan, holder map, ex"
+        },
+        {
+          "name": "ParentPulse",
+          "slug": "parentpulse",
+          "category": "security",
+          "docs_url": "https://parentpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://parentpulse.theaslangroupllc.com",
+          "description": "Global parenting intelligence API — pediatric development, product safety recalls, school selection, sleep, nutrition, positive discipline, childcare, and family financial planning. Every endpoint is country-aware (US, UK, Canada, Australia, EU, and beyond) via an optional country parameter. x402 micropayments on Base mainnet."
+        },
+        {
+          "name": "PatentPulse",
+          "slug": "patentpulse",
+          "category": "finance",
+          "docs_url": "https://patentpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://patentpulse.theaslangroupllc.com",
+          "description": "Global patent and IP intelligence API covering 12 patent offices: USPTO (real PatentsView API), EPO (real OPS API), WIPO PCT, CNIPA (China), KIPO (Korea), JPO (Japan), DPMA (Germany), UKIPO, CIPO (Canada), IP Australia, IPO India, INPI (Brazil). 11 endpoints: jurisdiction-specific routing, pharma patent cliff calendar, FTO clearance, portfolio intelligence, prior art search, patent status, technol"
+        },
+        {
+          "name": "PetPulse",
+          "slug": "petpulse",
+          "category": "location",
+          "docs_url": "https://petpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://petpulse.theaslangroupllc.com",
+          "description": "Veterinary intelligence API grounded in PubMed peer-reviewed research and FDA animal drug adverse event data. 12 endpoints covering symptom triage, veterinary research, condition-based nutrition, medication dosage context, breed-specific health guides, force-free behavior/training, lifetime cost planning, insurance comparison, senior-pet care, toxicity triage, pet food recall checks, and pet trave"
+        },
+        {
+          "name": "PolicyPulse",
+          "slug": "policypulse",
+          "category": "ai",
+          "docs_url": "https://policypulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://policypulse.theaslangroupllc.com",
+          "description": "Legislative intelligence API for all sectors globally. Translates any bill into plain English, identifies who is affected and what actions are required, tracks all 50 US state legislatures via Open States, monitors federal agency rules via Federal Register, compares jurisdictions, surfaces regulatory deadlines, and decodes any legal text. Bloomberg Government for the rest of us. x402 micropayment "
+        },
+        {
+          "name": "PropPulse",
+          "slug": "proppulse",
+          "category": "finance",
+          "docs_url": "https://proppulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://proppulse.theaslangroupllc.com",
+          "description": "AI-synthesized real estate intelligence API covering any country. Mortgage/remortgage analysis, true affordability modeling, rent vs. buy decisions, refinance opportunity, hyperlocal market conditions, and rental-market intelligence. Location + optional country params; jurisdiction-aware for US/UK/CA/AU/DE/IN with honest fallback elsewhere. Returns structured JSON. Requires x402 micropayment (USDC"
+        },
+        {
+          "name": "ProspectPulse",
+          "slug": "prospectpulse",
+          "category": "security",
+          "docs_url": "https://prospectpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://prospectpulse.theaslangroupllc.com",
+          "description": "Global mineral and resource exploration intelligence API. Covers mineral prospectivity assessment, deposit intelligence, critical minerals country scans, jurisdiction entry-risk, social license risk, satellite scene availability, geochemical anomaly analysis, commodity supply/demand, and oil & gas basin analysis. Powered by USGS MRDS, Copernicus, NASA Earthdata, World Bank, GDELT, and AI synthesis"
+        },
+        {
+          "name": "RacingPulse",
+          "slug": "racingpulse",
+          "category": "finance",
+          "docs_url": "https://racingpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://racingpulse.theaslangroupllc.com",
+          "description": "Global pari-mutuel racing intelligence API — horse racing and greyhound betting analysis covering 13 countries. Live odds, going conditions, form analysis, trap bias, arbitrage detection, speed ratings, and betting systems for 50+ racecourses and greyhound tracks worldwide. All endpoints pay-per-query via x402 micropayments on Base mainnet."
+        },
+        {
+          "name": "RemittancePulse",
+          "slug": "remittancepulse",
+          "category": "crypto",
+          "docs_url": "https://remittancepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://remittancepulse.theaslangroupllc.com",
+          "description": "Global remittance intelligence API. 9 endpoints covering 200+ corridors: corridor analysis (best providers, fees, receive options), provider comparison with true total cost including FX markup, live ECB mid-market rate analysis, receive-country guides (mobile money/cash/bank), mobile money ecosystem (M-Pesa/GCash/bKash/MTN MoMo/Wave), KYC/AML compliance, industry news, diaspora community intellige"
+        },
+        {
+          "name": "RiskPulse",
+          "slug": "riskpulse",
+          "category": "security",
+          "docs_url": "https://riskpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://riskpulse.theaslangroupllc.com",
+          "description": "Country risk intelligence API for travelers, expats, and businesses. 10 endpoints: comprehensive risk profiles across 6 dimensions, travel safety with advisory levels and insurance referrals, business risk and market entry analysis, side-by-side country comparisons, expat living guides, situational security alerts, evacuation planning, digital nomad scoring, sanctions exposure analysis, and supply"
+        },
+        {
+          "name": "SafePulse",
+          "slug": "safepulse",
+          "category": "security",
+          "docs_url": "https://safepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://safepulse.theaslangroupllc.com",
+          "description": "Universal product safety intelligence API. 9 endpoints: US recalls (CPSC + FDA + USDA + NHTSA), EU Safety Gate / RAPEX alerts (all 27 member states), global safety alerts (WHO + Canada + Australia + UK), consumer product incidents, vehicle safety, food/drug recalls, home hazards, child safety, and brand scoring A-F. Pay-per-query via x402 on Base."
+        },
+        {
+          "name": "ScentPulse",
+          "slug": "scentpulse",
+          "category": "weather",
+          "docs_url": "https://scentpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://scentpulse.theaslangroupllc.com",
+          "description": "Fragrance intelligence API for perfume collectors, dupe-hunters, and blind-buyers. Note-pyramid lookups, in-house batch-code freshness decoding, dupe/clone matching, blind-buy risk scoring, reformulation checks, EU allergen context, occasion/climate matching, price-per-ml value math, Middle Eastern attar/oud navigation, discontinuation watch, collection valuation, and layering guides. 12 endpoints"
+        },
+        {
+          "name": "ScholarPulse",
+          "slug": "scholarpulse",
+          "category": "finance",
+          "docs_url": "https://scholarpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://scholarpulse.theaslangroupllc.com",
+          "description": "Global scholarship and student finance intelligence API. Covers 190+ countries: scholarship search by profile, cross-border funding (Chevening, DAAD, Fulbright, Erasmus+, Commonwealth, CSC, MEXT, Türkiye Bursları, and 50+ government programs), US financial aid via College Scorecard, FAFSA strategy, student loan repayment (US SAVE/IBR/PAYE, UK Plan 2/5, Australia HELP, Canada RAP), student loan ref"
+        },
+        {
+          "name": "SeniorPulse",
+          "slug": "seniorpulse",
+          "category": "security",
+          "docs_url": "https://seniorpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://seniorpulse.theaslangroupllc.com",
+          "description": "Global elder care intelligence API — 14 endpoints covering Medicare/pension guidance, care facility evaluation (US + UK + Canada + Australia), medication safety using FDA Beers Criteria, benefits discovery (SSI, Medicaid, VA Aid & Attendance, SNAP, LIHEAP, property tax relief), international state pension intelligence (UK, Canada, Australia, Germany, India, Japan), cognitive decline staging, elder"
+        },
+        {
+          "name": "ShopperPulse",
+          "slug": "shopperpulse",
+          "category": "security",
+          "docs_url": "https://shopperpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://shopperpulse.theaslangroupllc.com",
+          "description": "Birdie, the AI personal shopper — the PulseNetwork shopping meta-agent. POST a shopping list (up to 3 items, free text or structured) and get 3 best-fit picks per item plus a stacked savings plan: loyalty %, live coupons, discounted gift cards, and the right credit card to pay with — researched live across the fleet's specialist shopping engines. Best fit to your spec wins, not the cheapest listin"
+        },
+        {
+          "name": "SignalPulse",
+          "slug": "signalpulse",
+          "category": "finance",
+          "docs_url": "https://signalpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://signalpulse.theaslangroupllc.com",
+          "description": "Cross-asset trading intelligence engine. Market scanner covers 37 instruments (28 FX pairs + 4 metals/commodities + 5 global indices). FX-only scanner for 28 pairs. Equity intelligence engine for any US stock — day trade (VWAP/ORB/FINRA short volume/WSB sentiment), mid-term swing (technical setup + fundamental catalyst + analyst revisions + squeeze potential), and long-term position (business qual"
+        },
+        {
+          "name": "StablecoinPulse",
+          "slug": "stablecoinpulse",
+          "category": "crypto",
+          "docs_url": "https://stablecoinpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://stablecoinpulse.theaslangroupllc.com",
+          "description": "Real-time stablecoin market intelligence API. Synthesizes live data from DeFiLlama, CoinGecko, the Federal Register, and Tavily into structured, actionable intelligence covering GENIUS Act compliance, yield comparison, peg stability, cross-chain flows, payment-rail comparison, reserve-attestation freshness, and global stablecoin regulation. 8 endpoints. Pay-per-query via x402 micropayments on Base"
+        },
+        {
+          "name": "StatEdge",
+          "slug": "stateedge",
+          "category": "media",
+          "docs_url": "https://stateedge.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://stateedge.theaslangroupllc.com",
+          "description": "AI-synthesized sports intelligence API with genuine global coverage. Live betting odds from 20+ sportsbooks across 30+ sports and leagues. Dedicated global endpoint for F1 (live standings via Jolpica API), cricket (IPL, Test, ODI, T20I, BBL, PSL, CPL, The Hundred, SA20 — powered by ESPNcricinfo and Cricbuzz), rugby (Six Nations, Rugby Championship, Super Rugby, NRL, Super League, Rugby World Cup),"
+        },
+        {
+          "name": "TablePulse",
+          "slug": "tablepulse",
+          "category": "media",
+          "docs_url": "https://tablepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://tablepulse.theaslangroupllc.com",
+          "description": "Board-game and tabletop intelligence API. Synthesizes Claude's own board-game knowledge with live Tavily web grounding, the free BoardGamePrices.co.uk pricing API, and the free Gamefound crowdfunding API into structured, actionable intelligence. 11 endpoints covering recommendations, comparisons, expansions, collection valuation, crowdfunding, party/solo/family picks, complexity, pricing, and awar"
+        },
+        {
+          "name": "TalentPulse",
+          "slug": "talentpulse",
+          "category": "security",
+          "docs_url": "https://talentpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://talentpulse.theaslangroupllc.com",
+          "description": "Global workforce intelligence API — salary benchmarks, remote compliance, employer of record cost models, work visa pathways, skills demand, talent market analysis, executive compensation, layoff tracking, skills gap analysis, and multi-country hiring cost comparison. Covers 60+ countries. All endpoints via x402 USDC micropayments on Base."
+        },
+        {
+          "name": "TaxPulse",
+          "slug": "taxpulse",
+          "category": "crypto",
+          "docs_url": "https://taxpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://taxpulse.theaslangroupllc.com",
+          "description": "Global tax code intelligence API. 15 endpoints: 190+ country tax overviews, citation-verified US state-tax answers (CA + NY), multi-country comparison, digital nomad optimization, bilateral tax treaty analysis, international corporate structuring, crypto tax by jurisdiction, expat obligations (FBAR/FATCA/FEIE/non-dom), VAT/GST compliance — plus citation-verified crypto wallet tax reviews (US/UK/DE"
+        },
+        {
+          "name": "TradePulse",
+          "slug": "tradepulse",
+          "category": "security",
+          "docs_url": "https://tradepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://tradepulse.theaslangroupllc.com",
+          "description": "Global trade intelligence API. 12 endpoints: HS code classification, tariff rates across 200+ countries with FTA preferential rates, full landed cost calculator, Free Trade Agreement analyzer (300+ agreements), sanctions screening (OFAC/EU/UN/UK), market entry intelligence, export compliance (EAR/ITAR/EU dual-use), trade policy news, live freight rate benchmarking by lane, nearshoring/reshoring ad"
+        },
+        {
+          "name": "TransitPulse",
+          "slug": "transitpulse",
+          "category": "location",
+          "docs_url": "https://transitpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://transitpulse.theaslangroupllc.com",
+          "description": "Global transit intelligence API for 25+ major world cities. Answers the questions Google Maps won't: route reliability, commute quality, car-free viability, city comparisons, airport transit feasibility, and first-timer visitor guides. Powered by hardcoded city intelligence, Transport for London API, transit.land, and Claude. Pay-per-query via x402 micropayments on Base."
+        },
+        {
+          "name": "TravelPulse",
+          "slug": "travelpulse",
+          "category": "weather",
+          "docs_url": "https://travelpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://travelpulse.theaslangroupllc.com",
+          "description": "AI-powered global travel intelligence for ANY destination on earth — major cities, small towns, rural areas, and everything in between. Live theme park wait times (100+ parks globally), crowd predictions, 7-day weather forecasts, trip itineraries, travel deals including Airbnb/VRBO/Booking.com, translation with cultural context, travel phrasebooks for any language, flight fare intelligence (when t"
+        },
+        {
+          "name": "TruthPulse",
+          "slug": "truthpulse",
+          "category": "security",
+          "docs_url": "https://truthpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://truthpulse.theaslangroupllc.com",
+          "description": "Primary-source intelligence API for FOIA releases, declassified government archives, court records, forensic evidence, UAP disclosures, and conspiracy theory evidence briefs. Evidence-first. No spin. Global coverage across 15+ countries. Pay-per-query via x402 on Base."
+        },
+        {
+          "name": "VenturePulse",
+          "slug": "venturepulse",
+          "category": "finance",
+          "docs_url": "https://venturepulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://venturepulse.theaslangroupllc.com",
+          "description": "Startup funding intelligence API for founders and AI agents. Real-time VC round data, investor matching, pitch deck scoring, term sheet decoding, cap table dilution modeling, global accelerator directory, TAM/SAM/SOM market sizing, startup legal formation in 15+ countries, comparable deal benchmarks, and investor due diligence prep. Pay-per-query via x402 on Base."
+        },
+        {
+          "name": "VetPulse",
+          "slug": "vetpulse",
+          "category": "ai",
+          "docs_url": "https://api.vetpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://api.vetpulse.theaslangroupllc.com",
+          "description": "Global veterans benefits intelligence API — 10 endpoints covering disability ratings, Aid & Attendance-style pensions, TDIU/unemployability, claim-building strategy, family caregiver stipends, education benefits, state/regional veteran benefits, healthcare priority/coverage, home-buying assistance, and veteran discounts. Covers the US (VA), UK (Veterans UK, AFCS, WPS), Canada (VAC), Australia (DVA"
+        },
+        {
+          "name": "WaterPulse",
+          "slug": "waterpulse",
+          "category": "security",
+          "docs_url": "https://waterpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://waterpulse.theaslangroupllc.com",
+          "description": "Global water intelligence API. Covers US groundwater levels (USGS 10,000+ monitoring wells), streamflow at gauge stations, drought status (US Drought Monitor D0-D4), water quality (EPA WQP — nitrates, lead, arsenic, PFAS, bacteria), aquifer sustainability analysis (Ogallala, Central Valley, Floridan, 30+ systems), flood risk with FEMA zone context, global water stress by country and basin (WRI Aqu"
+        },
+        {
+          "name": "WealthPulse",
+          "slug": "wealthpulse",
+          "category": "security",
+          "docs_url": "https://wealthpulse.theaslangroupllc.com/llms.txt",
+          "origin_url": "https://wealthpulse.theaslangroupllc.com",
+          "description": "Personal finance intelligence API. 14 endpoints: financial health snapshots, retirement projections, debt payoff, credit cards, mortgage affordability, DIY debt negotiation, Social Security claiming strategy, year-end tax optimization, Roth vs Traditional decision, emergency fund sizing, inherited IRA rules, Trump Account (IRC §530A) eligibility/strategy/rules, FDIC Call Report bank-safety checks,"
+        }
+      ]
+    },
+    {
+      "source_slug": "rdw",
+      "source_name": "RDW Vehicle Technical Data",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "RDW Vehicle Technical Data",
+          "slug": "rdw",
+          "category": "mobility",
+          "docs_url": "https://opendata.rdw.nl/en/en/Vehicles/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+          "origin_url": "https://opendata.rdw.nl",
+          "description": "Direct official RDW technical vehicle lookup by exact Dutch registration plate. Includes make, model, APK expiry and available register fields. No owner identity, fleet ownership or separate fuel/emissions dataset."
+        }
+      ]
+    },
+    {
+      "source_slug": "reuters",
+      "source_name": "Reuters News",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Reuters News",
+          "slug": "reuters",
+          "category": "news",
+          "docs_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+          "origin_url": "https://reuters-api.p.rapidapi.com",
+          "description": "Reuters news headlines: the latest wire headlines, keyword headline search, headlines per section (World, Business, Markets, Technology and more) and the section list. Headlines and links only, no article text. Up to 12 results per call."
+        }
+      ]
+    },
+    {
+      "source_slug": "rvo",
+      "source_name": "RVO Subsidy Descriptions — First Page",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "RVO Subsidy Descriptions — First Page",
+          "slug": "rvo",
+          "category": "government",
+          "docs_url": "https://www.rvo.nl/onderwerpen/open-data",
+          "origin_url": "https://www.rvo.nl",
+          "description": "Keyword discovery within the first 50 public RVO subsidy descriptions only. Includes historical schemes. Later-page access is unverified; no-match does not mean no subsidy exists. Current application status, deadlines and eligibility are unknown."
+        }
+      ]
+    },
+    {
+      "source_slug": "sirenic",
+      "source_name": "Sirenic",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Sirenic",
+          "slug": "sirenic",
+          "category": "data",
+          "docs_url": "https://api.sirenic.eu/openapi.json",
+          "origin_url": "https://api.sirenic.eu",
+          "description": "French and European company data from official registers: company profiles, annual accounts, directors and ownership, legal alerts, procurement, establishments and business checks."
+        }
+      ]
+    },
+    {
+      "source_slug": "stableenrich",
+      "source_name": "StableEnrich",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "StableEnrich",
+          "slug": "stableenrich",
+          "category": "data",
+          "docs_url": "https://stableenrich.dev/openapi.json",
+          "origin_url": "https://stableenrich.dev",
+          "description": "Pay-per-request toegang tot FullEnrich, CompanyEnrich, PDL, Clado, Exa, Firecrawl, Google Maps, Serper, Hunter, Minerva en Whitepages. Extern gehost, betaal de provider rechtstreeks."
+        }
+      ]
+    },
+    {
+      "source_slug": "tavily",
+      "source_name": "Tavily",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "Tavily",
+          "slug": "tavily",
+          "category": "search",
+          "docs_url": "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+          "origin_url": "https://x402.tavily.com",
+          "description": "Real-time web search for agents: ranked results with snippets and sources, an optional generated answer, and raw page content per hit."
+        }
+      ]
+    },
+    {
+      "source_slug": "ted",
+      "source_name": "TED European Procurement Notices",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "TED European Procurement Notices",
+          "slug": "ted",
+          "category": "government",
+          "docs_url": "https://docs.ted.europa.eu/api/latest/search.html",
+          "origin_url": "https://api.ted.europa.eu",
+          "description": "Search TED notices by exact numeric KVK/RSIN in buyer or winner identifier fields. Identifier scheme and legal-entity identity require confirmation. Includes historical notices; no subsidy or current revenue inference."
+        }
+      ]
+    },
+    {
+      "source_slug": "tenderned",
+      "source_name": "TenderNed",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "TenderNed",
+          "slug": "tenderned",
+          "category": "data",
+          "docs_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+          "origin_url": "https://www.tenderned.nl/papi/tenderned-rs-tns",
+          "description": "The Dutch national public procurement platform. Every tender notice published by the Dutch state, provinces, municipalities, water boards, hospitals, universities and housing corporations — around 145,000 notices and counting. Search by keyword, CPV code, procedure type, contract type (works, supplies, services), publication date or closing date; open any notice for its full detail, its attached d"
+        }
+      ]
+    },
+    {
+      "source_slug": "vies",
+      "source_name": "VIES EU VAT Validation",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "VIES EU VAT Validation",
+          "slug": "vies",
+          "category": "finance",
+          "docs_url": "https://ec.europa.eu/taxation_customs/vies/",
+          "origin_url": "https://ec.europa.eu",
+          "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability."
+        }
+      ]
+    },
+    {
+      "source_slug": "webbersites",
+      "source_name": "WebberSites x402 Data API",
+      "service_count": 1,
+      "services": [
+        {
+          "name": "WebberSites x402 Data API",
+          "slug": "webbersites",
+          "category": "tools",
+          "docs_url": "https://x402.webbersites.com/docs/",
+          "origin_url": "https://api.webbersites.com",
+          "description": "Pay-per-call data and utility APIs for AI agents, including web and SEO tools, accessibility checks, design generation, crypto market data, persistent wallet-owned agent memory, and flat-priced LLM routes."
+        }
+      ]
+    }
+  ]
+}

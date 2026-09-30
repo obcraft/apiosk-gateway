@@ -1,0 +1,1201 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "FR",
+    "name": "France",
+    "region": "EU27",
+    "native_source_ids": [
+      "fr-inpi-rne",
+      "fr-dinum-recherche",
+      "fr-insee-sirene",
+      "fr-bodacc"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000189",
+        "register": "Register of Companies (Sirene)",
+        "jurisdiction": "France",
+        "website": "https://annuaire-entreprises.data.gouv.fr/"
+      },
+      {
+        "ra_code": "RA000190",
+        "register": "",
+        "jurisdiction": "France",
+        "website": "http://www.amf-france.org/en_US/Recherche-avancee.html?isSearch=true&LANGUAGE=en&subFormId=dij&formId=GECO&DOC_TYPE=BDIF&langSwitch=true"
+      },
+      {
+        "ra_code": "RA000192",
+        "register": "Register of Commerce and Companies",
+        "jurisdiction": "France",
+        "website": "www.infogreffe.com"
+      },
+      {
+        "ra_code": "RA000879",
+        "register": "",
+        "jurisdiction": "France",
+        "website": "https://acpr.banque-france.fr/"
+      },
+      {
+        "ra_code": "RA001129",
+        "register": "National Business Register",
+        "jurisdiction": "France",
+        "website": "https://data.inpi.fr/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "fr-inpi-rne",
+      "name": "INPI — Registre national des entreprises",
+      "publisher": "INPI",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fr",
+        "profile",
+        "filings.list",
+        "filing.document",
+        "accounts.get",
+        "changes.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fr.siren",
+          "description": "9-digit legal entity",
+          "value_type": "string"
+        },
+        {
+          "scheme": "fr.siret",
+          "description": "14-digit establishment; never substitute for SIREN",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "RNE formalities, acts and non-confidential filed accounts.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Daily datasets; retain filing and modification dates"
+      },
+      "access": {
+        "mode": "registered_api_and_bulk",
+        "authentication": "DATA INPI technical credentials; authenticated API/SFTP",
+        "upstream_cost": "Open-data access advertised free; reuse conditions apply",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fr.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Create DATA INPI technical access for API/SFTP",
+        "Implement token lifecycle, company-by-SIREN and separately priced document retrieval",
+        "Index daily changes; respect non-diffusible and confidential fields; UBO needs separate eligibility"
+      ],
+      "references": [
+        {
+          "url": "https://data.inpi.fr/content/editorial/Acces_API_Entreprises",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.inpi.fr/sites/default/files/documentation_technique_API_formalit%C3%A9s_v2.5.pdf",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA001129"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "fr-dinum-recherche",
+      "name": "Recherche d’entreprises",
+      "publisher": "DINUM / Annuaire des Entreprises",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_derived_index",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fr",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fr.siren",
+          "description": "9-digit legal entity",
+          "value_type": "string"
+        },
+        {
+          "scheme": "fr.siret",
+          "description": "14-digit establishment",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official government search/index combining public national datasets.",
+        "limitations": "Excludes non-diffusible businesses and some refused registrations; not complete Sirene or certified RNE. Max 7 requests/sec/IP and 30/sec/ASN.",
+        "freshness": "Multiple upstream update timestamps"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None; descriptive User-Agent recommended",
+        "upstream_cost": "Free public API",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://recherche-entreprises.api.gouv.fr"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fr.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "fr.search"
+          ]
+        },
+        {
+          "public_name": "fr.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "fr.profile"
+          ]
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Implement GET /search with bounded q, page and per_page",
+        "Verify exact SIREN/SIRET match for identifier lookup",
+        "SIREN/SIRET queries ignore other filters; distinguish omitted/restricted records from not found"
+      ],
+      "references": [
+        {
+          "url": "https://recherche-entreprises.api.gouv.fr/docs/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://annuaire-entreprises.data.gouv.fr/donnees/api-entreprises",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [
+        {
+          "spec_id": "fr.search",
+          "method": "GET",
+          "path": "/search",
+          "verification": "live_identifier_query_sample_verified"
+        },
+        {
+          "spec_id": "fr.profile",
+          "method": "GET",
+          "path": "/search",
+          "verification": "live_sample_verified"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "fr-insee-sirene",
+      "name": "INSEE — Sirene",
+      "publisher": "INSEE",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_statistical_register",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fr",
+        "search",
+        "profile",
+        "branches.list",
+        "changes.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fr.siren",
+          "description": "Legal unit",
+          "value_type": "string"
+        },
+        {
+          "scheme": "fr.siret",
+          "description": "Establishment",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "National statistical business and establishment directory.",
+        "limitations": "Statistical directory identity differs from an RNE registration extract.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_api_and_bulk",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "Open-data products; confirm quota and terms",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fr.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.branches.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "branches.list",
+          "inputs": [
+            "resolved registry identifier"
+          ],
+          "outputs": [
+            "source-declared branches",
+            "identifiers or names with type and effective dates",
+            "provenance"
+          ],
+          "coverage_rule": "Do not confuse branch records or trade names with separate legal entities.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Register current INSEE API product and authentication",
+        "Ingest stock/change resources if bulk search is needed",
+        "Respect diffusion status and keep legal unit separate from establishment"
+      ],
+      "references": [
+        {
+          "url": "https://portail-api.insee.fr/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_identified_access_details_pending"
+        },
+        {
+          "url": "https://annuaire-entreprises.data.gouv.fr/donnees/api-entreprises",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_identified_access_details_pending"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000189"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_service_identified_access_details_pending",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "fr-bodacc",
+      "name": "BODACC",
+      "publisher": "DILA",
+      "country_codes": [
+        "FR"
+      ],
+      "source_class": "official_gazette",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fr",
+        "changes.list",
+        "insolvency.notices"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fr.siren",
+          "description": "Entity reference",
+          "value_type": "string"
+        },
+        {
+          "scheme": "fr.bodacc_notice",
+          "description": "Notice ID",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official corporate announcements including sales, modifications and collective proceedings.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "public_dataset_api",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "Open dataset; verify current licence/quota",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fr.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fr.company.insolvency.notices",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "insolvency.notices",
+          "inputs": [
+            "country-qualified entity",
+            "supported dates"
+          ],
+          "outputs": [
+            "case/notice identity",
+            "court",
+            "type",
+            "publication and effective dates"
+          ],
+          "coverage_rule": "No match is not a clearance certificate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Import official dataset query schema",
+        "Match entity identifiers where present; preserve notice type, publication and effective dates",
+        "Do not turn absence of a notice into insolvency clearance"
+      ],
+      "references": [
+        {
+          "url": "https://www.bodacc.fr/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_identified_access_details_pending"
+        },
+        {
+          "url": "https://bodacc-datadila.opendatasoft.com/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_service_identified_access_details_pending"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_service_identified_access_details_pending",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "fr-inpi-rne",
+      "name": "INPI — Registre national des entreprises",
+      "country_codes": [
+        "FR"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Create DATA INPI technical access for API/SFTP",
+      "required_work": [
+        "Create DATA INPI technical access for API/SFTP",
+        "Implement token lifecycle, company-by-SIREN and separately priced document retrieval",
+        "Index daily changes; respect non-diffusible and confidential fields; UBO needs separate eligibility"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://data.inpi.fr/content/editorial/Acces_API_Entreprises",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.inpi.fr/sites/default/files/documentation_technique_API_formalit%C3%A9s_v2.5.pdf",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "fr-dinum-recherche",
+      "name": "Recherche d’entreprises",
+      "country_codes": [
+        "FR"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Implement GET /search with bounded q, page and per_page",
+      "required_work": [
+        "Implement GET /search with bounded q, page and per_page",
+        "Verify exact SIREN/SIRET match for identifier lookup",
+        "SIREN/SIRET queries ignore other filters; distinguish omitted/restricted records from not found"
+      ],
+      "operation_spec_ids": [
+        "fr.search",
+        "fr.profile"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://recherche-entreprises.api.gouv.fr/docs/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://annuaire-entreprises.data.gouv.fr/donnees/api-entreprises",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/fr-dinum-search.json"
+        ]
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "fr-insee-sirene",
+      "name": "INSEE — Sirene",
+      "country_codes": [
+        "FR"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Register current INSEE API product and authentication",
+      "required_work": [
+        "Register current INSEE API product and authentication",
+        "Ingest stock/change resources if bulk search is needed",
+        "Respect diffusion status and keep legal unit separate from establishment"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_service_identified_access_details_pending",
+        "references": [
+          {
+            "url": "https://portail-api.insee.fr/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_identified_access_details_pending"
+          },
+          {
+            "url": "https://annuaire-entreprises.data.gouv.fr/donnees/api-entreprises",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_identified_access_details_pending"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "fr-bodacc",
+      "name": "BODACC",
+      "country_codes": [
+        "FR"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Import official dataset query schema",
+      "required_work": [
+        "Import official dataset query schema",
+        "Match entity identifiers where present; preserve notice type, publication and effective dates",
+        "Do not turn absence of a notice into insolvency clearance"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_service_identified_access_details_pending",
+        "references": [
+          {
+            "url": "https://www.bodacc.fr/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_identified_access_details_pending"
+          },
+          {
+            "url": "https://bodacc-datadila.opendatasoft.com/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_service_identified_access_details_pending"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "fr.search",
+      "source_id": "fr-dinum-recherche",
+      "country_code": "FR",
+      "status": "draft_not_registered",
+      "public_capability": "fr.company.search",
+      "proposed_execution_capability": "company.fr-search",
+      "method": "GET",
+      "origin_url": "https://recherche-entreprises.api.gouv.fr",
+      "path": "/search",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "input_map": {
+        "query": {
+          "in": "query",
+          "name": "q",
+          "fact_type": "company.search_query"
+        },
+        "page": {
+          "in": "query",
+          "name": "page"
+        },
+        "page_size": {
+          "in": "query",
+          "name": "per_page"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "records": "$.results[*]",
+        "registration_number": "$.siren",
+        "legal_name": "$.nom_raison_sociale",
+        "display_name": "$.nom_complet",
+        "pagination": [
+          "$.page",
+          "$.total_pages",
+          "$.total_results"
+        ]
+      },
+      "normalization_requirements": [
+        "Return candidates for name queries; select only after disambiguation.",
+        "Nine/fourteen-digit q uses direct identifier search and silently ignores other filters.",
+        "Exact-ID query sampled; textual search and pagination still need acceptance fixtures."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "many",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "page",
+        "start": 1,
+        "maximum_items_per_call_proposal": 25
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_identifier_query_sample_verified",
+        "fixture": "evidence/fr-dinum-search.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "query",
+          "required": true,
+          "fact_type": "company.search_query",
+          "status": "reuse_if_registered"
+        },
+        {
+          "input": "page",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "page_size",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "records",
+          "upstream_projection": "$.results[*]"
+        },
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.siren"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.nom_raison_sociale"
+        },
+        {
+          "field": "display_name",
+          "upstream_projection": "$.nom_complet"
+        },
+        {
+          "field": "pagination",
+          "upstream_projection": [
+            "$.page",
+            "$.total_pages",
+            "$.total_results"
+          ]
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "each object in $.results[*] except pagination",
+      "request_defaults": {
+        "query": {
+          "page": 1,
+          "per_page": 25
+        }
+      }
+    },
+    {
+      "spec_id": "fr.profile",
+      "source_id": "fr-dinum-recherche",
+      "country_code": "FR",
+      "status": "draft_not_registered",
+      "public_capability": "fr.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://recherche-entreprises.api.gouv.fr",
+      "path": "/search",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "siren": {
+            "type": "string",
+            "pattern": "^[0-9]{9}$"
+          }
+        },
+        "required": [
+          "siren"
+        ]
+      },
+      "input_map": {
+        "siren": {
+          "in": "query",
+          "name": "q",
+          "fact_type": "company.registration.fr.siren"
+        }
+      },
+      "fixed_params": {
+        "query": {
+          "per_page": 1
+        }
+      },
+      "upstream_output_map": {
+        "records": "$.results[*]",
+        "registration_number": "$.siren",
+        "legal_name": "$.nom_raison_sociale",
+        "display_name": "$.nom_complet",
+        "head_office": "$.siege",
+        "raw_status": "$.etat_administratif"
+      },
+      "normalization_requirements": [
+        "Require one result whose SIREN exactly matches input.",
+        "Expose an official derived profile; not a certified RNE extract.",
+        "Preserve non-diffusible/missing distinction and upstream dates."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/fr-dinum-search.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "siren",
+          "required": true,
+          "fact_type": "company.registration.fr.siren",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "records",
+          "upstream_projection": "$.results[*]"
+        },
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.siren"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.nom_raison_sociale"
+        },
+        {
+          "field": "display_name",
+          "upstream_projection": "$.nom_complet"
+        },
+        {
+          "field": "head_office",
+          "upstream_projection": "$.siege"
+        },
+        {
+          "field": "raw_status",
+          "upstream_projection": "$.etat_administratif"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "each object in $.results[*]"
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}

@@ -52,7 +52,9 @@
       "vedtektsdato",
       "vedtektsfestetFormaal"
     ],
-    "elapsed_seconds": 0.332
+    "elapsed_seconds": 0.332,
+    "saved_fixture_sha256": "1e7803383a4d2e32be7859aaace4aead89a6a080ad7c97410cdddeb28248a54a",
+    "fixture_representation": "parsed_json_pretty_printed"
   },
   {
     "id": "fi-prh-profile",
@@ -68,7 +70,9 @@
       "totalResults",
       "companies"
     ],
-    "elapsed_seconds": 0.422
+    "elapsed_seconds": 0.422,
+    "saved_fixture_sha256": "53a646268c4fdb2e8696c4de15b7e7afa04a003b88e9211e11044ad152df0369",
+    "fixture_representation": "parsed_json_pretty_printed"
   },
   {
     "id": "cz-ares-profile",
@@ -99,7 +103,9 @@
       "czNace",
       "subRegistrSzr"
     ],
-    "elapsed_seconds": 0.447
+    "elapsed_seconds": 0.447,
+    "saved_fixture_sha256": "96e986c12dada57f281707c4bf55c54e251f72e2054e9e3163e30695efe2fe8a",
+    "fixture_representation": "parsed_json_pretty_printed"
   },
   {
     "id": "pl-krs-profile",
@@ -115,7 +121,9 @@
       "odpis",
       "_evidence_note"
     ],
-    "elapsed_seconds": 0.322
+    "elapsed_seconds": 0.322,
+    "saved_fixture_sha256": "449f2b30813de8797dc78c22a223f98b6f1db37d8dc23fc47a0bf025de2befa1",
+    "fixture_representation": "company_identity_projection"
   },
   {
     "id": "fr-dinum-search",
@@ -134,7 +142,9 @@
       "per_page",
       "total_pages"
     ],
-    "elapsed_seconds": 0.325
+    "elapsed_seconds": 0.325,
+    "saved_fixture_sha256": "20c8012d973b65932726633eb2e7b621905b979f0e358540a53a4423cce3b506",
+    "fixture_representation": "parsed_json_pretty_printed"
   },
   {
     "id": "sk-ruz-identity",
@@ -150,6 +160,44 @@
       "id",
       "existujeDalsieId"
     ],
-    "elapsed_seconds": 0.217
+    "elapsed_seconds": 0.217,
+    "saved_fixture_sha256": "8a6411ed42ce7911347a9b94b72e4628ec546767d303e3fca20a03e6b3b7817b",
+    "fixture_representation": "parsed_json_pretty_printed"
+  },
+  {
+    "id": "sk-ruz-profile",
+    "url": "https://www.registeruz.sk/cruz-public/api/uctovna-jednotka?id=10882",
+    "checked_at": "2026-09-30T10:32:26Z",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/json;charset=UTF-8",
+    "bytes": 877,
+    "body_file": "sk-ruz-profile.json",
+    "upstream_sha256": "ced9090cc8f9ff8501994df2253d69c1163bfa371982ae2c8d0b690098db688e",
+    "top_level_fields": [
+      "id",
+      "idUctovnychZavierok",
+      "idVyrocnychSprav",
+      "skNace",
+      "konsolidovana",
+      "ico",
+      "dic",
+      "nazovUJ",
+      "mesto",
+      "ulica",
+      "psc",
+      "datumPoslednejUpravy",
+      "datumZalozenia",
+      "pravnaForma",
+      "velkostOrganizacie",
+      "druhVlastnictva",
+      "kraj",
+      "okres",
+      "sidlo",
+      "zdrojDat"
+    ],
+    "elapsed_seconds": 0.178,
+    "saved_fixture_sha256": "3aa859b64b0567b9ad280d47387a3f9e244467a16cad70f161d35eb1922c80ea",
+    "fixture_representation": "parsed_json_pretty_printed"
   }
 ]

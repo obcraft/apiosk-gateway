@@ -1,0 +1,245 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "LT",
+    "name": "Lithuania",
+    "region": "EU27",
+    "native_source_ids": [
+      "lt-registru-centras"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000430",
+        "register": "Register of Legal Entities",
+        "jurisdiction": "Lithuania",
+        "website": "http://www.registrucentras.lt/jar/index_en.php"
+      },
+      {
+        "ra_code": "RA000431",
+        "register": "",
+        "jurisdiction": "Lithuania",
+        "website": "http://www.lb.lt/markets_in_financial_instruments"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 2
+  },
+  "sources": [
+    {
+      "source_id": "lt-registru-centras",
+      "name": "Register of Legal Entities / Juridinių asmenų registras",
+      "publisher": "Registrų centras",
+      "country_codes": [
+        "LT"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "lt",
+        "search",
+        "profile",
+        "filings.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "lt.legal_entity_code",
+          "description": "Juridinio asmens kodas; preserve legacy formats",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Lithuanian legal-entity register; open datasets and licensed detail services have different scope.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "open_data_and_contract_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "lt.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "lt.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "lt.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Select exact JAR open-data dataset and current distribution/schema",
+        "Build basic lookup from permitted open fields",
+        "Obtain Centre of Registers agreement for documents, financials and participant data; do not substitute tax-register data for a certified extract"
+      ],
+      "references": [
+        {
+          "url": "https://www.registrucentras.lt/",
+          "checked_at": "2026-09-30",
+          "evidence": "directory_and_official_dataset_portal_identified"
+        },
+        {
+          "url": "https://data.gov.lt/datasets/",
+          "checked_at": "2026-09-30",
+          "evidence": "directory_and_official_dataset_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000430"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "directory_and_official_dataset_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "lt-registru-centras",
+      "name": "Register of Legal Entities / Juridinių asmenų registras",
+      "country_codes": [
+        "LT"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Select exact JAR open-data dataset and current distribution/schema",
+      "required_work": [
+        "Select exact JAR open-data dataset and current distribution/schema",
+        "Build basic lookup from permitted open fields",
+        "Obtain Centre of Registers agreement for documents, financials and participant data; do not substitute tax-register data for a certified extract"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "directory_and_official_dataset_portal_identified",
+        "references": [
+          {
+            "url": "https://www.registrucentras.lt/",
+            "checked_at": "2026-09-30",
+            "evidence": "directory_and_official_dataset_portal_identified"
+          },
+          {
+            "url": "https://data.gov.lt/datasets/",
+            "checked_at": "2026-09-30",
+            "evidence": "directory_and_official_dataset_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

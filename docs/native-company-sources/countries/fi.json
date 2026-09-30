@@ -1,0 +1,548 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "FI",
+    "name": "Finland",
+    "region": "EU27",
+    "native_source_ids": [
+      "fi-prh-ytj",
+      "fi-prh-financials"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000188",
+        "register": "The Business Information System (BIS)",
+        "jurisdiction": "Finland",
+        "website": "http://www.prh.fi/en/kaupparekisteri.html"
+      },
+      {
+        "ra_code": "RA000878",
+        "register": "Register of supervised entities",
+        "jurisdiction": "Finland",
+        "website": "https://www.finanssivalvonta.fi/en"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "fi-prh-ytj",
+      "name": "PRH / YTJ — Company basic information",
+      "publisher": "Finnish Patent and Registration Office",
+      "country_codes": [
+        "FI"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fi",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fi.business_id",
+          "description": "7 digits, hyphen, check digit",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Finnish Business Information System identity, names, forms, registers, addresses and industry.",
+        "limitations": "No email addresses or phone numbers in basic open data. Exact entity-type coverage must be checked before completeness claims.",
+        "freshness": "Updated daily"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None",
+        "upstream_cost": "Free open data",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://avoindata.prh.fi"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fi.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fi.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "fi.profile"
+          ]
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Use current YTJ v3 API",
+        "Resolve current main name by type and validity, never take the first historical alias blindly",
+        "Retain source codes and Finnish/Swedish/English descriptions; digital financials are a separate source product",
+        "Name-search and pagination contract remain documentation work: only businessId lookup was verified here. Do not infer a per_page parameter from another API."
+      ],
+      "references": [
+        {
+          "url": "https://www.prh.fi/en/companiesandorganisations/tietopalvelut/prhopendata.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://avoindata.prh.fi/en/ytj/swagger-ui",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000188"
+      ],
+      "endpoints": [
+        {
+          "spec_id": "fi.profile",
+          "method": "GET",
+          "path": "/opendata-ytj-api/v3/companies",
+          "verification": "live_sample_verified"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "fi-prh-financials",
+      "name": "PRH — Digital financial statements",
+      "publisher": "Finnish Patent and Registration Office",
+      "country_codes": [
+        "FI"
+      ],
+      "source_class": "official_filings",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "fi",
+        "accounts.get",
+        "financials.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "fi.business_id",
+          "description": "Y-tunnus",
+          "value_type": "string"
+        },
+        {
+          "scheme": "fi.filing_id",
+          "description": "Digital statement identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Digitally filed iXBRL financial-statement data.",
+        "limitations": "Only digital iXBRL filings, not every historical PDF annual report.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "Confirm current published retrieval API",
+        "upstream_cost": "Open retrieval interface free",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "fi.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "fi.company.financials.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "financials.get",
+          "inputs": [
+            "statement or structured report ID"
+          ],
+          "outputs": [
+            "reported metrics",
+            "currency",
+            "unit scale",
+            "period",
+            "taxonomy",
+            "missing reasons"
+          ],
+          "coverage_rule": "Document-backed values only; estimates labelled separately.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Use the dedicated retrieval API, not the filing/submission interface",
+        "Keep financial year, currency, taxonomy and consolidated basis",
+        "Return unavailable for non-digital filings; do not promise all Finnish accounts"
+      ],
+      "references": [
+        {
+          "url": "https://www.prh.fi/en/presentation_and_duties/uutislistaus/announcements/2025/open-data-digital-financial-statements-22.4.2025.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://www.prh.fi/en/companiesandorganisations/financial_statements/digital-financial-reporting/what.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "fi-prh-ytj",
+      "name": "PRH / YTJ — Company basic information",
+      "country_codes": [
+        "FI"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Use current YTJ v3 API",
+      "required_work": [
+        "Use current YTJ v3 API",
+        "Resolve current main name by type and validity, never take the first historical alias blindly",
+        "Retain source codes and Finnish/Swedish/English descriptions; digital financials are a separate source product",
+        "Name-search and pagination contract remain documentation work: only businessId lookup was verified here. Do not infer a per_page parameter from another API."
+      ],
+      "operation_spec_ids": [
+        "fi.profile"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://www.prh.fi/en/companiesandorganisations/tietopalvelut/prhopendata.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://avoindata.prh.fi/en/ytj/swagger-ui",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/fi-prh-profile.json"
+        ]
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "fi-prh-financials",
+      "name": "PRH — Digital financial statements",
+      "country_codes": [
+        "FI"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Use the dedicated retrieval API, not the filing/submission interface",
+      "required_work": [
+        "Use the dedicated retrieval API, not the filing/submission interface",
+        "Keep financial year, currency, taxonomy and consolidated basis",
+        "Return unavailable for non-digital filings; do not promise all Finnish accounts"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://www.prh.fi/en/presentation_and_duties/uutislistaus/announcements/2025/open-data-digital-financial-statements-22.4.2025.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://www.prh.fi/en/companiesandorganisations/financial_statements/digital-financial-reporting/what.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "fi.profile",
+      "source_id": "fi-prh-ytj",
+      "country_code": "FI",
+      "status": "draft_not_registered",
+      "public_capability": "fi.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://avoindata.prh.fi",
+      "path": "/opendata-ytj-api/v3/companies",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "business_id": {
+            "type": "string",
+            "pattern": "^[0-9]{7}-[0-9]$"
+          }
+        },
+        "required": [
+          "business_id"
+        ]
+      },
+      "input_map": {
+        "business_id": {
+          "in": "query",
+          "name": "businessId",
+          "fact_type": "company.registration.fi.national_id"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "records": "$.companies[*]",
+        "registration_number": "$.businessId.value",
+        "legal_name_candidates": "$.names[*]",
+        "euid": "$.euId.value",
+        "legal_forms": "$.companyForms[*]",
+        "registered_addresses": "$.addresses[*]",
+        "updated_at": "$.lastModified",
+        "raw_status": "$.tradeRegisterStatus"
+      },
+      "normalization_requirements": [
+        "Require exactly one matching businessId; empty companies is not_found.",
+        "Select current primary name (type/validity) and preserve aliases.",
+        "Do not collapse different status code lists or confuse addresses with different types."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/fi-prh-profile.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "business_id",
+          "required": true,
+          "fact_type": "company.registration.fi.national_id",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "records",
+          "upstream_projection": "$.companies[*]"
+        },
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.businessId.value"
+        },
+        {
+          "field": "legal_name_candidates",
+          "upstream_projection": "$.names[*]"
+        },
+        {
+          "field": "euid",
+          "upstream_projection": "$.euId.value"
+        },
+        {
+          "field": "legal_forms",
+          "upstream_projection": "$.companyForms[*]"
+        },
+        {
+          "field": "registered_addresses",
+          "upstream_projection": "$.addresses[*]"
+        },
+        {
+          "field": "updated_at",
+          "upstream_projection": "$.lastModified"
+        },
+        {
+          "field": "raw_status",
+          "upstream_projection": "$.tradeRegisterStatus"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "each object in $.companies[*]"
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}

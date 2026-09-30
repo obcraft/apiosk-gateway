@@ -1,0 +1,464 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "NL",
+    "name": "Netherlands",
+    "region": "EU27",
+    "native_source_ids": [
+      "kvk-dutch-business-register",
+      "nl-cir"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000463",
+        "register": "Business Register",
+        "jurisdiction": "Netherlands",
+        "website": "www.kvk.nl/english"
+      },
+      {
+        "ra_code": "RA000464",
+        "register": "",
+        "jurisdiction": "Netherlands",
+        "website": "https://www.afm.nl/en/professionals/registers"
+      },
+      {
+        "ra_code": "RA000664",
+        "register": "Public Benefit Organisation Register",
+        "jurisdiction": "Netherlands",
+        "website": "www.belastingdienst.nl"
+      },
+      {
+        "ra_code": "RA001047",
+        "register": "Public Register",
+        "jurisdiction": "Netherlands",
+        "website": "https://www.dnb.nl/en/public-register"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 0
+  },
+  "sources": [
+    {
+      "source_id": "kvk-dutch-business-register",
+      "name": "KVK Handelsregister",
+      "publisher": "Kamer van Koophandel",
+      "country_codes": [
+        "NL"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "nl",
+        "search",
+        "profile",
+        "branches.list",
+        "names.list",
+        "accounts.get"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "nl.kvk",
+          "description": "8-digit KVK number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "nl.rsin",
+          "description": "RSIN, separate tax/legal identifier",
+          "value_type": "string"
+        },
+        {
+          "scheme": "nl.vestiging",
+          "description": "12-digit establishment number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Dutch registry identity, names and establishments; existing annual-account product has a bounded XBRL subset.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Endpoint dependent; retain source dates"
+      },
+      "access": {
+        "mode": "existing_api",
+        "authentication": "API key for subscription endpoints; product-specific for open data",
+        "upstream_cost": "Subscription APIs plus separate open-data products; exact current tariff not collected",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "nl.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "nl.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "nl.company.branches.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "branches.list",
+          "inputs": [
+            "resolved registry identifier"
+          ],
+          "outputs": [
+            "source-declared branches",
+            "identifiers or names with type and effective dates",
+            "provenance"
+          ],
+          "coverage_rule": "Do not confuse branch records or trade names with separate legal entities.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "nl.company.names.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "names.list",
+          "inputs": [
+            "resolved registry identifier"
+          ],
+          "outputs": [
+            "source-declared names",
+            "identifiers or names with type and effective dates",
+            "provenance"
+          ],
+          "coverage_rule": "Do not confuse branch records or trade names with separate legal entities.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "nl.company.accounts.get",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "accounts.get",
+          "inputs": [
+            "resolved entity/filing",
+            "explicit year or requested latest policy"
+          ],
+          "outputs": [
+            "statement period",
+            "standalone/consolidated basis",
+            "source document or structured statements"
+          ],
+          "coverage_rule": "Do not silently choose latest when user requested another period.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 0,
+      "required_work": [
+        "Reuse existing listing and active contracts; do not create another KVK source",
+        "Verify current API-key subscription and reuse terms; keep annual accounts and mutation feeds as distinct products",
+        "Preserve statutory-name versus trade-name and branch-versus-legal-entity distinctions"
+      ],
+      "references": [
+        {
+          "url": "https://developers.kvk.nl/nl/documentation",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000463"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "documentation_reviewed",
+        "apiosk": "catalog_active_execution_not_retested",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": {
+        "slug": "kvk-dutch-business-register",
+        "name": "KVK Business Register",
+        "status": "active",
+        "active": true,
+        "discoverable": true,
+        "is_verified": true,
+        "origin_url": "https://api.kvk.nl",
+        "docs_url": "https://developers.kvk.nl/nl/documentation",
+        "active_endpoint_count": 5,
+        "active_contract_count": 9,
+        "validated_contract_count": 0
+      },
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "nl-cir",
+      "name": "Centraal Insolventieregister",
+      "publisher": "Dutch judiciary / Rechtspraak",
+      "country_codes": [
+        "NL"
+      ],
+      "source_class": "official_insolvency",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "nl",
+        "insolvency.notices"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "nl.insolvency_case",
+          "description": "Court and insolvency number",
+          "value_type": "string"
+        },
+        {
+          "scheme": "nl.kvk",
+          "description": "Company number when published",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Published bankruptcy, suspension-of-payment and debt-restructuring proceedings.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "registered_webservice_assessment",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "nl.company.insolvency.notices",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "insolvency.notices",
+          "inputs": [
+            "country-qualified entity",
+            "supported dates"
+          ],
+          "outputs": [
+            "case/notice identity",
+            "court",
+            "type",
+            "publication and effective dates"
+          ],
+          "coverage_rule": "No match is not a clearance certificate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 2,
+      "required_work": [
+        "Obtain current Rechtspraak CIR web-service terms and credentials",
+        "Limit company products to legal-entity cases and link KVK where present",
+        "Preserve case type, publication and termination dates"
+      ],
+      "references": [
+        {
+          "url": "https://insolventies.rechtspraak.nl/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "kvk-dutch-business-register",
+      "name": "KVK Handelsregister",
+      "country_codes": [
+        "NL"
+      ],
+      "catalog_section": "countries",
+      "priority": 0,
+      "evidence_group": "existing",
+      "reference_only": false,
+      "next_action": "Reuse existing listing and active contracts; do not create another KVK source",
+      "required_work": [
+        "Reuse existing listing and active contracts; do not create another KVK source",
+        "Verify current API-key subscription and reuse terms; keep annual accounts and mutation feeds as distinct products",
+        "Preserve statutory-name versus trade-name and branch-versus-legal-entity distinctions"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Existing route to revalidate",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Existing listing observed",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Existing prices to revalidate",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "documentation_reviewed",
+        "references": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "nl-cir",
+      "name": "Centraal Insolventieregister",
+      "country_codes": [
+        "NL"
+      ],
+      "catalog_section": "countries",
+      "priority": 2,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Obtain current Rechtspraak CIR web-service terms and credentials",
+      "required_work": [
+        "Obtain current Rechtspraak CIR web-service terms and credentials",
+        "Limit company products to legal-entity cases and link KVK where present",
+        "Preserve case type, publication and termination dates"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://insolventies.rechtspraak.nl/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

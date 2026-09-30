@@ -1,0 +1,771 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "CZ",
+    "name": "Czechia",
+    "region": "EU27",
+    "native_source_ids": [
+      "cz-commercial-register",
+      "cz-ares"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000163",
+        "register": "Commercial Register",
+        "jurisdiction": "Czechia",
+        "website": "https://or.justice.cz/ias/ui/rejstrik"
+      },
+      {
+        "ra_code": "RA000164",
+        "register": "Federal Register",
+        "jurisdiction": "Czechia",
+        "website": "https://or.justice.cz/ias/ui/rejstrik"
+      },
+      {
+        "ra_code": "RA000165",
+        "register": "Register of Foundations",
+        "jurisdiction": "Czechia",
+        "website": "https://or.justice.cz/ias/ui/rejstrik"
+      },
+      {
+        "ra_code": "RA000166",
+        "register": "Register of Institutes",
+        "jurisdiction": "Czechia",
+        "website": "https://www.justice.cz/"
+      },
+      {
+        "ra_code": "RA000167",
+        "register": "Register of Public Service Companies",
+        "jurisdiction": "Czechia",
+        "website": "https://www.justice.cz/"
+      },
+      {
+        "ra_code": "RA000168",
+        "register": "Register of Economic Entities",
+        "jurisdiction": "Czechia",
+        "website": "http://wwwinfo.mfcr.cz/ares/ares_es.html.en"
+      },
+      {
+        "ra_code": "RA000694",
+        "register": "Evidence of trust funds",
+        "jurisdiction": "Czechia",
+        "website": "https://isesf.justice.cz/"
+      },
+      {
+        "ra_code": "RA000856",
+        "register": "Regulated institutions and registered financial market entities lists",
+        "jurisdiction": "Czechia",
+        "website": "https://apl.cnb.cz/apljerrsdad/JERRS.WEB07.INTRO_PAGE?p_lang=en"
+      },
+      {
+        "ra_code": "RA000857",
+        "register": "Trade Licensing Register",
+        "jurisdiction": "Czechia",
+        "website": "https://www.rzp.cz/eng/index.html"
+      },
+      {
+        "ra_code": "RA000858",
+        "register": "List of churches and religious organizations",
+        "jurisdiction": "Czechia",
+        "website": "https://www-cns.mkcr.cz/cns_internet/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "cz-commercial-register",
+      "name": "Veřejný rejstřík / Obchodní rejstřík",
+      "publisher": "Ministry of Justice of Czechia",
+      "country_codes": [
+        "CZ"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "cz",
+        "search",
+        "profile",
+        "filings.list",
+        "filing.document"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "cz.ico",
+          "description": "8-digit IČO",
+          "value_type": "string"
+        },
+        {
+          "scheme": "cz.court_record",
+          "description": "Register court + file reference",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Judicial register entries and collection-of-deeds documents.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "cz.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "cz.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "cz.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "cz.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Use ARES for machine-readable identity first",
+        "Obtain documented justice-register document access before adding filings",
+        "Preserve court/file references and distinguish informational ARES data from a formal court extract"
+      ],
+      "references": [
+        {
+          "url": "https://or.justice.cz/ias/ui/rejstrik",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        },
+        {
+          "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+          "checked_at": "2026-09-30",
+          "evidence": "official_directory_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000163"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_directory_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    },
+    {
+      "source_id": "cz-ares",
+      "name": "ARES — Economic entities",
+      "publisher": "Czech Ministry of Finance",
+      "country_codes": [
+        "CZ"
+      ],
+      "source_class": "official_derived_index",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "cz",
+        "search",
+        "profile"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "cz.ico",
+          "description": "8-digit IČO",
+          "value_type": "string"
+        },
+        {
+          "scheme": "cz.dic",
+          "description": "Tax identifier",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Official aggregation of economic-entity data from Czech registers.",
+        "limitations": "Informational aggregation, not a certified court extract. Official limit 500 requests/minute plus concurrency/abuse restrictions.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None for public operations",
+        "upstream_cost": "Public API",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://ares.gov.cz"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "cz.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "cz.search"
+          ]
+        },
+        {
+          "public_name": "cz.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "cz.profile"
+          ]
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Add exact-IČO GET and bounded POST search adapter",
+        "Preserve source register and update date",
+        "Rate-limit below publisher ceiling; avoid random enumeration and duplicate requests"
+      ],
+      "references": [
+        {
+          "url": "https://data.mf.gov.cz/api/ares.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://ares.gov.cz/swagger-ui/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [],
+      "endpoints": [
+        {
+          "spec_id": "cz.profile",
+          "method": "GET",
+          "path": "/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ico}",
+          "verification": "live_sample_verified"
+        },
+        {
+          "spec_id": "cz.search",
+          "method": "POST",
+          "path": "/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/vyhledat",
+          "verification": "documentation_only"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "cz-commercial-register",
+      "name": "Veřejný rejstřík / Obchodní rejstřík",
+      "country_codes": [
+        "CZ"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Use ARES for machine-readable identity first",
+      "required_work": [
+        "Use ARES for machine-readable identity first",
+        "Obtain documented justice-register document access before adding filings",
+        "Preserve court/file references and distinguish informational ARES data from a formal court extract"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_directory_identified",
+        "references": [
+          {
+            "url": "https://or.justice.cz/ias/ui/rejstrik",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          },
+          {
+            "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+            "checked_at": "2026-09-30",
+            "evidence": "official_directory_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    },
+    {
+      "source_id": "cz-ares",
+      "name": "ARES — Economic entities",
+      "country_codes": [
+        "CZ"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Add exact-IČO GET and bounded POST search adapter",
+      "required_work": [
+        "Add exact-IČO GET and bounded POST search adapter",
+        "Preserve source register and update date",
+        "Rate-limit below publisher ceiling; avoid random enumeration and duplicate requests"
+      ],
+      "operation_spec_ids": [
+        "cz.profile",
+        "cz.search"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://data.mf.gov.cz/api/ares.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://ares.gov.cz/swagger-ui/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/cz-ares-profile.json"
+        ]
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "cz.profile",
+      "source_id": "cz-ares",
+      "country_code": "CZ",
+      "status": "draft_not_registered",
+      "public_capability": "cz.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://ares.gov.cz",
+      "path": "/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ico}",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ico": {
+            "type": "string",
+            "pattern": "^[0-9]{8}$"
+          }
+        },
+        "required": [
+          "ico"
+        ]
+      },
+      "input_map": {
+        "ico": {
+          "in": "path",
+          "name": "ico",
+          "fact_type": "company.registration.cz.national_id"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "registration_number": "$.ico",
+        "legal_name": "$.obchodniJmeno",
+        "registered_address": "$.sidlo",
+        "legal_form": "$.pravniForma",
+        "tax_id": "$.dic",
+        "updated_at": "$.datumAktualizace",
+        "original_register": "$.primarniZdroj"
+      },
+      "normalization_requirements": [
+        "Compare returned IČO to input, preserving zeroes.",
+        "Preserve primary source and codebook values; ARES is an official aggregation.",
+        "Keep legacy CZ-NACE 2008 and current CZ-NACE versions distinct."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/cz-ares-profile.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "ico",
+          "required": true,
+          "fact_type": "company.registration.cz.national_id",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.ico"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.obchodniJmeno"
+        },
+        {
+          "field": "registered_address",
+          "upstream_projection": "$.sidlo"
+        },
+        {
+          "field": "legal_form",
+          "upstream_projection": "$.pravniForma"
+        },
+        {
+          "field": "tax_id",
+          "upstream_projection": "$.dic"
+        },
+        {
+          "field": "updated_at",
+          "upstream_projection": "$.datumAktualizace"
+        },
+        {
+          "field": "original_register",
+          "upstream_projection": "$.primarniZdroj"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "cz.search",
+      "source_id": "cz-ares",
+      "country_code": "CZ",
+      "status": "draft_not_registered",
+      "public_capability": "cz.company.search",
+      "proposed_execution_capability": "company.cz-search",
+      "method": "POST",
+      "origin_url": "https://ares.gov.cz",
+      "path": "/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/vyhledat",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "input_map": {
+        "name": {
+          "in": "body",
+          "name": "obchodniJmeno",
+          "fact_type": "company.search_query"
+        },
+        "offset": {
+          "in": "body",
+          "name": "start"
+        },
+        "limit": {
+          "in": "body",
+          "name": "pocet"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "records": "$.ekonomickeSubjekty[*]",
+        "total": "$.pocetCelkem"
+      },
+      "normalization_requirements": [
+        "Read-only POST search; never forward arbitrary caller JSON.",
+        "Verified in saved ARES OpenAPI: start/pocet inherited from StrankovaniARazeni. Preserve original IČO on every candidate.",
+        "Return candidates and original IČO."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "many",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "offset",
+        "offset": "start",
+        "limit": "pocet",
+        "maximum_items_per_call_proposal": 25
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "documentation_only",
+        "fixture": null,
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "name",
+          "required": true,
+          "fact_type": "company.search_query",
+          "status": "reuse_if_registered"
+        },
+        {
+          "input": "offset",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "limit",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "records",
+          "upstream_projection": "$.ekonomickeSubjekty[*]"
+        },
+        {
+          "field": "total",
+          "upstream_projection": "$.pocetCelkem"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]",
+      "request_defaults": {
+        "body": {
+          "start": 0,
+          "pocet": 25
+        }
+      }
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}

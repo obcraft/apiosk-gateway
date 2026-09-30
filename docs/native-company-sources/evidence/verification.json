@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "checks": 1773,
+  "countries": 42,
+  "sources": 76,
+  "operation_specs": 13,
+  "public_api_requests": 7,
+  "scope": "Offline catalog/schema/export/reference/fixture integrity. No adapter or paid end-to-end test.",
+  "checked_at": "2026-09-30",
+  "browser_checks": [
+    "Country search: France and Czechia each returned one country",
+    "EU region filter returned 27 countries",
+    "EEA region filter returned 3 countries",
+    "No-match query displayed empty state",
+    "Reset returned all 42 countries",
+    "Source details and capability input/output tables opened",
+    "Integration and evidence views opened",
+    "Four core tabs displayed: Countries, Cross-border & enrichment, Implementation, Evidence & status",
+    "ARES source link selected Implementation, filtered to one source plan and opened its seven stages",
+    "Implementation evidence filter returned six upstream-sampled source plans",
+    "Implementation no-match search displayed the empty state",
+    "Clearing implementation filters returned all 76 plans"
+  ],
+  "deployment": "None; specification-only scope"
+}

@@ -1,0 +1,282 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "LU",
+    "name": "Luxembourg",
+    "region": "EU27",
+    "native_source_ids": [
+      "lu-lbr-rcs"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000432",
+        "register": "Trade and Company Register",
+        "jurisdiction": "Luxembourg",
+        "website": "www.lbr.lu"
+      },
+      {
+        "ra_code": "RA000433",
+        "register": "CSSF - Supervised Entities",
+        "jurisdiction": "Luxembourg",
+        "website": "http://www.cssf.lu/en/documentation/supervised-entities/"
+      },
+      {
+        "ra_code": "RA000434",
+        "register": "",
+        "jurisdiction": "Luxembourg",
+        "website": "http://www.legilux.public.lu/"
+      },
+      {
+        "ra_code": "RA000435",
+        "register": "Fundsquare Market Infrastructure",
+        "jurisdiction": "Luxembourg",
+        "website": "https://www.fundsquare.net/search"
+      },
+      {
+        "ra_code": "RA001048",
+        "register": "",
+        "jurisdiction": "Luxembourg",
+        "website": "https://www.barreau.lu/annuaire/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 3
+  },
+  "sources": [
+    {
+      "source_id": "lu-lbr-rcs",
+      "name": "Luxembourg Business Registers / RCS",
+      "publisher": "Luxembourg Business Registers",
+      "country_codes": [
+        "LU"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "lu",
+        "search",
+        "profile",
+        "filings.list",
+        "filing.document"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "lu.rcs",
+          "description": "Section letter + registration number",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "RCS identity, filed documents and RESA publications.",
+        "limitations": "Coverage and field availability depend on the national register; missing data is not a negative finding.",
+        "freshness": "Not verified"
+      },
+      "access": {
+        "mode": "portal_integration_unverified",
+        "authentication": "Confirm with publisher",
+        "upstream_cost": "unknown",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured."
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "lu.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "lu.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "lu.company.filings.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filings.list",
+          "inputs": [
+            "resolved registry entity",
+            "optional period/document type",
+            "page/cursor"
+          ],
+          "outputs": [
+            "filing IDs",
+            "document type",
+            "filing and period dates",
+            "content availability"
+          ],
+          "coverage_rule": "Index is not document content.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "lu.company.filing.document",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "filing.document",
+          "inputs": [
+            "resolved filing ID"
+          ],
+          "outputs": [
+            "content/secured result link",
+            "media type",
+            "checksum",
+            "source"
+          ],
+          "coverage_rule": "Size/content bounds; preserve originals and separately identify extracted text.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 3,
+      "required_work": [
+        "Request supported data-distribution/API access from LBR",
+        "Keep section letter, document ID, filing date and effective date",
+        "Handle RBE beneficial-owner access separately"
+      ],
+      "references": [
+        {
+          "url": "https://www.lbr.lu/",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        },
+        {
+          "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+          "checked_at": "2026-09-30",
+          "evidence": "official_portal_identified"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000432"
+      ],
+      "endpoints": [],
+      "readiness": {
+        "evidence": "official_portal_identified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EU27",
+      "rights": {
+        "status": "product_terms_to_confirm",
+        "licence": null,
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "lu-lbr-rcs",
+      "name": "Luxembourg Business Registers / RCS",
+      "country_codes": [
+        "LU"
+      ],
+      "catalog_section": "countries",
+      "priority": 3,
+      "evidence_group": "pending",
+      "reference_only": false,
+      "next_action": "Request supported data-distribution/API access from LBR",
+      "required_work": [
+        "Request supported data-distribution/API access from LBR",
+        "Keep section letter, document ID, filing date and effective date",
+        "Handle RBE beneficial-owner access separately"
+      ],
+      "operation_spec_ids": [],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Needs validation",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Terms to confirm",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Logical specification only",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "official_portal_identified",
+        "references": [
+          {
+            "url": "https://www.lbr.lu/",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          },
+          {
+            "url": "https://e-justice.europa.eu/topics/registers-business-insolvency-land/business-registers-search-company-eu/general-information-find-company_en",
+            "checked_at": "2026-09-30",
+            "evidence": "official_portal_identified"
+          }
+        ],
+        "fixtures": []
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [],
+  "shared_contracts_and_integration": "../catalog.json"
+}

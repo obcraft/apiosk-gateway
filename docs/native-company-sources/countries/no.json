@@ -1,0 +1,540 @@
+{
+  "schema_version": "1.0.0",
+  "as_of": "2026-09-30",
+  "scope": "Source specifications and catalog files only, per user confirmation. No runtime source activated or deployed.",
+  "country": {
+    "country_code": "NO",
+    "name": "Norway",
+    "region": "EEA_non_EU",
+    "native_source_ids": [
+      "no-brreg"
+    ],
+    "registration_authority_candidates": [
+      {
+        "ra_code": "RA000472",
+        "register": "The Register of Business Enterprises",
+        "jurisdiction": "Norway",
+        "website": "https://www.brreg.no/"
+      },
+      {
+        "ra_code": "RA000473",
+        "register": "The Central Coordinating Register for Legal Entities",
+        "jurisdiction": "Norway",
+        "website": "https://www.brreg.no/"
+      },
+      {
+        "ra_code": "RA000971",
+        "register": "Finanstilsynet's registry",
+        "jurisdiction": "Norway",
+        "website": "https://www.finanstilsynet.no/"
+      }
+    ],
+    "authority_note": "Country-filtered GLEIF v1.9 candidates include financial/other authorities; only source-level explicit codes are reviewed mappings.",
+    "first_product_priority": 1
+  },
+  "sources": [
+    {
+      "source_id": "no-brreg",
+      "name": "Brønnøysundregistrene — Enhetsregisteret",
+      "publisher": "Brønnøysund Register Centre",
+      "country_codes": [
+        "NO"
+      ],
+      "source_class": "national_registry",
+      "category": "company-data",
+      "tags": [
+        "company",
+        "registry",
+        "no",
+        "search",
+        "profile",
+        "branches.list",
+        "changes.list"
+      ],
+      "sectors": [
+        "Company data",
+        "Business verification"
+      ],
+      "identifiers": [
+        {
+          "scheme": "no.organisation_number",
+          "description": "9-digit organisation number; subentities also have numbers",
+          "value_type": "string"
+        }
+      ],
+      "coverage": {
+        "description": "Norwegian legal entities and subentities; name, address, form, activity and registry status indicators.",
+        "limitations": "Norway is EEA, not EU. Latest account year is metadata, not an accounts document or financial figures.",
+        "freshness": "Live registry API; source-specific timestamps"
+      },
+      "access": {
+        "mode": "public_api",
+        "authentication": "None for open Enhetsregisteret API",
+        "upstream_cost": "Free open data under NLOD",
+        "apiosk_list_price_micro_usd": null,
+        "pricing_status": "Do not quote a new source until its tariff, licence and bounded operation are configured.",
+        "origin_url": "https://data.brreg.no"
+      },
+      "proposed_capabilities": [
+        {
+          "public_name": "no.company.search",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "search",
+          "inputs": [
+            "query",
+            "country",
+            "optional filters and bounded page"
+          ],
+          "outputs": [
+            "candidates with registry ID and scheme",
+            "source and timestamps",
+            "pagination and coverage"
+          ],
+          "coverage_rule": "Name-only result remains a candidate.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "no.search"
+          ]
+        },
+        {
+          "public_name": "no.company.profile",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "reuse_existing_contract_family": "company.registry-profile (add distinct source contract; preserve original IDs)",
+          "capability_template": "profile",
+          "inputs": [
+            "country-qualified registry identifier"
+          ],
+          "outputs": [
+            "legal name",
+            "original status",
+            "legal form",
+            "registered address if disclosed",
+            "alternate identifiers",
+            "provenance and field gaps"
+          ],
+          "coverage_rule": null,
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": [
+            "no.profile"
+          ]
+        },
+        {
+          "public_name": "no.company.branches.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "branches.list",
+          "inputs": [
+            "resolved registry identifier"
+          ],
+          "outputs": [
+            "source-declared branches",
+            "identifiers or names with type and effective dates",
+            "provenance"
+          ],
+          "coverage_rule": "Do not confuse branch records or trade names with separate legal entities.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        },
+        {
+          "public_name": "no.company.changes.list",
+          "support": "candidate_pending_contract",
+          "contract_id": null,
+          "capability_template": "changes.list",
+          "inputs": [
+            "source cursor/date and object class"
+          ],
+          "outputs": [
+            "changes",
+            "tombstones",
+            "next cursor",
+            "source snapshot date"
+          ],
+          "coverage_rule": "Bulk refresh is an ingestion job, not a silently billed background purchase.",
+          "interface_status": "Source-specific endpoint schema required unless a detailed operation spec is linked",
+          "detailed_operation_spec_ids": []
+        }
+      ],
+      "priority": 1,
+      "required_work": [
+        "Add bounded search and exact-number profile adapter",
+        "Keep deleted entities, bankruptcy flags and current registration status distinct",
+        "Obtain separate roles/ownership interface terms; do not infer a corporate group from erIKonsern alone"
+      ],
+      "references": [
+        {
+          "url": "https://www.brreg.no/en/use-of-data-from-the-bronnoysund-register-centre/datasets-and-api/",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        },
+        {
+          "url": "https://data.brreg.no/enhetsregisteret/api/docs/index.html",
+          "checked_at": "2026-09-30",
+          "evidence": "documentation_reviewed"
+        }
+      ],
+      "registration_authority_codes": [
+        "RA000473"
+      ],
+      "endpoints": [
+        {
+          "spec_id": "no.profile",
+          "method": "GET",
+          "path": "/enhetsregisteret/api/enheter/{organisasjonsnummer}",
+          "verification": "live_sample_verified"
+        },
+        {
+          "spec_id": "no.search",
+          "method": "GET",
+          "path": "/enhetsregisteret/api/enheter",
+          "verification": "documentation_only"
+        }
+      ],
+      "readiness": {
+        "evidence": "live_upstream_sample_verified",
+        "apiosk": "specification_only",
+        "activation_authorized_by_this_file": false
+      },
+      "current_apiosk": null,
+      "region": "EEA_non_EU",
+      "rights": {
+        "status": "open_licence_documented",
+        "licence": "Norwegian Licence for Open Government Data (NLOD)",
+        "attribution": "Retain publisher, dataset/service, source URL and observation date.",
+        "required_action": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+      }
+    }
+  ],
+  "implementation_plans": [
+    {
+      "source_id": "no-brreg",
+      "name": "Brønnøysundregistrene — Enhetsregisteret",
+      "country_codes": [
+        "NO"
+      ],
+      "catalog_section": "countries",
+      "priority": 1,
+      "evidence_group": "sample",
+      "reference_only": false,
+      "next_action": "Add bounded search and exact-number profile adapter",
+      "required_work": [
+        "Add bounded search and exact-number profile adapter",
+        "Keep deleted entities, bankruptcy flags and current registration status distinct",
+        "Obtain separate roles/ownership interface terms; do not infer a corporate group from erIKonsern alone"
+      ],
+      "operation_spec_ids": [
+        "no.profile",
+        "no.search"
+      ],
+      "stages": [
+        {
+          "stage": "Access",
+          "status": "Sample verified",
+          "required": "Confirm the selected product, authentication, quotas and error responses. One sample does not prove complete coverage."
+        },
+        {
+          "stage": "Reuse rights",
+          "status": "Open licence documented",
+          "required": "Confirm commercial use, caching, document display and onward redistribution for the selected product before activation."
+        },
+        {
+          "stage": "Inputs & outputs",
+          "status": "Detailed draft available",
+          "required": "Validate exact request/response schemas and keep country-qualified identifiers, dates and missing-field reasons."
+        },
+        {
+          "stage": "Adapter",
+          "status": "Implementation required",
+          "required": "Implement or revalidate the declared route, normalization and identity checks before returning an Apiosk result."
+        },
+        {
+          "stage": "Execution contract",
+          "status": "Registration required",
+          "required": "Reuse existing accepted contracts where applicable; otherwise register exact schemas, facts and adapter mapping."
+        },
+        {
+          "stage": "Pricing",
+          "status": "Not set",
+          "required": "Confirm the product tariff and bounded operation cost; retain one total price and one approval."
+        },
+        {
+          "stage": "Live execution",
+          "status": "Not tested in this review",
+          "required": "Verify approved execution, source identity, actual charge and saved-result recovery before advertising support."
+        }
+      ],
+      "evidence": {
+        "assessment": "live_upstream_sample_verified",
+        "references": [
+          {
+            "url": "https://www.brreg.no/en/use-of-data-from-the-bronnoysund-register-centre/datasets-and-api/",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          },
+          {
+            "url": "https://data.brreg.no/enhetsregisteret/api/docs/index.html",
+            "checked_at": "2026-09-30",
+            "evidence": "documentation_reviewed"
+          }
+        ],
+        "fixtures": [
+          "evidence/no-brreg-profile.json"
+        ]
+      },
+      "new_activation_proven": false
+    }
+  ],
+  "capability_contracts": [
+    {
+      "spec_id": "no.profile",
+      "source_id": "no-brreg",
+      "country_code": "NO",
+      "status": "draft_not_registered",
+      "public_capability": "no.company.profile",
+      "proposed_execution_capability": "company.registry-profile",
+      "method": "GET",
+      "origin_url": "https://data.brreg.no",
+      "path": "/enhetsregisteret/api/enheter/{organisasjonsnummer}",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "organisation_number": {
+            "type": "string",
+            "pattern": "^[0-9]{9}$"
+          }
+        },
+        "required": [
+          "organisation_number"
+        ]
+      },
+      "input_map": {
+        "organisation_number": {
+          "in": "path",
+          "name": "organisasjonsnummer",
+          "fact_type": "company.registration.no.national_id"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "registration_number": "$.organisasjonsnummer",
+        "legal_name": "$.navn",
+        "legal_form": "$.organisasjonsform",
+        "registered_address": "$.forretningsadresse",
+        "industry_codes": "$.naeringskode1",
+        "raw_status_fields": [
+          "$.konkurs",
+          "$.underAvvikling",
+          "$.underTvangsavviklingEllerTvangsopplosning"
+        ]
+      },
+      "normalization_requirements": [
+        "Require returned organisation number to equal input.",
+        "Preserve status flags; erIKonsern is only a flag.",
+        "sisteInnsendteAarsregnskap is a year/reference, not financial values."
+      ],
+      "normalized_output_schema": "./company-record.schema.json",
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "none"
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "live_sample_verified",
+        "fixture": "evidence/no-brreg-profile.json",
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "organisation_number",
+          "required": true,
+          "fact_type": "company.registration.no.national_id",
+          "status": "reuse_if_registered"
+        }
+      ],
+      "produces": [
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.organisasjonsnummer"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.navn"
+        },
+        {
+          "field": "legal_form",
+          "upstream_projection": "$.organisasjonsform"
+        },
+        {
+          "field": "registered_address",
+          "upstream_projection": "$.forretningsadresse"
+        },
+        {
+          "field": "industry_codes",
+          "upstream_projection": "$.naeringskode1"
+        },
+        {
+          "field": "raw_status_fields",
+          "upstream_projection": [
+            "$.konkurs",
+            "$.underAvvikling",
+            "$.underTvangsavviklingEllerTvangsopplosning"
+          ]
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "response root; collection items are explicitly marked [*]"
+    },
+    {
+      "spec_id": "no.search",
+      "source_id": "no-brreg",
+      "country_code": "NO",
+      "status": "draft_not_registered",
+      "public_capability": "no.company.search",
+      "proposed_execution_capability": "company.no-search",
+      "method": "GET",
+      "origin_url": "https://data.brreg.no",
+      "path": "/enhetsregisteret/api/enheter",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 400
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "input_map": {
+        "query": {
+          "in": "query",
+          "name": "navn",
+          "fact_type": "company.search_query"
+        },
+        "page": {
+          "in": "query",
+          "name": "page"
+        },
+        "page_size": {
+          "in": "query",
+          "name": "size"
+        }
+      },
+      "fixed_params": {},
+      "upstream_output_map": {
+        "records": "$._embedded.enheter[*]",
+        "registration_number": "$.organisasjonsnummer",
+        "legal_name": "$.navn",
+        "pagination": "$.page"
+      },
+      "normalization_requirements": [
+        "Search produces candidates, not an automatically selected company.",
+        "Validate each result ID and retain total count and source page.",
+        "Proposed Apiosk page size cap 25; enforce upstream page*size depth limit."
+      ],
+      "normalized_output_schema": null,
+      "cardinality": "many",
+      "max_fan_out": 1,
+      "pagination": {
+        "mode": "page",
+        "start": 0,
+        "maximum_items_per_call_proposal": 25
+      },
+      "effect": "read",
+      "price_model": "per_bounded_call",
+      "list_price_micro_usd": null,
+      "freshness_seconds": null,
+      "timeout_seconds_proposal": 20,
+      "response_size_limit_bytes_proposal": 2000000,
+      "preconditions": [
+        "Source access and licence reviewed",
+        "Adapter deployed",
+        "Exact request and response validated",
+        "Quote approved through existing Apiosk flow"
+      ],
+      "verification": {
+        "level": "documentation_only",
+        "fixture": null,
+        "checked_at": "2026-09-30",
+        "apiosk_execution_tested": false
+      },
+      "requires": [
+        {
+          "input": "query",
+          "required": true,
+          "fact_type": "company.search_query",
+          "status": "reuse_if_registered"
+        },
+        {
+          "input": "page",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        },
+        {
+          "input": "page_size",
+          "required": false,
+          "fact_type": null,
+          "status": "fact_registration_or_explicit_parameter_needed"
+        }
+      ],
+      "produces": [
+        {
+          "field": "records",
+          "upstream_projection": "$._embedded.enheter[*]"
+        },
+        {
+          "field": "registration_number",
+          "upstream_projection": "$.organisasjonsnummer"
+        },
+        {
+          "field": "legal_name",
+          "upstream_projection": "$.navn"
+        },
+        {
+          "field": "pagination",
+          "upstream_projection": "$.page"
+        }
+      ],
+      "adapter_version_proposal": "native-company-v1",
+      "admission_notes": "This is a design artifact. Requires/projections are not an importable execution contract. Register facts, adapter output_map and schemas through the existing catalog validator.",
+      "field_projection_scope": "each object in $._embedded.enheter[*] except pagination",
+      "request_defaults": {
+        "query": {
+          "page": 0,
+          "size": 25
+        }
+      }
+    }
+  ],
+  "shared_contracts_and_integration": "../catalog.json"
+}
