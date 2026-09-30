@@ -1,0 +1,789 @@
+{
+  "surface": "report",
+  "title": "Apiosk — alle bronnen en kosten",
+  "generatedAt": "2026-09-30T12:00:33.352295+00:00",
+  "status": "reviewed",
+  "buildStatus": "creating",
+  "filters": [],
+  "queries": {
+    "source_inventory": {
+      "rows": [
+        {
+          "id": "agentbodega",
+          "name": "AgentBodega",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ask-merlin",
+          "name": "Ask Merlin UK VAT",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "bloomberg",
+          "name": "Bloomberg News",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "bodemloket",
+          "name": "Bodemloket",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "browserbase",
+          "name": "Browserbase",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "cbs-statline",
+          "name": "CBS Statistics",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "cityfalcon-financial-api",
+          "name": "CityFALCON Financial API",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "companies-house",
+          "name": "Companies House",
+          "group": "country_apis",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "crowdpull",
+          "name": "CrowdPull",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "data-overheid-nl",
+          "name": "Dutch Open Data Register",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "domain-intelligence",
+          "name": "Domain Intelligence (RDAP & DNS)",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "eodhd",
+          "name": "EODHD Market Data",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "eu-funding-tenders",
+          "name": "EU Funding & Tenders",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "eurlex-cellar",
+          "name": "EUR-Lex Cellar",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "eurostat",
+          "name": "Eurostat",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "exa",
+          "name": "Exa",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "gleif",
+          "name": "GLEIF",
+          "group": "country_apis",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "iban-check",
+          "name": "IBAN Check",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "koop",
+          "name": "KOOP Official Publications and Regulations",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "kvk-dutch-business-register",
+          "name": "KVK Business Register",
+          "group": "country_apis",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "linkup",
+          "name": "Linkup",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "opensanctions",
+          "name": "OpenSanctions",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "overheid-io",
+          "name": "Overheid.io Public Data",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pdok",
+          "name": "PDOK Maps & Addresses",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pdok-ruimtelijke-plannen",
+          "name": "PDOK Ruimtelijke Plannen",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pixelforge-x402-data-services",
+          "name": "PixelForge x402 Data Services",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pulsenetwork",
+          "name": "Pulse Network",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "rdw",
+          "name": "RDW Vehicle Technical Data",
+          "group": "country_apis",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "reuters",
+          "name": "Reuters News",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "rvo",
+          "name": "RVO Subsidy Descriptions — First Page",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "sirenic",
+          "name": "Sirenic",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "stableenrich",
+          "name": "StableEnrich",
+          "group": "enrichment",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "tavily",
+          "name": "Tavily",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ted",
+          "name": "TED European Procurement Notices",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "tenderned",
+          "name": "TenderNed",
+          "group": "open_government_datasets",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "vies",
+          "name": "VIES EU VAT Validation",
+          "group": "country_apis",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "webbersites",
+          "name": "WebberSites x402 Data API",
+          "group": "search_tools",
+          "status": "Bestaande catalogus",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fr-inpi-rne",
+          "name": "INPI — Registre national des entreprises",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "de-handelsregister",
+          "name": "Handelsregister",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "be-kbo-bce",
+          "name": "KBO / BCE — Crossroads Bank for Enterprises",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "dk-cvr",
+          "name": "CVR — Det Centrale Virksomhedsregister",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "no-brreg",
+          "name": "Brønnøysundregistrene — Enhetsregisteret",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fi-prh-ytj",
+          "name": "PRH / YTJ — Company basic information",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ee-rik-business-register",
+          "name": "e-Business Register / Äriregister",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "lv-ur",
+          "name": "Register of Enterprises / Uzņēmumu reģistrs",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "lt-registru-centras",
+          "name": "Register of Legal Entities / Juridinių asmenų registras",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "se-bolagsverket-hvd",
+          "name": "Bolagsverket — High-value datasets",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "it-infocamere",
+          "name": "Registro Imprese / InfoCamere",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "es-registro-mercantil",
+          "name": "Registro Mercantil / Registradores",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pt-irn",
+          "name": "Registo Comercial / IRN",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ie-cro",
+          "name": "Companies Registration Office",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "at-firmenbuch",
+          "name": "Firmenbuch",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pl-krs",
+          "name": "KRS — National Court Register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "cz-commercial-register",
+          "name": "Veřejný rejstřík / Obchodní rejstřík",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "sk-commercial-register",
+          "name": "Obchodný register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "si-ajpes",
+          "name": "AJPES — Slovenian Business Register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "hu-company-register",
+          "name": "Cégnyilvántartás / e-Cégjegyzék",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ro-onrc",
+          "name": "ONRC — National Trade Register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "bg-registry-agency",
+          "name": "Commercial Register / Registry Agency",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "hr-sudreg",
+          "name": "Sudski registar — Court Register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "gr-gemi",
+          "name": "GEMI — General Commercial Registry",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "cy-registrar",
+          "name": "Registrar of Companies",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "lu-lbr-rcs",
+          "name": "Luxembourg Business Registers / RCS",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "mt-mbr",
+          "name": "Malta Business Registry",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "is-skatturinn",
+          "name": "Skatturinn — Register of Enterprises",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "li-handelsregister",
+          "name": "Handelsregister Liechtenstein",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ch-zefix",
+          "name": "Zefix — Central Business Name Index",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "rs-apr",
+          "name": "Serbian Business Registers Agency / APR",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "al-qkb",
+          "name": "National Business Center / QKB",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "me-crps",
+          "name": "Central Registry of Business Entities / CRPS",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "mk-central-registry",
+          "name": "Central Registry of North Macedonia",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ba-business-registers",
+          "name": "Court business registers of Bosnia and Herzegovina",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "md-asp",
+          "name": "State Register of Legal Entities",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ge-napr",
+          "name": "National Agency of Public Registry",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "tr-mersis",
+          "name": "MERSİS / Trade Registry Gazette",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ua-edr",
+          "name": "Unified State Register / EDR",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "az-state-tax-register",
+          "name": "State Tax Service business register",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fr-dinum-recherche",
+          "name": "Recherche d’entreprises",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fr-insee-sirene",
+          "name": "INSEE — Sirene",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fr-bodacc",
+          "name": "BODACC",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "de-unternehmensregister",
+          "name": "Unternehmensregister",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "de-bundesanzeiger",
+          "name": "Bundesanzeiger",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "de-insolvency-notices",
+          "name": "Insolvenzbekanntmachungen",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "nl-cir",
+          "name": "Centraal Insolventieregister",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "be-nbb-accounts",
+          "name": "NBB — Central Balance Sheet Office",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "fi-prh-financials",
+          "name": "PRH — Digital financial statements",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "se-bolagsverket-information",
+          "name": "Bolagsverket — Company information",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "cz-ares",
+          "name": "ARES — Economic entities",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pl-ceidg",
+          "name": "CEIDG",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "pl-regon",
+          "name": "REGON / BIR",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "sk-rpo",
+          "name": "RPO — Register of Legal Entities",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "sk-ruz",
+          "name": "RÚZ — Register of Financial Statements",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "gleif-registration-authorities",
+          "name": "GLEIF Registration Authorities List",
+          "group": "open_government_datasets",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "bris",
+          "name": "BRIS — Find a company",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "ebra-directory",
+          "name": "EBRA Worldwide Registers",
+          "group": "open_government_datasets",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "opencorporates",
+          "name": "OpenCorporates",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "orbis",
+          "name": "Moody’s Orbis",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "dnb-directplus",
+          "name": "Dun & Bradstreet Direct+",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "creditsafe-connect",
+          "name": "Creditsafe Connect",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "company-info",
+          "name": "Company.info",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "graydoncreditsafe-legacy",
+          "name": "GraydonCreditsafe legacy APIs",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "sayari",
+          "name": "Sayari",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "north-data",
+          "name": "North Data",
+          "group": "enrichment",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "boris",
+          "name": "BORIS / national beneficial-owner registers",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "openownership-datasets",
+          "name": "Open Ownership BODS datasets",
+          "group": "open_government_datasets",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "icij-offshore-leaks",
+          "name": "ICIJ Offshore Leaks",
+          "group": "open_government_datasets",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "occrp-aleph",
+          "name": "OCCRP Aleph",
+          "group": "open_government_datasets",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        },
+        {
+          "id": "us-sec-edgar",
+          "name": "SEC EDGAR",
+          "group": "country_apis",
+          "status": "Concept",
+          "cost_status": "In onderzoek"
+        }
+      ],
+      "source": {
+        "label": "Apiosk catalogus en onderzochte uitbreidingen",
+        "files": [
+          "../source-niches-20260930/complete-overview.json",
+          "live-catalog.json"
+        ],
+        "filters": [
+          "37 bestaande hoofdbronnen en 71 aanvullende bronrecords",
+          "42 onderzochte Europese landen"
+        ],
+        "caveats": [
+          "Kostenclassificatie wordt aangevuld. Een catalogusvermelding is geen uitvoeringstest."
+        ]
+      }
+    }
+  },
+  "report": {
+    "asOf": "2026-09-30",
+    "title": "Apiosk — alle bronnen en kosten"
+  },
+  "id": "report:5d50de7a-1938-4da5-a9c5-44f41e6d3bb6"
+}
