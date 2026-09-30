@@ -117,6 +117,14 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             service.description.as_deref().unwrap_or(""),
             described,
         ]);
+        // Input names describe what a caller supplies, not what the API
+        // returns. "financial assistance" plus an input named
+        // "first-statement-date" must not become financial statements.
+        let offered_facets = document(Target::Endpoint(position), &format!("{} {} {} {} {} {}",
+            service.contract.capability_slug, service.name,
+            service.description.as_deref().unwrap_or(""), described,
+            service.contract.output_map.produces.keys().map(String::as_str).collect::<Vec<_>>().join(" "),
+            rendering), BTreeSet::new()).facets;
         let original = (!rendering.is_empty()).then(|| text.clone());
         append(&mut text, rendering);
         let capabilities =
@@ -135,18 +143,18 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             Some(("operation", _)) | None => BTreeSet::new(),
             Some((namespace, _)) => words(namespace),
         };
-        if primary != 0 {
+        {
             // The operation's own concept takes precedence over a description
             // explaining what a caller might do afterwards. A director roster
             // "for sanctions screening" is not itself sanctions screening.
-            indexed.facets = primary;
+            indexed.facets = if primary != 0 { primary } else { offered_facets };
             for (facet, marker) in [
                 (FINANCIAL, "@financial"),
                 (OFFICERS, "@officers"),
                 (CONTROL, "@control"),
                 (SANCTIONS, "@sanctions"),
             ] {
-                if primary & facet == 0 {
+                if indexed.facets & facet == 0 {
                     indexed.tokens.remove(marker);
                 }
             }
@@ -968,6 +976,22 @@ mod tests {
         // A company's branches (offices) are not an industry.
         assert!(!words("addresses, website and branches").contains("sector"));
         assert!(!words("insolventie").contains("bankruptcy"));
+    }
+
+    #[test]
+    fn input_names_do_not_turn_medical_bill_advice_into_company_accounts() {
+        let mut medical = service(400, "operation.clearcarepulse.get-api-care-rights", "ClearCarePulse",
+            "US medical-bill rights check. Nonprofit-hospital financial assistance and collection shields; ACA appeal deadlines and Medicare redetermination.", "clearcarepulse");
+        medical.contract.input_map.values_mut().next().unwrap().name = "first-statement-date".into();
+        let accounts = service(401, "company.financial-statements", "Company accounts",
+            "Retrieve the financial statements filed by a company.", "registry");
+        let mut request = parsed(vec![json!({"slug":"company.financial.statements","name":"Company financial statements",
+            "description":"Retrieves the financial statements of a company as filed with the relevant authority."})]);
+        request.capabilities[0].outputs = vec!["financial_statements".into(), "filing_date".into()];
+        let catalog = catalog(vec![medical, accounts], vec![]);
+        assert_eq!(catalog.services.len(), 2);
+        let matches = search(&request, &catalog);
+        assert_eq!(matches[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref().unwrap()).collect::<Vec<_>>(), vec!["registry"]);
     }
 
     #[test]
