@@ -108,7 +108,10 @@ const migrations=new URL('../supabase/migrations/',import.meta.url);
 for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')
   // The Coinbase Bazaar import asserts the full production catalogue; its own
   // PGlite check is scripts/test-bazaar-source-migration.mjs.
-  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)).sort()) {
+  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)
+  // Recurring orders require the App's complete billing and tenancy schema,
+  // which this isolated task/selection fixture does not install.
+  &&!name.endsWith('_recurring_orders.sql')).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
 }
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));

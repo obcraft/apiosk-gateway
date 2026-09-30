@@ -34,10 +34,12 @@ async fn provider(State(c): State<Arc<Provider>>, Json(body): Json<Value>) -> Js
         // four rows of one company.
         let ids: Vec<String> = if body["inputs"]["company.name"] == "Many" {
             ["100", "101", "101", "101"].iter().map(|id| id.to_string()).chain((102..248).map(|n| n.to_string())).collect()
+        } else if body["inputs"]["company.name"] == "Exact Company B.V." {
+            vec!["111".into(), "222".into(), "222".into()]
         } else {
             vec!["777".into(); 4]
         };
-        json!({"companies":ids.iter().map(|id| json!({"id":id})).collect::<Vec<_>>()})
+        json!({"companies":ids.iter().map(|id| json!({"id":id,"name":if id == "111" { "Exact Company B.V.".to_owned() } else { format!("Company {id}") }})).collect::<Vec<_>>()})
     } else {
         c.accounts.lock().unwrap().push(body["inputs"]["company.id"].clone());
         json!({"accounts":body["inputs"]["company.id"]})
@@ -82,6 +84,10 @@ async fn many_companies_become_a_bounded_choice_and_duplicates_bind_themselves()
             Ok(())
         }))
         .connect(&std::env::var("TEST_DATABASE_URL").unwrap()).await.unwrap();
+    // Include names as the real KVK search does, so an exact name match can
+    // exercise the decision that used to skip the identifier choice.
+    sqlx::query("UPDATE capability_execution_contracts SET output_map=jsonb_set(output_map,'{produces,company.name}', '{\"path\":\"$.name\"}'::jsonb) WHERE capability_slug='company.search'")
+        .execute(&pool).await.unwrap();
     let state = Arc::new(Provider { pool: pool.clone(), calls: AtomicUsize::new(0), accounts: Mutex::new(Vec::new()) });
     let app = Router::new().route("/functions/v1/use-selection", post(provider)).with_state(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -137,6 +143,30 @@ async fn many_companies_become_a_bounded_choice_and_duplicates_bind_themselves()
     assert_eq!(done.result.unwrap()["data"]["accounts"], "777");
     assert_eq!(state.calls.load(Ordering::SeqCst), 4);
     assert_eq!(*state.accounts.lock().unwrap(), [json!("102"), json!("777")]);
+
+    // Even an exact company name waits when a different identifier is also
+    // returned. The person may choose that other company under the same cap.
+    let (id, quote) = approved(&engine, &p, "Exact Company B.V.").await;
+    let choice = settled(&engine, &p, id).await;
+    assert_eq!(choice.status, Status::NeedsSelection, "{choice:?}");
+    let candidates = choice.context_view["candidates"].as_array().unwrap();
+    assert_eq!(candidates.len(), 2);
+    assert_eq!(state.calls.load(Ordering::SeqCst), 5, "no financials before the choice");
+    let selected = candidates.iter().find(|candidate| candidate["facts"].as_array().unwrap().iter().any(|fact| fact["type"] == "company.id" && fact["value"] == "222")).unwrap();
+    let action = choice.next_actions.iter().find(|a| a.kind == "select_entity").unwrap();
+    engine.execute(&p, "fixture", ExecuteRequest {
+        request_id: Uuid::new_v4(), action_id: action.action_id, idempotency_key: action.action_id,
+        state: choice.state.clone().unwrap(), quote_ref: Some(quote), authorization_ref: None,
+        input: json!({"entity_ref":selected["entity_ref"]}),
+    }).await.unwrap();
+    engine.start_worker(p.clone(), "fixture".into(), id).await.unwrap();
+    let done = settled(&engine, &p, id).await;
+    assert_eq!(done.status, Status::Succeeded, "{done:?}");
+    assert_eq!(done.result.unwrap()["data"]["accounts"], "222");
+    assert_eq!(done.proposal.as_ref().unwrap().quote_ref, quote);
+    assert_eq!(state.calls.load(Ordering::SeqCst), 6, "lookup is reused");
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations WHERE task_id=$1").bind(id).fetch_one(&pool).await.unwrap();
+    assert_eq!(approvals, 1);
     server.abort();
     pool.close().await;
 }

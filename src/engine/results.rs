@@ -351,8 +351,9 @@ enum Rows {
 /// A completed search is a result in its own right. Only a remaining
 /// dependency needs the person to disambiguate before spending again, and
 /// then among the distinct `choices` only, however many rows the source sent
-/// or the task can hold. One distinct match continues by itself, unless the
-/// source cut the list short: then even one is the person's to confirm.
+/// or the task can hold. A name match must not silently choose an identifier
+/// for another paid call. Only one distinct match in a complete list can
+/// continue by itself.
 fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, ContractError>, mut choices: Vec<SubjectFacts>,
     complete: bool, truncated: bool, data: &Value) -> Rows {
     let extraction = match extraction {
@@ -363,16 +364,15 @@ fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, Contr
         return Rows::IncompleteSelection;
     }
     if !choices.is_empty() {
-        let sure = if truncated { None } else if choices.len() == 1 { Some(0) }
-            else { crate::entity_resolution::confident_candidate(task, step.entity_ref, &choices) };
-        if let Some(index) = sure {
-            return Rows::Bind(vec![choices.swap_remove(index)]);
+        let more = more_pages(&step.service, data);
+        if choices.len() == 1 && !truncated && !more {
+            return Rows::Bind(choices);
         }
         let listed = selection::offered(task, &choices);
         if listed == 0 {
             return Rows::Incomplete;
         }
-        let note = (truncated || listed < choices.len() || more_pages(&step.service, data)).then(|| format!(
+        let note = (truncated || listed < choices.len() || more).then(|| format!(
             "{} returned more matches than are listed. Only the first {listed} distinct {} shown; if yours is not here, ask again with a more specific name or its identifier. Nothing more is charged until you choose.",
             step.service.name, if listed == 1 { "match is" } else { "matches are" }));
         choices.truncate(listed);
@@ -420,6 +420,12 @@ fn missing_required_outputs(
 
 /// The page links to a next one, by the contract's own pagination path.
 fn more_pages(service: &crate::catalog::Service, data: &Value) -> bool {
+    // Older KVK catalog snapshots omit pagination metadata. The official
+    // search response still declares its next page in `volgende`.
+    if service.api_slug == "kvk-dutch-business-register" && service.path == "/api/v2/zoeken"
+        && data["volgende"].as_str().is_some_and(|link| !link.is_empty()) {
+        return true;
+    }
     service.pagination["next"].as_str()
         .and_then(|next| catalog_core::facts::path::parse(next).ok())
         .is_some_and(|path| path.select(data).iter().any(|link| link.as_str().is_some_and(|link| !link.is_empty())))
@@ -626,10 +632,44 @@ mod candidate_tests {
     }
 
     #[test]
-    fn an_exact_name_match_continues_without_asking() {
+    fn an_exact_name_does_not_choose_between_distinct_identifiers() {
         let (task, step, catalog) = openkvk("bol.com B.V.");
-        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &page(22), false) else { panic!("expected a binding") };
-        assert_eq!(kvk(&subjects[0]), "24330087");
+        let Rows::Choose(candidates, _) = decide(&task, &step, &catalog, &page(22), false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 19);
+        assert_eq!(candidates.iter().filter(|candidate| kvk(candidate) == "24330087").count(), 1);
+    }
+
+    #[test]
+    fn one_match_on_an_incomplete_page_still_needs_confirmation() {
+        let (task, step, catalog) = openkvk("bol.com B.V.");
+        let mut data = page(5);
+        data["_embedded"]["bedrijf"].as_array_mut().unwrap().remove(0);
+        data["_links"]["next"] = json!({"href":"/v3/openkvk?page=2"});
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a choice") };
+        assert_eq!(candidates.len(), 1);
+        assert!(note.is_some());
+    }
+
+    #[test]
+    fn kvk_financials_wait_for_a_distinct_number_even_with_an_exact_name() {
+        let catalog = catalog();
+        let mut search = catalog.services[0].clone();
+        search.api_slug = "kvk-dutch-business-register".into();
+        search.name = "KVK Business Register".into();
+        search.path = "/api/v2/zoeken".into();
+        search.pagination = json!({});
+        search.contract.output_map = serde_json::from_value(json!({"base":"$.resultaten[*]", "produces":{
+            "company.name":{"path":"$.naam"}, "company_registry.kvknummer":{"path":"$.kvkNummer"}
+        }})).unwrap();
+        let mut financials = catalog.services[1].clone();
+        financials.contract.requires[0].fact_type = "company_registry.kvknummer".into();
+        let (task, step) = plan(search, financials, "Coolblue B.V.");
+        let mut records = vec![json!({"naam":"Coolblue Verwonderdiensten B.V.","kvkNummer":"63768917"})];
+        records.extend((0..9).map(|_| json!({"naam":"Coolblue B.V.","kvkNummer":"24330087"})));
+        let data = json!({"pagina":1,"totaal":43,"volgende":"https://api.kvk.nl/api/v2/zoeken?pagina=2","resultaten":records});
+        let Rows::Choose(candidates, note) = decide(&task, &step, &catalog, &data, false) else { panic!("expected a KVK choice") };
+        assert_eq!(candidates.iter().map(kvk).collect::<Vec<_>>(), ["63768917", "24330087"]);
+        assert!(note.unwrap().contains("Only the first 2 distinct matches"));
     }
 
     #[test]
