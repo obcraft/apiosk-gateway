@@ -1,0 +1,32 @@
+{
+  "odpis": {
+    "naglowekA": {
+      "rejestr": "RejP",
+      "numerKRS": "0000006865",
+      "dataCzasOdpisu": "30.09.2026 11:39:32",
+      "stanZDnia": "10.08.2026",
+      "dataRejestracjiWKRS": "06.04.2001",
+      "numerOstatniegoWpisu": 175,
+      "dataOstatniegoWpisu": "10.08.2026",
+      "sygnaturaAktSprawyDotyczacejOstatniegoWpisu": "WA.XIV NS-REJ.KRS/36058/26/280",
+      "oznaczenieSaduDokonujacegoOstatniegoWpisu": "SĄD REJONOWY DLA M.ST. WARSZAWY W WARSZAWIE, XIV WYDZIAŁ GOSPODARCZY KRAJOWEGO REJESTRU SĄDOWEGO",
+      "stanPozycji": 1
+    },
+    "dane": {
+      "dzial1": {
+        "danePodmiotu": {
+          "formaPrawna": "SPÓŁKA AKCYJNA",
+          "identyfikatory": {
+            "regon": "49270733300000",
+            "nip": "7342867148"
+          },
+          "nazwa": "CD PROJEKT RED SPÓŁKA AKCYJNA",
+          "daneOWczesniejszejRejestracji": {},
+          "czyProwadziDzialalnoscZInnymiPodmiotami": false,
+          "czyPosiadaStatusOPP": false
+        }
+      }
+    }
+  },
+  "_evidence_note": "Company identity projection only; personal records omitted."
+}

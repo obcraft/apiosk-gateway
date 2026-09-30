@@ -24,6 +24,7 @@ use uuid::Uuid;
 mod ask_v2;
 mod ask_v2_external;
 mod integrations;
+mod recurring;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -122,6 +123,12 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/runs/:id", get(crate::public_api::run_status))
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
+        .route("/v2/recurring-orders", get(recurring::list))
+        .route("/v2/recurring-orders/quote", post(recurring::quote))
+        .route("/v2/recurring-orders/:id", get(recurring::read))
+        .route("/v2/recurring-orders/:id/approve", post(recurring::approve))
+        .route("/v2/recurring-orders/:id/runs/:run", get(recurring::run))
+        .route("/v2/recurring-orders/:id/control", post(recurring::control))
         .route("/v2/integrations", get(integrations::list))
         .route("/v2/integrations/:toolkit/connect", post(integrations::connect))
         .route("/v2/integrations/:toolkit/disconnect", post(integrations::disconnect))

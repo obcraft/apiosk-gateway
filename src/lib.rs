@@ -47,3 +47,5 @@ pub mod workflow_catalog;
 pub mod readiness;
 #[doc(hidden)]
 pub mod replay;
+
+pub mod recurring;

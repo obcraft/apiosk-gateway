@@ -1,0 +1,434 @@
+{
+  "checked_at": "2026-09-30",
+  "contracts": [
+    {
+      "slug": "companies-house",
+      "capability_slug": "company.registry-profile",
+      "path": "/company",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company.registration.gb.companies_house",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "company.uk_registry_record",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.registration.gb.companies_house",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company.registration.gb.companies_house": {
+          "in": "path",
+          "name": "company_number"
+        }
+      },
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.company_name"
+          },
+          "company.uk_registry_record": {
+            "path": "$"
+          },
+          "company.registration.gb.companies_house": {
+            "path": "$.company_number"
+          }
+        }
+      },
+      "cardinality": "one",
+      "pagination": {},
+      "adapter_version": "v1",
+      "preconditions": {}
+    },
+    {
+      "slug": "kvk-dutch-business-register",
+      "capability_slug": "company.registry-profile",
+      "path": "/api/v1/basisprofielen",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company_registry.kvknummer",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "optional": false,
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.profile",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company_registry.kvknummer",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.nl.registered_name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.nl.rsin",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.nl.main_establishment_addresses",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.nl.main_establishment_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.nl.sbi_activities",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company_registry.kvknummer": {
+          "in": "path_append",
+          "name": "kvkNummer"
+        }
+      },
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.statutaireNaam"
+          },
+          "company.nl.rsin": {
+            "path": "$._embedded.eigenaar.rsin"
+          },
+          "company.profile": {
+            "fields": {
+              "sbi_codes": {
+                "path": "$.sbiActiviteiten[*].sbiCode",
+                "collect": true
+              },
+              "legal_name": {
+                "path": "$.statutaireNaam"
+              },
+              "trade_names": {
+                "path": "$.handelsnamen[*].naam",
+                "collect": true
+              }
+            }
+          },
+          "company.nl.sbi_activities": {
+            "path": "$.sbiActiviteiten"
+          },
+          "company.nl.registered_name": {
+            "path": "$.statutaireNaam"
+          },
+          "company_registry.kvknummer": {
+            "path": "$.kvkNummer"
+          },
+          "company.nl.main_establishment_id": {
+            "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+          },
+          "company.nl.main_establishment_addresses": {
+            "path": "$._embedded.hoofdvestiging.adressen"
+          }
+        }
+      },
+      "cardinality": "one",
+      "pagination": {},
+      "adapter_version": "v1",
+      "preconditions": {}
+    },
+    {
+      "slug": "sirenic",
+      "capability_slug": "company.registry-profile",
+      "path": "/v1/entreprise/{siren}",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company.registration.fr.siren",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "company.fr_registry_record",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.registration.fr.siren",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company.registration.fr.siren": {
+          "in": "path",
+          "name": "siren"
+        }
+      },
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.denomination"
+          },
+          "company.fr_registry_record": {
+            "path": "$"
+          },
+          "company.registration.fr.siren": {
+            "path": "$.siren"
+          }
+        }
+      },
+      "cardinality": "one",
+      "pagination": {},
+      "adapter_version": "v1",
+      "preconditions": {}
+    },
+    {
+      "slug": "sirenic",
+      "capability_slug": "company.registry-profile",
+      "path": "/v1/eu/entreprise/{pays}/{id}",
+      "requires": [
+        {
+          "optional": false,
+          "fact_type": "company.country_code",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.registration.eu.national_id",
+          "subject_role": "subject"
+        }
+      ],
+      "produces": [
+        {
+          "optional": false,
+          "fact_type": "company.name",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.country_code",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.registration.eu.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.registration.eu.identity",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": false,
+          "fact_type": "company.eu_registry_record",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.be.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.fi.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.no.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.gb.companies_house",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.lv.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.ee.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.se.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.dk.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.cz.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.pl.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.sk.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        },
+        {
+          "optional": true,
+          "fact_type": "company.registration.es.national_id",
+          "cardinality": "one",
+          "subject_role": "subject"
+        }
+      ],
+      "input_map": {
+        "company.country_code": {
+          "in": "path",
+          "name": "pays"
+        },
+        "company.registration.eu.national_id": {
+          "in": "path",
+          "name": "id"
+        }
+      },
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "company.name": {
+            "path": "$.denomination"
+          },
+          "company.country_code": {
+            "path": "$.pays"
+          },
+          "company.eu_registry_record": {
+            "path": "$"
+          },
+          "company.registration.eu.identity": {
+            "fields": {
+              "id": {
+                "path": "$.id_national"
+              },
+              "country": {
+                "path": "$.pays"
+              }
+            }
+          },
+          "company.registration.be.national_id": {
+            "key": "BE",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.cz.national_id": {
+            "key": "CZ",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.dk.national_id": {
+            "key": "DK",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.ee.national_id": {
+            "key": "EE",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.es.national_id": {
+            "key": "ES",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.eu.national_id": {
+            "path": "$.id_national"
+          },
+          "company.registration.fi.national_id": {
+            "key": "FI",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.lv.national_id": {
+            "key": "LV",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.no.national_id": {
+            "key": "NO",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.pl.national_id": {
+            "key": "PL",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.se.national_id": {
+            "key": "SE",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.sk.national_id": {
+            "key": "SK",
+            "adapter": "record.country-identifier"
+          },
+          "company.registration.gb.companies_house": {
+            "key": "GB",
+            "adapter": "record.country-identifier"
+          }
+        }
+      },
+      "cardinality": "one",
+      "pagination": {},
+      "adapter_version": "v1",
+      "preconditions": {}
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "checked_at": "2026-09-30",
+  "method": "Read-only production catalog SQL; source and contract admission only, no execution or payment.",
+  "sources": [
+    {
+      "slug": "companies-house",
+      "name": "Companies House",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://api.company-information.service.gov.uk",
+      "docs_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+      "active_endpoint_count": 15,
+      "active_contract_count": 11,
+      "validated_contract_count": 4
+    },
+    {
+      "slug": "gleif",
+      "name": "GLEIF",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://api.gleif.org/api/v1",
+      "docs_url": "https://www.gleif.org/en/lei-data/gleif-api",
+      "active_endpoint_count": 17,
+      "active_contract_count": 11,
+      "validated_contract_count": 0
+    },
+    {
+      "slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://api.kvk.nl",
+      "docs_url": "https://developers.kvk.nl/nl/documentation",
+      "active_endpoint_count": 5,
+      "active_contract_count": 9,
+      "validated_contract_count": 0
+    },
+    {
+      "slug": "opensanctions",
+      "name": "OpenSanctions",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://api.opensanctions.org",
+      "docs_url": "https://www.opensanctions.org/docs/api/",
+      "active_endpoint_count": 7,
+      "active_contract_count": 10,
+      "validated_contract_count": 2
+    },
+    {
+      "slug": "sirenic",
+      "name": "Sirenic",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://api.sirenic.eu",
+      "docs_url": "https://api.sirenic.eu/openapi.json",
+      "active_endpoint_count": 63,
+      "active_contract_count": 66,
+      "validated_contract_count": 0
+    },
+    {
+      "slug": "vies",
+      "name": "VIES EU VAT Validation",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "origin_url": "https://ec.europa.eu",
+      "docs_url": "https://ec.europa.eu/taxation_customs/vies/",
+      "active_endpoint_count": 3,
+      "active_contract_count": 3,
+      "validated_contract_count": 0
+    }
+  ]
+}

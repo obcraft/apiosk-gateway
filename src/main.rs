@@ -189,6 +189,7 @@ async fn main() -> anyhow::Result<()> {
             tracing::warn!("source branding will refresh on demand");
         }
     });
+    apiosk_gateway_v2::recurring::start(engine.clone());
     let app = router(
         ServerState {
             engine,
