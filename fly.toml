@@ -16,6 +16,7 @@ kill_timeout = "120s"
   ASK_V2_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
+  RECURRING_ORDERS_ENABLED = "0" # Development only until production rollout.
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.
   V2_SINGLE_CALL_MODE = "0"
   ASK_ENGINE_V2 = "true"
