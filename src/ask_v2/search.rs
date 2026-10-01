@@ -584,7 +584,11 @@ pub fn listing_text(candidate: &Candidate) -> String {
 /// other must share the capability's topic in either wording, as an Apiosk
 /// candidate must (`relevance::Request::mentions`): the Stock Trends portfolio
 /// comparison is no answer to "bankruptcies per sector". A listing that is
-/// not English and has no rendering is kept, as before this check.
+/// not English and has no rendering is kept, as before this check. When the
+/// subject's country is known, a listing about another country is removed
+/// (see `country::listing`): Chicago building violations are no answer about
+/// an Amsterdam address. Unlike a demoted catalog candidate it is not kept as
+/// a last resort, because nothing orders it after the relevant listings.
 pub fn filter_coinbase_in_english(
     parsed: &ParsedRequest,
     english: &ParsedRequest,
@@ -609,6 +613,7 @@ pub fn filter_coinbase_in_english(
         let wanted = wanted(capability, parsed).union(wanted(translated, english));
         let floor = relevance::Request::new(capability, parsed)
             .union(relevance::Request::new(translated, english));
+        let signal = country::Signal::infer(parsed, capability);
         found.coinbase.retain(|candidate| {
             if let Some(hint) = &hint {
                 return [
@@ -622,14 +627,14 @@ pub fn filter_coinbase_in_english(
             }
             let text = listing_text(candidate);
             let english = rendered(&text);
+            let both = format!("{text} {}", english.as_deref().unwrap_or(""));
+            if signal.adjustment(&country::listing(&both)).demoted {
+                return false;
+            }
             if english.is_none() && crate::english::detect(&text) == crate::english::Language::Other {
                 return true;
             }
-            let listing = document(
-                Target::Source(0),
-                &format!("{text} {}", english.as_deref().unwrap_or("")),
-                BTreeSet::new(),
-            );
+            let listing = document(Target::Source(0), &both, BTreeSet::new());
             floor.mentions(&wanted, &listing)
         });
     }
@@ -1103,6 +1108,48 @@ mod tests {
         filter_coinbase_in_english(&request, &request, &mut matches, &|text| renderings.get(text).cloned());
         assert_eq!(kept(&matches), ["Latest sector, industry-", "Company bankruptcy filin", "Faillissementen per bedr"]);
         assert_eq!(matches[0].coinbase_status, "pending");
+    }
+
+    fn building(address: &str) -> ParsedRequest {
+        crate::capability_intake::normalize(
+            &json!({"language":"en","subjects":[{"id":"s1","label":address,"type":"address","identifiers":{}}],
+                "capabilities":[{"slug":"location.building.information","name":"Building information",
+                    "description":"Retrieves building information for an address.","domain":"location",
+                    "inputs":["address"],"outputs":["construction_year","building_type"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+                "deliverable":{"format":"chat","operations":[]}})
+            .to_string(),
+            &format!("Find building and neighbourhood information for {address}."),
+            "fixture",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn bazaar_listings_about_another_country_are_no_answer_for_a_dutch_address() {
+        // Live, 2026-10-01: the starter "Find building and neighbourhood
+        // information for Damrak 1, Amsterdam." offered Chicago building
+        // violations and a Japanese geocoder next to PDOK.
+        let listings = || {
+            vec![
+                listing("Chicago Building Violations", "Chicago building violations address check: open DOB violations for a street address."),
+                listing("Japan Address Geocode", "Japanese forward geocoding from an address to coordinates."),
+                listing("Global Geocoder", "Forward geocoding of any building address worldwide."),
+                listing("BAG Lookup", "Building records for addresses in Amsterdam and the rest of the Netherlands."),
+            ]
+        };
+        let names = |matches: &[Match]| -> Vec<String> { matches[0].coinbase.iter().map(|candidate| candidate.name.clone()).collect() };
+        let request = building("Damrak 1, Amsterdam");
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = listings();
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(names(&matches), ["Global Geocoder", "BAG Lookup"]);
+        // Without a known country nothing is removed for being foreign; the
+        // geocoder still has to mention buildings.
+        let request = building("Damrak 1");
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = listings();
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(names(&matches), ["Chicago Building Violations", "Global Geocoder", "BAG Lookup"]);
     }
 
     #[test]
