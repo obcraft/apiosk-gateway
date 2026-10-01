@@ -2,15 +2,17 @@
 //!
 //! A registry answers only for its own country: KVK knows Dutch companies,
 //! Companies House British ones, and SIRENE French ones. Search therefore
-//! infers where the subject is registered (identifiers, legal form, a named
-//! source, requested inputs, and weakly the request language) and where each
-//! candidate can answer (identifier inputs, country-specific contract ids,
-//! source identity, and the catalog's jurisdiction). When one country is
-//! clearly named, its candidates' relevance is multiplied by 1.5 (1.25 for a
-//! European register that includes it), and candidates bound to another
-//! country rank after every other relevant candidate but are never removed.
-//! Weak evidence (the request language, a legal form several countries use)
-//! only breaks near-ties; without any evidence the order is unchanged.
+//! infers where the subject is (identifiers, legal form, a named source, the
+//! city of an address, requested inputs, and weakly the request language) and
+//! where each candidate can answer (identifier inputs, country-specific
+//! contract ids, source identity, and the catalog's jurisdiction). When one
+//! country is clearly named, its candidates' relevance is multiplied by 1.5
+//! (1.25 for a European register that includes it), and catalog candidates
+//! bound to another country rank after every other relevant candidate but are
+//! never removed. A Bazaar listing about another country is removed instead
+//! (see `search::filter_coinbase_in_english`). Weak evidence (the request
+//! language, a legal form several countries use) only breaks near-ties;
+//! without any evidence the order is unchanged.
 use crate::{
     capability_intake::{Capability, ParsedRequest},
     catalog::{KnownSource, Service},
@@ -33,6 +35,8 @@ const IDENTIFIER: f64 = 3.0;
 const NAMED_SOURCE: f64 = 3.0;
 /// A subject that is itself a country ("the Netherlands").
 const COUNTRY: f64 = 3.0;
+/// A place subject whose label names a known city ("Damrak 1, Amsterdam").
+const PLACE: f64 = 3.0;
 const INPUT: f64 = 2.0;
 const LEGAL_FORM: f64 = 2.0;
 const SHARED_FORM: f64 = 1.0;
@@ -46,6 +50,21 @@ const EUROPE: &[&str] = &[
 ];
 /// European, but outside the EU registers above; neither boosted nor demoted.
 const NEAR_EUROPE: &[&str] = &["GB", "CH"];
+
+/// Subject types the parser writes for a place rather than an organisation.
+const PLACE_KINDS: &[&str] = &[
+    "address",
+    "location",
+    "place",
+    "city",
+    "town",
+    "street",
+    "building",
+    "property",
+    "neighbourhood",
+    "neighborhood",
+    "municipality",
+];
 
 /// Where a candidate can answer.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -109,7 +128,9 @@ impl Signal {
             // The subject may be the country itself ("bankruptcies per sector
             // in the Netherlands"), not a company named after one.
             let country = subject.kind == "country" && signal.country(&subject.label);
-            if !country && !matches!(subject.kind.as_str(), "person" | "individual" | "people") {
+            // An address or place is in the country of its city.
+            let place = PLACE_KINDS.contains(&subject.kind.as_str()) && signal.place(&subject.label);
+            if !country && !place && !matches!(subject.kind.as_str(), "person" | "individual" | "people") {
                 signal.label(&subject.label);
             }
         }
@@ -239,6 +260,19 @@ impl Signal {
         let named = named_countries(label);
         for country in &named {
             self.add(country, COUNTRY);
+        }
+        !named.is_empty()
+    }
+
+    /// A place subject: a city or country its label names places it there
+    /// ("Damrak 1, Amsterdam"). Returns whether one was recognised.
+    fn place(&mut self, label: &str) -> bool {
+        let named: BTreeSet<_> = named_places(label)
+            .into_iter()
+            .chain(named_countries(label))
+            .collect();
+        for country in &named {
+            self.add(country, PLACE);
         }
         !named.is_empty()
     }
@@ -455,26 +489,171 @@ fn country_word(word: &str) -> Option<&'static str> {
         | "inglaterra"
         | "regnounito"
         | "inghilterra" => "GB",
-        "france" | "francais" | "francaise" | "frankrijk" | "frankreich" | "francia" | "franca" => {
-            "FR"
+        "france" | "french" | "francais" | "francaise" | "frankrijk" | "frankreich" | "francia"
+        | "franca" => "FR",
+        "deutschland" | "germany" | "german" | "duitsland" | "allemagne" | "alemania"
+        | "germania" | "alemanha" => "DE",
+        "belgie" | "belgique" | "belgium" | "belgian" | "belgien" | "belgica" | "belgio" => "BE",
+        "spain" | "spanish" | "espana" | "spanje" | "espagne" | "spanien" | "spagna"
+        | "espanha" => "ES",
+        "italy" | "italian" | "italia" | "italie" | "italien" => "IT",
+        "portugal" | "portuguese" | "portogallo" => "PT",
+        "austria" | "austrian" | "oostenrijk" | "autriche" | "osterreich" => "AT",
+        "switzerland" | "swiss" | "zwitserland" | "suisse" | "schweiz" | "suiza" | "svizzera" => {
+            "CH"
         }
-        "deutschland" | "germany" | "duitsland" | "allemagne" | "alemania" | "germania"
-        | "alemanha" => "DE",
-        "belgie" | "belgique" | "belgium" | "belgien" | "belgica" | "belgio" => "BE",
-        "spain" | "espana" | "spanje" | "espagne" | "spanien" | "spagna" | "espanha" => "ES",
-        "italy" | "italia" | "italie" | "italien" => "IT",
-        "portugal" | "portogallo" => "PT",
-        "austria" | "oostenrijk" | "autriche" | "osterreich" => "AT",
-        "switzerland" | "zwitserland" | "suisse" | "schweiz" | "suiza" | "svizzera" => "CH",
-        "ireland" | "ierland" | "irlande" | "irland" | "irlanda" | "eire" => "IE",
+        "ireland" | "irish" | "ierland" | "irlande" | "irland" | "irlanda" | "eire" => "IE",
         "luxembourg" | "luxemburg" | "lussemburgo" | "luxemburgo" => "LU",
-        "denmark" | "denemarken" | "danemark" | "dinamarca" | "danimarca" | "danmark" => "DK",
-        "sweden" | "zweden" | "suede" | "schweden" | "suecia" | "svezia" | "sverige" => "SE",
-        "norway" | "noorwegen" | "norvege" | "norwegen" | "noruega" | "norvegia" | "norge" => "NO",
-        "finland" | "finlande" | "finnland" | "finlandia" | "suomi" => "FI",
+        "denmark" | "danish" | "denemarken" | "danemark" | "dinamarca" | "danimarca"
+        | "danmark" => "DK",
+        "sweden" | "swedish" | "zweden" | "suede" | "schweden" | "suecia" | "svezia"
+        | "sverige" => "SE",
+        "norway" | "norwegian" | "noorwegen" | "norvege" | "norwegen" | "noruega"
+        | "norvegia" | "norge" => "NO",
+        "finland" | "finnish" | "finlande" | "finnland" | "finlandia" | "suomi" => "FI",
         "poland" | "polen" | "pologne" | "polonia" | "polska" => "PL",
+        // Outside Europe: enough to recognise a listing about another
+        // continent's records, which cannot answer for a European subject.
+        "usa" | "unitedstates" | "american" | "verenigdestaten" | "etatsunis"
+        | "estadosunidos" => "US",
+        "canada" | "canadian" => "CA",
+        "australia" | "australian" | "australie" => "AU",
+        "japan" | "japanese" | "japon" | "nippon" | "nihon" => "JP",
+        "china" | "chinese" | "chine" => "CN",
         _ => return None,
     })
+}
+
+/// Cities, folded and with two words written together ("denhaag",
+/// "newyork"), and their country. Unlisted places give no signal, as before.
+const CITIES: &[(&str, &str)] = &[
+    ("amsterdam", "NL"),
+    ("rotterdam", "NL"),
+    ("denhaag", "NL"),
+    ("thehague", "NL"),
+    ("gravenhage", "NL"),
+    ("utrecht", "NL"),
+    ("eindhoven", "NL"),
+    ("groningen", "NL"),
+    ("tilburg", "NL"),
+    ("almere", "NL"),
+    ("breda", "NL"),
+    ("nijmegen", "NL"),
+    ("haarlem", "NL"),
+    ("arnhem", "NL"),
+    ("zaandam", "NL"),
+    ("amersfoort", "NL"),
+    ("apeldoorn", "NL"),
+    ("enschede", "NL"),
+    ("hertogenbosch", "NL"),
+    ("denbosch", "NL"),
+    ("leiden", "NL"),
+    ("maastricht", "NL"),
+    ("zwolle", "NL"),
+    ("delft", "NL"),
+    ("dordrecht", "NL"),
+    ("leeuwarden", "NL"),
+    ("alkmaar", "NL"),
+    ("amstelveen", "NL"),
+    ("brussel", "BE"),
+    ("brussels", "BE"),
+    ("bruxelles", "BE"),
+    ("antwerpen", "BE"),
+    ("antwerp", "BE"),
+    ("gent", "BE"),
+    ("ghent", "BE"),
+    ("berlin", "DE"),
+    ("hamburg", "DE"),
+    ("munchen", "DE"),
+    ("munich", "DE"),
+    ("koln", "DE"),
+    ("cologne", "DE"),
+    ("frankfurt", "DE"),
+    ("dusseldorf", "DE"),
+    ("paris", "FR"),
+    ("lyon", "FR"),
+    ("marseille", "FR"),
+    ("toulouse", "FR"),
+    ("london", "GB"),
+    ("manchester", "GB"),
+    ("birmingham", "GB"),
+    ("edinburgh", "GB"),
+    ("glasgow", "GB"),
+    ("dublin", "IE"),
+    ("madrid", "ES"),
+    ("barcelona", "ES"),
+    ("rome", "IT"),
+    ("roma", "IT"),
+    ("milan", "IT"),
+    ("milano", "IT"),
+    ("lisbon", "PT"),
+    ("lisboa", "PT"),
+    ("vienna", "AT"),
+    ("wien", "AT"),
+    ("zurich", "CH"),
+    ("geneva", "CH"),
+    ("geneve", "CH"),
+    ("copenhagen", "DK"),
+    ("kobenhavn", "DK"),
+    ("stockholm", "SE"),
+    ("oslo", "NO"),
+    ("helsinki", "FI"),
+    ("warsaw", "PL"),
+    ("warszawa", "PL"),
+    ("newyork", "US"),
+    ("nyc", "US"),
+    ("chicago", "US"),
+    ("losangeles", "US"),
+    ("sanfrancisco", "US"),
+    ("boston", "US"),
+    ("seattle", "US"),
+    ("houston", "US"),
+    ("toronto", "CA"),
+    ("vancouver", "CA"),
+    ("sydney", "AU"),
+    ("melbourne", "AU"),
+    ("tokyo", "JP"),
+    ("osaka", "JP"),
+    ("kyoto", "JP"),
+    ("beijing", "CN"),
+    ("shanghai", "CN"),
+];
+
+/// The countries of the cities a text names, one word or two at a time.
+fn named_places(text: &str) -> BTreeSet<&'static str> {
+    let folded = crate::english::fold(text);
+    let words: Vec<&str> = folded
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect();
+    let city = |word: &str| {
+        CITIES
+            .iter()
+            .find(|(name, _)| *name == word)
+            .map(|(_, country)| *country)
+    };
+    words
+        .iter()
+        .filter_map(|word| city(word))
+        .chain(
+            words
+                .windows(2)
+                .filter_map(|pair| city(&format!("{}{}", pair[0], pair[1]))),
+        )
+        .collect()
+}
+
+/// Where a Bazaar listing can answer, from the countries and cities its text
+/// names: exactly one binds it to that country ("Chicago building
+/// violations", "Japanese forward geocoding"); none or several leave it
+/// unknown, never boosted or demoted.
+pub(super) fn listing(text: &str) -> Coverage {
+    let mut named: BTreeSet<_> = named_countries(text);
+    named.extend(named_places(text));
+    match named.pop_first() {
+        Some(country) if named.is_empty() => Coverage::Country(country.into()),
+        _ => Coverage::Unknown,
+    }
 }
 
 /// The countries a place name names, one word or two at a time.
@@ -893,6 +1072,55 @@ mod tests {
         assert_eq!(british.adjustment(&Coverage::Europe), Adjustment::default());
         let american = signal("Apple Inc.", json!({}), None, "en");
         assert!(american.adjustment(&Coverage::Europe).demoted);
+    }
+
+    fn place(label: &str, kind: &str) -> Signal {
+        let parsed = crate::capability_intake::normalize(
+            &json!({"language":"en","subjects":[{"id":"s1","label":label,"type":kind,"identifiers":{}}],
+                "capabilities":[{"slug":"location.building","name":"Building information","description":"Retrieve building information.",
+                    "domain":"location","inputs":["address"],"outputs":["construction_year"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+                "deliverable":{"format":"chat","operations":[]}})
+            .to_string(),
+            label,
+            "fixture",
+        )
+        .unwrap();
+        Signal::infer(&parsed, &parsed.capabilities[0])
+    }
+
+    #[test]
+    fn an_address_is_in_the_country_of_its_city() {
+        for (label, kind, expected) in [
+            ("Damrak 1, Amsterdam", "address", Some("NL")),
+            ("Lange Voorhout 34, 's-Gravenhage", "address", Some("NL")),
+            ("Grote Markt 1, Den Haag", "address", Some("NL")),
+            ("10 Downing Street, London", "address", Some("GB")),
+            ("Rotterdam", "city", Some("NL")),
+            ("Kerkstraat 1, Netherlands", "address", Some("NL")),
+            // An unlisted place gives no signal, as before.
+            ("Dorpsstraat 1, Ankeveen", "address", None),
+            // A company named after a city is not located by it.
+            ("Amsterdam Trading", "company", None),
+        ] {
+            assert_eq!(place(label, kind).primary(), expected, "{label}");
+        }
+    }
+
+    #[test]
+    fn a_listing_naming_one_country_or_its_cities_is_bound_to_it() {
+        let country = |code: &str| Coverage::Country(code.into());
+        for (text, expected) in [
+            ("Chicago building violations address check: open DOB violations", country("US")),
+            ("Japanese forward geocoding from an address to coordinates", country("JP")),
+            ("Building permits issued in Amsterdam and Rotterdam", country("NL")),
+            ("Forward geocoding of any address worldwide", Coverage::Unknown),
+            ("Company registers of Germany and France", Coverage::Unknown),
+        ] {
+            assert_eq!(listing(text), expected, "{text}");
+        }
+        let dutch = place("Damrak 1, Amsterdam", "address");
+        assert!(dutch.adjustment(&listing("Chicago building violations")).demoted);
+        assert!(!dutch.adjustment(&listing("Amsterdam building permits")).demoted);
     }
 
     fn service(
