@@ -4,6 +4,8 @@
 pub mod search;
 pub mod external;
 pub mod purchase;
+#[cfg(test)]
+pub(crate) mod test_catalog;
 
 use anyhow::{anyhow, ensure, Result};
 use serde::Serialize;

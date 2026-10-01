@@ -51,24 +51,39 @@ impl Engine {
         Ok(first)
     }
 
-    /// Names may seed a native, validated dependency chain. Only facts that
-    /// the same source can actually derive are offered as lookup alternatives.
-    pub(crate) fn endpoint_lookup_fields(catalog: &Catalog, service: &crate::catalog::Service) -> Vec<String> {
-        if !catalog.vocabulary.contains_key("company.name") { return vec![]; }
-        let mut known = std::collections::BTreeSet::from(["company.name".to_owned()]);
+    /// Literal names and addresses can seed a native, validated dependency
+    /// chain. Geographic links may be absent (e.g. a unit in multiple buildings);
+    /// the planner prices the lookup, and execution still requires its evidence.
+    pub(crate) fn endpoint_lookup(catalog: &Catalog, service: &crate::catalog::Service) -> Option<(&'static str, Vec<String>)> {
+        [("company.name", false), ("geo.input.q", true)].into_iter().find_map(|(seed, conditional)| {
+            let fields = Self::endpoint_lookup_fields(catalog, service, seed, conditional);
+            (!fields.is_empty()).then_some((seed, fields))
+        })
+    }
+
+    fn endpoint_lookup_fields(catalog: &Catalog, service: &crate::catalog::Service, seed: &str, conditional: bool) -> Vec<String> {
+        if !catalog.vocabulary.contains_key(seed) { return vec![]; }
+        let native = |candidate: &&crate::catalog::Service| candidate.api_slug == service.api_slug
+            && candidate.endpoint_id != service.endpoint_id && !candidate.unverified;
+        let mut known = std::collections::BTreeSet::from([seed.to_owned()]);
         for _ in 0..crate::protocol::MAX_DEPTH {
             let before = known.len();
             let available = known.clone();
-            for candidate in catalog.services.iter().filter(|candidate| candidate.api_slug == service.api_slug
-                && candidate.endpoint_id != service.endpoint_id && !candidate.unverified) {
+            for candidate in catalog.services.iter().filter(native) {
                 if candidate.contract.requires.iter().filter(|r| !r.optional).all(|r| available.contains(&r.fact_type)) {
                     known.extend(candidate.contract.output_map.produces.keys()
-                        .filter(|field| !candidate.optional_outputs.contains(*field)).cloned());
+                        .filter(|field| !candidate.optional_outputs.contains(*field) || (conditional
+                            // Match the resolver: a conditional output cannot
+                            // displace a native guaranteed producer of that fact.
+                            && !catalog.services.iter().filter(native).any(|producer|
+                                producer.contract.output_map.produces.contains_key(*field)
+                                && !producer.optional_outputs.contains(*field))))
+                        .cloned());
                 }
             }
             if known.len() == before { break; }
         }
-        service.contract.requires.iter().filter(|r| !r.optional && r.fact_type != "company.name" && known.contains(&r.fact_type))
+        service.contract.requires.iter().filter(|r| !r.optional && r.fact_type != seed && known.contains(&r.fact_type))
             .map(|r| r.fact_type.clone()).collect()
     }
 
@@ -152,9 +167,10 @@ impl Engine {
 }
 
 fn endpoint_intent(catalog: &Catalog, service: &crate::catalog::Service, input: &BTreeMap<String, Value>) -> Result<Intent, String> {
+    let lookup = Engine::endpoint_lookup(catalog, service);
     for (field, value) in input {
         if !service.contract.requires.iter().any(|r| r.fact_type == *field)
-            && !(field == "company.name" && !Engine::endpoint_lookup_fields(catalog, service).is_empty()) {
+            && !lookup.as_ref().is_some_and(|(seed, _)| field == seed) {
             return Err(format!("`{field}` is not an input of this endpoint. Review its input fields; nothing was charged."));
         }
         let fact = catalog.vocabulary.get(field)
@@ -224,7 +240,7 @@ mod tests {
     fn native_name_lookup_is_priced_with_the_pinned_endpoint() {
         let catalog = catalog();
         let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();
-        assert_eq!(Engine::endpoint_lookup_fields(&catalog, service), vec!["company.id"]);
+        assert_eq!(Engine::endpoint_lookup(&catalog, service), Some(("company.name", vec!["company.id".into()])));
         let mut intent = endpoint_intent(&catalog, service, &BTreeMap::from([("company.name".into(), json!("Example Ltd"))])).unwrap();
         let mut task = Task::default();
         input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
@@ -249,7 +265,7 @@ mod tests {
                     _ => unreachable!(),
                 }
             }
-            assert!(Engine::endpoint_lookup_fields(&catalog, &selected).is_empty(), "{mode}");
+            assert!(Engine::endpoint_lookup(&catalog, &selected).is_none(), "{mode}");
             assert!(endpoint_intent(&catalog, &selected, &BTreeMap::from([("company.name".into(), json!("Example"))])).is_err(), "{mode}");
         }
     }
@@ -265,5 +281,48 @@ mod tests {
         assert_eq!(Engine::endpoint_service(&catalog, original.endpoint_id, None).unwrap_err().0, "ambiguous_endpoint");
         assert_eq!(Engine::endpoint_service(&catalog, original.endpoint_id, Some("company.alternative")).unwrap().contract.capability_slug, "company.alternative");
         assert_eq!(Engine::endpoint_service(&catalog, original.endpoint_id, Some("unpublished.operation")).unwrap_err().0, "endpoint_unavailable");
+    }
+
+    #[test]
+    fn address_prices_native_building_and_neighbourhood_dependencies_without_inventing_ids() {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        for (operation, expected) in [
+            ("building.bag-unit", vec!["location.property-search", "building.bag-unit"]),
+            ("building.bag-building", vec!["location.property-search", "building.bag-unit", "building.bag-building"]),
+            ("area.cbs-neighbourhood-2025", vec!["location.property-search", "location.bag-address-context", "area.cbs-neighbourhood-2025"]),
+        ] {
+            let service = catalog.services.iter().find(|s| s.contract.capability_slug == operation).unwrap();
+            let (seed, resolves) = Engine::endpoint_lookup(&catalog, service).expect(operation);
+            assert_eq!(seed, "geo.input.q");
+            assert_eq!(resolves.len(), 1);
+            let supplied = BTreeMap::from([("geo.input.q".into(), json!("Damrak 1, Amsterdam"))]);
+            let mut intent = endpoint_intent(&catalog, service, &supplied).unwrap();
+            assert_eq!(intent.subjects[0].values, supplied);
+            let mut task = Task::default();
+            input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected address lookup and {operation}") };
+            assert_eq!(plan.steps.iter().map(|s| s.service.contract.capability_slug.as_str()).collect::<Vec<_>>(), expected);
+            assert_eq!(plan.steps.last().unwrap().service.endpoint_id, service.endpoint_id);
+            assert_eq!(plan.cap_atomic, plan.steps.iter().map(|s| s.service.total()).sum::<i64>());
+            assert!(task.facts.iter().all(|fact| fact.semantic_type == "geo.input.q"), "no BAG ID, building link or neighbourhood code is inferred");
+        }
+    }
+
+    #[test]
+    fn address_lookup_requires_a_complete_verified_native_chain() {
+        for mode in ["missing", "foreign", "unverified", "cycle"] {
+            let mut catalog = crate::ask_v2::test_catalog::locations();
+            let selected = catalog.services.iter().find(|s| s.contract.capability_slug == "area.cbs-neighbourhood-2025").unwrap().clone();
+            let geocoder = catalog.services.iter_mut().find(|s| s.contract.capability_slug == "location.property-search").unwrap();
+            match mode {
+                "missing" => geocoder.contract.output_map.produces.clear(),
+                "foreign" => geocoder.api_slug = "other-provider".into(),
+                "unverified" => geocoder.unverified = true,
+                "cycle" => geocoder.contract.requires[0].fact_type = "location.neighbourhood_code".into(),
+                _ => unreachable!(),
+            }
+            assert!(Engine::endpoint_lookup(&catalog, &selected).is_none(), "{mode}");
+            assert!(endpoint_intent(&catalog, &selected, &BTreeMap::from([("geo.input.q".into(), json!("Damrak 1, Amsterdam"))])).is_err(), "{mode}");
+        }
     }
 }

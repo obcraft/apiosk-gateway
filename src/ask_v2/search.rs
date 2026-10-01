@@ -17,10 +17,23 @@ mod calibration;
 mod country;
 mod relevance;
 
-const FINANCIAL: u8 = 1;
-const OFFICERS: u8 = 2;
-const CONTROL: u8 = 4;
-const SANCTIONS: u8 = 8;
+const FINANCIAL: u16 = 1;
+const OFFICERS: u16 = 2;
+const CONTROL: u16 = 4;
+const SANCTIONS: u16 = 8;
+const BUILDING: u16 = 16;
+const NEIGHBOURHOOD: u16 = 32;
+const BOUNDARY: u16 = 64;
+const VIOLATIONS: u16 = 128;
+const PERMITS: u16 = 256;
+const LOCATION_FACETS: u16 = BUILDING | NEIGHBOURHOOD | BOUNDARY | VIOLATIONS | PERMITS;
+const FACETS: &[(u16, &str)] = &[
+    (FINANCIAL, "@financial"), (OFFICERS, "@officers"),
+    (CONTROL, "@control"), (SANCTIONS, "@sanctions"),
+    (BUILDING, "@building"), (NEIGHBOURHOOD, "@neighbourhood"),
+    (BOUNDARY, "@boundary"), (VIOLATIONS, "@violations"),
+    (PERMITS, "@permits"),
+];
 
 #[derive(Clone, Copy)]
 enum Target {
@@ -31,14 +44,14 @@ enum Target {
 struct Document {
     target: Target,
     tokens: BTreeSet<String>,
-    facets: u8,
+    facets: u16,
     capabilities: BTreeSet<String>,
     /// Meaningful words of the endpoint's reviewed capability id (see
     /// `relevance::contract_words`); empty for sources.
     contract: BTreeSet<String>,
     /// Facets named by the capability id itself (`company.accounts`,
     /// `company.officers`), not merely by a description.
-    contract_facets: u8,
+    contract_facets: u16,
     /// Words of the reviewed capability id's namespace (`company` and
     /// `registry` for `company_registry.lookup`); empty for sources and
     /// generated `operation.*` ids.
@@ -148,12 +161,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             // explaining what a caller might do afterwards. A director roster
             // "for sanctions screening" is not itself sanctions screening.
             indexed.facets = if primary != 0 { primary } else { offered_facets };
-            for (facet, marker) in [
-                (FINANCIAL, "@financial"),
-                (OFFICERS, "@officers"),
-                (CONTROL, "@control"),
-                (SANCTIONS, "@sanctions"),
-            ] {
+            for &(facet, marker) in FACETS {
                 if indexed.facets & facet == 0 {
                     indexed.tokens.remove(marker);
                 }
@@ -314,6 +322,7 @@ fn singular(word: &str) -> Option<String> {
     Some(match word {
         "companies" => "company".into(),
         "addresses" => "address".into(),
+        "neighborhood" | "neighborhoods" | "neighbourhoods" => "neighbourhood".into(),
         "jaarrekeningen" => "jaarrekening".into(),
         // Not the plural of "new": Reuters headlines are not "new rules".
         "news" => "news".into(),
@@ -501,20 +510,21 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         || (has("significant") && (has("control") || has("controller")))
         || ((has("beneficial") || has("ultimate")) && (has("owner") || has("ownership")));
     let sanctions = has("sanction") || has("sanctie");
-    let facets = u8::from(financial) * FINANCIAL
-        | u8::from(officers) * OFFICERS
-        | u8::from(control) * CONTROL
-        | u8::from(sanctions) * SANCTIONS;
+    // A boundary or a violation record mentions buildings/neighbourhoods,
+    // but does not answer a request for their registry data or statistics.
+    let location = if has("violation") { VIOLATIONS }
+        else if has("boundary") { BOUNDARY }
+        else if has("permit") && (has("building") || has("construction")) { PERMITS }
+        else { u16::from(has("building") || has("dwelling") || (has("bag") && has("unit"))) * BUILDING
+            | u16::from(has("neighbourhood") || has("buurt")) * NEIGHBOURHOOD };
+    let facets = u16::from(financial) * FINANCIAL
+        | u16::from(officers) * OFFICERS
+        | u16::from(control) * CONTROL
+        | u16::from(sanctions) * SANCTIONS
+        | location;
     tokens.retain(|token| !vague(token));
-    for (present, marker) in [
-        (financial, "@financial"),
-        (officers, "@officers"),
-        (control, "@control"),
-        (sanctions, "@sanctions"),
-    ] {
-        if present {
-            tokens.insert(marker.into());
-        }
+    for &(facet, marker) in FACETS {
+        if facets & facet != 0 { tokens.insert(marker.into()); }
     }
     Document {
         target,
@@ -635,7 +645,8 @@ pub fn filter_coinbase_in_english(
                 return true;
             }
             let listing = document(Target::Source(0), &both, BTreeSet::new());
-            floor.mentions(&wanted, &listing)
+            (wanted.facets & LOCATION_FACETS == 0 || wanted.facets & listing.facets & LOCATION_FACETS != 0)
+                && floor.mentions(&wanted, &listing)
         });
     }
 }
@@ -703,6 +714,8 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
                 "company.significant.control" => CONTROL,
                 "company.financial.statements" | "company.accounts" => FINANCIAL,
                 "company.sanctions.screen" => SANCTIONS,
+                "general.building.bag.unit" | "general.building.bag.building" => BUILDING,
+                "general.area.cbs.neighbourhood.2025" => NEIGHBOURHOOD,
                 _ => 0,
             }
     });
@@ -1022,6 +1035,68 @@ mod tests {
     }
 
     #[test]
+    fn location_example_finds_building_records_and_statistics_without_boundaries_or_violations() {
+        let native = crate::ask_v2::test_catalog::locations();
+        let mut services = native.services.clone();
+        let mut vocabulary = native.vocabulary;
+        let fixture: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+        for fact in fixture.vocabulary { vocabulary.entry(fact.slug.clone()).or_insert(fact); }
+        services.extend([
+            service(901, "area.boundaries", "Retrieve the official boundary and code of an administrative area", "Municipality, district and neighbourhood boundaries by address.", "pdok"),
+            service(902, "building.violations", "Chicago building violations address check: open DOB code cases for a street address", "Building violation records.", "chicago-building-violations"),
+        ]);
+        let catalog = Catalog::build(Snapshot { services, vocabulary: vocabulary.into_values().collect(), known_sources: vec![] });
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        let mut request = parsed(vec![
+            json!({"slug":"location.building.information","name":"Building information","description":"Retrieve official building details for an address."}),
+            json!({"slug":"location.neighbourhood.information","name":"Neighbourhood information","description":"Retrieve neighbourhood statistics for an address."}),
+        ]);
+        request.subjects[0].label = "Damrak 1, Amsterdam".into();
+        request.subjects[0].kind = "address".into();
+        let matches = search(&request, &catalog);
+        assert!(!matches[0].apiosk.is_empty());
+        assert!(!matches[1].apiosk.is_empty());
+        assert!(matches[0].apiosk.iter().all(|c| c.capability.as_deref().is_some_and(|c| c.starts_with("building.bag-"))));
+        assert_eq!(matches[1].apiosk[0].capability.as_deref(), Some("area.cbs-neighbourhood-2025"));
+        assert!(matches.iter().flat_map(|m| &m.apiosk).all(|c| !matches!(c.capability.as_deref(), Some("area.boundaries" | "building.violations"))));
+
+        // The actual failed chat parsed both outputs into one capability and
+        // retained "Damrak 1" as the subject. Both requested kinds must fit in
+        // the three-result limit, ahead of address context and boundaries.
+        let mut combined = parsed(vec![json!({"slug":"location.building.neighbourhood.info","name":"Building and neighbourhood information","description":"Provides detailed information about a building and its surrounding neighbourhood."})]);
+        combined.subjects[0].label = "Damrak 1".into();
+        combined.subjects[0].kind = "address".into();
+        combined.capabilities[0].inputs = vec!["address".into()];
+        combined.capabilities[0].outputs = vec!["building_info".into(), "neighbourhood_info".into()];
+        let found = search(&combined, &catalog);
+        assert_eq!(found[0].operations, BTreeSet::from(["building.bag-building".into(), "building.bag-unit".into(), "area.cbs-neighbourhood-2025".into()]));
+
+        // These are distinct supported requests, not globally hidden sources.
+        let violations = search(&parsed(vec![json!({"slug":"location.building.violations","name":"Building violations"})]), &catalog);
+        assert_eq!(violations[0].apiosk[0].capability.as_deref(), Some("building.violations"));
+        let boundaries = search(&parsed(vec![json!({"slug":"location.area.boundaries","name":"Neighbourhood boundaries"})]), &catalog);
+        assert_eq!(boundaries[0].apiosk[0].capability.as_deref(), Some("area.boundaries"));
+    }
+
+    #[test]
+    fn bazaar_location_matches_do_not_reintroduce_unrequested_violations_or_boundaries() {
+        let mut request = parsed(vec![json!({"slug":"location.building.neighbourhood.info","name":"Building and neighbourhood information"})]);
+        request.subjects[0].label = "Damrak 1, Amsterdam".into();
+        request.subjects[0].kind = "address".into();
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![
+            bazaar("Official building registry records"),
+            bazaar("Chicago building violations by address"),
+            bazaar("Neighbourhood boundaries"),
+            bazaar("Japanese forward geocoding from an address to coordinates. Japan geocoder, building-level geocode."),
+            bazaar("Building permit records. Construction and building permits across Chicago, NYC, Seattle, and San Francisco."),
+        ];
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        assert_eq!(matches[0].coinbase[0].description, "Official building registry records");
+    }
+
+    #[test]
     fn coinbase_source_identity_can_be_in_name_slug_or_url() {
         let mut request = parsed(vec![json!({"slug":"company.officers","name":"Officers"})]);
         request.capabilities[0].source_hint = Some("Companies House".into());
@@ -1143,13 +1218,13 @@ mod tests {
         matches[0].coinbase = listings();
         filter_coinbase(&request, &mut matches);
         assert_eq!(names(&matches), ["Global Geocoder", "BAG Lookup"]);
-        // Without a known country nothing is removed for being foreign; the
-        // geocoder still has to mention buildings.
+        // Without a known country, output relevance still excludes violations
+        // from a request for building records.
         let request = building("Damrak 1");
         let mut matches = search(&request, &catalog(vec![], vec![]));
         matches[0].coinbase = listings();
         filter_coinbase(&request, &mut matches);
-        assert_eq!(names(&matches), ["Chicago Building Violations", "Global Geocoder", "BAG Lookup"]);
+        assert_eq!(names(&matches), ["Global Geocoder", "BAG Lookup"]);
     }
 
     #[test]
