@@ -91,6 +91,41 @@ pub(super) struct Request {
     primary_facets: u16,
     corporate_valuation: bool,
     enterprise_multiple: bool,
+    equity_quote: bool,
+    metrics: MetricScope,
+}
+
+/// A benchmark/rate/market is not interchangeable with another measurement.
+/// These identities come from what is requested, not missing inputs alone.
+#[derive(Default)]
+struct MetricScope { salary: bool, labor_scarcity: bool, unemployment: bool, sector_market: bool }
+impl MetricScope {
+    fn new(capability: &Capability) -> Self {
+        let identity=words(&format!("{} {} {}",capability.slug,capability.name,capability.description));
+        let has=|terms:&[&str]|terms.iter().any(|term|identity.contains(*term));
+        let sector = has(&["sector","industry"]) || capability.inputs.iter().any(|input|
+            matches!(input.as_str(),"sector" | "industry" | "sector_code" | "industry_code"));
+        Self {
+            salary:has(&["salary","wage","salaris","loon"]),
+            labor_scarcity:has(&["labor","labour","arbeidsmarkt"]) && has(&["scarcity","shortage","tightness","krapte"]),
+            unemployment:has(&["unemployment","werkloosheid"]),
+            sector_market:sector && has(&["market","markt"]) && has(&["size","growth","omvang","groei"]),
+        }
+    }
+    fn union(&mut self,other:Self) {
+        self.salary|=other.salary;self.labor_scarcity|=other.labor_scarcity;
+        self.unemployment|=other.unemployment;self.sector_market|=other.sector_market;
+    }
+    fn supported_by(&self,candidate:&Document)->bool {
+        let has=|terms:&[&str]|terms.iter().any(|term|
+            candidate.operation_words.contains(*term) || candidate.contract.contains(*term));
+        (!self.salary || has(&["salary","wage","salaris","loon","remuneration"]))
+            && (!self.labor_scarcity || (has(&["labor","labour","job","workforce","arbeidsmarkt"])
+                && has(&["scarcity","shortage","tightness","krapte"])))
+            && (!self.unemployment || has(&["unemployment","werkloosheid"]))
+            && (!self.sector_market || (has(&["sector","industry","industrial"])
+                && has(&["size","growth","revenue","turnover","sales","omvang","groei","omzet"])))
+    }
 }
 
 /// `text` with the subjects' names and identifiers removed, as in the query.
@@ -179,10 +214,15 @@ impl Request {
             parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
         let corporate_valuation = primary_facets & VALUATION != 0
             && (company_subject || capability.domain == "company" || enterprise_multiple);
+        let equity_quote = primary_facets & STOCK_MARKET != 0
+            && ["price", "quote"].iter().any(|word| valuation_words.contains(*word))
+            && !derivative_market(&format!("{} {}", capability.name, capability.description));
         Self {
+            metrics: MetricScope::new(capability),
             primary_facets,
             corporate_valuation,
             enterprise_multiple,
+            equity_quote,
             anchors,
             topic: key
                 .iter()
@@ -224,10 +264,24 @@ impl Request {
         self.primary_facets |= other.primary_facets;
         self.corporate_valuation |= other.corporate_valuation;
         self.enterprise_multiple |= other.enterprise_multiple;
+        self.equity_quote |= other.equity_quote;
+        self.metrics.union(other.metrics);
         self
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
+        if matches!(candidate.target, Target::Endpoint(_)) && !self.metrics.supported_by(candidate) {
+            return false;
+        }
+        if self.equity_quote {
+            // A derivative mark can track a stock without being that stock's
+            // exchange quote. Likewise filings and positioning are not prices.
+            let scope: BTreeSet<_> = candidate.topic_scope.union(&candidate.contract).cloned().collect();
+            if candidate.derivative_asset
+                || !["price", "quote", "quotation", "ohlc"].iter().any(|word| scope.contains(*word)) {
+                return false;
+            }
+        }
         // Valuation is an operation on an asset, not one universal source
         // capability. A property's AVM or a card portfolio cannot provide
         // company multiples merely because both descriptions say valuation.
@@ -370,4 +424,14 @@ fn enterprise_ratio(words: &BTreeSet<String>) -> bool {
     (words.contains("ev") && (words.contains("revenue") || words.contains("ebitda") || words.contains("ebit")))
         || (words.contains("enterprise") && words.contains("value")
             && (words.contains("ratio") || words.contains("multiple") || words.contains("ebitda")))
+}
+
+pub(super) fn derivative_market(text: &str) -> bool {
+    let words: Vec<_> = text.split(|c:char| !c.is_alphanumeric())
+        .filter(|word| !word.is_empty()).map(str::to_lowercase).collect();
+    words.iter().enumerate().any(|(index,word)| {
+        matches!(word.as_str(), "perp" | "perps" | "perpetual" | "perpetuals" | "derivative" | "derivatives")
+            && !index.checked_sub(1).is_some_and(|previous|
+                matches!(words[previous].as_str(), "not" | "no" | "without" | "exclude" | "excluding"))
+    })
 }

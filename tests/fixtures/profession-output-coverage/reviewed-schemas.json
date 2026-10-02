@@ -1,0 +1,458 @@
+{
+  "boundary": "Reviewed metadata-only proposal, staged fixture; see paid-followup/component-output-schema-review.json. Does not assert production application.",
+  "schemas": {
+    "vehicle.rdw.technical_page": {
+      "type": "object",
+      "required": [
+        "items",
+        "coverage",
+        "notice",
+        "source_url"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kenteken": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"license_plate\"]}"
+              },
+              "merk": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"brand\",\"make\"]}"
+              },
+              "handelsbenaming": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"trade_name\",\"commercial_name\"]}"
+              },
+              "voertuigsoort": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"vehicle_type\"]}"
+              },
+              "vervaldatum_apk": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"apk_expiry\",\"apk_expiration_date\",\"inspection_expiry\"]}"
+              },
+              "vervaldatum_apk_dt": {
+                "type": "string"
+              },
+              "openstaande_terugroepactie_indicator": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"outstanding_recall_indicator\",\"recall_indicator\"]}"
+              },
+              "datum_eerste_toelating": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"first_admission_date\"]}"
+              },
+              "datum_eerste_toelating_dt": {
+                "type": "string"
+              },
+              "datum_eerste_tenaamstelling_in_nederland": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"first_dutch_registration_date\"]}"
+              },
+              "datum_tenaamstelling": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"current_registration_date\"]}"
+              },
+              "eerste_kleur": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"primary_color\"]}"
+              },
+              "tweede_kleur": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"secondary_color\"]}"
+              },
+              "cilinderinhoud": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"engine_displacement\"]}"
+              },
+              "massa_ledig_voertuig": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"unladen_mass\"]}"
+              },
+              "massa_rijklaar": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"mass_in_running_order\"]}"
+              },
+              "lengte": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"length\"]}"
+              },
+              "breedte": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"width\"]}"
+              },
+              "hoogte_voertuig": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"height\"]}"
+              },
+              "aantal_zitplaatsen": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"seat_count\"]}"
+              },
+              "tellerstandoordeel": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"odometer_judgement\"]}"
+              }
+            }
+          }
+        },
+        "notice": {
+          "type": "string"
+        },
+        "coverage": {
+          "type": "object",
+          "required": [
+            "complete",
+            "scope"
+          ],
+          "properties": {
+            "scope": {
+              "type": "string"
+            },
+            "complete": {
+              "type": "boolean"
+            }
+          }
+        },
+        "source_url": {
+          "type": "string"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "requested_plate": {
+          "type": "string"
+        }
+      }
+    },
+    "company.uk_registry_record": {
+      "type": "object",
+      "required": [
+        "company_name",
+        "company_number"
+      ],
+      "properties": {
+        "company_name": {
+          "type": "string",
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"legal_name\"]}"
+        },
+        "company_number": {
+          "type": "string",
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_number\"]}"
+        },
+        "company_status": {
+          "type": "string",
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_status\"]}"
+        },
+        "type": {
+          "type": "string",
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"company_type\",\"legal_form\"]}"
+        },
+        "jurisdiction": {
+          "type": "string"
+        },
+        "date_of_creation": {
+          "type": "string",
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"incorporation_date\"]}"
+        },
+        "date_of_cessation": {
+          "type": "string"
+        },
+        "sic_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"industry_codes\"]}"
+        },
+        "registered_office_address": {
+          "type": "object",
+          "properties": {
+            "address_line_1": {
+              "type": "string"
+            },
+            "address_line_2": {
+              "type": "string"
+            },
+            "care_of": {
+              "type": "string"
+            },
+            "country": {
+              "type": "string"
+            },
+            "locality": {
+              "type": "string"
+            },
+            "po_box": {
+              "type": "string"
+            },
+            "postal_code": {
+              "type": "string"
+            },
+            "premises": {
+              "type": "string"
+            },
+            "region": {
+              "type": "string"
+            }
+          },
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"registered_address\"]}"
+        },
+        "previous_company_names": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "ceased_on": {
+                "type": "string"
+              },
+              "effective_from": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "company.uk_officers": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"officer_name\"]}"
+              },
+              "officer_role": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"role\"]}"
+              },
+              "appointed_on": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"appointment_date\"]}"
+              },
+              "appointed_before": {
+                "type": "string"
+              },
+              "resigned_on": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"resignation_date\"]}"
+              }
+            }
+          },
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"officers\"]}"
+        },
+        "active_count": {
+          "type": "integer"
+        },
+        "resigned_count": {
+          "type": "integer"
+        },
+        "total_results": {
+          "type": "integer"
+        },
+        "start_index": {
+          "type": "integer"
+        },
+        "items_per_page": {
+          "type": "integer"
+        }
+      }
+    },
+    "company.uk_persons_with_significant_control": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"person_name\"]}"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "natures_of_control": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"nature_of_control\"]}"
+              },
+              "notified_on": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"notification_date\"]}"
+              },
+              "ceased_on": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"cessation_notification_date\"]}"
+              },
+              "ceased": {
+                "type": "boolean"
+              }
+            }
+          },
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"persons_with_significant_control\"]}"
+        },
+        "active_count": {
+          "type": "integer"
+        },
+        "ceased_count": {
+          "type": "integer"
+        },
+        "total_results": {
+          "type": "integer"
+        },
+        "start_index": {
+          "type": "integer"
+        },
+        "items_per_page": {
+          "type": "integer"
+        }
+      }
+    },
+    "vat.eu.validate.result": {
+      "type": "object",
+      "required": [
+        "data",
+        "source_url",
+        "notice",
+        "coverage"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "required": [
+            "country_code",
+            "vat_number",
+            "valid",
+            "request_date",
+            "name",
+            "address",
+            "upstream"
+          ],
+          "properties": {
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "valid": {
+              "type": "boolean",
+              "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"
+            },
+            "address": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "upstream": {
+              "type": "object"
+            },
+            "vat_number": {
+              "type": "string",
+              "pattern": "^[A-Z0-9]{1,14}$",
+              "maxLength": 14,
+              "minLength": 1,
+              "description": "VAT number without country prefix or punctuation."
+            },
+            "country_code": {
+              "enum": [
+                "AT",
+                "BE",
+                "BG",
+                "CY",
+                "CZ",
+                "DE",
+                "DK",
+                "EE",
+                "EL",
+                "ES",
+                "FI",
+                "FR",
+                "HR",
+                "HU",
+                "IE",
+                "IT",
+                "LT",
+                "LU",
+                "LV",
+                "MT",
+                "NL",
+                "PL",
+                "PT",
+                "RO",
+                "SE",
+                "SI",
+                "SK",
+                "XI"
+              ],
+              "type": "string",
+              "maxLength": 2,
+              "minLength": 1,
+              "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+            },
+            "request_date": {
+              "type": "string",
+              "maxLength": 200,
+              "minLength": 1,
+              "description": "Time reported by VIES",
+              "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\"]}"
+            }
+          }
+        },
+        "notice": {
+          "type": "string",
+          "maxLength": 2000,
+          "minLength": 1,
+          "description": "Source limitations"
+        },
+        "coverage": {
+          "type": "object",
+          "required": [
+            "complete",
+            "scope"
+          ],
+          "properties": {
+            "scope": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Scope of the returned response"
+            },
+            "complete": {
+              "type": "boolean"
+            }
+          }
+        },
+        "source_url": {
+          "type": "string",
+          "maxLength": 20000,
+          "minLength": 1,
+          "description": "Exact upstream request URL"
+        }
+      },
+      "description": "Validate a VAT number using VIES"
+    }
+  }
+}

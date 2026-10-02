@@ -19,7 +19,7 @@ use uuid::Uuid;
 mod capability_binding;
 use capability_binding::Bindings;
 mod explicit_request;
-mod plan_coverage;
+pub(crate) mod plan_coverage;
 mod constraint_policy;
 pub mod conversation_reply;
 

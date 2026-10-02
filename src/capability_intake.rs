@@ -116,17 +116,30 @@ pub struct Intake {
 /// company lookup; named-source research and factual analysis remain retrievals.
 pub(crate) fn answer_instruction(cap: &Capability) -> bool {
     let outputs: BTreeSet<_> = cap.outputs.iter().map(String::as_str).collect();
+    if cap.slug == "general.capabilities" && cap.name == "Apiosk capabilities" && cap.domain == "general"
+        && cap.subject_id.is_none() && cap.source_hint.is_none() && cap.inputs.is_empty()
+        && outputs == BTreeSet::from(["available_capabilities", "missing_sources"]) {
+        return true;
+    }
+    // Coverage gaps are derived from this request's admitted sources. A
+    // subject identifier is context for that explanation, not a new lookup.
+    if cap.source_hint.is_none() && outputs.len() == 1 && outputs.contains("missing_sources")
+        && cap.inputs.iter().all(|value| matches!(value.as_str(),
+            "subject_id" | "address" | "company_name" | "license_plate" | "analysis_sources")) {
+        return true;
+    }
     if cap.source_hint.is_none() && matches!(cap.domain.as_str(), "general" | "research") {
         if cap.subject_id.is_none() && !outputs.is_empty()
             && outputs.iter().all(|value| matches!(*value, "citation" | "citations" | "source_citation" | "source_citations" | "bibliography"))
             && cap.inputs.iter().all(|value| matches!(value.as_str(), "data_source" | "reference_type")) {
             return true;
         }
-        if outputs.contains("official_sources")
-            && (outputs.contains("ai_analysis") || outputs.contains("ai_generated_analysis"))
+        if (outputs.contains("official_sources") || outputs.contains("is_official"))
+            && (outputs.contains("ai_analysis") || outputs.contains("ai_generated_analysis") || outputs.contains("is_ai_generated"))
             && outputs.iter().all(|value| matches!(*value,
                 "official_sources" | "ai_analysis" | "ai_generated_analysis" | "differences" | "comparison"
-                    | "differences_in_reliability" | "data_origin" | "source_confidence" | "discrepancies"))
+                    | "differences_in_reliability" | "data_origin" | "source_confidence" | "discrepancies"
+                    | "source_type" | "is_official" | "is_ai_generated" | "source_reference"))
             && cap.inputs.iter().all(|value| matches!(value.as_str(), "subject_id" | "analysis_sources" | "data_source")) {
             return true;
         }

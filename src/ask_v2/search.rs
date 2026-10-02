@@ -69,6 +69,13 @@ struct Document {
     /// The endpoint's own description, excluding provider branding and a
     /// semicolon-separated provider-wide appendix.
     topic_scope: BTreeSet<String>,
+    /// Asset kind stated by the endpoint itself, never provider branding or
+    /// caller input names. Keep the full description: a later sentence can
+    /// explain that a stock mark is actually a derivative.
+    derivative_asset: bool,
+    /// Full endpoint wording for measurement compatibility. Provider names,
+    /// input names and unrelated provider metadata cannot supply a metric.
+    operation_words: BTreeSet<String>,
     /// Where the candidate can answer, for the country signal.
     coverage: country::Coverage,
 }
@@ -200,6 +207,9 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         let description=service.description.as_deref().unwrap_or(described);
         let opening = opening_description(description);
         let translated_description=english.render(&[description]);
+        indexed.derivative_asset = relevance::derivative_market(description)
+            || relevance::derivative_market(&translated_description);
+        indexed.operation_words = words(&format!("{description} {translated_description}"));
         let translated_opening=opening_description(&translated_description);
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
         indexed.coverage = country::endpoint(service, known);
@@ -593,6 +603,8 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         if facets & facet != 0 { tokens.insert(marker.into()); }
     }
     Document {
+        derivative_asset: false,
+        operation_words: BTreeSet::new(),
         topic_scope: tokens.clone(),
         target,
         tokens,
@@ -2005,6 +2017,82 @@ mod tests {
         assert!(search(&inferred, &catalog(vec![dutch], vec![]))[0].operations.is_empty(), "Requested concepts are not supplied identifiers");
         let both=catalog(vec![french,british],vec![]);
         assert_eq!(search(&request,&both)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["registry-gb"]);
+    }
+
+    #[test]
+    fn stock_price_is_not_a_perpetual_mark_positioning_or_filings_search() {
+        let catalog=catalog(vec![
+            service(890,"operation.market.equity-marks","Equity marks","Stock, commodity, FX and index prices 24/7. Live marks from Hyperliquid HIP-3 perp markets: mark price, funding and open interest.","derivatives"),
+            service(891,"operation.market.equity-positioning","Equity positioning","Positioning and sentiment on stock perps — which side of TSLA, NVDA or gold is crowded right now, 24/7.","positioning"),
+            service(892,"operation.market.filings-exchange","Exchange filings","International filing search by stock exchange. Regulatory filing intelligence using correct local terms for global investing.","filings"),
+            service(893,"operation.market.stock-quote","Stock quote","Current stock price and currency from the stock exchange for a listed company.","exchange"),
+        ],vec![]);
+        let mut request=parsed(vec![json!({"slug":"company.stock.price","name":"Company stock price","description":"Returns the current stock price of a company."})]);
+        request.capabilities[0].outputs=vec!["stock_price".into(),"currency".into()];
+        assert_eq!(search(&request,&catalog)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["exchange"]);
+        request.capabilities[0].name="Stock perpetual mark price".into();
+        request.capabilities[0].description="Stock perpetual mark price, funding and open interest.".into();
+        request.capabilities[0].outputs=vec!["mark_price".into(),"funding".into(),"open_interest".into()];
+        assert!(search(&request,&catalog)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("derivatives")),"explicit derivative-price requests keep derivative sources");
+    }
+
+    #[test]
+    fn stock_quotes_ignore_provider_branding_inputs_and_excluded_derivatives() {
+        let mut cash = service(894,"operation.market.stock-cash-quote","Stocks and Derivatives",
+            "Current stock prices, excluding derivatives, from the stock exchange.","cash");
+        cash.contract.input_map.values_mut().next().unwrap().name="exclude_derivatives".into();
+        let catalog=catalog(vec![cash,
+            service(895,"operation.market.stock-perp-quote","Markets",
+                "Stock prices. These are perpetual derivative marks, with funding and open interest.","perps")],vec![]);
+        let mut request=parsed(vec![json!({"slug":"company.stock.price","name":"Stock price, not derivatives",
+            "description":"Current company stock quote, excluding derivatives."})]);
+        request.capabilities[0].outputs=vec!["stock_price".into(),"currency".into()];
+        assert_eq!(search(&request,&catalog)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["cash"]);
+    }
+
+    #[test]
+    fn requested_labor_metrics_do_not_match_generic_benchmarks_forecasts_or_rates() {
+        let fixtures=catalog(vec![
+            service(896,"company.sector-benchmarks","Corporate benchmarks","Sector benchmarks and sector statistics for a French NAF activity code: company counts, median company age, workforce-bracket distribution, revenue, EBITDA margin and debt ratio.","business"),
+            service(897,"finance_markets.forecast","Market forecast","Financial markets forecast: commodity supply and demand, futures curves and market forecasts.","commodity"),
+            service(898,"fx.ecb-reference-rate","ECB rate","Latest daily ECB euro foreign-exchange reference rate for one target currency.","fx"),
+            service(899,"statistics.salary-benchmarks","Salary source","Salary benchmarks for software developers: average salary, median salary and salary range by location.","salary"),
+            service(900,"statistics.labour-tightness","Labor source","Labor market scarcity index: labor shortages and the demand supply ratio for a job category and location.","labor"),
+            service(901,"statistics.unemployment-country","Unemployment source","Official unemployment rate by country and reference period.","unemployment"),
+        ],vec![]);
+        for (slug,name,description,outputs,source) in [
+            ("research.salary.benchmarks","Salary benchmarks for software developers","Provides salary benchmarks for software developers in a specific location.",vec!["average_salary","salary_range","median_salary"],"salary"),
+            ("research.labor.market.scarcity","Labor market scarcity index","Measures the scarcity of labor in a specific job category and location.",vec!["scarcity_index","demand_supply_ratio"],"labor"),
+            ("research.unemployment.rate","Official unemployment rate","Provides the official unemployment rate for a country or region.",vec!["unemployment_rate","reference_period"],"unemployment"),
+        ] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name,"description":description})]);
+            request.subjects.clear();request.capabilities[0].subject_id=None;
+            request.capabilities[0].domain="research".into();
+            request.capabilities[0].outputs=outputs.into_iter().map(str::to_owned).collect();
+            let found=search(&request,&fixtures);
+            assert_eq!(found[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec![source],"{name}");
+        }
+        for (slug,name,source) in [("company.sector.benchmarks","Sector benchmarks","business"),
+            ("finance.markets.forecast","Financial markets forecast","commodity"),
+            ("fx.ecb.reference.rate","ECB foreign exchange reference rate","fx")] {
+            let request=parsed(vec![json!({"slug":slug,"name":name})]);
+            assert!(search(&request,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"{name} remains available when requested");
+        }
+    }
+
+    #[test]
+    fn sector_market_size_is_not_national_gdp_at_market_prices() {
+        let fixtures=catalog(vec![
+            service(902,"statistics.eurostat-gdp-germany","GDP source","GDP at market prices in current-price million euro for Germany. Requires the explicit year. Not real GDP, growth or GDP per capita.","gdp"),
+            service(903,"statistics.industry-market-size","Industry source","Market size and growth by industry sector: turnover, revenue and growth rates by country and year.","industry"),
+        ],vec![]);
+        let mut request=parsed(vec![json!({"slug":"research.comparison","name":"Market size and growth comparison","description":"Compares market size and growth between two sectors based on provided data sources."})]);
+        request.subjects.clear();request.capabilities[0].subject_id=None;
+        request.capabilities[0].inputs=vec!["country_1".into(),"country_2".into(),"sector".into(),"data_source".into()];
+        request.capabilities[0].outputs=vec!["market_size_country_1".into(),"market_size_country_2".into(),"growth_rate_country_1".into(),"growth_rate_country_2".into(),"source".into()];
+        assert_eq!(search(&request,&fixtures)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["industry"]);
+        let requested_gdp=parsed(vec![json!({"slug":"statistics.gdp.market.prices","name":"GDP at market prices","description":"GDP at market prices in Germany."})]);
+        assert!(search(&requested_gdp,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("gdp")));
     }
 
     #[test]

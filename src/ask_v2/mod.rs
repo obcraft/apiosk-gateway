@@ -577,6 +577,99 @@ mod tests {
         assert_eq!(client.limits.lock().unwrap().len(), 1);
     }
 
+    fn scope_capability(slug: &str, inputs: &[&str], outputs: &[&str], subject: Option<&str>, source: Option<&str>) -> Value {
+        json!({"slug":slug,"name":"Requested data","description":"Retrieve the requested factual data for the supplied scope.",
+            "domain":slug.split('.').next().unwrap(),"inputs":inputs,"outputs":outputs,"subject_id":subject,"source_hint":source,"confidence":0.95})
+    }
+
+    // These transport fixtures exercise the canonical parse path and its
+    // literal-value normalization. Real-model preservation is checked again
+    // on the live profession scenarios; a fixture cannot establish that.
+    #[tokio::test]
+    async fn interpret_preserves_literal_geography_occupation_and_distinct_sector_cohorts() {
+        let salary_question = "Geef salarisbenchmarks voor softwareontwikkelaars in Utrecht, arbeidsmarktkrapte, vacaturevolume en officiële werkloosheidscijfers voor Nederland. Maak onderscheid tussen brondata en AI-inschattingen.";
+        let market_question = "Vergelijk marktomvang en groei van de Nederlandse en Duitse softwaresector op basis van CBS en Eurostat. Geef concurrenten, peers en bronvermeld deskresearch.";
+        let salary = json!({"language":"nl","subjects":[
+            {"id":"occupation","label":"softwareontwikkelaars","type":"occupation","identifiers":{"job_category":"softwareontwikkelaars","location":"Utrecht"}},
+            {"id":"national","label":"Nederland","type":"country","identifiers":{"country":"Nederland"}}],
+            "capabilities":[
+                scope_capability("research.salary.benchmarks", &["job_category","location"], &["average_salary","salary_range"], Some("occupation"), None),
+                scope_capability("research.labor.market.scarcity", &["job_category","location"], &["scarcity_index"], Some("occupation"), None),
+                scope_capability("research.job.vacancy.volume", &["job_category","location"], &["vacancy_count"], Some("occupation"), None),
+                scope_capability("research.unemployment.rate", &["country"], &["unemployment_rate"], Some("national"), None)],
+            "deliverable":{"format":"chat","operations":[]}});
+        let market = json!({"language":"nl","subjects":[
+            {"id":"first","label":"Nederlandse","type":"sector","identifiers":{"country":"Nederlandse","sector":"softwaresector"}},
+            {"id":"second","label":"Duitse","type":"sector","identifiers":{"country":"Duitse","sector":"softwaresector"}}],
+            "capabilities":[
+                scope_capability("research.market.size", &["country","sector"], &["market_size"], Some("first"), Some("cbs")),
+                scope_capability("research.market.size", &["country","sector"], &["market_size"], Some("second"), Some("eurostat")),
+                scope_capability("research.market.growth", &["country","sector"], &["growth_rate"], Some("first"), Some("cbs")),
+                scope_capability("research.market.growth", &["country","sector"], &["growth_rate"], Some("second"), Some("eurostat"))],
+            "deliverable":{"format":"chat","operations":["compare"]}});
+        let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+        let handler_capture = captured.clone();
+        let app = Router::new().route("/", post(move |body: axum::Json<Value>| {
+            let captured = handler_capture.clone();
+            let salary = salary.clone();
+            let market = market.clone();
+            async move {
+                let question = body["messages"][1]["content"].as_str().unwrap();
+                let result = if question == salary_question { salary } else { assert_eq!(question, market_question); market };
+                captured.lock().unwrap().push(body.0);
+                Response::builder().header("content-type", "text/event-stream")
+                    .body(Body::from(format!("{}data: [DONE]\n\n", delta(&result.to_string())))).unwrap()
+            }
+        }));
+        let (endpoint, server) = server(app).await;
+        let client = client().with_local_endpoint(endpoint).unwrap();
+        let salary = client.interpret(salary_question, &[]).await.unwrap();
+        let parsed = &salary["parsed_request"];
+        assert_eq!(parsed["subjects"][0]["identifiers"], json!({"job_category":"softwareontwikkelaars","location":"Utrecht"}));
+        assert_eq!(parsed["subjects"][1]["identifiers"], json!({"country":"Nederland"}));
+        for (index, subject) in ["s1", "s1", "s1", "s2"].iter().enumerate() {
+            assert_eq!(parsed["capabilities"][index]["subject_id"], *subject);
+            assert_eq!(parsed["capabilities"][index]["missing"], json!([]));
+        }
+        let market = client.interpret(market_question, &[]).await.unwrap();
+        let parsed = &market["parsed_request"];
+        assert_eq!(parsed["subjects"][0]["identifiers"], json!({"country":"Nederlandse","sector":"softwaresector"}));
+        assert_eq!(parsed["subjects"][1]["identifiers"], json!({"country":"Duitse","sector":"softwaresector"}));
+        assert_eq!(parsed["capabilities"].as_array().unwrap().len(), 4);
+        for (index, subject) in ["s1", "s2", "s1", "s2"].iter().enumerate() {
+            assert_eq!(parsed["capabilities"][index]["subject_id"], *subject);
+        }
+        for request in captured.lock().unwrap().iter() {
+            assert_eq!(request["messages"][0]["content"], PROMPT);
+        }
+        assert_eq!(salary["attempts"], 1);
+        assert_eq!(market["attempts"], 1);
+        server.abort();
+    }
+
+    #[test]
+    fn literal_normalization_keeps_requested_factual_fields_and_does_not_infer_a_country_from_language() {
+        for (question, label, kind, inputs, outputs, source) in [
+            ("Geef voor Dam 1 Amsterdam de BAG-objectgegevens, bouwjaar, oppervlakte en gekoppelde kadastrale percelen via PDOK. Toon bronverwijzingen en ontbrekende velden.", "Dam 1 Amsterdam", "address", vec!["address"], vec!["construction_year","area","cadastral_parcel_ids","source_references","missing_fields"], "pdok"),
+            ("Zoek Reuters-nieuws over ASML. Geef de gevonden titels, publicatiedatums en oorspronkelijke bronlinks en vermeld de zoekdekking.", "ASML", "company", vec!["keywords"], vec!["titles","publication_dates","original_links","search_coverage"], "reuters"),
+        ] {
+            let raw = json!({"language":"nl","subjects":[{"id":"s1","label":label,"type":kind,"identifiers":{}}],
+                "capabilities":[scope_capability("research.data", &inputs, &outputs, Some("s1"), Some(source))],
+                "deliverable":{"format":"chat","operations":[]}});
+            let parsed = crate::capability_intake::normalize(&raw.to_string(), question, "fixture").unwrap();
+            assert_eq!(parsed.capabilities[0].outputs, outputs);
+            assert_eq!(parsed.capabilities[0].subject_id.as_deref(), Some("s1"));
+            assert!(parsed.subjects[0].identifiers.is_empty(), "request language must not inject country identifiers");
+            assert!(parsed.deliverable.operations.is_empty(), "factual outputs must not become answer operations");
+        }
+        let raw = json!({"language":"nl","subjects":[],
+            "capabilities":[scope_capability("research.salary.benchmarks", &["country","sector"], &["salary_range"], None, None)],
+            "deliverable":{"format":"chat","operations":[]}});
+        let parsed = crate::capability_intake::normalize(&raw.to_string(), "Geef salarisbenchmarks.", "fixture").unwrap();
+        assert!(parsed.subjects.is_empty());
+        assert_eq!(parsed.capabilities[0].missing, vec!["country", "sector"]);
+    }
+
     #[tokio::test]
     async fn sends_only_exact_prompt_question_and_shape_with_no_planner_fields() {
         let captured = Arc::new(Mutex::new(Vec::<Value>::new()));

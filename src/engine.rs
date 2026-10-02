@@ -83,6 +83,14 @@ fn reply_to(task: &mut Task, question: &str, message: String) {
     }
 }
 
+fn planning_review_reply(task:&mut Task,question:&str,message:String) {
+    // A revised executable plan still has to pass deterministic field
+    // coverage. Its refusal must survive the model's optimistic review text.
+    if !task.actions.iter().any(|action|action.get("missing_output_contracts").is_some()) {
+        reply_to(task,question,message);
+    }
+}
+
 impl Engine {
     async fn request_claim(
         &self,
@@ -597,7 +605,7 @@ impl Engine {
                 task.actions = vec![json!({"kind":"planning_clarification","message":review.message})];
                 status = Status::NeedsInput;
             }
-            reply_to(&mut task, &req.question, review.message);
+            planning_review_reply(&mut task, &req.question, review.message);
         }
         planning.finish(telemetry::Outcome::Ok);
         telemetry::set_query_class(telemetry::classify(&task));
@@ -623,6 +631,18 @@ impl Engine {
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
             Resolution::Plan(mut plan) => {
+                let missing=crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan);
+                if !missing.is_empty() {
+                    let fields=missing.join("; ").replace('_'," ");
+                    let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
+                        format!("De geselecteerde bronnen dekken deze gevraagde gegevens nog niet aantoonbaar: {fields}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. Verduidelijk de gewenste gegevens of beperk de vraag tot bevestigde velden.")
+                    } else {
+                        format!("The selected sources do not confirm coverage for these requested details: {fields}. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields.")
+                    };
+                    if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
+                    task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_output_contracts":missing}));
+                    return Ok(Status::NeedsInput);
+                }
                 if task.supplier_check.is_some() || task.workflow.is_some() {
                     // Workflow runs carry the workflow markup on every step.
                     plan.apply_markup(catalog_core::fees::WORKFLOW_MARKUP_BPS as i64);
@@ -1028,6 +1048,20 @@ impl Engine {
 #[cfg(test)]
 mod account_navigation_tests {
     use super::{account_navigation, approval_url};
+
+    #[test]
+    fn revised_plan_keeps_deterministic_output_refusal_instead_of_model_success() {
+        let mut task=crate::state::Task::default();
+        task.record_turn("Give title and date",Some("Source does not declare publication date".into()));
+        task.actions=vec![serde_json::json!({"kind":"planning_clarification","missing_output_contracts":["publication_dates"]})];
+        super::planning_review_reply(&mut task,"Give title and date","Complete lookup is ready for approval".into());
+        assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Source does not declare publication date"));
+        assert!(task.proposal.is_none());
+        assert_eq!(task.actions[0]["kind"],"planning_clarification");
+        task.actions.clear();
+        super::planning_review_reply(&mut task,"Give title and date","Revised plan is ready".into());
+        assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Revised plan is ready"));
+    }
 
     #[test]
     fn approval_links_open_the_task_in_ask() {

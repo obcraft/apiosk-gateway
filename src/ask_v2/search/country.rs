@@ -172,6 +172,12 @@ impl Signal {
 
     fn identifier(&mut self, key: &str, value: &str) {
         let key = key.to_lowercase();
+        if matches!(key.as_str(),"location" | "city" | "address") {
+            // Literal cohort locations use the same routing signal as a
+            // place subject. This does not add an inferred input value.
+            self.place(value);
+            return;
+        }
         if matches!(key.as_str(), "country" | "country_code" | "jurisdiction") {
             let country = value.trim().to_lowercase();
             if let Some(Coverage::Country(country)) = code(&country) {
@@ -485,7 +491,7 @@ const LEGAL_FORMS: &[(&str, &[(&str, f64)])] = &[
 /// German, Spanish, Italian or its own language.
 fn country_word(word: &str) -> Option<&'static str> {
     Some(match word {
-        "nederland" | "netherlands" | "holland" | "dutch" | "niederlande" | "paysbas"
+        "nederland" | "nederlands" | "nederlandse" | "netherlands" | "holland" | "dutch" | "niederlande" | "paysbas"
         | "paisesbajos" | "paesibassi" | "holanda" | "olanda" => "NL",
         "uk"
         | "britain"
@@ -505,11 +511,11 @@ fn country_word(word: &str) -> Option<&'static str> {
         | "inglaterra"
         | "regnounito"
         | "inghilterra" => "GB",
-        "france" | "french" | "francais" | "francaise" | "frankrijk" | "frankreich" | "francia"
+        "france" | "french" | "francais" | "francaise" | "frans" | "franse" | "frankrijk" | "frankreich" | "francia"
         | "franca" => "FR",
-        "deutschland" | "germany" | "german" | "duitsland" | "allemagne" | "alemania"
+        "deutschland" | "germany" | "german" | "duitsland" | "duits" | "duitse" | "allemagne" | "alemania"
         | "germania" | "alemanha" => "DE",
-        "belgie" | "belgique" | "belgium" | "belgian" | "belgien" | "belgica" | "belgio" => "BE",
+        "belgie" | "belgique" | "belgium" | "belgian" | "belgisch" | "belgische" | "belgien" | "belgica" | "belgio" => "BE",
         "spain" | "spanish" | "espana" | "spanje" | "espagne" | "spanien" | "spagna"
         | "espanha" => "ES",
         "italy" | "italian" | "italia" | "italie" | "italien" => "IT",
@@ -914,6 +920,22 @@ pub(super) fn source(source: &KnownSource) -> Coverage {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn literal_dutch_country_adjectives_keep_their_named_jurisdiction() {
+        assert_eq!(super::country_word("nederlandse"),Some("NL"));
+        assert_eq!(super::country_word("nederlands"),Some("NL"));
+        assert_eq!(super::country_word("duitse"),Some("DE"));
+        assert_eq!(super::country_word("duits"),Some("DE"));
+        assert_eq!(super::country_word("belgische"),Some("BE"));
+        assert_eq!(super::country_word("franse"),Some("FR"));
+        assert_eq!(super::country_word("softwaresector"),None);
+        let mut cohort=super::Signal::default();
+        cohort.identifier("location","Utrecht");
+        assert_eq!(cohort.primary(),Some("NL"));
+        let mut missing=super::Signal::default();
+        missing.input("location");
+        assert_eq!(missing.primary(),None,"an input concept alone supplies no place");
+    }
     use super::*;
     use serde_json::json;
 

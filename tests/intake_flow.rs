@@ -41,7 +41,7 @@ struct Model {
 
 fn ask_v2_capabilities() -> Value {
     json!({"language":"nl","subjects":[{"id":"s1","label":"Coolblue","type":"company","identifiers":{}}],
-        "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve company annual accounts.","domain":"company","inputs":[],"outputs":["financial_statements"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
+        "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve company annual accounts.","domain":"company","inputs":[],"outputs":["accounts"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
         "deliverable":{"format":"chat","operations":["list"]}})
 }
 
@@ -405,6 +405,37 @@ async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task(
     let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
         .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!((executions, approvals, charges), (0,0,0));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn researched_plan_refuses_undeclared_fields_without_a_quote_or_charge_and_recovers_same_reply() {
+    let intake=Intake::start().await;
+    let person=Person::new();
+    let question="Jaarrekening van Coolblue met publicatiedatum voor Coolblue";
+    let mut raw=ask_v2_capabilities();
+    raw["capabilities"][0]["outputs"]=json!(["accounts","publication_dates"]);
+    let parsed=apiosk_gateway_v2::capability_intake::normalize(&raw.to_string(),question,"displayed-fixture").unwrap();
+    let (status,search)=intake.send(&person.bearer,"/v2/ask-v2/search",Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    assert_eq!(status,StatusCode::OK,"{search}");
+    let body=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,"search_id":search["search_id"]});
+    let (status,refused)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::OK,"{refused}");
+    assert_eq!(refused["status"],"needs_input","{refused}");
+    assert!(refused["proposal"].is_null());
+    let task=refused["state"]["state_ref"].as_str().unwrap().parse::<Uuid>().unwrap();
+    let document:Value=sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(document["actions"][0]["kind"],"planning_clarification");
+    assert!(document["actions"][0]["missing_output_contracts"].to_string().contains("publication_dates"));
+    let reply=document["conversation"].as_array().unwrap().last().unwrap()["reply"].as_str().unwrap();
+    assert!(reply.contains("publication dates") && !reply.contains("publication_dates"));
+    assert!(!reply.contains("toon eerst de prijs"));
+    let (_,recovered)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    assert_eq!(recovered,refused);
+    let (_,read)=intake.send(&person.bearer,&format!("/v2/tasks/{task}"),None).await;
+    assert!(read["proposal"].is_null());
+    assert_eq!(intake.model.chats().len(),1,"recovery neither replans nor rewrites the factual refusal");
+    assert_no_purchase(&intake,&person,task).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

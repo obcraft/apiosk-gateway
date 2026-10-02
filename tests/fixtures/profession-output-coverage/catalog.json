@@ -1,0 +1,2203 @@
+{
+  "services": [
+    {
+      "id": "28fb774a-2b50-4b58-ade8-404c947b21f7",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "path": "/domain/{domain}",
+      "method": "GET",
+      "api_slug": "domain-intelligence",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "domain.name",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.registration.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "domain.registration"
+      },
+      "pagination": {},
+      "source_url": "https://about.rdap.org/",
+      "unverified": false,
+      "description": "Domain registration date (RDAP); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+      "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+      "list_atomic": 85066,
+      "fixed_params": {},
+      "jurisdiction": null,
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.nl",
+          "statuses": [
+            "active"
+          ],
+          "registrar": "team.blue nl B.V.",
+          "expires_at": null,
+          "nameservers": [
+            "ns-cloud-a4.googledomains.com",
+            "ns-cloud-a1.googledomains.com",
+            "ns-cloud-a2.googledomains.com",
+            "ns-cloud-a3.googledomains.com"
+          ],
+          "rdap_server": "rdap.sidn.nl",
+          "registered_at": "2000-05-23T14:06:31Z",
+          "last_changed_at": "2021-03-22T15:18:26Z"
+        },
+        "notice": "Registry RDAP data at request time. Registrant identity is usually redacted; a registration date shows when the current registration started, not who controls the domain.",
+        "coverage": {
+          "scope": "Authoritative registry RDAP record for one domain",
+          "complete": true
+        },
+        "source_url": "https://rdap.sidn.nl/domain/mollie.nl"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "5aa13e05-fe09-45bb-9512-9a660d7c3e05",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "path": "/dns/{domain}",
+      "method": "GET",
+      "api_slug": "domain-intelligence",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "domain.name",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.mail-dns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "domain.mail-dns"
+      },
+      "pagination": {},
+      "source_url": "https://about.rdap.org/",
+      "unverified": false,
+      "description": "Domain mail servers (DNS MX); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+      "endpoint_id": "19174ffb-ae5a-4d99-b016-b32a3d9691ef",
+      "list_atomic": 85066,
+      "fixed_params": {},
+      "jurisdiction": null,
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "data": {
+          "mx": [
+            "10 aspmx2.googlemail.com.",
+            "5 alt2.aspmx.l.google.com.",
+            "5 alt1.aspmx.l.google.com.",
+            "1 aspmx.l.google.com.",
+            "10 aspmx3.googlemail.com."
+          ],
+          "domain": "mollie.com",
+          "exists": true,
+          "accepts_mail": true,
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS MX lookup at request time (Google Public DNS). DNS shows mail routing, not ownership.",
+        "coverage": {
+          "scope": "MX records for one domain",
+          "complete": true
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "5ea8987d-bf4d-4029-b4f0-111c8b40cdd8",
+      "name": "RDW Vehicle Technical Data",
+      "path": "/resource/m9d7-ebf2.json",
+      "method": "GET",
+      "api_slug": "rdw",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "vehicle.registration.nl.plate",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "vehicle.registration.nl.plate": {
+            "in": "query",
+            "name": "kenteken"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "vehicle.rdw.technical_page": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "vehicle.technical-profile"
+      },
+      "pagination": {},
+      "source_url": "https://opendata.rdw.nl/en/en/Vehicles/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+      "unverified": false,
+      "description": "Direct RDW technical profile by plate, excluding fuel/emissions",
+      "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": "NL",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "items": [
+          {
+            "merk": "VOLKSWAGEN",
+            "type": "AW",
+            "lengte": "405",
+            "breedte": "175",
+            "variant": "ABCHZJ",
+            "kenteken": "RZ874R",
+            "bruto_bpm": "3328",
+            "wielbasis": "255",
+            "inrichting": "hatchback",
+            "uitvoering": "FM6FM6AJ017N2VR27MM62",
+            "eerste_kleur": "ORANJE",
+            "tweede_kleur": "Niet geregistreerd",
+            "aantal_deuren": "5",
+            "aantal_wielen": "4",
+            "voertuigsoort": "Personenauto",
+            "wam_verzekerd": "Ja",
+            "catalogusprijs": "26536",
+            "cilinderinhoud": "999",
+            "massa_rijklaar": "1155",
+            "taxi_indicator": "Nee",
+            "handelsbenaming": "POLO",
+            "hoogte_voertuig": "143",
+            "vervaldatum_apk": "20271029",
+            "wacht_op_keuren": "Geen verstrekking in Open Data",
+            "aantal_cilinders": "3",
+            "export_indicator": "Nee",
+            "aantal_zitplaatsen": "5",
+            "tellerstandoordeel": "Logisch",
+            "vervaldatum_apk_dt": "2027-10-29T00:00:00.000",
+            "datum_tenaamstelling": "20251101",
+            "massa_ledig_voertuig": "1055",
+            "plaats_chassisnummer": "in motorruimte r.",
+            "datum_eerste_toelating": "20180313",
+            "tenaamstellen_mogelijk": "Ja",
+            "typegoedkeuringsnummer": "e1*2007/46*1783*04",
+            "vermogen_massarijklaar": "0.07",
+            "datum_tenaamstelling_dt": "2025-11-01T00:00:00.000",
+            "zuinigheidsclassificatie": "C",
+            "datum_eerste_toelating_dt": "2018-03-13T00:00:00.000",
+            "europese_voertuigcategorie": "M1",
+            "maximum_massa_samenstelling": "2720",
+            "maximum_trekken_massa_geremd": "1100",
+            "technische_max_massa_voertuig": "1620",
+            "maximum_massa_trekken_ongeremd": "570",
+            "api_gekentekende_voertuigen_assen": "https://opendata.rdw.nl/resource/3huj-srit.json",
+            "toegestane_maximum_massa_voertuig": "1620",
+            "code_toelichting_tellerstandoordeel": "00",
+            "jaar_laatste_registratie_tellerstand": "2026",
+            "openstaande_terugroepactie_indicator": "Nee",
+            "api_gekentekende_voertuigen_brandstof": "https://opendata.rdw.nl/resource/8ys7-d773.json",
+            "api_gekentekende_voertuigen_carrosserie": "https://opendata.rdw.nl/resource/vezc-m2t6.json",
+            "volgnummer_wijziging_eu_typegoedkeuring": "0",
+            "datum_eerste_tenaamstelling_in_nederland": "20180313",
+            "api_gekentekende_voertuigen_voertuigklasse": "https://opendata.rdw.nl/resource/kmfi-hrps.json",
+            "datum_eerste_tenaamstelling_in_nederland_dt": "2018-03-13T00:00:00.000",
+            "api_gekentekende_voertuigen_carrosserie_specifiek": "https://opendata.rdw.nl/resource/jhie-znh9.json"
+          }
+        ],
+        "query": {
+          "kenteken": "RZ874R"
+        },
+        "total": 1,
+        "notice": "Technical register data. No owner identity or fleet ownership. Missing fields remain unknown; fuel/emissions datasets are not included.",
+        "coverage": {
+          "scope": "Exact plate in RDW registered-vehicle dataset",
+          "complete": true
+        },
+        "source_url": "https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=RZ874R&%24limit=2",
+        "requested_plate": "RZ874R"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "6da6361c-fd6f-47b4-b2ce-766a4633c8c2",
+      "name": "PDOK Maps & Addresses",
+      "path": "/apiosk/bag-unit",
+      "method": "GET",
+      "api_slug": "pdok",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "location.bag_object_id",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "location.bag_object_id": {
+            "in": "query",
+            "name": "vbo"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "location.bag_unit_record": {
+              "path": "$.matched"
+            },
+            "location.single_building_href": {
+              "path": "$.matched.single_building_href"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "building.bag-unit"
+      },
+      "pagination": {},
+      "source_url": "https://www.pdok.nl/ogc-apis",
+      "unverified": false,
+      "description": "Retrieve the exact BAG verblijfsobject and its explicit building links.",
+      "endpoint_id": "892e7b28-5202-4ca8-acf7-b201f4701a1a",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": "NL",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "count": 1,
+        "items": [
+          {
+            "status": "Verblijfsobject in gebruik",
+            "postcode": "1015CW",
+            "pand.href": [
+              "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e"
+            ],
+            "huisletter": null,
+            "huisnummer": 126,
+            "toevoeging": null,
+            "oppervlakte": 3718,
+            "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010000700614",
+            "gebruiksdoel": "kantoorfunctie",
+            "documentdatum": "2019-03-27",
+            "geconstateerd": "N",
+            "identificatie": "0363010000700614",
+            "documentnummer": "SA03964597",
+            "provincie_naam": "Noord-Holland",
+            "bronhouder_naam": "Amsterdam",
+            "woonplaats_naam": "Amsterdam",
+            "hoofdadres_status": "Naamgeving uitgegeven",
+            "woonplaats_status": "Woonplaats aangewezen",
+            "provincie_afkorting": "NH",
+            "openbare_ruimte_naam": "Keizersgracht",
+            "single_building_href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e",
+            "openbare_ruimte_status": "Naamgeving uitgegeven",
+            "bronhouder_identificatie": "0363",
+            "hoofdadres_identificatie": "0363200000161902",
+            "woonplaats_identificatie": "3594",
+            "openbare_ruimte_naam_kort": null,
+            "openbare_ruimte_identificatie": "0363300000003984"
+          }
+        ],
+        "route": "bag-unit",
+        "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+        "matched": {
+          "status": "Verblijfsobject in gebruik",
+          "postcode": "1015CW",
+          "pand.href": [
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e"
+          ],
+          "huisletter": null,
+          "huisnummer": 126,
+          "toevoeging": null,
+          "oppervlakte": 3718,
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010000700614",
+          "gebruiksdoel": "kantoorfunctie",
+          "documentdatum": "2019-03-27",
+          "geconstateerd": "N",
+          "identificatie": "0363010000700614",
+          "documentnummer": "SA03964597",
+          "provincie_naam": "Noord-Holland",
+          "bronhouder_naam": "Amsterdam",
+          "woonplaats_naam": "Amsterdam",
+          "hoofdadres_status": "Naamgeving uitgegeven",
+          "woonplaats_status": "Woonplaats aangewezen",
+          "provincie_afkorting": "NH",
+          "openbare_ruimte_naam": "Keizersgracht",
+          "single_building_href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e",
+          "openbare_ruimte_status": "Naamgeving uitgegeven",
+          "bronhouder_identificatie": "0363",
+          "hoofdadres_identificatie": "0363200000161902",
+          "woonplaats_identificatie": "3594",
+          "openbare_ruimte_naam_kort": null,
+          "openbare_ruimte_identificatie": "0363300000003984"
+        },
+        "coverage": {
+          "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+          "complete": true
+        },
+        "source_url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?identificatie=0363010000700614&limit=2&f=json"
+      },
+      "optional_outputs": [
+        "location.single_building_href"
+      ],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "84486d70-e521-5518-944c-7cf0ac700ae2",
+      "name": "Companies House",
+      "path": "/company/{company_number}/officers",
+      "method": "GET",
+      "api_slug": "companies-house",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "in": "path",
+            "name": "company_number"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_officers": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.officers"
+      },
+      "pagination": {},
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+      "unverified": false,
+      "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+      "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 100
+      },
+      "jurisdiction": "GB",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "etag": "566e7c60f7de5940734cef04ea94006c91cdbb4a",
+        "kind": "officer-list",
+        "items": [
+          {
+            "name": "TAYLOR, Christopher Jon",
+            "links": {
+              "self": "/company/00445790/appointments/lnfNdAqKHBZCL2akA7SXLkkA8KI",
+              "officer": {
+                "appointments": "/officers/uJ_F_UGCbPiYELlJ_fHc-J_goqo/appointments"
+              }
+            },
+            "appointed_on": "2025-04-14",
+            "officer_role": "secretary"
+          },
+          {
+            "name": "BETHELL, Melissa",
+            "links": {
+              "self": "/company/00445790/appointments/gE7Pw_lx4HWJvqSfwqudfusS9Ig",
+              "officer": {
+                "appointments": "/officers/aqrS_F-2zIvSaMNtl1opqDV4-w0/appointments"
+              }
+            },
+            "appointed_on": "2018-09-24",
+            "officer_role": "director"
+          }
+        ],
+        "links": {
+          "self": "/company/00445790/officers"
+        },
+        "start_index": 0,
+        "active_count": 11,
+        "total_results": 74,
+        "inactive_count": 0,
+        "items_per_page": 2,
+        "resigned_count": 63
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "cb28efa7-a0da-4743-986b-016c5e415400",
+      "name": "VIES EU VAT Validation",
+      "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+      "method": "GET",
+      "api_slug": "vies",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "vat.eu.country_code",
+            "subject_role": "subject"
+          },
+          {
+            "optional": false,
+            "fact_type": "vat.eu.number",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "vat.eu.number": {
+            "in": "path",
+            "name": "nr"
+          },
+          "vat.eu.country_code": {
+            "in": "path",
+            "name": "cc"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "vat.eu.validate.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "vat.eu.validate"
+      },
+      "pagination": {},
+      "source_url": "https://ec.europa.eu/taxation_customs/vies/",
+      "unverified": false,
+      "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+      "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+      "list_atomic": 85066,
+      "fixed_params": {},
+      "jurisdiction": "EU",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "data": {
+          "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+          "valid": true,
+          "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+          "upstream": {
+            "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+            "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+            "isValid": true,
+            "userError": "VALID",
+            "vatNumber": "004495445B01",
+            "requestDate": "2026-09-14T16:48:04.183Z",
+            "viesApproximate": {
+              "city": "---",
+              "name": "---",
+              "street": "---",
+              "matchCity": 3,
+              "matchName": 3,
+              "postalCode": "---",
+              "companyType": "---",
+              "matchStreet": 3,
+              "matchPostalCode": 3,
+              "matchCompanyType": 3
+            },
+            "originalVatNumber": "004495445B01",
+            "requestIdentifier": ""
+          },
+          "vat_number": "004495445B01",
+          "country_code": "NL",
+          "request_date": "2026-09-14T16:48:04.183Z"
+        },
+        "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+        "coverage": {
+          "scope": "One bounded upstream response per purchased call",
+          "complete": false
+        },
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 60
+    },
+    {
+      "id": "d84d8b21-e074-5132-8bfb-0bd906e45a4a",
+      "name": "Companies House",
+      "path": "/company/{company_number}/persons-with-significant-control",
+      "method": "GET",
+      "api_slug": "companies-house",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "in": "path",
+            "name": "company_number"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_persons_with_significant_control": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.significant-control"
+      },
+      "pagination": {},
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+      "unverified": false,
+      "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+      "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 100
+      },
+      "jurisdiction": "GB",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "items": [],
+        "links": {
+          "self": "/company/00445790/persons-with-significant-control",
+          "exemptions": "/company/00445790/exemptions"
+        },
+        "start_index": 0,
+        "active_count": 0,
+        "ceased_count": 0,
+        "total_results": 0,
+        "items_per_page": 2
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "df01189f-e469-495a-8a1a-ce8f5d6c2a99",
+      "name": "PDOK Maps & Addresses",
+      "path": "/apiosk/bag-address",
+      "method": "GET",
+      "api_slug": "pdok",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "location.bag_object_id",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "location.bag_object_id": {
+            "in": "query",
+            "name": "vbo"
+          }
+        },
+        "identifies": "location.bag_address_id",
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "location.municipality": {
+              "path": "$.municipality"
+            },
+            "location.address_label": {
+              "path": "$.address"
+            },
+            "location.bag_object_id": {
+              "path": "$.bag_object_id"
+            },
+            "location.district_code": {
+              "path": "$.district_code"
+            },
+            "location.neighbourhood": {
+              "path": "$.neighbourhood"
+            },
+            "location.bag_address_id": {
+              "path": "$.bag_address_id"
+            },
+            "location.municipality_code": {
+              "path": "$.municipality_code"
+            },
+            "location.neighbourhood_code": {
+              "path": "$.neighbourhood_code"
+            },
+            "location.parcel_designations": {
+              "path": "$.parcel_designations"
+            },
+            "location.apartment_right_designations": {
+              "path": "$.apartment_right_designations"
+            }
+          }
+        },
+        "cardinality": "many",
+        "max_fan_out": 1,
+        "capability_slug": "location.bag-address-context"
+      },
+      "pagination": {},
+      "source_url": "https://www.pdok.nl/ogc-apis",
+      "unverified": false,
+      "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+      "endpoint_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": "NL",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "count": 1,
+        "items": [
+          {
+            "address": "Keizersgracht 126, 1015CW Amsterdam",
+            "district": "Grachtengordel-West",
+            "municipality": "Amsterdam",
+            "bag_object_id": "0363010000700614",
+            "district_code": "WK0363AC",
+            "neighbourhood": "Leliegracht e.o.",
+            "source_record": {
+              "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+              "bron": "BAG",
+              "type": "adres",
+              "score": 1.0747517,
+              "huis_nlt": "126",
+              "postcode": "1015CW",
+              "wijkcode": "WK0363AC",
+              "wijknaam": "Grachtengordel-West",
+              "buurtcode": "BU0363AC02",
+              "buurtnaam": "Leliegracht e.o.",
+              "huisnummer": 126,
+              "straatnaam": "Keizersgracht",
+              "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+              "centroide_ll": "POINT(4.88679098 52.37678671)",
+              "centroide_rd": "POINT(120925 487775)",
+              "gemeentecode": "0363",
+              "gemeentenaam": "Amsterdam",
+              "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+              "identificatie": "0363010000700614-0363200000161902",
+              "provinciecode": "PV27",
+              "provincienaam": "Noord-Holland",
+              "woonplaatscode": "3594",
+              "woonplaatsnaam": "Amsterdam",
+              "waterschapscode": "11",
+              "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+              "gekoppeld_perceel": [
+                "ASD09-M-6676",
+                "ASD09-M-6965",
+                "ASD09-M-5342"
+              ],
+              "openbareruimte_id": "0363300000003984",
+              "openbareruimtetype": "Weg",
+              "provincieafkorting": "NH",
+              "straatnaam_verkort": "Keizersgr",
+              "nummeraanduiding_id": "0363200000161902",
+              "gekoppeld_appartement": [
+                "ASD09-M-7318-A-1"
+              ],
+              "adresseerbaarobject_id": "0363010000700614"
+            },
+            "bag_address_id": "0363200000161902",
+            "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+            "municipality_code": "0363",
+            "neighbourhood_code": "BU0363AC02",
+            "parcel_designations": [
+              "ASD09-M-6676",
+              "ASD09-M-6965",
+              "ASD09-M-5342"
+            ],
+            "apartment_right_designations": [
+              "ASD09-M-7318-A-1"
+            ]
+          }
+        ],
+        "route": "bag-address",
+        "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+        "matched": {
+          "address": "Keizersgracht 126, 1015CW Amsterdam",
+          "district": "Grachtengordel-West",
+          "municipality": "Amsterdam",
+          "bag_object_id": "0363010000700614",
+          "district_code": "WK0363AC",
+          "neighbourhood": "Leliegracht e.o.",
+          "source_record": {
+            "id": "adr-bdaa6469c82c76ccefe4455330d239e1",
+            "bron": "BAG",
+            "type": "adres",
+            "score": 1.0747517,
+            "huis_nlt": "126",
+            "postcode": "1015CW",
+            "wijkcode": "WK0363AC",
+            "wijknaam": "Grachtengordel-West",
+            "buurtcode": "BU0363AC02",
+            "buurtnaam": "Leliegracht e.o.",
+            "huisnummer": 126,
+            "straatnaam": "Keizersgracht",
+            "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200000161902",
+            "centroide_ll": "POINT(4.88679098 52.37678671)",
+            "centroide_rd": "POINT(120925 487775)",
+            "gemeentecode": "0363",
+            "gemeentenaam": "Amsterdam",
+            "weergavenaam": "Keizersgracht 126, 1015CW Amsterdam",
+            "identificatie": "0363010000700614-0363200000161902",
+            "provinciecode": "PV27",
+            "provincienaam": "Noord-Holland",
+            "woonplaatscode": "3594",
+            "woonplaatsnaam": "Amsterdam",
+            "waterschapscode": "11",
+            "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+            "gekoppeld_perceel": [
+              "ASD09-M-6676",
+              "ASD09-M-6965",
+              "ASD09-M-5342"
+            ],
+            "openbareruimte_id": "0363300000003984",
+            "openbareruimtetype": "Weg",
+            "provincieafkorting": "NH",
+            "straatnaam_verkort": "Keizersgr",
+            "nummeraanduiding_id": "0363200000161902",
+            "gekoppeld_appartement": [
+              "ASD09-M-7318-A-1"
+            ],
+            "adresseerbaarobject_id": "0363010000700614"
+          },
+          "bag_address_id": "0363200000161902",
+          "centroid_wgs84": "POINT(4.88679098 52.37678671)",
+          "municipality_code": "0363",
+          "neighbourhood_code": "BU0363AC02",
+          "parcel_designations": [
+            "ASD09-M-6676",
+            "ASD09-M-6965",
+            "ASD09-M-5342"
+          ],
+          "apartment_right_designations": [
+            "ASD09-M-7318-A-1"
+          ]
+        },
+        "coverage": {
+          "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+          "complete": true
+        },
+        "source_url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=*%3A*&fq=type%3Aadres+AND+adresseerbaarobject_id%3A0363010000700614&rows=100"
+      },
+      "optional_outputs": [
+        "location.apartment_right_designations",
+        "location.district_code",
+        "location.municipality",
+        "location.municipality_code",
+        "location.neighbourhood",
+        "location.neighbourhood_code",
+        "location.parcel_designations"
+      ],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "e0b114c3-b24d-48f2-937e-e068c3851f5f",
+      "name": "PDOK Maps & Addresses",
+      "path": "/apiosk/building",
+      "method": "GET",
+      "api_slug": "pdok",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "location.single_building_href",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "location.single_building_href": {
+            "in": "query",
+            "name": "href"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "location.building_record": {
+              "path": "$.matched"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "building.bag-building"
+      },
+      "pagination": {},
+      "source_url": "https://www.pdok.nl/ogc-apis",
+      "unverified": false,
+      "description": "Follow the single building explicitly linked by BAG; return construction year, building ID and status.",
+      "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": "NL",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "count": 1,
+        "items": [
+          {
+            "status": "Pand in gebruik",
+            "bouwjaar": 1755,
+            "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012176541",
+            "gebruiksdoel": "kantoorfunctie",
+            "documentdatum": "2017-09-25",
+            "geconstateerd": "N",
+            "identificatie": "0363100012176541",
+            "documentnummer": "TM00022919_TM00OP",
+            "verblijfsobject.href": [
+              "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a1519654-f5c3-5a24-ac48-b9e82c1cf28f",
+              "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/76ea5d6b-91ae-5bfa-8f08-3ec719787f82"
+            ],
+            "aantal_verblijfsobjecten": 2
+          }
+        ],
+        "route": "building",
+        "notice": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+        "matched": {
+          "status": "Pand in gebruik",
+          "bouwjaar": 1755,
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012176541",
+          "gebruiksdoel": "kantoorfunctie",
+          "documentdatum": "2017-09-25",
+          "geconstateerd": "N",
+          "identificatie": "0363100012176541",
+          "documentnummer": "TM00022919_TM00OP",
+          "verblijfsobject.href": [
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a1519654-f5c3-5a24-ac48-b9e82c1cf28f",
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/76ea5d6b-91ae-5bfa-8f08-3ec719787f82"
+          ],
+          "aantal_verblijfsobjecten": 2
+        },
+        "coverage": {
+          "scope": "Source-linked location context. This does not establish property ownership, current zoning or company-level statistics.",
+          "complete": true
+        },
+        "source_url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/477b32f8-7c3c-56e0-9a31-f49c9a4d6d1e?f=json"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "ea445fe2-10d8-5892-bba5-8158cd6b3368",
+      "name": "Companies House",
+      "path": "/company",
+      "method": "GET",
+      "api_slug": "companies-house",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "company.registration.gb.companies_house",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "in": "path",
+            "name": "company_number"
+          }
+        },
+        "identifies": "company.registration.gb.companies_house",
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.company_name"
+            },
+            "company.uk_registry_record": {
+              "path": "$"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.registry-profile"
+      },
+      "pagination": {},
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+      "unverified": false,
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": "GB",
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": {
+        "etag": "b0711fe6fc8e9936a50a1e14e40ef9367f46bbf6",
+        "type": "plc",
+        "links": {
+          "self": "/company/00445790",
+          "charges": "/company/00445790/charges",
+          "officers": "/company/00445790/officers",
+          "exemptions": "/company/00445790/exemptions",
+          "filing_history": "/company/00445790/filing-history"
+        },
+        "accounts": {
+          "overdue": false,
+          "next_due": "2027-08-26",
+          "last_accounts": {
+            "type": "group",
+            "made_up_to": "2026-02-28",
+            "period_end_on": "2026-02-28",
+            "period_start_on": "2025-02-27"
+          },
+          "next_accounts": {
+            "due_on": "2027-08-26",
+            "overdue": false,
+            "period_end_on": "2027-02-26",
+            "period_start_on": "2026-03-01"
+          },
+          "next_made_up_to": "2027-02-26",
+          "accounting_reference_date": {
+            "day": "26",
+            "month": "02"
+          }
+        },
+        "can_file": true,
+        "sic_codes": [
+          "47110"
+        ],
+        "has_charges": false,
+        "company_name": "TESCO PLC",
+        "jurisdiction": "england-wales",
+        "company_number": "00445790",
+        "company_status": "active",
+        "date_of_creation": "1947-11-27",
+        "has_been_liquidated": false,
+        "has_super_secure_pscs": false,
+        "confirmation_statement": {
+          "overdue": false,
+          "next_due": "2027-07-02",
+          "last_made_up_to": "2026-06-18",
+          "next_made_up_to": "2027-06-18"
+        },
+        "has_insolvency_history": false,
+        "previous_company_names": [
+          {
+            "name": "TESCO STORES (HOLDINGS) PUBLIC LIMITED COMPANY",
+            "ceased_on": "1983-08-25",
+            "effective_from": "1981-12-14"
+          },
+          {
+            "name": "TESCO STORES (HOLDINGS) LIMITED",
+            "ceased_on": "1981-12-14",
+            "effective_from": "1947-11-27"
+          }
+        ],
+        "registered_office_address": {
+          "country": "United Kingdom",
+          "locality": "Welwyn Garden City",
+          "postal_code": "AL7 1GA",
+          "address_line_1": "Tesco House, Shire Park",
+          "address_line_2": "Kestrel Way"
+        },
+        "last_full_members_list_date": "2013-06-07",
+        "registered_office_is_in_dispute": false,
+        "undeliverable_registered_office_address": false
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    },
+    {
+      "id": "f2f75bc4-c1c1-4a2e-a656-e06fb4aae1f7",
+      "name": "Reuters News",
+      "path": "/search",
+      "method": "GET",
+      "api_slug": "reuters",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "news.reuters_search_query",
+            "subject_role": "subject"
+          },
+          {
+            "optional": true,
+            "fact_type": "news.reuters_result_limit",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "news.reuters_result_limit": {
+            "in": "query",
+            "name": "limit"
+          },
+          "news.reuters_search_query": {
+            "in": "query",
+            "name": "q"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "news.reuters_search_headlines": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "news.reuters-search"
+      },
+      "pagination": {},
+      "source_url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+      "unverified": false,
+      "description": "Search Reuters news headlines by keywords (a company, person, topic or event). Returns up to 12 article links and headlines, no dates; keyword matching is loose.",
+      "endpoint_id": "59ebf3e7-da1a-4592-abad-eb14a8d09966",
+      "list_atomic": 47259,
+      "fixed_params": {},
+      "jurisdiction": null,
+      "listing_type": "api",
+      "preconditions": {},
+      "sample_payload": [
+        {
+          "link": "https://www.reuters.com/business/world-at-work/crypto-firm-bitcoin-suisse-cut-up-half-jobs-switzerland-2026-09-11/",
+          "title": "Crypto firm Bitcoin Suisse to cut up to half of jobs in Switzerland"
+        },
+        {
+          "link": "https://www.reuters.com/technology/bitcoin-based-liquid-network-says-320-million-withdrawn-hack-2026-09-07/",
+          "title": "Bitcoin-based Liquid Network says $320 million withdrawn in hack"
+        },
+        {
+          "link": "https://www.reuters.com/markets/global-markets-technicals-graphic-2026-09-03/",
+          "title": "Mapping the Market: Bitcoin has challenges to face after dramatic surge"
+        }
+      ],
+      "optional_outputs": [],
+      "freshness_seconds": 900
+    },
+    {
+      "id": "c9b32ac9-4c79-4c82-bb61-16619a7d7526",
+      "name": "Frankfurter",
+      "path": "/v2/providers/ecb/rate/EUR/{quote}",
+      "method": "GET",
+      "api_slug": "frankfurter",
+      "contract": {
+        "version": 1,
+        "requires": [
+          {
+            "optional": false,
+            "fact_type": "fx.ecb.quote",
+            "subject_role": "subject"
+          }
+        ],
+        "input_map": {
+          "fx.ecb.quote": {
+            "in": "path",
+            "name": "quote"
+          }
+        },
+        "identifies": null,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "fx.ecb.reference_rate": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "fx.ecb-reference-rate"
+      },
+      "pagination": {},
+      "source_url": "https://frankfurter.dev/",
+      "unverified": false,
+      "description": "Latest daily ECB euro foreign-exchange reference rate for one target currency, via Frankfurter. EUR base; includes observation date. ECB data is free at ecb.europa.eu; Apiosk charges for retrieval. Not intraday, historical rates, Euribor or trading quotes.",
+      "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67",
+      "list_atomic": 50000,
+      "fixed_params": {},
+      "jurisdiction": null,
+      "listing_type": "api",
+      "usage_notice": {
+        "url": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
+        "text": "Source: European Central Bank (ECB), via Frankfurter. ECB exchange-rate data is available free of charge from the ECB; Apiosk charges for retrieval. Daily reference rate, not a live trading quote.",
+        "label": "Free ECB source"
+      },
+      "preconditions": {},
+      "sample_payload": {
+        "base": "EUR",
+        "date": "2026-10-01",
+        "rate": 1.1298,
+        "quote": "USD"
+      },
+      "optional_outputs": [],
+      "freshness_seconds": 3600
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "company.registration.gb.companies_house",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]{8}$"
+      }
+    },
+    {
+      "slug": "company.uk_officers",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.uk_persons_with_significant_control",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.uk_registry_record",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "company_name",
+          "company_number"
+        ]
+      }
+    },
+    {
+      "slug": "domain.mail-dns.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "exists",
+              "accepts_mail",
+              "mx",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "mx": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "domain": {
+                "type": "string",
+                "description": "Domain"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "accepts_mail": {
+                "type": "boolean"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "description": "Scope"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Domain mail servers (DNS MX)"
+      }
+    },
+    {
+      "slug": "domain.name",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+        "maxLength": 253,
+        "minLength": 4,
+        "description": "Registrable domain name in lowercase, e.g. example.nl"
+      }
+    },
+    {
+      "slug": "domain.registration.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "statuses",
+              "nameservers"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "description": "Domain"
+              },
+              "statuses": {
+                "type": "array"
+              },
+              "registrar": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "nameservers": {
+                "type": "array"
+              },
+              "rdap_server": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registered_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "RFC 3339 registration event"
+              },
+              "last_changed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "description": "Scope"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Domain registration date (RDAP)"
+      }
+    },
+    {
+      "slug": "location.address_label",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "location.apartment_right_designations",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "slug": "location.bag_address_id",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{16}$"
+      }
+    },
+    {
+      "slug": "location.bag_object_id",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{16}$"
+      }
+    },
+    {
+      "slug": "location.bag_unit_record",
+      "value_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "location.building_record",
+      "value_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "slug": "location.district_code",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "location.municipality",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "location.municipality_code",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[0-9]{4}$"
+      }
+    },
+    {
+      "slug": "location.neighbourhood",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 500,
+        "minLength": 1
+      }
+    },
+    {
+      "slug": "location.neighbourhood_code",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^BU[A-Za-z0-9]{8}$"
+      }
+    },
+    {
+      "slug": "location.parcel_designations",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "slug": "location.single_building_href",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^https://api\\.pdok\\.nl/kadaster/bag/ogc/v2/collections/pand/items/[0-9a-f-]{36}$"
+      }
+    },
+    {
+      "slug": "news.reuters_result_limit",
+      "value_schema": {
+        "type": "integer",
+        "maximum": 12,
+        "minimum": 1,
+        "description": "Number of headlines to return, 1-12. The provider never returns more than 12."
+      }
+    },
+    {
+      "slug": "news.reuters_search_headlines",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "link",
+            "title"
+          ],
+          "properties": {
+            "link": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "news.reuters_search_query",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 2,
+        "description": "Plain keywords to search Reuters headlines for, e.g. bitcoin or Nvidia earnings. Not a boolean query."
+      }
+    },
+    {
+      "slug": "vat.eu.country_code",
+      "value_schema": {
+        "enum": [
+          "AT",
+          "BE",
+          "BG",
+          "CY",
+          "CZ",
+          "DE",
+          "DK",
+          "EE",
+          "EL",
+          "ES",
+          "FI",
+          "FR",
+          "HR",
+          "HU",
+          "IE",
+          "IT",
+          "LT",
+          "LU",
+          "LV",
+          "MT",
+          "NL",
+          "PL",
+          "PT",
+          "RO",
+          "SE",
+          "SI",
+          "SK",
+          "XI"
+        ],
+        "type": "string",
+        "maxLength": 2,
+        "minLength": 1,
+        "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+      }
+    },
+    {
+      "slug": "vat.eu.number",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]{1,14}$",
+        "maxLength": 14,
+        "minLength": 1,
+        "description": "VAT number without country prefix or punctuation."
+      }
+    },
+    {
+      "slug": "vat.eu.validate.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "name",
+              "address",
+              "upstream"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "valid": {
+                "type": "boolean"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "vat_number": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "maxLength": 14,
+                "minLength": 1,
+                "description": "VAT number without country prefix or punctuation."
+              },
+              "country_code": {
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 1,
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+              },
+              "request_date": {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1,
+                "description": "Time reported by VIES"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Scope of the returned response"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Validate a VAT number using VIES"
+      }
+    },
+    {
+      "slug": "vehicle.rdw.technical_page",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "items",
+          "coverage",
+          "notice",
+          "source_url"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "vehicle.registration.nl.plate",
+      "value_schema": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-]{6,10}$"
+      }
+    },
+    {
+      "slug": "fx.ecb.quote",
+      "value_schema": {
+        "enum": [
+          "AUD",
+          "BRL",
+          "CAD",
+          "CHF",
+          "CNY",
+          "CZK",
+          "DKK",
+          "EUR",
+          "GBP",
+          "HKD",
+          "HUF",
+          "IDR",
+          "ILS",
+          "INR",
+          "ISK",
+          "JPY",
+          "KRW",
+          "MXN",
+          "MYR",
+          "NOK",
+          "NZD",
+          "PHP",
+          "PLN",
+          "RON",
+          "SEK",
+          "SGD",
+          "THB",
+          "TRY",
+          "USD",
+          "ZAR"
+        ],
+        "type": "string",
+        "description": "Target currency from the verified ECB daily euro reference currency set."
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "base": {
+            "enum": [
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-09
+          },
+          "quote": {
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "type": "string",
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          }
+        }
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "name": "Companies House",
+      "slug": "companies-house",
+      "metadata": {
+        "tags": [
+          "administration",
+          "advanced search",
+          "alphabetical search",
+          "aml",
+          "annual accounts",
+          "appointments",
+          "banned director",
+          "beneficial owner",
+          "beneficial ownership",
+          "business register",
+          "cdda",
+          "charges",
+          "companies house",
+          "companieshouse",
+          "company history",
+          "company lookup",
+          "company name",
+          "company name availability",
+          "company number",
+          "company officers",
+          "company profile",
+          "company register",
+          "company registration number",
+          "company registry",
+          "company screening",
+          "company search",
+          "company secretary",
+          "company status",
+          "company verification",
+          "compliance evidence",
+          "compliance screening",
+          "confirmation statement"
+        ],
+        "tagged": 15,
+        "category": "data",
+        "inferred": 0,
+        "described": 15,
+        "categorized": 15,
+        "description": "The official register of every company incorporated in the United Kingdom, from Companies House. Search the register by company name, officer name or disqualified officer; resolve a company number; and pull the full public record for any UK company \u2014 registered office address, company status and type, incorporation and dissolution dates, SIC codes, accounts and confirmation-statement due dates, its officers (directors, secretaries, LLP members), its persons with significant control and beneficial owners, its complete filing history, its registered charges and mortgages, its insolvency history,",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 15,
+        "coverage_notice": null,
+        "recent_failures": 0,
+        "recent_successes": 30,
+        "documented_inputs": 15,
+        "recent_unresolved": 0,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "company.officers": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+          "company.filing-history": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company.uk-registry-search": "Find UK companies by name and resolve Companies House numbers.",
+          "company.significant-control": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+          "operation.companies-house.get-search-93864601": "Search the whole Companies House register in one call \u2014 companies, officers and disqualified officers together \u2014 and get back a single ranked result set with each hit labelled by which index it came from. The call to make when you have a na",
+          "operation.companies-house.get-officers-f01533f9": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held",
+          "operation.companies-house.get-search-officers-8e049519": "Find a company officer by name across the whole UK register. Search directors, company secretaries and LLP members by full or partial name and get back each matching officer with their officer id, their date of birth to month precision, the",
+          "operation.companies-house.get-advanced-search-companies-3629cd16": "Screen the whole UK register with filters rather than looking one company up. Combine a name fragment with SIC codes (what the company does), company status (active, dissolved, liquidation, administration), company type and subtype, a locat",
+          "operation.companies-house.get-dissolved-search-companies-2f1b39bb": "Search only the companies that have been dissolved. The main company search covers dissolved companies too, but this index is dedicated to them and, uniquely, can search on a company's PREVIOUS names \u2014 set search_type to previous-name-disso",
+          "operation.companies-house.get-search-disqualified-officers-32ca794c": "Search the UK register of disqualified directors by name. Returns people who have been banned by a court or by undertaking from acting as a company director, with the officer id needed to read the full order. This is the adverse-media-free,",
+          "operation.companies-house.get-alphabetical-search-companies-33a5f5f7": "Walk the UK company register in alphabetical order from a given name. Unlike the relevance-ranked name search, this returns the companies that sit around the search term in the register's own alphabetical index, and pages forwards and backw",
+          "operation.companies-house.get-disqualified-officers-natural-eeb77a29": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepte",
+          "operation.companies-house.get-disqualified-officers-corporate-9b160607": "The full disqualification record of one banned CORPORATE officer \u2014 a company or other body corporate that has itself been disqualified from acting as a director \u2014 by officer id from the disqualified-officer search. Returns the same structur",
+          "operation.companies-house.get-persons-with-significant-control-86d4c314": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (o"
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "slug": "domain-intelligence",
+      "metadata": {
+        "tags": [
+          "DNS",
+          "domain",
+          "domain age",
+          "domein",
+          "fraud",
+          "leveranciercontrole",
+          "MX",
+          "RDAP",
+          "registratiedatum",
+          "supplier check",
+          "WHOIS"
+        ],
+        "tagged": 2,
+        "category": "security",
+        "inferred": 0,
+        "described": 2,
+        "categorized": 2,
+        "description": "Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 2,
+        "coverage_notice": "Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+        "recent_failures": 0,
+        "recent_successes": 9,
+        "documented_inputs": 2,
+        "recent_unresolved": 2,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "domain.mail-dns": "Domain mail servers (DNS MX); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries o",
+          "domain.registration": "Domain registration date (RDAP); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registrie"
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "PDOK Maps & Addresses",
+      "slug": "pdok",
+      "metadata": {
+        "tags": [
+          "address",
+          "adres",
+          "adressen",
+          "agriculture",
+          "bag",
+          "BAG",
+          "basisregistratie",
+          "bbox",
+          "beschermd gebied",
+          "bestuurlijke gebieden",
+          "bgt",
+          "bouwjaar",
+          "brk",
+          "brp",
+          "brt",
+          "building",
+          "buildings",
+          "buurt",
+          "cadastral",
+          "cbs",
+          "coordinaten",
+          "coordinates",
+          "crop parcels",
+          "demografie",
+          "demographics",
+          "dutch",
+          "epsg:28992",
+          "foundation risk",
+          "fundering",
+          "funderingsproblematiek",
+          "gemeente",
+          "gemeentegrens"
+        ],
+        "tagged": 27,
+        "category": "data",
+        "inferred": 0,
+        "described": 27,
+        "categorized": 27,
+        "description": "Official Dutch government geodata from PDOK (Publieke Dienstverlening Op de Kaart), the national open-data platform of the Kadaster: geocode a Dutch address to coordinates and reverse, look up buildings and addresses in the BAG (Basisregistratie Adressen en Gebouwen), cadastral parcels (kadastrale percelen) and public-law restrictions (publiekrechtelijke beperkingen, WKPB) in the BRK, CBS neighbourhood and postcode statistics (buurt, wijk, postcode 4 and 6), municipality and province boundaries (gemeentegrenzen, provinciegrenzen), Natura 2000 areas, foundation-risk areas (funderingsproblematie",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 27,
+        "coverage_notice": null,
+        "recent_failures": 1,
+        "recent_successes": 14,
+        "documented_inputs": 27,
+        "recent_unresolved": 0,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "geo.forward": "Forward geocoding: resolve a free-text address or place name to latitude/longitude.",
+          "geo.reverse": "Reverse geocoding: resolve latitude/longitude to the nearest address or place.",
+          "area.demographics": "Retrieve official statistics for a small geographic area \u2014 postcode, neighbourhood, district or municipality: number of residents, age breakdown, households and household size, housing stock, tenure and population density, as published by t",
+          "building.bag-unit": "Retrieve the exact BAG verblijfsobject and its explicit building links.",
+          "building.bag-building": "Follow the single building explicitly linked by BAG; return construction year, building ID and status.",
+          "property.parcel-lookup": "Retrieve the cadastral parcel covering a point or area from a national land register: its official designation, boundary geometry and registered surface area. Answers which plot a location sits on and how big that plot is. Carries no owners",
+          "property.linked-parcels": "Retrieve up to 25 explicitly linked cadastral map parcels in one request. Preserve all designations; no ownership claims.",
+          "building.registry-lookup": "Retrieve an official BAG address and building record including postcode, street, municipality, province, WGS84 and RD coordinates, building identifiers, year, area, status and use purpose.",
+          "location.property-search": "Resolve a Dutch address to BAG identity and a bounded RD map extent. Ambiguous addresses require selection before dependent calls.",
+          "area.cbs-neighbourhood-2025": "Retrieve CBS 2025 neighbourhood statistics via PDOK using an exact neighbourhood code. Area aggregates, not company facts or property WOZ.",
+          "property.legal-restrictions": "Retrieve the public-law restrictions an authority has imposed on a piece of land or a building: monument designation, expropriation, soil contamination, municipal pre-emption right and the rest, with the statute they rest on, the date they ",
+          "area.administrative-boundary": "Retrieve the official boundary and code of an administrative area \u2014 municipality, province, district or neighbourhood \u2014 by name, by code, or by a point it contains. The geometry to clip a question to one jurisdiction, and the code to join o",
+          "location.bag-address-context": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+          "company.registered-address-context": "Match the exact KVK main visiting address to BAG IDs, municipality, neighbourhood and linked parcels. Address suffixes must match; ambiguous results require selection."
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "RDW Vehicle Technical Data",
+      "slug": "rdw",
+      "metadata": {
+        "tags": [
+          "APK",
+          "auto",
+          "kenteken",
+          "license plate",
+          "RDW",
+          "technical vehicle data",
+          "vehicle registration",
+          "voertuig"
+        ],
+        "tagged": 1,
+        "category": "mobility",
+        "inferred": 0,
+        "described": 1,
+        "categorized": 1,
+        "description": "Direct official RDW technical vehicle lookup by exact Dutch registration plate. Includes make, model, APK expiry and available register fields. No owner identity, fleet ownership or separate fuel/emissions dataset.",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 1,
+        "coverage_notice": "Direct official RDW technical vehicle lookup by exact Dutch registration plate. Includes make, model, APK expiry and available register fields. No owner identity, fleet ownership or separate fuel/emissions dataset.",
+        "recent_failures": 0,
+        "recent_successes": 1,
+        "documented_inputs": 1,
+        "recent_unresolved": 0,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "vehicle.technical-profile": "Direct RDW technical profile by plate, excluding fuel/emissions"
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "Reuters News",
+      "slug": "reuters",
+      "metadata": {
+        "tags": [
+          "headlines",
+          "latest",
+          "news",
+          "region",
+          "reuters",
+          "search",
+          "section",
+          "sections"
+        ],
+        "tagged": 4,
+        "category": "news",
+        "inferred": 0,
+        "described": 4,
+        "categorized": 4,
+        "description": "Reuters news headlines: the latest wire headlines, keyword headline search, headlines per section (World, Business, Markets, Technology and more) and the section list. Headlines and links only, no article text. Up to 12 results per call.",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 4,
+        "coverage_notice": "Read operations checked live on 2026-09-14: latest headlines, keyword headline search, the section list and headlines for 18 sections (World, Africa, Americas, Asia Pacific, China, Europe, India, Middle East, UK, US, Business, Markets, Technology, Legal, Sustainability, Science, Sports, Lifestyle). At most 12 headlines per call; search results carry no date field and keyword matching is loose. Breakingviews returned HTTP 502 and is not offered. The provider /details route is not offered because it returns text synthesized from the URL instead of the article. The upstream plan also limits requests per second.",
+        "recent_failures": 2,
+        "recent_successes": 2,
+        "documented_inputs": 4,
+        "recent_unresolved": 1,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "news.reuters-latest": "Latest Reuters news headlines across all sections, newest wire stories with link and publication time. Optional headline count 1-12. Headlines only, not article text.",
+          "news.reuters-search": "Search Reuters news headlines by keywords (a company, person, topic or event). Returns up to 12 article links and headlines, no dates; keyword matching is loose.",
+          "news.reuters-sections": "List the Reuters news sections (World, regions, Business, Markets, Technology, Legal and more) with their section URLs.",
+          "news.reuters-section-uk": "Current Reuters UK news headlines: up to 12 article links and headlines from the Reuters UK section front page (https://www.reuters.com/world/uk/), in page order. Headlines only, not article text.",
+          "news.reuters-section-us": "Current Reuters US news headlines: up to 12 article links and headlines from the Reuters US section front page (https://www.reuters.com/world/us/), in page order. Headlines only, not article text.",
+          "news.reuters-section-china": "Current Reuters China news headlines: up to 12 article links and headlines from the Reuters China section front page (https://www.reuters.com/world/china/), in page order. Headlines only, not article text.",
+          "news.reuters-section-india": "Current Reuters India news headlines: up to 12 article links and headlines from the Reuters India section front page (https://www.reuters.com/world/india/), in page order. Headlines only, not article text.",
+          "news.reuters-section-legal": "Current Reuters Legal news headlines: up to 12 article links and headlines from the Reuters Legal section front page (https://www.reuters.com/legal/), in page order. Headlines only, not article text.",
+          "news.reuters-section-world": "Current Reuters World (all regions) news headlines: up to 12 article links and headlines from the Reuters World section front page (https://www.reuters.com/world/), in page order. Headlines only, not article text.",
+          "news.reuters-section-africa": "Current Reuters Africa news headlines: up to 12 article links and headlines from the Reuters Africa section front page (https://www.reuters.com/world/africa/), in page order. Headlines only, not article text.",
+          "news.reuters-section-europe": "Current Reuters Europe news headlines: up to 12 article links and headlines from the Reuters Europe section front page (https://www.reuters.com/world/europe/), in page order. Headlines only, not article text.",
+          "news.reuters-section-sports": "Current Reuters Sports news headlines: up to 12 article links and headlines from the Reuters Sports section front page (https://www.reuters.com/sports/), in page order. Headlines only, not article text.",
+          "news.reuters-section-markets": "Current Reuters Markets news headlines: up to 12 article links and headlines from the Reuters Markets section front page (https://www.reuters.com/markets/), in page order. Headlines only, not article text.",
+          "news.reuters-section-science": "Current Reuters Science news headlines: up to 12 article links and headlines from the Reuters Science section front page (https://www.reuters.com/science/), in page order. Headlines only, not article text.",
+          "news.reuters-section-americas": "Current Reuters Americas news headlines: up to 12 article links and headlines from the Reuters Americas section front page (https://www.reuters.com/world/americas/), in page order. Headlines only, not article text.",
+          "news.reuters-section-business": "Current Reuters Business news headlines: up to 12 article links and headlines from the Reuters Business section front page (https://www.reuters.com/business/), in page order. Headlines only, not article text.",
+          "news.reuters-section-lifestyle": "Current Reuters Lifestyle news headlines: up to 12 article links and headlines from the Reuters Lifestyle section front page (https://www.reuters.com/lifestyle/), in page order. Headlines only, not article text.",
+          "news.reuters-section-technology": "Current Reuters Technology news headlines: up to 12 article links and headlines from the Reuters Technology section front page (https://www.reuters.com/technology/), in page order. Headlines only, not article text.",
+          "news.reuters-section-middle-east": "Current Reuters Middle East news headlines: up to 12 article links and headlines from the Reuters Middle East section front page (https://www.reuters.com/world/middle-east/), in page order. Headlines only, not article text.",
+          "news.reuters-section-asia-pacific": "Current Reuters Asia Pacific news headlines: up to 12 article links and headlines from the Reuters Asia Pacific section front page (https://www.reuters.com/world/asia-pacific/), in page order. Headlines only, not article text.",
+          "news.reuters-section-sustainability": "Current Reuters Sustainability news headlines: up to 12 article links and headlines from the Reuters Sustainability section front page (https://www.reuters.com/sustainability/), in page order. Headlines only, not article text."
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "VIES EU VAT Validation",
+      "slug": "vies",
+      "metadata": {
+        "tags": [
+          "btw",
+          "btw-nummer",
+          "EU",
+          "tax compliance",
+          "VAT",
+          "VAT validation",
+          "VIES"
+        ],
+        "tagged": 3,
+        "category": "finance",
+        "inferred": 0,
+        "described": 3,
+        "categorized": 3,
+        "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "provider_slug": "apiosk-basics",
+        "endpoint_count": 3,
+        "coverage_notice": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "recent_failures": 0,
+        "recent_successes": 4,
+        "documented_inputs": 3,
+        "recent_unresolved": 1,
+        "unknown_provenance": 0,
+        "identity_documented": true,
+        "capability_descriptions": {
+          "vat.eu.check": "Check VAT registration with optional requester identification; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+          "vat.eu.validate": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+          "vat.eu.service-status": "Inspect VIES and national VAT service availability; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability."
+        }
+      },
+      "block_reason": null
+    },
+    {
+      "name": "Frankfurter",
+      "slug": "frankfurter",
+      "metadata": {
+        "coverage_notice": "Source: European Central Bank (ECB), via Frankfurter. ECB exchange-rate data is available free of charge from the ECB; Apiosk charges for retrieval. Daily reference rate, not a live trading quote. Scope: latest EUR-base rate only; no historical date, interest rate or Euribor."
+      },
+      "block_reason": null
+    }
+  ]
+}

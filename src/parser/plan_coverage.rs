@@ -161,7 +161,7 @@ pub(super) fn prepare(
                                     .chain(owners.iter().enumerate().filter_map(|(cap, owner)| {
                                         (*owner == Some(*goal_index)).then_some(cap)
                                     }))
-                                    .all(|cap| outputs_cover(&parsed.capabilities[cap], service))
+                                    .all(|cap| outputs_cover(&parsed.capabilities[cap], service, catalog))
                             })
                     }
             })
@@ -249,6 +249,9 @@ pub(super) fn prepare(
         let instruction = format!("{}: {}", cap.name, cap.description);
         if !intent.answer_operations.contains(&instruction) {
             intent.answer_operations.push(instruction);
+        }
+        if cap.slug == "general.capabilities" {
+            intent.answer_operations.push("Describe Apiosk availability only from confirmed catalog and readiness evidence. Mark unavailable evidence as unverified; never infer shipment tracking or live traffic from an unrelated successful retrieval.".into());
         }
     }
     Ok(())
@@ -352,9 +355,20 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
 fn outputs_cover(
     cap: &crate::capability_intake::Capability,
     service: &crate::catalog::Service,
+    catalog: &Catalog,
 ) -> bool {
-    // Exact normalized concept suffixes are contract evidence; descriptions,
-    // optional response fields and generic semantic similarity are not.
+    !cap.outputs.is_empty() && cap.outputs.iter().all(|output|output_metadata(output) || output_covered(output,service,catalog,true))
+}
+
+fn output_metadata(output:&str)->bool {
+    matches!(output,"source" | "source_reference" | "source_references" | "source_citations"
+        | "missing_fields" | "search_coverage" | "coverage_description")
+}
+
+fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,required_only:bool)->bool {
+    // Exact normalized concept suffixes and declared schema fields are
+    // evidence. Descriptions and opaque records are not. Sharing a goal uses
+    // the stronger required-only proof; quoting allows declared optional data.
     let parts = |value: &str| {
         value
             .to_lowercase()
@@ -363,14 +377,96 @@ fn outputs_cover(
             .map(str::to_owned)
             .collect::<Vec<_>>()
     };
-    !cap.outputs.is_empty()
-        && cap.outputs.iter().all(|output| {
             let requested = parts(output);
             !requested.is_empty()
                 && service.contract.output_map.produces.keys().any(|fact| {
-                    !service.optional_outputs.contains(fact) && parts(fact).ends_with(&requested)
+                    (!required_only || !service.optional_outputs.contains(fact)) && (parts(fact).ends_with(&requested)
+                        || catalog.vocabulary.get(fact).is_some_and(|vocabulary|
+                            schema_covers(&vocabulary.value_schema,output,required_only)))
                 })
-        })
+}
+
+/// Schema properties support retrieving a field even if an individual row
+/// lacks it. Required-only proof is used when collapsing several checks.
+/// An opaque object or prose description is not field evidence.
+fn schema_covers(schema:&Value,output:&str,required_only:bool)->bool {
+    if schema.get("type").and_then(Value::as_str)==Some("array") {
+        return schema.get("items").is_some_and(|items|schema_covers(items,output,required_only));
+    }
+    let key=output.strip_prefix("original_").unwrap_or(output);
+    let singular=key.strip_suffix('s').filter(|_|!key.ends_with("ss")).unwrap_or(key);
+    let required=schema.get("required").and_then(Value::as_array);
+    let properties=schema.get("properties").and_then(Value::as_object);
+    let names:BTreeSet<_>=required.into_iter().flatten().filter_map(Value::as_str)
+        .chain(properties.into_iter().flat_map(|props|props.keys().map(String::as_str)).filter(|_|!required_only)).collect();
+    names.iter().any(|name| *name==output || *name==singular || properties.and_then(|properties|properties.get(*name))
+            .is_some_and(|child|property_alias(child,output) || schema_covers(child,output,required_only)))
+}
+
+// A reviewed, property-local annotation in an existing JSON Schema keyword.
+// It does not change value validation or extraction in either executor.
+fn property_alias(property:&Value,output:&str)->bool {
+    let Some(comment)=property.get("$comment").and_then(Value::as_str).filter(|text|text.len()<=2048) else{return false};
+    let Ok(Value::Object(object))=serde_json::from_str::<Value>(comment) else{return false};
+    if object.len()!=1 {return false;}
+    let Some(aliases)=object.get("apiosk_output_aliases_v1").and_then(Value::as_array).filter(|values|!values.is_empty()&&values.len()<=32) else{return false};
+    let mut unique=BTreeSet::new();
+    if !aliases.iter().all(|alias|alias.as_str().is_some_and(|name|!name.is_empty()&&name.len()<=100
+        && name.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_') && unique.insert(name))) {return false;}
+    unique.contains(output)
+}
+
+fn dependency_steps(plan:&crate::resolver::Plan,task:&crate::state::Task,catalog:&Catalog,root:usize,source:Option<&str>,included:&mut BTreeSet<usize>) {
+    if !included.insert(root) {return;}
+    let step=&plan.steps[root];
+    for required in step.service.contract.requires.iter().filter(|required|!required.optional) {
+        if crate::catalog::fact_value(&task.facts,step.entity_ref,&required.fact_type).is_ok_and(|fact|fact.is_some()) {continue;}
+        let native=source.filter(|source|catalog.services.iter().any(|service|service.api_slug==*source
+            && service.contract.output_map.produces.contains_key(&required.fact_type)));
+        let guaranteed=catalog.services.iter().any(|service|service.contract.output_map.produces.contains_key(&required.fact_type)
+            && native.is_none_or(|source|service.api_slug==source) && !service.optional_outputs.contains(&required.fact_type));
+        if let Some((index,_))=plan.steps[..root].iter().enumerate().find(|(_,candidate)|candidate.entity_ref==step.entity_ref
+            && candidate.service.contract.output_map.produces.contains_key(&required.fact_type)
+            && (!guaranteed || !candidate.service.optional_outputs.contains(&required.fact_type))
+            && native.is_none_or(|source|candidate.service.api_slug==source)) {
+            dependency_steps(plan,task,catalog,index,source,included);
+        }
+    }
+}
+
+/// Proof from the actual selected plan, including its required dependency
+/// steps. A different provider, unused catalog service or another subject
+/// cannot establish coverage. Presentation instructions never add facts.
+pub(crate) fn uncovered_outputs(task:&crate::state::Task,catalog:&Catalog,intent:&Intent,plan:&crate::resolver::Plan)->Vec<String> {
+    let Some(intake)=task.capability_intake.as_ref() else {return vec![]};
+    let mut missing=Vec::new();
+    for (index,cap) in intake.parsed_request.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)) {
+        let found=request_match(intake,index);
+        let literal_subject=cap.subject_id.as_ref().and_then(|id|intake.parsed_request.subjects.iter().find(|subject|&subject.id==id));
+        let goals:BTreeSet<_>=intent.goals.iter().enumerate().filter(|(_,goal)|
+            intent.subjects.get(goal.subject).is_some_and(|subject|
+                literal_subject.is_none_or(|literal|literal.label.eq_ignore_ascii_case(&subject.label)))
+                && found.is_some_and(|found|found.operations.contains(&goal.capability)
+                    && found.apiosk.iter().any(|candidate|candidate_matches(goal,candidate))))
+            .map(|(index,_)|index).collect();
+        let mut contributing=BTreeSet::new();
+        for index in goals {
+            let goal=&intent.goals[index];let entity=intent.subjects[goal.subject].entity_ref;
+            let source=goal.constraints.get("source").and_then(Value::as_str);
+            for (root,step) in plan.steps.iter().enumerate().filter(|(_,step)|Some(step.entity_ref)==entity
+                && step.service.contract.capability_slug==goal.capability
+                && source.is_none_or(|source|step.service.api_slug==source)
+                && endpoint_matches(goal.constraints.get("endpoint_id"),Some(&step.service.endpoint_id.to_string()))) {
+                let _=step;
+                dependency_steps(plan,task,catalog,root,source,&mut contributing);
+            }
+        }
+        for output in cap.outputs.iter().filter(|output|!output_metadata(output)) {
+            let proven=contributing.iter().any(|index|output_covered(output,&plan.steps[*index].service,catalog,false));
+            if !proven {missing.push(format!("{}: {}",cap.name,output));}
+        }
+    }
+    missing
 }
 
 #[cfg(test)]
@@ -558,6 +654,226 @@ mod tests {
             "deterministic catalog facts are not sent for a model rewrite"
         );
     }
+    #[test]
+    fn platform_availability_is_metadata_but_tracking_remains_retrieval() {
+        let mut cap:crate::capability_intake::Capability=serde_json::from_value(json!({
+            "slug":"general.capabilities","name":"Apiosk capabilities","description":"Explain available capabilities from confirmed catalog evidence.",
+            "domain":"general","inputs":[],"outputs":["available_capabilities","missing_sources"],
+            "subject_id":null,"source_hint":null,"confidence":1})).unwrap();
+        assert!(answer_instruction(&cap));
+        cap.inputs.push("tracking_number".into());assert!(!answer_instruction(&cap));
+        cap.inputs.clear();cap.outputs.push("route_delay".into());assert!(!answer_instruction(&cap));
+        cap.outputs.pop();cap.name="Company capabilities".into();assert!(!answer_instruction(&cap));
+        cap.name="Apiosk capabilities".into();cap.subject_id=Some("company".into());assert!(!answer_instruction(&cap));
+    }
+
+    #[test]
+    fn quote_output_proof_uses_only_selected_same_subject_dependency_chain() {
+        use crate::resolver::{Plan,Step};
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+        let accounts=snapshot.services.iter().find(|s|s.contract.capability_slug=="company.accounts").unwrap().clone();
+        let extract=accounts.contract.output_map.produces.values().next().unwrap().clone();
+        snapshot.services.iter_mut().find(|s|s.contract.capability_slug=="company.search").unwrap().contract.output_map.produces.insert("location.area".into(),extract.clone());
+        let primary=snapshot.services.iter_mut().find(|s|s.contract.capability_slug=="company.accounts").unwrap();
+        primary.contract.output_map.produces.clear();primary.contract.output_map.produces.insert("location.construction_year".into(),extract.clone());
+        let mut unrelated=accounts.clone();unrelated.id=uuid::Uuid::new_v4();unrelated.endpoint_id=uuid::Uuid::new_v4();
+        unrelated.contract.capability_slug="company.other-data".into();
+        unrelated.contract.output_map.produces.clear();unrelated.contract.output_map.produces.insert("location.cadastral_parcel_ids".into(),extract.clone());
+        snapshot.services.push(unrelated.clone());
+        for slug in ["location.area","location.construction_year","location.cadastral_parcel_ids"] {
+            snapshot.vocabulary.push(serde_json::from_value(json!({"slug":slug,"value_schema":{"type":"string"}})).unwrap());
+        }
+        let catalog=Catalog::build(snapshot);
+        assert_eq!(catalog.services.len(),3);
+        let (mut intake,mut intent)=fixture("Dam 1 Amsterdam","address",2);
+        let entity=uuid::Uuid::new_v4();intent.subjects[0].entity_ref=Some(entity);
+        intent.goals[0].constraints.insert("endpoint_id".into(),json!(accounts.endpoint_id));
+        intent.goals.push(Goal{capability:unrelated.contract.capability_slug.clone(),subject:0,constraints:BTreeMap::from([("endpoint_id".into(),json!(unrelated.endpoint_id))])});
+        intake.matches[1].operations=BTreeSet::from([unrelated.contract.capability_slug.clone()]);
+        intake.matches[1].apiosk[0].capability=Some(unrelated.contract.capability_slug.clone());
+        intake.matches[1].apiosk[0].endpoint_id=Some(unrelated.endpoint_id.to_string());
+        intake.parsed_request.capabilities[0].outputs=vec!["area".into(),"construction_year".into(),"cadastral_parcel_ids".into(),"source_references".into(),"missing_fields".into()];
+        let mut task=crate::state::Task::default();task.capability_intake=Some(intake);
+        let steps=["company.search","company.accounts","company.other-data"].into_iter().enumerate().map(|(index,cap)|Step{
+            service:catalog.services.iter().find(|s|s.contract.capability_slug==cap).unwrap().clone(),entity_ref:entity,
+            goal_index:if index==1 {0}else{1},browser_fallback:None}).collect();
+        let mut plan=Plan{quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:1,expires_at:chrono::Utc::now(),hash:"test".into(),fee_bps:1500,workflow_slug:None};
+        assert_eq!(uncovered_outputs(&task,&catalog,&intent,&plan),vec!["Check 0: cadastral_parcel_ids"],"the reused lookup supplies area but a valid unrelated goal cannot supply parcels");
+        plan.steps[0].entity_ref=uuid::Uuid::new_v4();
+        assert_eq!(uncovered_outputs(&task,&catalog,&intent,&plan),vec!["Check 0: area","Check 0: cadastral_parcel_ids"],"another subject cannot satisfy the dependency");
+        plan.steps[0].entity_ref=entity;
+        let mut optional_catalog=catalog;
+        optional_catalog.services.iter_mut().find(|s|s.contract.capability_slug=="company.search").unwrap().optional_outputs.push("company.id".into());
+        plan.steps[0].service.optional_outputs.push("company.id".into());
+        assert_eq!(uncovered_outputs(&task,&optional_catalog,&intent,&plan),vec!["Check 0: cadastral_parcel_ids"],"the sole conditional lookup producer remains the selected dependency");
+        plan.steps[1].service.contract.output_map.produces.insert("location.cadastral_parcel_ids".into(),extract);
+        assert!(uncovered_outputs(&task,&optional_catalog,&intent,&plan).is_empty());
+    }
+
+    #[test]
+    fn reviewed_optional_fields_preserve_core_quotes_without_inventing_missing_fields() {
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/catalog.json")).unwrap();
+        let annotations:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/reviewed-schemas.json")).unwrap();
+        for fact in &mut snapshot.vocabulary {
+            if let Some(schema)=annotations["schemas"].get(&fact.slug) {fact.value_schema=schema.clone();}
+        }
+        let catalog=Catalog::build(snapshot);assert!(catalog.rejected.is_empty(),"{:?}",catalog.rejected);
+        for (capability,fields) in [
+            ("vehicle.technical-profile",vec!["license_plate","brand","vehicle_type","apk_expiry","outstanding_recall_indicator","primary_color","engine_displacement"]),
+            ("company.registry-profile",vec!["legal_name","registration_number","registration_status","legal_form","incorporation_date","registered_address"]),
+            ("company.officers",vec!["officers","officer_name","role","appointment_date"]),
+            ("company.significant-control",vec!["persons_with_significant_control","person_name","nature_of_control"]),
+            ("vat.eu.validate",vec!["is_valid","check_date"]),
+        ] {
+            let service=catalog.services.iter().find(|service|service.contract.capability_slug==capability).unwrap();
+            for field in fields {assert!(output_covered(field,service,&catalog,false),"reviewed {capability} supports {field}");}
+        }
+        let rdw=catalog.services.iter().find(|service|service.contract.capability_slug=="vehicle.technical-profile").unwrap();
+        for absent in ["vin","fuel_type","year_of_manufacture","odometer_reading","recall_description","recall_status"] {
+            assert!(!output_covered(absent,rdw,&catalog,false),"an adjacent RDW field cannot stand in for {absent}");
+        }
+    }
+
+    #[test]
+    fn reviewed_property_aliases_preserve_catalog_admission_and_fact_extraction() {
+        let baseline:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap();
+        let mut with_alias:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap();
+        let schema=&mut with_alias.vocabulary.iter_mut().find(|fact|fact.slug=="fx.ecb.reference_rate").unwrap().value_schema;
+        schema["properties"]["date"]["$comment"]=json!("{\"apiosk_output_aliases_v1\":[\"observation_date\"]}");
+        catalog_core::facts::schema::check_schema(schema).unwrap();
+        let catalog=Catalog::build(with_alias);let baseline=Catalog::build(baseline);
+        assert!(catalog.rejected.is_empty());
+        assert!(output_covered("observation_date",&catalog.services[0],&catalog,false));
+        let raw:Value=serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/eur-usd.json")).unwrap();
+        let original=baseline.services[0].contract.extract(&raw,&baseline.vocabulary).unwrap();
+        let annotated=catalog.services[0].contract.extract(&raw,&catalog.vocabulary).unwrap();
+        assert_eq!(original,annotated,"planning annotations never change upstream data extraction");
+        for comment in ["not-json".to_owned(),"{}".into(),"{\"apiosk_output_aliases_v1\":[\"is_valid\",\"is_valid\"]}".into(),
+            "{\"apiosk_output_aliases_v1\":[\"not valid\"]}".into(),"{\"apiosk_output_aliases_v1\":[\"is_valid\"],\"other\":true}".into(),
+            "x".repeat(2049),json!({"apiosk_output_aliases_v1":vec!["is_valid";33]}).to_string()] {
+            assert!(!property_alias(&json!({"$comment":comment}),"is_valid"));
+        }
+    }
+
+    #[test]
+    fn saved_contracts_prove_declared_fields_but_not_absent_dates_or_opaque_properties() {
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/catalog.json")).unwrap());
+        for (capability,fields) in [
+            ("company.registry-profile",vec!["company_name","company_number"]),
+            ("company.officers",vec!["officers"]),
+            ("company.significant-control",vec!["persons_with_significant_control"]),
+            ("vehicle.technical-profile",vec!["technical_page"]),
+            ("fx.ecb-reference-rate",vec!["base","quote","date","rate"]),
+            ("vat.eu.validate",vec!["country_code","vat_number","valid","request_date","name","address"]),
+            ("domain.registration",vec!["domain","registrar","registered_at","nameservers"]),
+            ("domain.mail-dns",vec!["domain","exists","accepts_mail","mx","dnssec_validated"]),
+            ("news.reuters-search",vec!["titles","original_links"]),
+        ] {
+            let service=catalog.services.iter().find(|service|service.contract.capability_slug==capability).unwrap();
+            for field in fields {assert!(output_covered(field,service,&catalog,false),"{capability} declares {field}");}
+        }
+        for (capability,field) in [("news.reuters-search","publication_dates"),("building.bag-building","cadastral_parcel_ids"),
+            ("building.bag-unit","cadastral_parcel_ids"),("vehicle.technical-profile","brand"),("company.officers","date_of_birth")] {
+            let service=catalog.services.iter().find(|service|service.contract.capability_slug==capability).unwrap();
+            assert!(!output_covered(field,service,&catalog,false),"{capability} does not document {field}; opaque records require better schema metadata");
+        }
+        let schema=json!({"type":"object","properties":{"optional_value":{"type":"string"}}});
+        assert!(schema_covers(&schema,"optional_value",false));
+        assert!(!schema_covers(&schema,"optional_value",true));
+        let alias=json!({"type":"object","properties":{"valid":{"type":"boolean","$comment":"{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"}}});
+        assert!(schema_covers(&alias,"is_valid",false));
+        assert!(!schema_covers(&alias,"validity",false),"aliases match only the exact reviewed concept");
+        assert!(!schema_covers(&json!({"type":"object","$comment":"{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"}),"is_valid",false),"aliases must belong to declared fields");
+    }
+
+    #[test]
+    #[ignore="offline saved component audit; explicit local fixture paths only"]
+    fn audit_saved_component_quote_output_coverage() {
+        let base=std::env::var("APIOSK_COMPONENT_AUDIT_DIR").expect("sanitized audit directory");
+        let snapshot=std::env::var("APIOSK_COMPONENT_AUDIT_CATALOG").expect("saved runtime snapshot");
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_slice(&std::fs::read(snapshot).unwrap()).unwrap();
+        let fx:crate::catalog::Snapshot=serde_json::from_slice(&std::fs::read(format!("{base}/frankfurter-runtime-catalog.json")).unwrap()).unwrap();
+        snapshot.services.extend(fx.services);snapshot.vocabulary.extend(fx.vocabulary);snapshot.known_sources.extend(fx.known_sources);
+        let overlay=std::env::var("APIOSK_COMPONENT_SCHEMA_PROPOSAL").ok();
+        if let Some(path)=&overlay {
+            let proposal:Value=serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            for change in proposal["changes"].as_array().unwrap() {
+                let fact=snapshot.vocabulary.iter_mut().find(|fact|Some(fact.slug.as_str())==change["slug"].as_str()).unwrap();
+                assert_eq!(fact.value_schema,change["before_schema"],"offline overlay must match captured schema");
+                fact.value_schema=change["after_schema"].clone();
+            }
+        }
+        let catalog=Catalog::build(snapshot);
+        let mut results=vec![];
+        for file in ["component-quotes-diagnostics.json","component-domain-rvo-diagnostics.json","component-title-gleif-diagnostics.json"] {
+            let data:Value=serde_json::from_slice(&std::fs::read(format!("{base}/{file}")).unwrap()).unwrap();
+            for raw in data["tasks"].as_array().unwrap() {
+                let Some(quote)=raw["quote"].as_object() else {
+                    results.push(json!({"task_id":raw["task_id"],"boundary":"no saved quote; existing refusal"}));continue;
+                };
+                let intent:Intent=serde_json::from_value(raw["intent"].clone()).unwrap();
+                let mut task=crate::state::Task::default();
+                task.capability_intake=serde_json::from_value(raw["intake"].clone()).unwrap();
+                let mut steps=vec![];
+                for entry in quote["steps"].as_array().unwrap() {
+                    let service=catalog.services.iter().find(|s|entry["contract_id"].as_str()==Some(&s.id.to_string())
+                        || (entry["endpoint_id"].as_str()==Some(&s.endpoint_id.to_string()) && entry["capability"]==s.contract.capability_slug)).expect("exact saved contract").clone();
+                    let goal_index=entry["goal_index"].as_u64().map(|n|n as usize).unwrap_or_else(||intent.goals.iter().position(|goal|goal.capability==service.contract.capability_slug).unwrap_or(0));
+                    let entity_ref=intent.subjects[intent.goals[goal_index].subject].entity_ref.unwrap();
+                    steps.push(crate::resolver::Step{service,entity_ref,goal_index,browser_fallback:None});
+                }
+                let plan=crate::resolver::Plan{quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:0,expires_at:chrono::Utc::now(),hash:"offline audit".into(),fee_bps:1500,workflow_slug:None};
+                results.push(json!({"task_id":raw["task_id"],"has_intake":task.capability_intake.is_some(),"missing_output_contracts":uncovered_outputs(&task,&catalog,&intent,&plan)}));
+            }
+        }
+        std::fs::write(format!("{base}/component-output-coverage-impact.json"),serde_json::to_vec_pretty(&json!({"boundary":"Exact saved plans replayed without model, provider or payment calls; catalogs may be older than latest metadata updates.","reviewed_metadata_overlay":overlay.is_some(),"results":results})).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn missing_source_explanation_preserves_real_property_retrievals() {
+        let (mut intake, mut intent) = fixture("Dam 1 Amsterdam", "address", 1);
+        let mut cap: crate::capability_intake::Capability = serde_json::from_value(json!({
+            "name":"Missing sources","slug":"location.property.missing.sources","domain":"location",
+            "inputs":["address"],"missing":[],"outputs":["missing_sources"],"confidence":0.8,
+            "subject_id":"s1","source_hint":null,
+            "description":"Identifies which data sources are missing for a comprehensive property analysis."})).unwrap();
+        assert!(answer_instruction(&cap));
+        intake.parsed_request.capabilities.push(cap.clone());
+        assert!(retrievals_matched(&intake));
+        prepare(&mut intent,&intake,&catalog()).unwrap();
+        assert_eq!(intent.goals.len(),1);
+        assert!(intent.answer_operations.iter().any(|op|op.contains("Missing sources")));
+        cap.outputs.push("soil_conditions".into());
+        assert!(!answer_instruction(&cap));
+        cap.outputs=vec!["missing_sources".into()];cap.source_hint=Some("public-register".into());
+        assert!(!answer_instruction(&cap));
+        cap.source_hint=None;cap.inputs.push("website_url".into());
+        assert!(!answer_instruction(&cap));
+    }
+
+    #[test]
+    fn provenance_flags_describe_existing_evidence_without_hiding_new_retrievals() {
+        let (mut intake, mut intent) = fixture("ASML", "company", 1);
+        let mut cap: crate::capability_intake::Capability = serde_json::from_value(json!({
+            "name":"Distinguish official sources from AI analyses","slug":"research.distinguish.sources",
+            "domain":"research","inputs":[],"missing":[],
+            "outputs":["source_type","is_official","is_ai_generated","source_reference"],
+            "confidence":0.9,"subject_id":null,"source_hint":null,
+            "description":"Differentiates between information derived from official public databases and that generated by artificial intelligence."})).unwrap();
+        assert!(answer_instruction(&cap));
+        intake.parsed_request.capabilities.push(cap.clone());
+        assert!(retrievals_matched(&intake));
+        prepare(&mut intent, &intake, &catalog()).unwrap();
+        assert_eq!(intent.goals.len(), 1);
+        assert!(intent.answer_operations.iter().any(|op| op.contains("Distinguish official sources")));
+        cap.source_hint=Some("official-registry".into());
+        assert!(!answer_instruction(&cap));
+        cap.source_hint=None;cap.inputs.push("website_url".into());
+        assert!(!answer_instruction(&cap));
+        cap.inputs.clear();cap.outputs.push("company_ownership".into());
+        assert!(!answer_instruction(&cap));
+    }
+
     #[test]
     fn citation_formatting_is_an_answer_instruction_but_citation_data_stays_a_retrieval() {
         let (mut intake, mut intent) = fixture("MONZO BANK LIMITED", "company", 1);
