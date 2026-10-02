@@ -21,6 +21,7 @@ pub mod followups;
 pub mod input_binding;
 pub mod integrations;
 pub mod invoice_document;
+mod link_preview;
 pub mod maintenance;
 pub mod parser;
 pub mod annual_report;

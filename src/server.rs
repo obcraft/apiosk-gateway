@@ -24,6 +24,7 @@ use uuid::Uuid;
 pub(crate) mod ask_v2;
 mod ask_v2_external;
 mod integrations;
+mod link_preview;
 mod recurring;
 
 #[derive(Clone)]
@@ -82,6 +83,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         // never forwarded to the legacy executor by the fallback.
         .route("/v2/requests/:request_id", any(ask_moved))
         .route("/v2/discover", post(discover))
+        .route("/v2/link-preview", post(link_preview::preview).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/chat", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
