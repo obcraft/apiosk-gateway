@@ -1,0 +1,3144 @@
+{
+  "provenance": "2026-10-02 user-authorized public example workflows in the live App, scoped saved chat/task exports. Account IDs, task IDs, receipts and authorization data omitted. Negative historical plans are regression inputs, never execution instructions.",
+  "cases": [
+    {
+      "case": 2,
+      "question": "Geef voor Dam 1 Amsterdam BAG-objectgegevens, perceel, bouwjaar, oppervlakte, omgevingsplan, bodemrisico, buurtcijfers, woningwaarde en energielabel. Benoem ontbrekende onderdelen.",
+      "displayed_parse": {
+        "meta": {
+          "model": "qwen/qwen3-30b-a3b-instruct-2507",
+          "parsed_at": "2026-10-02T10:29:47.397030187+00:00",
+          "text_sha256": "534df4cfdd22a3316ae8516029f72423c116698093749967a3e57751321e69d5"
+        },
+        "language": "nl",
+        "subjects": [
+          {
+            "id": "s1",
+            "type": "address",
+            "label": "Dam 1 Amsterdam",
+            "identifiers": {}
+          }
+        ],
+        "deliverable": {
+          "format": "chat",
+          "operations": []
+        },
+        "capabilities": [
+          {
+            "name": "Location property details",
+            "slug": "location.property.details",
+            "domain": "location",
+            "inputs": [
+              "bag_object_id"
+            ],
+            "missing": [
+              "bag_object_id"
+            ],
+            "outputs": [
+              "parcel_number",
+              "construction_year",
+              "surface_area",
+              "environmental_plan",
+              "soil_risk",
+              "neighborhood_scores",
+              "property_value",
+              "energy_label"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Retrieves detailed property information for a given address or BAG object ID.",
+            "source_hint": null
+          },
+          {
+            "name": "Location property missing components",
+            "slug": "location.property.missing.components",
+            "domain": "location",
+            "inputs": [
+              "bag_object_id"
+            ],
+            "missing": [
+              "bag_object_id"
+            ],
+            "outputs": [
+              "missing_components"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Identifies and lists missing components in the property data for a given address or BAG object ID.",
+            "source_hint": null
+          }
+        ]
+      },
+      "observed_intake": {
+        "matches": [
+          {
+            "slug": "general.building.bag.building",
+            "query": "Bag building details. Retrieves detailed building information from the Dutch National Register of Addresses and Buildings (BAG). address. bag",
+            "apiosk": [
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "building.bag-building",
+                "description": "Follow the single building explicitly linked by BAG; return construction year, building ID and status.",
+                "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.cbs-neighbourhood-2025",
+                "description": "Retrieve CBS 2025 neighbourhood statistics via PDOK using an exact neighbourhood code. Area aggregates, not company facts or property WOZ.",
+                "endpoint_id": "a76e8505-fb44-4be0-b560-c6f7d8c9f98e",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "building.bag-unit",
+                "description": "Retrieve the exact BAG verblijfsobject and its explicit building links.",
+                "endpoint_id": "892e7b28-5202-4ca8-acf7-b201f4701a1a",
+                "source_slug": "pdok",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "area.cbs-neighbourhood-2025",
+              "building.bag-building",
+              "building.bag-unit"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "general.building.bag.unit",
+            "query": "Bag unit details. Retrieves unit-level information for a specific building from the Dutch National Register of Addresses and Buildings (BAG). building id. bag",
+            "apiosk": [
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "building.bag-unit",
+                "description": "Retrieve the exact BAG verblijfsobject and its explicit building links.",
+                "endpoint_id": "892e7b28-5202-4ca8-acf7-b201f4701a1a",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "building.bag-building",
+                "description": "Follow the single building explicitly linked by BAG; return construction year, building ID and status.",
+                "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.020000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "building.registry-lookup",
+                "description": "Retrieve an official BAG address and building record including postcode, street, municipality, province, WGS84 and RD coordinates, building identifiers, year, area, status and use purpose.",
+                "endpoint_id": "06903c94-15c0-48bb-bf06-99969468a19e",
+                "source_slug": "pdok",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "building.bag-building",
+              "building.bag-unit",
+              "building.registry-lookup"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "general.area.demographics",
+            "query": "Neighborhood demographics. Provides demographic data for a given neighborhood based on official statistics. neighbourhood code",
+            "apiosk": [
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.020000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.demographics",
+                "description": "Retrieve official statistics for a small geographic area \u2014 postcode, neighbourhood, district or municipality: number of residents, age breakdown, households and household size, housing stock, tenure and population density, as published by the national statistics office. Official statistics rather than modelled or panel estimates, which is also why small areas carry suppressed values that must not ",
+                "endpoint_id": "32c478de-4c5b-487d-83d9-eed3c52a4b2f",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.020000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.demographics",
+                "description": "Retrieve official statistics for a small geographic area \u2014 postcode, neighbourhood, district or municipality: number of residents, age breakdown, households and household size, housing stock, tenure and population density, as published by the national statistics office. Official statistics rather than modelled or panel estimates, which is also why small areas carry suppressed values that must not ",
+                "endpoint_id": "3bc70dc0-05e1-4315-a76e-2c53a713da9b",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.020000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.demographics",
+                "description": "Retrieve official statistics for a small geographic area \u2014 postcode, neighbourhood, district or municipality: number of residents, age breakdown, households and household size, housing stock, tenure and population density, as published by the national statistics office. Official statistics rather than modelled or panel estimates, which is also why small areas carry suppressed values that must not ",
+                "endpoint_id": "b5ba7557-4b3b-4c5c-b414-26821dafa1e9",
+                "source_slug": "pdok",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "area.demographics"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "general.area.administrative.boundary",
+            "query": "Administrative boundary. Returns the administrative boundary of a location, such as a municipality or district. location",
+            "apiosk": [
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.010000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.administrative-boundary",
+                "description": "Retrieve the official boundary and code of an administrative area \u2014 municipality, province, district or neighbourhood \u2014 by name, by code, or by a point it contains. The geometry to clip a question to one jurisdiction, and the code to join other official statistics on. Dutch coverage: gemeentegebied, provinciegebied, bestuurlijke gebieden, CBS gemeente- wijk- en buurtcodes.",
+                "endpoint_id": "2761d94f-f62a-41bb-97b1-47b2f8832df8",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.010000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "area.administrative-boundary",
+                "description": "Retrieve the official boundary and code of an administrative area \u2014 municipality, province, district or neighbourhood \u2014 by name, by code, or by a point it contains. The geometry to clip a question to one jurisdiction, and the code to join other official statistics on. Dutch coverage: gemeentegebied, provinciegebied, bestuurlijke gebieden, CBS gemeente- wijk- en buurtcodes.",
+                "endpoint_id": "d834b54c-88d1-4c32-9abc-4bfda46b895b",
+                "source_slug": "pdok",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.pdok.nl/ogc-apis",
+                "name": "PDOK Maps & Addresses",
+                "price": "0.020000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "property.parcel-lookup",
+                "description": "Retrieve the cadastral parcel covering a point or area from a national land register: its official designation, boundary geometry and registered surface area. Answers which plot a location sits on and how big that plot is. Carries no ownership or personal data \u2014 a public cadastral map records the parcel, never who owns it. Dutch BRK coverage: kadastrale kaart, perceel, kadastrale gemeente, sectie,",
+                "endpoint_id": "b40d5e33-2b18-48a0-a603-f1b80d4947c4",
+                "source_slug": "pdok",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "area.administrative-boundary",
+              "property.parcel-lookup"
+            ],
+            "coinbase_status": "pending"
+          }
+        ],
+        "parsed_request": {
+          "meta": {
+            "model": "qwen/qwen3-30b-a3b-instruct-2507",
+            "parsed_at": "2026-10-02T10:30:49.360614725+00:00",
+            "text_sha256": "534df4cfdd22a3316ae8516029f72423c116698093749967a3e57751321e69d5"
+          },
+          "language": "nl",
+          "subjects": [
+            {
+              "id": "s1",
+              "type": "address",
+              "label": "Dam 1 Amsterdam",
+              "identifiers": {}
+            }
+          ],
+          "deliverable": {
+            "format": "chat",
+            "operations": []
+          },
+          "capabilities": [
+            {
+              "name": "Bag building details",
+              "slug": "general.building.bag.building",
+              "domain": "general",
+              "inputs": [
+                "address"
+              ],
+              "missing": [],
+              "outputs": [
+                "building_id",
+                "construction_year",
+                "surface_area",
+                "parcel_designations",
+                "environmental_plan",
+                "soil_risk",
+                "neighbourhood_scores",
+                "property_value",
+                "energy_label",
+                "building_status"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Retrieves detailed building information from the Dutch National Register of Addresses and Buildings (BAG).",
+              "source_hint": "bag"
+            },
+            {
+              "name": "Bag unit details",
+              "slug": "general.building.bag.unit",
+              "domain": "general",
+              "inputs": [
+                "building_id"
+              ],
+              "missing": [
+                "building_id"
+              ],
+              "outputs": [
+                "unit_id",
+                "unit_type",
+                "floor_area",
+                "number_of_units",
+                "occupancy_status"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Retrieves unit-level information for a specific building from the Dutch National Register of Addresses and Buildings (BAG).",
+              "source_hint": "bag"
+            },
+            {
+              "name": "Neighborhood demographics",
+              "slug": "general.area.demographics",
+              "domain": "general",
+              "inputs": [
+                "neighbourhood_code"
+              ],
+              "missing": [
+                "neighbourhood_code"
+              ],
+              "outputs": [
+                "population",
+                "age_distribution",
+                "household_size",
+                "income_level",
+                "education_level",
+                "employment_rate"
+              ],
+              "confidence": 0.7,
+              "subject_id": "s1",
+              "description": "Provides demographic data for a given neighborhood based on official statistics.",
+              "source_hint": null
+            },
+            {
+              "name": "Administrative boundary",
+              "slug": "general.area.administrative.boundary",
+              "domain": "general",
+              "inputs": [
+                "location"
+              ],
+              "missing": [],
+              "outputs": [
+                "administrative_boundary",
+                "municipality",
+                "district",
+                "province"
+              ],
+              "confidence": 0.6,
+              "subject_id": "s1",
+              "description": "Returns the administrative boundary of a location, such as a municipality or district.",
+              "source_hint": null
+            }
+          ]
+        },
+        "catalog_version": "f4bd094b21420a0bb45db70bce27cd36cf7da860231c47e5a2070e875a3b8851",
+        "selected_capabilities": [
+          "area.administrative-boundary",
+          "area.cbs-neighbourhood-2025",
+          "area.demographics",
+          "building.bag-building",
+          "building.bag-unit",
+          "building.registry-lookup",
+          "property.parcel-lookup"
+        ],
+        "apiosk_sources_searched": 37
+      },
+      "observed_intent": {
+        "goals": [
+          {
+            "subject": 0,
+            "capability": "building.bag-building",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "building.bag-unit",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "area.demographics",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "property.parcel-lookup",
+            "constraints": {}
+          }
+        ],
+        "subjects": [
+          {
+            "label": "Dam 1 Amsterdam",
+            "values": {},
+            "entity_ref": "cc6aa75e-2e63-4081-9122-53600c4374ee"
+          }
+        ],
+        "answer_operations": [
+          "BAG-objectgegevens, perceel, bouwjaar, oppervlakte, omgevingsplan, bodemrisico, buurtcijfers, woningwaarde en energielabel ophalen en samenvatten"
+        ],
+        "unresolved_references": []
+      }
+    },
+    {
+      "case": 3,
+      "question": "Maak een KYC-dossier voor MONZO BANK LIMITED in het Verenigd Koninkrijk: registerprofiel, bestuurders, personen met significante zeggenschap, sancties, PEP en adverse media. Benoem welke controles ontbreken en citeer de bronnen.",
+      "displayed_parse": {
+        "meta": {
+          "model": "qwen/qwen3-30b-a3b-instruct-2507",
+          "parsed_at": "2026-10-02T10:30:41.036155327+00:00",
+          "text_sha256": "83bd8651c8d35d496726926129ba195ea4fb256d95e82b19f7c0b40bdc51267b"
+        },
+        "language": "nl",
+        "subjects": [
+          {
+            "id": "s1",
+            "type": "company",
+            "label": "MONZO BANK LIMITED",
+            "identifiers": {}
+          }
+        ],
+        "deliverable": {
+          "format": "chat",
+          "operations": []
+        },
+        "capabilities": [
+          {
+            "name": "Company profile",
+            "slug": "company.profile",
+            "domain": "company",
+            "inputs": [
+              "kvk_number"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "legal_name",
+              "registration_number",
+              "status",
+              "incorporation_date"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Retrieves the official profile of a company including its legal name, registration number, status, and incorporation date.",
+            "source_hint": null
+          },
+          {
+            "name": "Company executives",
+            "slug": "company.executives",
+            "domain": "company",
+            "inputs": [
+              "kvk_number"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "name",
+              "position",
+              "nationality",
+              "date_of_birth",
+              "residence_address"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Lists the individuals serving as directors or senior management in a company.",
+            "source_hint": null
+          },
+          {
+            "name": "Significant control persons",
+            "slug": "company.significant.control",
+            "domain": "company",
+            "inputs": [
+              "kvk_number"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "name",
+              "percentage_ownership",
+              "nature_of_control",
+              "residence_address"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Identifies individuals who hold significant control over a company, such as through share ownership or voting rights.",
+            "source_hint": null
+          },
+          {
+            "name": "Sanctions check",
+            "slug": "company.sanctions",
+            "domain": "company",
+            "inputs": [
+              "kvk_number",
+              "name"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "sanctioned",
+              "list_name",
+              "reason",
+              "date_added"
+            ],
+            "confidence": 0.7,
+            "subject_id": "s1",
+            "description": "Checks whether a company or its associated persons are listed on international sanctions lists.",
+            "source_hint": null
+          },
+          {
+            "name": "PEP check",
+            "slug": "company.pep",
+            "domain": "company",
+            "inputs": [
+              "kvk_number",
+              "name"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "is_pep",
+              "pep_type",
+              "country",
+              "start_date",
+              "source"
+            ],
+            "confidence": 0.7,
+            "subject_id": "s1",
+            "description": "Determines if a company or its key individuals are Politically Exposed Persons.",
+            "source_hint": "pep"
+          },
+          {
+            "name": "Adverse media search",
+            "slug": "company.adverse.media",
+            "domain": "company",
+            "inputs": [
+              "kvk_number",
+              "name"
+            ],
+            "missing": [
+              "kvk_number"
+            ],
+            "outputs": [
+              "media_entries",
+              "publication_date",
+              "summary",
+              "source_url"
+            ],
+            "confidence": 0.6,
+            "subject_id": "s1",
+            "description": "Searches for negative news or public records related to a company or its key individuals.",
+            "source_hint": "adverse media"
+          }
+        ]
+      },
+      "observed_intake": {
+        "matches": [
+          {
+            "slug": "company.registry.profile",
+            "query": "Company registry profile. Retrieves the official registry profile of a company from its legal identifier. kvk number",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "4e02bf35-6cbd-5231-88f7-1cf9a3893d7d",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developers.kvk.nl/nl/documentation",
+                "name": "KVK Business Register",
+                "price": "0.076087 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+                "source_slug": "kvk-dutch-business-register",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.registry-profile"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.officers",
+            "query": "Company officers. Lists the individuals serving as officers in a company, including their roles and appointment dates. kvk number",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.officers",
+                "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+                "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.companies-house.get-officers-f01533f9",
+                "description": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held (director, secretary, LLP member), when they were appointed and when they resigned, their nationality, occupation and country of residence, and their date of b",
+                "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f",
+                "source_slug": "companies-house",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+                "description": "GB: UK company officers live from Companies House, the official UK company registry, by company number (e.g. GB/00102498): active directors and secretaries with role, appointment date, nationality, occupation, country of residence and month+year of birth only \u2014 never a correspondence address (GDPR minimisation). Resigned-officer count included. Built for KYB and due diligence on director appointme",
+                "endpoint_id": "b535c580-b983-5c83-a58a-796360e6df74",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.officers",
+              "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+              "operation.companies-house.get-officers-f01533f9"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.significant.control",
+            "query": "Company significant control. Identifies individuals with significant control over a company, including their personal details and level of control. kvk number",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.significant-control",
+                "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+                "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+                "description": "GB: UK beneficial owners (PSC, persons with significant control) live from Companies House for AML, KYB and compliance: individual and corporate-entity PSCs with natures of control (ownership/voting bands), notification dates, plus official PSC statements. Ceased PSCs excluded by default (inclure_cesses=true adds them with their ceased date). Beyond French-registry parity \u2014 France exposes no open ",
+                "endpoint_id": "29d36ea3-6900-5f50-a67e-4b4c2bcbe3b0",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.032609 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.companies-house.get-persons-with-significant-control-86d4c314",
+                "description": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (ownership of shares in the 25-50%, 50-75% or 75-100% band, voting rights, the right to appoint or remove directors, significant influence), and when it ceased. U",
+                "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b",
+                "source_slug": "companies-house",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.significant-control",
+              "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+              "operation.companies-house.get-persons-with-significant-control-86d4c314"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.sanctions.screen",
+            "query": "Company sanctions screen. Checks whether a company is listed on international or national sanctions lists. kvk number",
+            "apiosk": [
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.108696 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sanctions-screen",
+                "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+                "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://compliancepulse.theaslangroupllc.com/llms.txt",
+                "name": "CompliancePulse",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+                "description": "Is this person or company sanctioned? Screens a name against the live US Treasury OFAC SDN and Consolidated (non-SDN) lists \u2014 sanctions screening, watchlist check, KYC/AML pre-check, counterparty screening before a payment. Fuzzy-matches primary names AND every OFAC alias, so transliteration and word-order variants still hit. Deterministic: no LLM. Returns official OFAC rows verbatim (programs, SD",
+                "endpoint_id": "96e543e5-6e38-4fe2-818c-e6b2ea6064ab",
+                "source_slug": "compliancepulse",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.opensanctions.get-reconcile-3c473989",
+                "description": "Service manifest for the OpenRefine reconciliation API \u2014 the W3C reconciliation protocol description that lets OpenRefine, and any other reconciliation client, screen a whole spreadsheet or column of names against OpenSanctions. Returns the supported protocol versions, the identifier and schema spaces, the batch size, the default entity types and the preview/suggest/extend service URLs. Append the",
+                "endpoint_id": "3c473989-d492-4d6f-93d2-cd713ec34324",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sanctions-screen",
+              "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+              "operation.opensanctions.get-reconcile-3c473989"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.watchlist.search",
+            "query": "Company watchlist search. Searches for a company in global watchlists, including PEPs and adverse media. kvk number",
+            "apiosk": [
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.097826 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.watchlist-search",
+                "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+                "endpoint_id": "acd906d7-1a9d-4ac7-b949-a163fe08c678",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.108696 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sanctions-screen",
+                "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+                "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.065217 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.watchlist-statements",
+                "description": "Read source assertions for one OpenSanctions entity.",
+                "endpoint_id": "a20ff748-d3d5-4550-b413-c939929ba07e",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sanctions-screen",
+              "company.watchlist-search",
+              "company.watchlist-statements"
+            ],
+            "coinbase_status": "pending"
+          }
+        ],
+        "parsed_request": {
+          "meta": {
+            "model": "qwen/qwen3-30b-a3b-instruct-2507",
+            "parsed_at": "2026-10-02T10:31:24.213575310+00:00",
+            "text_sha256": "83bd8651c8d35d496726926129ba195ea4fb256d95e82b19f7c0b40bdc51267b"
+          },
+          "language": "nl",
+          "subjects": [
+            {
+              "id": "s1",
+              "type": "company",
+              "label": "MONZO BANK LIMITED",
+              "identifiers": {}
+            }
+          ],
+          "deliverable": {
+            "format": "chat",
+            "operations": [
+              "analyze",
+              "compare",
+              "summarize"
+            ]
+          },
+          "capabilities": [
+            {
+              "name": "Company registry profile",
+              "slug": "company.registry.profile",
+              "domain": "company",
+              "inputs": [
+                "kvk_number"
+              ],
+              "missing": [
+                "kvk_number"
+              ],
+              "outputs": [
+                "legal_name",
+                "registration_date",
+                "status",
+                "registered_address",
+                "sector",
+                "jurisdiction"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Retrieves the official registry profile of a company from its legal identifier.",
+              "source_hint": null
+            },
+            {
+              "name": "Company officers",
+              "slug": "company.officers",
+              "domain": "company",
+              "inputs": [
+                "kvk_number"
+              ],
+              "missing": [
+                "kvk_number"
+              ],
+              "outputs": [
+                "name",
+                "role",
+                "appointment_date",
+                "residence_country"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Lists the individuals serving as officers in a company, including their roles and appointment dates.",
+              "source_hint": null
+            },
+            {
+              "name": "Company significant control",
+              "slug": "company.significant.control",
+              "domain": "company",
+              "inputs": [
+                "kvk_number"
+              ],
+              "missing": [
+                "kvk_number"
+              ],
+              "outputs": [
+                "name",
+                "percentage_control",
+                "residence_country",
+                "date_of_control"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Identifies individuals with significant control over a company, including their personal details and level of control.",
+              "source_hint": null
+            },
+            {
+              "name": "Company sanctions screen",
+              "slug": "company.sanctions.screen",
+              "domain": "company",
+              "inputs": [
+                "kvk_number"
+              ],
+              "missing": [
+                "kvk_number"
+              ],
+              "outputs": [
+                "sanctioned",
+                "list_names",
+                "match_details"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Checks whether a company is listed on international or national sanctions lists.",
+              "source_hint": null
+            },
+            {
+              "name": "Company watchlist search",
+              "slug": "company.watchlist.search",
+              "domain": "company",
+              "inputs": [
+                "kvk_number"
+              ],
+              "missing": [
+                "kvk_number"
+              ],
+              "outputs": [
+                "pep_status",
+                "adverse_media",
+                "watchlist_matches"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Searches for a company in global watchlists, including PEPs and adverse media.",
+              "source_hint": null
+            }
+          ]
+        },
+        "catalog_version": "f4bd094b21420a0bb45db70bce27cd36cf7da860231c47e5a2070e875a3b8851",
+        "selected_capabilities": [
+          "company.officers",
+          "company.registry-profile",
+          "company.sanctions-screen",
+          "company.significant-control",
+          "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+          "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+          "company.watchlist-search",
+          "company.watchlist-statements",
+          "operation.companies-house.get-officers-f01533f9",
+          "operation.companies-house.get-persons-with-significant-control-86d4c314",
+          "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+          "operation.opensanctions.get-reconcile-3c473989"
+        ],
+        "apiosk_sources_searched": 37
+      },
+      "observed_intent": {
+        "goals": [
+          {
+            "subject": 0,
+            "capability": "company.registry-profile",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.watchlist-search",
+            "constraints": {}
+          }
+        ],
+        "subjects": [
+          {
+            "label": "MONZO BANK LIMITED",
+            "values": {
+              "company.name": "MONZO BANK LIMITED"
+            },
+            "entity_ref": "78c32f4f-6c09-42ee-a97b-710fcb0e777d"
+          }
+        ],
+        "answer_operations": [
+          "analyseer",
+          "vergelijk",
+          "samenvat"
+        ],
+        "unresolved_references": []
+      }
+    },
+    {
+      "case": 11,
+      "question": "Geef fundamentals, koers, EV/EBITDA, eerstvolgende earnings, analistenconsensus, insidertransacties en nieuws voor AAPL. Onderscheid actuele cijfers van ontbrekende data.",
+      "displayed_parse": {
+        "meta": {
+          "model": "qwen/qwen3-30b-a3b-instruct-2507",
+          "parsed_at": "2026-10-02T10:37:46.278658881+00:00",
+          "text_sha256": "24ae22d88c2f745d253b428ca58a4b2bc146b261c0f8488f3288f7530463599e"
+        },
+        "language": "en",
+        "subjects": [
+          {
+            "id": "s1",
+            "type": "company",
+            "label": "AAPL",
+            "identifiers": {}
+          }
+        ],
+        "deliverable": {
+          "format": "chat",
+          "operations": []
+        },
+        "capabilities": [
+          {
+            "name": "Company profile",
+            "slug": "company.profile",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "legal_name",
+              "industry",
+              "headquarters",
+              "website"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Provides basic information about a company, including its legal name, industry, and headquarters.",
+            "source_hint": null
+          },
+          {
+            "name": "Market data",
+            "slug": "company.market.data",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "current_price",
+              "market_cap",
+              "volume",
+              "currency"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Returns current market information for a company, such as stock price and trading volume.",
+            "source_hint": null
+          },
+          {
+            "name": "Financial key figures",
+            "slug": "company.financial.keyFigures",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "revenue",
+              "ebitda",
+              "net_income",
+              "equity",
+              "debt",
+              "ev_ebitda",
+              "eps"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Extracts key financial metrics from a company's latest reported financial statements.",
+            "source_hint": null
+          },
+          {
+            "name": "Next earnings date",
+            "slug": "company.earnings.next",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "next_earnings_date"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Provides the upcoming earnings release date for a company.",
+            "source_hint": null
+          },
+          {
+            "name": "Analyst consensus",
+            "slug": "company.analyst.consensus",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "consensus_rating",
+              "consensus_target_price",
+              "number_of_analysts"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Aggregates analyst recommendations and target prices for a company's stock.",
+            "source_hint": null
+          },
+          {
+            "name": "Insider transactions",
+            "slug": "company.insider.transactions",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "transaction_date",
+              "insider_name",
+              "title",
+              "transaction_type",
+              "shares_traded",
+              "price",
+              "total_value"
+            ],
+            "confidence": 0.7,
+            "subject_id": "s1",
+            "description": "Lists recent transactions by company insiders, such as executives and board members.",
+            "source_hint": null
+          },
+          {
+            "name": "Latest news",
+            "slug": "company.news.latest",
+            "domain": "company",
+            "inputs": [],
+            "missing": [],
+            "outputs": [
+              "title",
+              "publication_date",
+              "source",
+              "summary",
+              "url"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Fetches recent news articles related to a company.",
+            "source_hint": null
+          }
+        ]
+      },
+      "observed_intake": {
+        "matches": [
+          {
+            "slug": "company.profile",
+            "query": "Company profile. Retrieves the basic information about a company, including its legal name, industry, and headquarters. company name",
+            "apiosk": [
+              {
+                "url": "https://stableenrich.dev/openapi.json",
+                "name": "StableEnrich",
+                "price": "0.069000 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.enrich",
+                "description": "Turn one company name or domain into a standardized firmographic record: employee count, size band, country, industry, founding year, website and LinkedIn URL. The lookup agents run to research a prospect, qualify a lead, enrich a CRM row or build a B2B account list. Coverage, freshness and which fields are populated differ per offer.",
+                "endpoint_id": "20178534-733e-4051-8806-e6c527d2a7bd",
+                "source_slug": "stableenrich",
+                "availability": "supported"
+              },
+              {
+                "url": "https://stableenrich.dev/openapi.json",
+                "name": "StableEnrich",
+                "price": "0.172500 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.prospect-search",
+                "description": "Find companies by explicit HQ location, keywords, industry and employee range; one page, up to 10 results. Does not establish two-year growth.",
+                "endpoint_id": "a8ebe8c0-0e38-40f3-98ba-be80a40f7d76",
+                "source_slug": "stableenrich",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developers.kvk.nl/nl/documentation",
+                "name": "KVK Business Register",
+                "price": "0.076087 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+                "source_slug": "kvk-dutch-business-register",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.enrich",
+              "company.prospect-search",
+              "company.registry-profile"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.financial.keyFigures",
+            "query": "Company financial key figures. Fetches key financial metrics such as revenue, net income, and EBITDA for a company. company name",
+            "apiosk": [
+              {
+                "url": "https://developers.kvk.nl/nl/documentation",
+                "name": "KVK Business Register",
+                "price": "0.108696 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.financial-statements",
+                "description": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaarrekening, balans, winst- en verliesrekening, deponering), not estimates or modelled revenue. Availability depends on whether the company was required to file a",
+                "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+                "source_slug": "kvk-dutch-business-register",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-ee-registrikood-comptes",
+                "description": "EE: Estonian company annual accounts \u2014 key figures from the official e-Business Register open data (RIK, CC BY 4.0, refreshed monthly). Query: /v1/eu/entreprise/EE/10003666/comptes (8-digit registrikood). EVERY published financial year since 2019 in one call: balance sheet (assets, equity, liabilities), revenue, employee expense, depreciation, operating and net profit, average FTE headcount \u2014 in E",
+                "endpoint_id": "3fd6a166-f340-5878-b92d-d39a754ccedc",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://filingspulse.theaslangroupllc.com/llms.txt",
+                "name": "FilingsPulse",
+                "price": "0.287500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.filingspulse.get-api-filings-earnings-5f396f92",
+                "description": "Earnings brief for any US-listed company: the last 8 quarters of revenue, net income, and diluted EPS pulled verbatim from SEC XBRL with year-over-year deltas computed in code, an estimated next-report window from the company's own 8-K filing cadence, plus consensus/guidance context from live news (each figure source-attributed). Built for earnings-season research and equity-analysis agents.",
+                "endpoint_id": "5f396f92-ab26-4d12-b250-b1bd68861e85",
+                "source_slug": "filingspulse",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.financial-statements",
+              "company.sirenic-eu-entreprise-ee-registrikood-comptes",
+              "operation.filingspulse.get-api-filings-earnings-5f396f92"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.stock.quote",
+            "query": "Stock quote. Provides the current stock price and related trading data for a company's shares. company name",
+            "apiosk": [
+              {
+                "url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+                "name": "CryptoPulse",
+                "price": "0.034500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.cryptopulse.get-api-equity-marks-29a4dd23",
+                "description": "Stock, commodity, FX and index prices 24/7 \u2014 including weekends and overnight when exchanges are closed. Answers \"what is TSLA trading at right now on a Sunday\", \"weekend gold price\", \"has NVDA moved since Friday close\". Live marks from Hyperliquid HIP-3 perp markets (trade.xyz and others): mark price, 24h change, funding, open interest, plus an oracle-regime flag telling you whether the price is ",
+                "endpoint_id": "29a4dd23-7e51-460c-ade6-ce5d7c296a6d",
+                "source_slug": "cryptopulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+                "name": "CryptoPulse",
+                "price": "0.034500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.cryptopulse.get-api-equity-positioning-0765e83f",
+                "description": "Positioning and sentiment on stock perps \u2014 which side of TSLA, NVDA or gold is crowded right now, 24/7. Funding rates and open interest on equities exist nowhere else. Answers \"most crowded equity trade\", \"are TSLA longs paying\", \"where is open interest concentrated\". Per market: annualized funding, crowding label, OI in USD, OI share, volume/OI turnover, premium vs oracle. From Hyperliquid HIP-3 ",
+                "endpoint_id": "0765e83f-010e-4b2e-9bd0-5b87833e9eaf",
+                "source_slug": "cryptopulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://x402.webbersites.com/docs/",
+                "name": "WebberSites x402 Data API",
+                "price": "0.001150 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "crypto.spot-price",
+                "description": "Current market price of one crypto asset in one quote currency. Which exchanges are aggregated and how stale the number may be differ per offer.",
+                "endpoint_id": "6ac935d8-3da4-4f7c-b1b7-7a9df2b4046e",
+                "source_slug": "webbersites",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "crypto.spot-price",
+              "operation.cryptopulse.get-api-equity-marks-29a4dd23",
+              "operation.cryptopulse.get-api-equity-positioning-0765e83f"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.financial.valuation.ratios",
+            "query": "Company financial valuation ratios. Calculates valuation metrics like EV/EBITDA, P/E, and P/B for a company based on its financials. company name",
+            "apiosk": [
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.057500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-secteur-code-naf-benchmarks",
+                "description": "Sector benchmarks and sector statistics for a French NAF activity code (any level: division, groupe, classe, sous-classe): number of active companies, median company age (with quartiles), workforce-bracket distribution, and \u2014 when at least 5 companies file public accounts \u2014 median revenue, EBITDA margin, pre-tax result and debt ratio. Peer comparison in one call: place a company against its peers.",
+                "endpoint_id": "afce3290-dadb-539c-bf7a-3cde630963ab",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://signalpulse.theaslangroupllc.com/llms.txt",
+                "name": "SignalPulse",
+                "price": "1.150000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.signalpulse.get-api-signal-pre-ipo-d8c0e906",
+                "description": "Pre-IPO intelligence for AI financial & trading agents \u2014 any private company, with live perp data (mark price, funding, open interest) where an active pre-IPO perp market exists, incl. the names in Coinbase 2026-06-16 launch (SpaceX, OpenAI, Anthropic). Synthesizes last private valuation, funding history, comp-implied range, perp-implied valuation vs private marks, mirror-token awareness, IPO timi",
+                "endpoint_id": "d8c0e906-481b-4933-9243-9a7ac78059a0",
+                "source_slug": "signalpulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://wealthpulse.theaslangroupllc.com/llms.txt",
+                "name": "WealthPulse",
+                "price": "0.287500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.wealthpulse.get-api-wealth-bank-health-a7c29911",
+                "description": "Is my bank safe? FDIC Call Report bank-health check computed from the latest and year-ago quarterly financials \u2014 capital adequacy (leverage, CET1, Tier 1 and Total risk-based ratios vs. FDIC Prompt Corrective Action thresholds), earnings (ROA/ROE/NIM), asset quality (noncurrent loans, reserve coverage), deposit growth, and uninsured-deposit share, with a plain-language read. For personal-finance a",
+                "endpoint_id": "a7c29911-4325-410c-807d-9254c05689a2",
+                "source_slug": "wealthpulse",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sirenic-secteur-code-naf-benchmarks",
+              "operation.signalpulse.get-api-signal-pre-ipo-d8c0e906",
+              "operation.wealthpulse.get-api-wealth-bank-health-a7c29911"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.earnings.next",
+            "query": "Next earnings date. Returns the upcoming earnings release date for a company. company name",
+            "apiosk": [
+              {
+                "url": "https://filingspulse.theaslangroupllc.com/llms.txt",
+                "name": "FilingsPulse",
+                "price": "0.287500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.filingspulse.get-api-filings-earnings-5f396f92",
+                "description": "Earnings brief for any US-listed company: the last 8 quarters of revenue, net income, and diluted EPS pulled verbatim from SEC XBRL with year-over-year deltas computed in code, an estimated next-report window from the company's own 8-K filing cadence, plus consensus/guidance context from live news (each figure source-attributed). Built for earnings-season research and equity-analysis agents.",
+                "endpoint_id": "5f396f92-ab26-4d12-b250-b1bd68861e85",
+                "source_slug": "filingspulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://climatepulse.theaslangroupllc.com/llms.txt",
+                "name": "ClimatePulse",
+                "price": "0.575000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.climatepulse.get-api-climate-event-brief-d0177750",
+                "description": "Premium event-weather brief for any date and location worldwide. Rain, heat, frost, wind, and extreme-heat odds computed in code from 10 years of actual NASA POWER reanalysis rows (counted, not model-estimated), the live 10-day MET Norway forecast when the date is in range, a dated go/no-go decision timeline, contingency plan, schedule guidance, and heat-safety plan for weddings, festivals, marath",
+                "endpoint_id": "d0177750-f48d-4bce-9d15-036d605750d9",
+                "source_slug": "climatepulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-entreprise-siren-marches-publics",
+                "description": "Aggregates (count and total amount as TWO bounds \u2014 raw per published row, and deduplicated per (buyer, date, amount, CPV) key \u2014, contracts still running, next expiry) plus the 100 most recent contracts with buyer identity resolved, estimated end dates and a per-row publication status (unique, multi-platform, repeated, per-establishment, amendment) with linked rows. Preserve coverage and provenance",
+                "endpoint_id": "17c8e095-cbf3-52bd-868f-3dd2c0c8757f",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sirenic-entreprise-siren-marches-publics",
+              "operation.climatepulse.get-api-climate-event-brief-d0177750",
+              "operation.filingspulse.get-api-filings-earnings-5f396f92"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.analyst.consensus",
+            "query": "Analyst consensus. Aggregates analyst recommendations, target prices, and ratings for a company's stock. company name",
+            "apiosk": [
+              {
+                "url": "https://collectablespulse.theaslangroupllc.com/llms.txt",
+                "name": "CollectablesPulse",
+                "price": "0.172500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.collectablespulse.get-api-collect-invest-533d3bf0",
+                "description": "Collectible investment signal: buy, hold or sell? Returns trend analysis, population-report scarcity context, and a clear buy/hold/sell signal for any collectible (cards, coins, comics, watches, sneakers). Worldwide alternative-asset intelligence for collector and investor agents.",
+                "endpoint_id": "533d3bf0-e75e-4c4b-b218-4701e99289b1",
+                "source_slug": "collectablespulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-pays-id-transactions-dirigeants-be",
+                "description": "BE: Director transactions and insider transactions at Belgian and German listed companies \u2014 managers transactions (directors' dealings) under MAR Article 19, as notified to the FSMA and BaFin: are the company's managers buying or selling? Issuer-level aggregate over a rolling 12 months \u2014 counts, gross buy and sell amounts, net flow, breakdown by declarer category, and the underlying notifications.",
+                "endpoint_id": "bdff2b8b-7f86-57ce-bb63-917fe763242e",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://footballpulse.theaslangroupllc.com/llms.txt",
+                "name": "FootballPulse",
+                "price": "0.287500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.footballpulse.get-api-fpl-check-7aa92fa0",
+                "description": "Fantasy Premier League check grounded in the official FPL API: player price, ownership, form, injury status, expected points, and next-5 fixture difficulty with a direct buy/hold/avoid call \u2014 or a ranked value shortlist by position and budget.",
+                "endpoint_id": "7aa92fa0-005f-4777-a415-7a0502590218",
+                "source_slug": "footballpulse",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sirenic-eu-entreprise-pays-id-transactions-dirigeants-be",
+              "operation.collectablespulse.get-api-collect-invest-533d3bf0",
+              "operation.footballpulse.get-api-fpl-check-7aa92fa0"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.insider.transactions",
+            "query": "Insider transactions. Lists recent transactions by company insiders, such as executives and directors. company name",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.officers",
+                "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+                "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-pays-id-transactions-dirigeants-be",
+                "description": "BE: Director transactions and insider transactions at Belgian and German listed companies \u2014 managers transactions (directors' dealings) under MAR Article 19, as notified to the FSMA and BaFin: are the company's managers buying or selling? Issuer-level aggregate over a rolling 12 months \u2014 counts, gross buy and sell amounts, net flow, breakdown by declarer category, and the underlying notifications.",
+                "endpoint_id": "bdff2b8b-7f86-57ce-bb63-917fe763242e",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-dk-cvr-dirigeants",
+                "description": "DK: Danish company officers and directors (deltagere) live from the official CVR register (Erhvervsstyrelsen system-to-system) by CVR number \u2014 governance and KYB: executive board (Direktion), board members (Bestyrelse) incl. deputies, election method, fully liable I/S or K/S partners and auditors \u2014 name, body, role, mandate dates. Active mandates by default; inclure_anciens=true adds ended ones wh",
+                "endpoint_id": "7965ffe9-1046-59ae-8243-3a9c13a9cca5",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.officers",
+              "company.sirenic-eu-entreprise-dk-cvr-dirigeants",
+              "company.sirenic-eu-entreprise-pays-id-transactions-dirigeants-be"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.news.latest",
+            "query": "Latest company news. Fetches the most recent news articles related to a company. company name",
+            "apiosk": [
+              {
+                "url": "https://rapidapi.com/search/bloomberg",
+                "name": "Bloomberg News",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "news.bloomberg-latest",
+                "description": "Latest Bloomberg news stories (about 25): headline, summary, byline, publication time, category such as Markets, Technology or Politics, and article link. Summaries only, not article text.",
+                "endpoint_id": "00e66885-5cad-48bd-a637-9123c07365ab",
+                "source_slug": "bloomberg",
+                "availability": "supported"
+              },
+              {
+                "url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+                "name": "Reuters News",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "news.reuters-latest",
+                "description": "Latest Reuters news headlines across all sections, newest wire stories with link and publication time. Optional headline count 1-12. Headlines only, not article text.",
+                "endpoint_id": "64207748-5d3e-4bf4-a352-365602c83353",
+                "source_slug": "reuters",
+                "availability": "supported"
+              },
+              {
+                "url": "https://rapidapi.com/mahmudulhasandev/api/reuters-api",
+                "name": "Reuters News",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "news.reuters-search",
+                "description": "Search Reuters news headlines by keywords (a company, person, topic or event). Returns up to 12 article links and headlines, no dates; keyword matching is loose.",
+                "endpoint_id": "59ebf3e7-da1a-4592-abad-eb14a8d09966",
+                "source_slug": "reuters",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "news.bloomberg-latest",
+              "news.reuters-latest",
+              "news.reuters-search"
+            ],
+            "coinbase_status": "pending"
+          }
+        ],
+        "parsed_request": {
+          "meta": {
+            "model": "qwen/qwen3-30b-a3b-instruct-2507",
+            "parsed_at": "2026-10-02T10:38:54.288004171+00:00",
+            "text_sha256": "24ae22d88c2f745d253b428ca58a4b2bc146b261c0f8488f3288f7530463599e"
+          },
+          "language": "nl",
+          "subjects": [
+            {
+              "id": "s1",
+              "type": "company",
+              "label": "AAPL",
+              "identifiers": {}
+            }
+          ],
+          "deliverable": {
+            "format": "chat",
+            "operations": []
+          },
+          "capabilities": [
+            {
+              "name": "Company profile",
+              "slug": "company.profile",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "legal_name",
+                "industry",
+                "headquarters",
+                "founding_year",
+                "website"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Retrieves the basic information about a company, including its legal name, industry, and headquarters.",
+              "source_hint": null
+            },
+            {
+              "name": "Company financial key figures",
+              "slug": "company.financial.keyFigures",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "revenue",
+                "net_income",
+                "ebitda",
+                "equity",
+                "debt",
+                "cash_and_equivalents"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Fetches key financial metrics such as revenue, net income, and EBITDA for a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Stock quote",
+              "slug": "company.stock.quote",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "current_price",
+                "change",
+                "change_percentage",
+                "market_cap",
+                "volume",
+                "high_52_week",
+                "low_52_week"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Provides the current stock price and related trading data for a company's shares.",
+              "source_hint": null
+            },
+            {
+              "name": "Company financial valuation ratios",
+              "slug": "company.financial.valuation.ratios",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "ev_ebitda",
+                "pe_ratio",
+                "pb_ratio",
+                "ps_ratio"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Calculates valuation metrics like EV/EBITDA, P/E, and P/B for a company based on its financials.",
+              "source_hint": null
+            },
+            {
+              "name": "Next earnings date",
+              "slug": "company.earnings.next",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "next_earnings_date",
+                "estimated_eps",
+                "actual_eps"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Returns the upcoming earnings release date for a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Analyst consensus",
+              "slug": "company.analyst.consensus",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "consensus_rating",
+                "average_target_price",
+                "number_of_analysts",
+                "buy_recommendations",
+                "hold_recommendations",
+                "sell_recommendations"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Aggregates analyst recommendations, target prices, and ratings for a company's stock.",
+              "source_hint": null
+            },
+            {
+              "name": "Insider transactions",
+              "slug": "company.insider.transactions",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "transaction_date",
+                "insider_name",
+                "title",
+                "transaction_type",
+                "shares_traded",
+                "price_per_share",
+                "total_value",
+                "transaction_reason"
+              ],
+              "confidence": 0.7,
+              "subject_id": "s1",
+              "description": "Lists recent transactions by company insiders, such as executives and directors.",
+              "source_hint": null
+            },
+            {
+              "name": "Latest company news",
+              "slug": "company.news.latest",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "headline",
+                "summary",
+                "publication_date",
+                "source_url",
+                "author"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Fetches the most recent news articles related to a company.",
+              "source_hint": null
+            }
+          ]
+        },
+        "catalog_version": "f4bd094b21420a0bb45db70bce27cd36cf7da860231c47e5a2070e875a3b8851",
+        "selected_capabilities": [
+          "company.enrich",
+          "company.financial-statements",
+          "company.officers",
+          "company.prospect-search",
+          "company.registry-profile",
+          "company.sirenic-entreprise-siren-marches-publics",
+          "company.sirenic-eu-entreprise-dk-cvr-dirigeants",
+          "company.sirenic-eu-entreprise-ee-registrikood-comptes",
+          "company.sirenic-eu-entreprise-pays-id-transactions-dirigeants-be",
+          "company.sirenic-secteur-code-naf-benchmarks",
+          "crypto.spot-price",
+          "news.bloomberg-latest",
+          "news.reuters-latest",
+          "news.reuters-search",
+          "operation.climatepulse.get-api-climate-event-brief-d0177750",
+          "operation.collectablespulse.get-api-collect-invest-533d3bf0",
+          "operation.cryptopulse.get-api-equity-marks-29a4dd23",
+          "operation.cryptopulse.get-api-equity-positioning-0765e83f",
+          "operation.filingspulse.get-api-filings-earnings-5f396f92",
+          "operation.footballpulse.get-api-fpl-check-7aa92fa0",
+          "operation.signalpulse.get-api-signal-pre-ipo-d8c0e906",
+          "operation.wealthpulse.get-api-wealth-bank-health-a7c29911"
+        ],
+        "apiosk_sources_searched": 37
+      },
+      "observed_intent": {
+        "goals": [
+          {
+            "subject": 0,
+            "capability": "company.enrich",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.financial-statements",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "crypto.spot-price",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.cryptopulse.get-api-equity-marks-29a4dd23",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-secteur-code-naf-benchmarks",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.filingspulse.get-api-filings-earnings-5f396f92",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.collectablespulse.get-api-collect-invest-533d3bf0",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.officers",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "news.bloomberg-latest",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "news.reuters-latest",
+            "constraints": {}
+          }
+        ],
+        "subjects": [
+          {
+            "label": "AAPL",
+            "values": {
+              "company.name": "AAPL"
+            },
+            "entity_ref": "66296503-c75b-4a33-b012-57790c409f88"
+          }
+        ],
+        "answer_operations": [
+          "geef fundamentals, koers, EV/EBITDA, eerstvolgende earnings, analistenconsensus, insidertransacties en nieuws voor AAPL. Onderscheid actuele cijfers van ontbrekende data.",
+          "toon de resultaten in een overzichtelijke vorm met actuele cijfers en duidelijke aanduiding van ontbrekende data"
+        ],
+        "unresolved_references": []
+      }
+    },
+    {
+      "case": 13,
+      "question": "Maak een due-diligencedossier voor MONZO BANK LIMITED: registratie, bestuurders, zeggenschap, sancties, insolventie, procedures, overheidscontracten, patenten en vastgoedbezit. Benoem ontbrekende controles.",
+      "displayed_parse": {
+        "meta": {
+          "model": "qwen/qwen3-30b-a3b-instruct-2507",
+          "parsed_at": "2026-10-02T10:26:57.077751611+00:00",
+          "text_sha256": "31551b73de4b389662712f4d9a8e576da4e56eb4abde6452a7b2352b45ef6c39"
+        },
+        "language": "nl",
+        "subjects": [
+          {
+            "id": "s1",
+            "type": "company",
+            "label": "MONZO BANK LIMITED",
+            "identifiers": {}
+          }
+        ],
+        "deliverable": {
+          "format": "chat",
+          "operations": [
+            "analyze",
+            "compare",
+            "summarize"
+          ]
+        },
+        "capabilities": [
+          {
+            "name": "Company profile",
+            "slug": "company.profile",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "legal_name",
+              "registration_number",
+              "incorporation_date",
+              "legal_status",
+              "registered_address",
+              "country_code",
+              "source"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Retrieves the official profile of a company including its registration details, legal status, and basic information.",
+            "source_hint": null
+          },
+          {
+            "name": "Company executives",
+            "slug": "company.executives",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "executive_name",
+              "position",
+              "appointment_date",
+              "resignation_date",
+              "nationality",
+              "source"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Fetches the list of current executives and board members of a company along with their roles and appointment dates.",
+            "source_hint": null
+          },
+          {
+            "name": "Company shareholders",
+            "slug": "company.shareholders",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "shareholder_name",
+              "share_percentage",
+              "shares_held",
+              "source"
+            ],
+            "confidence": 0.7,
+            "subject_id": "s1",
+            "description": "Provides information about the ownership structure of a company, including major shareholders and their share percentages.",
+            "source_hint": null
+          },
+          {
+            "name": "Company sanctions",
+            "slug": "company.sanctions",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "sanctioned",
+              "sanction_list",
+              "reason",
+              "date_added",
+              "source"
+            ],
+            "confidence": 0.9,
+            "subject_id": "s1",
+            "description": "Checks whether a company is listed in any international or national sanctions databases.",
+            "source_hint": null
+          },
+          {
+            "name": "Company insolvency",
+            "slug": "company.insolvency",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "insolvent",
+              "insolvency_type",
+              "start_date",
+              "court",
+              "source"
+            ],
+            "confidence": 0.8,
+            "subject_id": "s1",
+            "description": "Determines if a company has entered insolvency proceedings or has been declared bankrupt.",
+            "source_hint": null
+          },
+          {
+            "name": "Company procedures",
+            "slug": "company.procedures",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "procedure_type",
+              "status",
+              "start_date",
+              "end_date",
+              "court_or_authority",
+              "source"
+            ],
+            "confidence": 0.7,
+            "subject_id": "s1",
+            "description": "Lists ongoing or past legal, regulatory, or administrative procedures involving a company.",
+            "source_hint": null
+          },
+          {
+            "name": "Company government contracts",
+            "slug": "company.gov.contracts",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "contract_title",
+              "contract_value",
+              "awarding_body",
+              "start_date",
+              "end_date",
+              "source"
+            ],
+            "confidence": 0.6,
+            "subject_id": "s1",
+            "description": "Identifies contracts awarded by public authorities to a company.",
+            "source_hint": null
+          },
+          {
+            "name": "Company patents",
+            "slug": "company.patents",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "patent_number",
+              "title",
+              "filing_date",
+              "grant_date",
+              "status",
+              "source"
+            ],
+            "confidence": 0.5,
+            "subject_id": "s1",
+            "description": "Retrieves patent registrations held by a company.",
+            "source_hint": null
+          },
+          {
+            "name": "Company real estate",
+            "slug": "company.real.estate",
+            "domain": "company",
+            "inputs": [
+              "company_name",
+              "country_code"
+            ],
+            "missing": [
+              "country_code"
+            ],
+            "outputs": [
+              "property_address",
+              "parcel_number",
+              "area_m2",
+              "ownership_status",
+              "source"
+            ],
+            "confidence": 0.6,
+            "subject_id": "s1",
+            "description": "Finds properties owned by a company, including addresses and land registry details.",
+            "source_hint": null
+          }
+        ]
+      },
+      "observed_intake": {
+        "matches": [
+          {
+            "slug": "company.enrich.by.name",
+            "query": "Company enrichment by name. Enriches a company with detailed information from public registries and databases. company name",
+            "apiosk": [
+              {
+                "url": "https://stableenrich.dev/openapi.json",
+                "name": "StableEnrich",
+                "price": "0.069000 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.enrich-by-name",
+                "description": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+                "endpoint_id": "c6f67942-288f-4500-8418-3eede3a6eacd",
+                "source_slug": "stableenrich",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.registry-profile",
+                "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+                "endpoint_id": "4e02bf35-6cbd-5231-88f7-1cf9a3893d7d",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.enrich-by-name",
+              "company.registry-profile"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.officers",
+            "query": "Company officers. Retrieves the list of current officers and directors of a company. company name",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.officers",
+                "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+                "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.significant-control",
+                "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+                "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.companies-house.get-officers-f01533f9",
+                "description": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held (director, secretary, LLP member), when they were appointed and when they resigned, their nationality, occupation and country of residence, and their date of b",
+                "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f",
+                "source_slug": "companies-house",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.officers",
+              "company.significant-control",
+              "operation.companies-house.get-officers-f01533f9"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.significant.control",
+            "query": "Significant control. Identifies individuals or entities with significant control over a company. company name",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.significant-control",
+                "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+                "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+                "description": "GB: UK beneficial owners (PSC, persons with significant control) live from Companies House for AML, KYB and compliance: individual and corporate-entity PSCs with natures of control (ownership/voting bands), notification dates, plus official PSC statements. Ceased PSCs excluded by default (inclure_cesses=true adds them with their ceased date). Beyond French-registry parity \u2014 France exposes no open ",
+                "endpoint_id": "29d36ea3-6900-5f50-a67e-4b4c2bcbe3b0",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.032609 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.companies-house.get-persons-with-significant-control-86d4c314",
+                "description": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (ownership of shares in the 25-50%, 50-75% or 75-100% band, voting rights, the right to appoint or remove directors, significant influence), and when it ceased. U",
+                "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b",
+                "source_slug": "companies-house",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.significant-control",
+              "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+              "operation.companies-house.get-persons-with-significant-control-86d4c314"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.sanctions.screen",
+            "query": "Sanctions screening. Checks if a company or its officers are listed on international sanctions lists. company name officer names",
+            "apiosk": [
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.108696 USD",
+                "method": "POST",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sanctions-screen",
+                "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+                "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.officers",
+                "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+                "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.032609 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.companies-house.get-disqualified-officers-natural-eeb77a29",
+                "description": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepted by undertaking, the section of the Company Directors Disqualification Act relied on, the case identifier, the reasons given, the company the conduct related t",
+                "endpoint_id": "eeb77a29-c240-4033-86de-2ca2d0f89a64",
+                "source_slug": "companies-house",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.officers",
+              "company.sanctions-screen",
+              "operation.companies-house.get-disqualified-officers-natural-eeb77a29"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.fr.financials",
+            "query": "Company financials. Fetches financial data such as profit, loss, equity, and turnover for a company. company name",
+            "apiosk": [
+              {
+                "url": "https://grantpulse.theaslangroupllc.com/llms.txt",
+                "name": "GrantPulse",
+                "price": "0.230000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.grantpulse.get-api-grant-org-intel-ca11f8e0",
+                "description": "Nonprofit financial intelligence from live IRS Form 990 public data \u2014 revenue/expense/asset trend, officer compensation, red flags. Public-domain arbitrage against paid nonprofit databases.",
+                "endpoint_id": "ca11f8e0-4949-4511-b207-824f35cfa590",
+                "source_slug": "grantpulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://filingspulse.theaslangroupllc.com/llms.txt",
+                "name": "FilingsPulse",
+                "price": "0.287500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.filingspulse.get-api-filings-earnings-5f396f92",
+                "description": "Earnings brief for any US-listed company: the last 8 quarters of revenue, net income, and diluted EPS pulled verbatim from SEC XBRL with year-over-year deltas computed in code, an estimated next-report window from the company's own 8-K filing cadence, plus consensus/guidance context from live news (each figure source-attributed). Built for earnings-season research and equity-analysis agents.",
+                "endpoint_id": "5f396f92-ab26-4d12-b250-b1bd68861e85",
+                "source_slug": "filingspulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://scholarpulse.theaslangroupllc.com/llms.txt",
+                "name": "ScholarPulse",
+                "price": "0.138000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.scholarpulse.get-api-aid-50ce1e58",
+                "description": "Financial aid estimate for student and financial-aid agents. Returns expected aid package by income bracket via College Scorecard, net cost, Pell eligibility, and institutional generosity.",
+                "endpoint_id": "50ce1e58-a9b3-4238-b26e-6754f69c5780",
+                "source_slug": "scholarpulse",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "operation.filingspulse.get-api-filings-earnings-5f396f92",
+              "operation.grantpulse.get-api-grant-org-intel-ca11f8e0",
+              "operation.scholarpulse.get-api-aid-50ce1e58"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.filing.history",
+            "query": "Company filing history. Provides a chronological list of official filings made by a company with the registry. company name",
+            "apiosk": [
+              {
+                "url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference",
+                "name": "Companies House",
+                "price": "0.054348 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.filing-history",
+                "description": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+                "endpoint_id": "0b3e1b4e-b857-53fc-85de-f5f456bedb21",
+                "source_slug": "companies-house",
+                "availability": "supported"
+              },
+              {
+                "url": "https://wealthpulse.theaslangroupllc.com/llms.txt",
+                "name": "WealthPulse",
+                "price": "2.300000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.wealthpulse.get-api-wealth-card-benefit-pack-4f333aca",
+                "description": "Card-benefit CLAIM PACK: issuer-verified coverage check plus the complete filing kit \u2014 administrator steps, citation-locked cover note, evidence checklist, denial counters, deadline calendar. Honest-no: no pack sold on expired notify windows, uncovered cards, or unmet conditions.",
+                "endpoint_id": "4f333aca-5f23-48f7-b35d-b014e51f19f2",
+                "source_slug": "wealthpulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.034500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-entreprise-siren-pi",
+                "description": "Intellectual property portfolio of a French company from official INPI open data: patents, trademarks and designs \u2014 counts plus items with number, title/label, status, ISO dates (trademark filing/registration/expiry, patent publication) and classification (Nice/CIB/Locarno). Designs: one line per filing. An R&D / brand-value signal for due diligence. Trademarks and designs are most-recent-first; p",
+                "endpoint_id": "1c68cf9f-5de4-5317-9b14-b5dff835da9d",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.filing-history",
+              "company.sirenic-entreprise-siren-pi",
+              "operation.wealthpulse.get-api-wealth-card-benefit-pack-4f333aca"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.marches.publics",
+            "query": "Public contracts. Discovers public procurement contracts awarded to a company. company name",
+            "apiosk": [
+              {
+                "url": "https://govspendpulse.theaslangroupllc.com/llms.txt",
+                "name": "GovSpendPulse",
+                "price": "0.092000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.govspendpulse.get-api-govspend-eu-tenders-5c7269be",
+                "description": "EU government tender / public procurement search across all 27 EU member states \u2014 live TED (Tenders Electronic Daily) data. Returns contract notices with value, contracting authority, CPV category, and deadline. Free EU data, for business-development and procurement agents.",
+                "endpoint_id": "5c7269be-5cf5-45fe-8fe6-96645abbbd5d",
+                "source_slug": "govspendpulse",
+                "availability": "supported"
+              },
+              {
+                "url": "https://govspendpulse.theaslangroupllc.com/llms.txt",
+                "name": "GovSpendPulse",
+                "price": "0.092000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13",
+                "description": "UK government contract / tender search and procurement intelligence from Contracts Finder and Find a Tender Service. Returns UK public-sector awards and opportunities with department, value, sector, and market snapshot, for business-development and procurement agents.",
+                "endpoint_id": "63217e13-beeb-42c4-bbb5-df5270122f10",
+                "source_slug": "govspendpulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.057500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-marches-expirations",
+                "description": "Contracts whose ESTIMATED end date (notification + initially declared duration; duration amendments are absent from the DECP source) falls inside the window, sorted by end date: buyer (SIRET + resolved name), incumbent holders, amount (after amendment when published), framework-agreement flag, CPV, department. Buyers typically re-tender 4-9 months before expiry. An empty list is scoped honestly: c",
+                "endpoint_id": "7a29d4c7-cfe1-5496-b9d0-70e7073385c8",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sirenic-marches-expirations",
+              "operation.govspendpulse.get-api-govspend-eu-tenders-5c7269be",
+              "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.patents",
+            "query": "Company patents. Lists patents registered in the name of a company. company name",
+            "apiosk": [
+              {
+                "url": "https://patentpulse.theaslangroupllc.com/llms.txt",
+                "name": "PatentPulse",
+                "price": "0.092000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.patentpulse.get-api-patent-search-758ec6c0",
+                "description": "Patent search / patent lookup / keyword patent search across USPTO and worldwide patents. Searches USPTO PatentsView by keyword, assignee, inventor, or title, plus EPO/WIPO/JPO global context, returning ranked patents with titles, assignees, grant dates, CPC classes, and abstracts for any query. For IP and patent agents. Worldwide.",
+                "endpoint_id": "758ec6c0-269e-4682-8d7b-06b3a9501984",
+                "source_slug": "patentpulse",
+                "availability": "supported"
+              },
+              {
+                "url": "https://patentpulse.theaslangroupllc.com/llms.txt",
+                "name": "PatentPulse",
+                "price": "0.057500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.patentpulse.get-api-patent-status-964bdab4",
+                "description": "Patent status lookup / legal status / remaining patent life / expiry by patent number. Returns full patent details (title, type, claims, CPC/USPC classes, assignees, inventors, abstract), an estimated ~20-year expiry and years remaining, plus maintenance and citation profile for any US patent ID. For IP and patent agents.",
+                "endpoint_id": "964bdab4-1dc2-4c9c-8035-baf9ac0874a3",
+                "source_slug": "patentpulse",
+                "availability": "supported"
+              },
+              {
+                "url": "https://api.sirenic.eu/openapi.json",
+                "name": "Sirenic",
+                "price": "0.011500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.sirenic-eu-agrements",
+                "description": "EU financial authorisation lookup in the official ESMA Registers: search ~14,000 MiFID-regulated entities across the EU/EEA (investment firms, UCITS/AIFM managers) by name or LEI \u2014 authorisation status of the regulated entity, home and host member states, competent authority, authorisation dates. One integration covers all 27+ countries of Europe: an investment firm and regulated entity KYB check ",
+                "endpoint_id": "05ee7c8d-43d3-5573-8550-88a27302e32e",
+                "source_slug": "sirenic",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.sirenic-eu-agrements",
+              "operation.patentpulse.get-api-patent-search-758ec6c0",
+              "operation.patentpulse.get-api-patent-status-964bdab4"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "general.building.registry.search",
+            "query": "Building registry search. Searches for buildings registered under a company's name or address. company name address",
+            "apiosk": [
+              {
+                "url": "https://buildpulse.theaslangroupllc.com/llms.txt",
+                "name": "BuildPulse",
+                "price": "0.115000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.buildpulse.get-api-build-code-efd7db5e",
+                "description": "Building code requirements for contractor and homeowner agents. Returns a jurisdiction-specific compliance guide for any construction or renovation project.",
+                "endpoint_id": "efd7db5e-dce3-46d1-84c9-887ca080701d",
+                "source_slug": "buildpulse",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://stableenrich.dev/openapi.json",
+                "name": "StableEnrich",
+                "price": "0.023000 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.stableenrich.get-api-google-maps-solar-building-insights-9ca27b24",
+                "description": "Google Solar API \u2014 closest building insights for a lat/lng. Use this as a cheap probe to confirm Solar coverage for an address and to read the imagery capture date (`imageryDate`) before fetching the full data layers.",
+                "endpoint_id": "9ca27b24-f077-46c2-b8ab-87ca0fe0121c",
+                "source_slug": "stableenrich",
+                "availability": "unverified"
+              },
+              {
+                "url": "https://debtpulse.theaslangroupllc.com/llms.txt",
+                "name": "DebtPulse",
+                "price": "0.172500 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "operation.debtpulse.get-api-debt-freedom-roadmap-49d6adda",
+                "description": "Debt-free roadmap and payoff plan with wealth-building projection. Returns a phase-by-phase plan from current debt to debt-free, with milestones, the monthly budget required, and a 10-year wealth projection. For debt-relief and personal-finance agents.",
+                "endpoint_id": "49d6adda-8066-4ff7-bb63-a41dd7cd7694",
+                "source_slug": "debtpulse",
+                "availability": "unverified"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "operation.buildpulse.get-api-build-code-efd7db5e",
+              "operation.debtpulse.get-api-debt-freedom-roadmap-49d6adda",
+              "operation.stableenrich.get-api-google-maps-solar-building-insights-9ca27b24"
+            ],
+            "coinbase_status": "pending"
+          },
+          {
+            "slug": "company.watchlist.search",
+            "query": "Watchlist search. Checks if a company is listed on any watchlists for risk, fraud, or regulatory concerns. company name",
+            "apiosk": [
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.097826 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.watchlist-search",
+                "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+                "endpoint_id": "acd906d7-1a9d-4ac7-b949-a163fe08c678",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.065217 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.watchlist-statements",
+                "description": "Read source assertions for one OpenSanctions entity.",
+                "endpoint_id": "a20ff748-d3d5-4550-b413-c939929ba07e",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              },
+              {
+                "url": "https://www.opensanctions.org/docs/api/",
+                "name": "OpenSanctions",
+                "price": "0.076087 USD",
+                "method": "GET",
+                "origin": "apiosk",
+                "network": null,
+                "calls_30d": null,
+                "capability": "company.watchlist-entity",
+                "description": "Read a specific OpenSanctions entity and its relationships.",
+                "endpoint_id": "c738f32f-a1bd-40af-8865-5e26690643b8",
+                "source_slug": "opensanctions",
+                "availability": "supported"
+              }
+            ],
+            "coinbase": [],
+            "operations": [
+              "company.watchlist-entity",
+              "company.watchlist-search",
+              "company.watchlist-statements"
+            ],
+            "coinbase_status": "pending"
+          }
+        ],
+        "parsed_request": {
+          "meta": {
+            "model": "qwen/qwen3-30b-a3b-instruct-2507",
+            "parsed_at": "2026-10-02T10:27:25.031640167+00:00",
+            "text_sha256": "31551b73de4b389662712f4d9a8e576da4e56eb4abde6452a7b2352b45ef6c39"
+          },
+          "language": "en",
+          "subjects": [
+            {
+              "id": "s1",
+              "type": "company",
+              "label": "MONZO BANK LIMITED",
+              "identifiers": {}
+            }
+          ],
+          "deliverable": {
+            "format": "chat",
+            "operations": [
+              "analyze",
+              "compare",
+              "summarize"
+            ]
+          },
+          "capabilities": [
+            {
+              "name": "Company enrichment by name",
+              "slug": "company.enrich.by.name",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "legal_name",
+                "registration_number",
+                "registration_date",
+                "status",
+                "registered_address",
+                "jurisdiction",
+                "industry",
+                "sector",
+                "capital",
+                "employees",
+                "website",
+                "phone",
+                "email",
+                "is_active",
+                "source"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Enriches a company with detailed information from public registries and databases.",
+              "source_hint": null
+            },
+            {
+              "name": "Company officers",
+              "slug": "company.officers",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "officer_name",
+                "role",
+                "start_date",
+                "end_date",
+                "nationality",
+                "residence_country",
+                "is_director",
+                "is_secretary",
+                "is_company_secretary",
+                "is_ultimate_beneficial_owner",
+                "is_significant_control"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Retrieves the list of current officers and directors of a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Significant control",
+              "slug": "company.significant.control",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "controller_name",
+                "controller_type",
+                "percentage_control",
+                "start_date",
+                "end_date",
+                "nationality",
+                "residence_country",
+                "is_individual",
+                "is_entity",
+                "is_ultimate_beneficial_owner"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Identifies individuals or entities with significant control over a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Sanctions screening",
+              "slug": "company.sanctions.screen",
+              "domain": "company",
+              "inputs": [
+                "company_name",
+                "officer_names"
+              ],
+              "missing": [],
+              "outputs": [
+                "sanctioned_entity",
+                "sanctioned_officer",
+                "sanction_list",
+                "reason",
+                "date_added",
+                "source"
+              ],
+              "confidence": 0.9,
+              "subject_id": "s1",
+              "description": "Checks if a company or its officers are listed on international sanctions lists.",
+              "source_hint": null
+            },
+            {
+              "name": "Company financials",
+              "slug": "company.fr.financials",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "revenue",
+                "net_profit",
+                "equity",
+                "assets",
+                "liabilities",
+                "turnover",
+                "profit_margin",
+                "financial_year",
+                "currency",
+                "source"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Fetches financial data such as profit, loss, equity, and turnover for a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Company filing history",
+              "slug": "company.filing.history",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "filing_type",
+                "filing_date",
+                "document_url",
+                "status",
+                "description",
+                "source"
+              ],
+              "confidence": 0.8,
+              "subject_id": "s1",
+              "description": "Provides a chronological list of official filings made by a company with the registry.",
+              "source_hint": null
+            },
+            {
+              "name": "Public contracts",
+              "slug": "company.marches.publics",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "contract_title",
+                "contract_number",
+                "procurement_authority",
+                "award_date",
+                "value",
+                "currency",
+                "duration",
+                "status",
+                "tender_reference",
+                "source"
+              ],
+              "confidence": 0.7,
+              "subject_id": "s1",
+              "description": "Discovers public procurement contracts awarded to a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Company patents",
+              "slug": "company.patents",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "patent_number",
+                "title",
+                "application_date",
+                "grant_date",
+                "country",
+                "status",
+                "inventors",
+                "ipc_classifications",
+                "source"
+              ],
+              "confidence": 0.6,
+              "subject_id": "s1",
+              "description": "Lists patents registered in the name of a company.",
+              "source_hint": null
+            },
+            {
+              "name": "Building registry search",
+              "slug": "general.building.registry.search",
+              "domain": "general",
+              "inputs": [
+                "company_name",
+                "address"
+              ],
+              "missing": [],
+              "outputs": [
+                "building_id",
+                "address",
+                "postcode",
+                "city",
+                "province",
+                "construction_year",
+                "floor_area",
+                "use",
+                "ownership_status",
+                "cadastre_number",
+                "source"
+              ],
+              "confidence": 0.6,
+              "subject_id": "s1",
+              "description": "Searches for buildings registered under a company's name or address.",
+              "source_hint": null
+            },
+            {
+              "name": "Watchlist search",
+              "slug": "company.watchlist.search",
+              "domain": "company",
+              "inputs": [
+                "company_name"
+              ],
+              "missing": [],
+              "outputs": [
+                "watchlist_name",
+                "listing_reason",
+                "date_added",
+                "status",
+                "source"
+              ],
+              "confidence": 0.7,
+              "subject_id": "s1",
+              "description": "Checks if a company is listed on any watchlists for risk, fraud, or regulatory concerns.",
+              "source_hint": null
+            }
+          ]
+        },
+        "catalog_version": "f4bd094b21420a0bb45db70bce27cd36cf7da860231c47e5a2070e875a3b8851",
+        "selected_capabilities": [
+          "company.enrich-by-name",
+          "company.filing-history",
+          "company.officers",
+          "company.registry-profile",
+          "company.sanctions-screen",
+          "company.significant-control",
+          "company.sirenic-entreprise-siren-pi",
+          "company.sirenic-eu-agrements",
+          "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+          "company.sirenic-marches-expirations",
+          "company.watchlist-entity",
+          "company.watchlist-search",
+          "company.watchlist-statements",
+          "operation.buildpulse.get-api-build-code-efd7db5e",
+          "operation.companies-house.get-disqualified-officers-natural-eeb77a29",
+          "operation.companies-house.get-officers-f01533f9",
+          "operation.companies-house.get-persons-with-significant-control-86d4c314",
+          "operation.debtpulse.get-api-debt-freedom-roadmap-49d6adda",
+          "operation.filingspulse.get-api-filings-earnings-5f396f92",
+          "operation.govspendpulse.get-api-govspend-eu-tenders-5c7269be",
+          "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13",
+          "operation.grantpulse.get-api-grant-org-intel-ca11f8e0",
+          "operation.patentpulse.get-api-patent-search-758ec6c0",
+          "operation.patentpulse.get-api-patent-status-964bdab4",
+          "operation.scholarpulse.get-api-aid-50ce1e58",
+          "operation.stableenrich.get-api-google-maps-solar-building-insights-9ca27b24",
+          "operation.wealthpulse.get-api-wealth-card-benefit-pack-4f333aca"
+        ],
+        "apiosk_sources_searched": 37
+      },
+      "observed_intent": {
+        "goals": [
+          {
+            "subject": 0,
+            "capability": "company.enrich-by-name",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.officers",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.significant-control",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sanctions-screen",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.filingspulse.get-api-filings-earnings-5f396f92",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.filing-history",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.govspendpulse.get-api-govspend-eu-tenders-5c7269be",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.patentpulse.get-api-patent-search-758ec6c0",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "operation.buildpulse.get-api-build-code-efd7db5e",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.watchlist-search",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-entreprise-siren-pi",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-entreprise-siren-pi",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-entreprise-siren-pi",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-entreprise-siren-pi",
+            "constraints": {}
+          },
+          {
+            "subject": 0,
+            "capability": "company.sirenic-entreprise-siren-pi",
+            "constraints": {}
+          }
+        ],
+        "subjects": [
+          {
+            "label": "MONZO BANK LIMITED",
+            "values": {
+              "company.name": "MONZO BANK LIMITED"
+            },
+            "entity_ref": "111c6ad8-f568-48d8-8fb0-696fcb077357"
+          }
+        ],
+        "answer_operations": [
+          "summarize",
+          "analyze"
+        ],
+        "unresolved_references": []
+      }
+    }
+  ]
+}

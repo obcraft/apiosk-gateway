@@ -163,6 +163,20 @@ impl Engine {
         let result = self.discover_inner(p, &req, false).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
+
+    /// Continue the App's displayed parse with current source discovery and
+    /// the ordinary one-price planner. The supplied parse grants no authority
+    /// to select sources, reserve money or execute a call.
+    pub(crate) async fn discover_parsed(&self, p: &Principal, req: DiscoverRequest, parsed: crate::capability_intake::ParsedRequest) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.is_person() && req.state.is_none(), "Research requires a new App request");
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("ask-research", &req, &parsed)), "discover").await? {
+            return Ok(response);
+        }
+        telemetry::set_segment(telemetry::Segment::Question);
+        let result = self.intake_question(p, &req, true, None, Some(&parsed)).await;
+        telemetry::question(&result);
+        Ok(self.complete(p, req.request_id, result).await)
+    }
     /// The App chat intake (`app_chat`: capability intake, endpoint
     /// selections, conversational workflows, the invoice upload prompt). No
     /// route serves it since `/v2/chat` answers 410 `ask_moved`; the database
@@ -261,7 +275,7 @@ impl Engine {
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
     ) -> anyhow::Result<Response> {
         telemetry::set_segment(telemetry::Segment::Question);
-        let result = self.intake_question(p, req, app_chat, forced).await;
+        let result = self.intake_question(p, req, app_chat, forced, None).await;
         telemetry::question(&result);
         result
     }
@@ -273,6 +287,7 @@ impl Engine {
         req: &DiscoverRequest,
         app_chat: bool,
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
+        displayed_parse: Option<&crate::capability_intake::ParsedRequest>,
     ) -> anyhow::Result<Response> {
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.
@@ -358,7 +373,17 @@ impl Engine {
         // and a workflow page's recipe is its plan: a code-built intent is
         // never interpreted, so it is not parsed either (a parse outage must
         // not stop a workflow that needs no model before its quote).
-        task.capability_intake = if app_chat && forced.is_none() {
+        task.capability_intake = if let Some(parsed) = displayed_parse {
+            // Use the same cached language normalization as the displayed
+            // search; translating its wording cannot redefine its extraction.
+            let normalized = self.catalog.english().request(parsed).await;
+            let matches = crate::ask_v2::search::search_in_english(&normalized.original, &normalized.english, &catalog);
+            Some(crate::capability_intake::Intake {
+                selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
+                parsed_request:parsed.clone(), matches,
+                apiosk_sources_searched:crate::capability_intake::source_count(&catalog), catalog_version:catalog.version.clone(),
+            })
+        } else if app_chat && forced.is_none() {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
             let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
                 .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version));
@@ -402,7 +427,7 @@ impl Engine {
         }
         // Deterministic shortcuts read the question alone; a selection already
         // says which endpoints may answer it.
-        let shortcuts = forced.is_none() && selection.is_none();
+        let shortcuts = forced.is_none() && selection.is_none() && displayed_parse.is_none();
         if shortcuts {
             if let Some(company) = crate::parser::broad_filing_subject(&req.question) {
                 // This request has no form or topic. The connected filing

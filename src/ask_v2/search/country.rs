@@ -8,9 +8,8 @@
 //! contract ids, source identity, and the catalog's jurisdiction). When one
 //! country is clearly named, its candidates' relevance is multiplied by 1.5
 //! (1.25 for a European register that includes it), and catalog candidates
-//! bound to another country rank after every other relevant candidate but are
-//! never removed. A Bazaar listing about another country is removed instead
-//! (see `search::filter_coinbase_in_english`). Weak evidence (the request
+//! bound to another country are excluded by search. The same conflict signal
+//! excludes Bazaar listings (see `search::filter_coinbase_in_english`). Weak evidence (the request
 //! language, a legal form several countries use) only breaks near-ties;
 //! without any evidence the order is unchanged.
 use crate::{
@@ -112,6 +111,9 @@ fn factor(factor: f64) -> Adjustment {
 #[derive(Clone, Debug, Default)]
 pub(super) struct Signal {
     weights: BTreeMap<String, f64>,
+    /// Inferred input concepts rank near ties, but are not supplied country
+    /// evidence and cannot excuse a conflicting national registry.
+    requested_inputs: BTreeMap<String, f64>,
     /// The request language's country: a weak weight of its own.
     language: Option<&'static str>,
 }
@@ -161,7 +163,7 @@ impl Signal {
         };
         self.weights
             .get(country)
-            .is_some_and(|weight| *weight > language)
+            .is_some_and(|weight| *weight > language + self.requested_inputs.get(country).copied().unwrap_or(0.0))
     }
 
     fn add(&mut self, country: &str, weight: f64) {
@@ -322,25 +324,27 @@ impl Signal {
 
     fn input(&mut self, input: &str) {
         let has = |part: &str| input.split('_').any(|word| word == part);
-        if has("kvk") || has("rsin") || input.contains("kvknummer") {
-            self.add("NL", REQUESTED_INPUT);
-        } else if has("siren") || has("siret") {
-            self.add("FR", REQUESTED_INPUT);
-        } else if input.contains("companies_house") {
-            self.add("GB", REQUESTED_INPUT);
+        let country = if has("kvk") || has("rsin") || input.contains("kvknummer") { Some("NL") }
+            else if has("siren") || has("siret") { Some("FR") }
+            else if input.contains("companies_house") { Some("GB") }
+            else { None };
+        if let Some(country) = country {
+            self.add(country, REQUESTED_INPUT);
+            *self.requested_inputs.entry(country.into()).or_default() += REQUESTED_INPUT;
         }
     }
 
     /// The subject's country, when one signal (or several agreeing ones)
     /// names it unambiguously.
     pub fn primary(&self) -> Option<&str> {
-        let mut ranked: Vec<_> = self.weights.iter().collect();
-        ranked.sort_by(|a, b| b.1.total_cmp(a.1));
+        let mut ranked: Vec<_> = self.weights.iter().map(|(country, weight)|
+            (country.as_str(), *weight - self.requested_inputs.get(country).copied().unwrap_or(0.0))).collect();
+        ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
         match ranked.as_slice() {
             [(country, weight), rest @ ..]
-                if **weight >= STRONG && rest.first().is_none_or(|(_, next)| *next < *weight) =>
+                if *weight >= STRONG && rest.first().is_none_or(|(_, next)| next < weight) =>
             {
-                Some(country.as_str())
+                Some(*country)
             }
             _ => None,
         }
@@ -809,7 +813,7 @@ fn fact_coverage(fact: &str) -> Option<Coverage> {
 
 /// Source identities that are themselves national or European registers.
 fn source_coverage(slug: &str) -> Option<Coverage> {
-    let words: Vec<&str> = slug.split(['-', '_']).collect();
+    let words: Vec<&str> = slug.split(['.', '-', '_']).collect();
     let has = |word: &str| words.contains(&word);
     if has("kvk")
         || has("cbs")
@@ -826,7 +830,7 @@ fn source_coverage(slug: &str) -> Option<Coverage> {
         Some(Coverage::Country("NL".into()))
     } else if (has("companies") && has("house")) || has("hmrc") {
         Some(Coverage::Country("GB".into()))
-    } else if has("insee") || has("sirene") || has("infogreffe") || has("inpi") {
+    } else if has("insee") || has("sirene") || has("infogreffe") || has("inpi") || has("bodacc") || has("naf") || has("rna") {
         Some(Coverage::Country("FR".into()))
     } else if has("vies") || has("ted") || has("eurostat") || has("eurlex") || has("eu") {
         Some(Coverage::Europe)
@@ -873,6 +877,9 @@ pub(super) fn endpoint(service: &Service, source: Option<&KnownSource>) -> Cover
         if let Some(found) = combine(words.filter_map(code)) {
             return found;
         }
+        // Reviewed registry-family identifiers remain jurisdiction evidence
+        // even when generated input fact names hide SIREN/NAF/RNA semantics.
+        if let Some(found) = source_coverage(&slug) { return found; }
     }
     if let Some(found) = source_coverage(&service.api_slug)
         .or_else(|| source.and_then(|source| tag_coverage(&source.metadata.tags)))

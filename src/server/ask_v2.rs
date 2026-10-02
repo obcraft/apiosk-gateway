@@ -27,6 +27,49 @@ pub(super) struct PrepareRequest {
     input: BTreeMap<String, Value>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ResearchRequest {
+    request_id: Uuid,
+    question: String,
+    parsed_request: ParsedRequest,
+}
+
+impl ResearchRequest {
+    fn normalized(&self) -> anyhow::Result<ParsedRequest> {
+        anyhow::ensure!(!self.request_id.is_nil() && !self.question.trim().is_empty()
+            && self.question.encode_utf16().count() <= 16_000 && valid_parsed(&self.parsed_request), "invalid research request");
+        let mut parsed = capability_intake::normalize(&serde_json::to_string(&self.parsed_request)?, &self.question, &self.parsed_request.meta.model)?;
+        anyhow::ensure!(parsed.meta.text_sha256 == self.parsed_request.meta.text_sha256,
+            "the displayed parse belongs to a different question");
+        anyhow::ensure!(parsed.capabilities.len() == self.parsed_request.capabilities.len(), "research must preserve every displayed requirement");
+        anyhow::ensure!(serde_json::to_value(&parsed.subjects)? == serde_json::to_value(&self.parsed_request.subjects)?,
+            "research must preserve the displayed literal subjects");
+        // Stable retries hash the same displayed extraction, not a fresh clock.
+        parsed.meta = self.parsed_request.meta.clone();
+        Ok(parsed)
+    }
+}
+
+/// The App plans from the extraction it already displayed. The gateway
+/// revalidates literals and searches its current catalog, but never asks a
+/// second extraction to redefine the request. Existing approval owns payment.
+pub(super) async fn research(
+    State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<ResearchRequest>,
+) -> Response {
+    let person = match app_person(&state, &headers).await { Ok(p) => p, Err(r) => return r };
+    let parsed = match request.normalized() {
+        Ok(parsed) => parsed,
+        Err(_) => return failure(StatusCode::BAD_REQUEST, "invalid_research_request", "The saved search does not match this question. Search the question again before planning."),
+    };
+    let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
+    let request = crate::protocol::DiscoverRequest { request_id:request.request_id,question:request.question,state:None,context_delta:Default::default() };
+    match state.engine.discover_parsed(&person, request, parsed).await {
+        Ok(response) => Json(response).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "research_unavailable", "The complete request could not be prepared. Your question is kept; try again."),
+    }
+}
+
 impl PrepareRequest {
     fn valid(&self) -> bool {
         !self.request_id.is_nil() && !self.endpoint_id.is_nil()
@@ -512,7 +555,7 @@ fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
                 let Some(name) = field["field"].as_str() else { continue; };
                 if let Some(default) = field["schema"].get("default") { values.insert(name.into(), default.clone()); }
                 if let Some(subject) = subject {
-                    if let Some(value) = crate::ask_v2::input_values::literal(name, subject) { values.insert(name.into(), value); }
+                    if let Some(value) = crate::ask_v2::input_values::documented_literal(name, &field["schema"], subject) { values.insert(name.into(), value); }
                 }
                 if let Some(value) = values.get(name).cloned() {
                     if catalog_core::facts::schema::validate(&field["schema"], &value).is_err() {
@@ -598,6 +641,46 @@ fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Sou
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn complete_research_preserves_exact_displayed_live_checks_and_stable_metadata() {
+        let fixtures:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-live-planning.json")).unwrap();
+        for row in fixtures["cases"].as_array().unwrap() {
+            let request=ResearchRequest {request_id:Uuid::new_v4(),question:row["question"].as_str().unwrap().into(),parsed_request:serde_json::from_value(row["displayed_parse"].clone()).unwrap()};
+            let normalized=request.normalized().unwrap_or_else(|error|panic!("case {}: {error}",row["case"]));
+            assert_eq!(serde_json::to_value(&normalized.subjects).unwrap(),row["displayed_parse"]["subjects"]);
+            assert_eq!(normalized.capabilities.len(),request.parsed_request.capabilities.len());
+            assert_eq!(normalized.meta.text_sha256,request.parsed_request.meta.text_sha256);
+            assert_eq!(normalized.meta.parsed_at,request.parsed_request.meta.parsed_at);
+            let mut changed=request;
+            changed.question.push_str(" and different requirements");
+            assert!(changed.normalized().is_err(),"changed question cannot reuse another parse");
+        }
+    }
+    #[test]
+    fn complete_research_keeps_sixteen_checks_and_refuses_seventeen() {
+        let fixtures:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-live-planning.json")).unwrap();
+        let row=&fixtures["cases"][0];
+        let mut raw=row["displayed_parse"].clone();
+        let base=raw["capabilities"][0].clone();
+        raw["capabilities"]=json!((0..16).map(|index|{let mut cap=base.clone();cap["slug"]=json!(format!("location.check{index}"));cap}).collect::<Vec<_>>());
+        let question=row["question"].as_str().unwrap();
+        let parsed=capability_intake::normalize(&raw.to_string(),question,"fixture").unwrap();
+        let mut request=ResearchRequest {request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        assert_eq!(request.normalized().unwrap().capabilities.len(),16);
+        let mut extra=request.parsed_request.capabilities[0].clone();extra.slug="location.check16".into();
+        request.parsed_request.capabilities.push(extra);
+        assert!(request.normalized().is_err());
+    }
+    #[test]
+    fn complete_research_accepts_full_followup_context_and_refuses_invented_values() {
+        let question="Previous request (context only): MONZO BANK LIMITED company number 09446231\n\nCurrent request: and the directors?";
+        let parsed=capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"MONZO BANK LIMITED","type":"company","identifiers":{"company_number":"09446231"}}],"capabilities":[{"slug":"company.directors","name":"Company directors","description":"Retrieve company directors","domain":"company","inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
+        let mut request=ResearchRequest {request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        assert_eq!(request.normalized().unwrap().subjects[0].identifiers["company_number"],"09446231");
+        request.parsed_request.subjects[0].identifiers.insert("kvk_number".into(),"99998888".into());
+        assert!(request.normalized().is_err(),"normalization cannot silently discard an invented supplied identifier");
+    }
+
     #[test]
     #[ignore = "requires read-only saved audit App chats and CATALOG_SNAPSHOT; no network"]
     fn audit_saved_profession_discovery_and_binding() {

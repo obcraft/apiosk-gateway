@@ -37,7 +37,7 @@ pub(super) fn data_request(intake: &Intake) -> bool {
 }
 
 /// Search returns one match per parsed request instance, not per unique slug.
-fn request_match(intake: &Intake, index: usize) -> Option<&crate::capability_intake::Match> {
+pub(super) fn request_match(intake: &Intake, index: usize) -> Option<&crate::capability_intake::Match> {
     let cap=intake.parsed_request.capabilities.get(index)?;
     let count=intake.parsed_request.capabilities.iter().filter(|c|c.slug==cap.slug).count();
     if intake.matches.iter().filter(|m|m.slug==cap.slug).count()!=count { return None; }

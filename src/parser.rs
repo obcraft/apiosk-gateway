@@ -19,6 +19,7 @@ use uuid::Uuid;
 mod capability_binding;
 use capability_binding::Bindings;
 mod explicit_request;
+mod plan_coverage;
 pub mod conversation_reply;
 
 /// Discovery and planning preserve up to sixteen retrievals. The resolver
@@ -284,6 +285,9 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "intent must use discovered operations" => "undiscovered_operation",
         "every matched capability needs a retrieval goal" => "missing_capability_goal",
         "every parsed subject needs its requested retrieval" => "missing_subject_goal",
+        "each requested retrieval needs a covered goal" => "requirement_goal_count",
+        "duplicate retrieval goal" => "duplicate_goal",
+        "input belongs to a different parsed subject" => "wrong_subject_input",
         "unexpected intent for conversational reply" => "conversation_requires_null_intent",
         explicit_request::DECLINED => "declined_explicit_request",
         _ => "invalid_intent_schema",
@@ -1129,6 +1133,7 @@ impl Parser {
     }
 
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
+        if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
         let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));
         self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
     }
@@ -1143,10 +1148,10 @@ impl Parser {
         if let Some(intake) = intake {
             input.as_object_mut().unwrap().remove("source_groups");
             input["parsed_request"] = json!(intake.parsed_request);
-            input["source_matches"] = json!(intake.parsed_request.capabilities.iter().filter_map(|cap| intake.matches.iter().find(|m| m.slug == cap.slug).map(|m|
+            input["source_matches"] = json!(intake.parsed_request.capabilities.iter().enumerate().filter_map(|(index,cap)| explicit_request::request_match(intake,index).map(|m|
                 json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})
             )).collect::<Vec<_>>());
-            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
+            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover each retrieval capability and its subject with a distinct goal. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Dependencies belong to the backend resolver. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
@@ -1162,7 +1167,7 @@ impl Parser {
         };
         let response_format = if let Some(intake) = intake {
             json!({"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,
-                "schema":capability_reply_schema(&input["catalog"], bindings.as_ref().unwrap(), &intake.selected_capabilities, intake.matches.iter().all(|m| !m.operations.is_empty()))}})
+                "schema":capability_reply_schema(&input["catalog"], bindings.as_ref().unwrap(), &intake.selected_capabilities, plan_coverage::retrievals_matched(intake))}})
         } else {
             json!({"type":"json_object"})
         };
@@ -1194,26 +1199,17 @@ impl Parser {
             }
             if intake.is_some() {
                 anyhow::ensure!(!reply.discover || reply.intent.is_some(), "discovery requires a matched intent");
-                anyhow::ensure!(!reply.discover || intake.is_none_or(|i| i.matches.iter().all(|m| !m.operations.is_empty())), "unmatched capabilities need clarification before a quote");
+                anyhow::ensure!(!reply.discover || intake.is_none_or(|i| plan_coverage::retrievals_matched(i)), "unmatched capabilities need clarification before a quote");
             }
             if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
                 if intake.is_some() {
                     anyhow::ensure!(intent.goals.iter().all(|goal| input["catalog"]["capabilities"].as_array().is_some_and(|caps| caps.iter().any(|c| c == &goal.capability))), "intent must use discovered operations");
-                    anyhow::ensure!(intake.is_none_or(|i| i.matches.iter().all(|m| intent.goals.iter().any(|goal| m.operations.contains(&goal.capability)))), "every matched capability needs a retrieval goal");
-                    // A match for the same capability on another entity does
-                    // not satisfy this request (e.g. comparing two companies).
-                    for cap in &intake.unwrap().parsed_request.capabilities {
-                        if let Some(subject) = cap.subject_id.as_ref().and_then(|id| intake.unwrap().parsed_request.subjects.iter().find(|s| &s.id == id)) {
-                            let matched = intake.unwrap().matches.iter().find(|m| m.slug == cap.slug);
-                            anyhow::ensure!(intent.goals.iter().any(|goal| matched.is_some_and(|m| m.operations.contains(&goal.capability))
-                                && intent.subjects.get(goal.subject).is_some_and(|s| s.label.to_lowercase() == subject.label.to_lowercase())), "every parsed subject needs its requested retrieval");
-                        }
-                    }
                 }
                 intent.restore_question_literals(question);
                 if let Some(intake) = intake {
                     capability_binding::bind_source_requirements(intent, intake, catalog);
+                    plan_coverage::prepare(intent, intake, catalog)?;
                 }
                 intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
             }

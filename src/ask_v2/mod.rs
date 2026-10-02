@@ -255,7 +255,7 @@ impl Client {
         let body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
-            "stream": true, "temperature": 0, "max_tokens": 1024,
+            "stream": true, "temperature": 0, "max_tokens": 4096,
             "provider": {"order": PARSE_PROVIDERS, "require_parameters": true},
             "response_format": {"type": "json_object"}
         })
@@ -630,7 +630,7 @@ mod tests {
             captured[0],
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
-                "stream":true,"temperature":0,"max_tokens":1024,
+                "stream":true,"temperature":0,"max_tokens":4096,
                 "provider":{"order":["alibaba"],"require_parameters":true},
                 "response_format":{"type":"json_object"}
             })

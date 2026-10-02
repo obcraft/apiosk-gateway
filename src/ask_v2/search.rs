@@ -26,13 +26,22 @@ const NEIGHBOURHOOD: u16 = 32;
 const BOUNDARY: u16 = 64;
 const VIOLATIONS: u16 = 128;
 const PERMITS: u16 = 256;
+const STOCK_MARKET: u16 = 512;
+const ANALYST_CONSENSUS: u16 = 1024;
+const INSIDER_TRADES: u16 = 2048;
+const VALUATION: u16 = 4096;
+const LEGISLATION: u16 = 8192;
+const ADVERSE_MEDIA: u16 = 16384;
+const SPECIFIC_OPERATIONS: u16 = STOCK_MARKET | ANALYST_CONSENSUS | INSIDER_TRADES | VALUATION | ADVERSE_MEDIA;
 const LOCATION_FACETS: u16 = BUILDING | NEIGHBOURHOOD | BOUNDARY | VIOLATIONS | PERMITS;
 const FACETS: &[(u16, &str)] = &[
     (FINANCIAL, "@financial"), (OFFICERS, "@officers"),
     (CONTROL, "@control"), (SANCTIONS, "@sanctions"),
     (BUILDING, "@building"), (NEIGHBOURHOOD, "@neighbourhood"),
     (BOUNDARY, "@boundary"), (VIOLATIONS, "@violations"),
-    (PERMITS, "@permits"),
+    (PERMITS, "@permits"), (STOCK_MARKET, "@stock-market"),
+    (ANALYST_CONSENSUS, "@analyst-consensus"), (INSIDER_TRADES, "@insider-trades"),
+    (VALUATION, "@valuation"), (LEGISLATION, "@legislation"), (ADVERSE_MEDIA, "@adverse-media"),
 ];
 
 #[derive(Clone, Copy)]
@@ -74,6 +83,12 @@ type IndexKey = (String, u64, u64);
 /// inside ClinicalTrials.gov/Fly.io or a short label such as "FREE —" is not
 /// the end of that title.
 fn opening_description(text: &str) -> &str {
+    // Additional analogues are not the endpoint's primary operation. A
+    // US veterans' mortgage guide mentioning subsidies elsewhere must not
+    // become a general business subsidy search.
+    let text = text.split_once(", plus ").filter(|(_, appendix)|
+        appendix.starts_with("the closest analogues") || appendix.starts_with("analogues elsewhere"))
+        .map_or(text, |(operation, _)| operation);
     let mut question_intro = false;
     for (index,character) in text.char_indices() {
         let prefix=&text[..index];
@@ -362,6 +377,7 @@ fn singular(word: &str) -> Option<String> {
         "neighborhood" | "neighborhoods" | "neighbourhoods" => "neighbourhood".into(),
         "jaarrekeningen" => "jaarrekening".into(),
         "sanctioned" => "sanction".into(),
+        "regulatory" | "regulation" | "regulations" | "legislation" | "wetgeving" | "law" | "laws" => "legislation".into(),
         // Not the plural of "new": Reuters headlines are not "new rules".
         "news" => "news".into(),
         // bankruptcies/bankruptcy, activities/activity, entities/entity.
@@ -542,7 +558,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         || capabilities.contains("company.accounts");
     let officers = ["officer", "director", "bestuurder"]
         .iter()
-        .any(|word| has(word));
+        .any(|word| has(word)) || (has("executive") && has("company"));
     let control = has("psc")
         || has("ubo")
         || (has("significant") && (has("control") || has("controller")))
@@ -555,10 +571,21 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         else if has("permit") && (has("building") || has("construction")) { PERMITS }
         else { u16::from(has("building") || has("dwelling") || (has("bag") && has("unit"))) * BUILDING
             | u16::from(has("neighbourhood") || has("buurt")) * NEIGHBOURHOOD };
+    let market = has("stock") || ((has("equity") || has("share"))
+        && (has("price") || has("quote") || has("market") || has("trading")));
+    let analyst = has("analyst") && (has("consensu") || has("consensus") || has("rating") || has("recommendation") || has("target"));
+    let insider = has("insider") && (has("transaction") || has("trade") || has("trading") || has("dealing"));
+    let valuation = has("valuation") || has("multiple") || (has("enterprise") && has("value"));
     let facets = u16::from(financial) * FINANCIAL
         | u16::from(officers) * OFFICERS
         | u16::from(control) * CONTROL
         | u16::from(sanctions) * SANCTIONS
+        | u16::from(market) * STOCK_MARKET
+        | u16::from(analyst) * ANALYST_CONSENSUS
+        | u16::from(insider) * INSIDER_TRADES
+        | u16::from(valuation) * VALUATION
+        | u16::from(has("legislation")) * LEGISLATION
+        | u16::from(has("adverse") && has("media")) * ADVERSE_MEDIA
         | location;
     tokens.retain(|token| !vague(token));
     for &(facet, marker) in FACETS {
@@ -779,6 +806,10 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
         .sum::<f64>()
         + if exact { 1000.0 } else { 0.0 }
         + (wanted.facets & direct_facets).count_ones() as f64 * 100.0
+        // Typed legislation retrieval contracts provide legal-source metadata;
+        // broad applicability advice must not displace those retrievals.
+        + if (candidate.namespace.contains("government") || candidate.namespace.contains("legislation"))
+            && !candidate.contract.is_empty() && wanted.facets & candidate.facets & LEGISLATION != 0 { 100.0 } else { 0.0 }
 }
 
 fn safe_url(value: &str) -> Option<String> {
@@ -888,6 +919,10 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     continue;
                 }
                 let adjustment = signal.adjustment(&candidate.coverage);
+                // A known jurisdiction conflict is not a fallback capability.
+                // Keeping it at the bottom still allowed a planner to select
+                // a French register for a British or Dutch company.
+                if adjustment.demoted { continue; }
                 let (demoted, score) = (adjustment.demoted, score * adjustment.factor);
                 match candidate.target {
                     Target::Endpoint(_) => endpoints.push(Ranked {
@@ -1111,9 +1146,13 @@ mod tests {
         assert_eq!(found[0].operations, BTreeSet::from(["building.bag-building".into(), "building.bag-unit".into(), "area.cbs-neighbourhood-2025".into()]));
 
         // These are distinct supported requests, not globally hidden sources.
-        let violations = search(&parsed(vec![json!({"slug":"location.building.violations","name":"Building violations"})]), &catalog);
+        let mut violation_request = parsed(vec![json!({"slug":"location.building.violations","name":"Building violations"})]);
+        violation_request.subjects.clear();
+        let violations = search(&violation_request, &catalog);
         assert_eq!(violations[0].apiosk[0].capability.as_deref(), Some("building.violations"));
-        let boundaries = search(&parsed(vec![json!({"slug":"location.area.boundaries","name":"Neighbourhood boundaries"})]), &catalog);
+        let mut boundary_request = parsed(vec![json!({"slug":"location.area.boundaries","name":"Neighbourhood boundaries"})]);
+        boundary_request.subjects.clear();
+        let boundaries = search(&boundary_request, &catalog);
         assert_eq!(boundaries[0].apiosk[0].capability.as_deref(), Some("area.boundaries"));
     }
 
@@ -1525,7 +1564,7 @@ mod tests {
         assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("parentpulse")),"Requested childcare still has its relevant source");
         let mut request=parsed(vec![json!({"slug":"company.employee.count","name":"Company employee metrics"})]);
         request.capabilities[0].source_hint=Some("onchainpulse".into());
-        assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("onchainpulse")),"An explicit source request stays visible");
+        assert!(search(&request,&catalog)[0].operations.is_empty(),"Naming a provider cannot turn token due diligence into employee metrics");
         let mut request=parsed(vec![json!({"slug":"company.narrative.consistency","name":"Narrative consistency check"})]);
         request.subjects[0].label="Ethereum Foundation".into();
         assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("onchainpulse")),"Explicit blockchain subject context is preserved");
@@ -1884,4 +1923,151 @@ mod tests {
             }
         }
     }
+    #[test]
+    fn requested_operation_is_not_replaced_by_incidental_context_or_output_words() {
+        let catalog = catalog(vec![
+            service(810, "crypto.spot-price", "Crypto price", "Current market price of one crypto asset in one quote currency.", "crypto"),
+            service(811, "company.officers", "Officers", "Retrieve company officers and directors with appointments and roles.", "registry"),
+            service(812, "operation.collect.invest", "Collectible signals", "Collectible investment signal: buy, hold or sell? Returns trend analysis for cards, coins and watches.", "collectible"),
+            service(813, "company.sector-benchmarks", "Sector benchmark", "Sector benchmarks: median revenue, EBITDA margin and debt ratio across peers.", "sector"),
+            service(814, "operation.equity.quote", "Equity quote", "Stock quote: current share price for one listed equity.", "equity"),
+            service(815, "company.insider-transactions", "Insider transactions", "Company insider transactions by officers and directors: shares bought or sold and transaction dates.", "transactions"),
+        ], vec![]);
+        for (slug, name, description, outputs, rejected, accepted) in [
+            ("company.stock.quote", "Stock quote", "Current stock price and trading data for company shares.", vec!["current_price","quote_currency"], "crypto", Some("equity")),
+            ("company.insider.transactions", "Insider transactions", "Transactions by executives and directors.", vec!["insider_name","title","transaction_date"], "registry", Some("transactions")),
+            ("company.analyst.consensus", "Analyst consensus", "Analyst stock recommendations and ratings.", vec!["buy_recommendations","hold_recommendations","sell_recommendations"], "collectible", None),
+            ("company.financial.valuation.ratios", "Company valuation ratios", "Company EV/EBITDA and P/E valuation ratios.", vec!["ev_ebitda","revenue","debt_ratio"], "sector", None),
+        ] {
+            let mut request = parsed(vec![json!({"slug":slug,"name":name,"description":description})]);
+            request.subjects.clear();
+            request.capabilities[0].outputs=outputs.into_iter().map(str::to_owned).collect();
+            let found=search(&request,&catalog);
+            assert!(found[0].apiosk.iter().all(|c|c.source_slug.as_deref()!=Some(rejected)),"{slug}: {:?}",found[0].apiosk);
+            if let Some(accepted)=accepted {assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(accepted)),"{slug}: {:?}",found[0].apiosk);}
+        }
+        for (slug,name,source) in [
+            ("crypto.spot.price","Crypto spot price","crypto"),
+            ("company.officers","Company officers","registry"),
+            ("research.collectible.investment","Collectible investment signal","collectible"),
+            ("company.sector.benchmarks","Sector benchmarks","sector"),
+        ] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name})]); request.subjects.clear();
+            assert!(search(&request,&catalog)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"Requested {slug} remains discoverable");
+        }
+    }
+
+    #[test]
+    fn country_conflicts_are_excluded_even_when_they_are_the_only_or_exact_operation() {
+        let mut french=service(830,"company.registry-profile","French registry","Company registration profile from the French registry.","registry-fr"); french.jurisdiction=Some("FR".into());
+        let mut british=service(831,"company.registry-profile","British registry","Company registration profile from the British registry.","registry-gb"); british.jurisdiction=Some("GB".into());
+        let foreign=catalog(vec![french.clone()],vec![]);
+        let request=parsed(vec![json!({"slug":"company.registry.profile","name":"Company registry profile"})]);
+        assert!(search(&request,&foreign)[0].operations.is_empty());
+        let mut inferred = request.clone();
+        inferred.language = "nl".into();
+        inferred.capabilities[0].inputs = vec!["kvk_number".into(), "rsin".into(), "kvknummer".into()];
+        let mut dutch = service(832,"company.registry-profile","Dutch registry","Company registration profile from the Dutch registry.","registry-nl"); dutch.jurisdiction=Some("NL".into());
+        assert!(search(&inferred, &catalog(vec![dutch], vec![]))[0].operations.is_empty(), "Requested concepts are not supplied identifiers");
+        let both=catalog(vec![french,british],vec![]);
+        assert_eq!(search(&request,&both)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["registry-gb"]);
+    }
+
+    #[test]
+    fn regulatory_wording_finds_official_legislation_metadata() {
+        let catalog=catalog(vec![
+            service(850,"government.bwb.search","KOOP","Search BWB regulation titles; national legislation metadata, not full text.","koop"),
+            service(851,"eu_law.sparql.select","EUR-Lex","Query EU legal metadata with a bounded SPARQL SELECT; not the full legal text.","eurlex-cellar"),
+            service(852,"operation.tax.calculate","Tax calculator","Calculate corporate income tax for a revenue estimate.","tax"),
+        ], vec![]);
+        let mut request=parsed(vec![json!({"slug":"research.regulatory.csrd","name":"CSRD regulations and related rulings","description":"Current regulatory information, legal rulings and parliamentary motions in the Netherlands and European Union."})]);
+        request.subjects.clear();
+        request.capabilities[0].outputs=vec!["regulations".into(),"legal_rulings".into(),"parliamentary_motions".into()];
+        let found=search(&request,&catalog);
+        assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("koop")),"{:?}",found[0].apiosk);
+        assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("eurlex-cellar")),"{:?}",found[0].apiosk);
+        assert!(found[0].apiosk.iter().all(|c|c.source_slug.as_deref()!=Some("tax")));
+    }
+
+    #[test]
+    fn compound_stock_names_keep_the_narrower_requested_operation() {
+        let catalog=catalog(vec![
+            service(870,"finance.stock-quote","Stock quote","Stock quote with current trading price and volume.","prices"),
+            service(871,"finance.analyst-consensus","Consensus","Analyst consensus ratings, recommendations and target prices for listed stocks.","analysts"),
+            service(872,"finance.insider-transactions","Insiders","Company insider transactions: shares bought or sold by directors.","insiders"),
+        ], vec![]);
+        for (slug,name,source) in [
+            ("company.stock.analyst.consensus","Stock analyst consensus","analysts"),
+            ("company.stock.insider.transactions","Stock insider transactions","insiders"),
+        ] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name})]);request.subjects.clear();
+            let found=search(&request,&catalog);
+            assert!(found[0].apiosk.iter().all(|c|c.source_slug.as_deref()!=Some("prices")),"{name}: {:?}",found[0].apiosk);
+            assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"{name}: {:?}",found[0].apiosk);
+        }
+    }
+
+    #[test]
+    fn reviewed_capability_synonyms_work_without_marketing_descriptions() {
+        let mut accounts=service(880,"company.accounts","company.accounts","","registry");accounts.description=None;
+        let mut officers=service(881,"company.officers","company.officers","","registry");officers.description=None;
+        let catalog=catalog(vec![accounts,officers],vec![]);
+        for (slug,name,expected) in [("company.financial.statements","Company financial statements","company.accounts"),("company.executives","Company executives","company.officers")] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name})]);request.subjects.clear();
+            assert!(search(&request,&catalog)[0].operations.contains(expected),"{slug}");
+        }
+    }
+
+    #[test]
+    fn foreign_media_namespace_cannot_erase_adverse_qualifier() {
+        let catalog=catalog(vec![
+            service(890,"media_sports.lookup","Media lookup","Find movie, music and sports media metadata.","entertainment"),
+            service(891,"company.adverse-media","Adverse media","Search adverse media reports mentioning a company.","screening"),
+        ],vec![]);
+        let mut request=parsed(vec![json!({"slug":"company.adverse.media","name":"Adverse media","description":"Find negative news concerning a company."})]);request.subjects.clear();
+        let found=search(&request,&catalog);
+        assert_eq!(found[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["screening"]);
+    }
+
+    #[test]
+    fn generated_operations_need_compound_scope_not_one_incidental_word() {
+        let catalog=catalog(vec![
+            service(9010,"operation.rental.market","Rental","Global rental-market intelligence: asking rent level, vacancy tightness and budget rates.","rental"),
+            service(9011,"operation.emergency.fund","Emergency","Emergency-fund calculator by income, expenses and job stability.","emergency"),
+            service(9012,"operation.advisor.find","Advisor","Where do I find an advisor? Advisor finder via a financial planning network, matched by location.","advisor"),
+            service(9013,"operation.credit.cards","Cards","Which credit card works? Rewards card finder ranked by net annual value for travel, groceries and gas.","cards"),
+            service(9014,"operation.veteran.loan","Veteran","VA home loan guide (US) for veteran agents, plus the closest analogues elsewhere: Australia's interest-rate subsidy.","veteran"),
+            service(9015,"operation.jobs.vacancies","Vacancies","Job vacancy counts and volume by location and occupation.","jobs"),
+            service(9016,"operation.company.network","Network","Company network reconstruction from ownership relationships.","network"),
+            service(9017,"operation.grid.capacity","Grid","Electricity network capacity available at an address.","grid"),
+            service(9018,"operation.business.subsidy","Subsidies","Business subsidy search with subsidy budget, eligibility and deadlines.","subsidies"),
+            service(9019,"operation.unemployment","Statistics","Unemployment; key figures per month, seasonally adjusted.","statistics"),
+        ],vec![]);
+        assert_eq!(opening_description("Company profile, plus directors and significant controllers."), "Company profile, plus directors and significant controllers.");
+        assert_eq!(opening_description("Vacancy counts, plus salary benchmarks."), "Vacancy counts, plus salary benchmarks.");
+        for (slug,name,source) in [
+            ("research.job.vacancy.volume","Job vacancy volume","jobs"),
+            ("company.network.reconstruction","Reconstruct company network","network"),
+            ("location.net.capacity","Network capacity","grid"),
+            ("finance.subsidies.find","Find subsidies","subsidies"),
+            ("research.statistics.unemployment","Unemployment rate","statistics"),
+        ] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name})]);request.subjects.clear();
+            if source == "subsidies" { request.capabilities[0].outputs = vec!["budget".into(), "eligibility".into(), "deadline".into()]; }
+            if source == "statistics" { request.capabilities[0].outputs = vec!["unemployment_rate".into(), "period".into()]; }
+            let found=search(&request,&catalog);
+            assert_eq!(found[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec![source],"{name}: {:?}",found[0].apiosk);
+        }
+        for (slug,name,source) in [
+            ("finance.rental.market","Rental market","rental"),
+            ("finance.emergency.fund","Emergency fund","emergency"),
+            ("finance.advisor.find","Financial advisor","advisor"),
+            ("finance.credit.card","Credit card","cards"),
+            ("finance.veteran.home.loan","Veteran home loan","veteran"),
+        ] {
+            let mut request=parsed(vec![json!({"slug":slug,"name":name})]);request.subjects.clear();
+            assert!(search(&request,&catalog)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"Requested {name} remains available");
+        }
+    }
+
 }

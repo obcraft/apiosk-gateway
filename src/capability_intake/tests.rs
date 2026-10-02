@@ -421,7 +421,10 @@ async fn two_companies_cannot_be_reduced_to_one_retrieval() {
     let (parser, mock, bazaar, server) = fixture(vec![parsed, matched(), planned(), complete], false).await;
     let c = catalog();
     let task = Task::default();
-    let intake = parser.prepare_ask_with_bazaar(&question, None, &task, &c, &bazaar).await.unwrap();
+    let mut intake = parser.prepare_ask_with_bazaar(&question, None, &task, &c, &bazaar).await.unwrap();
+    // The App's local discovery preserves occurrences. The legacy directory
+    // query map collapses identical slugs and is deliberately not bindable.
+    intake.matches = crate::ask_v2::search::search(&intake.parsed_request, &c);
     let reply = parser.chat_from_capabilities(&question, None, &task, &c, &intake).await.unwrap();
     assert_eq!(reply.intent.unwrap().goals.len(), 2);
     assert_eq!(*mock.events.lock().unwrap(), vec!["parse", "search", "bazaar", "plan", "plan"]);
@@ -473,10 +476,9 @@ async fn external_only_match_cannot_become_an_apiosk_quote() {
         .await
         .unwrap();
     assert!(!intake.matches[0].coinbase.is_empty());
-    assert!(parser
-        .chat_from_capabilities(QUESTION, None, &task, &c, &intake)
-        .await
-        .is_err());
+    let reply=parser.chat_from_capabilities(QUESTION, None, &task, &c, &intake).await.unwrap();
+    assert!(!reply.discover && reply.intent.is_none(), "external discovery cannot become an Apiosk quote");
+    assert!(reply.message.contains("geen passende uitvoerbare bron") || reply.message.contains("No matching executable source"));
     server.abort();
 }
 

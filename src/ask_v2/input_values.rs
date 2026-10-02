@@ -36,3 +36,38 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         || (field == "domain.name" && kind == "domain");
     named.then(|| json!(subject.label))
 }
+
+/// Generated operation fields have opaque ids. A documented company/entity
+/// name input may still accept the exact typed subject; a bare field named
+/// `name` alone is not enough to establish that meaning.
+pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject) -> Option<Value> {
+    if let Some(value) = literal(field, subject) { return Some(value); }
+    if !field.starts_with("source_input.") { return None; }
+    let description = schema["description"].as_str().unwrap_or_default().to_lowercase();
+    let company = matches!(subject.kind.as_str(), "company" | "organization" | "organisation" | "business");
+    let person = matches!(subject.kind.as_str(), "person" | "individual");
+    let company_name = ["company name", "business name", "organization name", "organisation name", "entity name", "name of the company", "name of the entity"]
+        .iter().any(|term| description.contains(term));
+    let person_name = description.contains("person name") || description.contains("person or entity name");
+    ((company && company_name) || (person && person_name)).then(|| json!(subject.label))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn documented_names_respect_company_and_person_types() {
+        for (kind, description, expected) in [
+            ("company","Person or entity name to screen",true),
+            ("person","Person or entity name to screen",true),
+            ("company","Company name",true),
+            ("person","Person name",true),
+            ("company","Person name",false),
+            ("person","Company name",false),
+            ("company","Name",false),
+        ] {
+            let subject=Subject {id:"s1".into(),label:"Literal subject".into(),kind:kind.into(),identifiers:Default::default()};
+            assert_eq!(documented_literal("source_input.example.name",&json!({"type":"string","description":description}),&subject).is_some(),expected,"{kind}: {description}");
+        }
+    }
+}

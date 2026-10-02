@@ -901,10 +901,7 @@ fn the_subjects_country_puts_its_own_register_first() {
         .clone();
     assert_eq!(dutch[0].endpoint_id, Some(kvk.clone()));
     assert_eq!(dutch[1].endpoint_id, Some(sirenic_europe.clone()));
-    assert_eq!(
-        dutch[2].source_slug.as_deref(),
-        Some("kvk-dutch-business-register")
-    );
+    assert!(dutch.iter().all(|candidate| !matches!(candidate.source_slug.as_deref(), Some("companies-house"))));
     // Before: the cheapest copy of the contract (Sirenic France) led.
     let plain: Vec<_> = search(&profile("Coolblue").parsed(), catalog())[0]
         .apiosk
@@ -915,8 +912,8 @@ fn the_subjects_country_puts_its_own_register_first() {
 }
 
 #[test]
-fn a_foreign_register_is_demoted_but_still_offered_when_nothing_else_fits() {
-    // No Dutch source lists officers: the British registers remain.
+fn a_foreign_register_is_not_offered_when_nothing_else_fits() {
+    // No Dutch source lists officers: a British register cannot fill that gap.
     let ask = Ask {
         slug: "company.officers",
         name: "Company officers",
@@ -927,12 +924,7 @@ fn a_foreign_register_is_demoted_but_still_offered_when_nothing_else_fits() {
         ..Default::default()
     };
     let found = offered(&ask);
-    assert_eq!(
-        found.first().map(String::as_str),
-        Some("companies-house:company.officers"),
-        "{found:?}"
-    );
-    assert_eq!(found.len(), 3);
+    assert!(found.is_empty(), "{found:?}");
 }
 
 #[test]
@@ -1222,10 +1214,10 @@ fn a_country_subject_lifts_its_national_statistics_office() {
         .find(|source| source.slug == "cbs-statline")
         .unwrap();
     assert!(signal.adjustment(&country::source(cbs)).factor > 1.0);
-    // Another country's question demotes CBS but still lists it.
+    // A Dutch-only table cannot answer the same question about Germany.
     let german = offered(&ask("Germany"));
     assert!(
-        german
+        !german
             .iter()
             .any(|candidate| candidate.starts_with("cbs-statline:")),
         "{german:?}"

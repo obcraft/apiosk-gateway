@@ -28,7 +28,7 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{vague, words, Document, Index, DELIVERABLE_OPERATIONS, FACET_WORDS};
+use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SPECIFIC_OPERATIONS, STOCK_MARKET};
 use crate::{
     capability_intake::{capability_query, Capability, ParsedRequest},
     state::Task,
@@ -86,6 +86,9 @@ pub(super) struct Request {
     /// `research.bankruptcies.bySector` is a bucket, not the topic, unless the
     /// name or description says it too. What a Bazaar listing must mention.
     anchors: BTreeSet<String>,
+    /// Synonym facets explicitly requested by the operation identity. Context
+    /// like "transactions by directors" must not make a roster a transaction.
+    primary_facets: u16,
 }
 
 /// `text` with the subjects' names and identifiers removed, as in the query.
@@ -165,7 +168,10 @@ impl Request {
             .filter(|word| !bucket.contains(*word) || said.contains(*word))
             .cloned()
             .collect();
+        let primary_facets = document(Target::Source(0),
+            &format!("{} {}", capability.slug, name_text), BTreeSet::new()).facets;
         Self {
+            primary_facets,
             anchors,
             topic: key
                 .iter()
@@ -204,16 +210,42 @@ impl Request {
         self.actions.extend(other.actions);
         self.contract.extend(other.contract);
         self.anchors.extend(other.anchors);
+        self.primary_facets |= other.primary_facets;
         self
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
-        // A generated HTTP route has no reviewed semantic capability. Its
-        // opening description must actually offer the requested subject matter;
-        // incidental words in long examples or provider-wide copy are not enough.
-        self.anchors.iter().any(|word| candidate.topic_scope.contains(word))
-            || wanted.tokens.iter().filter(|word|word.starts_with('@')).any(|word|candidate.topic_scope.contains(word))
-            || self.outputs.iter().filter(|word|candidate.topic_scope.contains(*word)).count() >= 2
+        // The operation's own scope must name the requested topic. Broad
+        // descriptions, input names and incidental output words are not
+        // evidence that a different operation performs the requested check.
+        // Reviewed ids contribute their semantic words; generated HTTP-route
+        // ids do not. Genuine concept synonyms (accounts/statements, PSC/UBO)
+        // remain valid when the requested operation itself names that facet.
+        let mut specific = self.primary_facets & SPECIFIC_OPERATIONS;
+        // "Stock analyst consensus" asks for analyst consensus, not merely
+        // a stock price. The narrower operation dominates the asset context.
+        if specific & !STOCK_MARKET != 0 { specific &= !STOCK_MARKET; }
+        if specific != 0 && candidate.facets & specific != specific { return false; }
+        // Measurement/presentation words do not make a second subject:
+        // "unemployment rate statistics" still asks about unemployment.
+        let core = |word: &String| !matches!(word.as_str(), "statistic" | "rate" | "count" | "volume" | "metric" | "data");
+        let generated = matches!(candidate.target, Target::Endpoint(_)) && candidate.contract.is_empty();
+        let anchored = self.topic.iter().filter(|word| (!generated || core(word))
+            && (candidate.topic_scope.contains(*word) || candidate.contract.contains(*word))).count();
+        // Unreviewed routes cannot establish a compound operation from one
+        // incidental word (job vacancies vs rental vacancies, network
+        // capacity vs credit-card net value). Semantic reviewed ids and
+        // explicit synonym facets retain their existing evidence path.
+        let needed = if generated {
+            self.anchors.iter().filter(|word| core(word)).count().min(2).max(1)
+        } else { 1 };
+        anchored >= needed
+            || self.primary_facets & candidate.contract_facets != 0
+            || (self.primary_facets != 0 && wanted.tokens.iter()
+                .filter(|word| word.starts_with('@'))
+                .any(|word| candidate.topic_scope.contains(word)))
+            || (self.anchors.is_empty() && self.outputs.iter()
+                .filter(|word| candidate.topic_scope.contains(*word)).count() >= 2)
     }
 
     /// Whether a listing outside the catalog (a Bazaar resource) is about
@@ -246,6 +278,8 @@ impl Request {
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
+        if matches!(candidate.target, Target::Endpoint(_))
+            && !self.primary_topic_matches(wanted, candidate) { return false; }
         if !hinted && candidate.contract.is_empty() && !self.primary_topic_matches(wanted,candidate) { return false; }
         let facet = wanted.facets & candidate.facets != 0;
         // A shared facet already stands for its vocabulary ("officer",

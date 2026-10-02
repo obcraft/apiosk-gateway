@@ -409,6 +409,46 @@ async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task(
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extracts_again() {
+    let intake=Intake::start().await;
+    let person=Person::new();
+    let question="Jaarrekening van Coolblue";
+    let parsed=apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(),question,"displayed-fixture").unwrap();
+    let body=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed});
+    for bearer in ["invalid-fixture-bearer",ORGANISATION_KEY,"apk_access_local_fixture"] {
+        let (status,_)=intake.send(bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+        assert!(matches!(status,StatusCode::UNAUTHORIZED|StatusCode::FORBIDDEN));
+    }
+    assert_eq!(task_count(&intake,&person).await,0);
+    let mut changed=body.clone();changed["question"]=json!("Jaarrekening van another company");
+    let (status,_)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(changed)).await;
+    assert_eq!(status,StatusCode::BAD_REQUEST);
+    assert_eq!(task_count(&intake,&person).await,0);
+    let (status,quoted)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::OK,"{quoted}");
+    assert_eq!(quoted["status"],"ready","{quoted}");
+    assert!(quoted["proposal"].is_object());
+    assert_eq!(task_count(&intake,&person).await,1);
+    let chats=intake.model.chats();
+    assert_eq!(chats.len(),1);
+    assert_eq!(chats[0]["parsed_request"],body["parsed_request"]);
+    assert_eq!(chats[0]["question"],question);
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
+    assert_eq!(intake.model.count("parse"),0);
+    assert_eq!(intake.model.count("search"),0);
+    let (status,retried)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    assert_eq!(status,StatusCode::OK);
+    assert_eq!(retried,quoted,"stable request id recovers the same one-price proposal");
+    assert_eq!(intake.model.chats().len(),1);
+    assert_eq!(task_count(&intake,&person).await,1);
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM authorizations a JOIN tasks t ON t.id=a.task_id WHERE t.owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    let charges:i64=sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!((approvals,charges),(0,0));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
 async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
     let intake = Intake::start().await;
     let parse = json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Coolblue"});
