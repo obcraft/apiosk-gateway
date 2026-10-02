@@ -1140,7 +1140,7 @@ impl Parser {
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
-        let parsed = if let Some(parsed) = intake::broad_information::parse(question, "literal-broad-information") {
+        let parsed = if let Some(parsed) = intake::literal_request(question, "literal-broad-information") {
             parsed
         } else if intake::conversation_language(question).is_some() {
             intake::normalize("", question, "")?
@@ -1235,6 +1235,10 @@ impl Parser {
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
         if selection.is_none() {
+            if let Some(reply) = plan_coverage::cbs_comparison_reply(intake, catalog, question, task) { return Ok(reply); }
+            if let Some(tender) = crate::tenderned::executable_intake(question, intake) {
+                if let Some(reply) = plan_coverage::single_retrieval_reply(&tender, catalog, question, question, task) { return Ok(reply); }
+            }
             if let Some(reply) = plan_coverage::broad_information_reply(intake, catalog, question, task) { return Ok(reply); }
         }
         let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));

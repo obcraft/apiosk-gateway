@@ -122,7 +122,32 @@ pub(crate) fn registry_fallback(intent: &Intent, sources: &[Value], dutch: bool)
     Some(checked)
 }
 
+/// Reviewed source projections return an error when a recognized question has
+/// incomplete or mismatched saved evidence. That error must not fall through
+/// to model synthesis or trigger another purchase.
+pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
+    if let Some(answer) = crate::location_answer::compose(question, intent, sources)? {
+        return Ok(Some(answer));
+    }
+    if let Some(answer) = crate::company_request::compose(question, intent, sources)? {
+        return Ok(Some(answer));
+    }
+    if let Some(answer) = crate::cbs_comparison::compose(question, sources)? {
+        return Ok(Some(answer));
+    }
+    if crate::tenderned::parse(question, "literal").is_some_and(|parsed|
+        crate::ask_v2::search::named_countries(&parsed.subjects[0].identifiers["country"])
+            == std::collections::BTreeSet::from(["NL"])) {
+        return crate::tenderned::compose(question, intent, sources)
+            .map(Some).ok_or_else(|| anyhow::anyhow!("saved TenderNed page or actual query provenance does not match the request"));
+    }
+    Ok(None)
+}
+
 pub(crate) fn compose(question: &str, intent: &Intent, sources: &[Value]) -> Option<Value> {
+    if let Some(answer) = crate::tenderned::compose(question, intent, sources) {
+        return Some(answer);
+    }
     if intent.subjects.len() != 1
         || intent.goals.len() != 1
         || !intent.unresolved_references.is_empty()

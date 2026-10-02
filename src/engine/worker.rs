@@ -281,7 +281,7 @@ impl Engine {
                 Dispatch::Done { execution_id, body } => {
                     task.pending_dispatches
                         .retain(|d| d.action_id != pending.action_id);
-                    self.ingest(p, id, &mut task, step, execution_id, body, &catalog)
+                    self.ingest(p, id, &mut task, step, execution_id, body, &pending.inputs, &catalog)
                         .await?;
                     if task.active_results.len() == 1 {
                         telemetry::milestone(Milestone::FirstData, id, Some(plan.quote_ref), Default::default());

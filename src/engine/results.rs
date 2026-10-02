@@ -135,6 +135,7 @@ impl Engine {
         step: &resolver::Step,
         execution: Uuid,
         body: Value,
+        request_inputs: &Value,
         catalog: &Catalog,
     ) -> anyhow::Result<()> {
         if step.service.unverified && body["ok"] != true {
@@ -164,6 +165,7 @@ impl Engine {
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);
+        crate::tenderned::record_request(&step.service, request_inputs, &mut document);
         if step.service.is_document_retrieval() {
             document["coverage_note"] = json!("Document returned by the named source. Provider assertions and generated summaries are not independently verified; cite original filings/records only when the returned evidence identifies them. This retrieval does not establish exhaustive historical coverage.");
             document["source"]["output_kind"] = json!("source_document");

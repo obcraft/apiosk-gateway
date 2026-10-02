@@ -309,12 +309,19 @@ pub fn conversation_language(request: &str) -> Option<&'static str> {
         None
     }
 }
+pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
+    broad_information::parse(request, model)
+        .or_else(|| crate::tenderned::parse(request, model))
+        .or_else(|| crate::company_request::parse(request, model))
+        .or_else(|| crate::cbs_comparison::canonical_request(request))
+}
+
 pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<ParsedRequest> {
     normalize_with_context(raw, request, request, model)
 }
 
 pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, model: &str) -> anyhow::Result<ParsedRequest> {
-    if let Some(parsed) = broad_information::parse(request, model) { return Ok(parsed); }
+    if let Some(parsed) = literal_request(request, model) { return Ok(parsed); }
     let raw = if let Some(language) = conversation_language(request) {
         json!({"language":language,"subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Reply to a greeting, thanks, or small talk.","domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}})
     } else {

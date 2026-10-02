@@ -133,7 +133,7 @@ pub async fn run(parser: &Parser, catalog: &Catalog, case: &Case, stored: &[Stor
     }
     task.proposal = Some(serde_json::to_value(&plan)?);
     let sources = crate::engine::answer_sources(&plan, &intent, &task, &documents);
-    let direct = task.failed_steps.is_empty().then(|| crate::direct_answer::compose(&case.question, &intent, &sources)).flatten();
+    let direct = saved_answer(&case.question, &intent, &task, &sources);
     let analysis = match direct {
         Some(answer) => answer,
         None => {
@@ -148,6 +148,27 @@ pub async fn run(parser: &Parser, catalog: &Catalog, case: &Case, stored: &[Stor
         }
     };
     Ok(Outcome { status: "answered", message: outcome.message, intent: Some(intent), plan: Some(plan), task, documents, analysis: Some(analysis) })
+}
+
+/// Match the live engine's reviewed source projections before model synthesis.
+/// A recognized but incomplete source set is an unavailable saved-source answer,
+/// never permission for the tape's model to invent the missing comparison.
+fn saved_answer(question: &str, intent: &Intent, task: &Task, sources: &[Value]) -> Option<Value> {
+    let reviewed = match crate::direct_answer::reviewed_compose(question, intent, sources) {
+        Ok(Some(answer)) if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() => Some(answer),
+        Ok(Some(_)) => Some(json!({"status":"unavailable","limitations":["Not all source requests have completed successfully. Your source results are saved; no additional source purchase was made."],"observations":[]})),
+        Err(_) => Some(json!({"status":"unavailable","limitations":["The saved source results are incomplete or inconsistent for this answer. Your source results are saved; no additional source purchase was made."],"observations":[]})),
+        Ok(None) => None,
+    };
+    reviewed.or_else(|| {
+        if !task.failed_steps.is_empty() || !task.pending_dispatches.is_empty() || task.supplier_check.is_some() {
+            return None;
+        }
+        task.analysis.as_ref().filter(|answer| answer["status"] == "unavailable")
+            .and_then(|_| crate::direct_answer::registry_fallback(intent, sources,
+                task.capability_intake.as_ref().is_some_and(|intake| intake.parsed_request.language == "nl")))
+            .or_else(|| crate::direct_answer::compose(question, intent, sources))
+    })
 }
 
 /// A cited source value as text; null when the pointer names no scalar.
@@ -404,6 +425,35 @@ pub fn tape_entry(surface: &str, key: &str, prompt_hash: &str, response: &Value)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reviewed_replay_answers_match_live_success_and_fail_closed_behavior() {
+        let question = "Compare bankruptcies per sector in the Netherlands.";
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/cbs-bankruptcy-comparison.json")).unwrap();
+        let sources: Vec<_> = fixture["sources"].as_array().unwrap().iter().enumerate().map(|(index, saved)| json!({
+            "result_ref": result_ref(index), "document":{"data":saved["data"], "coverage":"source_response",
+                "source":{"provider":"cbs-statline","name":"CBS Statistics"}}
+        })).collect();
+        let intent = Intent { subjects: vec![], goals: vec![], answer_operations: vec![], unresolved_references: vec![] };
+        let mut task = Task::default();
+        let expected = crate::direct_answer::reviewed_compose(question, &intent, &sources).unwrap().unwrap();
+        let answer = saved_answer(question, &intent, &task, &sources).unwrap();
+        assert_eq!(answer, expected);
+        assert_eq!(answer["status"], "completed");
+        assert_eq!(answer["presentation"]["rows"].as_array().unwrap().len(), 21);
+
+        task.failed_steps.insert("failed-source".into(), json!({"code":"source_unavailable"}));
+        let failed = saved_answer(question, &intent, &task, &sources).unwrap();
+        assert_eq!(failed["status"], "unavailable");
+        assert!(failed["observations"].as_array().unwrap().is_empty());
+        task.failed_steps.clear();
+
+        let incomplete = saved_answer(question, &intent, &task, &sources[..4]).unwrap();
+        assert_eq!(incomplete["status"], "unavailable");
+        assert!(incomplete["observations"].as_array().unwrap().is_empty());
+        assert!(incomplete["limitations"][0].as_str().unwrap().contains("no additional source purchase"));
+        assert!(saved_answer("An unrelated request", &intent, &task, &[]).is_none(), "unrecognized questions keep the existing model path");
+    }
 
     #[test]
     fn keys_ignore_generated_ids_and_times_but_not_fixed_ones_or_content() {

@@ -1,0 +1,168 @@
+{
+  "description": "Previously saved official KVK HVDS response for Mollie B.V.; fixture import uses no provider call. This proves a returned financial year, not latest filing or current source availability.",
+  "kvk_number": "30204462",
+  "financial_year": 2020,
+  "cached_at": "2026-09-30 19:44:39.917101+00",
+  "source_url": "https://opendata.kvk.nl/api/v1/hvds/jaarrekeningen/kvknummer/30204462",
+  "payload": {
+    "opendataFields": [
+      {
+        "key": "SbiBusinessCode",
+        "value": "6201"
+      },
+      {
+        "key": "DocumentAdoptionDate",
+        "value": "2021-05-28"
+      },
+      {
+        "key": "FinancialYear",
+        "value": "2020"
+      },
+      {
+        "key": "BalanceSheet",
+        "opendataFields": [
+          {
+            "key": "BalanceSheetBeforeAfterAppropriationResultsTitle",
+            "opendataFields": [
+              {
+                "key": "BalanceSheetBeforeAfterAppropriationResults",
+                "value": "Na"
+              }
+            ]
+          },
+          {
+            "key": "BalanceSheetTitle",
+            "opendataFields": [
+              {
+                "key": "AssetsTitle",
+                "opendataFields": [
+                  {
+                    "key": "AssetsCurrentTitle",
+                    "opendataFields": [
+                      {
+                        "key": "AssetsCurrent",
+                        "value": "191534000"
+                      },
+                      {
+                        "key": "Receivables",
+                        "value": "32348000"
+                      },
+                      {
+                        "key": "CashAndCashEquivalents",
+                        "value": "159186000"
+                      }
+                    ]
+                  },
+                  {
+                    "key": "Assets",
+                    "value": "194495000"
+                  },
+                  {
+                    "key": "AssetsNoncurrentTitle",
+                    "opendataFields": [
+                      {
+                        "key": "AssetsNoncurrent",
+                        "value": "2961000"
+                      },
+                      {
+                        "key": "PropertyPlantEquipment",
+                        "value": "2961000"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "key": "EquityAndLiabilitiesTitle",
+                "opendataFields": [
+                  {
+                    "key": "LiabilitiesCurrent",
+                    "value": "186526000"
+                  },
+                  {
+                    "key": "Provisions",
+                    "value": "306000"
+                  },
+                  {
+                    "key": "EquityAndLiabilities",
+                    "value": "194495000"
+                  },
+                  {
+                    "key": "EquityTitle",
+                    "opendataFields": [
+                      {
+                        "key": "Equity",
+                        "value": "7663000"
+                      },
+                      {
+                        "key": "SharePremium",
+                        "value": "10018000"
+                      },
+                      {
+                        "key": "RetainedEarnings",
+                        "value": "-2373000"
+                      },
+                      {
+                        "key": "ShareCapitalPaidCalledUp",
+                        "value": "18000"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "IncomeStatement",
+        "opendataFields": [
+          {
+            "key": "FinancialIncomeExpenses",
+            "value": "-159000"
+          },
+          {
+            "key": "IncomeTaxExpense",
+            "value": "24000"
+          },
+          {
+            "key": "ResultAfterTax",
+            "value": "-5166000"
+          },
+          {
+            "key": "DepreciationPropertyPlantEquipmentAmortisationIntangibleAssets",
+            "value": "386000"
+          },
+          {
+            "key": "ResultBeforeTax",
+            "value": "-5142000"
+          },
+          {
+            "key": "EmployeeBenefitsExpenses",
+            "value": "18539000"
+          },
+          {
+            "key": "OperatingResult",
+            "value": "-4983000"
+          },
+          {
+            "key": "GrossMargin",
+            "value": "34454000"
+          },
+          {
+            "key": "ImpairmentCurrentAssets",
+            "value": "694000"
+          },
+          {
+            "key": "SumOfExpenses",
+            "value": "39437000"
+          },
+          {
+            "key": "OperatingExpensesOther",
+            "value": "19818000"
+          }
+        ]
+      }
+    ]
+  }
+}

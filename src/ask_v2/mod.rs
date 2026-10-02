@@ -197,7 +197,7 @@ impl Client {
         correction: Option<&str>,
     ) -> Result<Output> {
         let started = Instant::now();
-        if let Some(parsed) = crate::capability_intake::broad_information::parse(question, "literal-broad-information") {
+        if let Some(parsed) = crate::capability_intake::literal_request(question, "literal-broad-information") {
             return Ok(Output { text: serde_json::to_string(&parsed)?, model: "literal-broad-information".into(),
                 timing: Timing { parse_ms: started.elapsed().as_millis() as u64 } });
         }

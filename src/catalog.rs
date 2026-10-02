@@ -140,6 +140,7 @@ impl Service {
             }
         }
         crate::pdok_address::refine(self, &mut inputs);
+        crate::tenderned::refine(self, &mut inputs);
         Ok(Value::Object(inputs))
     }
 }

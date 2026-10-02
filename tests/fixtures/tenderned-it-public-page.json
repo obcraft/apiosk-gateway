@@ -1,0 +1,804 @@
+{
+  "description": "Anonymous public TenderNed phrase query captured 2026-10-02; no Apiosk purchase. Mixed notice types, first bounded page; not an exhaustive or open-only result.",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20&sort=publicatieDatum%2Cdesc&search=%22IT+services%22",
+  "response": {
+    "content": [
+      {
+        "publicatieId": "442827",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Secret Management, Privileged Access Management (PAM) en Identity Governance & Administration (IGA)",
+        "opdrachtgeverNaam": "Dienst Uitvoering Onderwijs (DUO)",
+        "sluitingsDatum": "2026-10-26T12:00:00",
+        "aantalDagenTotSluitingsDatum": 24,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Binnen DUO is een programma gestart om DUO verder aantoonbaar in control te brengen op het gebied van credential- en identity management. Daarmee het risico van misbruik in te perken en te voldoen aan wet- en regelgeving (BIO2, NIS2.0, AVG). Daarmee een belangrijke bijdrage te leveren aan de ambitie om op het gebied van IAM aantoonbaar compliant te zijn. \n\nDe gebruikte tools en services binnen DUO voor; Secret Management (SeM), Privileged Acces Management (PAM) en Identity Governance & Administration (IGA) zijn onvoldoende om aantoonbaar compliant te zijn. \nHet is de verwachting dat met deze aanbesteding nieuwe en moderne tools worden aangeschaft die dit wel kunnen en dat mogelijke verbeteringen kunnen worden doorgevoerd en/of processen kunnen worden geautomatiseerd dan wel vereenvoudigd.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 588036,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442827",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442553",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Softwarebroker",
+        "opdrachtgeverNaam": "Gemeente 's-Hertogenbosch",
+        "sluitingsDatum": "2026-11-12T12:00:00",
+        "aantalDagenTotSluitingsDatum": 41,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Aanbesteding van een softwarebroker voor de aanschaf en verlenging van licenties t.a.v. standaard software voor de digitale werkomgeving en/of onderliggende technische infrastructuur. Een adviesopdracht kan worden uitgevraagd in een nadere opdracht.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614527,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442553",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442521",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "ICT Dienstverlening gemeente Beesel",
+        "opdrachtgeverNaam": "Gemeente Beesel",
+        "sluitingsDatum": "2026-11-26T11:00:00",
+        "aantalDagenTotSluitingsDatum": 55,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De aanbestedende dienst beoogt met deze aanbesteding de ICT dienstverlening rechtmatig, transparant en toekomstbestendig in de markt te zetten, met continuïteit van de bedrijfsvoering als randvoorwaarde  waardoor de aanbestedende dienst beschikt over één betrouwbare, end-to-end leverancier voor alle ICT-processen en ketenverantwoordelijkheid.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 607463,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442521",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442381",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Technical services agreement",
+        "opdrachtgeverNaam": "EBN Capital B.V.",
+        "procedure": {
+          "code": "OZB",
+          "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/236489",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "With the publication of the contract notices for the Aramis Project four partners: TotalEnergies EP, Shell, EBN and Gasunie, started the execution of a project for a CO₂ transport and storage service, being the Aramis CCS Project (\"Project\"). This transport and storage service project aims to contribute to the energy transition by providing CO₂ transport to storage capacity in order to help enable parties that seek emissions reduction by means of Carbon Capture and Storage (“CCS”) at scale. The Project, a public-private partnership between the state-owned corporations EBN and Gasunie, and the private companies TotalEnergies and Shell. The Project brought together each partner’s technical expertise, experience, and knowledge of CCS. In April 2025 Gasunie, EBN, TotalEnergies and Shell have outlined the next phase of the Project including a new structure for the project with Shell and TotalEnergies withdrawing from the partnership of the transportation side to focus on the storage side of the project, while EBN and Gasunie will continue with the Project. It is vital for the Project to maintain and ensure that the specific knowledge and CCS knowhow of TotalEnergies will remain available to the Project. As such TotalEnergies is willing to continue to provide its specific operational support to the integrated Aramis value chain. To facilitate this support EBN and Gasunie have awarded TotalEnergies a contract for project support by making use of the negotiated procedure without prior publication of a contract notice pursuant to article 2.32(1)(b)(2) of the Dutch Public Procurement Act (Aanbestedingswet). \n\nThe absence of competition for technical reasons is based on the fact that the Project's specifications, requirements and provisions are based on TotalEnergies standards and templates. As such the unique knowledge and experience of TotalEnergies with the set-up of the Project and the specific knowledge of the technical, operational and commissioning specifications is needed to be able to complete the Project. Achieving an equivalent level of knowledge and experience with another party would entail a significant time and cost impact, which the Project implementation schedule does not allow for. Furthermore, the costs associated with bringing another party to a substantially comparable level of expertise and experience would not constitute an efficient use of public funds. Accordingly, no reasonable alternative or substitute exists. Given the scope of the contract, the absence of competition is not the result of an artificial narrowing of the procurement requirements or conditions.\n\nIn case you do not agree with the award of the contract to TotalEnergies, you must make your objections known within 30 calendar days from the date of announcement by serving a summons to EBN and Gasunie before the competent judge of the District Court South Holland, location Den Haag. If, after the expiry of these 30 calendar days, you lodge a judicial claim in connection with the award EBN and Gasunie will invoke the inadmissibility of your claim. The 30-calendar-day period therefore counts as an expiry period.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615665,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442381",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442512",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "System for electronic Certificates of Origin (e-CO)",
+        "opdrachtgeverNaam": "Kamer van Koophandel",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/196256",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "KVK issues certificates of origin (preferential and non-preferential, legalizations,\nand certifications. Approximately 700,000 documents are issued (only digitally)\nannually. KVK enters into an agreement with a single partner for the new e-CO\nsystem.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615832,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442512",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442506",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Cyber Team Europe initiative ‘Safe Digital Boost for Africa (SDBA) Continental’",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken",
+        "sluitingsDatum": "2026-11-11T12:00:00",
+        "aantalDagenTotSluitingsDatum": 40,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "The purpose of this tender procedure is a service contract to support the implementation of RVO activities of the European project Safe Digital Boost for Africa (SDBA) – Continental, with the African union. Particularly focusing on the four RVO themes for cyber security capacity building: Critical information infrastructure protection (CIIP), Public- private partnerships (PPPs), Cyber skills development/Human capital agenda (HCA) & Cyber hygiene awareness.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 607403,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442506",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442499",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Beheer en onderhoud en ondersteunende dienstverlening grondwatermodel AZURE 2027 t/m 2029 (optioneel 2030)",
+        "opdrachtgeverNaam": "Provincie Utrecht (penvoerder namens het AZURE-consortium)",
+        "sluitingsDatum": "2026-11-12T10:00:00",
+        "aantalDagenTotSluitingsDatum": 41,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Beheer en onderhoud en ondersteunende dienstverlening grondwatermodel AZURE 2027 t/m 2029 (optioneel 2030)",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615777,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442499",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442430",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Marktconsultatie Landelijk - Reizigerstellingen stations",
+        "opdrachtgeverNaam": "ProRail B.V.",
+        "sluitingsDatumMarktconsultatie": "2026-12-22",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "Marktconsultatie Landelijk - Reizigerstellingen stations",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 598866,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442430",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442300",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "IT4Employee - User Support Services",
+        "opdrachtgeverNaam": "Schiphol Nederland B.V.",
+        "sluitingsDatum": "2027-01-07T12:00:00",
+        "aantalDagenTotSluitingsDatum": 97,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/236621",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF15",
+          "omschrijving": "Aankondiging inzake het bestaan van een erkenningsregeling - sectorale richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Service desk and onsite support",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615548,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442300",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442303",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "Marktverkenning Software applicatie voor Pre-depot",
+        "opdrachtgeverNaam": "Gemeente Twenterand",
+        "procedure": {
+          "code": "NA"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/236260",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF04",
+          "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Inzicht krijgen in de markt en mogelijkheden voor een software applicatie voor pre-depot. Een pre-depot is een voorziening voor de tijdelijke opslag, het beheer, de raadpleegbaarheid en de bewaartermijnbewaking van digitale archieven vanaf het moment dat deze niet meer actief worden gebruikt tot het moment van vernietiging of overbrenging naar een e-depot.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615551,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442303",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442337",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Routeplanning en -begeleiding",
+        "opdrachtgeverNaam": "Gemeente Rotterdam",
+        "sluitingsDatum": "2026-11-24T10:00:00",
+        "aantalDagenTotSluitingsDatum": 53,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/230063",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze Opdracht met kenmerk 1-D-0063037-26 gaat over de verwerving en implementatie van een SaaS-oplossing ten behoeve van de routeplanning en begeleiding en de optimalisatie daarvan voor de afdeling Inzameling en Hergebruik van de gemeente Rotterdam.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615595,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442337",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442231",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Europees openbare aanbesteding - IT-dienstverlening",
+        "opdrachtgeverNaam": "Stichting Internationaal Theater Amsterdam",
+        "sluitingsDatum": "2026-12-17T10:00:00",
+        "aantalDagenTotSluitingsDatum": 76,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De opdracht omvat het integraal leveren van IT-beheer- en ondersteuningsdiensten ten behoeve van ITA, inclusief werkplekken, servers, netwerken, applicaties, beveiliging, telefonie, internet en gebruikersondersteuning. Opdrachtnemer treedt op als single point of contact en is verantwoordelijk voor coördinatie, uitvoering, monitoring en rapportage.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614874,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442231",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442179",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Integratieplatform HTM",
+        "opdrachtgeverNaam": "HTM Personenvervoer N.V.",
+        "sluitingsDatum": "2026-11-09T10:00:00",
+        "aantalDagenTotSluitingsDatum": 38,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://eu.eu-supply.com/app/rfq/rwlentrance_s.asp?PID=460475&TID=200420891&B=",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF17",
+          "omschrijving": "Aankondiging van een opdracht - sectorale richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het doel van deze aanbesteding is het afsluiten van een Raamovereenkomst met één leverancier voor het leveren van een nieuwe Integratieplatform en het in beheer nemen hiervan. HTM beschikt momenteel over een integratieplatform dat draait binnen de Microsoft Azure-omgeving van de organisatie. Binnen deze omgeving wordt gebruik gemaakt van diverse Azure-diensten voor data- en cloudfunctionaliteit. Voor API-management en de achterliggende integratielogica wordt echter nog gebruik gemaakt van het WSO2-platform.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615365,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442179",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442213",
+        "publicatieDatum": "2026-10-01",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Resultaatverplichte ICT-/ IV-opdrachten Maatwerk Diensten Applicaties (RVICTO-MDA) 2026-II",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken en Klimaat, Rijksdienst voor Ondernemend Nederland (RVO)",
+        "sluitingsDatum": "2026-11-30T14:00:00",
+        "aantalDagenTotSluitingsDatum": 59,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Dit is een vervolg op vroegtijdig beëindigd aanbesteding op 17 juli 2026 met kenmerk TN 611083; zie \nhttps://www.tenderned.nl/aankondigingen/overzicht/433880\n\n\nBeschrijving van de Opdracht en van de Deelnemers zijn terug te vinden in het aanbestedingsdocument, net als de ICT-landschappen en de behoeften.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 611083,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442213",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442270",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Marktconsultatie Toekomstbestendige digitale ondersteuning Stichting OKT",
+        "opdrachtgeverNaam": "Stichting Ouder- en Kindteams Amsterdam",
+        "sluitingsDatumMarktconsultatie": "2026-10-30",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "Stichting Ouder- en Kindteams Amsterdam (hierna: Stichting OKT) staat voor een maatschappelijke opgave die zich in hoog tempo ontwikkelt. In dat kader zoekt OKT een toekomstbestendige digitale ondersteuning van het primaire proces. Deze ondersteuning dient aan te sluiten op de maatschappelijke opdracht en de meerjarenstrategie 2026-2030, waarin wijkgericht werken, collectieve preventie, datagedreven werken, digitale dienstverlening en verantwoorde toepassing van AI belangrijke ontwikkelrichtingen zijn. \n\nHet doel van deze marktconsultatie is te onderzoeken welke marktmodellen en samenwerkingsvormen beschikbaar zijn voor de ontwikkeling en continue verbetering van de digitale ondersteuning van Stichting OKT. Daarbij wordt onderzocht of partijen niet alleen de benodigde capabilities kunnen organiseren, maar ook integraal verantwoordelijkheid zouden kunnen dragen voor het resultaat, terwijl Stichting OKT eigenaar en regisseur blijft van inhoud, informatie, architectuurkaders en ontwikkelrichting",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615307,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442270",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442141",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "Openbare marktconsultatie  voor het realiseren van een AI platform",
+        "opdrachtgeverNaam": "Zorginstituut Nederland",
+        "procedure": {
+          "code": "NA"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/236518",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF04",
+          "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het Zorginstituut onderzoekt een centrale voorziening waarmee kansrijke AI-toepassingen veilig kunnen worden ontwikkeld en beheerst kunnen doorgroeien naar productie. In eerste instantie ligt de nadruk op generatieve AI en aanverwante toepassingen.\nDe functionele en organisatorische behoefte is nog niet volledig uitgewerkt. De markt wordt daarom gevraagd welke platformconcepten passen bij verschillende use-cases, een groeimodel en voldoen binnen de geldende overheidskaders.\n\nOnder een AI-platform wordt verstaan: een voorziening met technische en beheermatige bouwstenen voor het ontwikkelen, beheren en gecontroleerd in productie nemen van AI-toepassingen. Generieke onderdelen zijn onder meer toegangs- en modelbeheer, logging, auditing, integraties en governance.\n\nDe marktpartijen worden van harte uitgenodigd om mee te denken over de inhoud van de aanbestedingsdocumenten om zo tot een realistische uitvraag te komen. Aan de marktpartijen wordt gevraagd om inzicht te geven in hun kennis en ervaringen met soortgelijke opdrachten.\n\nDeze marktconsultatie is niet bedoeld om een leverancier of product te selecteren. De informatie die het Zorginstituut vergaart, kan worden gebruikt bij het opstellen van de aanbestedingsdocumenten. Aan de deelneming van- of bijdragen aan deze marktconsultatie kunnen geen rechten worden ontleend.\n\nDe planning voor het publiceren van de eventuele aanbesteding is Q1 2027.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615304,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442141",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442119",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "Marktconsultatie BGT-software Gemeente Breda",
+        "opdrachtgeverNaam": "Gemeente Breda",
+        "procedure": {
+          "code": "NA"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/234523",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF04",
+          "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Procedure\nHet betreft een marktconsultatie ten behoeve van de voorbereiding van een (Europese) aanbesteding BGT-software Gemeente Breda. \n\nDe Gemeente Breda nodigt u uit om deel te nemen aan deze marktconsultatie BGT-software Gemeente Breda. \nBijgevoegd vindt u het marktconsultatiedocument, de vragenlijst (bijlage 1) en het Architectuuroverzicht huidige situatie (bijlage 2).\n\nWij vragen u om de vragenlijst (in Excel) in kolom D concreet en compact te beantwoorden in lettertype Arial 10 en vervolgens in Excel- en PDF-versie te uploaden in Mercell. \nDe enige minimumvereiste is om in de beantwoording de volgorde van de vragen in bijlage 1 te volgen.\n\nOpdrachtgever\nDe opdrachtgever is de Gemeente Breda. Voor meer informatie over de Gemeente Breda verwijzen wij u naar de website van de gemeente: www.breda.nl.\n\nMercell\nDeze consultatie zal uitsluitend en geheel digitaal online worden afgehandeld via het Mercell platform (www.mercell.com).",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615275,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442119",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442196",
+        "publicatieDatum": "2026-09-29",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Gemeente Leusden - Financieel systeem",
+        "opdrachtgeverNaam": "Gemeente Leusden",
+        "sluitingsDatum": "2026-11-17T10:00:00",
+        "aantalDagenTotSluitingsDatum": 46,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "•\tde levering en implementatie van het financieel systeem, inclusief inrichting, configuratie, testen, acceptatie en ingebruikname op basis van een site licentie;\n•\tde migratie van relevante gegevens vanuit het huidige financiële systeem naar de nieuwe oplossing;\n•\tde realisatie en inrichting van noodzakelijke koppelingen met overige applicaties binnen het gemeentelijke applicatielandschap;\n•\thet tijdens de implementatie verzorgen van opleidingen en ondersteuning van gebruikers;\n•\tHet vakbekwaam maken en houden van functioneel beheerders ten aanzien van het beheer en de toepassing van de oplossing gedurende de contractperiode.\n•\thet leveren van onderhoud, support en doorontwikkeling gedurende de contractperiode.\n\nDe opdrachtnemer is verantwoordelijk voor een zorgvuldige implementatie en een stabiele ingebruikname van het systeem, zodanig dat de organisatie haar werkzaamheden ononderbroken kan uitvoeren.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 595738,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442196",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441876",
+        "publicatieDatum": "2026-09-29",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Sociaal Domein Applicatie",
+        "opdrachtgeverNaam": "Gemeente Midden-Drenthe",
+        "sluitingsDatum": "2026-03-18T09:00:00",
+        "aantalDagenTotSluitingsDatum": -198,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het leveren van een bewezen (proven) SaaS-applicatie voor het ondersteunen en uitvoeren van de processen voor het Sociaal Domein",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 566720,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441876",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441857",
+        "publicatieDatum": "2026-09-29",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "DUO-EURAAN-JA-IUCN25100274 Constructiesoftware Wft",
+        "opdrachtgeverNaam": "Dienst Uitvoering Onderwijs (DUO)",
+        "sluitingsDatum": "2026-11-23T14:00:00",
+        "aantalDagenTotSluitingsDatum": 52,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De Staat der Nederlanden nodigt u als potentiële inschrijver uit om in te schrijven voor de openbare Europese aanbesteding voor de aanschaf van een SAAS-oplossing inzake constructiesoftware voor het kunnen maken en beheren van examenvragen voor de Wet Financieel Toezicht (hierna: Wft). \nDoel is het afsluiten van een dienstverleningsovereenkomst met één leverancier. \n\nHet doel van de Opdracht is het verwerven van constructiesoftware welke gebruikt kan worden om Wft-examens te maken die naar Facet geëxporteerd kunnen worden. Deze examens maken deel uit van het vakbekwaamheidsstelsel Wft. Deze aanbesteding is van toepassing voor het constructiedeel, dus voor enkel de software om de examenvragen te maken en te beheren. \n\nWij zoeken een SAAS-oplossing met het doel: Het faciliteren van DUO om het niveau van zijn huidige dienstverlening, op het gebied van de constructie van examens en de ontvangst door Facet van items (met metadata) voor deze examens te behouden en/of verhogen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 612156,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441857",
+          "title": "self"
+        }
+      }
+    ],
+    "first": true,
+    "last": false,
+    "totalElements": 8004,
+    "totalPages": 401,
+    "size": 20,
+    "numberOfElements": 20,
+    "number": 0
+  }
+}

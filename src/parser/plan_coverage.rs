@@ -305,16 +305,53 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
     None
 }
 
+/// A complete CBS comparison needs the reviewed monthly observations and all
+/// four codebooks. Keep normal discovery, binding, scope and coverage checks.
+pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
+    let canonical = crate::cbs_comparison::canonical_request(question)?;
+    if canonical.language != intake.parsed_request.language
+        || serde_json::to_value(&canonical.subjects).ok()? != serde_json::to_value(&intake.parsed_request.subjects).ok()?
+        || serde_json::to_value(&canonical.capabilities).ok()? != serde_json::to_value(&intake.parsed_request.capabilities).ok()?
+        || serde_json::to_value(&canonical.deliverable).ok()? != serde_json::to_value(&intake.parsed_request.deliverable).ok()? {
+        return None;
+    }
+    let attempt = || -> anyhow::Result<Intent> {
+        let services = crate::cbs_comparison::reviewed_services(catalog)?;
+        let mut intent = Intent { subjects: vec![super::Subject { entity_ref: None, label: canonical.subjects[0].label.clone(), values: Default::default() }],
+            goals: services.iter().map(|service| super::Goal { subject: 0, capability: service.contract.capability_slug.clone(),
+                constraints: std::collections::BTreeMap::from([("source".into(),json!(service.api_slug)),("endpoint_id".into(),json!(service.endpoint_id))]) }).collect(),
+            answer_operations: vec!["Compare absolute Dutch bankruptcy counts across disjoint sectors for the latest available common month, using the source's period status, count unit and population of companies, institutions and sole proprietors. Verify the complete monthly slice, keep the national total separate, and preserve source labels and missing values.".into()],
+            unresolved_references: vec![] };
+        super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
+        prepare(&mut intent, intake, catalog)?;
+        intent.bind_constraint_inputs(question, catalog)?;
+        intent.validate(question, task, catalog)?;
+        let mut preview = task.clone(); preview.capability_intake = Some(intake.clone());
+        let mut bound = intent.clone();
+        crate::engine::bind_subjects(&mut preview, catalog, &mut bound)?;
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else { anyhow::bail!("CBS comparison sources do not resolve") };
+        ensure!(plan.steps.len() == services.len() && uncovered_outputs(&preview, catalog, &bound, &plan).is_empty(), "CBS comparison scope is not fully covered");
+        Ok(intent)
+    };
+    Some(match attempt() {
+        Ok(intent) => super::ChatReply { message: if canonical.language == "nl" {"Ik vergelijk de absolute aantallen per sector voor de meest recente beschikbare maand, met de CBS-publicatiestatus en het landelijke totaal apart. Bekijk eerst de totale prijs."} else {"I will compare absolute counts by sector for the latest available month, preserving the CBS publication status and keeping the national total separate. Review the total price first."}.into(),
+            discover:true, intent:Some(intent), decline_reason:Some("none".into()) },
+        Err(_) => super::ChatReply { message: if canonical.language == "nl" {"De benodigde CBS-bronnen dekken deze vergelijking nog niet volledig. Er wordt geen onvolledig vergelijkingsplan geprijsd."} else {"The required CBS sources do not yet cover this comparison completely. An incomplete comparison will not be priced."}.into(),
+            discover:false, intent:None, decline_reason:Some("unsupported".into()) },
+    })
+}
+
 /// For a whole, literal broad-information request, the selected contracts and
 /// their dependency graph contain everything needed to price it. Enumerate a
 /// small set of already-discovered choices; every normal binding, scope and
 /// output-coverage check still applies. This never purchases a source.
 pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
-    let canonical = crate::capability_intake::broad_information::parse(question, "literal")?;
+    let canonical = crate::company_request::executable_intake(question, intake)
+        .or_else(|| crate::capability_intake::broad_information::parse(question, "literal"))?;
     if canonical.subjects.len() != intake.parsed_request.subjects.len()
         || canonical.subjects.iter().zip(&intake.parsed_request.subjects).any(|(expected, actual)| expected.label != actual.label || expected.kind != actual.kind)
         || canonical.capabilities.len() != intake.parsed_request.capabilities.len()
-        || canonical.capabilities.iter().zip(&intake.parsed_request.capabilities).any(|(expected, actual)| expected.outputs != actual.outputs || expected.subject_id != actual.subject_id || actual.source_hint.is_some()) {
+        || canonical.capabilities.iter().zip(&intake.parsed_request.capabilities).any(|(expected, actual)| expected.outputs != actual.outputs || expected.subject_id != actual.subject_id || expected.source_hint != actual.source_hint) {
         return None;
     }
     let mut choices = Vec::new();
@@ -342,7 +379,9 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
         for mask in (1usize..1usize << choices.len()).filter(|mask| mask.count_ones() as usize == size) {
             let mut intent = Intent { subjects: vec![super::Subject { entity_ref: None, label: canonical.subjects[0].label.clone(), values: Default::default() }],
                 goals: choices.iter().enumerate().filter(|(index, _)| mask & (1 << index) != 0).map(|(_, goal)| goal.clone()).collect(),
-                answer_operations: vec!["Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into()], unresolved_references: vec![] };
+                answer_operations: vec![if canonical.subjects[0].kind == "company" {
+                    "Summarize the registered details and available annual figures; preserve the reported financial year, currency, units, consolidation scope, source and missing fields. These available figures do not establish the latest filing or a complete original annual report.".into()
+                } else { "Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into() }], unresolved_references: vec![] };
             super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
             if prepare(&mut intent, intake, catalog).is_err() || intent.bind_constraint_inputs(question, catalog).is_err()
                 || intent.validate(question, task, catalog).is_err() {continue;}
@@ -351,7 +390,8 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             if crate::engine::bind_subjects(&mut preview, catalog, &mut bound).is_err() {continue;}
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
             if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
-            let message = if canonical.language == "nl" {"Ik zoek de beschikbare gegevens bij dit adres en toon eerst de totale prijs."}
+            let message = if canonical.subjects[0].kind == "company" { "I will retrieve the registered details and available annual financial figures, preserving their reported year and scope. Review the total price first." }
+                else if canonical.language == "nl" {"Ik zoek de beschikbare gegevens bij dit adres en toon eerst de totale prijs."}
                 else {"I will retrieve the available records for this address and show the total price first."};
             return Some(super::ChatReply { message: message.into(), discover: true, intent: Some(intent), decline_reason: Some("none".into()) });
         }

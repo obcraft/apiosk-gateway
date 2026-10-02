@@ -165,14 +165,29 @@ impl Engine {
                     complete = task.failed_steps.is_empty() && !sources.is_empty(), "request milestone");
                 telemetry::milestone(telemetry::Milestone::SourcesReady, id, Some(plan.quote_ref), telemetry::MilestoneFields {
                     sources: Some(sources.len()), failed_steps: Some(task.failed_steps.len()), pending: Some(task.pending_dispatches.len()), ..Default::default() });
-                let direct = if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
+                // Reviewed comparisons fail closed on incomplete saved source
+                // slices; a model must not turn a truncated page into a complete answer.
+                let reviewed = task.conversation.last()
+                    .map(|turn| crate::direct_answer::reviewed_compose(&turn.question, &intent, &sources))
+                    .unwrap_or(Ok(None));
+                let reviewed = match reviewed {
+                    Ok(Some(answer)) if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() => Some(answer),
+                    Ok(Some(_)) => Some(json!({"status":"unavailable","limitations":["Not all source requests have completed successfully. Your source results are saved; no additional source purchase was made."],"observations":[]})),
+                    Err(error) => {
+                        tracing::warn!(task = %id, error = %error, "saved source projection could not be verified");
+                        Some(json!({"status":"unavailable","limitations":["The saved source results are incomplete or inconsistent for this answer. Your source results are saved; no additional source purchase was made."],"observations":[]}))
+                    }
+                    Ok(None) => None,
+                };
+                let reviewed_source_answer = reviewed.is_some();
+                let direct = reviewed.or_else(|| if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
                     // An explicit retry of a previously failed synthesis can
                     // recover supported registry fields without another model.
                     task.analysis.as_ref().filter(|answer|answer["status"]=="unavailable")
                         .and_then(|_|crate::direct_answer::registry_fallback(&intent,&sources,
                             task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl")))
                         .or_else(||task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources)))
-                } else { None };
+                } else { None });
                 let answering_span = telemetry::span(if direct.is_some() { Phase::DirectAnswer } else { Phase::Analysis }).task(id);
                 task.analysis = Some(if let Some(answer) = direct {
                     tracing::info!(task = %id, "saved source answered directly");
@@ -235,6 +250,9 @@ impl Engine {
                     }
                 }
                 if task.workflow.is_none() && task.supplier_check.is_none()
+                    // Missing values in a verified source projection are
+                    // source limitations, not missing information from the user.
+                    && !reviewed_source_answer
                     && !crate::billing::purchase_policy_blocked(&task.failed_steps)
                     && task.analysis.as_ref().is_some_and(|a| a["status"] != "unavailable"
                         // Recovery from a failed synthesis already has the
@@ -457,7 +475,7 @@ impl Engine {
                         self.fail_step(&mut task, selected, crate::billing::public_error(&body))?;
                     }
                     Dispatch::Done { execution_id, body } => {
-                        self.ingest(p, id, &mut task, selected, execution_id, body, &fresh)
+                        self.ingest(p, id, &mut task, selected, execution_id, body, &inputs, &fresh)
                             .await?;
                     }
                     Dispatch::Pending { execution_id } => {
@@ -486,7 +504,7 @@ impl Engine {
                         let step = plan.steps.get(receipt.step)
                             .ok_or_else(|| anyhow::anyhow!("missing step"))?
                             .clone();
-                        self.ingest(p, id, &mut task, &step, execution_id, body, &catalog)
+                        self.ingest(p, id, &mut task, &step, execution_id, body, &receipt.inputs, &catalog)
                             .await?;
                     } else {
                         let step = plan.steps.get(receipt.step)
@@ -685,6 +703,7 @@ pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, document
                 && document["subject"]["entity_ref"] == json!(step.entity_ref)
                 && (step.browser_fallback.is_some()
                     || task.conversation.last().is_some_and(|turn| crate::report_assets::requested(&turn.question))
+                    || (document["source"]["provider"] == "pdok" && task.conversation.last().is_some_and(|turn| crate::location_answer::includes_dependency(&turn.question, intent, step)))
                     || crate::uk_supplier::is_check(intent) || intent.goals.iter().any(|goal| {
                     goal.capability == step.service.contract.capability_slug
                         && intent
