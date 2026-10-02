@@ -5,6 +5,8 @@ pub mod search;
 pub mod external;
 pub mod purchase;
 pub(crate) mod input_values;
+#[cfg(test)]
+pub(crate) mod test_catalog;
 
 use anyhow::{anyhow, ensure, Result};
 use serde::Serialize;

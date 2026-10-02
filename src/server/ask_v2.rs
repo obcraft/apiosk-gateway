@@ -83,17 +83,15 @@ pub(crate) fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &c
         }
         json!({"field":required.fact_type,"required":!required.optional,"schema":schema})
     }).collect();
-    let lookup_fields = crate::engine::Engine::endpoint_lookup_fields(catalog, service);
+    let lookup = crate::engine::Engine::endpoint_lookup(catalog, service);
     json!({
         "api_id":service.endpoint_id,"endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
         "source":{"slug":service.api_slug,"name":source.map(|s| s.name.as_str()).unwrap_or(&service.api_slug),
             "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url},
         "inputs":inputs,
         "outputs":service.contract.output_map.produces.keys().map(|field| json!({"field":field,"schema":catalog.vocabulary.get(field).map(|fact| &fact.value_schema)})).collect::<Vec<_>>(),
-        "lookup":if lookup_fields.is_empty() { Value::Null } else {
-            json!({"field":"company.name","resolves":lookup_fields,
-                "schema":catalog.vocabulary.get("company.name").map(|fact| &fact.value_schema)})
-        },
+        "lookup":lookup.map(|(field, resolves)| json!({"field":field,"resolves":resolves,
+            "schema":catalog.vocabulary.get(field).map(|fact| &fact.value_schema)})),
         "price":{"currency":"USDC","provider_atomic":service.list_atomic.to_string(),"buyer_atomic":service.total().to_string()}
     })
 }
@@ -528,16 +526,19 @@ fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
                 }
             }
             let resolves: Vec<_> = endpoint["lookup"]["resolves"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
-            let by_name = !resolves.is_empty() && resolves.iter().any(|field| !values.contains_key(*field))
-                && subject.is_some_and(|s| s.kind == "company");
-            if by_name {
+            let lookup_field = endpoint["lookup"]["field"].as_str();
+            let lookup_value = lookup_field.filter(|field| matches!(*field, "company.name" | "geo.input.q"))
+                .and_then(|field| subject.and_then(|subject| crate::ask_v2::input_values::literal(field, subject)))
+                .filter(|value| catalog_core::facts::schema::validate(&endpoint["lookup"]["schema"], value).is_ok());
+            let by_lookup = !resolves.is_empty() && resolves.iter().any(|field| !values.contains_key(*field)) && lookup_value.is_some();
+            if by_lookup {
                 for field in &resolves { values.remove(*field); }
-                values.insert("company.name".into(), json!(subject.unwrap().label));
+                values.insert(lookup_field.unwrap().into(), lookup_value.unwrap());
             }
             let missing: Vec<_> = endpoint["inputs"].as_array().into_iter().flatten()
                 .filter(|field| field["required"] == true)
                 .filter_map(|field| field["field"].as_str())
-                .filter(|field| !values.contains_key(*field) && !(by_name && resolves.contains(field)))
+                .filter(|field| !values.contains_key(*field) && !(by_lookup && resolves.contains(field)))
                 .map(str::to_owned).collect();
             endpoint["input_values"] = Value::Object(values);
             endpoint["missing_inputs"] = json!(missing);
@@ -712,6 +713,29 @@ mod tests {
         request.endpoint_id = Uuid::nil();
         assert!(!request.valid());
         assert!(serde_json::from_value::<PrepareRequest>(json!({"request_id":Uuid::new_v4(),"endpoint_id":Uuid::new_v4(),"input":{},"price":0,"approved":true})).is_err());
+    }
+
+    #[test]
+    fn neighbourhood_descriptor_offers_address_lookup_from_published_contracts() {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        let service = catalog.services.iter().find(|s| s.contract.capability_slug == "area.cbs-neighbourhood-2025").unwrap();
+        let descriptor = endpoint_descriptor(&catalog, service, None);
+        assert_eq!(descriptor["lookup"], json!({"field":"geo.input.q","resolves":["location.neighbourhood_code"],"schema":{"type":"string"}}));
+        assert_eq!(descriptor["inputs"][0]["field"], "location.neighbourhood_code");
+        assert_eq!(descriptor["price"]["buyer_atomic"], service.total().to_string());
+    }
+
+    #[test]
+    fn discovery_binds_the_address_seed_for_the_apps_canonical_inputs() {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        let service = catalog.services.iter().find(|s| s.contract.capability_slug == "area.cbs-neighbourhood-2025").unwrap();
+        let parsed = capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"Damrak 1, Amsterdam","type":"address","identifiers":{}}],
+            "capabilities":[{"slug":"location.building.neighbourhood.info","name":"Building and neighbourhood information","description":"Building and neighbourhood records","domain":"location","inputs":["address"],"outputs":["building_info","neighbourhood_info"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(), "Find building and neighbourhood information for Damrak 1, Amsterdam.", "fixture").unwrap();
+        let mut matches = json!([{"apiosk":[{"endpoint":endpoint_descriptor(&catalog, service, None)}]}]);
+        bind_inputs(&mut matches, &parsed);
+        assert_eq!(matches[0]["apiosk"][0]["endpoint"]["input_values"], json!({"geo.input.q":"Damrak 1, Amsterdam"}));
+        assert_eq!(matches[0]["apiosk"][0]["endpoint"]["missing_inputs"], json!([]));
     }
 
     fn request() -> ParseRequest {
