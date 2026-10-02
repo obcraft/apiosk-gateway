@@ -352,6 +352,48 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
     super::ChatReply {message, discover:false, intent:None, decline_reason:None}
 }
 
+/// Recover one concrete retrieval from the already displayed, ranked choices.
+/// Model mistakes never supply values or scope to this path. Every requested
+/// field, literal binding and exact resolved dependency chain must still pass.
+pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&str,literals:&str,task:&crate::state::Task)->Option<super::ChatReply> {
+    let retrievals:Vec<_>=intake.parsed_request.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)).collect();
+    if retrievals.len()!=1 {return None;}
+    let (index,cap)=retrievals[0];
+    if cap.outputs.is_empty() || cap.outputs.iter().all(|output|output_metadata(output)) {return None;}
+    let label=match cap.subject_id.as_ref() {
+        Some(id)=>intake.parsed_request.subjects.iter().find(|subject|&subject.id==id)?.label.clone(),
+        None if intake.parsed_request.subjects.is_empty()=>question.to_owned(),
+        None=>return None,
+    };
+    for candidate in &request_match(intake,index)?.apiosk {
+        let Some(capability)=candidate.capability.as_ref() else {continue};
+        let mut constraints=std::collections::BTreeMap::new();
+        if let Some(source)=&candidate.source_slug {constraints.insert("source".into(),json!(source));}
+        if let Some(endpoint)=&candidate.endpoint_id {constraints.insert("endpoint_id".into(),json!(endpoint));}
+        let goal=super::Goal {capability:capability.clone(),subject:0,constraints};
+        if !candidate_matches(&goal,candidate) || !request_match(intake,index)?.operations.contains(capability) {continue;}
+        let mut answer_operations=intake.parsed_request.deliverable.operations.clone();
+        answer_operations.push(format!("Requested answer format: {}",intake.parsed_request.deliverable.format));
+        let mut intent=Intent {subjects:vec![super::Subject {entity_ref:None,label:label.clone(),values:Default::default()}],
+            goals:vec![goal],answer_operations,unresolved_references:vec![]};
+        super::capability_binding::bind_source_requirements(&mut intent,intake,catalog);
+        if intake.parsed_request.subjects.is_empty() {
+            super::capability_binding::bind_ecb_target_literal(&mut intent,question,catalog);
+        }
+        if prepare(&mut intent,intake,catalog).is_err() || intent.bind_constraint_inputs(literals,catalog).is_err()
+            || intent.validate(literals,task,catalog).is_err() {continue;}
+        let mut preview_task=task.clone();preview_task.capability_intake=Some(intake.clone());
+        let mut preview_intent=intent.clone();
+        if crate::engine::bind_subjects(&mut preview_task,catalog,&mut preview_intent).is_err() {continue;}
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(catalog,&preview_task,&preview_intent) else {continue};
+        if !uncovered_outputs(&preview_task,catalog,&preview_intent,&plan).is_empty() {continue;}
+        let message=if intake.parsed_request.language=="nl" {"Ik controleer de gevonden bron en toon de totale prijs voordat er iets wordt gekocht."}
+            else {"I will check the matched source and show the total price before anything is bought."};
+        return Some(super::ChatReply {message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())});
+    }
+    None
+}
+
 fn outputs_cover(
     cap: &crate::capability_intake::Capability,
     service: &crate::catalog::Service,
@@ -366,6 +408,12 @@ fn output_metadata(output:&str)->bool {
 }
 
 fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,required_only:bool)->bool {
+    if output=="source_link" {
+        let source=service.result_source();
+        return [source.get("url"),source.get("usage_notice").and_then(|notice|notice.get("url"))].into_iter().flatten()
+            .filter_map(Value::as_str).any(|link|reqwest::Url::parse(link).is_ok_and(|url|
+                matches!(url.scheme(),"http"|"https") && url.host_str().is_some() && url.username().is_empty() && url.password().is_none()));
+    }
     // Exact normalized concept suffixes and declared schema fields are
     // evidence. Descriptions and opaque records are not. Sharing a goal uses
     // the stronger required-only proof; quoting allows declared optional data.
@@ -400,7 +448,7 @@ fn schema_covers(schema:&Value,output:&str,required_only:bool)->bool {
     let names:BTreeSet<_>=required.into_iter().flatten().filter_map(Value::as_str)
         .chain(properties.into_iter().flat_map(|props|props.keys().map(String::as_str)).filter(|_|!required_only)).collect();
     names.iter().any(|name| *name==output || *name==singular || properties.and_then(|properties|properties.get(*name))
-            .is_some_and(|child|property_alias(child,output) || schema_covers(child,output,required_only)))
+            .is_some_and(|child|property_alias(child,output) || property_alias(child,singular) || schema_covers(child,output,required_only)))
 }
 
 // A reviewed, property-local annotation in an existing JSON Schema keyword.
@@ -476,6 +524,78 @@ mod tests {
         capability_intake::{Candidate, Match, ParsedRequest},
         parser::{Goal, Subject},
     };
+
+    fn saved_vies() -> (String,Intake,Catalog) {
+        let fixture:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-vies-planning.json")).unwrap();
+        (fixture["question"].as_str().unwrap().into(),serde_json::from_value(fixture["intake"].clone()).unwrap(),
+            Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap()))
+    }
+
+    #[test]
+    fn saved_single_vat_retrieval_recovers_only_complete_matched_operations() {
+        let (question,intake,catalog)=saved_vies();
+        assert!(catalog.rejected.is_empty());
+        for capability in ["vat.eu.check","vat.eu.validate"] {
+            let mut selected=intake.clone();
+            selected.matches[0].apiosk.retain(|candidate|candidate.capability.as_deref()==Some(capability));
+            let reply=single_retrieval_reply(&selected,&catalog,&question,&question,&Default::default()).expect("documented VAT validity/date and supplied VAT number resolve");
+            let intent=reply.intent.unwrap();
+            assert_eq!(intent.goals.len(),1);assert_eq!(intent.goals[0].capability,capability);
+            assert_eq!(intent.subjects[0].values["vat.eu.country_code"],json!("NL"));
+            assert_eq!(intent.subjects[0].values["vat.eu.number"],json!("002033354B01"));
+            assert_eq!(intent.subjects[0].label,"NL002033354B01");
+        }
+        let mut status=intake.clone();
+        status.matches[0].apiosk.retain(|candidate|candidate.capability.as_deref().is_some_and(|cap|cap.contains("status")));
+        assert!(!status.matches[0].apiosk.is_empty());
+        assert!(single_retrieval_reply(&status,&catalog,&question,&question,&Default::default()).is_none(),"service uptime does not validate the VAT number");
+        let mut unsupported=intake.clone();unsupported.parsed_request.capabilities[0].outputs.push("vat_registration_date".into());
+        assert!(single_retrieval_reply(&unsupported,&catalog,&question,&question,&Default::default()).is_none());
+        let mut many=intake.clone();many.parsed_request.capabilities.push(many.parsed_request.capabilities[0].clone());
+        assert!(single_retrieval_reply(&many,&catalog,&question,&question,&Default::default()).is_none(),"no dropped or collapsed second retrieval");
+        assert!(single_retrieval_reply(&intake,&catalog,"Validate VAT number DE999999999","Validate VAT number DE999999999",&Default::default()).is_none(),"saved literals cannot be transplanted into another request");
+        let mut formatted=intake.clone();
+        formatted.parsed_request.deliverable.operations=vec!["summarize".into(),"compare".into()];
+        formatted.parsed_request.deliverable.format="json".into();
+        let intent=single_retrieval_reply(&formatted,&catalog,&question,&question,&Default::default()).unwrap().intent.unwrap();
+        assert_eq!(intent.answer_operations,["summarize","compare","Requested answer format: json"]);
+    }
+
+    #[test]
+    fn empty_subject_currency_recovery_requires_the_explicit_fixed_base_pair() {
+        let (_,mut intake,_)=saved_vies();
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap());
+        let service=&catalog.services[0];
+        intake.parsed_request.subjects.clear();
+        let cap=&mut intake.parsed_request.capabilities[0];
+        cap.subject_id=None;cap.source_hint=Some(service.api_slug.clone());
+        cap.outputs=vec!["rate".into(),"date".into(),"source_link".into()];
+        intake.matches[0].operations=BTreeSet::from([service.contract.capability_slug.clone()]);
+        intake.matches[0].apiosk.truncate(1);
+        let candidate=&mut intake.matches[0].apiosk[0];
+        candidate.capability=Some(service.contract.capability_slug.clone());
+        candidate.source_slug=Some(service.api_slug.clone());candidate.endpoint_id=Some(service.endpoint_id.to_string());
+        let question="Geef de laatste ECB referentiekoers van EUR naar USD met datum en bronlink.";
+        let intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).unwrap().intent.unwrap();
+        assert_eq!(intent.subjects[0].values["fx.ecb.quote"],json!("USD"));
+        for question in ["ECB USD naar EUR","ECB BTC naar USD; EUR als voorbeeld","ECB EUR naar USD en GBP","ECB USD"] {
+            assert!(single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).is_none(),"{question}");
+        }
+    }
+
+    #[test]
+    fn source_link_requires_safe_saved_provenance_not_an_article_field() {
+        let (_,_,catalog)=saved_vies();let mut service=catalog.services[0].clone();
+        service.source_url=Some("https://example.test/official-source".into());service.usage_notice=None;
+        assert!(output_covered("source_link",&service,&catalog,false));
+        for requested in ["original_links","article_url","publication_dates"] {assert!(!output_covered(requested,&service,&catalog,false));}
+        for invalid in [None,Some("javascript:alert(1)".into()),Some("https://user:password@example.test".into())] {
+            service.source_url=invalid;assert!(!output_covered("source_link",&service,&catalog,false));
+        }
+        service.source_url=None;service.usage_notice=Some(json!({"text":"Primary source","url":"https://www.ecb.europa.eu/"}));
+        assert!(output_covered("source_link",&service,&catalog,false));
+        assert_eq!(service.result_source()["usage_notice"]["url"],"https://www.ecb.europa.eu/");
+    }
     use std::collections::BTreeMap;
 
     fn catalog() -> Catalog {
@@ -784,6 +904,14 @@ mod tests {
         assert!(schema_covers(&alias,"is_valid",false));
         assert!(!schema_covers(&alias,"validity",false),"aliases match only the exact reviewed concept");
         assert!(!schema_covers(&json!({"type":"object","$comment":"{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"}),"is_valid",false),"aliases must belong to declared fields");
+        let officer=json!({"type":"object","properties":{"name":{"type":"string","$comment":"{\"apiosk_output_aliases_v1\":[\"officer_name\"]}"}}});
+        for output in ["officer_name","officer_names","original_officer_name","original_officer_names"] {
+            assert!(schema_covers(&officer,output,false),"{output}: aliases share the declared-field plural/prefix rules");
+        }
+        for output in ["shareholder_names","officer_residence_addresses","director_names"] {
+            assert!(!schema_covers(&officer,output,false),"{output}: grammatical normalization does not infer other concepts");
+        }
+        assert!(!schema_covers(&officer,"officer_names",true),"optional fields still cannot justify shared-goal collapse");
     }
 
     #[test]

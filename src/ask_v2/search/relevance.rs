@@ -207,12 +207,13 @@ impl Request {
             .collect();
         let primary_facets = document(Target::Source(0),
             &format!("{} {}", capability.slug, name_text), BTreeSet::new()).facets;
-        let valuation_words = words(&format!("{} {} {} {}", capability.slug, capability.name,
-            capability.description, capability.outputs.join(" ")));
-        let enterprise_multiple = enterprise_ratio(&valuation_words);
+        let valuation_text=format!("{} {} {} {}", capability.slug, capability.name,
+            capability.description, capability.outputs.join(" "));
+        let valuation_words = words(&valuation_text);
+        let enterprise_multiple = enterprise_ratio(&valuation_text);
         let company_subject = capability.subject_id.as_ref().and_then(|id|
             parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
-        let corporate_valuation = primary_facets & VALUATION != 0
+        let corporate_valuation = (primary_facets & VALUATION != 0 || enterprise_multiple)
             && (company_subject || capability.domain == "company" || enterprise_multiple);
         let equity_quote = primary_facets & STOCK_MARKET != 0
             && ["price", "quote"].iter().any(|word| valuation_words.contains(*word))
@@ -285,11 +286,7 @@ impl Request {
         // Valuation is an operation on an asset, not one universal source
         // capability. A property's AVM or a card portfolio cannot provide
         // company multiples merely because both descriptions say valuation.
-        if self.corporate_valuation {
-            let scope: BTreeSet<_> = candidate.topic_scope.union(&candidate.contract).cloned().collect();
-            let corporate = ["company", "corporate", "enterprise", "equity", "stock"].iter().any(|word| scope.contains(*word));
-            if !corporate || (self.enterprise_multiple && !enterprise_ratio(&scope)) { return false; }
-        }
+        if !self.valuation_matches(candidate) { return false; }
         // The operation's own scope must name the requested topic. Broad
         // descriptions, input names and incidental output words are not
         // evidence that a different operation performs the requested check.
@@ -323,6 +320,13 @@ impl Request {
                 .filter(|word| candidate.topic_scope.contains(*word)).count() >= 2)
     }
 
+    fn valuation_matches(&self, candidate: &Document) -> bool {
+        if !self.corporate_valuation { return true; }
+        let scope: BTreeSet<_> = candidate.topic_scope.union(&candidate.contract).cloned().collect();
+        let corporate = ["company", "corporate", "enterprise", "equity", "stock"].iter().any(|word| scope.contains(*word));
+        corporate && (!self.enterprise_multiple || candidate.enterprise_multiple)
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
@@ -350,6 +354,10 @@ impl Request {
         index: &Index,
         hinted: bool,
     ) -> bool {
+        // A generic financial label, or even an exact accounts slug, does not
+        // turn filed accounts into the explicitly requested enterprise ratios.
+        if self.enterprise_multiple && matches!(candidate.target, Target::Endpoint(_))
+            && !self.valuation_matches(candidate) { return false; }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
@@ -420,10 +428,13 @@ impl Request {
     }
 }
 
-fn enterprise_ratio(words: &BTreeSet<String>) -> bool {
-    (words.contains("ev") && (words.contains("revenue") || words.contains("ebitda") || words.contains("ebit")))
-        || (words.contains("enterprise") && words.contains("value")
-            && (words.contains("ratio") || words.contains("multiple") || words.contains("ebitda")))
+pub(super) fn enterprise_ratio(text: &str) -> bool {
+    let ordered=super::tokens(text);
+    let denominator=|word:&str|matches!(word,"revenue"|"ebitda"|"ebit");
+    ordered.windows(2).any(|pair|pair[0]=="ev" && denominator(&pair[1]))
+        || ordered.windows(3).any(|pair|pair[0]=="ev" && pair[1]=="to" && denominator(&pair[2]))
+        || (ordered.windows(2).any(|pair|pair[0]=="enterprise" && pair[1]=="value")
+            && ordered.iter().any(|word|matches!(word.as_str(),"ratio"|"ratios"|"multiple"|"multiples"|"ebitda")))
 }
 
 pub(super) fn derivative_market(text: &str) -> bool {

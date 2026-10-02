@@ -1,0 +1,997 @@
+{
+  "scope": "Exact sanitized saved VIES planning intake and three public current contracts; reviewed aliases already applied in production. No tokens, credentials, model response or provider call.",
+  "question": "Valideer EU-btw-nummer NL002033354B01 via VIES en toon het validatieresultaat met brondatum.",
+  "intake": {
+    "matches": [
+      {
+        "slug": "compliance.vat.validation",
+        "query": "Validate VAT number. Check the validity of a VAT number against the EU VIES database. vat number country code. vies",
+        "apiosk": [
+          {
+            "url": "https://ec.europa.eu/taxation_customs/vies/",
+            "name": "VIES EU VAT Validation",
+            "price": "0.097826 USD",
+            "method": "POST",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vat.eu.check",
+            "description": "Check VAT registration with optional requester identification; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "endpoint_id": "6e41ab0f-209b-4105-b67d-8df52f529a3e",
+            "source_slug": "vies",
+            "availability": "supported"
+          },
+          {
+            "url": "https://ec.europa.eu/taxation_customs/vies/",
+            "name": "VIES EU VAT Validation",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vat.eu.validate",
+            "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+            "source_slug": "vies",
+            "availability": "supported"
+          },
+          {
+            "url": "https://ec.europa.eu/taxation_customs/vies/",
+            "name": "VIES EU VAT Validation",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vat.eu.service-status",
+            "description": "Inspect VIES and national VAT service availability; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "endpoint_id": "a3f8be44-a2f7-4b75-89ca-d7358ef094ad",
+            "source_slug": "vies",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "vat.eu.check",
+          "vat.eu.service-status",
+          "vat.eu.validate"
+        ],
+        "coinbase_status": "pending"
+      }
+    ],
+    "parsed_request": {
+      "meta": {
+        "model": "qwen/qwen3-30b-a3b-instruct-2507",
+        "parsed_at": "2026-10-02T17:40:07.942060216+00:00",
+        "text_sha256": "d18fd695cc1523b383101bc25ae03842834d8be6f098646d8ed6e6c5417049e8"
+      },
+      "language": "nl",
+      "subjects": [
+        {
+          "id": "s1",
+          "type": "vat_number",
+          "label": "NL002033354B01",
+          "identifiers": {
+            "vat_number": "NL002033354B01"
+          }
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "capabilities": [
+        {
+          "name": "Validate VAT number",
+          "slug": "compliance.vat.validation",
+          "domain": "compliance",
+          "inputs": [
+            "vat_number",
+            "country_code"
+          ],
+          "missing": [
+            "country_code"
+          ],
+          "outputs": [
+            "is_valid",
+            "validation_date"
+          ],
+          "confidence": 0.95,
+          "subject_id": "s1",
+          "description": "Check the validity of a VAT number against the EU VIES database.",
+          "source_hint": "vies"
+        }
+      ]
+    },
+    "catalog_version": "24c2e212048bc664b206a5fc0c96dae4761ba2323657c2fc9745af4449e14de6",
+    "selected_capabilities": [
+      "vat.eu.check",
+      "vat.eu.service-status",
+      "vat.eu.validate"
+    ],
+    "apiosk_sources_searched": 38
+  },
+  "catalog": {
+    "services": [
+      {
+        "id": "8c36e46c-7325-4a8a-88e6-cc85526684a0",
+        "name": "VIES EU VAT Validation",
+        "path": "/taxation_customs/vies/rest-api/check-status",
+        "method": "GET",
+        "api_slug": "vies",
+        "contract": {
+          "version": 1,
+          "requires": [],
+          "input_map": {},
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vat.eu.service-status.result": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vat.eu.service-status"
+        },
+        "pagination": {},
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/",
+        "unverified": false,
+        "description": "Inspect VIES and national VAT service availability; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "endpoint_id": "a3f8be44-a2f7-4b75-89ca-d7358ef094ad",
+        "list_atomic": 85066,
+        "fixed_params": {},
+        "jurisdiction": null,
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "data": {
+            "vow": {
+              "available": true
+            },
+            "countries": [
+              {
+                "countryCode": "AT",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "BE",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "BG",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "CY",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "CZ",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "DE",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "DK",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "EE",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "EL",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "ES",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "FI",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "FR",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "HR",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "HU",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "IE",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "IT",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "LT",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "LU",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "LV",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "MT",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "NL",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "PL",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "PT",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "RO",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "SE",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "SI",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "SK",
+                "availability": "Available"
+              },
+              {
+                "countryCode": "XI",
+                "availability": "Available"
+              }
+            ]
+          },
+          "notice": "VIES service availability at the request time; this does not validate a VAT number.",
+          "coverage": {
+            "scope": "One bounded upstream response per purchased call",
+            "complete": false
+          },
+          "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-status"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 60
+      },
+      {
+        "id": "8ebeb0f1-c03a-41f9-934e-565c8f0a9a09",
+        "name": "VIES EU VAT Validation",
+        "path": "/taxation_customs/vies/rest-api/check-vat-number",
+        "method": "POST",
+        "api_slug": "vies",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vat.eu.country_code",
+              "subject_role": "subject"
+            },
+            {
+              "optional": false,
+              "fact_type": "vat.eu.number",
+              "subject_role": "subject"
+            },
+            {
+              "optional": true,
+              "fact_type": "source.vies.requester_member_state_code",
+              "subject_role": "subject"
+            },
+            {
+              "optional": true,
+              "fact_type": "source.vies.requester_number",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vat.eu.number": {
+              "in": "body",
+              "name": "vatNumber"
+            },
+            "vat.eu.country_code": {
+              "in": "body",
+              "name": "countryCode"
+            },
+            "source.vies.requester_number": {
+              "in": "body",
+              "name": "requesterNumber"
+            },
+            "source.vies.requester_member_state_code": {
+              "in": "body",
+              "name": "requesterMemberStateCode"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vat.eu.check.result": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vat.eu.check"
+        },
+        "pagination": {},
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/",
+        "unverified": false,
+        "description": "Check VAT registration with optional requester identification; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "endpoint_id": "6e41ab0f-209b-4105-b67d-8df52f529a3e",
+        "list_atomic": 85066,
+        "fixed_params": {},
+        "jurisdiction": "EU",
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "data": {
+            "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+            "valid": true,
+            "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+            "upstream": {
+              "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+              "valid": true,
+              "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+              "vatNumber": "004495445B01",
+              "traderCity": "---",
+              "traderName": "---",
+              "countryCode": "NL",
+              "requestDate": "2026-09-14T16:49:07.018Z",
+              "traderStreet": "---",
+              "traderCityMatch": "NOT_PROCESSED",
+              "traderNameMatch": "NOT_PROCESSED",
+              "traderPostalCode": "---",
+              "requestIdentifier": "",
+              "traderCompanyType": "---",
+              "traderStreetMatch": "NOT_PROCESSED",
+              "traderPostalCodeMatch": "NOT_PROCESSED",
+              "traderCompanyTypeMatch": "NOT_PROCESSED"
+            },
+            "vat_number": "004495445B01",
+            "country_code": "NL",
+            "request_date": "2026-09-14T16:49:07.018Z"
+          },
+          "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+          "coverage": {
+            "scope": "One bounded upstream response per purchased call",
+            "complete": false
+          },
+          "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 60
+      },
+      {
+        "id": "cb28efa7-a0da-4743-986b-016c5e415400",
+        "name": "VIES EU VAT Validation",
+        "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+        "method": "GET",
+        "api_slug": "vies",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vat.eu.country_code",
+              "subject_role": "subject"
+            },
+            {
+              "optional": false,
+              "fact_type": "vat.eu.number",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vat.eu.number": {
+              "in": "path",
+              "name": "nr"
+            },
+            "vat.eu.country_code": {
+              "in": "path",
+              "name": "cc"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vat.eu.validate.result": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vat.eu.validate"
+        },
+        "pagination": {},
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/",
+        "unverified": false,
+        "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+        "list_atomic": 85066,
+        "fixed_params": {},
+        "jurisdiction": "EU",
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "data": {
+            "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+            "valid": true,
+            "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+            "upstream": {
+              "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+              "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+              "isValid": true,
+              "userError": "VALID",
+              "vatNumber": "004495445B01",
+              "requestDate": "2026-09-14T16:48:04.183Z",
+              "viesApproximate": {
+                "city": "---",
+                "name": "---",
+                "street": "---",
+                "matchCity": 3,
+                "matchName": 3,
+                "postalCode": "---",
+                "companyType": "---",
+                "matchStreet": 3,
+                "matchPostalCode": 3,
+                "matchCompanyType": 3
+              },
+              "originalVatNumber": "004495445B01",
+              "requestIdentifier": ""
+            },
+            "vat_number": "004495445B01",
+            "country_code": "NL",
+            "request_date": "2026-09-14T16:48:04.183Z"
+          },
+          "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+          "coverage": {
+            "scope": "One bounded upstream response per purchased call",
+            "complete": false
+          },
+          "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 60
+      }
+    ],
+    "vocabulary": [
+      {
+        "slug": "source.vies.requester_member_state_code",
+        "value_schema": {
+          "enum": [
+            "AT",
+            "BE",
+            "BG",
+            "CY",
+            "CZ",
+            "DE",
+            "DK",
+            "EE",
+            "EL",
+            "ES",
+            "FI",
+            "FR",
+            "HR",
+            "HU",
+            "IE",
+            "IT",
+            "LT",
+            "LU",
+            "LV",
+            "MT",
+            "NL",
+            "PL",
+            "PT",
+            "RO",
+            "SE",
+            "SI",
+            "SK",
+            "XI"
+          ],
+          "type": "string",
+          "maxLength": 2,
+          "minLength": 1,
+          "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+        }
+      },
+      {
+        "slug": "source.vies.requester_number",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{1,14}$",
+          "maxLength": 14,
+          "minLength": 1,
+          "description": "VAT number without country prefix or punctuation."
+        }
+      },
+      {
+        "slug": "vat.eu.check.result",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "data",
+            "source_url",
+            "notice",
+            "coverage"
+          ],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": [
+                "country_code",
+                "vat_number",
+                "valid",
+                "request_date",
+                "name",
+                "address",
+                "upstream"
+              ],
+              "properties": {
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "valid": {
+                  "type": "boolean",
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"
+                },
+                "address": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "upstream": {
+                  "type": "object"
+                },
+                "vat_number": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9]{1,14}$",
+                  "maxLength": 14,
+                  "minLength": 1,
+                  "description": "VAT number without country prefix or punctuation."
+                },
+                "country_code": {
+                  "enum": [
+                    "AT",
+                    "BE",
+                    "BG",
+                    "CY",
+                    "CZ",
+                    "DE",
+                    "DK",
+                    "EE",
+                    "EL",
+                    "ES",
+                    "FI",
+                    "FR",
+                    "HR",
+                    "HU",
+                    "IE",
+                    "IT",
+                    "LT",
+                    "LU",
+                    "LV",
+                    "MT",
+                    "NL",
+                    "PL",
+                    "PT",
+                    "RO",
+                    "SE",
+                    "SI",
+                    "SK",
+                    "XI"
+                  ],
+                  "type": "string",
+                  "maxLength": 2,
+                  "minLength": 1,
+                  "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+                },
+                "request_date": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "description": "Time reported by VIES",
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}"
+                }
+              }
+            },
+            "notice": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Source limitations"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "description": "Scope of the returned response"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string",
+              "maxLength": 20000,
+              "minLength": 1,
+              "description": "Exact upstream request URL"
+            }
+          },
+          "description": "Check VAT registration with optional requester identification"
+        }
+      },
+      {
+        "slug": "vat.eu.country_code",
+        "value_schema": {
+          "enum": [
+            "AT",
+            "BE",
+            "BG",
+            "CY",
+            "CZ",
+            "DE",
+            "DK",
+            "EE",
+            "EL",
+            "ES",
+            "FI",
+            "FR",
+            "HR",
+            "HU",
+            "IE",
+            "IT",
+            "LT",
+            "LU",
+            "LV",
+            "MT",
+            "NL",
+            "PL",
+            "PT",
+            "RO",
+            "SE",
+            "SI",
+            "SK",
+            "XI"
+          ],
+          "type": "string",
+          "maxLength": 2,
+          "minLength": 1,
+          "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+        }
+      },
+      {
+        "slug": "vat.eu.number",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{1,14}$",
+          "maxLength": 14,
+          "minLength": 1,
+          "description": "VAT number without country prefix or punctuation."
+        }
+      },
+      {
+        "slug": "vat.eu.service-status.result",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "data",
+            "source_url",
+            "notice",
+            "coverage"
+          ],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": [
+                "vow",
+                "countries"
+              ],
+              "properties": {
+                "vow": {
+                  "type": "object",
+                  "required": [
+                    "available"
+                  ],
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "countries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "countryCode",
+                      "availability"
+                    ],
+                    "properties": {
+                      "countryCode": {
+                        "enum": [
+                          "AT",
+                          "BE",
+                          "BG",
+                          "CY",
+                          "CZ",
+                          "DE",
+                          "DK",
+                          "EE",
+                          "EL",
+                          "ES",
+                          "FI",
+                          "FR",
+                          "HR",
+                          "HU",
+                          "IE",
+                          "IT",
+                          "LT",
+                          "LU",
+                          "LV",
+                          "MT",
+                          "NL",
+                          "PL",
+                          "PT",
+                          "RO",
+                          "SE",
+                          "SI",
+                          "SK",
+                          "XI"
+                        ],
+                        "type": "string",
+                        "maxLength": 2,
+                        "minLength": 1,
+                        "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+                      },
+                      "availability": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "description": "National service availability"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "notice": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Source limitations"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "description": "Scope of the returned response"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string",
+              "maxLength": 20000,
+              "minLength": 1,
+              "description": "Exact upstream request URL"
+            }
+          },
+          "description": "Inspect VIES and national VAT service availability"
+        }
+      },
+      {
+        "slug": "vat.eu.validate.result",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "data",
+            "source_url",
+            "notice",
+            "coverage"
+          ],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": [
+                "country_code",
+                "vat_number",
+                "valid",
+                "request_date",
+                "name",
+                "address",
+                "upstream"
+              ],
+              "properties": {
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "valid": {
+                  "type": "boolean",
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"
+                },
+                "address": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "upstream": {
+                  "type": "object"
+                },
+                "vat_number": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9]{1,14}$",
+                  "maxLength": 14,
+                  "minLength": 1,
+                  "description": "VAT number without country prefix or punctuation."
+                },
+                "country_code": {
+                  "enum": [
+                    "AT",
+                    "BE",
+                    "BG",
+                    "CY",
+                    "CZ",
+                    "DE",
+                    "DK",
+                    "EE",
+                    "EL",
+                    "ES",
+                    "FI",
+                    "FR",
+                    "HR",
+                    "HU",
+                    "IE",
+                    "IT",
+                    "LT",
+                    "LU",
+                    "LV",
+                    "MT",
+                    "NL",
+                    "PL",
+                    "PT",
+                    "RO",
+                    "SE",
+                    "SI",
+                    "SK",
+                    "XI"
+                  ],
+                  "type": "string",
+                  "maxLength": 2,
+                  "minLength": 1,
+                  "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+                },
+                "request_date": {
+                  "type": "string",
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}",
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "description": "Time reported by VIES"
+                }
+              }
+            },
+            "notice": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Source limitations"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "description": "Scope of the returned response"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string",
+              "maxLength": 20000,
+              "minLength": 1,
+              "description": "Exact upstream request URL"
+            }
+          },
+          "description": "Validate a VAT number using VIES"
+        }
+      }
+    ],
+    "known_sources": [
+      {
+        "name": "VIES EU VAT Validation",
+        "slug": "vies",
+        "metadata": {
+          "tags": [
+            "btw",
+            "btw-nummer",
+            "EU",
+            "tax compliance",
+            "VAT",
+            "VAT validation",
+            "VIES"
+          ],
+          "tagged": 3,
+          "category": "finance",
+          "inferred": 0,
+          "described": 3,
+          "categorized": 3,
+          "description": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+          "provider_slug": "apiosk-basics",
+          "endpoint_count": 3,
+          "coverage_notice": "Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+          "recent_failures": 0,
+          "recent_successes": 4,
+          "documented_inputs": 3,
+          "recent_unresolved": 1,
+          "unknown_provenance": 0,
+          "identity_documented": true,
+          "capability_descriptions": {
+            "vat.eu.check": "Check VAT registration with optional requester identification; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "vat.eu.validate": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "vat.eu.service-status": "Inspect VIES and national VAT service availability; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability."
+          }
+        },
+        "block_reason": null
+      }
+    ]
+  }
+}

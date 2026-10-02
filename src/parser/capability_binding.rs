@@ -184,6 +184,49 @@ enum BoundValue {
     },
 }
 
+/// Recover one explicit target for the admitted, fixed-EUR ECB operation.
+/// The caller uses this only when the displayed parse has no subjects. Never
+/// guess across currencies, replace an existing value, or reverse a pair.
+pub(super) fn bind_ecb_target_literal(intent: &mut Intent, question: &str, catalog: &Catalog) -> bool {
+    const CAPABILITY: &str = "fx.ecb-reference-rate";
+    const INPUT: &str = "fx.ecb.quote";
+    let mut goals = intent.goals.iter().filter(|goal| goal.capability == CAPABILITY);
+    let Some(goal) = goals.next() else { return false };
+    if goals.next().is_some() { return false; }
+    let subject_index = goal.subject;
+    if !catalog.services.iter().any(|service| service.contract.capability_slug == CAPABILITY
+        && service.contract.requires.iter().any(|required| required.fact_type == INPUT && !required.optional)) {
+        return false;
+    }
+    let Some(allowed) = catalog.vocabulary.get(INPUT)
+        .and_then(|fact| fact.value_schema.get("enum")).and_then(Value::as_array) else { return false };
+    let tokens: Vec<_> = question.split(|c: char| !c.is_alphanumeric())
+        .filter(|token| !token.is_empty()).collect();
+    let targets: BTreeSet<_> = allowed.iter().filter_map(Value::as_str)
+        .filter(|code| *code != "EUR" && code.len() == 3 && code.bytes().all(|b| b.is_ascii_uppercase()))
+        .filter(|code| tokens.contains(code)).collect();
+    if targets.len() != 1 { return false; }
+    let target = *targets.first().unwrap();
+    // Require an explicit, single EUR-first pair. A lone USD token does not
+    // reveal the base: BTC to USD must never become EUR to USD. Other
+    // currency-shaped uppercase codes make the empty-subject request unclear.
+    if tokens.iter().filter(|token| **token == "EUR").count() != 1
+        || tokens.iter().filter(|token| **token == target).count() != 1
+        || tokens.iter().any(|token| token.len() == 3
+            && token.bytes().all(|byte| byte.is_ascii_uppercase())
+            && !matches!(*token, "EUR" | "ECB") && *token != target) {
+        return false;
+    }
+    let pair = tokens.windows(2).any(|pair| pair == ["EUR", target])
+        || tokens.windows(3).any(|pair| pair[0] == "EUR" && pair[2] == target
+            && (pair[1].eq_ignore_ascii_case("to") || pair[1].eq_ignore_ascii_case("naar")));
+    if !pair { return false; }
+    let Some(subject) = intent.subjects.get_mut(subject_index) else { return false };
+    if subject.values.contains_key(INPUT) { return false; }
+    subject.values.insert(INPUT.into(), json!(target));
+    true
+}
+
 /// The Dutch company register. A Dutch company's registry data comes from
 /// here unless the person names another source.
 const DUTCH_REGISTER: &str = "kvk-dutch-business-register";
@@ -298,6 +341,58 @@ mod tests {
     use super::*;
     use crate::{capability_intake, catalog::Catalog, state::Entity};
     use uuid::Uuid;
+
+    fn ecb_intent() -> Intent {
+        serde_json::from_value(json!({"subjects":[{"label":"request","values":{}}],
+            "goals":[{"subject":0,"capability":"fx.ecb-reference-rate","constraints":{}}],
+            "answer_operations":[],"unresolved_references":[]})).unwrap()
+    }
+
+    #[test]
+    fn ecb_target_binds_only_one_explicit_catalog_currency_without_guessing() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap());
+        assert!(catalog.rejected.is_empty());
+        for question in [
+            "Wat is de nieuwste ECB-referentiewisselkoers van EUR naar USD?",
+            "Latest ECB reference rate for EUR/USD.",
+            "Latest ECB reference rate EUR to USD.",
+        ] {
+            let mut intent = ecb_intent();
+            assert!(bind_ecb_target_literal(&mut intent, question, &catalog), "{question}");
+            assert_eq!(intent.subjects[0].values["fx.ecb.quote"], "USD");
+            assert_eq!(intent.subjects[0].values.len(), 1);
+        }
+        for question in [
+            "ECB EUR to USD and GBP", "ECB EUR", "ECB EUR to USDT",
+            "ECB EUR to usd", "ECB EUR to USDé", "ECB EUR to dollars", "Latest ECB interest rate",
+            "ECB USD/EUR", "ECB USD naar EUR",
+            "Latest ECB reference rate for USD", "ECB rate BTC to USD",
+            "ECB rate BTC to USD, include EUR context", "ECB rate BTC to EUR to USD",
+        ] {
+            let mut intent = ecb_intent();
+            assert!(!bind_ecb_target_literal(&mut intent, question, &catalog), "{question}");
+            assert!(intent.subjects[0].values.is_empty());
+        }
+    }
+
+    #[test]
+    fn ecb_target_preserves_existing_values_and_cannot_bind_other_operations() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap());
+        let mut intent = ecb_intent();
+        intent.subjects[0].values.insert("fx.ecb.quote".into(), json!("GBP"));
+        assert!(!bind_ecb_target_literal(&mut intent, "ECB EUR/USD", &catalog));
+        assert_eq!(intent.subjects[0].values["fx.ecb.quote"], "GBP");
+        let mut other = ecb_intent();
+        other.goals[0].capability = "finance.exchange-rate".into();
+        assert!(!bind_ecb_target_literal(&mut other, "EUR/USD", &catalog));
+        assert!(other.subjects[0].values.is_empty());
+        let mut several = ecb_intent();
+        several.goals.push(serde_json::from_value(json!({"subject":0,"capability":"fx.ecb-reference-rate","constraints":{}})).unwrap());
+        assert!(!bind_ecb_target_literal(&mut several, "ECB EUR/USD", &catalog));
+        let mut missing = ecb_intent();
+        let empty = Catalog::build(serde_json::from_value(json!({"services":[],"vocabulary":[],"known_sources":[]})).unwrap());
+        assert!(!bind_ecb_target_literal(&mut missing, "ECB EUR/USD", &empty));
+    }
 
     fn parsed() -> ParsedRequest {
         capability_intake::normalize(&json!({"language":"en","subjects":[

@@ -247,6 +247,9 @@ impl Client {
         };
         if let Some(correction) = correction {
             prompt.push_str(&format!("\nPrevious output failed validation: {correction}\nParse the user's request again. Return only one complete JSON object with every required field."));
+            if correction == "subject must be literal and have a type" {
+                prompt.push_str(" Every subject needs a nonempty singular type and a label copied as one contiguous phrase from the original request. Never translate or concatenate separated words into a label. For coordinated country/sector comparisons, use each literal country adjective as its label and keep the shared literal sector in identifiers; preserve both cohorts and their requested data.");
+            }
         }
         // A JSON object, not a strict json_schema: Alibaba, the fastest Qwen
         // provider, has no strict schema mode. The prompt spells out the shape,
@@ -668,6 +671,185 @@ mod tests {
         let parsed = crate::capability_intake::normalize(&raw.to_string(), "Geef salarisbenchmarks.", "fixture").unwrap();
         assert!(parsed.subjects.is_empty());
         assert_eq!(parsed.capabilities[0].missing, vec!["country", "sector"]);
+    }
+
+    #[tokio::test]
+    async fn interpretation_corrects_invalid_literal_subjects_once_without_relaxing_validation() {
+        let question = "Vergelijk de Nederlandse en Duitse softwaresector.";
+        let valid = json!({"language":"nl","subjects":[
+            {"id":"first","label":"Nederlandse","type":"sector","identifiers":{"country":"Nederlandse","sector":"softwaresector"}},
+            {"id":"second","label":"Duitse","type":"sector","identifiers":{"country":"Duitse","sector":"softwaresector"}}],
+            "capabilities":[
+                scope_capability("research.market.size", &["country","sector"], &["market_size"], Some("first"), None),
+                scope_capability("research.market.size", &["country","sector"], &["market_size"], Some("second"), None)],
+            "deliverable":{"format":"chat","operations":["compare"]}});
+        let mut invalid = valid.clone();
+        invalid["subjects"][0]["label"] = json!("Nederlandse softwaresector");
+        for (first, second, expected_attempts) in [
+            (invalid.clone(), valid.clone(), Some(2)),
+            (invalid.clone(), invalid.clone(), None),
+            (valid.clone(), invalid, Some(1)),
+        ] {
+            let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+            let capture = captured.clone();
+            let app = Router::new().route("/", post(move |body: axum::Json<Value>| {
+                let capture = capture.clone();
+                let first = first.clone();
+                let second = second.clone();
+                async move {
+                    let mut requests = capture.lock().unwrap();
+                    let raw = if requests.is_empty() { first } else { second };
+                    requests.push(body.0);
+                    Response::builder().header("content-type", "text/event-stream")
+                        .body(Body::from(format!("{}data: [DONE]\n\n", delta(&raw.to_string())))).unwrap()
+                }
+            }));
+            let (endpoint, server) = server(app).await;
+            let result = client().with_local_endpoint(endpoint).unwrap().interpret(question, &[]).await;
+            let captured = captured.lock().unwrap();
+            assert_eq!(captured.len(), expected_attempts.unwrap_or(2));
+            if let Some(attempts) = expected_attempts {
+                let result = result.unwrap();
+                assert_eq!(result["attempts"], attempts);
+                assert_eq!(result["parsed_request"]["capabilities"].as_array().unwrap().len(), 2);
+                assert_eq!(result["parsed_request"]["subjects"][0]["identifiers"], json!({"country":"Nederlandse","sector":"softwaresector"}));
+                assert_eq!(result["parsed_request"]["subjects"][1]["identifiers"], json!({"country":"Duitse","sector":"softwaresector"}));
+            } else {
+                assert_eq!(result.unwrap_err().to_string(), "subject must be literal and have a type");
+            }
+            assert_eq!(captured[0]["messages"][0]["content"], PROMPT);
+            if captured.len() == 2 {
+                let correction = captured[1]["messages"][0]["content"].as_str().unwrap();
+                assert!(correction.contains("one contiguous phrase from the original request"));
+                assert!(correction.contains("preserve both cohorts and their requested data"));
+                assert!(!correction.contains("Nederlandse softwaresector"), "no rejected payload is repeated in correction feedback");
+                assert_eq!(captured[1]["messages"].as_array().unwrap().len(), 2);
+            }
+            assert!(captured.iter().all(|request| request["messages"][1]["content"] == question));
+            server.abort();
+        }
+    }
+
+    #[tokio::test]
+    async fn interpretation_does_not_correct_auth_or_transport_failures() {
+        for status in [StatusCode::UNAUTHORIZED, StatusCode::INTERNAL_SERVER_ERROR] {
+            let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let count = calls.clone();
+            let app = Router::new().route("/", post(move || {
+                count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                async move { (status, "private provider account detail") }
+            }));
+            let (endpoint, server) = server(app).await;
+            let error = client().with_local_endpoint(endpoint).unwrap().interpret("Vergelijk softwaresectoren.", &[]).await.unwrap_err();
+            assert_eq!(error.to_string(), "ask_v2_model_unavailable");
+            assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+            server.abort();
+        }
+    }
+
+    #[test]
+    fn normalized_provenance_instruction_keeps_retrievals_and_requested_scores_distinct() {
+        // Controlled parse fixture: validates normalization and classification,
+        // not real-model extraction, which needs a fresh live case 5 replay.
+        let question = "Screen ASML Holding N.V. op sancties. Onderscheid officiële bronnen van AI-analyses.";
+        let provenance = json!({"slug":"research.sources.provenance","name":"Source provenance",
+            "description":"Distinguish official retrieved source data from AI-generated analysis in the answer.",
+            "domain":"research","inputs":[],"outputs":["official_sources","ai_analysis"],
+            "subject_id":null,"source_hint":null,"confidence":0.95});
+        let raw = json!({"language":"nl","subjects":[{"id":"company","label":"ASML Holding N.V.","type":"company","identifiers":{}}],
+            "capabilities":[scope_capability("compliance.sanctions", &["company_name"], &["sanctioned"], Some("company"), None),provenance.clone()],
+            "deliverable":{"format":"chat","operations":[]}});
+        let parsed = crate::capability_intake::normalize(&raw.to_string(), question, "fixture").unwrap();
+        assert_eq!(parsed.capabilities.len(), 2);
+        assert_eq!(parsed.capabilities[0].subject_id.as_deref(), Some("s1"));
+        assert!(!crate::capability_intake::answer_instruction(&parsed.capabilities[0]));
+        let attribution = &parsed.capabilities[1];
+        assert_eq!(attribution.outputs, vec!["official_sources", "ai_analysis"]);
+        assert!(attribution.inputs.is_empty() && attribution.missing.is_empty());
+        assert!(attribution.subject_id.is_none() && attribution.source_hint.is_none());
+        assert!(crate::capability_intake::answer_instruction(attribution));
+        let mut scored = attribution.clone();
+        scored.outputs.push("source_reliability_score".into());
+        assert!(!crate::capability_intake::answer_instruction(&scored), "an expressly requested score still needs evidence");
+        let mut source_research = attribution.clone();
+        source_research.source_hint = Some("reuters".into());
+        assert!(!crate::capability_intake::answer_instruction(&source_research), "named-source research is not presentation alone");
+        assert!(PROMPT.contains("An explicitly requested source reliability score remains a separate requirement"));
+    }
+
+    const RDW_PRECISE_QUESTION: &str = "Geef voor Nederlands kenteken GZ805N via RDW het merk, de handelsbenaming, de APK-vervaldatum en de indicator openstaande terugroepactie. Toon bronverwijzingen en ontbrekende velden.";
+    const RDW_BROAD_QUESTION: &str = "Geef voor kenteken GZ805N via RDW het model, de registratiedatum en de details en geschiedenis van terugroepacties.";
+    const DOMAIN_QUESTION: &str = "Geef voor asml.com de openbare domeinregistratiegegevens, nameservers en DNS-records. Toon bronverwijzingen en geef aan welke gegevens ontbreken.";
+
+    #[test]
+    fn precise_vehicle_fields_and_domain_registration_survive_normalization() {
+        // Controlled fixtures prove normalization preserves the distinction;
+        // the opt-in live test below separately checks actual model extraction.
+        for (question, outputs) in [
+            (RDW_PRECISE_QUESTION, vec!["brand", "trade_name", "apk_expiry", "recall_indicator", "source_references", "missing_fields"]),
+            (RDW_BROAD_QUESTION, vec!["model", "registration_date", "recall_details", "recall_history"]),
+        ] {
+            let raw = json!({"language":"nl","subjects":[{"id":"car","label":"GZ805N","type":"vehicle","identifiers":{"license_plate":"GZ805N"}}],
+                "capabilities":[scope_capability("vehicle.technical.profile", &["license_plate"], &outputs, Some("car"), Some("rdw"))],
+                "deliverable":{"format":"chat","operations":[]}});
+            let parsed = crate::capability_intake::normalize(&raw.to_string(), question, "fixture").unwrap();
+            assert_eq!(parsed.capabilities[0].outputs, outputs);
+            assert_eq!(parsed.capabilities[0].subject_id.as_deref(), Some("s1"));
+            assert!(parsed.capabilities[0].missing.is_empty());
+        }
+        let raw = json!({"language":"nl","subjects":[{"id":"site","label":"asml.com","type":"domain","identifiers":{"domain":"asml.com"}}],
+            "capabilities":[
+                scope_capability("research.domain.registration", &["domain"], &["registration_data"], Some("site"), None),
+                scope_capability("research.domain.dns", &["domain"], &["nameservers","dns_records"], Some("site"), None)],
+            "deliverable":{"format":"chat","operations":[]}});
+        let parsed = crate::capability_intake::normalize(&raw.to_string(), DOMAIN_QUESTION, "fixture").unwrap();
+        assert_eq!(parsed.capabilities.len(), 2);
+        assert_eq!(parsed.capabilities[0].outputs, ["registration_data"]);
+        assert_eq!(parsed.capabilities[1].outputs, ["nameservers", "dns_records"]);
+        assert!(parsed.capabilities.iter().all(|cap| cap.subject_id.as_deref() == Some("s1") && cap.missing.is_empty()));
+        assert!(PROMPT.contains("never change APK to APV"));
+        assert!(PROMPT.contains("do not silently replace broader recall information with the indicator"));
+        assert!(PROMPT.contains("DNS records or nameservers alone do not satisfy public registration data"));
+    }
+
+    /// Explicit opt-in, three public fixed questions, canonical model only.
+    /// No source search, tasks, quotes, authorizations or provider execution.
+    #[tokio::test]
+    #[ignore = "requires explicit live-model authorization and configured OpenRouter credentials"]
+    async fn live_precise_vehicle_and_domain_parse() {
+        dotenvy::dotenv().ok();
+        let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
+            .or_else(|| std::env::var("INTENT_API_KEY").ok()).filter(|key| !key.trim().is_empty())
+            .expect("configured model credentials required");
+        let client = Client::new(reqwest::Client::new(), key, DEFAULT_MODEL.into());
+        let mut rows = Vec::new();
+        for question in [RDW_PRECISE_QUESTION, RDW_BROAD_QUESTION, DOMAIN_QUESTION] {
+            let result = client.interpret(question, &[]).await;
+            rows.push(match result {
+                Ok(value) => json!({"question":question,"parsed_request":value["parsed_request"],"model":value["model"],"attempts":value["attempts"],"timing":value["timing"]}),
+                Err(_) => json!({"question":question,"error":"canonical interpretation failed"}),
+            });
+        }
+        let outputs = |index: usize| rows[index]["parsed_request"]["capabilities"].as_array().into_iter().flatten()
+            .flat_map(|cap| cap["outputs"].as_array().into_iter().flatten())
+            .filter_map(Value::as_str).map(str::to_owned).collect::<Vec<_>>();
+        let narrow = outputs(0);
+        let broad = outputs(1);
+        let domain = rows[2]["parsed_request"]["capabilities"].as_array().cloned().unwrap_or_default();
+        let checks = json!({
+            "narrow_fields_preserved":(["brand","trade_name","apk_expiry","recall_indicator"].iter().all(|field| narrow.iter().any(|value| value == field))),
+            "no_invented_broad_fields":(!["model","registration_date","recall_details","recall_history","apv_expiration_date"].iter().any(|field| narrow.iter().any(|value| value == field))),
+            "explicit_broad_fields_preserved":(["model","registration_date","recall_details","recall_history"].iter().all(|field| broad.iter().any(|value| value == field))),
+            "registration_and_dns_separate":domain.len() >= 2
+                && domain.iter().any(|cap| cap["slug"].as_str().is_some_and(|slug| slug.contains("registration") || slug.contains("rdap") || slug.contains("whois")))
+                && domain.iter().any(|cap| cap["slug"].as_str().is_some_and(|slug| slug.contains("dns"))),
+        });
+        let passed = checks.as_object().unwrap().values().all(|check| check == true);
+        if let Ok(path) = std::env::var("ASK_V2_LIVE_EVIDENCE") {
+            let evidence = json!({"scope":"actual canonical model parse only; not UI, provider or paid end-to-end proof", "model":DEFAULT_MODEL,"rows":rows,"checks":checks,"passed":passed});
+            std::fs::write(path, serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        }
+        assert!(passed, "live canonical field preservation checks failed; inspect sanitized evidence");
     }
 
     #[tokio::test]

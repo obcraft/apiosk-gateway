@@ -73,6 +73,8 @@ struct Document {
     /// caller input names. Keep the full description: a later sentence can
     /// explain that a stock mark is actually a derivative.
     derivative_asset: bool,
+    /// Explicit enterprise-ratio notation in the endpoint's own scope.
+    enterprise_multiple: bool,
     /// Full endpoint wording for measurement compatibility. Provider names,
     /// input names and unrelated provider metadata cannot supply a metric.
     operation_words: BTreeSet<String>,
@@ -209,6 +211,9 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         let translated_description=english.render(&[description]);
         indexed.derivative_asset = relevance::derivative_market(description)
             || relevance::derivative_market(&translated_description);
+        indexed.enterprise_multiple = relevance::enterprise_ratio(description)
+            || relevance::enterprise_ratio(&translated_description)
+            || relevance::enterprise_ratio(&service.contract.capability_slug);
         indexed.operation_words = words(&format!("{description} {translated_description}"));
         let translated_opening=opening_description(&translated_description);
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
@@ -604,6 +609,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
     }
     Document {
         derivative_asset: false,
+        enterprise_multiple: false,
         operation_words: BTreeSet::new(),
         topic_scope: tokens.clone(),
         target,
@@ -2130,6 +2136,31 @@ mod tests {
             request.capabilities[0].description=name.into();request.capabilities[0].outputs=vec!["valuation".into()];
             assert!(search(&request,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"{name} remains a valid requested asset");
         }
+    }
+
+    #[test]
+    fn explicit_enterprise_ratio_outputs_survive_generic_financial_labels() {
+        let fixtures=catalog(vec![
+            service(884,"company.financial-statements","Filed accounts","Company annual accounts: filed revenue, EBITDA, assets and debts, with reporting year.","accounts"),
+            service(885,"operation.company.metrics","Corporate metrics","Company key financial figures: enterprise value, EV/Revenue and EV/EBITDA ratios for listed companies.","metrics"),
+        ],vec![]);
+        let mut request=parsed(vec![json!({"slug":"company.financial.keyFigures","name":"Company key financial figures","description":"Retrieve key financial metrics for a company.","outputs":["ev_revenue","ev_ebitda","currency","reporting_period"]})]);
+        request.capabilities[0].domain="company".into();
+        request.capabilities[0].outputs=vec!["ev_revenue".into(),"ev_ebitda".into(),"currency".into(),"reporting_period".into()];
+        for slug in ["company.financial.keyFigures","company.financial-statements"] {
+            request.capabilities[0].slug=slug.into();
+            let found=search(&request,&fixtures);
+            if slug=="company.financial.keyFigures" {
+                assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("metrics")),"{slug}: {:?}",found[0].apiosk);
+            }
+            assert!(!found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("accounts")),"accounts do not establish enterprise ratios, even with an exact financial slug");
+        }
+        request.capabilities[0].name="Company annual accounts".into();
+        request.capabilities[0].description="Retrieve a company's filed annual accounts.".into();
+        request.capabilities[0].outputs=vec!["revenue".into(),"ebitda".into(),"reporting_year".into()];
+        assert!(search(&request,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("accounts")),"ordinary annual accounts remain available");
+        request.capabilities[0].description="Financial statements for EV charging revenue from electric vehicle operations.".into();
+        assert!(search(&request,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some("accounts")),"EV charging revenue is not enterprise-value ratio notation");
     }
 
     #[test]
