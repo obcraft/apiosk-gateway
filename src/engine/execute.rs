@@ -166,7 +166,12 @@ impl Engine {
                 telemetry::milestone(telemetry::Milestone::SourcesReady, id, Some(plan.quote_ref), telemetry::MilestoneFields {
                     sources: Some(sources.len()), failed_steps: Some(task.failed_steps.len()), pending: Some(task.pending_dispatches.len()), ..Default::default() });
                 let direct = if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() && task.supplier_check.is_none() {
-                    task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources))
+                    // An explicit retry of a previously failed synthesis can
+                    // recover supported registry fields without another model.
+                    task.analysis.as_ref().filter(|answer|answer["status"]=="unavailable")
+                        .and_then(|_|crate::direct_answer::registry_fallback(&intent,&sources,
+                            task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl")))
+                        .or_else(||task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources)))
                 } else { None };
                 let answering_span = telemetry::span(if direct.is_some() { Phase::DirectAnswer } else { Phase::Analysis }).task(id);
                 task.analysis = Some(if let Some(answer) = direct {
@@ -204,6 +209,10 @@ impl Engine {
                                     if !limitations.contains(&notice) { limitations.push(notice); }
                                 }
                                 previous
+                            } else if analysis_failures.is_empty() {
+                                crate::direct_answer::registry_fallback(&intent,&sources,
+                                    task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl"))
+                                    .unwrap_or_else(||json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]}))
                             } else {
                                 json!({"status":"unavailable","limitations":["The analysis could not be generated. Your source results are saved; no additional source purchase was made."],"observations":[]})
                             }
@@ -228,6 +237,11 @@ impl Engine {
                 if task.workflow.is_none() && task.supplier_check.is_none()
                     && !crate::billing::purchase_policy_blocked(&task.failed_steps)
                     && task.analysis.as_ref().is_some_and(|a| a["status"] != "unavailable"
+                        // Recovery from a failed synthesis already has the
+                        // requested entity and saved fields. Asking the model
+                        // for more context would turn this read-only recovery
+                        // into another model call and an irrelevant question.
+                        && a["fallback"] != "saved_registry_fields"
                         && (a["observations"].as_array().is_some_and(Vec::is_empty)
                             || (a["status"] == "partial" && a["limitations"].as_array().is_some_and(|notes| !notes.is_empty())))) {
                     if let Some(question) = task.conversation.last().map(|turn| turn.question.clone()).filter(|q| !q.is_empty()) {

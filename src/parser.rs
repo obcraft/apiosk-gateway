@@ -561,6 +561,27 @@ pub(crate) fn validate_analysis(raw: &str, sources: &[Value], partial: bool) -> 
     validate_analysis_limits(raw, sources, partial, 8, 6)
 }
 
+fn analysis_validation_reason(error: &anyhow::Error) -> &'static str {
+    match error.to_string().as_str() {
+        "numbers and links must come from source evidence" => "narrative_contains_numbers_or_links",
+        "missing source field" => "non_scalar_or_missing_pointer",
+        "invalid source pointer" => "invalid_source_pointer",
+        "invented source" => "unknown_source_reference",
+        "invalid evidence count" | "missing evidence" => "evidence_count",
+        "long source text needs a short exact evidence quote" => "exact_quote_required",
+        "evidence quote is not in the saved source" => "quote_not_verbatim",
+        "invalid evidence quote" => "quote_empty_or_too_long",
+        "missing answer value" | "invalid answer value slot" => "invalid_value_placeholder",
+        "analysis too large" => "analysis_size_limit",
+        "missing observations" | "missing limitations" | "invalid narrative" | "empty analysis" => "invalid_analysis_shape",
+        "unknown presentation source" => "unknown_presentation_source",
+        "invalid presentation pointer" | "missing presentation field" | "presentation field must be scalar" | "missing column pointer" => "invalid_presentation_field",
+        "table requires explicit relevant row_indices" | "invalid row index" | "invalid selected rows" | "duplicate presentation row" => "invalid_presentation_selection",
+        "missing presentation kind" | "unknown presentation kind" | "missing presentation columns" | "invalid presentation column count" | "missing presentation label" | "invalid presentation label" | "missing presentation heading" | "missing presentation records" | "missing presentation rows" | "invalid presentation row" | "presentation row width mismatch" => "invalid_presentation_shape",
+        _ => "invalid_analysis_schema",
+    }
+}
+
 fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_observations: usize, max_limitations: usize) -> anyhow::Result<Value> {
     let value: Value = serde_json::from_str(raw)?;
     let observations = value["observations"]
@@ -677,6 +698,17 @@ fn missing_context_message(raw: &str) -> anyhow::Result<String> {
 #[cfg(test)]
 mod analysis_tests {
     use super::*;
+    #[test]
+    fn analysis_diagnostics_are_specific_fixed_labels_without_payloads() {
+        for (message,expected) in [
+            ("invalid source pointer","invalid_source_pointer"),
+            ("missing presentation field","invalid_presentation_field"),
+            ("table requires explicit relevant row_indices","invalid_presentation_selection"),
+            ("missing observations","invalid_analysis_shape"),
+            ("analysis too large","analysis_size_limit"),
+            ("private user or model text","invalid_analysis_schema"),
+        ] {assert_eq!(analysis_validation_reason(&anyhow::anyhow!(message)),expected);}
+    }
     #[tokio::test]
     async fn missing_context_question_comes_from_model_without_a_source_call() {
         use axum::{routing::post, Json, Router};
@@ -1497,17 +1529,7 @@ impl Parser {
                                             }
                                             if surface == "analysis" {
                                                 // Fixed validator classifications only; never log the model answer.
-                                                let reason = match error.to_string().as_str() {
-                                                    "numbers and links must come from source evidence" => "narrative_contains_numbers_or_links",
-                                                    "missing source field" => "non_scalar_or_missing_pointer",
-                                                    "invented source" => "unknown_source_reference",
-                                                    "invalid evidence count" => "evidence_count",
-                                                    "long source text needs a short exact evidence quote" => "exact_quote_required",
-                                                    "evidence quote is not in the saved source" => "quote_not_verbatim",
-                                                    "invalid evidence quote" => "quote_empty_or_too_long",
-                                                    "missing answer value" | "invalid answer value slot" => "invalid_value_placeholder",
-                                                    _ => "schema_or_pointer",
-                                                };
+                                                let reason = analysis_validation_reason(&error);
                                                 tracing::warn!(
                                                     surface,
                                                     attempt,

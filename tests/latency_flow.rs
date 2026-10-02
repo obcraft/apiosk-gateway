@@ -15,6 +15,106 @@ use sqlx::postgres::PgPoolOptions;
 use uuid::Uuid;
 use std::sync::Arc;
 
+#[tokio::test]
+#[ignore = "isolated support-db only"]
+async fn failed_registry_analysis_recovers_saved_results_without_model_or_purchase() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let calls = Arc::new(AtomicUsize::new(0));
+    let observed = calls.clone();
+    let mock = axum::Router::new().fallback(axum::routing::any(move || {
+        let observed = observed.clone();
+        async move {
+            observed.fetch_add(1, Ordering::SeqCst);
+            axum::Json(json!({"choices":[{"message":{"content":"{}"}}]}))
+        }
+    }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
+    let pool = PgPoolOptions::new().max_connections(1).after_connect(|conn, _| {
+        Box::pin(async move { sqlx::query("SET search_path TO public,gateway_v2").execute(conn).await?; Ok(()) })
+    }).connect(&std::env::var("TEST_DATABASE_URL").unwrap()).await.unwrap();
+    let store = Store { pool: pool.clone() };
+    let http = reqwest::Client::new();
+    let engine = Engine {
+        store: store.clone(), catalog: CatalogCache::new(pool.clone()),
+        parser: Parser::new(http.clone(), format!("{base}/model"), "fixture".into(), "fixture".into()),
+        signer: Signer::new(vec![7; 32]).unwrap(),
+        executor: Executor { store: store.clone(), http, supabase_url: base, enabled: false },
+        app_url: "https://example.test".into(),
+    };
+    let person = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+    let task_id = store.create(person.owner, None).await.unwrap();
+    let entity = Uuid::new_v4();
+    let quote = Uuid::new_v4();
+    let action = Uuid::new_v4();
+    let catalog = Catalog::build(serde_json::from_str(include_str!("fixtures/company-sources/catalog.json")).unwrap());
+    let mut task = Task::default();
+    task.entities.push(Entity { entity_ref: entity, label: "Example PLC".into(), selected: true });
+    task.record_turn("Geef het bedrijfsprofiel, de functionarissen en de geregistreerde zeggenschap van Example PLC.", None);
+    task.capability_intake = Some(serde_json::from_value(json!({
+        "parsed_request":{"language":"nl","subjects":[],"capabilities":[],"deliverable":{"format":"chat","operations":[]},
+            "meta":{"model":"fixture","parsed_at":"2026-10-02T00:00:00Z","text_sha256":"fixture"}},
+        "matches":[],"apiosk_sources_searched":0,"catalog_version":"fixture","selected_capabilities":[]
+    })).unwrap());
+    let data = [
+        json!({"company_name":"Example PLC","company_number":"00000001","company_status":"active","date_of_creation":"1900-01-01","links":{"self":"/company/00000001"}}),
+        json!({"total_results":82,"links":{"self":"/company/00000001/officers"},"items":(0..82).map(|i|json!({"name":format!("Officiër {i}"),"officer_role":"director","appointed_on":"2020-01-01","padding":"é".repeat(1000)})).collect::<Vec<_>>()}),
+        json!({"total_results":0,"items":[],"links":{"self":"/company/00000001/persons-with-significant-control"}}),
+    ];
+    let mut steps = Vec::new();
+    let mut goals = Vec::new();
+    let mut documents = Vec::new();
+    for (index, capability) in ["company.registry-profile", "company.officers", "company.significant-control"].iter().enumerate() {
+        let service = catalog.services.iter().find(|service| service.api_slug == "companies-house" && service.contract.capability_slug == *capability).unwrap().clone();
+        goals.push(json!({"capability":capability,"subject":0,"constraints":{"source":"companies-house","endpoint_id":service.endpoint_id}}));
+        let mut document = json!({"data":data[index],"source":service.result_source(),"subject":{"entity_ref":entity,"label":"Example PLC"},
+            "coverage":"source_response","missing_fields":[],"charged_atomic":"54348","currency":"USD"});
+        document["source"]["path"] = json!(service.path);
+        let step = Step { service, entity_ref: entity, goal_index: index, browser_fallback: None };
+        task.completed.push(step.key());
+        steps.push(step);
+        let execution = Uuid::new_v4();
+        let result = Uuid::new_v4();
+        sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,payload_hash,selection_id,reserved_atomic,actual_atomic,status) VALUES($1,$2,$3,$1,'fixture',$1,54348,54348,'succeeded')")
+            .bind(execution).bind(person.owner).bind(task_id).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO results(id,owner_id,task_id,execution_id,document) VALUES($1,$2,$3,$4,$5)")
+            .bind(result).bind(person.owner).bind(task_id).bind(execution).bind(&document).execute(&pool).await.unwrap();
+        task.active_results.push(result);
+        task.result_refs.push(result);
+        documents.push(document);
+    }
+    task.intent = Some(json!({"subjects":[{"entity_ref":entity,"label":"Example PLC","values":{"company.registration.gb.companies_house":"00000001"}}],
+        "goals":goals,"answer_operations":["Toon de opgeslagen registergegevens"],"unresolved_references":[]}));
+    task.proposal = Some(serde_json::to_value(Plan { quote_ref: quote, cap_atomic: 163044, steps, expires_at: Utc::now() + Duration::hours(1),
+        hash: "fixture".into(), fee_bps: 1500, workflow_slug: None }).unwrap());
+    task.analysis = Some(json!({"status":"unavailable","observations":[],"limitations":["Synthesis failed"]}));
+    task.actions = vec![serde_json::to_value(Action::RetryAnalysis { action_id: action }).unwrap()];
+    let revision = store.save(person.owner, task_id, 0, &task).await.unwrap();
+    let response = engine.execute(&person, "", ExecuteRequest {
+        request_id: Uuid::new_v4(), action_id: action, state: engine.signer.issue(person.owner, task_id, revision, task.focus.clone()),
+        quote_ref: Some(quote), authorization_ref: None, idempotency_key: action, input: Value::Null,
+    }).await.unwrap();
+    assert_eq!(response.status, Status::Partial, "{response:?}");
+    let analysis = &response.context_view["analysis"];
+    assert_eq!(analysis["fallback"], "saved_registry_fields", "{response:?}; outbound calls={}", calls.load(Ordering::SeqCst));
+    assert!(analysis["follow_up_question"].is_null(), "a synthesis failure is not missing user context");
+    assert!(analysis["observations"][0]["text"].as_str().unwrap().starts_with("De geregistreerde naam"));
+    assert_eq!(analysis["presentation"]["rows"].as_array().unwrap().len(), 82);
+    assert_eq!(analysis["presentation"]["rows"][81][0]["value"], "Officiër 81");
+    assert_eq!(calls.load(Ordering::SeqCst), 0, "saved recovery must not call a model or source");
+    let (_, recovered, _) = store.load(person.owner, task_id).await.unwrap();
+    assert_eq!(recovered.active_results, task.active_results);
+    assert_eq!(recovered.completed, task.completed);
+    for (result, document) in task.active_results.iter().zip(&documents) {
+        assert_eq!(&store.result(person.owner, task_id, *result).await.unwrap(), document);
+    }
+    let (executions, charged): (i64, i64) = sqlx::query_as("SELECT count(*),sum(actual_atomic)::bigint FROM executions WHERE task_id=$1")
+        .bind(task_id).fetch_one(&pool).await.unwrap();
+    assert_eq!((executions, charged), (3, 163044), "recovery must not add an execution or charge");
+    server.abort();
+}
+
 async fn event(response: &mut reqwest::Response, buffer: &mut Vec<u8>) -> (String, Value) {
     tokio::time::timeout(std::time::Duration::from_secs(3), async {
         loop {

@@ -14,6 +14,41 @@ fn evidence(value: &Value, depth: usize) -> Value {
     }
 }
 
+#[cfg(test)]
+mod page_metadata_tests {
+    use super::*;
+    #[tokio::test]
+    async fn paged_saved_result_preserves_exact_charge_and_missing_fields() {
+        let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://fixture:fixture@127.0.0.1:1/fixture").unwrap();
+        let store=Store{pool:pool.clone()};let http=reqwest::Client::new();
+        let engine=Engine{store:store.clone(),catalog:CatalogCache::new(pool),parser:Parser::new(http.clone(),"http://127.0.0.1:1".into(),"fixture".into(),"fixture".into()),
+            signer:Signer::new(vec![7;32]).unwrap(),executor:Executor{store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false},app_url:"https://example.test".into()};
+        let owner=Uuid::new_v4();let task=Uuid::new_v4();let result=Uuid::new_v4();
+        let document=json!({"source":{"provider":"companies-house","path":"/company/{company_number}/officers"},"coverage":"source_response",
+            "charged_atomic":"54348","currency":"USD","missing_fields":["some_optional_field"],
+            "data":{"items":(0..82).map(|i|json!({"name":format!("Officiër {i}"),"padding":"é".repeat(1000)})).collect::<Vec<_>>()}});
+        let mut text=String::new();
+        let mut offset=0;
+        let mut pages=0;
+        loop {
+            let page=engine.project_result_page(owner,task,result,offset,document.clone(),&[]).unwrap();
+            assert_eq!(page["encoding"],"json_text");
+            assert_eq!(page["result_ref"],json!(result));
+            for key in ["charged_atomic","currency","missing_fields"] {assert_eq!(page[key],document[key],"{key}");}
+            text.push_str(page["text"].as_str().unwrap());
+            pages+=1;
+            let Some(next)=page["next_offset"].as_u64() else {break};
+            assert!(next as usize>offset,"page offsets must advance");
+            offset=next as usize;
+        }
+        assert!(pages>2);
+        let rebuilt:Value=serde_json::from_str(&text).unwrap();
+        assert_eq!(rebuilt["data"],document["data"],"all rows and Unicode source text survive paging");
+        assert_eq!(rebuilt["data"]["items"][81]["name"],"Officiër 81");
+        assert!(engine.project_result_page(owner,task,result,text.chars().count()+1,document,&[]).is_err());
+    }
+}
+
 impl Engine {
     /// A first live call to an unverified source settles it: a usable
     /// response promotes the contract with that response as evidence; a
@@ -85,7 +120,9 @@ impl Engine {
             &data["data"],
         );
         Ok(
-            json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"coverage":data.get("coverage"),"coverage_note":data.get("coverage_note"),"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),"text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
+            json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"coverage":data.get("coverage"),"coverage_note":data.get("coverage_note"),"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),
+                "charged_atomic":data.get("charged_atomic"),"currency":data.get("currency"),"missing_fields":data.get("missing_fields"),
+                "text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
         )
     }
 
