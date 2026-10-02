@@ -1,0 +1,1487 @@
+{
+  "provenance": "Exact final case9 raw-constraint failure on c5efcd0. Read-only test task, no quote/auth/execution. Invalid values retained solely as negative test evidence.",
+  "question": "Valideer EU-btw-nummer NL002033354B01, zoek relevante btw-wetgeving en geef CBS-sectorbenchmarks voor de Nederlandse detailhandel. Citeer offici\u00eble bronnen.",
+  "intent": {
+    "goals": [
+      {
+        "subject": 0,
+        "capability": "vat.eu.validate",
+        "constraints": {
+          "source": "vies",
+          "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9"
+        }
+      },
+      {
+        "subject": 1,
+        "capability": "eu_law.celex.metadata",
+        "constraints": {
+          "source": "eurlex-cellar",
+          "endpoint_id": "76f52e26-6ad1-41bd-8685-10571d69cb00"
+        }
+      },
+      {
+        "subject": 2,
+        "capability": "statistics.cbs-sector-income",
+        "constraints": {
+          "source": "cbs-statline",
+          "$filter": "SectorCode eq '5210' and Period eq '2023'",
+          "endpoint_id": "32313c27-c87b-4e17-b301-f0037357b40e"
+        }
+      }
+    ],
+    "subjects": [
+      {
+        "label": "NL002033354B01",
+        "values": {
+          "vat.eu.number": "002033354B01",
+          "vat.eu.country_code": "NL"
+        },
+        "entity_ref": "5df06a3d-a9ab-4470-9eb1-cf76c71a3fd9"
+      },
+      {
+        "label": "NL002033354B01",
+        "values": {},
+        "entity_ref": "e0e613ac-7847-40be-88ef-4731374ad32b"
+      },
+      {
+        "label": "NL002033354B01",
+        "values": {},
+        "entity_ref": "af918486-a9e1-4d7e-bbab-ade0a6751263"
+      }
+    ],
+    "answer_operations": [
+      "geef een samenvatting van de validatie, de relevante wetgeving en de CBS-sectorbenchmarks",
+      "citeer offici\u00eble bronnen",
+      "toon de resultaten in een duidelijke structuur"
+    ],
+    "unresolved_references": []
+  },
+  "intake": {
+    "matches": [
+      {
+        "slug": "finance.vat.validation",
+        "query": "Validate VAT number. Checks the validity of a VAT number according to EU standards. vat number",
+        "apiosk": [
+          {
+            "url": "https://ec.europa.eu/taxation_customs/vies/",
+            "name": "VIES EU VAT Validation",
+            "price": "0.097826 USD",
+            "method": "POST",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vat.eu.check",
+            "description": "Check VAT registration with optional requester identification; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "endpoint_id": "6e41ab0f-209b-4105-b67d-8df52f529a3e",
+            "source_slug": "vies",
+            "availability": "supported"
+          },
+          {
+            "url": "https://api.sirenic.eu/openapi.json",
+            "name": "Sirenic",
+            "price": "0.003450 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.sirenic-tva-verifier-numero",
+            "description": "EU VAT validation against the official VIES service: validate any intra-community VAT number (all member states) for compliance and due diligence. This tax id check is the tax half of verify supplier before payment, and a required check under the e-invoicing mandate France September 2026. Returns valid/invalid/unavailable status with the VIES consultation identifier as proof \u2014 VAT number validatio",
+            "endpoint_id": "eee978bb-cd17-56c7-96cd-e848a49e7a28",
+            "source_slug": "sirenic",
+            "availability": "supported"
+          },
+          {
+            "url": "https://ec.europa.eu/taxation_customs/vies/",
+            "name": "VIES EU VAT Validation",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vat.eu.validate",
+            "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+            "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+            "source_slug": "vies",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.sirenic-tva-verifier-numero",
+          "vat.eu.check",
+          "vat.eu.validate"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "legal.taxation.eu.vat.legislation",
+        "query": "Retrieve EU VAT legislation. Fetches relevant EU VAT regulations and directives applicable to member states. eu",
+        "apiosk": [
+          {
+            "url": "https://www.koopoverheid.nl/binaries/koop/documenten/instructies/2021/02/09/handleiding-voor-het-uitvragen-van-de-collectie-officiele-publicaties/HandleidingSRU2.0.pdf",
+            "name": "KOOP Official Publications and Regulations",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "government.bwb.search",
+            "description": "Search BWB regulation titles; Search Staatscourant notices, local regulations (CVDR), and national legislation (BWB). Returned metadata can include historic versions; inspect effective dates and original documents.",
+            "endpoint_id": "9b838582-ad73-4ea3-8a3e-fdd36c2f45e5",
+            "source_slug": "koop",
+            "availability": "supported"
+          },
+          {
+            "url": "https://op.europa.eu/en/web/cellar",
+            "name": "EUR-Lex Cellar",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "eu_law.celex.metadata",
+            "description": "Retrieve a CELEX publication metadata notice; Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text.",
+            "endpoint_id": "76f52e26-6ad1-41bd-8685-10571d69cb00",
+            "source_slug": "eurlex-cellar",
+            "availability": "supported"
+          },
+          {
+            "url": "https://op.europa.eu/en/web/cellar",
+            "name": "EUR-Lex Cellar",
+            "price": "0.097826 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "eu_law.sparql.select",
+            "description": "Query EU legal metadata with a bounded SPARQL SELECT; Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text.",
+            "endpoint_id": "8e3eb28a-825b-47a5-acd1-0fae14f0c60a",
+            "source_slug": "eurlex-cellar",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "eu_law.celex.metadata",
+          "eu_law.sparql.select",
+          "government.bwb.search"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "research.industry.benchmarking.cbs.sector.performance",
+        "query": "Retrieve CBS sector benchmarks. Provides performance benchmarks for a specific industry sector from Statistics Netherlands (CBS). sector name country code. cbs",
+        "apiosk": [
+          {
+            "url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+            "name": "CBS Statistics",
+            "price": "0.020000 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "statistics.cbs-bankruptcy-sectors",
+            "description": "Official sectors codebook for bankruptcy table 82244NED. Pair with statistics.cbs-bankruptcies to resolve labels and units.",
+            "endpoint_id": "8037d0eb-4769-44d6-9843-ba5a5034118b",
+            "source_slug": "cbs-statline",
+            "availability": "supported"
+          },
+          {
+            "url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+            "name": "CBS Statistics",
+            "price": "0.054348 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "statistics.cbs-sector-income",
+            "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+            "endpoint_id": "32313c27-c87b-4e17-b301-f0037357b40e",
+            "source_slug": "cbs-statline",
+            "availability": "supported"
+          },
+          {
+            "url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+            "name": "CBS Statistics",
+            "price": "0.054348 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "statistics.cbs-sector-balance",
+            "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+            "endpoint_id": "abc42f88-a57d-440c-9887-2fcf55724ecc",
+            "source_slug": "cbs-statline",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "statistics.cbs-bankruptcy-sectors",
+          "statistics.cbs-sector-balance",
+          "statistics.cbs-sector-income"
+        ],
+        "coinbase_status": "pending"
+      }
+    ],
+    "parsed_request": {
+      "meta": {
+        "model": "qwen/qwen3-30b-a3b-instruct-2507",
+        "parsed_at": "2026-10-02T12:43:52.960614923+00:00",
+        "text_sha256": "b85529ff2caf63f17f8b306ee8752a19ba398cef67c7d14b56c0c9498cf0dfb8"
+      },
+      "language": "nl",
+      "subjects": [
+        {
+          "id": "s1",
+          "type": "vat_number",
+          "label": "NL002033354B01",
+          "identifiers": {
+            "vat_number": "NL002033354B01"
+          }
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "capabilities": [
+        {
+          "name": "Validate VAT number",
+          "slug": "finance.vat.validation",
+          "domain": "finance",
+          "inputs": [
+            "vat_number"
+          ],
+          "missing": [],
+          "outputs": [
+            "is_valid",
+            "country_code",
+            "vat_number"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Checks the validity of a VAT number according to EU standards.",
+          "source_hint": null
+        },
+        {
+          "name": "Retrieve EU VAT legislation",
+          "slug": "legal.taxation.eu.vat.legislation",
+          "domain": "legal",
+          "inputs": [],
+          "missing": [],
+          "outputs": [
+            "legislation_text",
+            "effective_date",
+            "jurisdiction",
+            "reference_number"
+          ],
+          "confidence": 0.8,
+          "subject_id": null,
+          "description": "Fetches relevant EU VAT regulations and directives applicable to member states.",
+          "source_hint": "eu"
+        },
+        {
+          "name": "Retrieve CBS sector benchmarks",
+          "slug": "research.industry.benchmarking.cbs.sector.performance",
+          "domain": "research",
+          "inputs": [
+            "sector_name",
+            "country_code"
+          ],
+          "missing": [
+            "country_code"
+          ],
+          "outputs": [
+            "average_revenue",
+            "profit_margin",
+            "employment_rate",
+            "growth_rate",
+            "benchmark_year"
+          ],
+          "confidence": 0.7,
+          "subject_id": null,
+          "description": "Provides performance benchmarks for a specific industry sector from Statistics Netherlands (CBS).",
+          "source_hint": "cbs"
+        }
+      ]
+    },
+    "catalog_version": "f4bd094b21420a0bb45db70bce27cd36cf7da860231c47e5a2070e875a3b8851",
+    "selected_capabilities": [
+      "company.sirenic-tva-verifier-numero",
+      "eu_law.celex.metadata",
+      "eu_law.sparql.select",
+      "government.bwb.search",
+      "statistics.cbs-bankruptcy-sectors",
+      "statistics.cbs-sector-balance",
+      "statistics.cbs-sector-income",
+      "vat.eu.check",
+      "vat.eu.validate"
+    ],
+    "apiosk_sources_searched": 37
+  },
+  "catalog": {
+    "services": [
+      {
+        "id": "6dfc2000-0000-4000-8000-000000000005",
+        "name": "CBS Statistics",
+        "path": "/odata/v1/CBS/81156ned/Observations",
+        "method": "GET",
+        "api_slug": "cbs-statline",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": true,
+              "fact_type": "cbs.input.odata_skip",
+              "subject_role": "subject"
+            },
+            {
+              "optional": true,
+              "fact_type": "cbs.input.odata_filter",
+              "subject_role": "subject"
+            },
+            {
+              "optional": true,
+              "fact_type": "cbs.input.odata_orderby",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "cbs.input.odata_skip": {
+              "in": "query",
+              "name": "$skip"
+            },
+            "cbs.input.odata_filter": {
+              "in": "query",
+              "name": "$filter"
+            },
+            "cbs.input.odata_orderby": {
+              "in": "query",
+              "name": "$orderby"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "cbs.observations_81156ned": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "statistics.cbs-sector-income"
+        },
+        "pagination": {},
+        "source_url": "https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data",
+        "unverified": false,
+        "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis.",
+        "endpoint_id": "32313c27-c87b-4e17-b301-f0037357b40e",
+        "list_atomic": 47259,
+        "fixed_params": {
+          "$top": 100,
+          "$count": true
+        },
+        "jurisdiction": null,
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "value": [
+            {
+              "Id": 139559,
+              "Value": 263.3,
+              "Measure": "2021320_1",
+              "Perioden": "2024JJ00",
+              "StringValue": null,
+              "ValueAttribute": "None",
+              "BedrijfstakkenBranchesSBI2008": "395000"
+            },
+            {
+              "Id": 139563,
+              "Value": 71307,
+              "Measure": "M001588_2",
+              "Perioden": "2024JJ00",
+              "StringValue": null,
+              "ValueAttribute": "None",
+              "BedrijfstakkenBranchesSBI2008": "395000"
+            },
+            {
+              "Id": 139564,
+              "Value": 66339,
+              "Measure": "M002061",
+              "Perioden": "2024JJ00",
+              "StringValue": null,
+              "ValueAttribute": "None",
+              "BedrijfstakkenBranchesSBI2008": "395000"
+            },
+            {
+              "Id": 139566,
+              "Value": 65013,
+              "Measure": "M002063_2",
+              "Perioden": "2024JJ00",
+              "StringValue": null,
+              "ValueAttribute": "None",
+              "BedrijfstakkenBranchesSBI2008": "395000"
+            }
+          ],
+          "@odata.context": "https://datasets.cbs.nl/odata/v1/CBS/81156ned/$metadata#Observations"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 3600
+      },
+      {
+        "id": "cb28efa7-a0da-4743-986b-016c5e415400",
+        "name": "VIES EU VAT Validation",
+        "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+        "method": "GET",
+        "api_slug": "vies",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vat.eu.country_code",
+              "subject_role": "subject"
+            },
+            {
+              "optional": false,
+              "fact_type": "vat.eu.number",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vat.eu.number": {
+              "in": "path",
+              "name": "nr"
+            },
+            "vat.eu.country_code": {
+              "in": "path",
+              "name": "cc"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vat.eu.validate.result": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vat.eu.validate"
+        },
+        "pagination": {},
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/",
+        "unverified": false,
+        "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+        "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+        "list_atomic": 85066,
+        "fixed_params": {},
+        "jurisdiction": "EU",
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "data": {
+            "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+            "valid": true,
+            "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+            "upstream": {
+              "name": "OPENJONGERENVERENIGING DE KOORNBEURS",
+              "address": "\nVOLDERSGRACHT 00001\n2611ET DELFT\n",
+              "isValid": true,
+              "userError": "VALID",
+              "vatNumber": "004495445B01",
+              "requestDate": "2026-09-14T16:48:04.183Z",
+              "viesApproximate": {
+                "city": "---",
+                "name": "---",
+                "street": "---",
+                "matchCity": 3,
+                "matchName": 3,
+                "postalCode": "---",
+                "companyType": "---",
+                "matchStreet": 3,
+                "matchPostalCode": 3,
+                "matchCompanyType": 3
+              },
+              "originalVatNumber": "004495445B01",
+              "requestIdentifier": ""
+            },
+            "vat_number": "004495445B01",
+            "country_code": "NL",
+            "request_date": "2026-09-14T16:48:04.183Z"
+          },
+          "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+          "coverage": {
+            "scope": "One bounded upstream response per purchased call",
+            "complete": false
+          },
+          "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 60
+      },
+      {
+        "id": "f2d72b35-1e46-4541-a05e-45fce79720b3",
+        "name": "EUR-Lex Cellar",
+        "path": "/resource/celex/{celex}",
+        "method": "GET",
+        "api_slug": "eurlex-cellar",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "source.eurlex_cellar.celex",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "source.eurlex_cellar.celex": {
+              "in": "path",
+              "name": "celex"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "eu_law.celex.metadata.result": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "eu_law.celex.metadata"
+        },
+        "pagination": {},
+        "source_url": "https://op.europa.eu/en/web/cellar",
+        "unverified": false,
+        "description": "Retrieve a CELEX publication metadata notice; Query EU publication metadata using bounded SPARQL SELECT or retrieve a CELEX metadata notice. This is metadata, not the full legal text.",
+        "endpoint_id": "76f52e26-6ad1-41bd-8685-10571d69cb00",
+        "list_atomic": 85066,
+        "fixed_params": {},
+        "jurisdiction": "EU",
+        "listing_type": "api",
+        "preconditions": {},
+        "sample_payload": {
+          "data": {
+            "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679",
+            "celex": "32016R0679",
+            "metadata": {
+              "URI": [
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1"
+                  ],
+                  "TYPE": [
+                    "cellar"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1"
+                  ]
+                }
+              ],
+              "SAMEAS": [
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/eli/reg/2016/679/oj"
+                  ],
+                  "TYPE": [
+                    "eli"
+                  ],
+                  "IDENTIFIER": [
+                    "reg:2016:679:oj"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/celex/32016R0679"
+                  ],
+                  "TYPE": [
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "32016R0679"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001"
+                  ],
+                  "TYPE": [
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "JOL_2016_119_R_0001"
+                  ]
+                }
+              ],
+              "WORK_ID_DOCUMENT": [
+                {
+                  "WORK_ID_DOCUMENT": [
+                    "immc:PE 17 2016 INIT"
+                  ]
+                },
+                {
+                  "WORK_ID_DOCUMENT": [
+                    "oj:JOL_2016_119_R_0001"
+                  ]
+                },
+                {
+                  "WORK_ID_DOCUMENT": [
+                    "celex:32016R0679"
+                  ]
+                }
+              ],
+              "WORK_DATE_DOCUMENT": [
+                {
+                  "DAY": [
+                    "27"
+                  ],
+                  "YEAR": [
+                    "2016"
+                  ],
+                  "MONTH": [
+                    "04"
+                  ],
+                  "COMMENT_ON_DATE": [
+                    "{DATSIG|http://publications.europa.eu/resource/authority/fd_365/DATSIG}"
+                  ],
+                  "WORK_DATE_DOCUMENT": [
+                    "2016-04-27"
+                  ]
+                }
+              ],
+              "RESOURCE_LEGAL_YEAR": [
+                {
+                  "RESOURCE_LEGAL_YEAR": [
+                    "2016"
+                  ]
+                }
+              ],
+              "WORK_HAS_EXPRESSION": [
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0012",
+                    "http://publications.europa.eu/resource/celex/32016R0679.HUN",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.HUN",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.HUN"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "oj",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0012",
+                    "32016R0679.HUN",
+                    "JOL_2016_119_R_0001.HUN",
+                    "OJ.L_.2016.119.01.0001.01.HUN"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0005",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ELL",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ELL",
+                    "http://publications.europa.eu/resource/celex/32016R0679.ELL"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0005",
+                    "JOL_2016_119_R_0001.ELL",
+                    "OJ.L_.2016.119.01.0001.01.ELL",
+                    "32016R0679.ELL"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0013",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ITA",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ITA",
+                    "http://publications.europa.eu/resource/celex/32016R0679.ITA"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0013",
+                    "JOL_2016_119_R_0001.ITA",
+                    "OJ.L_.2016.119.01.0001.01.ITA",
+                    "32016R0679.ITA"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0022",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SLV",
+                    "http://publications.europa.eu/resource/celex/32016R0679.SLV",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SLV"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "celex",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0022",
+                    "OJ.L_.2016.119.01.0001.01.SLV",
+                    "32016R0679.SLV",
+                    "JOL_2016_119_R_0001.SLV"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0002",
+                    "http://publications.europa.eu/resource/celex/32016R0679.CES",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.CES",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.CES"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "oj",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0002",
+                    "32016R0679.CES",
+                    "JOL_2016_119_R_0001.CES",
+                    "OJ.L_.2016.119.01.0001.01.CES"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0021",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SLK",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SLK",
+                    "http://publications.europa.eu/resource/celex/32016R0679.SLK"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0021",
+                    "JOL_2016_119_R_0001.SLK",
+                    "OJ.L_.2016.119.01.0001.01.SLK",
+                    "32016R0679.SLK"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0016",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.MLT",
+                    "http://publications.europa.eu/resource/celex/32016R0679.MLT",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.MLT"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "celex",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0016",
+                    "JOL_2016_119_R_0001.MLT",
+                    "32016R0679.MLT",
+                    "OJ.L_.2016.119.01.0001.01.MLT"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0004",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.DEU",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.DEU",
+                    "http://publications.europa.eu/resource/celex/32016R0679.DEU"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0004",
+                    "JOL_2016_119_R_0001.DEU",
+                    "OJ.L_.2016.119.01.0001.01.DEU",
+                    "32016R0679.DEU"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0003",
+                    "http://publications.europa.eu/resource/celex/32016R0679.DAN",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.DAN",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.DAN"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "oj",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0003",
+                    "32016R0679.DAN",
+                    "JOL_2016_119_R_0001.DAN",
+                    "OJ.L_.2016.119.01.0001.01.DAN"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0010",
+                    "http://publications.europa.eu/resource/celex/32016R0679.GLE",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.GLE",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.GLE"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "oj",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0010",
+                    "32016R0679.GLE",
+                    "JOL_2016_119_R_0001.GLE",
+                    "OJ.L_.2016.119.01.0001.01.GLE"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0017",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.NLD",
+                    "http://publications.europa.eu/resource/celex/32016R0679.NLD",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.NLD"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "celex",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0017",
+                    "JOL_2016_119_R_0001.NLD",
+                    "32016R0679.NLD",
+                    "OJ.L_.2016.119.01.0001.01.NLD"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0014",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.LAV",
+                    "http://publications.europa.eu/resource/celex/32016R0679.LAV",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.LAV"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "celex",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0014",
+                    "JOL_2016_119_R_0001.LAV",
+                    "32016R0679.LAV",
+                    "OJ.L_.2016.119.01.0001.01.LAV"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0006",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.ENG",
+                    "http://publications.europa.eu/resource/celex/32016R0679.ENG",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.ENG",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.RNG"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "celex",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0006",
+                    "OJ.L_.2016.119.01.0001.01.ENG",
+                    "32016R0679.ENG",
+                    "JOL_2016_119_R_0001.ENG",
+                    "JOL_2016_119_R_0001.RNG"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0024",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SWE",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SWE",
+                    "http://publications.europa.eu/resource/celex/32016R0679.SWE"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0024",
+                    "JOL_2016_119_R_0001.SWE",
+                    "OJ.L_.2016.119.01.0001.01.SWE",
+                    "32016R0679.SWE"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0015",
+                    "http://publications.europa.eu/resource/celex/32016R0679.LIT",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.LIT",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.LIT"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "oj",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0015",
+                    "32016R0679.LIT",
+                    "JOL_2016_119_R_0001.LIT",
+                    "OJ.L_.2016.119.01.0001.01.LIT"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0020",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.RON",
+                    "http://publications.europa.eu/resource/celex/32016R0679.RON",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.RON"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "celex",
+                    "uriserv"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0020",
+                    "JOL_2016_119_R_0001.RON",
+                    "32016R0679.RON",
+                    "OJ.L_.2016.119.01.0001.01.RON"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0001",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.BUL",
+                    "http://publications.europa.eu/resource/celex/32016R0679.BUL",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.BUL"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "celex",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0001",
+                    "OJ.L_.2016.119.01.0001.01.BUL",
+                    "32016R0679.BUL",
+                    "JOL_2016_119_R_0001.BUL"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0011",
+                    "http://publications.europa.eu/resource/celex/32016R0679.HRV",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.HRV",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.HRV"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "uriserv",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0011",
+                    "32016R0679.HRV",
+                    "OJ.L_.2016.119.01.0001.01.HRV",
+                    "JOL_2016_119_R_0001.HRV"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0007",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.EST",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.EST",
+                    "http://publications.europa.eu/resource/celex/32016R0679.EST"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "oj",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0007",
+                    "OJ.L_.2016.119.01.0001.01.EST",
+                    "JOL_2016_119_R_0001.EST",
+                    "32016R0679.EST"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0018",
+                    "http://publications.europa.eu/resource/celex/32016R0679.POL",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.POL",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.POL"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "celex",
+                    "uriserv",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0018",
+                    "32016R0679.POL",
+                    "OJ.L_.2016.119.01.0001.01.POL",
+                    "JOL_2016_119_R_0001.POL"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0019",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.POR",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.POR",
+                    "http://publications.europa.eu/resource/celex/32016R0679.POR"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0019",
+                    "JOL_2016_119_R_0001.POR",
+                    "OJ.L_.2016.119.01.0001.01.POR",
+                    "32016R0679.POR"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0023",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.SPA",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.SPA",
+                    "http://publications.europa.eu/resource/celex/32016R0679.SPA"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "oj",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0023",
+                    "OJ.L_.2016.119.01.0001.01.SPA",
+                    "JOL_2016_119_R_0001.SPA",
+                    "32016R0679.SPA"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0008",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.FIN",
+                    "http://publications.europa.eu/resource/celex/32016R0679.FIN",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.FIN"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "uriserv",
+                    "celex",
+                    "oj"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0008",
+                    "OJ.L_.2016.119.01.0001.01.FIN",
+                    "32016R0679.FIN",
+                    "JOL_2016_119_R_0001.FIN"
+                  ]
+                },
+                {
+                  "URI": [
+                    "http://publications.europa.eu/resource/cellar/3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0009",
+                    "http://publications.europa.eu/resource/oj/JOL_2016_119_R_0001.FRA",
+                    "http://publications.europa.eu/resource/uriserv/OJ.L_.2016.119.01.0001.01.FRA",
+                    "http://publications.europa.eu/resource/celex/32016R0679.FRA"
+                  ],
+                  "TYPE": [
+                    "cellar",
+                    "oj",
+                    "uriserv",
+                    "celex"
+                  ],
+                  "IDENTIFIER": [
+                    "3e485e15-11bd-11e6-ba9a-01aa75ed71a1.0009",
+                    "JOL_2016_119_R_0001.FRA",
+                    "OJ.L_.2016.119.01.0001.01.FRA",
+                    "32016R0679.FRA"
+                  ]
+                }
+              ],
+              "RESOURCE_LEGAL_ID_CELEX": [
+                {
+                  "RESOURCE_LEGAL_ID_CELEX": [
+                    "32016R0679"
+                  ]
+                }
+              ],
+              "RESOURCE_LEGAL_IN-FORCE": [
+                {
+                  "RESOURCE_LEGAL_IN-FORCE": [
+                    "true"
+                  ]
+                }
+              ],
+              "RESOURCE_LEGAL_DATE_SIGNATURE": [
+                {
+                  "DAY": [
+                    "27"
+                  ],
+                  "YEAR": [
+                    "2016"
+                  ],
+                  "MONTH": [
+                    "04"
+                  ],
+                  "RESOURCE_LEGAL_DATE_SIGNATURE": [
+                    "2016-04-27"
+                  ]
+                }
+              ]
+            }
+          },
+          "notice": "Cellar metadata notice, not the complete legal text or a legal opinion. Check document version and language.",
+          "coverage": {
+            "scope": "One bounded upstream response per purchased call",
+            "complete": false
+          },
+          "source_url": "https://publications.europa.eu/resource/celex/32016R0679"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 300
+      }
+    ],
+    "vocabulary": [
+      {
+        "slug": "cbs.input.odata_filter",
+        "value_schema": {
+          "type": "string",
+          "description": "Explicit OData expression supplied by the user. Do not invent CBS dimension or measure identifiers."
+        }
+      },
+      {
+        "slug": "cbs.input.odata_orderby",
+        "value_schema": {
+          "type": "string",
+          "description": "Sort expression, e.g. Modified desc."
+        }
+      },
+      {
+        "slug": "cbs.input.odata_skip",
+        "value_schema": {
+          "type": "integer",
+          "description": "Rows to skip, for paging."
+        }
+      },
+      {
+        "slug": "cbs.observations_81156ned",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "CBS response page. Preserve counts, periods and measure codes; a bounded page is not a complete dataset. Resolve codes and units before analysis."
+        }
+      },
+      {
+        "slug": "eu_law.celex.metadata.result",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "data",
+            "source_url",
+            "notice",
+            "coverage"
+          ],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": [
+                "celex",
+                "metadata",
+                "url"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "celex": {
+                  "type": "string"
+                },
+                "metadata": {
+                  "type": "object"
+                }
+              }
+            },
+            "notice": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Source limitations"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "description": "Scope of the returned response"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string",
+              "maxLength": 20000,
+              "minLength": 1,
+              "description": "Exact upstream request URL"
+            }
+          },
+          "description": "Retrieve a CELEX publication metadata notice"
+        }
+      },
+      {
+        "slug": "source.eurlex_cellar.celex",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9()-]{6,40}$",
+          "maxLength": 40,
+          "minLength": 1,
+          "description": "Exact CELEX identifier"
+        }
+      },
+      {
+        "slug": "vat.eu.country_code",
+        "value_schema": {
+          "enum": [
+            "AT",
+            "BE",
+            "BG",
+            "CY",
+            "CZ",
+            "DE",
+            "DK",
+            "EE",
+            "EL",
+            "ES",
+            "FI",
+            "FR",
+            "HR",
+            "HU",
+            "IE",
+            "IT",
+            "LT",
+            "LU",
+            "LV",
+            "MT",
+            "NL",
+            "PL",
+            "PT",
+            "RO",
+            "SE",
+            "SI",
+            "SK",
+            "XI"
+          ],
+          "type": "string",
+          "maxLength": 2,
+          "minLength": 1,
+          "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+        }
+      },
+      {
+        "slug": "vat.eu.number",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{1,14}$",
+          "maxLength": 14,
+          "minLength": 1,
+          "description": "VAT number without country prefix or punctuation."
+        }
+      },
+      {
+        "slug": "vat.eu.validate.result",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "data",
+            "source_url",
+            "notice",
+            "coverage"
+          ],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": [
+                "country_code",
+                "vat_number",
+                "valid",
+                "request_date",
+                "name",
+                "address",
+                "upstream"
+              ],
+              "properties": {
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "valid": {
+                  "type": "boolean"
+                },
+                "address": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "upstream": {
+                  "type": "object"
+                },
+                "vat_number": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9]{1,14}$",
+                  "maxLength": 14,
+                  "minLength": 1,
+                  "description": "VAT number without country prefix or punctuation."
+                },
+                "country_code": {
+                  "enum": [
+                    "AT",
+                    "BE",
+                    "BG",
+                    "CY",
+                    "CZ",
+                    "DE",
+                    "DK",
+                    "EE",
+                    "EL",
+                    "ES",
+                    "FI",
+                    "FR",
+                    "HR",
+                    "HU",
+                    "IE",
+                    "IT",
+                    "LT",
+                    "LU",
+                    "LV",
+                    "MT",
+                    "NL",
+                    "PL",
+                    "PT",
+                    "RO",
+                    "SE",
+                    "SI",
+                    "SK",
+                    "XI"
+                  ],
+                  "type": "string",
+                  "maxLength": 2,
+                  "minLength": 1,
+                  "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+                },
+                "request_date": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "description": "Time reported by VIES"
+                }
+              }
+            },
+            "notice": {
+              "type": "string",
+              "maxLength": 2000,
+              "minLength": 1,
+              "description": "Source limitations"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "description": "Scope of the returned response"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string",
+              "maxLength": 20000,
+              "minLength": 1,
+              "description": "Exact upstream request URL"
+            }
+          },
+          "description": "Validate a VAT number using VIES"
+        }
+      }
+    ],
+    "known_sources": []
+  }
+}

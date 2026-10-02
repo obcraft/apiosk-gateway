@@ -20,6 +20,7 @@ mod capability_binding;
 use capability_binding::Bindings;
 mod explicit_request;
 mod plan_coverage;
+mod constraint_policy;
 pub mod conversation_reply;
 
 /// Discovery and planning preserve up to sixteen retrievals. The resolver
@@ -124,6 +125,7 @@ impl Intent {
     /// and every selected endpoint variant agree. Defaults are never user facts.
     fn bind_constraint_inputs(&mut self, question: &str, catalog: &Catalog) -> anyhow::Result<()> {
         for goal in &mut self.goals {
+            constraint_policy::validate(question, goal, catalog)?;
             let subject = self.subjects.get_mut(goal.subject)
                 .ok_or_else(|| anyhow::anyhow!("invalid subject index"))?;
             let fields: Vec<_> = goal.constraints.keys()
@@ -134,7 +136,7 @@ impl Intent {
                 let variants: Vec<_> = catalog.services.iter().filter(|service| {
                     service.contract.capability_slug == goal.capability
                         && goal.constraints.get("source").and_then(Value::as_str)
-                            .is_none_or(|source| service.api_slug == source)
+                            .is_none_or(|source| constraint_policy::source_matches(catalog, service, source))
                         && plan_coverage::endpoint_matches(goal.constraints.get("endpoint_id"), Some(&service.endpoint_id.to_string()))
                 }).collect();
                 anyhow::ensure!(!variants.is_empty() && variants.iter().all(|service| service.contract.input_map.contains_key(&field)),
@@ -190,6 +192,7 @@ impl Intent {
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
+            constraint_policy::validate(question, g, catalog)?;
             for (kind, value) in &g.constraints {
                 if catalog.vocabulary.contains_key(kind) {
                     validate_input_literal(question, kind, value, catalog)?;
@@ -336,6 +339,9 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "input belongs to a different parsed subject" => "wrong_subject_input",
         "source inputs must be subject values" => "misplaced_source_input",
         "source input is not declared for the selected operation" => "unmatched_source_input",
+        "unsupported retrieval constraint" => "unsupported_constraint",
+        "ungrounded retrieval constraint" => "ungrounded_constraint",
+        "invalid retrieval constraint" => "invalid_constraint",
         "unexpected intent for conversational reply" => "conversation_requires_null_intent",
         explicit_request::DECLINED => "declined_explicit_request",
         _ => "invalid_intent_schema",
@@ -349,7 +355,8 @@ struct RequirementRejection(&'static str);
 fn requirement_rejection(reason: &str) -> bool {
     matches!(reason, "duplicate_goal" | "missing_subject_goal" | "requirement_goal_count"
         | "missing_capability_goal" | "unmatched_capabilities" | "undiscovered_operation"
-        | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input")
+        | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input"
+        | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input")
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
@@ -1857,6 +1864,7 @@ mod tests {
         assert_eq!(pinned.subjects[0].values["cbs.input.odata_filter"],filter);
         catalog.vocabulary.get_mut("cbs.input.odata_filter").unwrap().value_schema["default"] = json!(filter);
         let mut invented = intent;
+        invented.goals[0].constraints.remove("coverage");
         assert_eq!(invented.bind_constraint_inputs(fixture["question"].as_str().unwrap(),&catalog).unwrap_err().to_string(),"parser invented a value", "schema defaults do not authorize planner facts");
     }
 
@@ -2236,6 +2244,29 @@ mod tests {
         let reply: ChatReply = serde_json::from_str(raw)?;
         reply.validate()?;
         Ok(reply)
+    }
+
+    #[tokio::test]
+    async fn raw_api_alias_cannot_bypass_input_provenance_or_reach_an_invented_review() {
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/profession-case09-raw-constraints.json")).unwrap();
+        let catalog = Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
+        let intake: crate::capability_intake::Intake = serde_json::from_value(fixture["intake"].clone()).unwrap();
+        let mut original: Intent = serde_json::from_value(fixture["intent"].clone()).unwrap();
+        for subject in &mut original.subjects {subject.entity_ref=None;}
+        assert_eq!(original.validate(fixture["question"].as_str().unwrap(),&Task::default(),&catalog).unwrap_err().to_string(),"unsupported retrieval constraint");
+        let mut intent=fixture["intent"].clone();
+        intent["subjects"] = json!(intent["subjects"].as_array().unwrap().iter().map(|subject|{
+            let values = subject["values"].as_object().unwrap().iter().map(|(key,value)|(key.clone(),json!({"literal":value}))).collect::<serde_json::Map<_,_>>();
+            json!({"subject_ref":intake.parsed_request.subjects[0].id,"values":values})
+        }).collect::<Vec<_>>());
+        let envelope=json!({"choices":[{"finish_reason":"stop","message":{"content":json!({"message":"I will show the price.","discover":true,"intent":intent,"decline_reason":"none"}).to_string()}}]});
+        let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
+        let reply=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
+        assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
+        assert!(reply.message.contains("geen uitvoerbaar plan"));
+        assert!(!reply.message.contains("2023") && !reply.message.contains("5210"));
+        assert_eq!(calls.load(Ordering::Relaxed),2,"no free-form planning review is called after refusal");
+        server.abort();
     }
 
     #[tokio::test]

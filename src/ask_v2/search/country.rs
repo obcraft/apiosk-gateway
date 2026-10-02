@@ -673,7 +673,7 @@ pub(super) fn listing(text: &str) -> Coverage {
 }
 
 /// The countries a place name names, one word or two at a time.
-fn named_countries(text: &str) -> BTreeSet<&'static str> {
+pub(crate) fn named_countries(text: &str) -> BTreeSet<&'static str> {
     let folded = crate::english::fold(text);
     let words: Vec<&str> = folded
         .split(|c: char| !c.is_alphanumeric())

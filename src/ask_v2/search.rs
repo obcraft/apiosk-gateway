@@ -15,6 +15,7 @@ use std::{
 #[cfg(test)]
 mod calibration;
 mod country;
+pub(crate) use country::named_countries;
 mod relevance;
 
 const FINANCIAL: u16 = 1;
