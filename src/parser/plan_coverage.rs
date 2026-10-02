@@ -281,36 +281,7 @@ fn candidate_matches(goal: &super::Goal, candidate: &crate::capability_intake::C
 /// Answer presentation is not another provider purchase. Keep this narrow:
 /// subject-specific analysis and comparisons can require external data.
 pub(super) fn answer_instruction(cap: &crate::capability_intake::Capability) -> bool {
-    if cap.subject_id.is_some() {
-        return false;
-    }
-    let outputs: BTreeSet<_> = cap.outputs.iter().map(String::as_str).collect();
-    // Formatting citations for sources already used in the answer does not
-    // retrieve another source. Citation counts, named works and requested
-    // citation providers remain ordinary retrieval requirements.
-    if cap.source_hint.is_none()
-        && matches!(cap.domain.as_str(), "general" | "research")
-        && !outputs.is_empty()
-        && outputs.iter().all(|value| matches!(*value, "citation" | "citations" | "source_citation" | "source_citations" | "bibliography"))
-        && cap.inputs.iter().all(|value| matches!(value.as_str(), "data_source" | "reference_type"))
-    {
-        return true;
-    }
-    if !cap.inputs.is_empty() { return false; }
-    if matches!(cap.slug.as_str(), "general.chat" | "general.conversation") {
-        return true;
-    }
-    cap.source_hint.is_none()
-        && matches!(cap.domain.as_str(), "general" | "research")
-        && outputs.contains("official_sources")
-        && outputs.contains("ai_analysis")
-        && outputs.iter().all(|value| {
-            matches!(
-                *value,
-                "official_sources" | "ai_analysis" | "differences" | "comparison"
-                    | "differences_in_reliability" | "data_origin"
-            )
-        })
+    crate::capability_intake::answer_instruction(cap)
 }
 
 pub(super) fn retrievals_matched(intake: &Intake) -> bool {
@@ -637,6 +608,15 @@ mod tests {
             .any(|item| item.contains("official data")));
         intake.parsed_request.capabilities[1].outputs = vec!["official_sources".into(),"ai_analysis".into(),"differences_in_reliability".into(),"data_origin".into()];
         assert!(answer_instruction(&intake.parsed_request.capabilities[1]), "saved case5 distinctions are answer instructions");
+        // Actual saved supplier-screening parse: provenance concerns the same
+        // company, but asks for no additional external facts.
+        let distinction = &mut intake.parsed_request.capabilities[1];
+        distinction.slug = "research.analysis.comparison".into();
+        distinction.subject_id = Some("s1".into());
+        distinction.inputs = vec!["subject_id".into(), "analysis_sources".into()];
+        distinction.outputs = vec!["official_sources".into(),"ai_generated_analysis".into(),"source_confidence".into(),"discrepancies".into()];
+        assert!(answer_instruction(distinction));
+        assert!(retrievals_matched(&intake));
         intake.parsed_request.capabilities[1]
             .outputs
             .push("external_market_statistics".into());

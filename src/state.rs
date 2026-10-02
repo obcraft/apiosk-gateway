@@ -28,6 +28,18 @@ pub struct Envelope {
 }
 pub struct Signer(Vec<u8>);
 impl Signer {
+    pub(crate) fn search_signature(&self, payload: &[u8]) -> String {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(b"ask-search-snapshot-v1\0");
+        mac.update(payload);
+        hex::encode(mac.finalize().into_bytes())
+    }
+    pub(crate) fn verify_search(&self, payload: &[u8], signature: &str) -> anyhow::Result<()> {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
+        mac.update(b"ask-search-snapshot-v1\0");
+        mac.update(payload);
+        mac.verify_slice(&hex::decode(signature)?).map_err(|_| anyhow::anyhow!("invalid search snapshot signature"))
+    }
     pub fn events_signature(&self, owner: Uuid, task: Uuid, connection: Option<Uuid>, expires: i64) -> String {
         let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).unwrap();
         mac.update(&serde_json::to_vec(&("task-events-v1", owner, task, connection, expires)).unwrap());

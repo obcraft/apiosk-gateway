@@ -838,6 +838,17 @@ pub fn register(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
     doc.push(Break::new(1.));
     heading(doc, "Source links", 14);
     table_links(doc, &urls)?;
+    let mut notices = BTreeSet::new();
+    for source in sources(document)? {
+        let notice = &source["document"]["source"]["usage_notice"];
+        if let Some(message) = notice["text"].as_str() {
+            let url = notice["url"].as_str().unwrap_or("");
+            if notices.insert((message, url)) {
+                small(doc, message);
+                if !url.is_empty() { small(doc, url); }
+            }
+        }
+    }
     heading(doc, "Evidence bundle", 14);
     text(doc,"The accompanying ZIP contains the original source responses, map images, available source PDFs and a manifest with retrieval times, links and file hashes. Unused search hits remain in that bundle for auditability; they are not treated as findings about the company.");
     small(doc,"Provider logos identify the origin of information. They do not imply endorsement or certification of this report.");

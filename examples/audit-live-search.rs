@@ -11,7 +11,11 @@ fn main() -> anyhow::Result<()> {
     let output = PathBuf::from(args.next().expect("output JSON"));
     let catalog = Catalog::build(snapshot);
     let mut cases = BTreeMap::<u64, Value>::new();
-    for file in ["cases01-04-diagnostics.json", "cases05-09-diagnostics.json", "cases10-11-diagnostics.json", "case13-diagnostics.json", "cases12-16-diagnostics.json", "cases17-20-diagnostics.json"] {
+    let mut files: Vec<String> = args.collect();
+    if files.is_empty() {
+        files = ["cases01-04-diagnostics.json", "cases05-09-diagnostics.json", "cases10-11-diagnostics.json", "case13-diagnostics.json", "cases12-16-diagnostics.json", "cases17-20-diagnostics.json"].into_iter().map(str::to_owned).collect();
+    }
+    for file in files {
         let batch: Value = serde_json::from_slice(&std::fs::read(dir.join(file))?)?;
         for row in batch["chats"].as_array().into_iter().flatten() {
             let case = row["case"].as_u64().expect("case number");

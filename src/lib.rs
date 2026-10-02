@@ -37,6 +37,7 @@ mod server_events;
 pub mod sources;
 pub mod eu_capabilities;
 pub mod source_preview;
+mod search_snapshot;
 pub mod state;
 pub mod store;
 pub mod supplier_check;

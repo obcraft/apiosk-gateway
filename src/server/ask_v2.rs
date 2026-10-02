@@ -33,6 +33,8 @@ pub(super) struct ResearchRequest {
     request_id: Uuid,
     question: String,
     parsed_request: ParsedRequest,
+    #[serde(default)]
+    search_id: Option<String>,
 }
 
 impl ResearchRequest {
@@ -52,19 +54,35 @@ impl ResearchRequest {
 }
 
 /// The App plans from the extraction it already displayed. The gateway
-/// revalidates literals and searches its current catalog, but never asks a
-/// second extraction to redefine the request. Existing approval owns payment.
+/// revalidates literals and the catalog version against its signed search,
+/// without redefining the request or replacing displayed candidate sources.
 pub(super) async fn research(
     State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<ResearchRequest>,
 ) -> Response {
     let person = match app_person(&state, &headers).await { Ok(p) => p, Err(r) => return r };
-    let parsed = match request.normalized() {
-        Ok(parsed) => parsed,
+    match request.normalized() {
+        Ok(_) => {},
         Err(_) => return failure(StatusCode::BAD_REQUEST, "invalid_research_request", "The saved search does not match this question. Search the question again before planning."),
+    }
+    let refresh = || failure(StatusCode::CONFLICT, "search_refresh_required", "Refresh the source search before planning. The question and existing tasks are kept.");
+    let Some(search_id) = request.search_id.as_deref() else { return refresh(); };
+    let snapshot = match crate::search_snapshot::Snapshot::open(&state.engine.signer, &person, &request.parsed_request, search_id) {
+        Ok(snapshot) => snapshot, Err(_) => return refresh(),
     };
     let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
-    let request = crate::protocol::DiscoverRequest { request_id:request.request_id,question:request.question,state:None,context_delta:Default::default() };
-    match state.engine.discover_parsed(&person, request, parsed).await {
+    let discover = crate::protocol::DiscoverRequest { request_id:request.request_id,question:request.question,state:None,context_delta:Default::default() };
+    match state.engine.existing_research(&person, &discover, &request.parsed_request, search_id).await {
+        Ok(Some(response)) => return Json(response).into_response(),
+        Ok(None) => {},
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "research_unavailable", "The existing request could not be recovered. Try the same request again."),
+    }
+    let catalog = match state.engine.catalog.get().await {
+        Ok(catalog) => catalog,
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "The source catalog is temporarily unavailable. Try the same request again."),
+    };
+    if !snapshot.current(&catalog.version) { return refresh(); }
+    let intake = snapshot.intake(request.parsed_request);
+    match state.engine.discover_searched(&person, discover, intake, catalog, search_id).await {
         Ok(response) => Json(response).into_response(),
         Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "research_unavailable", "The complete request could not be prepared. Your question is kept; try again."),
     }
@@ -130,7 +148,7 @@ pub(crate) fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &c
     json!({
         "api_id":service.endpoint_id,"endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
         "source":{"slug":service.api_slug,"name":source.map(|s| s.name.as_str()).unwrap_or(&service.api_slug),
-            "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url},
+            "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url,"usage_notice":service.usage_notice_view()},
         "inputs":inputs,
         "outputs":service.contract.output_map.produces.keys().map(|field| json!({"field":field,"schema":catalog.vocabulary.get(field).map(|fact| &fact.value_schema)})).collect::<Vec<_>>(),
         "lookup":lookup.map(|(field, resolves)| json!({"field":field,"resolves":resolves,
@@ -317,7 +335,7 @@ pub(super) async fn reply(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Origin {
     Apiosk,
@@ -408,7 +426,15 @@ pub(super) async fn search(
         );
     }
     match search_catalog(&state, &request.parsed_request, request.origin).await {
-        Ok(value) => Json(value).into_response(),
+        Ok(mut value) => {
+            if person.is_person() && matches!(request.origin, Origin::Apiosk) {
+                match crate::search_snapshot::Snapshot::issue(&state.engine.signer, &person, &request.parsed_request, &value) {
+                    Ok(token) => value["search_id"] = json!(token),
+                    Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY, "search_too_large", "This search contains too much source detail. Narrow the request and search again."),
+                }
+            }
+            Json(value).into_response()
+        },
         Err(response) => response,
     }
 }
@@ -419,7 +445,7 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
     // request already in English, or any failure, is searched as it came.
     let english = state.engine.catalog.english().clone();
     let normalized = english.request(&parsed_request).await;
-    let (matches, count, version) = match origin {
+    let (mut matches, count, version) = match origin {
         Origin::Apiosk => {
             let catalog = match state.engine.catalog.get().await {
                 Ok(c) => c,
@@ -485,6 +511,16 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
             (matches, 0, String::new())
         }
     };
+    let mut occurrences = BTreeMap::<String, usize>::new();
+    for found in matches.as_array_mut().into_iter().flatten() {
+        let Some(slug) = found["slug"].as_str().map(str::to_owned) else { continue };
+        let occurrence = occurrences.entry(slug.clone()).or_default();
+        if parsed_request.capabilities.iter().filter(|cap| cap.slug == slug).nth(*occurrence)
+            .is_some_and(capability_intake::answer_instruction) {
+            found["answer_only"] = json!(true);
+        }
+        *occurrence += 1;
+    }
     let search_ms = started.elapsed().as_millis() as u64;
     tracing::info!(
         origin = if count > 0 { "apiosk" } else { "coinbase" },
@@ -645,7 +681,7 @@ mod tests {
     fn complete_research_preserves_exact_displayed_live_checks_and_stable_metadata() {
         let fixtures:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-live-planning.json")).unwrap();
         for row in fixtures["cases"].as_array().unwrap() {
-            let request=ResearchRequest {request_id:Uuid::new_v4(),question:row["question"].as_str().unwrap().into(),parsed_request:serde_json::from_value(row["displayed_parse"].clone()).unwrap()};
+            let request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:row["question"].as_str().unwrap().into(),parsed_request:serde_json::from_value(row["displayed_parse"].clone()).unwrap()};
             let normalized=request.normalized().unwrap_or_else(|error|panic!("case {}: {error}",row["case"]));
             assert_eq!(serde_json::to_value(&normalized.subjects).unwrap(),row["displayed_parse"]["subjects"]);
             assert_eq!(normalized.capabilities.len(),request.parsed_request.capabilities.len());
@@ -665,7 +701,7 @@ mod tests {
         raw["capabilities"]=json!((0..16).map(|index|{let mut cap=base.clone();cap["slug"]=json!(format!("location.check{index}"));cap}).collect::<Vec<_>>());
         let question=row["question"].as_str().unwrap();
         let parsed=capability_intake::normalize(&raw.to_string(),question,"fixture").unwrap();
-        let mut request=ResearchRequest {request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        let mut request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
         assert_eq!(request.normalized().unwrap().capabilities.len(),16);
         let mut extra=request.parsed_request.capabilities[0].clone();extra.slug="location.check16".into();
         request.parsed_request.capabilities.push(extra);
@@ -675,7 +711,7 @@ mod tests {
     fn complete_research_accepts_full_followup_context_and_refuses_invented_values() {
         let question="Previous request (context only): MONZO BANK LIMITED company number 09446231\n\nCurrent request: and the directors?";
         let parsed=capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"MONZO BANK LIMITED","type":"company","identifiers":{"company_number":"09446231"}}],"capabilities":[{"slug":"company.directors","name":"Company directors","description":"Retrieve company directors","domain":"company","inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
-        let mut request=ResearchRequest {request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        let mut request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
         assert_eq!(request.normalized().unwrap().subjects[0].identifiers["company_number"],"09446231");
         request.parsed_request.subjects[0].identifiers.insert("kvk_number".into(),"99998888".into());
         assert!(request.normalized().is_err(),"normalization cannot silently discard an invented supplied identifier");

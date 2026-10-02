@@ -1296,6 +1296,7 @@ fn result_metadata(result: &Value, task: &crate::state::Task, plan: Option<&Plan
         "operation": step.map(|s| s.service.contract.capability_slug.as_str()),
         "retrieved_at": source["retrieved_at"],
         "source_url": source["url"],
+        "usage_notice": source["usage_notice"],
         "links": links,
         "subject": result["subject"]["label"],
         "identifiers": identifiers,

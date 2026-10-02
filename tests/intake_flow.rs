@@ -414,7 +414,7 @@ async fn ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extract
     let person=Person::new();
     let question="Jaarrekening van Coolblue";
     let parsed=apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(),question,"displayed-fixture").unwrap();
-    let body=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed});
+    let mut body=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed});
     for bearer in ["invalid-fixture-bearer",ORGANISATION_KEY,"apk_access_local_fixture"] {
         let (status,_)=intake.send(bearer,"/v2/ask-v2/research",Some(body.clone())).await;
         assert!(matches!(status,StatusCode::UNAUTHORIZED|StatusCode::FORBIDDEN));
@@ -423,6 +423,20 @@ async fn ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extract
     let mut changed=body.clone();changed["question"]=json!("Jaarrekening van another company");
     let (status,_)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(changed)).await;
     assert_eq!(status,StatusCode::BAD_REQUEST);
+    assert_eq!(task_count(&intake,&person).await,0);
+    let (status,missing)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::CONFLICT);
+    assert_eq!(missing["errors"][0]["code"],"search_refresh_required");
+    let (status,search)=intake.send(&person.bearer,"/v2/ask-v2/search",Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    assert_eq!(status,StatusCode::OK,"{search}");
+    assert!(search["search_id"].is_string());
+    body["search_id"]=search["search_id"].clone();
+    let other=Person::new();
+    let (status,_)=intake.send(&other.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::CONFLICT,"a snapshot never changes its authenticated owner");
+    let mut changed_parse=body.clone();changed_parse["parsed_request"]["capabilities"][0]["outputs"]=json!(["other_output"]);
+    let (status,_)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(changed_parse)).await;
+    assert_eq!(status,StatusCode::CONFLICT,"a changed extraction needs a new search");
     assert_eq!(task_count(&intake,&person).await,0);
     let (status,quoted)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
     assert_eq!(status,StatusCode::OK,"{quoted}");
@@ -433,10 +447,13 @@ async fn ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extract
     assert_eq!(chats.len(),1);
     assert_eq!(chats[0]["parsed_request"],body["parsed_request"]);
     assert_eq!(chats[0]["question"],question);
+    let stored=&quoted["context_view"]["capability_intake"]["matches"];
+    let displayed:Vec<apiosk_gateway_v2::capability_intake::Match>=serde_json::from_value(search["matches"].clone()).unwrap();
+    assert_eq!(*stored,serde_json::to_value(displayed).unwrap(),"the exact displayed source set survives planning");
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
     assert_eq!(intake.model.count("parse"),0);
     assert_eq!(intake.model.count("search"),0);
-    let (status,retried)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    let (status,retried)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
     assert_eq!(status,StatusCode::OK);
     assert_eq!(retried,quoted,"stable request id recovers the same one-price proposal");
     assert_eq!(intake.model.chats().len(),1);
@@ -445,6 +462,31 @@ async fn ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extract
     let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM authorizations a JOIN tasks t ON t.id=a.task_id WHERE t.owner_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     let charges:i64=sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1").bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!((approvals,charges),(0,0));
+    // Simulate the same issued snapshot after its TTL without sleeping or
+    // calling a provider. Only the isolated fixture's saved receipt is changed.
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    let token=body["search_id"].as_str().unwrap();
+    let mut snapshot:Value=serde_json::from_slice(&URL_SAFE_NO_PAD.decode(token.split_once('.').unwrap().0).unwrap()).unwrap();
+    snapshot["expires"]=json!(chrono::Utc::now().timestamp()-1);
+    let payload=serde_json::to_vec(&snapshot).unwrap();
+    let mut mac=Hmac::<Sha256>::new_from_slice(&[7;32]).unwrap();
+    mac.update(b"ask-search-snapshot-v1\0");mac.update(&payload);
+    let expired=format!("{}.{}",URL_SAFE_NO_PAD.encode(&payload),hex::encode(mac.finalize().into_bytes()));
+    body["search_id"]=json!(expired);
+    let request=DiscoverRequest { request_id:serde_json::from_value(body["request_id"].clone()).unwrap(),question:question.into(),state:None,context_delta:Default::default() };
+    let hash=apiosk_gateway_v2::state::digest(&("ask-research",&request,&parsed,&expired));
+    sqlx::query("UPDATE requests SET payload_hash=$3 WHERE owner_id=$1 AND request_id=$2").bind(person.owner).bind(request.request_id).bind(hash).execute(&intake.pool).await.unwrap();
+    let (status,recovered)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::OK);
+    assert_eq!(recovered,quoted,"an expired snapshot still recovers an existing exact receipt");
+    body["request_id"]=json!(Uuid::new_v4());
+    let (status,expired_reply)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    assert_eq!(status,StatusCode::CONFLICT);
+    assert_eq!(expired_reply["errors"][0]["code"],"search_refresh_required");
+    assert_eq!(task_count(&intake,&person).await,1);
+    assert_eq!(intake.model.chats().len(),1);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

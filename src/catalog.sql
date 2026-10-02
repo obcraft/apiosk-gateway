@@ -53,6 +53,7 @@ SELECT jsonb_build_object(
  'services',(SELECT coalesce(jsonb_agg(s.obj ORDER BY s.id),'[]') FROM (
  SELECT c.id,jsonb_build_object(
   'id',c.id,'unverified',c.status<>'active','endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'description',left(cap.description,400),'source_url',coalesce(a.docs_url,a.website_url),
+  'usage_notice',a.listing_metadata->'usage_notice',
   'method',e.method,'path',e.path,'listing_type',coalesce(a.listing_type::text,'api'),
   'list_atomic',ceil(e.price*1000000)::bigint,
   'optional_outputs',(SELECT coalesce(jsonb_agg(p->>'fact_type' ORDER BY p->>'fact_type'),'[]') FROM jsonb_array_elements(c.produces) p WHERE p->>'optional'='true'),

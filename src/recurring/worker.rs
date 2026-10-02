@@ -248,6 +248,9 @@ async fn execute(
                 if let Some(data) = data {
                     let source = &sources[call.get::<i32, _>("ordinal") as usize].selection;
                     body = json!({"call_id":id,"result_ref":id,"document":{"data":data,"source":{"name":source["name"],"api_slug":source["api_slug"],"endpoint_id":source["candidate_id"],"url":sources[call.get::<i32,_>("ordinal") as usize].service.as_ref().and_then(|s|s.source_url.as_deref()).map(Value::from).unwrap_or_else(||source["resource_url"].clone())},"retrieved_at":Utc::now()},"charged_micro_usd":amount.to_string()});
+                    if let Some(notice) = sources[call.get::<i32, _>("ordinal") as usize].service.as_ref().and_then(|s| s.usage_notice_view()) {
+                        body["document"]["source"]["usage_notice"] = notice;
+                    }
                     "succeeded"
                 } else {
                     "unresolved"
@@ -344,11 +347,19 @@ async fn deliver(e: &Engine) -> anyhow::Result<()> {
     } else {
         observations
     };
+    let usage_notices = result["sources"].as_array().into_iter().flatten().filter_map(|entry| {
+        let notice = &entry["document"]["source"]["usage_notice"];
+        notice["text"].as_str().map(|text| match notice["url"].as_str() {
+            Some(url) => format!("{text}\n{url}"),
+            None => text.to_owned(),
+        })
+    }).collect::<std::collections::BTreeSet<_>>().into_iter().collect::<Vec<_>>().join("\n\n");
     let text = format!(
-        "{}\n\n{}\n{}\n\nFull saved results: {}",
+        "{}\n\n{}\n{}\n\n{}\n\nFull saved results: {}",
         question.chars().take(500).collect::<String>(),
         summary.chars().take(8000).collect::<String>(),
         limitations.chars().take(2000).collect::<String>(),
+        usage_notices,
         url
     );
     let outcome = if e.store.check_workspace(&p).await.is_err() {

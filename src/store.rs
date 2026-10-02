@@ -56,6 +56,19 @@ impl Store {
     pub async fn claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Claim> {
         self.claim_meta(owner, request, hash, ClaimMeta::default()).await
     }
+    /// Read an existing receipt without creating one. Used before an expired
+    /// search is refused so a lost response still recovers its original task.
+    pub(crate) async fn existing_claim(&self, owner: Uuid, request: Uuid, hash: &str) -> anyhow::Result<Option<Claim>> {
+        let row = sqlx::query("SELECT payload_hash,response FROM requests WHERE owner_id=$1 AND request_id=$2")
+            .bind(owner).bind(request).fetch_optional(&self.pool).await?;
+        row.map(|row| {
+            if row.get::<String,_>("payload_hash") != hash { return Ok(Claim::Conflict); }
+            Ok(match row.get::<Option<Value>,_>("response") {
+                Some(value) => Claim::Replay(Box::new(serde_json::from_value(value)?)),
+                None => Claim::Busy,
+            })
+        }).transpose()
+    }
     /// `meta` is recovery identity only (#11): never part of the idempotency
     /// hash, so adding a field here cannot change what counts as a retry.
     pub async fn claim_meta(&self, owner: Uuid, request: Uuid, hash: &str, meta: ClaimMeta) -> anyhow::Result<Claim> {

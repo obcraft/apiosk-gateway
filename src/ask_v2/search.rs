@@ -896,6 +896,10 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
         .filter(|(_, capability)| capability.slug != "general.conversation")
         .map(|(position, capability)| {
             let query = capability_query(capability, parsed, &empty_task);
+            if crate::capability_intake::answer_instruction(capability) {
+                return Match { slug: capability.slug.clone(), query, operations: BTreeSet::new(),
+                    apiosk: vec![], coinbase: vec![], coinbase_status: "ready".into() };
+            }
             let translated = translated(english, position, capability);
             let wanted = wanted(capability, parsed).union(wanted(translated, english));
             let restricted = hinted_sources(capability, catalog);
@@ -2001,6 +2005,43 @@ mod tests {
         assert!(search(&inferred, &catalog(vec![dutch], vec![]))[0].operations.is_empty(), "Requested concepts are not supplied identifiers");
         let both=catalog(vec![french,british],vec![]);
         assert_eq!(search(&request,&both)[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["registry-gb"]);
+    }
+
+    #[test]
+    fn provenance_comparison_keeps_subject_context_without_buying_an_analysis_api() {
+        let catalog=catalog(vec![service(879,"operation.analysis.comparison","Analysis", "Compare official sources and AI generated analysis with source confidence and discrepancies.","analysis")], vec![]);
+        let mut request=parsed(vec![json!({"slug":"research.analysis.comparison","name":"Analysis comparison","description":"Distinguishes between official sources and AI-generated analyses for a given subject."})]);
+        let cap=&mut request.capabilities[0];
+        cap.domain="research".into();
+        cap.inputs=vec!["subject_id".into(),"analysis_sources".into()];
+        cap.outputs=vec!["official_sources".into(),"ai_generated_analysis".into(),"source_confidence".into(),"discrepancies".into()];
+        let found=search(&request,&catalog);
+        assert_eq!(found.len(),1);
+        assert!(found[0].operations.is_empty() && found[0].apiosk.is_empty());
+        assert_eq!(request.capabilities[0].subject_id.as_deref(),Some("s1"));
+        request.capabilities[0].outputs.push("new_market_statistics".into());
+        assert!(!crate::capability_intake::answer_instruction(&request.capabilities[0]));
+    }
+
+    #[test]
+    fn company_multiples_require_corporate_asset_scope_not_any_valuation() {
+        let fixtures = catalog(vec![
+            service(880,"operation.cards.portfolio","Cards", "Trading card portfolio valuation for card-collector and card-investor agents. Returns current market value across Pokemon, MTG, sports cards, and more.","cards"),
+            service(881,"operation.property.valuate","Property", "Property valuation and home value estimate (AVM): estimated value with confidence range, price per square foot/meter, comparable sales, days-to-sell estimate, and negotiation intelligence for any address worldwide.","property"),
+            service(882,"operation.scent.value","Fragrance", "Fragrance collection valuation — realistic resale/collector value estimate for one or more bottles.","scent"),
+            service(883,"operation.company.multiples","Company multiples", "Company valuation multiples: enterprise value, EV/Revenue and EV/EBITDA ratios for a listed equity.","financial"),
+        ], vec![]);
+        let mut request=parsed(vec![json!({"slug":"research.valuation.metrics","name":"Valuation multiples","description":"Calculates or retrieves enterprise value to revenue and enterprise value to EBITDA ratios for a company."})]);
+        request.capabilities[0].domain="research".into();
+        request.capabilities[0].outputs=vec!["enterprise_value".into(),"revenue".into(),"ebitda".into(),"ev_to_revenue".into(),"ev_to_ebitda".into()];
+        let found=search(&request,&fixtures);
+        assert_eq!(found[0].apiosk.iter().filter_map(|c|c.source_slug.as_deref()).collect::<Vec<_>>(),vec!["financial"]);
+        for (name,slug,source) in [("Property valuation","property.valuation","property"),("Trading card portfolio valuation","collectible.portfolio.valuation","cards"),("Fragrance collection valuation","fragrance.collection.valuation","scent")] {
+            request.subjects.clear(); request.capabilities[0].subject_id=None;
+            request.capabilities[0].name=name.into();request.capabilities[0].slug=slug.into();request.capabilities[0].domain="research".into();
+            request.capabilities[0].description=name.into();request.capabilities[0].outputs=vec!["valuation".into()];
+            assert!(search(&request,&fixtures)[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"{name} remains a valid requested asset");
+        }
     }
 
     #[test]

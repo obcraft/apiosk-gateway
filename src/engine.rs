@@ -94,7 +94,10 @@ impl Engine {
         self.store.check_workspace(p).await?;
         let scoped_hash = p.workspace.map(|w|digest(&(w,hash)));
         let meta = ClaimMeta { kind: Some(kind), workspace: p.workspace, connection: p.connection, trace: telemetry::current().map(|t| t.id) };
-        Ok(match telemetry::timed(Phase::Claim, "request", self.store.claim_meta(p.owner, id, scoped_hash.as_deref().unwrap_or(hash), meta)).await? {
+        Ok(Self::claimed_response(id, telemetry::timed(Phase::Claim, "request", self.store.claim_meta(p.owner, id, scoped_hash.as_deref().unwrap_or(hash), meta)).await?))
+    }
+    fn claimed_response(id: Uuid, claim: Claim) -> Option<Response> {
+        match claim {
             Claim::New => None,
             Claim::Replay(r) => Some(*r),
             Claim::Conflict => Some(Response::error(
@@ -108,7 +111,7 @@ impl Engine {
                 r.retry_after_ms = Some(2000);
                 Some(r)
             }
-        })
+        }
     }
     async fn complete(
         &self,
@@ -164,16 +167,25 @@ impl Engine {
         Ok(self.complete(p, req.request_id, result).await)
     }
 
-    /// Continue the App's displayed parse with current source discovery and
-    /// the ordinary one-price planner. The supplied parse grants no authority
-    /// to select sources, reserve money or execute a call.
-    pub(crate) async fn discover_parsed(&self, p: &Principal, req: DiscoverRequest, parsed: crate::capability_intake::ParsedRequest) -> anyhow::Result<Response> {
-        anyhow::ensure!(p.is_person() && req.state.is_none(), "Research requires a new App request");
-        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("ask-research", &req, &parsed)), "discover").await? {
+    /// Recover an identical research request before applying snapshot expiry.
+    /// This read never claims a new request or creates a task.
+    pub(crate) async fn existing_research(&self, p: &Principal, req: &DiscoverRequest, parsed: &crate::capability_intake::ParsedRequest, search_id: &str) -> anyhow::Result<Option<Response>> {
+        self.store.check_workspace(p).await?;
+        let hash = digest(&("ask-research", req, parsed, search_id));
+        let scoped_hash = p.workspace.map(|workspace| digest(&(workspace, &hash)));
+        Ok(self.store.existing_claim(p.owner, req.request_id, scoped_hash.as_deref().unwrap_or(&hash)).await?
+            .and_then(|claim| Self::claimed_response(req.request_id, claim)))
+    }
+    /// Continue the exact server-issued source search. The current catalog was
+    /// checked before this call; its contracts and ordinary approval still own
+    /// every executable step and price.
+    pub(crate) async fn discover_searched(&self, p: &Principal, req: DiscoverRequest, intake: crate::capability_intake::Intake, catalog: std::sync::Arc<Catalog>, search_id: &str) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.is_person() && req.state.is_none() && intake.catalog_version == catalog.version, "Research requires a current App search");
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("ask-research", &req, &intake.parsed_request, search_id)), "discover").await? {
             return Ok(response);
         }
         telemetry::set_segment(telemetry::Segment::Question);
-        let result = self.intake_question(p, &req, true, None, Some(&parsed)).await;
+        let result = self.intake_question(p, &req, true, None, Some((&intake, catalog))).await;
         telemetry::question(&result);
         Ok(self.complete(p, req.request_id, result).await)
     }
@@ -287,16 +299,17 @@ impl Engine {
         req: &DiscoverRequest,
         app_chat: bool,
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
-        displayed_parse: Option<&crate::capability_intake::ParsedRequest>,
+        displayed_search: Option<(&crate::capability_intake::Intake, std::sync::Arc<Catalog>)>,
     ) -> anyhow::Result<Response> {
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.
         let direct = forced.as_ref().is_some_and(|(_, workflow)| workflow.is_none());
+        let has_displayed_search = displayed_search.is_some();
         let mut workflow = forced.as_ref().and_then(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
         anyhow::ensure!(limits::question_ok(&req.question), "invalid question length");
-        let catalog = self.catalog.get().await?;
+        let catalog = match &displayed_search { Some((_, catalog)) => catalog.clone(), None => self.catalog.get().await? };
         // A selection is checked before any task exists: a refusal creates nothing.
         let selection = req.context_delta.selection.as_ref()
             .map(|selection| endpoint_selection::accept(selection, app_chat, req.context_delta.workflow_slug.is_some(), &catalog))
@@ -373,16 +386,10 @@ impl Engine {
         // and a workflow page's recipe is its plan: a code-built intent is
         // never interpreted, so it is not parsed either (a parse outage must
         // not stop a workflow that needs no model before its quote).
-        task.capability_intake = if let Some(parsed) = displayed_parse {
-            // Use the same cached language normalization as the displayed
-            // search; translating its wording cannot redefine its extraction.
-            let normalized = self.catalog.english().request(parsed).await;
-            let matches = crate::ask_v2::search::search_in_english(&normalized.original, &normalized.english, &catalog);
-            Some(crate::capability_intake::Intake {
-                selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
-                parsed_request:parsed.clone(), matches,
-                apiosk_sources_searched:crate::capability_intake::source_count(&catalog), catalog_version:catalog.version.clone(),
-            })
+        task.capability_intake = if let Some((intake, _)) = displayed_search {
+            // A later English rendering or a different server must not replace
+            // the candidate set the person actually reviewed.
+            Some(intake.clone())
         } else if app_chat && forced.is_none() {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
             let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
@@ -427,7 +434,7 @@ impl Engine {
         }
         // Deterministic shortcuts read the question alone; a selection already
         // says which endpoints may answer it.
-        let shortcuts = forced.is_none() && selection.is_none() && displayed_parse.is_none();
+        let shortcuts = forced.is_none() && selection.is_none() && !has_displayed_search;
         if shortcuts {
             if let Some(company) = crate::parser::broad_filing_subject(&req.question) {
                 // This request has no form or topic. The connected filing

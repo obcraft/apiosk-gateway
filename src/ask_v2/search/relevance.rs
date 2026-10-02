@@ -28,7 +28,7 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SPECIFIC_OPERATIONS, STOCK_MARKET};
+use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
 use crate::{
     capability_intake::{capability_query, Capability, ParsedRequest},
     state::Task,
@@ -89,6 +89,8 @@ pub(super) struct Request {
     /// Synonym facets explicitly requested by the operation identity. Context
     /// like "transactions by directors" must not make a roster a transaction.
     primary_facets: u16,
+    corporate_valuation: bool,
+    enterprise_multiple: bool,
 }
 
 /// `text` with the subjects' names and identifiers removed, as in the query.
@@ -170,8 +172,17 @@ impl Request {
             .collect();
         let primary_facets = document(Target::Source(0),
             &format!("{} {}", capability.slug, name_text), BTreeSet::new()).facets;
+        let valuation_words = words(&format!("{} {} {} {}", capability.slug, capability.name,
+            capability.description, capability.outputs.join(" ")));
+        let enterprise_multiple = enterprise_ratio(&valuation_words);
+        let company_subject = capability.subject_id.as_ref().and_then(|id|
+            parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
+        let corporate_valuation = primary_facets & VALUATION != 0
+            && (company_subject || capability.domain == "company" || enterprise_multiple);
         Self {
             primary_facets,
+            corporate_valuation,
+            enterprise_multiple,
             anchors,
             topic: key
                 .iter()
@@ -211,10 +222,20 @@ impl Request {
         self.contract.extend(other.contract);
         self.anchors.extend(other.anchors);
         self.primary_facets |= other.primary_facets;
+        self.corporate_valuation |= other.corporate_valuation;
+        self.enterprise_multiple |= other.enterprise_multiple;
         self
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
+        // Valuation is an operation on an asset, not one universal source
+        // capability. A property's AVM or a card portfolio cannot provide
+        // company multiples merely because both descriptions say valuation.
+        if self.corporate_valuation {
+            let scope: BTreeSet<_> = candidate.topic_scope.union(&candidate.contract).cloned().collect();
+            let corporate = ["company", "corporate", "enterprise", "equity", "stock"].iter().any(|word| scope.contains(*word));
+            if !corporate || (self.enterprise_multiple && !enterprise_ratio(&scope)) { return false; }
+        }
         // The operation's own scope must name the requested topic. Broad
         // descriptions, input names and incidental output words are not
         // evidence that a different operation performs the requested check.
@@ -343,4 +364,10 @@ impl Request {
                 OTHER_EVIDENCE
             }
     }
+}
+
+fn enterprise_ratio(words: &BTreeSet<String>) -> bool {
+    (words.contains("ev") && (words.contains("revenue") || words.contains("ebitda") || words.contains("ebit")))
+        || (words.contains("enterprise") && words.contains("value")
+            && (words.contains("ratio") || words.contains("multiple") || words.contains("ebitda")))
 }

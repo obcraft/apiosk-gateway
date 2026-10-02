@@ -493,7 +493,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "source":{"name":service.name,"slug":service.api_slug,
                 "directory_slug":source.map(crate::sources::directory_slug).unwrap_or(&service.api_slug),
                 "directory_name":source.map(crate::sources::directory_name).unwrap_or(&service.name),
-                "logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url},
+                "logo_url":source.and_then(|s|s.logo_url.as_deref()),"url":service.source_url,"usage_notice":service.usage_notice_view()},
             "dependencies":dependencies,"conditional":step.browser_fallback.is_some(),
             "condition":step.browser_fallback.as_ref().map(|_|"Only if a quoted source fails or returns no usable records; unused fallback is not charged")})
     }).collect()

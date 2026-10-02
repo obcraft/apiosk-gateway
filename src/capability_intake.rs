@@ -111,6 +111,30 @@ pub struct Intake {
     pub selected_capabilities: BTreeSet<String>,
 }
 
+/// Operations over sources already obtained belong to the answer, not another
+/// paid retrieval. Subject context does not turn provenance formatting into a
+/// company lookup; named-source research and factual analysis remain retrievals.
+pub(crate) fn answer_instruction(cap: &Capability) -> bool {
+    let outputs: BTreeSet<_> = cap.outputs.iter().map(String::as_str).collect();
+    if cap.source_hint.is_none() && matches!(cap.domain.as_str(), "general" | "research") {
+        if cap.subject_id.is_none() && !outputs.is_empty()
+            && outputs.iter().all(|value| matches!(*value, "citation" | "citations" | "source_citation" | "source_citations" | "bibliography"))
+            && cap.inputs.iter().all(|value| matches!(value.as_str(), "data_source" | "reference_type")) {
+            return true;
+        }
+        if outputs.contains("official_sources")
+            && (outputs.contains("ai_analysis") || outputs.contains("ai_generated_analysis"))
+            && outputs.iter().all(|value| matches!(*value,
+                "official_sources" | "ai_analysis" | "ai_generated_analysis" | "differences" | "comparison"
+                    | "differences_in_reliability" | "data_origin" | "source_confidence" | "discrepancies"))
+            && cap.inputs.iter().all(|value| matches!(value.as_str(), "subject_id" | "analysis_sources" | "data_source")) {
+            return true;
+        }
+    }
+    cap.subject_id.is_none() && cap.inputs.is_empty()
+        && matches!(cap.slug.as_str(), "general.chat" | "general.conversation")
+}
+
 fn text(value: &Value) -> String {
     value.as_str().unwrap_or("").trim().to_owned()
 }
@@ -524,7 +548,7 @@ pub fn queries(parsed: &ParsedRequest, task: &Task) -> BTreeMap<String, String> 
     parsed
         .capabilities
         .iter()
-        .filter(|c| c.slug != "general.conversation")
+        .filter(|c| !answer_instruction(c))
         .map(|c| (c.slug.clone(), capability_query(c, parsed, task)))
         .collect()
 }

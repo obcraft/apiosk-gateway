@@ -123,7 +123,7 @@ impl Engine {
             self.settle_unverified(&step.service, usable.then_some(&data)).await;
         }
         let capacity_exceeded = extraction.as_ref().is_ok_and(|e| capacity_exceeded(task, e, &data));
-        let mut document = json!({"data":data,"source":{"provider":step.service.api_slug,"name":step.service.name,"url":step.service.source_url,"endpoint_id":step.service.endpoint_id,"contract_version":step.service.contract.version,"retrieved_at":Utc::now()},"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USD","missing_fields":[],"coverage":"source_response"});
+        let mut document = json!({"data":data,"source":step.service.result_source(),"charged_atomic":body["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"currency":"USD","missing_fields":[],"coverage":"source_response"});
         document["execution_id"] = json!(execution);
         document["subject"] = json!({"entity_ref":step.entity_ref,"label":task.entities.iter().find(|e| e.entity_ref == step.entity_ref).map(|e| &e.label)});
         document["source"]["path"] = json!(step.service.path);

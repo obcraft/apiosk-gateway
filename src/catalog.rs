@@ -39,6 +39,10 @@ pub struct Service {
     pub optional_outputs: Vec<String>,
     #[serde(default)]
     pub source_url: Option<String>,
+    /// Published attribution/access terms travel with the quoted service and
+    /// the saved result, so recovering data retains the same source notice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_notice: Option<Value>,
     pub id: Uuid,
     pub endpoint_id: Uuid,
     pub api_slug: String,
@@ -56,6 +60,37 @@ pub struct Service {
     pub jurisdiction: Option<String>,
 }
 impl Service {
+    pub fn usage_notice_view(&self) -> Option<Value> {
+        let notice = self.usage_notice.as_ref()?;
+        let text = notice.get("text")?.as_str()?.trim();
+        if text.is_empty() || text.chars().count() > 1200 || text.chars().any(|c| c.is_control() && c != '\n') {
+            return None;
+        }
+        let mut result = json!({"text":text});
+        if let Some(link) = notice.get("url").filter(|v| !v.is_null()) {
+            let link = link.as_str()?;
+            let parsed = url::Url::parse(link).ok()?;
+            if link.len() > 2048 || parsed.scheme() != "https" || parsed.host_str().is_none()
+                || !parsed.username().is_empty() || parsed.password().is_some() {
+                return None;
+            }
+            result["url"] = json!(link);
+        }
+        if let Some(label) = notice.get("label").filter(|v| !v.is_null()) {
+            let label = label.as_str()?.trim();
+            if label.is_empty() || label.chars().count() > 120 || label.chars().any(char::is_control) {
+                return None;
+            }
+            result["label"] = json!(label);
+        }
+        Some(result)
+    }
+    pub fn result_source(&self) -> Value {
+        let mut source = json!({"provider":self.api_slug,"name":self.name,"url":self.source_url,
+            "endpoint_id":self.endpoint_id,"contract_version":self.contract.version,"retrieved_at":chrono::Utc::now()});
+        if let Some(notice) = self.usage_notice_view() { source["usage_notice"] = notice; }
+        source
+    }
     pub fn is_document_retrieval(&self) -> bool {
         self.contract.output_map.produces.values().any(|extract| matches!(extract,
             catalog_core::facts::contract::Extract::Adapter { adapter, .. } if adapter == "document.response"))
@@ -166,6 +201,7 @@ impl Catalog {
                 );
                 service.contract.check(&vocabulary)?;
                 anyhow::ensure!(service.optional_outputs.iter().all(|k| service.contract.output_map.produces.contains_key(k)), "optional output must be declared by the contract");
+                anyhow::ensure!(service.usage_notice.is_none() || service.usage_notice_view().is_some(), "invalid source usage notice");
                 anyhow::ensure!(
                     service
                         .contract
