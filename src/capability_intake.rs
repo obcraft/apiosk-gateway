@@ -15,6 +15,7 @@ use std::{
 };
 
 mod discovery_cache;
+pub(crate) mod broad_information;
 #[cfg(test)]
 mod tests;
 
@@ -313,6 +314,7 @@ pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<Parsed
 }
 
 pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, model: &str) -> anyhow::Result<ParsedRequest> {
+    if let Some(parsed) = broad_information::parse(request, model) { return Ok(parsed); }
     let raw = if let Some(language) = conversation_language(request) {
         json!({"language":language,"subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Reply to a greeting, thanks, or small talk.","domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}})
     } else {

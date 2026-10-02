@@ -335,6 +335,7 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "every matched capability needs a retrieval goal" => "missing_capability_goal",
         "every parsed subject needs its requested retrieval" => "missing_subject_goal",
         "each requested retrieval needs a covered goal" => "requirement_goal_count",
+        "every goal must add requested output coverage" => "redundant_goal",
         "duplicate retrieval goal" => "duplicate_goal",
         "input belongs to a different parsed subject" => "wrong_subject_input",
         "source inputs must be subject values" => "misplaced_source_input",
@@ -353,7 +354,7 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
 struct RequirementRejection(&'static str);
 
 fn requirement_rejection(reason: &str) -> bool {
-    matches!(reason, "duplicate_goal" | "missing_subject_goal" | "requirement_goal_count"
+    matches!(reason, "duplicate_goal" | "redundant_goal" | "missing_subject_goal" | "requirement_goal_count"
         | "missing_capability_goal" | "unmatched_capabilities" | "undiscovered_operation"
         | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input"
         | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input")
@@ -500,7 +501,7 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
 
 /// Constrain the planning model to the vocabulary actually selected for this
 /// request. A syntactically valid open map still allowed invented fact names.
-fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::collections::BTreeSet<String>, matches_complete: bool, retrievals: usize) -> Value {
+fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::collections::BTreeSet<String>, matches_complete: bool, goal_limit: usize) -> Value {
     let mut schema = intent_reply_schema("chat").unwrap();
     // Why there is no plan: only a genuine reason keeps a clarification.
     schema["properties"]["decline_reason"] = json!({"type":"string","enum":explicit_request::DECLINE_REASONS});
@@ -519,7 +520,7 @@ fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::co
     subjects["items"] = bindings.subject_schema(input_types);
     let goals = &mut intent["properties"]["goals"];
     goals["minItems"] = json!(1);
-    goals["maxItems"] = json!(retrievals.clamp(1,MAX_GOALS));
+    goals["maxItems"] = json!(goal_limit.clamp(1,MAX_GOALS));
     goals["items"]["properties"]["capability"]["enum"] = json!(selected);
     goals["items"]["properties"]["subject"]["maximum"] = json!(7);
     schema
@@ -1139,7 +1140,9 @@ impl Parser {
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
-        let parsed = if intake::conversation_language(question).is_some() {
+        let parsed = if let Some(parsed) = intake::broad_information::parse(question, "literal-broad-information") {
+            parsed
+        } else if intake::conversation_language(question).is_some() {
             intake::normalize("", question, "")?
         } else {
             let client = self.ask_v2.as_ref().ok_or(ModelFailure::Unavailable)?;
@@ -1231,6 +1234,9 @@ impl Parser {
 
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
+        if selection.is_none() {
+            if let Some(reply) = plan_coverage::broad_information_reply(intake, catalog, question, task) { return Ok(reply); }
+        }
         let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));
         self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
     }
@@ -1248,7 +1254,7 @@ impl Parser {
             input["source_matches"] = json!(intake.parsed_request.capabilities.iter().enumerate().filter_map(|(index,cap)| explicit_request::request_match(intake,index).map(|m|
                 json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})
             )).collect::<Vec<_>>());
-            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover each retrieval capability and its subject with a distinct goal. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Dependencies belong to the backend resolver. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
+            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Dependencies belong to the backend resolver. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
@@ -1264,7 +1270,7 @@ impl Parser {
         };
         let response_format = if let Some(intake) = intake {
             json!({"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,
-                "schema":capability_reply_schema(&input["catalog"], bindings.as_ref().unwrap(), &intake.selected_capabilities, plan_coverage::retrievals_matched(intake), intake.parsed_request.capabilities.iter().filter(|cap|!crate::capability_intake::answer_instruction(cap)).count())}})
+                "schema":capability_reply_schema(&input["catalog"], bindings.as_ref().unwrap(), &intake.selected_capabilities, plan_coverage::retrievals_matched(intake), intake.parsed_request.capabilities.iter().filter(|cap|!crate::capability_intake::answer_instruction(cap)).map(|cap|cap.outputs.len().max(1)).sum())}})
         } else {
             json!({"type":"json_object"})
         };

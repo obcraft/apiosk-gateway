@@ -139,6 +139,7 @@ impl Service {
                 anyhow::ensure!(r.optional, "missing input: {}", r.fact_type);
             }
         }
+        crate::pdok_address::refine(self, &mut inputs);
         Ok(Value::Object(inputs))
     }
 }

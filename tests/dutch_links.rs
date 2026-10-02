@@ -388,3 +388,116 @@ async fn live_model_plans_identifier_chains(){
  }
  std::fs::write("output/dutch-links-20260911/live-model-plans.json",serde_json::to_vec_pretty(&report).unwrap()).unwrap();
 }
+
+
+#[test]
+fn reviewed_record_metadata_describes_real_source_fields_without_adding_validation_constraints() {
+    let reviewed: Value = serde_json::from_str(include_str!("fixtures/dutch-links/reviewed-record-schemas.json")).unwrap();
+    let normalized: Value = serde_json::from_str(include_str!("fixtures/dutch-links/normalized.json")).unwrap();
+    for (kind, route) in [
+        ("location.bag_unit_record", "bag-unit"),
+        ("location.building_record", "building"),
+        ("location.cbs_neighbourhood_2025", "neighbourhood"),
+    ] {
+        let schema = &reviewed["schemas"][kind];
+        let actual = &normalized[route]["matched"];
+        for (name, definition) in schema["properties"].as_object().unwrap() {
+            assert!(actual.get(name).is_some(), "{route}: undeclared source property {name}");
+            assert!(definition.as_object().unwrap().keys().all(|key| key == "$comment"), "annotations must not reject existing source values");
+        }
+        assert!(schema.get("required").is_none());
+        for value in [actual.clone(), json!({}), json!({"future_source_field":null})] {
+            catalog_core::facts::schema::validate(schema, &value).unwrap();
+        }
+        assert!(!schema.to_string().contains("floor_count"));
+        assert!(!schema.to_string().contains("energy_label"));
+        assert!(!schema.to_string().contains("building_name"));
+    }
+}
+
+#[test]
+fn damrak_public_responses_keep_the_supplied_address_linked_to_its_building_and_neighbourhood() {
+    use apiosk_gateway_v2::catalog::{Catalog, Snapshot};
+    let captured: Value = serde_json::from_str(include_str!("fixtures/dutch-links/damrak-public-chain.json")).unwrap();
+    let catalog = Catalog::build(serde_json::from_value::<Snapshot>(raw("catalog")).unwrap());
+    assert!(catalog.rejected.is_empty());
+    let address = &captured["address"]["response"]["docs"][0];
+    assert_eq!(captured["address"]["response"]["numFound"], 1);
+    assert_eq!(address["straatnaam"], "Damrak");
+    assert_eq!(address["huisnummer"], 1);
+    assert_eq!(address["woonplaatsnaam"], "Amsterdam");
+    let vbo = address["adresseerbaarobject_id"].clone();
+    let unit = adapter::normalize(&req("bag-unit", "vbo", vbo.clone()), &captured["bag-unit"]).unwrap();
+    assert_eq!(unit["matched"]["hoofdadres_identificatie"], address["nummeraanduiding_id"]);
+    let href = unit["matched"]["single_building_href"].clone();
+    let building = adapter::normalize(&req("building", "href", href), &captured["building"]).unwrap();
+    let context = adapter::normalize(&req("bag-address", "vbo", vbo), &captured["bag-address"]).unwrap();
+    assert_eq!(context["count"], 4, "one registered unit can have multiple address aliases");
+    let aliases = context["items"].as_array().unwrap();
+    assert!(aliases.iter().all(|row| row["bag_object_id"] == address["adresseerbaarobject_id"] && row["neighbourhood_code"] == address["buurtcode"]));
+    let neighbourhood = adapter::normalize(&req("neighbourhood", "code", address["buurtcode"].clone()), &captured["neighbourhood"]).unwrap();
+    for (capability, data) in [
+        ("building.bag-unit", &unit),
+        ("building.bag-building", &building),
+        ("location.bag-address-context", &context),
+        ("area.cbs-neighbourhood-2025", &neighbourhood),
+    ] {
+        let service = catalog.services.iter().find(|s| s.contract.capability_slug == capability).unwrap();
+        let extracted = service.contract.extract(data, &catalog.vocabulary).unwrap();
+        assert!(extracted.rejected.iter().all(|rejection| service.optional_outputs.contains(&rejection.fact_type)), "{capability}: required output rejected: {:?}", extracted.rejected);
+        assert!(!extracted.subjects.is_empty(), "{capability}");
+    }
+    assert_eq!(building["matched"]["bouwjaar"], 1890);
+    assert_eq!(unit["matched"]["oppervlakte"], 16100, "area belongs to the registered unit");
+    assert_eq!(neighbourhood["matched"]["jaar"], 2025);
+    assert_eq!(neighbourhood["matched"]["aantal_inwoners"], 485);
+    assert_eq!(neighbourhood["matched"]["aantal_huishoudens"], 345);
+    assert!(building["matched"].get("floor_count").is_none());
+}
+
+#[test]
+fn cbs_2025_special_values_are_missing_statistics_with_source_provenance() {
+    let captured: Value = serde_json::from_str(include_str!("fixtures/dutch-links/damrak-public-chain.json")).unwrap();
+    let source = &captured["neighbourhood"];
+    assert_eq!(source["features"][0]["properties"]["percentage_verweduwd"], -99997);
+    let request = req("neighbourhood", "code", json!("BU0363AD03"));
+    let normalized = adapter::normalize(&request, source).unwrap();
+    for row in [&normalized["matched"], &normalized["items"][0]] {
+        assert!(row["percentage_verweduwd"].is_null());
+        assert_eq!(row["aantal_inwoners"], 485);
+        assert_eq!(row["aantal_huishoudens"], 345);
+        assert_eq!(row["jaar"], 2025);
+    }
+    assert_eq!(normalized["coverage"]["missing_values"], json!([{
+        "field":"percentage_verweduwd", "source_value":"CBS special code -99997",
+        "reason":"suppressed_or_not_present"
+    }]));
+    assert!(normalized["notice"].as_str().unwrap().contains("null, not numeric values"));
+    assert_eq!(source["features"][0]["properties"]["percentage_verweduwd"], -99997, "original source evidence remains unchanged");
+
+    let mut other_codes = source.clone();
+    let properties = &mut other_codes["features"][0]["properties"];
+    properties["pending_test"] = json!(-99995.0);
+    properties["discontinued_test"] = json!(-99991);
+    properties["negative_test"] = json!(-12);
+    properties["other_code_test"] = json!(-99999);
+    properties["zero_test"] = json!(0);
+    properties["string_test"] = json!("-99997");
+    let normalized = adapter::normalize(&request, &other_codes).unwrap();
+    assert!(normalized["matched"]["pending_test"].is_null());
+    assert!(normalized["matched"]["discontinued_test"].is_null());
+    assert_eq!(normalized["matched"]["negative_test"], -12);
+    assert_eq!(normalized["matched"]["other_code_test"], -99999);
+    assert_eq!(normalized["matched"]["zero_test"], 0);
+    assert_eq!(normalized["matched"]["string_test"], "-99997");
+    let missing = normalized["coverage"]["missing_values"].as_array().unwrap();
+    assert_eq!(missing.len(), 3);
+    assert!(missing.iter().any(|value| value["field"] == "pending_test" && value["reason"] == "publication_pending"));
+    assert!(missing.iter().any(|value| value["field"] == "discontinued_test" && value["reason"] == "no_longer_published"));
+
+    let mut bag = captured["bag-unit"].clone();
+    bag["features"][0]["properties"]["test_value"] = json!(-99997);
+    let normalized = adapter::normalize(&req("bag-unit", "vbo", json!("0363010012111931")), &bag).unwrap();
+    assert_eq!(normalized["matched"]["test_value"], -99997, "BAG values are not CBS statistics");
+    assert!(normalized["coverage"].get("missing_values").is_none());
+}

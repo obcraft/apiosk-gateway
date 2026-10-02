@@ -1,0 +1,378 @@
+{
+  "provenance": "Official unauthenticated PDOK responses captured 2026-10-02 for Damrak 1 Amsterdam; no Apiosk execution/payment. Geometry omitted; actual properties and identifiers retained. See evidence/2026-10-02-damrak-repair/public-chain-verification.json for URL/time/hash checks.",
+  "address": {
+    "response": {
+      "numFound": 1,
+      "start": 0,
+      "maxScore": 1.0747182,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3594",
+          "type": "adres",
+          "woonplaatsnaam": "Amsterdam",
+          "wijkcode": "WK0363AD",
+          "huis_nlt": "1",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "gemeentecode": "0363",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200012113669",
+          "weergavenaam": "Damrak 1, 1012LG Amsterdam",
+          "straatnaam_verkort": "Damrak",
+          "id": "adr-8f4d573be765b4c80dd635ba73747903",
+          "gekoppeld_perceel": [
+            "ASD04-F-6346"
+          ],
+          "gemeentenaam": "Amsterdam",
+          "buurtcode": "BU0363AD03",
+          "wijknaam": "Burgwallen-Nieuwe Zijde",
+          "identificatie": "0363010012111931-0363200012113669",
+          "openbareruimte_id": "0363300000003187",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "provinciecode": "PV27",
+          "postcode": "1012LG",
+          "provincienaam": "Noord-Holland",
+          "centroide_ll": "POINT(4.89803846 52.37714446)",
+          "nummeraanduiding_id": "0363200012113669",
+          "waterschapscode": "11",
+          "adresseerbaarobject_id": "0363010012111931",
+          "huisnummer": 1,
+          "provincieafkorting": "NH",
+          "centroide_rd": "POINT(121691.143 487809.576)",
+          "straatnaam": "Damrak",
+          "score": 1.0747182
+        }
+      ]
+    }
+  },
+  "bag-unit": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-02T20:30:17Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=json&identificatie=0363010012111931&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=jsonfg&identificatie=0363010012111931&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=html&identificatie=0363010012111931&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "bronhouder_identificatie": "0363",
+          "bronhouder_naam": "Amsterdam",
+          "documentdatum": "2018-04-18",
+          "documentnummer": "SA03416273",
+          "gebruiksdoel": "bijeenkomstfunctie,logiesfunctie",
+          "geconstateerd": "N",
+          "hoofdadres_identificatie": "0363200012113669",
+          "hoofdadres_status": "Naamgeving uitgegeven",
+          "huisletter": null,
+          "huisnummer": 1,
+          "identificatie": "0363010012111931",
+          "openbare_ruimte_identificatie": "0363300000003187",
+          "openbare_ruimte_naam": "Damrak",
+          "openbare_ruimte_naam_kort": null,
+          "openbare_ruimte_status": "Naamgeving uitgegeven",
+          "oppervlakte": 16100,
+          "pand.href": [
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/9cfda850-6e7e-5637-9bf3-7f431dc0c3e8"
+          ],
+          "postcode": "1012LG",
+          "provincie_afkorting": "NH",
+          "provincie_naam": "Noord-Holland",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0363010012111931",
+          "status": "Verblijfsobject in gebruik",
+          "toevoeging": null,
+          "woonplaats_identificatie": "3594",
+          "woonplaats_naam": "Amsterdam",
+          "woonplaats_status": "Woonplaats aangewezen"
+        },
+        "id": "793f4b39-6b64-5fe0-af12-7fdd2f94666e"
+      }
+    ],
+    "numberReturned": 1
+  },
+  "bag-address": {
+    "response": {
+      "numFound": 4,
+      "start": 0,
+      "maxScore": 1.0747182,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3594",
+          "type": "adres",
+          "woonplaatsnaam": "Amsterdam",
+          "wijkcode": "WK0363AD",
+          "huis_nlt": "1",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "gemeentecode": "0363",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200012113669",
+          "weergavenaam": "Damrak 1, 1012LG Amsterdam",
+          "straatnaam_verkort": "Damrak",
+          "id": "adr-8f4d573be765b4c80dd635ba73747903",
+          "gekoppeld_perceel": [
+            "ASD04-F-6346"
+          ],
+          "gemeentenaam": "Amsterdam",
+          "buurtcode": "BU0363AD03",
+          "wijknaam": "Burgwallen-Nieuwe Zijde",
+          "identificatie": "0363010012111931-0363200012113669",
+          "openbareruimte_id": "0363300000003187",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "provinciecode": "PV27",
+          "postcode": "1012LG",
+          "provincienaam": "Noord-Holland",
+          "centroide_ll": "POINT(4.89803846 52.37714446)",
+          "nummeraanduiding_id": "0363200012113669",
+          "waterschapscode": "11",
+          "adresseerbaarobject_id": "0363010012111931",
+          "huisnummer": 1,
+          "provincieafkorting": "NH",
+          "centroide_rd": "POINT(121691.143 487809.576)",
+          "straatnaam": "Damrak",
+          "score": 1.0747182
+        },
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3594",
+          "type": "adres",
+          "woonplaatsnaam": "Amsterdam",
+          "wijkcode": "WK0363AD",
+          "huis_nlt": "5",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "gemeentecode": "0363",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200012113670",
+          "weergavenaam": "Damrak 5, 1012LG Amsterdam",
+          "straatnaam_verkort": "Damrak",
+          "id": "adr-85feacee577605a8efb24661ebf649f8",
+          "gemeentenaam": "Amsterdam",
+          "buurtcode": "BU0363AD03",
+          "wijknaam": "Burgwallen-Nieuwe Zijde",
+          "identificatie": "0363010012111931-0363200012113670",
+          "openbareruimte_id": "0363300000003187",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "provinciecode": "PV27",
+          "postcode": "1012LG",
+          "provincienaam": "Noord-Holland",
+          "centroide_ll": "POINT(4.89803846 52.37714446)",
+          "nummeraanduiding_id": "0363200012113670",
+          "waterschapscode": "11",
+          "adresseerbaarobject_id": "0363010012111931",
+          "huisnummer": 5,
+          "provincieafkorting": "NH",
+          "centroide_rd": "POINT(121691.143 487809.576)",
+          "straatnaam": "Damrak",
+          "score": 1.0747182
+        },
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3594",
+          "type": "adres",
+          "woonplaatsnaam": "Amsterdam",
+          "wijkcode": "WK0363AD",
+          "huis_nlt": "34",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "gemeentecode": "0363",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200012113671",
+          "weergavenaam": "Prins Hendrikkade 34, 1012TM Amsterdam",
+          "straatnaam_verkort": "Prins Hendrikkd",
+          "id": "adr-c93ae186748248a28cb766ff8ed6cce1",
+          "gemeentenaam": "Amsterdam",
+          "buurtcode": "BU0363AD03",
+          "wijknaam": "Burgwallen-Nieuwe Zijde",
+          "identificatie": "0363010012111931-0363200012113671",
+          "openbareruimte_id": "0363300000004577",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "provinciecode": "PV27",
+          "postcode": "1012TM",
+          "provincienaam": "Noord-Holland",
+          "centroide_ll": "POINT(4.89803846 52.37714446)",
+          "nummeraanduiding_id": "0363200012113671",
+          "waterschapscode": "11",
+          "adresseerbaarobject_id": "0363010012111931",
+          "huisnummer": 34,
+          "provincieafkorting": "NH",
+          "centroide_rd": "POINT(121691.143 487809.576)",
+          "straatnaam": "Prins Hendrikkade",
+          "score": 1.0747182
+        },
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3594",
+          "type": "adres",
+          "woonplaatsnaam": "Amsterdam",
+          "wijkcode": "WK0363AD",
+          "huis_nlt": "45",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "gemeentecode": "0363",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0363200012113672",
+          "weergavenaam": "Prins Hendrikkade 45, 1012TM Amsterdam",
+          "straatnaam_verkort": "Prins Hendrikkd",
+          "id": "adr-6ea6a3640df18bb5b46940410ca8989c",
+          "gemeentenaam": "Amsterdam",
+          "buurtcode": "BU0363AD03",
+          "wijknaam": "Burgwallen-Nieuwe Zijde",
+          "identificatie": "0363010012111931-0363200012113672",
+          "openbareruimte_id": "0363300000004577",
+          "waterschapsnaam": "Waterschap Amstel, Gooi en Vecht",
+          "provinciecode": "PV27",
+          "postcode": "1012TM",
+          "provincienaam": "Noord-Holland",
+          "centroide_ll": "POINT(4.89803846 52.37714446)",
+          "nummeraanduiding_id": "0363200012113672",
+          "waterschapscode": "11",
+          "adresseerbaarobject_id": "0363010012111931",
+          "huisnummer": 45,
+          "provincieafkorting": "NH",
+          "centroide_rd": "POINT(121691.143 487809.576)",
+          "straatnaam": "Prins Hendrikkade",
+          "score": 1.0747182
+        }
+      ]
+    }
+  },
+  "building": {
+    "type": "Feature",
+    "properties": {
+      "aantal_verblijfsobjecten": 5,
+      "bouwjaar": 1890,
+      "documentdatum": "2019-03-20",
+      "documentnummer": "SA00022024_OR00GM",
+      "gebruiksdoel": "bijeenkomstfunctie,logiesfunctie,winkelfunctie",
+      "geconstateerd": "N",
+      "identificatie": "0363100012185508",
+      "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0363100012185508",
+      "status": "Pand in gebruik",
+      "verblijfsobject.href": [
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/4cd53d1d-31eb-5d5e-a0c8-9ce4a0b5a273",
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/b4462916-9542-53d0-89ee-707c19b44370",
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/a829cffb-1a99-5201-a2a2-a4cd58f141a0",
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/770e03cc-1d86-5a1e-b251-69aeced3bc62",
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/793f4b39-6b64-5fe0-af12-7fdd2f94666e"
+      ]
+    },
+    "id": "9cfda850-6e7e-5637-9bf3-7f431dc0c3e8",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/9cfda850-6e7e-5637-9bf3-7f431dc0c3e8?f=json"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/9cfda850-6e7e-5637-9bf3-7f431dc0c3e8?f=jsonfg"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/9cfda850-6e7e-5637-9bf3-7f431dc0c3e8?f=html"
+      },
+      {
+        "rel": "collection",
+        "title": "The collection to which this feature belongs",
+        "type": "application/json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand?f=json"
+      }
+    ]
+  },
+  "neighbourhood": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-02T20:30:18Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363AD03&f=json&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363AD03&f=jsonfg&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU0363AD03&f=html&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "aantal_huishoudens": 345,
+          "aantal_inwoners": 485,
+          "bevolkingsdichtheid_inwoners_per_km2": 8932,
+          "buurtcode": "BU0363AD03",
+          "buurtnaam": "Nieuwendijk-Noord",
+          "dekkingspercentage": 1,
+          "gemeentecode": "GM0363",
+          "gemeentenaam": "Amsterdam",
+          "gemiddelde_huishoudsgrootte": 1.4,
+          "indelingswijziging_wijken_en_buurten": 1,
+          "jaar": 2025,
+          "jrstatcode": "2025BU0363AD03",
+          "mannen": 280,
+          "meest_voorkomende_postcode": "1012",
+          "omgevingsadressendichtheid": 7250,
+          "oppervlakte_land_in_ha": 5,
+          "oppervlakte_totaal_in_ha": 7,
+          "oppervlakte_water_in_ha": 1,
+          "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 25,
+          "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 30,
+          "perc_geb_in_nl_met_herkomstland_buiten_europa": 10,
+          "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 0,
+          "percentage_eenpersoonshuishoudens": 65,
+          "percentage_geb_in_nl_met_herkomstland_nederland": 30,
+          "percentage_gehuwd": 12,
+          "percentage_gescheid": 4,
+          "percentage_huishoudens_met_kinderen": 5,
+          "percentage_huishoudens_zonder_kinderen": 30,
+          "percentage_met_herkomstland_buiten_europa": 35,
+          "percentage_met_herkomstland_nederland": 30,
+          "percentage_met_herkomstland_uit_europa_excl_nl": 35,
+          "percentage_ongehuwd": 84,
+          "percentage_personen_0_tot_15_jaar": 3,
+          "percentage_personen_15_tot_25_jaar": 16,
+          "percentage_personen_25_tot_45_jaar": 56,
+          "percentage_personen_45_tot_65_jaar": 19,
+          "percentage_personen_65_jaar_en_ouder": 6,
+          "percentage_verweduwd": -99997,
+          "stedelijkheid_adressen_per_km2": 1,
+          "vrouwen": 210,
+          "water": "NEE",
+          "wijkcode": "WK0363AD"
+        },
+        "id": "6b999f3b-75aa-5fc0-b3b4-6225e1697950"
+      }
+    ],
+    "numberReturned": 1
+  }
+}

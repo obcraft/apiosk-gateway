@@ -366,7 +366,17 @@ fn choices(task: &Task, plan: Option<&Plan>, step: &resolver::Step, extraction: 
     match (extraction, plan) {
         (Ok(e), Some(plan)) if e.picked_out_of.is_none() => {
             let types = e.subjects.iter().flat_map(|s| s.facts.iter().map(|f| f.fact_type.as_str())).collect();
-            selection::distinct_candidates(&e.subjects, &selection::needed_facts(task, plan, step, &types))
+            let mut candidates = selection::distinct_candidates(&e.subjects, &selection::needed_facts(task, plan, step, &types));
+            if step.service.api_slug == "pdok" && step.service.path == "/apiosk/bag-address"
+                && step.service.contract.capability_slug == "location.bag-address-context"
+                && e.subjects.len() > 1 && candidates.len() == 1 {
+                // One BAG unit can have several address aliases in the same
+                // neighbourhood. Continue with their common facts, without
+                // rebinding the selected address to whichever alias came first.
+                candidates[0].facts.retain(|fact| e.subjects.iter().all(|subject|
+                    subject.fact(&fact.fact_type).is_some_and(|other| other.value == fact.value)));
+            }
+            candidates
         }
         _ => Vec::new(),
     }
@@ -401,8 +411,17 @@ fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, Contr
         return Rows::IncompleteSelection;
     }
     if !choices.is_empty() {
-        let more = more_pages(&step.service, data);
-        if choices.len() == 1 && !truncated && !more {
+        let address_search = pdok_address_search(&step.service);
+        let address_complete = !address_search || pdok_address_complete(data);
+        let more = more_pages(&step.service, data) || !address_complete;
+        // PDOK's free search is fuzzy. One returned BAG ID is not proof that
+        // it belongs to the supplied street, number, suffix and locality.
+        if address_search && complete && !truncated && !more && extraction.rejected.is_empty() {
+            if let Some(index) = exact_pdok_address(task, step, data, &choices) {
+                return Rows::Bind(vec![choices.remove(index)]);
+            }
+        }
+        if !address_search && choices.len() == 1 && !truncated && !more {
             return Rows::Bind(choices);
         }
         let listed = selection::offered(task, &choices);
@@ -411,9 +430,23 @@ fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, Contr
         }
         let note = (truncated || listed < choices.len() || more).then(|| format!(
             "{} returned more matches than are listed. Only the first {listed} distinct {} shown; if yours is not here, ask again with a more specific name or its identifier. Nothing more is charged until you choose.",
-            step.service.name, if listed == 1 { "match is" } else { "matches are" }));
+            step.service.name, if listed == 1 { "match is" } else { "matches are" }))
+            .or_else(|| address_search.then(|| "The address search did not establish one exact match for the supplied address. Check the listed addresses and choose the intended one. Nothing more is charged until you choose.".into()));
+        let note = if address_search && !address_complete {
+            Some("PDOK did not confirm that every matching address was returned. Check the listed addresses before continuing; if yours is absent, use a more specific address. Nothing more is charged until you choose.".into())
+        } else { note };
         choices.truncate(listed);
         return Rows::Choose(choices, note);
+    }
+    if pdok_address_search(&step.service) {
+        if complete && !truncated && pdok_address_complete(data) && extraction.rejected.is_empty() {
+            if let Some(index) = exact_pdok_address(task, step, data, &extraction.subjects) {
+                return Rows::Bind(vec![extraction.subjects[index].clone()]);
+            }
+        }
+        // A standalone search may display its hits without asking a choice,
+        // but must not save a fuzzy hit as the requested address's identity.
+        return Rows::Evidence(extraction.subjects);
     }
     if !extraction.is_ambiguous() {
         return Rows::Bind(extraction.subjects);
@@ -422,6 +455,67 @@ fn rows(task: &Task, step: &resolver::Step, extraction: Result<Extraction, Contr
         Some(index) => Rows::Bind(vec![extraction.subjects[index].clone()]),
         None => Rows::Evidence(extraction.subjects),
     }
+}
+
+fn pdok_address_search(service: &crate::catalog::Service) -> bool {
+    service.api_slug == "pdok"
+        && service.path == "/bzk/locatieserver/search/v3_1/free"
+        && service.contract.capability_slug == "location.property-search"
+}
+
+fn pdok_address_complete(data: &Value) -> bool {
+    data["response"]["docs"].as_array().is_some_and(|docs|
+        data["response"]["numFound"].as_u64() == Some(docs.len() as u64)
+            && data["response"].get("start").is_none_or(|start| start.as_u64() == Some(0))
+            && data["response"].get("numFoundExact").is_none_or(|exact| exact == true))
+}
+
+/// Only explicit address components can select a fuzzy search hit. Punctuation
+/// and case may vary; missing locality, different numbers and suffixes cannot.
+/// Match the same source row that supplied the candidate's identifier and label.
+fn exact_pdok_address(task: &Task, step: &resolver::Step, data: &Value, candidates: &[SubjectFacts]) -> Option<usize> {
+    let query = crate::catalog::fact_value(&task.facts, step.entity_ref, "geo.input.q").ok()??;
+    let query = query.as_str()?;
+    let docs = data["response"]["docs"].as_array()?;
+    let mut matching = candidates.iter().enumerate().filter(|(_, candidate)| {
+        let Some(id) = candidate.fact("location.bag_object_id").and_then(|fact| fact.value.as_str()) else { return false };
+        let Some(label) = candidate.fact("location.address_label").and_then(|fact| fact.value.as_str()) else { return false };
+        docs.iter().any(|row| row["adresseerbaarobject_id"].as_str() == Some(id)
+            && row["weergavenaam"].as_str() == Some(label) && pdok_literal_address(query, row))
+    });
+    let (index, _) = matching.next()?;
+    matching.next().is_none().then_some(index)
+}
+
+fn pdok_literal_address(query: &str, row: &Value) -> bool {
+    fn normalized(value: &str) -> String {
+        value.to_lowercase().split(|ch: char| !ch.is_alphanumeric())
+            .filter(|part| !part.is_empty()).collect::<Vec<_>>().join(" ")
+    }
+    if row["type"] != "adres" { return false; }
+    let (Some(street), Some(city), Some(number)) =
+        (row["straatnaam"].as_str(), row["woonplaatsnaam"].as_str(), row["huisnummer"].as_u64())
+        else { return false };
+    if street.trim().is_empty() || city.trim().is_empty() { return false; }
+    let suffix = |key: &str| match row.get(key) {
+        None | Some(Value::Null) => Some(""),
+        Some(Value::String(value)) => Some(value.trim()),
+        _ => None,
+    };
+    let (Some(letter), Some(addition)) = (suffix("huisletter"), suffix("huisnummertoevoeging")) else { return false };
+    let number = number.to_string();
+    let houses = [format!("{number}{letter} {addition}"), format!("{number} {letter} {addition}")];
+    let query = normalized(query);
+    let postcode = row["postcode"].as_str().map(|value| value.chars().filter(|ch| !ch.is_whitespace()).collect::<String>());
+    let postcode = postcode.filter(|value| value.len() == 6 && value.as_bytes()[..4].iter().all(u8::is_ascii_digit)
+        && value.as_bytes()[4..].iter().all(u8::is_ascii_alphabetic));
+    houses.iter().any(|house| {
+        query == normalized(&format!("{street} {house} {city}")) || postcode.as_ref().is_some_and(|postcode| {
+            [postcode.clone(), format!("{} {}", &postcode[..4], &postcode[4..])].iter().any(|postcode|
+                query == normalized(&format!("{street} {house} {postcode} {city}"))
+                    || query == normalized(&format!("{street} {house} {postcode}")))
+        })
+    })
 }
 
 // Optional projections describe alternative record shapes (for example, the
@@ -743,5 +837,109 @@ mod candidate_tests {
         let (mut task, step, catalog) = openkvk("bol");
         task.completed.push(serde_json::from_value::<Plan>(task.proposal.clone().unwrap()).unwrap().steps[1].key());
         assert!(matches!(decide(&task, &step, &catalog, &page(22), false), Rows::Evidence(subjects) if subjects.len() == 19));
+    }
+
+    fn damrak() -> Value {
+        serde_json::from_str(include_str!("../../tests/fixtures/dutch-links/damrak-public-chain.json")).unwrap()
+    }
+
+    fn pdok_lookup(query: &str) -> (Task, resolver::Step, Catalog) {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        let service = |capability: &str| catalog.services.iter().find(|service| service.contract.capability_slug == capability).unwrap().clone();
+        let (mut task, step) = plan(service("location.property-search"), service("building.bag-unit"), query);
+        task.facts[0].semantic_type = "geo.input.q".into();
+        (task, step, catalog)
+    }
+
+    #[test]
+    fn pdok_exact_literal_address_continues_with_its_own_identifier() {
+        let data = &damrak()["address"];
+        for query in ["Damrak 1, Amsterdam", "damrak 1 amsterdam", "Damrak 1, 1012LG Amsterdam", "Damrak 1, 1012 LG Amsterdam"] {
+            let (task, step, catalog) = pdok_lookup(query);
+            let Rows::Bind(subjects) = decide(&task, &step, &catalog, data, false) else { panic!("exact address should bind: {query}") };
+            assert_eq!(subjects.len(), 1);
+            assert_eq!(subjects[0].fact("location.bag_object_id").unwrap().value, "0363010012111931");
+            assert_eq!(subjects[0].fact("location.address_label").unwrap().value, "Damrak 1, 1012LG Amsterdam");
+        }
+    }
+
+    #[test]
+    fn pdok_single_fuzzy_or_differently_suffixed_address_needs_a_choice() {
+        let data = &damrak()["address"];
+        for query in ["Damrak 1A, Amsterdam", "Damrak 1-1, Amsterdam", "Damrak 12, Amsterdam", "Damrak 1, Rotterdam", "Damrak 1, 1012AA Amsterdam", "Damrak 1", "Dam 1, Amsterdam"] {
+            let (task, step, catalog) = pdok_lookup(query);
+            assert!(matches!(decide(&task, &step, &catalog, data, false), Rows::Choose(_, Some(_))), "must not bind fuzzy address: {query}");
+        }
+        let mut suffixed = data.clone();
+        suffixed["response"]["docs"][0]["huisletter"] = json!("A");
+        suffixed["response"]["docs"][0]["huisnummertoevoeging"] = json!("01");
+        suffixed["response"]["docs"][0]["weergavenaam"] = json!("Damrak 1A-01, 1012LG Amsterdam");
+        for query in ["Damrak 1A-01, Amsterdam", "Damrak 1 A-01, Amsterdam"] {
+            let (task, step, catalog) = pdok_lookup(query);
+            assert!(matches!(decide(&task, &step, &catalog, &suffixed, false), Rows::Bind(_)), "explicit suffix: {query}");
+        }
+        let (mut task, step, catalog) = pdok_lookup("Damrak 1, Amsterdam");
+        assert!(matches!(decide(&task, &step, &catalog, &suffixed, false), Rows::Choose(_, _)));
+        task.facts.clear();
+        assert!(matches!(decide(&task, &step, &catalog, data, false), Rows::Choose(_, _)), "entity label cannot replace the supplied query fact");
+        task.completed.push(serde_json::from_value::<Plan>(task.proposal.clone().unwrap()).unwrap().steps[1].key());
+        assert!(matches!(decide(&task, &step, &catalog, data, false), Rows::Evidence(_)), "standalone fuzzy hits must not bind an identifier for a later request");
+    }
+
+    #[test]
+    fn pdok_count_completeness_and_unique_exact_candidate_are_required() {
+        let (task, step, catalog) = pdok_lookup("Damrak 1, Amsterdam");
+        let data = &damrak()["address"];
+        for (key, value) in [("numFound", json!(916474)), ("numFound", Value::Null), ("start", json!(1)), ("numFoundExact", json!(false))] {
+            let mut incomplete = data.clone();
+            incomplete["response"][key] = value;
+            assert!(matches!(decide(&task, &step, &catalog, &incomplete, false), Rows::Choose(_, Some(_))), "incomplete count: {key}");
+        }
+        assert!(matches!(decide(&task, &step, &catalog, data, true), Rows::Choose(_, Some(_))), "truncation never proves identity");
+        let mut multiple = data.clone();
+        let mut other = multiple["response"]["docs"][0].clone();
+        other["adresseerbaarobject_id"] = json!("0363010012111932");
+        other["huisletter"] = json!("A");
+        other["weergavenaam"] = json!("Damrak 1A, 1012LG Amsterdam");
+        multiple["response"]["docs"].as_array_mut().unwrap().insert(0, other);
+        multiple["response"]["numFound"] = json!(2);
+        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &multiple, false) else { panic!("one fully explicit exact address may exclude a different suffix") };
+        assert_eq!(subjects[0].fact("location.bag_object_id").unwrap().value, "0363010012111931");
+        multiple["response"]["docs"][0]["huisletter"] = Value::Null;
+        multiple["response"]["docs"][0]["weergavenaam"] = json!("Damrak 1, 1012LG Amsterdam");
+        assert!(matches!(decide(&task, &step, &catalog, &multiple, false), Rows::Choose(_, _)), "same literal address with distinct IDs is still ambiguous");
+        multiple["response"]["docs"][0]["huisletter"] = json!("A");
+        multiple["response"]["docs"][0]["weergavenaam"] = json!("Damrak 1A, 1012LG Amsterdam");
+        multiple["response"]["numFound"] = json!(3);
+        assert!(matches!(decide(&task, &step, &catalog, &multiple, false), Rows::Choose(_, _)), "unseen results cannot be excluded");
+    }
+
+    #[test]
+    fn pdok_shared_neighbourhood_aliases_preserve_the_selected_address() {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        let service = |capability: &str| catalog.services.iter().find(|service| service.contract.capability_slug == capability).unwrap().clone();
+        let (mut task, step) = plan(service("location.bag-address-context"), service("area.cbs-neighbourhood-2025"), "Damrak 1, 1012LG Amsterdam");
+        task.facts[0].semantic_type = "location.address_label".into();
+        // The adapter's published output shape, populated from all four real
+        // source aliases. Adapter identity validation is covered in dutch_links.
+        let mut items: Vec<Value> = damrak()["bag-address"]["response"]["docs"].as_array().unwrap().iter().map(|row| json!({
+            "address":row["weergavenaam"], "bag_object_id":row["adresseerbaarobject_id"], "bag_address_id":row["nummeraanduiding_id"],
+            "municipality_code":row["gemeentecode"], "municipality":row["gemeentenaam"], "neighbourhood_code":row["buurtcode"],
+            "neighbourhood":row["buurtnaam"], "district_code":row["wijkcode"], "parcel_designations":row["gekoppeld_perceel"],
+            "apartment_right_designations":row["gekoppeld_appartement"]
+        })).collect();
+        items.reverse();
+        assert_eq!(items.len(), 4);
+        let data = json!({"count":4,"matched":null,"items":items,"coverage":{"complete":true}});
+        let Rows::Bind(subjects) = decide(&task, &step, &catalog, &data, false) else { panic!("same unit and same neighbourhood need no alias choice") };
+        assert_eq!(subjects.len(), 1);
+        assert_eq!(subjects[0].fact("location.neighbourhood_code").unwrap().value, "BU0363AD03");
+        assert_eq!(subjects[0].fact("location.bag_object_id").unwrap().value, "0363010012111931");
+        assert!(subjects[0].fact("location.address_label").is_none(), "no alias may replace the selected address");
+        assert!(subjects[0].fact("location.bag_address_id").is_none(), "no alias is assumed to be the primary address");
+        assert_eq!(task.facts[0].value, "Damrak 1, 1012LG Amsterdam");
+        let mut different_neighbourhood = data;
+        different_neighbourhood["items"][0]["neighbourhood_code"] = json!("BU0363AD04");
+        assert!(matches!(decide(&task, &step, &catalog, &different_neighbourhood, false), Rows::Choose(_, _)), "different needed facts still require a choice");
     }
 }

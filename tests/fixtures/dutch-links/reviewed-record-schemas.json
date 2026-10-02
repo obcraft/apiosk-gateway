@@ -1,0 +1,102 @@
+{
+  "provenance": "Reviewed against identifier-preserving PDOK proxy normalization and stored actual BAG/CBS samples in tests/fixtures/dutch-links/normalized.json. Metadata only: no added validation constraints, new output values, pricing or endpoint activation. CBS data is explicitly 2025 and area aggregate.",
+  "schemas": {
+    "location.bag_unit_record": {
+      "type": "object",
+      "$comment": "{\"apiosk_output_aliases_v1\":[\"bag_unit_info\",\"bag_unit_information\"]}",
+      "properties": {
+        "identificatie": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"bag_unit_id\",\"bag_object_id\"]}"
+        },
+        "oppervlakte": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"area\",\"area_m2\",\"surface_area\"]}"
+        },
+        "gebruiksdoel": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"usage\",\"use_purpose\"]}"
+        },
+        "status": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"unit_status\"]}"
+        },
+        "single_building_href": {},
+        "pand.href": {},
+        "postcode": {},
+        "huisnummer": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"house_number\"]}"
+        },
+        "huisletter": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"house_letter\"]}"
+        },
+        "toevoeging": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"house_number_addition\"]}"
+        },
+        "openbare_ruimte_naam": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"street\"]}"
+        },
+        "woonplaats_naam": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"city\"]}"
+        }
+      }
+    },
+    "location.building_record": {
+      "type": "object",
+      "$comment": "{\"apiosk_output_aliases_v1\":[\"building_info\",\"building_information\"]}",
+      "properties": {
+        "identificatie": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"building_id\"]}"
+        },
+        "bouwjaar": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"construction_year\",\"year_built\"]}"
+        },
+        "gebruiksdoel": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"usage\",\"use_purpose\"]}"
+        },
+        "status": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"building_status\"]}"
+        },
+        "aantal_verblijfsobjecten": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"unit_count\"]}"
+        },
+        "verblijfsobject.href": {}
+      }
+    },
+    "location.cbs_neighbourhood_2025": {
+      "type": "object",
+      "$comment": "{\"apiosk_output_aliases_v1\":[\"neighbourhood_info\",\"neighborhood_info\",\"neighbourhood_information\",\"neighborhood_information\"]}",
+      "properties": {
+        "buurtcode": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"neighbourhood_code\",\"neighborhood_code\"]}"
+        },
+        "buurtnaam": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"neighbourhood_name\",\"neighborhood_name\"]}"
+        },
+        "jaar": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"reference_year\"]}"
+        },
+        "aantal_inwoners": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"population\",\"residents\"]}"
+        },
+        "aantal_huishoudens": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"households\"]}"
+        },
+        "gemiddelde_huishoudsgrootte": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"average_household_size\"]}"
+        },
+        "bevolkingsdichtheid_inwoners_per_km2": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"population_density\"]}"
+        },
+        "gemeentecode": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"municipality_code\"]}"
+        },
+        "gemeentenaam": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"municipality_name\"]}"
+        },
+        "wijkcode": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"district_code\"]}"
+        },
+        "oppervlakte_totaal_in_ha": {
+          "$comment": "{\"apiosk_output_aliases_v1\":[\"neighbourhood_area_ha\"]}"
+        }
+      }
+    }
+  }
+}

@@ -24,6 +24,7 @@ pub mod invoice_document;
 mod link_preview;
 pub mod maintenance;
 pub mod parser;
+mod pdok_address;
 pub mod annual_report;
 pub mod research_report;
 pub mod report_assets;

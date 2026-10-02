@@ -21,7 +21,7 @@ pub(super) fn prepare(
         .map(|(index, _)| index)
         .collect();
     ensure!(
-        !intent.goals.is_empty() && intent.goals.len() <= retrievals.len(),
+        !intent.goals.is_empty() && intent.goals.len() <= super::MAX_GOALS,
         "each requested retrieval needs a covered goal"
     );
     let mut unique = BTreeSet::new();
@@ -68,176 +68,87 @@ pub(super) fn prepare(
                 .collect()
         })
         .collect();
-    fn assign(
-        goal: usize,
-        edges: &[Vec<usize>],
-        owners: &mut [Option<usize>],
-        seen: &mut BTreeSet<usize>,
-    ) -> bool {
-        for &capability in &edges[goal] {
-            if !seen.insert(capability) {
-                continue;
-            }
-            if owners[capability].is_none_or(|previous| assign(previous, edges, owners, seen)) {
-                owners[capability] = Some(goal);
-                return true;
-            }
-        }
-        false
-    }
-    let mut owners = vec![None; parsed.capabilities.len()];
-    for goal in 0..intent.goals.len() {
-        ensure!(
-            assign(goal, &edges, &mut owners, &mut BTreeSet::new()),
-            "every parsed subject needs its requested retrieval"
-        );
-    }
-    // Pin the actual matched variant, not only its provider: one provider may
-    // publish the same capability for several incompatible jurisdictions.
-    for (capability_index, goal_index) in owners
-        .iter()
-        .enumerate()
-        .filter_map(|(cap, goal)| goal.map(|goal| (cap, goal)))
-    {
+    // A parsed retrieval can request more than one source-backed category.
+    // Pin each goal to an actual matched endpoint before testing their union.
+    for (goal_index, compatible) in edges.iter().enumerate() {
         let goal = &mut intent.goals[goal_index];
-        let found = request_match(intake, capability_index).unwrap();
-        let candidate = found
-            .apiosk
-            .iter()
+        let candidate = compatible.iter().filter_map(|index| request_match(intake, *index))
+            .flat_map(|matched| &matched.apiosk)
             .find(|candidate| candidate_matches(goal, candidate))
             .ok_or_else(|| anyhow::anyhow!("every parsed subject needs its requested retrieval"))?;
         if let Some(source) = &candidate.source_slug {
             goal.constraints.insert("source".into(), json!(source));
         }
         if let Some(endpoint) = &candidate.endpoint_id {
-            goal.constraints
-                .insert("endpoint_id".into(), json!(endpoint));
+            goal.constraints.insert("endpoint_id".into(), json!(endpoint));
         }
     }
     unique.clear();
     for goal in &intent.goals {
-        ensure!(
-            unique.insert((
-                intent.subjects[goal.subject].label.to_lowercase(),
-                goal.capability.clone(),
-                serde_json::to_string(&goal.constraints)?
-            )),
-            "duplicate retrieval goal"
-        );
+        ensure!(unique.insert((intent.subjects[goal.subject].label.to_lowercase(),
+            goal.capability.clone(), serde_json::to_string(&goal.constraints)?)), "duplicate retrieval goal");
     }
+    let owners: Vec<Vec<usize>> = parsed.capabilities.iter().enumerate().map(|(cap, _)| {
+        intent.goals.iter().enumerate().filter(|(goal, selected)| edges[*goal].contains(&cap)
+            && request_match(intake, cap).is_some_and(|matched| matched.apiosk.iter().any(|candidate| candidate_matches(selected, candidate))))
+            .map(|(goal, _)| goal).collect()
+    }).collect();
+    let services: Vec<Vec<_>> = intent.goals.iter().map(|goal| catalog.services.iter().filter(|service|
+        service.contract.capability_slug == goal.capability
+            && Some(service.api_slug.as_str()) == goal.constraints.get("source").and_then(Value::as_str)
+            && endpoint_matches(goal.constraints.get("endpoint_id"), Some(&service.endpoint_id.to_string())))
+        .collect()).collect();
+    let mut useful = BTreeSet::new();
     for &capability_index in &retrievals {
-        if owners[capability_index].is_some() {
-            continue;
-        }
-        let found = request_match(intake, capability_index)
-            .ok_or_else(|| anyhow::anyhow!("every parsed subject needs its requested retrieval"))?;
-        let shared = intent
-            .goals
-            .iter()
-            .enumerate()
-            .find(|(goal_index, goal)| {
-                edges[*goal_index].contains(&capability_index)
-                    && found
-                        .apiosk
-                        .iter()
-                        .any(|candidate| candidate_matches(goal, candidate))
-                    && {
-                        let services: Vec<_> = catalog
-                            .services
-                            .iter()
-                            .filter(|service| {
-                                service.contract.capability_slug == goal.capability
-                                    && Some(service.api_slug.as_str())
-                                        == goal.constraints.get("source").and_then(Value::as_str)
-                                    && endpoint_matches(
-                                        goal.constraints.get("endpoint_id"),
-                                        Some(&service.endpoint_id.to_string()),
-                                    )
-                            })
-                            .collect();
-                        !services.is_empty()
-                            && services.iter().all(|service| {
-                                std::iter::once(capability_index)
-                                    .chain(owners.iter().enumerate().filter_map(|(cap, owner)| {
-                                        (*owner == Some(*goal_index)).then_some(cap)
-                                    }))
-                                    .all(|cap| outputs_cover(&parsed.capabilities[cap], service, catalog))
-                            })
-                    }
-            })
-            .map(|(index, _)| index);
-        ensure!(
-            shared.is_some(),
-            "every parsed subject needs its requested retrieval"
-        );
-        owners[capability_index] = shared;
-    }
-    for (capability_index, goal_index) in owners
-        .into_iter()
-        .enumerate()
-        .filter_map(|(cap, goal)| goal.map(|goal| (cap, goal)))
-    {
-        let goal = &mut intent.goals[goal_index];
+        let selected = &owners[capability_index];
+        ensure!(!selected.is_empty(), "every parsed subject needs its requested retrieval");
         let cap = &parsed.capabilities[capability_index];
-        let Some(subject) = cap
-            .subject_id
-            .as_ref()
-            .and_then(|id| parsed.subjects.iter().find(|s| &s.id == id))
-        else {
-            continue;
-        };
-        let mut fields = BTreeSet::from(["company.name".to_owned(), "geo.input.q".to_owned()]);
-        for service in catalog.services.iter().filter(|service| {
-            service.contract.capability_slug == goal.capability
-                && endpoint_matches(
-                    goal.constraints.get("endpoint_id"),
-                    Some(&service.endpoint_id.to_string()),
-                )
-                && goal
-                    .constraints
-                    .get("source")
-                    .and_then(Value::as_str)
-                    .is_none_or(|source| service.api_slug == source)
-        }) {
-            fields.extend(
-                service
-                    .contract
-                    .requires
-                    .iter()
-                    .map(|required| required.fact_type.clone()),
-            );
-        }
-        let values = &mut intent.subjects[goal.subject].values;
-        for field in fields {
-            let Some(fact) = catalog.vocabulary.get(&field) else {
-                continue;
-            };
-            let Some(mut value) = crate::ask_v2::input_values::documented_literal(
-                &field,
-                &fact.value_schema,
-                subject,
-            ) else {
-                continue;
-            };
-            if catalog_core::facts::schema::validate(&fact.value_schema, &value).is_err() {
-                let Some(typed) = value
-                    .as_str()
-                    .and_then(|text| serde_json::from_str::<Value>(text).ok())
-                    .filter(|typed| {
-                        catalog_core::facts::schema::validate(&fact.value_schema, typed).is_ok()
-                    })
-                else {
-                    continue;
-                };
-                value = typed;
+        if selected.len() == 1 {
+            let goal = selected[0];
+            // Sharing a purchase between separate requirements still requires
+            // proof of each requested field from that one contract.
+            if owners.iter().filter(|owners| owners.contains(&goal)).count() > 1 {
+                ensure!(!services[goal].is_empty() && services[goal].iter().all(|service| outputs_cover(cap, service, catalog)),
+                    "every parsed subject needs its requested retrieval");
             }
-            if let Some(existing) = values.get(&field) {
-                ensure!(
-                    existing == &value,
-                    "input belongs to a different parsed subject"
-                );
-            } else {
-                values.insert(field, value);
+            useful.insert(goal);
+        } else {
+            let outputs: Vec<_> = cap.outputs.iter().filter(|output| !output_metadata(output)).collect();
+            ensure!(!outputs.is_empty(), "every parsed subject needs its requested retrieval");
+            for output in outputs {
+                let proving: Vec<_> = selected.iter().copied().filter(|goal| !services[*goal].is_empty()
+                    && services[*goal].iter().all(|service| output_covered(output, service, catalog, false))).collect();
+                ensure!(!proving.is_empty(), "every parsed subject needs its requested retrieval");
+                // An extra purchase must add requested scope, rather than
+                // repeat the same data through another matched alternative.
+                if proving.len() == 1 { useful.insert(proving[0]); }
+            }
+        }
+    }
+    ensure!(useful.len() == intent.goals.len(), "every goal must add requested output coverage");
+    for (capability_index, goals) in owners.iter().enumerate() {
+        let cap = &parsed.capabilities[capability_index];
+        let Some(subject) = cap.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|s| &s.id == id)) else {continue};
+        for &goal_index in goals {
+            let goal = &intent.goals[goal_index];
+            let mut fields = BTreeSet::from(["company.name".to_owned(), "geo.input.q".to_owned()]);
+            for service in catalog.services.iter().filter(|service| service.contract.capability_slug == goal.capability
+                && endpoint_matches(goal.constraints.get("endpoint_id"), Some(&service.endpoint_id.to_string()))
+                && goal.constraints.get("source").and_then(Value::as_str).is_none_or(|source| service.api_slug == source)) {
+                fields.extend(service.contract.requires.iter().map(|required| required.fact_type.clone()));
+            }
+            let values = &mut intent.subjects[goal.subject].values;
+            for field in fields {
+                let Some(fact) = catalog.vocabulary.get(&field) else {continue};
+                let Some(mut value) = crate::ask_v2::input_values::documented_literal(&field, &fact.value_schema, subject) else {continue};
+                if catalog_core::facts::schema::validate(&fact.value_schema, &value).is_err() {
+                    let Some(typed) = value.as_str().and_then(|text| serde_json::from_str::<Value>(text).ok())
+                        .filter(|typed| catalog_core::facts::schema::validate(&fact.value_schema, typed).is_ok()) else {continue};
+                    value = typed;
+                }
+                if let Some(existing) = values.get(&field) {
+                    ensure!(existing == &value, "input belongs to a different parsed subject");
+                } else { values.insert(field, value); }
             }
         }
     }
@@ -394,6 +305,60 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
     None
 }
 
+/// For a whole, literal broad-information request, the selected contracts and
+/// their dependency graph contain everything needed to price it. Enumerate a
+/// small set of already-discovered choices; every normal binding, scope and
+/// output-coverage check still applies. This never purchases a source.
+pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
+    let canonical = crate::capability_intake::broad_information::parse(question, "literal")?;
+    if canonical.subjects.len() != intake.parsed_request.subjects.len()
+        || canonical.subjects.iter().zip(&intake.parsed_request.subjects).any(|(expected, actual)| expected.label != actual.label || expected.kind != actual.kind)
+        || canonical.capabilities.len() != intake.parsed_request.capabilities.len()
+        || canonical.capabilities.iter().zip(&intake.parsed_request.capabilities).any(|(expected, actual)| expected.outputs != actual.outputs || expected.subject_id != actual.subject_id || actual.source_hint.is_some()) {
+        return None;
+    }
+    let mut choices = Vec::new();
+    let mut seen = BTreeSet::new();
+    for (index, cap) in intake.parsed_request.capabilities.iter().enumerate() {
+        for candidate in &request_match(intake, index)?.apiosk {
+            let Some(capability) = &candidate.capability else {continue};
+            let mut constraints = std::collections::BTreeMap::new();
+            if let Some(source) = &candidate.source_slug { constraints.insert("source".into(), json!(source)); }
+            if let Some(endpoint) = &candidate.endpoint_id { constraints.insert("endpoint_id".into(), json!(endpoint)); }
+            let goal = super::Goal { capability: capability.clone(), subject: 0, constraints };
+            if !candidate_matches(&goal, candidate) || !request_match(intake, index)?.operations.contains(capability) {continue;}
+            // A building-unit/address lookup is a dependency unless its own
+            // contract supplies requested scope. It must not become an extra
+            // separately requested purchase.
+            if !catalog.services.iter().any(|service| service.contract.capability_slug == *capability
+                && candidate.source_slug.as_deref() == Some(service.api_slug.as_str())
+                && candidate.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str())
+                && cap.outputs.iter().any(|output| output_covered(output, service, catalog, false))) {continue;}
+            if seen.insert((goal.capability.clone(), serde_json::to_string(&goal.constraints).ok()?)) { choices.push(goal); }
+        }
+    }
+    if choices.is_empty() || choices.len() > 8 { return None; }
+    for size in 1..=choices.len() {
+        for mask in (1usize..1usize << choices.len()).filter(|mask| mask.count_ones() as usize == size) {
+            let mut intent = Intent { subjects: vec![super::Subject { entity_ref: None, label: canonical.subjects[0].label.clone(), values: Default::default() }],
+                goals: choices.iter().enumerate().filter(|(index, _)| mask & (1 << index) != 0).map(|(_, goal)| goal.clone()).collect(),
+                answer_operations: vec!["Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into()], unresolved_references: vec![] };
+            super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
+            if prepare(&mut intent, intake, catalog).is_err() || intent.bind_constraint_inputs(question, catalog).is_err()
+                || intent.validate(question, task, catalog).is_err() {continue;}
+            let mut preview = task.clone(); preview.capability_intake = Some(intake.clone());
+            let mut bound = intent.clone();
+            if crate::engine::bind_subjects(&mut preview, catalog, &mut bound).is_err() {continue;}
+            let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
+            if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
+            let message = if canonical.language == "nl" {"Ik zoek de beschikbare gegevens bij dit adres en toon eerst de totale prijs."}
+                else {"I will retrieve the available records for this address and show the total price first."};
+            return Some(super::ChatReply { message: message.into(), discover: true, intent: Some(intent), decline_reason: Some("none".into()) });
+        }
+    }
+    None
+}
+
 fn outputs_cover(
     cap: &crate::capability_intake::Capability,
     service: &crate::catalog::Service,
@@ -438,6 +403,10 @@ fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,
 /// lacks it. Required-only proof is used when collapsing several checks.
 /// An opaque object or prose description is not field evidence.
 fn schema_covers(schema:&Value,output:&str,required_only:bool)->bool {
+    // A reviewed aggregate alias names this documented record, never every
+    // possible detail about its subject. Opaque objects cannot prove scope.
+    if schema["type"] == "object" && schema["properties"].as_object().is_some_and(|fields| !fields.is_empty())
+        && property_alias(schema, output) { return true; }
     if schema.get("type").and_then(Value::as_str)==Some("array") {
         return schema.get("items").is_some_and(|items|schema_covers(items,output,required_only));
     }
@@ -524,6 +493,81 @@ mod tests {
         capability_intake::{Candidate, Match, ParsedRequest},
         parser::{Goal, Subject},
     };
+
+    fn broad_location_fixture(question: &str) -> (Intake, Catalog) {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        assert!(catalog.rejected.is_empty());
+        let parsed_request = crate::capability_intake::normalize("{}", question, "fixture").unwrap();
+        let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+        let selected_capabilities = matches.iter().flat_map(|matched| matched.operations.iter().cloned()).collect();
+        (Intake { parsed_request, matches, selected_capabilities, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() }, catalog)
+    }
+
+    #[tokio::test]
+    async fn broad_location_request_prices_the_real_dependency_chain_without_a_planning_model() {
+        for question in ["Find building and neighbourhood information for Damrak 1, Amsterdam.",
+            "Geef gebouw- en buurtinformatie voor Grote Markt 1, Groningen."] {
+            let (_, catalog) = broad_location_fixture(question);
+            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
+            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
+            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            assert!(reply.discover, "{}", reply.message);
+            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+            let mut intent = reply.intent.unwrap();
+            assert_eq!(intent.goals.len(), 2);
+            assert_eq!(intent.subjects[0].values["geo.input.q"], intake.parsed_request.subjects[0].label);
+            let mut task = crate::state::Task::default(); task.capability_intake = Some(intake);
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else {panic!("the catalog must resolve the supplied address")};
+            assert_eq!(plan.steps.iter().map(|step| step.service.contract.capability_slug.as_str()).collect::<BTreeSet<_>>(),
+                BTreeSet::from(["location.property-search", "building.bag-unit", "building.bag-building", "location.bag-address-context", "area.cbs-neighbourhood-2025"]));
+            assert!(uncovered_outputs(&task, &catalog, &intent, &plan).is_empty());
+            assert!(plan.steps.iter().all(|step| Some(step.entity_ref) == intent.subjects[0].entity_ref));
+            assert!(plan.steps.iter().all(|step| step.service.api_slug == "pdok"));
+        }
+    }
+
+    #[test]
+    fn aggregate_retrieval_allows_only_contributing_same_subject_goals() {
+        let question = "Find building and neighbourhood information for Damrak 1, Amsterdam.";
+        let (mut intake, catalog) = broad_location_fixture(question);
+        let original = broad_information_reply(&intake, &catalog, question, &Default::default()).unwrap().intent.unwrap();
+        intake.parsed_request.capabilities.truncate(1);
+        let cap = &mut intake.parsed_request.capabilities[0];
+        cap.slug = "location.building.neighbourhood.info".into();
+        cap.name = "Building and neighbourhood information".into();
+        cap.description = "Retrieve official building records and neighbourhood statistics for an address.".into();
+        cap.outputs.push("neighbourhood_info".into());
+        intake.matches = crate::ask_v2::search::search(&intake.parsed_request, &catalog);
+        let mut combined = original.clone();
+        prepare(&mut combined, &intake, &catalog).unwrap();
+        assert_eq!(combined.goals.len(), 2, "one aggregate retrieval may require two distinct record sources");
+        let unit = catalog.services.iter().find(|service| service.contract.capability_slug == "building.bag-unit").unwrap();
+        let mut extra = combined.clone();
+        extra.goals.push(Goal { capability: unit.contract.capability_slug.clone(), subject: 0,
+            constraints: BTreeMap::from([("source".into(),json!(unit.api_slug)),("endpoint_id".into(),json!(unit.endpoint_id))]) });
+        assert!(prepare(&mut extra, &intake, &catalog).is_err(), "a dependency may not become an extra requested purchase");
+        let mut wrong_subject = original.clone(); wrong_subject.subjects[0].label = "Coolsingel 40, Rotterdam".into();
+        assert!(prepare(&mut wrong_subject, &intake, &catalog).is_err());
+        for field in ["floor_count", "energy_label", "building_name"] {
+            let mut explicit = intake.clone(); explicit.parsed_request.capabilities[0].outputs.push(field.into());
+            assert!(prepare(&mut original.clone(), &explicit, &catalog).is_err(), "unsupported explicit {field} remains required");
+            assert!(broad_information_reply(&explicit, &catalog, question, &Default::default()).is_none());
+        }
+    }
+
+    #[test]
+    fn reviewed_record_aliases_never_claim_opaque_or_unrelated_fields() {
+        let catalog = crate::ask_v2::test_catalog::locations();
+        let building = catalog.services.iter().find(|service| service.contract.capability_slug == "building.bag-building").unwrap();
+        let unit = catalog.services.iter().find(|service| service.contract.capability_slug == "building.bag-unit").unwrap();
+        assert!(output_covered("building_info", building, &catalog, false));
+        assert!(!output_covered("building_info", unit, &catalog, false));
+        for field in ["floor_count", "energy_label", "building_name"] {assert!(!output_covered(field, building, &catalog, false));}
+        let mut opaque = catalog.vocabulary["location.building_record"].value_schema.clone();
+        opaque.as_object_mut().unwrap().remove("properties");
+        assert!(!schema_covers(&opaque, "building_info", false));
+    }
 
     fn saved_vies() -> (String,Intake,Catalog) {
         let fixture:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-vies-planning.json")).unwrap();
