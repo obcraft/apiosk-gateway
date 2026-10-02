@@ -346,6 +346,33 @@ fn planned() -> Value {
 }
 
 #[tokio::test]
+async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_outage_or_rewrite() {
+    let mut bad = planned();
+    let goal = bad["intent"]["goals"][0].clone();
+    bad["intent"]["goals"].as_array_mut().unwrap().push(goal);
+    let (parser, mock, bazaar, server) = fixture(vec![raw(), matched(), bad.clone(), bad], false).await;
+    let catalog = catalog();
+    let task = Task::default();
+    let mut intake = parser.prepare_ask_with_bazaar(QUESTION,None,&task,&catalog,&bazaar).await.unwrap();
+    // Two checks used the same retrieval in the live tender failure.
+    let mut second = intake.parsed_request.capabilities[0].clone();
+    second.slug = "company.registration.status".into();
+    second.name = "Company registration status".into();
+    intake.parsed_request.capabilities.push(second.clone());
+    let mut source_match = intake.matches[0].clone();
+    source_match.slug = second.slug;
+    intake.matches.push(source_match);
+    let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
+    assert!(!reply.discover && reply.intent.is_none());
+    assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
+    assert!(reply.message.contains("geen uitvoerbaar plan") && reply.message.contains("Company registration status"));
+    assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
+    assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
+    assert!(mock.queue.lock().unwrap().is_empty());
+    server.abort();
+}
+
+#[tokio::test]
 async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
     let (parser, mock, bazaar, server) = fixture(vec![raw(), matched(), planned()], false).await;
     let c = catalog();
@@ -524,10 +551,12 @@ async fn a_dependency_goal_cannot_silently_replace_the_requested_retrieval() {
         .prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar)
         .await
         .unwrap();
-    assert!(parser
+    let reply = parser
         .chat_from_capabilities(QUESTION, None, &task, &c, &intake)
         .await
-        .is_err());
+        .unwrap();
+    assert!(!reply.discover && reply.intent.is_none(), "the unsupported substitution gets a clarification, never a price");
+    assert!(reply.decline_reason.is_none());
     server.abort();
 }
 

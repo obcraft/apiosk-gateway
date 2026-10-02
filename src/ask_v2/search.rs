@@ -973,6 +973,7 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
             }
             let operations = apiosk
                 .iter()
+                .filter(|candidate| candidate.availability == "supported" && candidate.endpoint_id.is_some())
                 .filter_map(|candidate| candidate.capability.clone())
                 .collect();
             Match {
@@ -1388,6 +1389,34 @@ mod tests {
             BTreeSet::from(["company.persons-with-significant-control".into()])
         );
         assert!(results.iter().all(|found| !found.query.contains("Monzo")));
+    }
+
+    #[test]
+    fn unverified_listings_remain_discoverable_but_do_not_supply_planning_operations() {
+        let request = parsed(vec![json!({"slug":"company.accounts","name":"Annual accounts"})]);
+        let fixture: serde_json::Value = serde_json::from_str(include_str!("../../tests/fixtures/source-document-service.json")).unwrap();
+        let mut unverified: Service = serde_json::from_value(fixture["service"].clone()).unwrap();
+        unverified.contract.capability_slug = "company.accounts".into();
+        unverified.name = "Annual accounts".into();
+        unverified.description = Some("Retrieve company annual accounts".into());
+        unverified.api_slug = "unverified-registry".into();
+        unverified.unverified = true;
+        let build = |services| {
+            let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+            snapshot.services = services;
+            snapshot.vocabulary.extend(serde_json::from_value::<Vec<catalog_core::facts::contract::FactType>>(fixture["vocabulary"].clone()).unwrap());
+            Catalog::build(snapshot)
+        };
+        let found = search(&request, &build(vec![unverified.clone()]));
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].availability, "unverified");
+        assert!(found[0].operations.is_empty());
+
+        let supported = service(2, "company.accounts", "Annual accounts", "Retrieve company annual accounts", "supported-registry");
+        let found = search(&request, &build(vec![unverified, supported]));
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.availability == "unverified"));
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.availability == "supported"));
+        assert_eq!(found[0].operations, BTreeSet::from(["company.accounts".into()]));
     }
 
     #[test]

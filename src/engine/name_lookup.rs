@@ -203,7 +203,8 @@ mod tests {
         let catalog = catalog();
         let ranked = ["company.registry-profile", "company.branch-profile", "company.registered-names"];
         let candidate = |op: &str| crate::capability_intake::Candidate { origin: "apiosk".into(), name: "KVK Business Register".into(),
-            description: String::new(), source_slug: Some(KVK.into()), capability: Some(op.into()), endpoint_id: None, url: None,
+            description: String::new(), source_slug: Some(KVK.into()), capability: Some(op.into()),
+            endpoint_id: catalog.services.iter().find(|service| service.api_slug == KVK && service.contract.capability_slug == op).map(|service| service.endpoint_id.to_string()), url: None,
             method: "GET".into(), price: None, network: None, calls_30d: None, availability: "supported".into() };
         let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
             "subjects":[{"id":"s1","label":"Coolblue B.V.","type":"company","identifiers":{}}],

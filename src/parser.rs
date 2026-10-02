@@ -119,6 +119,35 @@ impl PlanningReview {
     }
 }
 impl Intent {
+    /// Source inputs have one validated home. A planner may put a declared
+    /// input in constraints; move it only when its literal, schema, subject
+    /// and every selected endpoint variant agree. Defaults are never user facts.
+    fn bind_constraint_inputs(&mut self, question: &str, catalog: &Catalog) -> anyhow::Result<()> {
+        for goal in &mut self.goals {
+            let subject = self.subjects.get_mut(goal.subject)
+                .ok_or_else(|| anyhow::anyhow!("invalid subject index"))?;
+            let fields: Vec<_> = goal.constraints.keys()
+                .filter(|field| catalog.vocabulary.contains_key(*field)).cloned().collect();
+            for field in fields {
+                let value = &goal.constraints[&field];
+                validate_input_literal(question, &field, value, catalog)?;
+                let variants: Vec<_> = catalog.services.iter().filter(|service| {
+                    service.contract.capability_slug == goal.capability
+                        && goal.constraints.get("source").and_then(Value::as_str)
+                            .is_none_or(|source| service.api_slug == source)
+                        && plan_coverage::endpoint_matches(goal.constraints.get("endpoint_id"), Some(&service.endpoint_id.to_string()))
+                }).collect();
+                anyhow::ensure!(!variants.is_empty() && variants.iter().all(|service| service.contract.input_map.contains_key(&field)),
+                    "source input is not declared for the selected operation");
+                anyhow::ensure!(subject.values.get(&field).is_none_or(|existing| existing == value),
+                    "input belongs to a different parsed subject");
+                subject.values.insert(field.clone(), value.clone());
+                goal.constraints.remove(&field);
+            }
+        }
+        Ok(())
+    }
+
     /// Copy an exact question span back into model strings that only changed
     /// separators. No words may be added, dropped, reordered or inferred; the
     /// original literal and the catalog schema are still validated afterwards.
@@ -156,25 +185,17 @@ impl Intent {
                 );
             }
             for (kind, value) in &s.values {
-                let literal = match value {
-                    Value::String(s) => s.clone(),
-                    Value::Number(n) => n.to_string(),
-                    _ => anyhow::bail!("explicit values must be scalar literals"),
-                };
-                anyhow::ensure!(
-                    !literal.is_empty()
-                        && question.to_lowercase().contains(&literal.to_lowercase()),
-                    "parser invented a value"
-                );
-                let ft = catalog
-                    .vocabulary
-                    .get(kind)
-                    .ok_or_else(|| anyhow::anyhow!("unknown input type"))?;
-                catalog_core::facts::schema::validate(&ft.value_schema, value)?;
+                validate_input_literal(question, kind, value, catalog)?;
             }
         }
         for g in &self.goals {
             anyhow::ensure!(g.subject < self.subjects.len(), "invalid subject index");
+            for (kind, value) in &g.constraints {
+                if catalog.vocabulary.contains_key(kind) {
+                    validate_input_literal(question, kind, value, catalog)?;
+                    anyhow::bail!("source inputs must be subject values");
+                }
+            }
             // A US-style issuer name alone is not evidence of a UK registered
             // company. Prevent a generic filing request from buying a UK-only
             // lookup when the person never asked for Companies House.
@@ -199,6 +220,31 @@ impl Intent {
         }
         Ok(())
     }
+}
+
+fn validate_input_literal(question: &str, kind: &str, value: &Value, catalog: &Catalog) -> anyhow::Result<()> {
+    let literal = match value {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => anyhow::bail!("explicit values must be scalar literals"),
+    };
+    let literal_match = if value.is_number() {
+        question.match_indices(&literal).any(|(start, _)| {
+            let mut before = question[..start].chars().rev();
+            let mut after = question[start + literal.len()..].chars();
+            let left = before.next().is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '+' | '-')
+                || (matches!(ch, '.' | ',') && before.next().is_some_and(|ch| ch.is_ascii_digit())));
+            let right = after.next().is_some_and(|ch| ch.is_alphanumeric()
+                || (matches!(ch, '.' | ',') && after.next().is_some_and(|ch| ch.is_ascii_digit())));
+            !left && !right
+        })
+    } else {
+        question.to_lowercase().contains(&literal.to_lowercase())
+    };
+    anyhow::ensure!(!literal.is_empty() && literal_match, "parser invented a value");
+    let fact = catalog.vocabulary.get(kind).ok_or_else(|| anyhow::anyhow!("unknown input type"))?;
+    catalog_core::facts::schema::validate(&fact.value_schema, value)?;
+    Ok(())
 }
 
 /// A company name alone does not tell us whether the buyer wants a filing
@@ -288,10 +334,22 @@ fn intent_validation_reason(error: &anyhow::Error) -> &'static str {
         "each requested retrieval needs a covered goal" => "requirement_goal_count",
         "duplicate retrieval goal" => "duplicate_goal",
         "input belongs to a different parsed subject" => "wrong_subject_input",
+        "source inputs must be subject values" => "misplaced_source_input",
+        "source input is not declared for the selected operation" => "unmatched_source_input",
         "unexpected intent for conversational reply" => "conversation_requires_null_intent",
         explicit_request::DECLINED => "declined_explicit_request",
         _ => "invalid_intent_schema",
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("the proposed plan does not preserve the requested requirements ({0})")]
+struct RequirementRejection(&'static str);
+
+fn requirement_rejection(reason: &str) -> bool {
+    matches!(reason, "duplicate_goal" | "missing_subject_goal" | "requirement_goal_count"
+        | "missing_capability_goal" | "unmatched_capabilities" | "undiscovered_operation"
+        | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input")
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
@@ -303,7 +361,7 @@ fn intent_repair_message(surface: &str, reason: &str) -> String {
     if reason == "declined_explicit_request" {
         return format!("The previous response failed validation ({reason}). {} {shape}", explicit_request::DECLINED_REPAIR);
     }
-    format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and sixteen goals.")
+    format!("The previous response failed validation ({reason}). {shape} New subject labels and every source input value must be exact contiguous text copied from the original question. Source input types belong in subjects.values, never constraints; do not copy schema examples or defaults. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and sixteen goals.")
 }
 /// The endpoints a person selected in the App next to the question: shown to
 /// the model, whose subject values may then also copy these entered values.
@@ -1184,7 +1242,7 @@ impl Parser {
         // An explicit data request declined without a genuine reason gets one
         // repair; declined again, it is planned from the source search.
         let declined = std::sync::atomic::AtomicBool::new(false);
-        self.completion("chat", &payload, |raw| {
+        let result = self.completion("chat", &payload, |raw| {
             let mut reply: ChatReply = match &bindings {
                 Some(bindings) => bindings.decode_reply(raw)?,
                 None => serde_json::from_str(raw)?,
@@ -1207,6 +1265,7 @@ impl Parser {
                     anyhow::ensure!(intent.goals.iter().all(|goal| input["catalog"]["capabilities"].as_array().is_some_and(|caps| caps.iter().any(|c| c == &goal.capability))), "intent must use discovered operations");
                 }
                 intent.restore_question_literals(question);
+                intent.bind_constraint_inputs(literals.as_deref().unwrap_or(question), catalog)?;
                 if let Some(intake) = intake {
                     capability_binding::bind_source_requirements(intent, intake, catalog);
                     plan_coverage::prepare(intent, intake, catalog)?;
@@ -1215,7 +1274,12 @@ impl Parser {
             }
             Ok(reply)
         })
-        .await
+        .await;
+        match (result, intake) {
+            (Err(error), Some(intake)) if error.is::<RequirementRejection>() => Ok(plan_coverage::rejected_reply(intake)),
+            (Err(error), None) if error.is::<RequirementRejection>() => Err(ModelFailure::Unavailable.into()),
+            (result, _) => result,
+        }
     }
 
     /// Collect a workflow's field values from the conversation; each value
@@ -1312,7 +1376,12 @@ impl Parser {
         };
         let work = async {
             let mut attempt_payload = payload.clone();
+            let mut rejected_requirement = None;
             for attempt in 1..=2 {
+                // Only the final complete response can establish a semantic
+                // rejection. A later timeout, transport or JSON failure is an
+                // availability failure even when an earlier plan was rejected.
+                rejected_requirement = None;
                 let mut call = crate::telemetry::model_call(surface, attempt, payload["model"].as_str().unwrap_or_default(), input_bytes);
                 let response = self
                     .http
@@ -1384,6 +1453,9 @@ impl Parser {
                                             }
                                             if surface == "intent" || surface == "chat" {
                                                 let reason = intent_validation_reason(&error);
+                                                if surface == "chat" && requirement_rejection(reason) {
+                                                    rejected_requirement = Some(reason);
+                                                }
                                                 tracing::warn!(surface, attempt, reason, "intent validation failed");
                                                 if let Some(messages) = attempt_payload["messages"].as_array_mut() {
                                                     messages.push(json!({"role":"assistant","content":raw}));
@@ -1468,6 +1540,9 @@ impl Parser {
                     call.finish(Outcome::Failed(if reason == "transport_failure" { ErrorClass::Transport } else { ErrorClass::Validation }), reason);
                 }
             }
+            if let Some(reason) = rejected_requirement {
+                return Err(RequirementRejection(reason).into());
+            }
             Err(ModelFailure::Unavailable.into())
         };
         let result = tokio::time::timeout(Duration::from_secs(total_seconds), work)
@@ -1516,6 +1591,7 @@ impl Parser {
             let intent=self.completion("intent", &payload, |raw| {
                 let mut intent=decode_intent(raw)?;
                 intent.restore_question_literals(question);
+                intent.bind_constraint_inputs(question,catalog)?;
                 intent.validate(question,task,catalog)?;
                 Ok(intent)
             }).await?;
@@ -1702,6 +1778,86 @@ mod tests {
         assert_eq!(answer["status"], "partial");
         assert_eq!(answer["observations"], json!([]));
         assert!(empty_source_analysis(&[json!({"document":{"coverage":"source_response","data":{"items":[{"date":"2026-01-01"}]}}})]).is_none());
+    }
+
+    #[test]
+    fn live_vat_plan_cannot_hide_invented_source_inputs_in_constraints() {
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/profession-case09-constraints.json")).unwrap();
+        let catalog = Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
+        let question = fixture["question"].as_str().unwrap();
+        let original: Intent = serde_json::from_value(fixture["intent"].clone()).unwrap();
+        let mut task = Task::default();
+        let mut original = original;
+        for subject in &mut original.subjects { subject.entity_ref = None; }
+        let mut bad = original.clone();
+        assert_eq!(bad.bind_constraint_inputs(question,&catalog).unwrap_err().to_string(),"parser invented a value");
+        // Each invented input is refused independently, including zero which
+        // only occurs as part of the supplied VAT identifier.
+        for index in 1..original.goals.len() {
+            for (field,value) in &original.goals[index].constraints {
+                if !catalog.vocabulary.contains_key(field) {continue;}
+                let mut isolated = original.clone();
+                isolated.goals = vec![original.goals[index].clone()];
+                isolated.goals[0].constraints.retain(|key,_| matches!(key.as_str(),"source"|"endpoint_id"));
+                isolated.goals[0].constraints.insert(field.clone(),value.clone());
+                assert_eq!(isolated.validate(question,&task,&catalog).unwrap_err().to_string(),"parser invented a value", "{field}");
+                assert_eq!(isolated.bind_constraint_inputs(question,&catalog).unwrap_err().to_string(),"parser invented a value", "{field}");
+            }
+        }
+        // The genuine literal VIES request stays executable after moving its
+        // redundant typed constraints to the existing matching subject values.
+        let mut valid = original.clone();
+        valid.goals.truncate(1);
+        valid.bind_constraint_inputs(question,&catalog).unwrap();
+        assert_eq!(valid.subjects[0].values["vat.eu.country_code"],"NL");
+        assert_eq!(valid.subjects[0].values["vat.eu.number"],"002033354B01");
+        assert_eq!(valid.goals[0].constraints.len(),2);
+        valid.validate(question,&task,&catalog).unwrap();
+        crate::engine::bind_subjects(&mut task,&catalog,&mut valid).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&valid) else {panic!("VIES must remain priceable when its real inputs are supplied");};
+        assert_eq!(plan.steps.len(),1);
+        assert_eq!(plan.steps[0].service.api_slug,"vies");
+    }
+
+    #[test]
+    fn typed_constraint_binding_preserves_exact_filters_policy_and_subject_identity() {
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/profession-case09-constraints.json")).unwrap();
+        let mut catalog = Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
+        let mut intent: Intent = serde_json::from_value(fixture["intent"].clone()).unwrap();
+        intent.subjects[0].entity_ref = None;
+        intent.goals = vec![intent.goals[2].clone()];
+        let filter = "$filter=Sector eq '1010' and Periodo eq '2023'";
+        let question = format!("{} Apply {filter}, order by Periodo desc, skip 0; complete coverage",fixture["question"].as_str().unwrap());
+        intent.goals[0].constraints.insert("coverage".into(),json!("complete"));
+        let mut bound = intent.clone();
+        bound.bind_constraint_inputs(&question,&catalog).unwrap();
+        assert_eq!(bound.subjects[0].values["cbs.input.odata_filter"],filter);
+        assert_eq!(bound.subjects[0].values["cbs.input.odata_skip"],0);
+        assert_eq!(bound.goals[0].constraints["coverage"],"complete");
+        bound.validate(&question,&Task::default(),&catalog).unwrap();
+        let mut conflict = intent.clone();
+        conflict.subjects[0].values.insert("cbs.input.odata_filter".into(),json!("Other literal"));
+        assert_eq!(conflict.bind_constraint_inputs(&question,&catalog).unwrap_err().to_string(),"input belongs to a different parsed subject");
+        let mut wrong_type = intent.clone();
+        wrong_type.goals[0].constraints.insert("cbs.input.odata_skip".into(),json!("0"));
+        assert!(wrong_type.bind_constraint_inputs(&question,&catalog).is_err());
+        let mut not_declared = intent.clone();
+        not_declared.goals[0].constraints.insert("source.eurlex_cellar.celex".into(),json!("32006L0029"));
+        assert_eq!(not_declared.bind_constraint_inputs(&format!("{question} 32006L0029"),&catalog).unwrap_err().to_string(),"source input is not declared for the selected operation");
+        let mut ambiguous = intent.clone();
+        ambiguous.goals[0].constraints.remove("endpoint_id");
+        let mut variant = catalog.services.iter().find(|service| service.api_slug == "cbs-statline").unwrap().clone();
+        variant.endpoint_id = Uuid::new_v4();
+        variant.id = Uuid::new_v4();
+        variant.contract.input_map.remove("cbs.input.odata_filter");
+        catalog.services.push(variant);
+        assert_eq!(ambiguous.bind_constraint_inputs(&question,&catalog).unwrap_err().to_string(),"source input is not declared for the selected operation", "all possible endpoint variants must declare a promoted input");
+        let mut pinned = intent.clone();
+        pinned.bind_constraint_inputs(&question,&catalog).unwrap();
+        assert_eq!(pinned.subjects[0].values["cbs.input.odata_filter"],filter);
+        catalog.vocabulary.get_mut("cbs.input.odata_filter").unwrap().value_schema["default"] = json!(filter);
+        let mut invented = intent;
+        assert_eq!(invented.bind_constraint_inputs(fixture["question"].as_str().unwrap(),&catalog).unwrap_err().to_string(),"parser invented a value", "schema defaults do not authorize planner facts");
     }
 
     #[test]
@@ -2080,6 +2236,52 @@ mod tests {
         let reply: ChatReply = serde_json::from_str(raw)?;
         reply.validate()?;
         Ok(reply)
+    }
+
+    #[tokio::test]
+    async fn invented_live_constraint_inputs_never_reach_a_price_or_false_provider_review() {
+        let fixture: Value = serde_json::from_str(include_str!("../tests/fixtures/profession-case09-constraints.json")).unwrap();
+        let catalog = Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
+        let intake: crate::capability_intake::Intake = serde_json::from_value(fixture["intake"].clone()).unwrap();
+        let mut intent = fixture["intent"].clone();
+        let values = intent["subjects"][0]["values"].as_object().unwrap().iter()
+            .map(|(field,value)|(field.clone(),json!({"literal":value}))).collect::<serde_json::Map<_,_>>();
+        intent["subjects"] = json!([{"subject_ref":intake.parsed_request.subjects[0].id,"values":values}]);
+        let envelope = json!({"choices":[{"finish_reason":"stop","message":{"content":json!({"message":"I will show the price.","discover":true,"intent":intent,"decline_reason":"none"}).to_string()}}]});
+        let (parser,calls,server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
+        let reply = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
+        assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
+        assert!(reply.message.contains("geen uitvoerbaar plan"));
+        assert!(!reply.message.contains("2023") && !reply.message.contains("32006L0029") && !reply.message.contains("geen geldige uitvoeringscontracten"));
+        assert_eq!(calls.load(Ordering::Relaxed),2,"no extra planning review or source call");
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn semantic_rejections_are_distinct_from_service_and_malformed_response_failures() {
+        let envelope = json!({"choices":[{"finish_reason":"stop","message":{"content":"{}"}}]});
+        for rejection in ["duplicate retrieval goal", "every parsed subject needs its requested retrieval", "input belongs to a different parsed subject", "parser invented a value"] {
+            let (parser, calls, server) = model_fixture(vec![(200,envelope.clone()),(200,envelope.clone())]).await;
+            let error = parser.completion::<()>("chat", &json!({}), |_| anyhow::bail!(rejection)).await.unwrap_err();
+            assert!(error.is::<RequirementRejection>(), "{rejection}: {error}");
+            assert_eq!(calls.load(Ordering::Relaxed),2);
+            server.abort();
+        }
+        for failed in [(503,json!({"error":"unavailable"})),(200,json!({"choices":[]})),(200,json!({"choices":[{"finish_reason":"length","message":{"content":"{"}}]}))] {
+            let (parser, calls, server) = model_fixture(vec![(200,envelope.clone()),failed]).await;
+            let error = parser.completion::<()>("chat", &json!({}), |_| anyhow::bail!("duplicate retrieval goal")).await.unwrap_err();
+            assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)));
+            assert_eq!(calls.load(Ordering::Relaxed),2);
+            server.abort();
+        }
+        let (parser, _, server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
+        let count = AtomicU64::new(0);
+        let error = parser.completion::<()>("chat",&json!({}), |_| {
+            if count.fetch_add(1,Ordering::Relaxed)==0 { anyhow::bail!("duplicate retrieval goal"); }
+            anyhow::bail!("invalid JSON");
+        }).await.unwrap_err();
+        assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)));
+        server.abort();
     }
 
     #[tokio::test]

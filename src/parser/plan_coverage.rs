@@ -254,7 +254,7 @@ pub(super) fn prepare(
     Ok(())
 }
 
-fn endpoint_matches(constraint: Option<&Value>, endpoint: Option<&str>) -> bool {
+pub(super) fn endpoint_matches(constraint: Option<&Value>, endpoint: Option<&str>) -> bool {
     constraint.is_none_or(|constraint| match constraint {
         Value::String(id) => Some(id.as_str()) == endpoint,
         Value::Array(ids) => ids
@@ -264,7 +264,9 @@ fn endpoint_matches(constraint: Option<&Value>, endpoint: Option<&str>) -> bool 
     })
 }
 fn candidate_matches(goal: &super::Goal, candidate: &crate::capability_intake::Candidate) -> bool {
-    candidate.capability.as_deref() == Some(&goal.capability)
+    candidate.availability == "supported"
+        && candidate.endpoint_id.is_some()
+        && candidate.capability.as_deref() == Some(&goal.capability)
         && goal
             .constraints
             .get("source")
@@ -279,20 +281,34 @@ fn candidate_matches(goal: &super::Goal, candidate: &crate::capability_intake::C
 /// Answer presentation is not another provider purchase. Keep this narrow:
 /// subject-specific analysis and comparisons can require external data.
 pub(super) fn answer_instruction(cap: &crate::capability_intake::Capability) -> bool {
-    if cap.subject_id.is_some() || !cap.inputs.is_empty() {
+    if cap.subject_id.is_some() {
         return false;
     }
+    let outputs: BTreeSet<_> = cap.outputs.iter().map(String::as_str).collect();
+    // Formatting citations for sources already used in the answer does not
+    // retrieve another source. Citation counts, named works and requested
+    // citation providers remain ordinary retrieval requirements.
+    if cap.source_hint.is_none()
+        && matches!(cap.domain.as_str(), "general" | "research")
+        && !outputs.is_empty()
+        && outputs.iter().all(|value| matches!(*value, "citation" | "citations" | "source_citation" | "source_citations" | "bibliography"))
+        && cap.inputs.iter().all(|value| matches!(value.as_str(), "data_source" | "reference_type"))
+    {
+        return true;
+    }
+    if !cap.inputs.is_empty() { return false; }
     if matches!(cap.slug.as_str(), "general.chat" | "general.conversation") {
         return true;
     }
-    let outputs: BTreeSet<_> = cap.outputs.iter().map(String::as_str).collect();
-    matches!(cap.domain.as_str(), "general" | "research")
+    cap.source_hint.is_none()
+        && matches!(cap.domain.as_str(), "general" | "research")
         && outputs.contains("official_sources")
         && outputs.contains("ai_analysis")
         && outputs.iter().all(|value| {
             matches!(
                 *value,
                 "official_sources" | "ai_analysis" | "differences" | "comparison"
+                    | "differences_in_reliability" | "data_origin"
             )
         })
 }
@@ -306,7 +322,7 @@ pub(super) fn retrievals_matched(intake: &Intake) -> bool {
         .all(|(index, cap)| {
             answer_instruction(cap)
                 || request_match(intake, index)
-                    .is_some_and(|matched| !matched.operations.is_empty())
+                    .is_some_and(executable_match)
         })
 }
 
@@ -319,7 +335,7 @@ pub(super) fn uncovered_reply(intake: &Intake) -> Option<super::ChatReply> {
         .filter(|(index, cap)| {
             !answer_instruction(cap)
                 && !cap.slug.starts_with("general.")
-                && request_match(intake, *index).is_none_or(|matched| matched.operations.is_empty())
+                && request_match(intake, *index).is_none_or(|matched| !executable_match(matched))
         })
         .map(|(_, cap)| cap.name.as_str())
         .collect();
@@ -340,6 +356,26 @@ pub(super) fn uncovered_reply(intake: &Intake) -> Option<super::ChatReply> {
         intent: None,
         decline_reason: None,
     })
+}
+
+fn executable_match(matched: &crate::capability_intake::Match) -> bool {
+    matched.apiosk.iter().any(|candidate| candidate.availability == "supported"
+        && candidate.endpoint_id.is_some()
+        && candidate.capability.as_ref().is_some_and(|capability| matched.operations.contains(capability)))
+}
+
+/// A complete model reply was rejected for changing or duplicating the
+/// requirements. This is neither evidence of an outage nor of absent sources.
+pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
+    let names = intake.parsed_request.capabilities.iter()
+        .filter(|cap| !answer_instruction(cap)).map(|cap| cap.name.as_str())
+        .collect::<Vec<_>>().join("; ");
+    let message = if intake.parsed_request.language == "nl" {
+        format!("Ik kon nog geen uitvoerbaar plan maken dat deze onderdelen en de opgegeven gegevens correct behoudt: {names}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. De volledige vraag blijft bewaard; verduidelijk de gewenste gegevens of probeer de planning opnieuw.")
+    } else {
+        format!("I could not yet build an executable plan that correctly preserves these requirements and the supplied inputs: {names}. No price proposal was made and nothing was executed. The complete question is kept; clarify the required data or try planning again.")
+    };
+    super::ChatReply {message, discover:false, intent:None, decline_reason:None}
 }
 
 fn outputs_cover(
@@ -394,7 +430,7 @@ mod tests {
             description: String::new(),
             source_slug: Some("fixture".into()),
             capability: Some("company.accounts".into()),
-            endpoint_id: None,
+            endpoint_id: Some(catalog().services.iter().find(|service| service.contract.capability_slug == "company.accounts").unwrap().endpoint_id.to_string()),
             url: None,
             method: "GET".into(),
             price: None,
@@ -435,6 +471,31 @@ mod tests {
             unresolved_references: vec![],
         };
         (intake, intent)
+    }
+    #[test]
+    fn unverified_or_unidentified_candidates_cannot_authorize_a_goal() {
+        let (mut intake, intent) = fixture("MONZO BANK LIMITED", "company", 1);
+        let supported = intake.matches[0].apiosk[0].clone();
+        let mut unverified = supported.clone();
+        unverified.endpoint_id = Some(uuid::Uuid::new_v4().to_string());
+        unverified.availability = "unverified".into();
+        intake.matches[0].apiosk = vec![unverified.clone(), supported.clone()];
+        let mut valid = intent.clone();
+        prepare(&mut valid, &intake, &catalog()).unwrap();
+        assert_eq!(valid.goals[0].constraints["endpoint_id"], json!(supported.endpoint_id));
+        let mut invalid = intent.clone();
+        invalid.goals[0].constraints.insert("endpoint_id".into(), json!(unverified.endpoint_id));
+        assert!(prepare(&mut invalid, &intake, &catalog()).is_err());
+        intake.matches[0].apiosk = vec![unverified];
+        assert!(!retrievals_matched(&intake));
+        assert!(uncovered_reply(&intake).is_some(), "stale operation sets must reveal the readiness gap before planning");
+        assert!(prepare(&mut intent.clone(), &intake, &catalog()).is_err(), "stale operations must not make unverified candidates executable");
+        intake.matches[0].apiosk = vec![supported];
+        assert!(retrievals_matched(&intake));
+        assert!(uncovered_reply(&intake).is_none());
+        intake.matches[0].apiosk[0].endpoint_id = None;
+        assert!(!retrievals_matched(&intake));
+        assert!(prepare(&mut intent.clone(), &intake, &catalog()).is_err());
     }
     #[test]
     fn one_operation_cannot_satisfy_multiple_checks_or_duplicate_itself() {
@@ -527,6 +588,33 @@ mod tests {
         );
     }
     #[test]
+    fn citation_formatting_is_an_answer_instruction_but_citation_data_stays_a_retrieval() {
+        let (mut intake, mut intent) = fixture("MONZO BANK LIMITED", "company", 1);
+        let mut cap: crate::capability_intake::Capability = serde_json::from_value(json!({
+            "slug":"research.source.citation","name":"Source citation",
+            "description":"Provides proper citation for data sources used in research.",
+            "domain":"research","inputs":["data_source","reference_type"],"missing":["data_source","reference_type"],
+            "outputs":["citation"],"subject_id":null,"source_hint":null,"confidence":0.9})).unwrap();
+        assert!(answer_instruction(&cap));
+        intake.parsed_request.capabilities.push(cap.clone());
+        assert!(retrievals_matched(&intake));
+        assert!(uncovered_reply(&intake).is_none());
+        prepare(&mut intent,&intake,&catalog()).unwrap();
+        assert_eq!(intent.goals.len(),1);
+        assert!(intent.answer_operations.iter().any(|text|text.contains("Source citation")));
+        cap.outputs.push("citation_count".into());
+        assert!(!answer_instruction(&cap));
+        cap.outputs=vec!["citation".into()];
+        cap.subject_id=Some("paper1".into());
+        assert!(!answer_instruction(&cap));
+        cap.subject_id=None;
+        cap.source_hint=Some("crossref".into());
+        assert!(!answer_instruction(&cap));
+        cap.source_hint=None;
+        cap.inputs.push("doi".into());
+        assert!(!answer_instruction(&cap));
+    }
+    #[test]
     fn answer_instructions_are_preserved_without_buying_an_extra_source() {
         let (mut intake, mut intent) = fixture("MONZO BANK LIMITED", "company", 1);
         let mut cap = intake.parsed_request.capabilities[0].clone();
@@ -547,6 +635,8 @@ mod tests {
             .answer_operations
             .iter()
             .any(|item| item.contains("official data")));
+        intake.parsed_request.capabilities[1].outputs = vec!["official_sources".into(),"ai_analysis".into(),"differences_in_reliability".into(),"data_origin".into()];
+        assert!(answer_instruction(&intake.parsed_request.capabilities[1]), "saved case5 distinctions are answer instructions");
         intake.parsed_request.capabilities[1]
             .outputs
             .push("external_market_statistics".into());
