@@ -6,6 +6,13 @@ const uuid = x => { const h=digest(x); return `${h.slice(0,8)}-${h.slice(8,12)}-
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const supported = new Set(['type','enum','pattern','minimum','maximum','minLength','maxLength','description','title','default','examples']);
 const annotations = new Set(['required','example','format','x-parameter-location','nullable']);
+// Inputs may come from a full directory export, not only the filtered runtime
+// catalog. Never stage an operation the publication guard would reject.
+const unavailableSource = a => a.active === false || (a.status != null && a.status !== 'active')
+  || a.is_verified === false || a.discoverable === false || a.suspended_at != null;
+const fixedPrice = price => price != null && ['number','string'].includes(typeof price)
+  && !(typeof price==='string' && price.trim()==='')
+  && Number.isFinite(Number(price)) && Number(price)>=0;
 export function scalarSchema(spec) {
   if(!['string','integer','number'].includes(spec?.type) || spec.nullable) return null;
   if(Object.keys(spec).some(k=>!supported.has(k)&&!annotations.has(k))) return null;
@@ -21,12 +28,14 @@ export function buildOperations(snapshot) {
     const row={source:a.slug,endpoint_id:e.id,method:e.method,path:e.path,blockers:[],omitted_optional_inputs:[]};report.push(row);
     const stop=reason=>row.blockers.push(reason);
     if(a.planner_block_reason)stop('source_blocked');
+    if(unavailableSource(a))stop('source_unavailable');
+    if(e.active===false)stop('endpoint_inactive');
     if(!e.contract_documented || !e.description?.trim() || !(e.external_docs_url||e.openapi_url||a.docs_url)?.startsWith('https://')) stop('missing_operation_documentation');
     if(!['GET','POST'].includes(e.method)||!['lookup','search','compute','generate'].includes(e.action_type))stop('effect_review_required');
     if(/\b(create|delete|send|publish|transfer|order|subscribe|unsubscribe|render|upload|execute|deploy)\b/i.test(e.path))stop('effect_review_required');
     if(/exploit|penetration|pentest|intrusion|payload|offensive|vulnerability.?scan|attack.surface|open ports|credential.dump|initial.access.broker/i.test(`${e.path} ${e.description}`))stop('specialized_review_required');
     if(/pending job|asynchronous|async job/i.test(e.description))stop('asynchronous_result_review_required');
-    if(!Number.isFinite(Number(e.price))||Number(e.price)<0)stop('missing_fixed_price');
+    if(!fixedPrice(e.price))stop('missing_fixed_price');
     // A reviewed input decision (snapshot.reviewed_inputs) stands in for a
     // curated offer and names which optional inputs a question must supply.
     const review=snapshot.reviewed_inputs?.[e.id]?.decision==='contract'?snapshot.reviewed_inputs[e.id]:null;
@@ -97,7 +106,7 @@ export function buildOperations(snapshot) {
   for(const original of snapshot.contracts.filter(c=>c.status==='active'&&c.validated_at&&c.effect==='read'&&c.price_model==='per_call')) {
     const family=families[original.capability_slug];if(!family)continue;
     const e=snapshot.endpoints.find(e=>e.id===original.endpoint_id),a=snapshot.apis.find(a=>a.id===e?.api_id);
-    if(!e||!a||a.planner_block_reason)continue;
+    if(!e||!a||a.planner_block_reason||unavailableSource(a)||e.active===false||!fixedPrice(e.price))continue;
     const [cap,description]=family,id=uuid(['source-family-v1',original.id,cap]);
     const requiredWords=[...original.requires.map(r=>r.fact_type),...Object.keys(original.output_map.produces)];
     for(const fact of requiredWords){const w=snapshot.vocabulary?.find(w=>w.slug===fact);if(!w)throw Error(`Missing authored vocabulary ${fact}`);words.set(fact,w);}

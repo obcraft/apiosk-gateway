@@ -38,6 +38,9 @@ const COUNTRY: f64 = 3.0;
 /// A place subject whose label names a known city ("Damrak 1, Amsterdam").
 const PLACE: f64 = 3.0;
 const INPUT: f64 = 2.0;
+/// A parser's requested input concept is not a user-supplied identifier. It
+/// cannot outweigh a literal legal form or a country the person supplied.
+const REQUESTED_INPUT: f64 = 0.5;
 const LEGAL_FORM: f64 = 2.0;
 const SHARED_FORM: f64 = 1.0;
 const WEAK: f64 = 1.0;
@@ -167,6 +170,15 @@ impl Signal {
 
     fn identifier(&mut self, key: &str, value: &str) {
         let key = key.to_lowercase();
+        if matches!(key.as_str(), "country" | "country_code" | "jurisdiction") {
+            let country = value.trim().to_lowercase();
+            if let Some(Coverage::Country(country)) = code(&country) {
+                self.add(&country, COUNTRY);
+            } else {
+                for country in named_countries(value) { self.add(country, COUNTRY); }
+            }
+            return;
+        }
         let value: String = value
             .chars()
             .filter(|character| character.is_ascii_alphanumeric())
@@ -311,11 +323,11 @@ impl Signal {
     fn input(&mut self, input: &str) {
         let has = |part: &str| input.split('_').any(|word| word == part);
         if has("kvk") || has("rsin") || input.contains("kvknummer") {
-            self.add("NL", INPUT);
+            self.add("NL", REQUESTED_INPUT);
         } else if has("siren") || has("siret") {
-            self.add("FR", INPUT);
+            self.add("FR", REQUESTED_INPUT);
         } else if input.contains("companies_house") {
-            self.add("GB", INPUT);
+            self.add("GB", REQUESTED_INPUT);
         }
     }
 
@@ -965,6 +977,8 @@ mod tests {
 
     #[test]
     fn identifiers_and_named_sources_outweigh_a_legal_form() {
+        assert_eq!(signal("Monzo",json!({"country":"United Kingdom"}),None,"nl").primary(),Some("GB"));
+        assert_eq!(signal("Monzo",json!({"country_code":"GB"}),None,"nl").primary(),Some("GB"));
         assert_eq!(
             signal("Coolblue", json!({"kvk_number":"24285251"}), None, "en").primary(),
             Some("NL")
@@ -1031,6 +1045,9 @@ mod tests {
             Some("DE")
         );
         assert!(signal("Coolblue", json!({}), None, "en").is_empty());
+        let mut british=signal("MONZO BANK LIMITED",json!({}),None,"nl");
+        british.input("kvk_number");
+        assert_eq!(british.primary(),Some("GB"),"an inferred missing KVK input is not evidence that a UK company is Dutch");
     }
 
     #[test]

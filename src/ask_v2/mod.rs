@@ -4,6 +4,7 @@
 pub mod search;
 pub mod external;
 pub mod purchase;
+pub(crate) mod input_values;
 
 use anyhow::{anyhow, ensure, Result};
 use serde::Serialize;
@@ -618,7 +619,7 @@ mod tests {
             .await
             .unwrap();
         let captured = captured.lock().unwrap();
-        assert_eq!(PROMPT.len(), 3462);
+        assert!(PROMPT.contains("capabilities: one per piece of data or action requested, at most sixteen."));
         assert_eq!(
             captured[0]["messages"],
             json!([{"role":"system","content":PROMPT},{"role":"user","content":"Hoi!"}])

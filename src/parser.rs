@@ -21,6 +21,10 @@ use capability_binding::Bindings;
 mod explicit_request;
 pub mod conversation_reply;
 
+/// Discovery and planning preserve up to sixteen retrievals. The resolver
+/// independently enforces the smaller execution-step and dependency limits.
+pub(crate) const MAX_GOALS: usize = 16;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Subject {
@@ -134,7 +138,7 @@ impl Intent {
 
     pub fn validate(&self, question: &str, task: &Task, catalog: &Catalog) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.subjects.len() <= 8 && !self.goals.is_empty() && self.goals.len() <= 8,
+            self.subjects.len() <= 8 && !self.goals.is_empty() && self.goals.len() <= MAX_GOALS,
             "invalid intent size"
         );
         for s in &self.subjects {
@@ -295,7 +299,7 @@ fn intent_repair_message(surface: &str, reason: &str) -> String {
     if reason == "declined_explicit_request" {
         return format!("The previous response failed validation ({reason}). {} {shape}", explicit_request::DECLINED_REPAIR);
     }
-    format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and eight goals.")
+    format!("The previous response failed validation ({reason}). {shape} New subject labels and every value in subjects.values must be exact contiguous text copied from the original question. This includes search queries: copy the relevant phrase without dropping or reordering words, rather than composing new keywords. Do not invent company names, identifiers, country codes or entity references. Use only catalog input types and capabilities. Preserve every requested retrieval and constraint; do not hide a missing retrieval in answer_operations. If a downstream company or person cannot be identified by a supported dependency, explain that requirement in unresolved_references instead of inventing the entity. Correct the JSON shape, keeping goal subject indices within subjects and between one and sixteen goals.")
 }
 /// The endpoints a person selected in the App next to the question: shown to
 /// the model, whose subject values may then also copy these entered values.
@@ -410,7 +414,7 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
         "properties":{
             "subjects":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["entity_ref","label","values"],
                 "properties":{"entity_ref":{"type":["string","null"]},"label":text,"values":{"type":"object","additionalProperties":{"type":["string","number"]}}}}},
-            "goals":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["capability","subject","constraints"],
+            "goals":{"type":"array","minItems":1,"maxItems":MAX_GOALS,"items":{"type":"object","additionalProperties":false,"required":["capability","subject","constraints"],
                 "properties":{"capability":text,"subject":{"type":"integer","minimum":0},"constraints":{"type":"object"}}}},
             "answer_operations":{"type":"array","items":text},
             "unresolved_references":{"type":"array","items":text}}});
@@ -446,7 +450,7 @@ fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::co
     subjects["items"] = bindings.subject_schema(input_types);
     let goals = &mut intent["properties"]["goals"];
     goals["minItems"] = json!(1);
-    goals["maxItems"] = json!(8);
+    goals["maxItems"] = json!(MAX_GOALS);
     goals["items"]["properties"]["capability"]["enum"] = json!(selected);
     goals["items"]["properties"]["subject"]["maximum"] = json!(7);
     schema
@@ -1586,6 +1590,47 @@ pub async fn bounded_json_sized(mut response: reqwest::Response, limit: usize) -
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sixteen_goals_are_preserved_but_execution_limits_still_refuse_oversized_plans() {
+        let mut raw: Value = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let template = raw["services"][1].clone();
+        raw["services"] = json!((0..17).map(|index| {
+            let mut service = template.clone();
+            service["id"] = json!(Uuid::from_u128(index + 1));
+            service["endpoint_id"] = service["id"].clone();
+            service["contract"]["capability_slug"] = json!(format!("company.audit{index}"));
+            service["contract"]["requires"] = json!([]);
+            service["contract"]["input_map"] = json!({});
+            service
+        }).collect::<Vec<_>>());
+        let catalog = Catalog::build(serde_json::from_value(raw).unwrap());
+        assert_eq!(catalog.services.len(), 17);
+        let goal_schema = &intent_reply_schema("intent").unwrap()["properties"]["goals"];
+        assert_eq!(goal_schema["maxItems"], 16);
+        assert_eq!(crate::protocol::MAX_STEPS, 12);
+        assert_eq!(crate::protocol::MAX_DEPTH, 5);
+        for count in [9, 16, 17] {
+            let mut intent = Intent {
+                subjects: vec![Subject {entity_ref:None,label:"Coolblue".into(),values:BTreeMap::new()}],
+                goals: (0..count).map(|index|Goal {capability:format!("company.audit{index}"),subject:0,constraints:BTreeMap::new()}).collect(),
+                answer_operations: vec![], unresolved_references: vec![],
+            };
+            let mut task = Task::default();
+            assert_eq!(intent.validate("Coolblue", &task, &catalog).is_ok(), count <= 16);
+            assert_eq!(intent.goals.len(), count, "validation never truncates the request");
+            if count > 16 {continue;}
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            match crate::resolver::resolve(&catalog, &task, &intent) {
+                crate::resolver::Resolution::Plan(plan) if count == 9 => assert_eq!(plan.steps.len(), count),
+                crate::resolver::Resolution::Unsupported(_) if count == 16 => {},
+                result => panic!("{count} goals: unexpected {result:?}"),
+            }
+            assert_eq!(intent.goals.len(), count, "the execution cap refuses the complete plan instead of discarding goals");
+        }
+        assert!(include_str!("../contracts/capability-planning-prompt.txt").contains("goals: one to sixteen objects"));
+        assert!(intent_repair_message("chat", "fixture").contains("between one and sixteen goals"));
+    }
 
     #[tokio::test]
     async fn a_blocked_purchase_without_sources_keeps_its_reason_without_a_model_call() {

@@ -39,3 +39,23 @@ test('schema constraints are preserved or explicitly refused',()=>{
  assert.equal(scalarSchema({type:'string',nullable:true}),null);
  assert.deepEqual(scalarSchema({type:'integer',minimum:1,maximum:8,example:4}),{type:'integer',minimum:1,maximum:8});
 });
+test('directory visibility and endpoint activation are respected before staging',()=>{
+ for(const [field,value] of [['active',false],['status','inactive'],['is_verified',false],['discoverable',false],['suspended_at','2026-10-02T00:00:00Z']]) {
+  const s=fixture();s.apis[0][field]=value;
+  const b=buildOperations(s);assert.equal(b.services.length,0,field);
+  assert.ok(b.report[0].blockers.includes('source_unavailable'),field);
+ }
+ const s=fixture();s.endpoints[0].active=false;
+ const b=buildOperations(s);assert.equal(b.services.length,0);
+ assert.ok(b.report[0].blockers.includes('endpoint_inactive'));
+});
+test('missing prices cannot be coerced into a free contract',()=>{
+ for(const price of [null,undefined,'','  ',false,true,[],{},-1,'invalid']) {
+  const s=fixture();s.endpoints[0].price=price;
+  const b=buildOperations(s);assert.equal(b.services.length,0,JSON.stringify(price));
+  assert.ok(b.report[0].blockers.includes('missing_fixed_price'));
+ }
+ for(const price of [0,'0',0.02,'0.02']) {
+  const s=fixture();s.endpoints[0].price=price;assert.equal(buildOperations(s).services.length,1);
+ }
+});

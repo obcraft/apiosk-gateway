@@ -207,6 +207,15 @@ impl Request {
         self
     }
 
+    fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
+        // A generated HTTP route has no reviewed semantic capability. Its
+        // opening description must actually offer the requested subject matter;
+        // incidental words in long examples or provider-wide copy are not enough.
+        self.anchors.iter().any(|word| candidate.topic_scope.contains(word))
+            || wanted.tokens.iter().filter(|word|word.starts_with('@')).any(|word|candidate.topic_scope.contains(word))
+            || self.outputs.iter().filter(|word|candidate.topic_scope.contains(*word)).count() >= 2
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
@@ -237,6 +246,7 @@ impl Request {
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
+        if !hinted && candidate.contract.is_empty() && !self.primary_topic_matches(wanted,candidate) { return false; }
         let facet = wanted.facets & candidate.facets != 0;
         // A shared facet already stands for its vocabulary ("officer",
         // "director"); counting those words again would let a program

@@ -2,7 +2,7 @@
 //! authorization, worker and saved-result analysis.
 use crate::{
     catalog::Catalog,
-    parser::{Goal, Intent, Subject},
+    parser::{Goal, Intent, Subject, MAX_GOALS},
     state::{Entity, Fact, Task},
 };
 use serde::{Deserialize, Serialize};
@@ -304,7 +304,7 @@ pub fn prepare(
         });
     }
     anyhow::ensure!(
-        !goals.is_empty() && goals.len() <= 8 && subjects.len() <= 8,
+        !goals.is_empty() && goals.len() <= MAX_GOALS && subjects.len() <= 8,
         "Invalid workflow recipe size."
     );
     let title = values

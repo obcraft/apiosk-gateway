@@ -86,6 +86,38 @@ fn clarification_uses_user_literals_but_hashes_the_current_message() {
 }
 
 #[test]
+fn a_dossier_or_report_does_not_invent_a_file_format() {
+    let mut input = raw();
+    for inferred in ["pdf", "docx", "Word", "xlsx", "Excel", "json"] {
+        input["deliverable"]["format"] = json!(inferred);
+        for question in ["Maak één bronvermeld dossier over Coolblue", "Make a sourced report on Coolblue", "Geef de jaarrekening van Coolblue als chat"] {
+            assert_eq!(normalize(&input.to_string(), question, "fixture").unwrap().deliverable.format, "chat");
+        }
+    }
+    input["subjects"][0]["label"] = json!("ASML");
+    input["deliverable"]["format"] = json!("docx");
+    let question = "Ik ben M&A-adviseur. Geef Reuters-nieuws over ASML, het GLEIF-concernverband van ASML Holding N.V. en de huidige EV/Revenue en EV/EBITDA van ASML. Maak één bronvermeld dossier en benoem welke onderdelen ontbreken.";
+    assert_eq!(normalize(&input.to_string(), question, "fixture").unwrap().deliverable.format, "chat", "live M&A dossier request does not ask for a Word document");
+}
+
+#[test]
+fn file_formats_require_a_literal_format_in_the_user_context() {
+    let mut input = raw();
+    for (inferred, requested, expected) in [
+        ("pdf", "PDF", "pdf"), ("docx", "Word-document", "docx"),
+        ("Word", "dossier.docx", "docx"), ("xlsx", "spreadsheet", "xlsx"),
+        ("Excel", "Excel", "xlsx"), ("json", "JSON", "json"),
+    ] {
+        input["deliverable"]["format"] = json!(inferred);
+        let question = format!("Maak een dossier over Coolblue als {requested}");
+        assert_eq!(normalize(&input.to_string(), &question, "fixture").unwrap().deliverable.format, expected);
+        assert_eq!(normalize_with_context(&input.to_string(), "Met bronvermelding", &question, "fixture").unwrap().deliverable.format, expected);
+    }
+    input["deliverable"]["format"] = json!("docx");
+    assert_eq!(normalize(&input.to_string(), "Research Coolblue keywords", "fixture").unwrap().deliverable.format, "chat", "a substring does not request a Word file");
+}
+
+#[test]
 fn clarified_analysis_is_a_deliverable_operation_not_an_extra_source() {
     let mut input = raw();
     let analysis = json!({"slug":"general.analysis","name":"Comparative analysis","description":"Compare entities; the aspects to compare are unspecified.","domain":"general","inputs":[],"outputs":["comparison"],"subject_id":null,"source_hint":null,"confidence":0.75});
@@ -119,6 +151,25 @@ fn malformed_output_is_not_a_successful_empty_parse() {
         extract_json("text {\"a\":\"x,}\",\"b\":[1,],} trailing {\"ignored\":1}").unwrap(),
         json!({"a":"x,}","b":[1]})
     );
+}
+
+#[test]
+fn discovery_accepts_the_schema_limit_of_sixteen_distinct_checks() {
+    let mut input = raw();
+    let base = input["capabilities"][0].clone();
+    for count in [9, 16, 17] {
+        input["capabilities"] = json!((0..count).map(|index| {
+            let mut capability = base.clone();
+            capability["slug"] = json!(format!("company.check{index}"));
+            capability
+        }).collect::<Vec<_>>());
+        let parsed = normalize(&input.to_string(), QUESTION, "fixture");
+        if count <= 16 {
+            assert_eq!(parsed.unwrap().capabilities.len(), count);
+        } else {
+            assert!(parsed.unwrap_err().to_string().contains("one to sixteen capabilities"));
+        }
+    }
 }
 #[test]
 fn query_uses_generic_fields_and_scrubs_subjects_even_if_model_copies_them() {

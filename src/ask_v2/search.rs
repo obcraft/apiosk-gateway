@@ -43,6 +43,9 @@ struct Document {
     /// `registry` for `company_registry.lookup`); empty for sources and
     /// generated `operation.*` ids.
     namespace: BTreeSet<String>,
+    /// The endpoint's own description, excluding provider branding and a
+    /// semicolon-separated provider-wide appendix.
+    topic_scope: BTreeSet<String>,
     /// Where the candidate can answer, for the country signal.
     coverage: country::Coverage,
 }
@@ -53,6 +56,35 @@ struct Index {
 
 /// A catalog version and the state of its English renderings.
 type IndexKey = (String, u64, u64);
+
+/// Operation titles often precede examples or provider-wide copy. A period
+/// inside ClinicalTrials.gov/Fly.io or a short label such as "FREE —" is not
+/// the end of that title.
+fn opening_description(text: &str) -> &str {
+    let mut question_intro = false;
+    for (index,character) in text.char_indices() {
+        let prefix=&text[..index];
+        let after=&text[index+character.len_utf8()..];
+        let boundary=match character {
+            ';' | '!' => true,
+            // A rhetorical opening question often names only a pronoun:
+            // "Is it real or fake? Collectible authentication ...". Include
+            // its next declarative sentence as the operation's own scope.
+            '?' if !question_intro => {question_intro = true; false},
+            '?' => true,
+            '—' => prefix.split_whitespace().count()>1 && !prefix.trim_end().ends_with("API"),
+            '.' => {
+                let token=prefix.split_whitespace().last().unwrap_or_default();
+                let abbreviation=token.contains('.') && token.chars().filter(|c|c.is_alphabetic()).count()<=3
+                    && token.chars().filter(|c|c.is_alphabetic()).all(|c|c.is_uppercase());
+                after.chars().next().is_some_and(char::is_whitespace) && !abbreviation
+            }
+            _ => false,
+        };
+        if boundary {return prefix;}
+    }
+    text
+}
 
 // A single catalog version is retained. Concurrent readers may finish with the
 // previous Arc, but new versions replace the cache rather than accumulating.
@@ -136,6 +168,11 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         )
         .facets;
         let mut indexed = document(Target::Endpoint(position), &text, capabilities);
+        let description=service.description.as_deref().unwrap_or(described);
+        let opening = opening_description(description);
+        let translated_description=english.render(&[description]);
+        let translated_opening=opening_description(&translated_description);
+        indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
         indexed.contract_facets = primary;
@@ -315,6 +352,7 @@ fn singular(word: &str) -> Option<String> {
         "companies" => "company".into(),
         "addresses" => "address".into(),
         "jaarrekeningen" => "jaarrekening".into(),
+        "sanctioned" => "sanction".into(),
         // Not the plural of "new": Reuters headlines are not "new rules".
         "news" => "news".into(),
         // bankruptcies/bankruptcy, activities/activity, entities/entity.
@@ -517,6 +555,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         }
     }
     Document {
+        topic_scope: tokens.clone(),
         target,
         tokens,
         facets,
@@ -1386,6 +1425,69 @@ mod tests {
             found[0].operations,
             BTreeSet::from(["company.sanctions-screen".into()])
         );
+    }
+
+    #[test]
+    fn professional_requests_do_not_match_parenting_or_unrequested_onchain_guides() {
+        let catalog = catalog(vec![
+            service(1, "company.ultimate-parent", "GLEIF", "Corporate parent and subsidiary ownership structure", "gleif"),
+            service(2, "operation.parentpulse.nutrition", "ParentPulse", "Pediatric nutrition and feeding guide for parenting and family agents. Parent and child nutrition, portion sizes and risks.", "parentpulse"),
+            service(3, "operation.parentpulse.childcare", "ParentPulse", "Childcare comparison for parenting and family agents with local costs and subsidy programs.", "parentpulse"),
+            service(4, "operation.onchainpulse.company", "OnchainPulse", "Narrative-vs-chain consistency check for token due diligence. Fetches the company website, employee metrics and project claims for blockchain wallet activity.", "onchainpulse"),
+        ], vec![known("parentpulse", "ParentPulse", "Parenting, family and childcare subsidy guides")]);
+        for requested in [
+            json!({"slug":"company.parent.structure","name":"Company parent structure","description":"Corporate parent and subsidiary ownership structure"}),
+            json!({"slug":"finance.subsidy.search","name":"Subsidy search","description":"Search business subsidy programs"}),
+            json!({"slug":"company.employee.count","name":"Company employee metrics","description":"Business company size and number of employees"}),
+        ] {
+            let mut request=parsed(vec![requested]);
+            request.capabilities[0].domain=request.capabilities[0].slug.split('.').next().unwrap().to_owned();
+            let found=search(&request,&catalog);
+            assert!(found[0].apiosk.iter().all(|candidate| !matches!(candidate.source_slug.as_deref(),Some("parentpulse"|"onchainpulse"))),"{:?}",found[0].apiosk);
+        }
+        let mut request=parsed(vec![json!({"slug":"finance.childcare.subsidy","name":"Childcare subsidy programs","description":"Childcare cost support for parents"})]);
+        request.capabilities[0].domain="finance".into();
+        assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("parentpulse")),"Requested childcare still has its relevant source");
+        let mut request=parsed(vec![json!({"slug":"company.employee.count","name":"Company employee metrics"})]);
+        request.capabilities[0].source_hint=Some("onchainpulse".into());
+        assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("onchainpulse")),"An explicit source request stays visible");
+        let mut request=parsed(vec![json!({"slug":"company.narrative.consistency","name":"Narrative consistency check"})]);
+        request.subjects[0].label="Ethereum Foundation".into();
+        assert!(search(&request,&catalog)[0].apiosk.iter().any(|candidate|candidate.source_slug.as_deref()==Some("onchainpulse")),"Explicit blockchain subject context is preserved");
+        let equity=self::catalog(vec![service(6,"finance.equity.quote","CryptoPulse","Stock commodity FX and index prices; crypto and blockchain provider overview","cryptopulse")],vec![]);
+        let request=parsed(vec![json!({"slug":"finance.equity.quote","name":"Equity quote"})]);
+        assert_eq!(search(&request,&equity)[0].apiosk.len(),1,"An exact capability survives unrelated provider-wide vocabulary");
+    }
+
+    #[test]
+    fn primary_topic_preserves_domains_abbreviations_and_short_intro_labels() {
+        for (text,expected) in [
+            ("ClinicalTrials.gov lookup, deterministic. Answers questions about trials.","ClinicalTrials.gov lookup, deterministic"),
+            ("Check Fly.io's official status source. Returns status.","Check Fly.io's official status source"),
+            ("U.S. sanctions screening. More details.","U.S. sanctions screening"),
+            ("FREE — Base batch-anchor proof for an ISO receipt bundle hash","FREE — Base batch-anchor proof for an ISO receipt bundle hash"),
+            ("RECEIPTS — the full token due-diligence report in one call","RECEIPTS — the full token due-diligence report in one call"),
+            ("Google Solar API — aerial GeoTIFF data layers and shade maps","Google Solar API — aerial GeoTIFF data layers and shade maps"),
+            ("Is it real or fake? Collectible authentication and counterfeit check. Provider overview.","Is it real or fake? Collectible authentication and counterfeit check"),
+            ("Is it safe to exercise outside today? Real-time air quality and AQI. Provider overview.","Is it safe to exercise outside today? Real-time air quality and AQI"),
+        ] {assert_eq!(opening_description(text),expected);}
+        let catalog=catalog(vec![
+            service(1,"operation.trial.lookup","Trial service","ClinicalTrials.gov lookup, deterministic. Answers trial recruitment questions.","trial-service"),
+            service(2,"operation.fly.status","Status service","Check Fly.io's official status source. Returns uptime.","status-service"),
+            service(3,"operation.receipt.proof","Receipts","FREE — Base batch-anchor proof for an ISO receipt bundle hash","receipts"),
+            service(4,"operation.collectibles.authenticate","Collectibles","Is it real or fake? Collectible authentication and counterfeit check. Provider overview.","collectibles"),
+            service(5,"operation.air.quality","Air","Is it safe to exercise outside today? Real-time air quality and AQI. Provider overview.","air"),
+        ],vec![]);
+        for (slug,name,source) in [
+            ("research.clinical.trials","Clinical trials","trial-service"),
+            ("research.service.status","Official service status","status-service"),
+            ("research.receipt.proof","Receipt proof","receipts"),
+            ("research.collectible.authentication","Collectible authentication","collectibles"),
+            ("location.air.quality","Air quality","air"),
+        ] {
+            let found=search(&parsed(vec![json!({"slug":slug,"name":name})]),&catalog);
+            assert!(found[0].apiosk.iter().any(|c|c.source_slug.as_deref()==Some(source)),"{slug}: {:?}",found[0].apiosk);
+        }
     }
 
     #[test]

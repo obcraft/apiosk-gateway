@@ -481,11 +481,32 @@ fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, so
 /// Reuse literal values under the same rules as the App's input review. A
 /// schema or requested output is never confused with a returned source value.
 fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
-    let subject = (parsed.subjects.len() == 1).then(|| &parsed.subjects[0]);
+    let mut match_counts = BTreeMap::<String, usize>::new();
+    for found in matches.as_array().into_iter().flatten() {
+        *match_counts.entry(found["slug"].as_str().unwrap_or_default().to_owned()).or_default() += 1;
+    }
+    let mut occurrences = BTreeMap::<String, usize>::new();
     for found in matches.as_array_mut().into_iter().flatten() {
+        // Search preserves capability order, including the same capability on
+        // different subjects. Never let one company's identifiers fill another.
+        let slug = found["slug"].as_str().unwrap_or_default().to_owned();
+        let occurrence = occurrences.entry(slug.clone()).or_default();
+        let requested_count=parsed.capabilities.iter().filter(|cap|cap.slug==slug).count();
+        // Older directory query maps collapse duplicate slugs. There is then
+        // no unambiguous subject association; keep the input review empty.
+        let capability = (match_counts.get(&slug).copied()==Some(requested_count))
+            .then(||parsed.capabilities.iter().filter(|cap| cap.slug == slug).nth(*occurrence)).flatten();
+        *occurrence += 1;
+        let subject = match capability.and_then(|cap| cap.subject_id.as_deref()) {
+            Some(id) => parsed.subjects.iter().find(|subject| subject.id == id),
+            None if capability.is_none() && slug.is_empty() && parsed.subjects.len() == 1 => parsed.subjects.first(),
+            None => None,
+        };
+        found["subject_id"] = json!(subject.map(|subject| &subject.id));
         for candidate in found.as_object_mut().into_iter().flat_map(|found| found.iter_mut())
             .filter(|(origin, _)| matches!(origin.as_str(), "apiosk" | "coinbase"))
             .flat_map(|(_, candidates)| candidates.as_array_mut().into_iter().flatten()) {
+            candidate["subject_id"] = json!(subject.map(|subject| &subject.id));
             let endpoint = &mut candidate["endpoint"];
             if !endpoint.is_object() { continue; }
             let mut values = serde_json::Map::new();
@@ -493,11 +514,7 @@ fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
                 let Some(name) = field["field"].as_str() else { continue; };
                 if let Some(default) = field["schema"].get("default") { values.insert(name.into(), default.clone()); }
                 if let Some(subject) = subject {
-                    let identifiers: Vec<_> = subject.identifiers.iter().filter(|(key, _)| name == *key || name.ends_with(&format!(".{key}"))).collect();
-                    if identifiers.len() == 1 { values.insert(name.into(), json!(identifiers[0].1)); }
-                    else if name == format!("{}.name", subject.kind) || name == format!("{}.registered_name", subject.kind) {
-                        values.insert(name.into(), json!(subject.label));
-                    }
+                    if let Some(value) = crate::ask_v2::input_values::literal(name, subject) { values.insert(name.into(), value); }
                 }
                 if let Some(value) = values.get(name).cloned() {
                     if catalog_core::facts::schema::validate(&field["schema"], &value).is_err() {
@@ -580,6 +597,79 @@ fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Sou
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    #[ignore = "requires read-only saved audit App chats and CATALOG_SNAPSHOT; no network"]
+    fn audit_saved_profession_discovery_and_binding() {
+        let dir=std::path::PathBuf::from(std::env::var("PROFESSION_AUDIT_DIR").unwrap());
+        let saved:Value=serde_json::from_slice(&std::fs::read(dir.join("../sources/live-app-test-chats.json")).unwrap()).unwrap();
+        let snapshot:crate::catalog::Snapshot=serde_json::from_slice(&std::fs::read(std::env::var("CATALOG_SNAPSHOT").unwrap()).unwrap()).unwrap();
+        let catalog=crate::catalog::Catalog::build(snapshot);
+        let mut reports=vec![];
+        for row in saved["rows"].as_array().unwrap() {
+            let mut report=json!({"question":row["question"],"chat_id":row["id"],"catalog_version":catalog.version,"boundary":"Actual saved live model parse replayed through local search + endpoint descriptors + literal binder; no model calls, tasks, approvals, purchases or source execution."});
+            let mut raw=row["parsed"]["parsed_request"].clone();
+            if raw.is_object() {
+                for cap in raw["capabilities"].as_array_mut().into_iter().flatten() {cap.as_object_mut().unwrap().remove("status");}
+                let parsed:ParsedRequest=serde_json::from_value(raw).unwrap();
+                let mut matches=serde_json::to_value(crate::ask_v2::search::search(&parsed,&catalog)).unwrap();
+                describe_endpoints(&mut matches,&catalog,None);
+                bind_inputs(&mut matches,&parsed);
+                report["status"]=json!("replayed"); report["matches"]=matches;
+                report["parsed_request"]=json!(parsed);
+            } else {report["status"]=json!("live_parse_failed");}
+            reports.push(report);
+        }
+        std::fs::write(dir.join("live-parse-replay.json"),serde_json::to_vec_pretty(&reports).unwrap()).unwrap();
+        println!("Replayed {} saved live App records without network or purchases",reports.len());
+    }
+    #[test]
+    fn each_discovered_operation_binds_only_its_own_subject() {
+        let parsed = capability_intake::normalize(&json!({"language":"nl","subjects":[
+            {"id":"s1","label":"Coolblue B.V.","type":"company","identifiers":{"kvk_number":"24330087"}},
+            {"id":"s2","label":"HEMA B.V.","type":"company","identifiers":{"kvk_number":"34395564"}}],
+            "capabilities":[
+                {"slug":"company.profile","name":"Company profile","description":"Registry profile","domain":"company","inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1},
+                {"slug":"company.profile","name":"Company profile","description":"Registry profile","domain":"company","inputs":[],"outputs":[],"subject_id":"s2","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":["compare"]}}).to_string(), "Coolblue B.V. 24330087 HEMA B.V. 34395564", "fixture").unwrap();
+        let candidate=json!({"endpoint":{"inputs":[{"field":"company_registry.kvknummer","required":true,"schema":{"type":"string","pattern":"^[0-9]{8}$"}}],"lookup":{"resolves":["company_registry.kvknummer"]}}});
+        let mut matches=json!([{"slug":"company.profile","apiosk":[candidate.clone()]},{"slug":"company.profile","apiosk":[candidate]}]);
+        bind_inputs(&mut matches,&parsed);
+        assert_eq!(matches[0]["apiosk"][0]["endpoint"]["input_values"],json!({"company_registry.kvknummer":"24330087"}));
+        assert_eq!(matches[1]["apiosk"][0]["endpoint"]["input_values"],json!({"company_registry.kvknummer":"34395564"}));
+        assert_eq!(matches[0]["apiosk"][0]["subject_id"],"s1");
+        assert_eq!(matches[1]["apiosk"][0]["subject_id"],"s2");
+        let mut collapsed=json!([{"slug":"company.profile","coinbase":[{"endpoint":{"inputs":[{"field":"company.name","required":true,"schema":{"type":"string"}}]}}]}]);
+        bind_inputs(&mut collapsed,&parsed);
+        assert_eq!(collapsed[0]["coinbase"][0]["endpoint"]["input_values"],json!({}),"a collapsed directory match cannot bind the first subject to the last query");
+        assert!(collapsed[0]["coinbase"][0]["subject_id"].is_null());
+    }
+
+    #[test]
+    fn professional_searches_keep_literal_topic_and_typed_vehicle_and_vat_values() {
+        for (slug,subject,field,expected) in [
+            ("procurement.notices",json!({"id":"s1","label":"IT-diensten","type":"topic","identifiers":{}}),"company_intel.input.search",json!("IT-diensten")),
+            ("finance.subsidy",json!({"id":"s1","label":"verduurzaming","type":"topic","identifiers":{}}),"subsidy.discovery.keyword",json!("verduurzaming")),
+            ("vehicle.profile",json!({"id":"s1","label":"GZ934Z","type":"vehicle","identifiers":{"license_plate":"GZ934Z"}}),"vehicle.registration.nl.plate",json!("GZ934Z")),
+            ("compliance.vat",json!({"id":"s1","label":"NL123456789B01","type":"vat","identifiers":{"vat_number":"NL123456789B01"}}),"vat.eu.number",json!("123456789B01")),
+            ("compliance.vat",json!({"id":"s1","label":"NL123456789B01","type":"vat","identifiers":{"vat_number":"NL123456789B01"}}),"vat.eu.country_code",json!("NL")),
+        ] {
+            let question=subject["label"].as_str().unwrap();
+            let parsed=capability_intake::normalize(&json!({"language":"nl","subjects":[subject],"capabilities":[{"slug":slug,"name":"Requested data","description":"Retrieve the requested data","domain":slug.split('.').next().unwrap(),"inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
+            let mut matches=json!([{"slug":slug,"apiosk":[{"endpoint":{"inputs":[{"field":field,"required":true,"schema":{"type":"string"}}]}}]}]);
+            bind_inputs(&mut matches,&parsed);
+            assert_eq!(matches[0]["apiosk"][0]["endpoint"]["input_values"][field],expected);
+            assert_eq!(matches[0]["apiosk"][0]["endpoint"]["missing_inputs"],json!([]));
+        }
+    }
+
+    #[test]
+    fn a_topicless_request_does_not_invent_a_search_query_or_reuse_another_subject() {
+        let parsed=capability_intake::normalize(&json!({"language":"nl","subjects":[{"id":"s1","label":"Utrecht","type":"city","identifiers":{}}],"capabilities":[{"slug":"procurement.notices","name":"Public tenders","description":"Find public tenders","domain":"procurement","inputs":[],"outputs":[],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),"Aanbestedingen in Utrecht","fixture").unwrap();
+        let mut matches=json!([{"slug":"procurement.notices","apiosk":[{"endpoint":{"inputs":[{"field":"company_intel.input.search","required":true,"schema":{"type":"string"}}]}}]}]);
+        bind_inputs(&mut matches,&parsed);
+        assert_eq!(matches[0]["apiosk"][0]["endpoint"]["input_values"],json!({}));
+        assert_eq!(matches[0]["apiosk"][0]["endpoint"]["missing_inputs"],json!(["company_intel.input.search"]));
+    }
     #[test]
     fn discovered_values_are_typed_and_invalid_literals_remain_missing() {
         let parsed = capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"Example","type":"company","identifiers":{"number":"42","bad":"nope"}}],

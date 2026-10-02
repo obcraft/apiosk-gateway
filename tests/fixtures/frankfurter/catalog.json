@@ -1,0 +1,169 @@
+{
+  "known_sources": [
+    {
+      "slug": "frankfurter",
+      "name": "Frankfurter",
+      "metadata": {
+        "coverage_notice": "Latest daily ECB euro foreign-exchange reference rate for one target currency, via Frankfurter. EUR base; includes observation date. ECB data is free at ecb.europa.eu; Apiosk charges for retrieval. Not intraday, historical rates, Euribor or trading quotes."
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "fx.ecb.quote",
+      "value_schema": {
+        "type": "string",
+        "enum": [
+          "AUD",
+          "BRL",
+          "CAD",
+          "CHF",
+          "CNY",
+          "CZK",
+          "DKK",
+          "EUR",
+          "GBP",
+          "HKD",
+          "HUF",
+          "IDR",
+          "ILS",
+          "INR",
+          "ISK",
+          "JPY",
+          "KRW",
+          "MXN",
+          "MYR",
+          "NOK",
+          "NZD",
+          "PHP",
+          "PLN",
+          "RON",
+          "SEK",
+          "SGD",
+          "THB",
+          "TRY",
+          "USD",
+          "ZAR"
+        ],
+        "description": "Target currency from the verified ECB daily euro reference currency set."
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "base": {
+            "type": "string",
+            "enum": [
+              "EUR"
+            ]
+          },
+          "quote": {
+            "type": "string",
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-9
+          }
+        }
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "c9b32ac9-4c79-4c82-bb61-16619a7d7526",
+      "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67",
+      "api_slug": "frankfurter",
+      "name": "Frankfurter",
+      "description": "Latest daily ECB euro foreign-exchange reference rate for one target currency, via Frankfurter. EUR base; includes observation date. ECB data is free at ecb.europa.eu; Apiosk charges for retrieval. Not intraday, historical rates, Euribor or trading quotes.",
+      "source_url": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
+      "method": "GET",
+      "path": "/v2/providers/ecb/rate/EUR/{quote}",
+      "listing_type": "api",
+      "list_atomic": 50000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": null,
+      "sample_payload": {
+        "date": "2026-10-01",
+        "base": "EUR",
+        "quote": "USD",
+        "rate": 1.1298
+      },
+      "contract": {
+        "capability_slug": "fx.ecb-reference-rate",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "fx.ecb.quote",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "fx.ecb.quote": {
+            "in": "path",
+            "name": "quote"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "fx.ecb.reference_rate": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    }
+  ]
+}

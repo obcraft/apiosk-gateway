@@ -29,11 +29,20 @@ const PLANNED_MESSAGE: &str = "I'll check the sources and show the total price b
 pub(super) fn data_request(intake: &Intake) -> bool {
     let parsed = &intake.parsed_request;
     !parsed.capabilities.is_empty()
-        && parsed.capabilities.iter().all(|cap| {
+        && parsed.capabilities.iter().enumerate().all(|(index, cap)| {
             cap.domain != "general"
                 && cap.subject_id.as_ref().is_some_and(|id| parsed.subjects.iter().any(|s| &s.id == id))
-                && intake.matches.iter().any(|m| m.slug == cap.slug && !m.operations.is_empty())
+                && request_match(intake,index).is_some_and(|m| !m.operations.is_empty())
         })
+}
+
+/// Search returns one match per parsed request instance, not per unique slug.
+fn request_match(intake: &Intake, index: usize) -> Option<&crate::capability_intake::Match> {
+    let cap=intake.parsed_request.capabilities.get(index)?;
+    let count=intake.parsed_request.capabilities.iter().filter(|c|c.slug==cap.slug).count();
+    if intake.matches.iter().filter(|m|m.slug==cap.slug).count()!=count { return None; }
+    let occurrence=intake.parsed_request.capabilities[..index].iter().filter(|c|c.slug==cap.slug).count();
+    intake.matches.iter().filter(|m|m.slug==cap.slug).nth(occurrence)
 }
 
 /// A stated reason other than `none`, whose message is not a request for
@@ -65,9 +74,9 @@ pub(super) fn planned_reply(intake: &Intake, catalog: &Catalog) -> Option<ChatRe
         .map(|s| Subject { entity_ref: None, label: s.label.clone(), values: BTreeMap::new() })
         .collect();
     let mut goals = Vec::new();
-    for cap in &parsed.capabilities {
+    for (index,cap) in parsed.capabilities.iter().enumerate() {
         let subject = parsed.subjects.iter().position(|s| cap.subject_id.as_deref() == Some(s.id.as_str()))?;
-        let found = intake.matches.iter().find(|m| m.slug == cap.slug)?;
+        let found = request_match(intake,index)?;
         // Candidates are in the search's ranking; the operation set is not.
         let best = found.apiosk.iter().find(|c| c.capability.as_ref().is_some_and(|op| found.operations.contains(op)))?;
         let capability = best.capability.clone()?;
@@ -85,6 +94,23 @@ pub(super) fn planned_reply(intake: &Intake, catalog: &Catalog) -> Option<ChatRe
 /// chosen operation only when the input names the same scheme and the value
 /// passes its schema; anything else stays unbound rather than guessed.
 fn bind_identifiers(subject: &mut Subject, parsed: &ParsedSubject, capability: &str, source: Option<&str>, catalog: &Catalog) {
+    // Bind names even when the selected report consumes an identifier: its
+    // dependency may resolve that identifier from the literal company name.
+    for field in ["company.name", "geo.input.q"] {
+        if let Some(value) = crate::ask_v2::input_values::literal(field, parsed).filter(|value|
+            catalog.vocabulary.get(field).is_some_and(|fact| catalog_core::facts::schema::validate(&fact.value_schema, value).is_ok())) {
+            subject.values.entry(field.into()).or_insert(value);
+        }
+    }
+    for service in catalog.services.iter().filter(|s| s.contract.capability_slug == capability && source.is_none_or(|source| s.api_slug == source)) {
+        for required in &service.contract.requires {
+            let field = &required.fact_type;
+            if let Some(value) = crate::ask_v2::input_values::literal(field, parsed).filter(|value|
+                catalog.vocabulary.get(field).is_some_and(|fact| catalog_core::facts::schema::validate(&fact.value_schema, value).is_ok())) {
+                subject.values.entry(field.clone()).or_insert(value);
+            }
+        }
+    }
     for (key, value) in &parsed.identifiers {
         let scheme = key.split('_').next().unwrap_or(key).to_lowercase();
         if scheme.len() < 2 {
@@ -170,7 +196,8 @@ mod tests {
         assert!(reply.discover);
         let intent = reply.intent.unwrap();
         assert_eq!(intent.subjects[0].label, "Coolblue B.V.");
-        assert!(intent.subjects[0].values.is_empty(), "the name lookup is the engine's, the number is never guessed");
+        assert_eq!(intent.subjects[0].values.get("company.name"), Some(&json!("Coolblue B.V.")));
+        assert!(!intent.subjects[0].values.contains_key("company_registry.kvknummer"), "the number is never guessed");
         assert_eq!(intent.goals.len(), 1);
         assert_eq!(intent.goals[0].capability, "company.registry-profile");
         assert_eq!(intent.goals[0].constraints["source"], KVK);
@@ -184,6 +211,82 @@ mod tests {
         let intent = planned_reply(&kvk_intake(json!({"kvk_number":"24330087"}), &question), &catalog).unwrap().intent.unwrap();
         assert_eq!(intent.subjects[0].values["company_registry.kvknummer"], "24330087");
         let intent = planned_reply(&kvk_intake(json!({"vat_number":"24330087"}), &question), &catalog).unwrap().intent.unwrap();
-        assert!(intent.subjects[0].values.is_empty(), "another scheme's number is not a KVK number");
+        assert!(!intent.subjects[0].values.contains_key("company_registry.kvknummer"), "another scheme's number is not a KVK number");
+    }
+
+    #[test]
+    fn repeated_capabilities_keep_each_subjects_source_and_missing_match() {
+        let mut intake=kvk_intake(json!({}),QUESTION);
+        let mut second=intake.parsed_request.subjects[0].clone();
+        second.id="s2".into(); second.label="MONZO BANK LIMITED".into();
+        intake.parsed_request.subjects.push(second);
+        let mut cap=intake.parsed_request.capabilities[0].clone();
+        cap.subject_id=Some("s2".into());cap.source_hint=Some("companies house".into());
+        intake.parsed_request.capabilities.push(cap);
+        let mut found=intake.matches[0].clone();
+        for candidate in &mut found.apiosk {candidate.source_slug=Some("companies-house".into());}
+        intake.matches.push(found);
+        let planned=planned_reply(&intake,&catalog()).unwrap().intent.unwrap();
+        assert_eq!(planned.goals[0].constraints["source"],KVK);
+        assert_eq!(planned.goals[1].constraints["source"],"companies-house");
+        assert_eq!(planned.goals[1].subject,1);
+        assert_eq!(planned.subjects[1].values["company.name"],"MONZO BANK LIMITED");
+        intake.matches[1].operations.clear();
+        assert!(!data_request(&intake));
+        assert!(planned_reply(&intake,&catalog()).is_none());
+        intake.matches.pop();
+        assert!(!data_request(&intake),"a collapsed match must not satisfy both subjects");
+    }
+
+    /// No network or model: intentionally separates authored extraction fixtures
+    /// from the actual search, fallback planner, input binder and quote compiler.
+    #[test]
+    #[ignore = "requires PROFESSION_AUDIT_DIR and a read-only CATALOG_SNAPSHOT"]
+    fn audit_profession_search_and_fallback_planning() {
+        use crate::{catalog::Snapshot, engine::bind_subjects, resolver::{resolve, Resolution}, state::Task};
+        let dir = std::path::PathBuf::from(std::env::var("PROFESSION_AUDIT_DIR").unwrap());
+        let cases: Vec<serde_json::Value> = serde_json::from_slice(&std::fs::read(dir.join("cases.json")).unwrap()).unwrap();
+        let snapshot: Snapshot = serde_json::from_slice(&std::fs::read(std::env::var("CATALOG_SNAPSHOT").unwrap()).unwrap()).unwrap();
+        let catalog = Catalog::build(snapshot);
+        std::fs::write(dir.join("rejected-contracts.json"),serde_json::to_vec_pretty(&catalog.rejected).unwrap()).unwrap();
+        let mut reports = vec![];
+        for case in cases {
+            let question = case["question"].as_str().unwrap();
+            let parsed = capability_intake::normalize(&case["authored_parse_fixture"].to_string(), question, "authored-fixture-no-model").unwrap();
+            let matches = crate::ask_v2::search::search(&parsed, &catalog);
+            let selected = matches.iter().flat_map(|m| m.operations.iter().cloned()).collect();
+            let intake = Intake {parsed_request:parsed,matches,selected_capabilities:selected,apiosk_sources_searched:capability_intake::source_count(&catalog),catalog_version:catalog.version.clone()};
+            let mut report = json!({"case":case["case"],"question":question,"intake":intake,"mode":"Authored extraction fixture; actual deterministic search, fallback planner, binder and resolver. No model, network, provider execution or purchases."});
+            let mut task = Task::default();
+            if let Some(reply) = planned_reply(&intake, &catalog) {
+                let mut intent = reply.intent.unwrap();
+                let validation = intent.validate(question, &task, &catalog).and_then(|_| bind_subjects(&mut task, &catalog, &mut intent));
+                match validation {
+                    Err(error) => {report["status"]=json!("invalid");report["error"]=json!(error.to_string());}
+                    Ok(()) => {
+                        report["intent"]=json!(intent);
+                        let missing_goals:Vec<_>=case["required_capability_groups"].as_array().unwrap().iter().filter(|group|
+                            !group.as_array().unwrap().iter().any(|cap|intent.goals.iter().any(|goal|Some(goal.capability.as_str())==cap.as_str()))).cloned().collect();
+                        report["all_expected_retrieval_goals_planned"]=json!(missing_goals.is_empty());
+                        report["missing_retrieval_goal_groups"]=json!(missing_goals);
+                        match resolve(&catalog,&task,&intent) {
+                            Resolution::Plan(plan) => {report["status"]=json!("quoted");report["cap_atomic"]=json!(plan.cap_atomic);
+                                report["steps"]=json!(plan.steps.iter().map(|step|json!({"source":step.service.api_slug,"capability":step.service.contract.capability_slug,"inputs":step.service.inputs(&task,step.entity_ref,&catalog.vocabulary).ok()})).collect::<Vec<_>>());}
+                            Resolution::Missing {kind,..} => {report["status"]=json!("needs_input");report["missing_input"]=json!(kind);}
+                            Resolution::Unsupported(reason) => {report["status"]=json!("unsupported");report["reason"]=json!(reason);}
+                        }
+                    }
+                }
+            } else {report["status"]=json!("no_complete_plan");}
+            let missing: Vec<_> = case["required_capability_groups"].as_array().unwrap().iter().filter(|group|
+                !group.as_array().unwrap().iter().any(|cap|intake.matches.iter().any(|m|m.operations.contains(cap.as_str().unwrap())))).cloned().collect();
+            report["expected_operations_discovered"]=json!(missing.is_empty());
+            report["missing_expected_operation_groups"]=json!(missing);
+            println!("case {} {} expected_operations={}",case["case"],report["status"],report["expected_operations_discovered"]);
+            reports.push(report);
+        }
+        let run = std::env::var("PROFESSION_RUN").unwrap_or_else(|_|"baseline".into());
+        std::fs::write(dir.join(format!("offline-{run}.json")),serde_json::to_vec_pretty(&reports).unwrap()).unwrap();
+        assert_eq!(reports.len(),20,"audit fixture must cover all PDF professions");
     }
 }

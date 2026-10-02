@@ -331,8 +331,8 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("capabilities must be an array"))?;
     ensure!(
-        !capabilities.is_empty() && capabilities.len() <= 8,
-        "return one to eight capabilities"
+        !capabilities.is_empty() && capabilities.len() <= 16,
+        "return one to sixteen capabilities"
     );
     let mut normalized = Vec::new();
     for cap in capabilities {
@@ -390,8 +390,20 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
         "word" => "docx",
         f if FORMATS.contains(&f) => f,
         _ => "chat",
-    }
-    .to_owned();
+    };
+    // A report or dossier does not imply a downloadable file. Keep an explicit
+    // format from earlier user turns, but never turn the model's preference
+    // into a file-format promise the person did not make.
+    let aliases: &[&str] = match format {
+        "pdf" => &["pdf", "pdfbestand", "pdfdocument"],
+        "xlsx" => &["xlsx", "excel", "excelbestand", "spreadsheet", "spreadsheets"],
+        "docx" => &["docx", "word", "wordbestand", "worddocument"],
+        "json" => &["json"],
+        _ => &[],
+    };
+    let explicit = literals.to_lowercase().split(|ch: char| !ch.is_alphanumeric())
+        .any(|word| aliases.contains(&word));
+    let format = if format == "chat" || explicit { format } else { "chat" }.to_owned();
     let operations: Vec<String> = deliverable["operations"]
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("operations must be an array"))?
