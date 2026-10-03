@@ -171,7 +171,7 @@ impl Engine {
                     .map(|turn| crate::direct_answer::reviewed_compose(&turn.question, &intent, &sources))
                     .unwrap_or(Ok(None));
                 let reviewed = match reviewed {
-                    Ok(Some(answer)) if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() => Some(answer),
+                    Ok(Some(answer)) if crate::direct_answer::reviewed_sources_ready(&answer, &task, &sources) => Some(answer),
                     Ok(Some(_)) => Some(json!({"status":"unavailable","limitations":["Not all source requests have completed successfully. Your source results are saved; no additional source purchase was made."],"observations":[]})),
                     Err(error) => {
                         tracing::warn!(task = %id, error = %error, "saved source projection could not be verified");

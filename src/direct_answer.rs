@@ -3,6 +3,16 @@
 use crate::parser::{validate_analysis, Intent};
 use serde_json::{json, Value};
 
+mod kvk_profile;
+
+/// Reviewed answers normally require every source step to have succeeded.
+/// The only exception is a verified KVK profile saved by the old contract,
+/// whose two derived facts could be absent despite a complete raw profile.
+pub(crate) fn reviewed_sources_ready(answer: &Value, task: &crate::state::Task, sources: &[Value]) -> bool {
+    task.pending_dispatches.is_empty()
+        && (task.failed_steps.is_empty() || kvk_profile::legacy_contract_gap(answer, task, sources))
+}
+
 /// A failed synthesis must not hide a successfully saved registry dossier.
 /// This conservative fallback presents exact fields, never an AI conclusion.
 pub(crate) fn registry_fallback(intent: &Intent, sources: &[Value], dutch: bool) -> Option<Value> {
@@ -126,6 +136,9 @@ pub(crate) fn registry_fallback(intent: &Intent, sources: &[Value], dutch: bool)
 /// incomplete or mismatched saved evidence. That error must not fall through
 /// to model synthesis or trigger another purchase.
 pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
+    if let Some(answer) = kvk_profile::compose(question, intent, sources)? {
+        return Ok(Some(answer));
+    }
     if let Some(answer) = crate::profession_answer::compose(question, intent, sources)? {
         return Ok(Some(answer));
     }

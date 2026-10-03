@@ -542,8 +542,26 @@ mod tests {
 
     #[tokio::test]
     async fn bare_kvk_check_quotes_one_exact_profile_and_keeps_explicit_fields_required() {
+        bare_kvk_check_contract(false).await;
+    }
+
+    #[tokio::test]
+    async fn repaired_kvk_contract_still_quotes_the_profile_and_keeps_explicit_fields_required() {
+        bare_kvk_check_contract(true).await;
+    }
+
+    async fn bare_kvk_check_contract(repaired: bool) {
         let question = "87560488 check dit kvk nummer";
-        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
+        if repaired {
+            let migration = include_str!("../../supabase/migrations/20261003203509_support_kvk_sole_trader_profiles.sql");
+            for service in snapshot.services.iter_mut().filter(|s| s.api_slug == "kvk-dutch-business-register" && s.path == "/api/v1/basisprofielen") {
+                service.contract.output_map = serde_json::from_str(migration.split("$repaired_output$").nth(1).unwrap()).unwrap();
+                service.contract.version = 8;
+                service.optional_outputs.push("company.profile".into());
+            }
+        }
+        let catalog = Catalog::build(snapshot);
         let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
         let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
         let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();

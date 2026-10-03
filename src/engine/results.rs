@@ -581,6 +581,73 @@ fn confirmed_empty_search(service: &crate::catalog::Service, data: &Value) -> bo
 #[cfg(test)]
 mod completeness_tests {
     use super::*;
+
+    fn repaired_kvk_catalog() -> Catalog {
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!(
+            "../../tests/fixtures/research-report-catalog.json"
+        )).unwrap();
+        let service = snapshot.services.iter_mut().find(|s| s.path == "/api/v1/basisprofielen").unwrap();
+        // Execute the exact output definition reviewed in the versioned repair.
+        let migration = include_str!("../../supabase/migrations/20261003203509_support_kvk_sole_trader_profiles.sql");
+        service.contract.output_map = serde_json::from_str(migration.split("$repaired_output$").nth(1).unwrap()).unwrap();
+        service.contract.version = 8;
+        service.optional_outputs.push("company.profile".into());
+        Catalog::build(snapshot)
+    }
+
+    #[test]
+    fn kvk_sole_trader_without_statutory_name_is_a_complete_source_record() {
+        let catalog = repaired_kvk_catalog();
+        let service = catalog.services.iter().find(|s| s.path == "/api/v1/basisprofielen").unwrap();
+        // Minimal observed sole-trader shape: no statutory name and no RSIN.
+        let data = json!({"kvkNummer":"87560488","naam":"Bas Grave Web Development",
+            "handelsnamen":[{"naam":"Bas Grave Web Development"},{"naam":"Onderstreept"}],
+            "_embedded":{"eigenaar":{"rechtsvorm":"Eenmanszaak"}},
+            "sbiActiviteiten":[{"sbiCode":"62100"}],"totaalWerkzamePersonen":1});
+        let extracted = service.contract.extract(&data, &catalog.vocabulary).unwrap();
+        assert!(missing_required_outputs(service, &extracted, &data).is_empty());
+        let subject = extracted.single().unwrap();
+        assert_eq!(subject.fact("company.name").unwrap().value, "Bas Grave Web Development");
+        assert_eq!(subject.fact("company_registry.kvknummer").unwrap().value, "87560488");
+        // A trade name never silently becomes a legal name or normalized profile.
+        assert!(subject.fact("company.nl.registered_name").is_none());
+        assert!(subject.fact("company.nl.rsin").is_none());
+        assert!(subject.fact("company.profile").is_none());
+        assert_eq!(extracted.rejected.len(), 1);
+        assert_eq!(extracted.rejected[0].fact_type, "company.profile");
+        let step = resolver::Step { service: service.clone(), entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None };
+        assert!(matches!(rows(&Task::default(), &step, Ok(extracted), Vec::new(), true, false, &data), Rows::Bind(_)),
+            "an optional legal-name projection cannot fail the source step");
+    }
+
+    #[test]
+    fn kvk_repair_keeps_bv_profile_and_still_rejects_missing_identity_or_name() {
+        let catalog = repaired_kvk_catalog();
+        let service = catalog.services.iter().find(|s| s.path == "/api/v1/basisprofielen").unwrap();
+        let data = service.sample_payload.as_ref().unwrap();
+        let extracted = service.contract.extract(data, &catalog.vocabulary).unwrap();
+        assert!(missing_required_outputs(service, &extracted, data).is_empty());
+        assert!(extracted.rejected.is_empty());
+        assert_eq!(extracted.single().unwrap().fact("company.profile").unwrap().value["legal_name"], "Mollie B.V.");
+        for (field, value, missing) in [
+            ("naam", Value::Null, "company.name"),
+            ("naam", json!(""), "company.name"),
+            ("naam", json!(["Multiple", "Names"]), "company.name"),
+            ("kvkNummer", Value::Null, "company_registry.kvknummer"),
+            ("kvkNummer", json!(87560488), "company_registry.kvknummer"),
+            ("kvkNummer", json!("8756048"), "company_registry.kvknummer"),
+        ] {
+            let mut malformed = data.clone();
+            malformed[field] = value;
+            let extracted = service.contract.extract(&malformed, &catalog.vocabulary).unwrap();
+            assert!(missing_required_outputs(service, &extracted, &malformed).contains(&missing.to_owned()), "{field}: {malformed}");
+        }
+        let mut leading_zero = data.clone();
+        leading_zero["kvkNummer"] = json!("00123456");
+        let extracted = service.contract.extract(&leading_zero, &catalog.vocabulary).unwrap();
+        assert_eq!(extracted.single().unwrap().fact("company_registry.kvknummer").unwrap().value, "00123456");
+    }
+
     #[test]
     fn foreign_optional_ids_do_not_make_a_complete_record_partial() {
         let catalog = Catalog::build(

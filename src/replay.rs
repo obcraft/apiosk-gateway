@@ -155,7 +155,7 @@ pub async fn run(parser: &Parser, catalog: &Catalog, case: &Case, stored: &[Stor
 /// never permission for the tape's model to invent the missing comparison.
 fn saved_answer(question: &str, intent: &Intent, task: &Task, sources: &[Value]) -> Option<Value> {
     let reviewed = match crate::direct_answer::reviewed_compose(question, intent, sources) {
-        Ok(Some(answer)) if task.failed_steps.is_empty() && task.pending_dispatches.is_empty() => Some(answer),
+        Ok(Some(answer)) if crate::direct_answer::reviewed_sources_ready(&answer, task, sources) => Some(answer),
         Ok(Some(_)) => Some(json!({"status":"unavailable","limitations":["Not all source requests have completed successfully. Your source results are saved; no additional source purchase was made."],"observations":[]})),
         Err(_) => Some(json!({"status":"unavailable","limitations":["The saved source results are incomplete or inconsistent for this answer. Your source results are saved; no additional source purchase was made."],"observations":[]})),
         Ok(None) => None,
