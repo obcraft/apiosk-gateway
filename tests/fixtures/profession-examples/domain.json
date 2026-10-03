@@ -1,0 +1,129 @@
+{
+  "question": "Geef openbare RDAP-registratiegegevens en mail-DNS-records voor example.org. Citeer de bronnen.",
+  "intent": {
+    "goals": [
+      {
+        "subject": 0,
+        "capability": "domain.mail-dns",
+        "constraints": {
+          "source": "domain-intelligence",
+          "endpoint_id": "19174ffb-ae5a-4d99-b016-b32a3d9691ef"
+        }
+      },
+      {
+        "subject": 0,
+        "capability": "domain.registration",
+        "constraints": {
+          "source": "domain-intelligence",
+          "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8"
+        }
+      }
+    ],
+    "subjects": [
+      {
+        "label": "example.org",
+        "values": {
+          "domain.name": "example.org"
+        },
+        "entity_ref": "8c3af706-e247-4252-96de-a78dd2642c73"
+      }
+    ],
+    "answer_operations": [
+      "Cite the retrieved sources and preserve their scope, observation dates and missing fields."
+    ],
+    "unresolved_references": []
+  },
+  "results": [
+    {
+      "result_ref": "1dba9117-ccca-4f94-9db1-d62a122f6810",
+      "data": {
+        "data": {
+          "mx": [
+            "0 ."
+          ],
+          "domain": "example.org",
+          "exists": true,
+          "accepts_mail": false,
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS MX lookup at request time (Google Public DNS). DNS shows mail routing, not ownership.",
+        "coverage": {
+          "scope": "MX records for one domain",
+          "complete": true
+        },
+        "source_url": "https://dns.google/resolve?name=example.org&type=MX"
+      },
+      "source": {
+        "url": "https://about.rdap.org/",
+        "name": "Domain Intelligence (RDAP & DNS)",
+        "path": "/dns/{domain}",
+        "provider": "domain-intelligence",
+        "endpoint_id": "19174ffb-ae5a-4d99-b016-b32a3d9691ef",
+        "retrieved_at": "2026-10-03T15:48:38.668260425Z",
+        "contract_version": 1
+      },
+      "subject": {
+        "label": "example.org",
+        "entity_ref": "8c3af706-e247-4252-96de-a78dd2642c73"
+      },
+      "coverage": "source_response",
+      "currency": "USD",
+      "receipt_ref": "81878c83-14ca-45e6-a894-e61995592e59",
+      "execution_id": "5d141383-b114-41ea-a5e2-d7b4fc9f3137",
+      "charged_atomic": "97826",
+      "missing_fields": [],
+      "apiosk_fee_micro_usd": "12760",
+      "provider_cost_micro_usd": "85066"
+    },
+    {
+      "result_ref": "1ae3b378-e632-4b1b-844f-7c3ab6b88449",
+      "data": {
+        "data": {
+          "domain": "example.org",
+          "statuses": [
+            "server delete prohibited",
+            "server transfer prohibited",
+            "server update prohibited",
+            "auto renew period"
+          ],
+          "registrar": "ICANN",
+          "expires_at": "2027-08-30T04:00:00Z",
+          "nameservers": [
+            "katelyn.ns.cloudflare.com",
+            "mitch.ns.cloudflare.com"
+          ],
+          "rdap_server": "rdap.publicinterestregistry.org",
+          "registered_at": "1995-08-31T04:00:00Z",
+          "last_changed_at": "2026-08-30T04:00:10.519Z"
+        },
+        "notice": "Registry RDAP data at request time. Registrant identity is usually redacted; a registration date shows when the current registration started, not who controls the domain.",
+        "coverage": {
+          "scope": "Authoritative registry RDAP record for one domain",
+          "complete": true
+        },
+        "source_url": "https://rdap.publicinterestregistry.org/rdap/domain/example.org"
+      },
+      "source": {
+        "url": "https://about.rdap.org/",
+        "name": "Domain Intelligence (RDAP & DNS)",
+        "path": "/domain/{domain}",
+        "provider": "domain-intelligence",
+        "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+        "retrieved_at": "2026-10-03T15:48:39.008782500Z",
+        "contract_version": 1
+      },
+      "subject": {
+        "label": "example.org",
+        "entity_ref": "8c3af706-e247-4252-96de-a78dd2642c73"
+      },
+      "coverage": "source_response",
+      "currency": "USD",
+      "receipt_ref": "0d4a0da0-8ffb-4f36-bc57-42773e7841dd",
+      "execution_id": "12fc7944-ac84-4083-9bd1-25bca95b234f",
+      "charged_atomic": "97826",
+      "missing_fields": [],
+      "apiosk_fee_micro_usd": "12760",
+      "provider_cost_micro_usd": "85066"
+    }
+  ]
+}

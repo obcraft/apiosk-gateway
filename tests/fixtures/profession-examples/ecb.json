@@ -1,0 +1,65 @@
+{
+  "question": "Geef de laatste officiële ECB-referentiewisselkoers voor EUR/USD met waarnemingsdatum via Frankfurter.",
+  "intent": {
+    "goals": [
+      {
+        "subject": 0,
+        "capability": "fx.ecb-reference-rate",
+        "constraints": {
+          "source": "frankfurter",
+          "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67"
+        }
+      }
+    ],
+    "subjects": [
+      {
+        "label": "EUR/USD",
+        "values": {
+          "fx.ecb.quote": "USD"
+        },
+        "entity_ref": "30c12cfa-ec25-4cd7-a82b-7a9b1b2a4a37"
+      }
+    ],
+    "answer_operations": [
+      "Cite the retrieved sources and preserve their scope, observation dates and missing fields."
+    ],
+    "unresolved_references": []
+  },
+  "results": [
+    {
+      "result_ref": "4e4b0e8e-e40f-41b7-bcba-5c4c6a4593a8",
+      "data": {
+        "base": "EUR",
+        "date": "2026-10-02",
+        "rate": 1.1225,
+        "quote": "USD"
+      },
+      "source": {
+        "url": "https://frankfurter.dev/",
+        "name": "Frankfurter",
+        "path": "/v2/providers/ecb/rate/EUR/{quote}",
+        "provider": "frankfurter",
+        "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67",
+        "retrieved_at": "2026-10-03T15:48:37.761648370Z",
+        "usage_notice": {
+          "url": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
+          "text": "Source: European Central Bank (ECB), via Frankfurter. ECB exchange-rate data is available free of charge from the ECB; Apiosk charges for retrieval. Daily reference rate, not a live trading quote.",
+          "label": "Free ECB source"
+        },
+        "contract_version": 1
+      },
+      "subject": {
+        "label": "EUR/USD",
+        "entity_ref": "30c12cfa-ec25-4cd7-a82b-7a9b1b2a4a37"
+      },
+      "coverage": "source_response",
+      "currency": "USD",
+      "receipt_ref": "a3f77e86-55d1-4ad9-a7de-c0608ee6b0f8",
+      "execution_id": "1167951b-0091-46fb-a524-f9fe4f96714f",
+      "charged_atomic": "57500",
+      "missing_fields": [],
+      "apiosk_fee_micro_usd": "7500",
+      "provider_cost_micro_usd": "50000"
+    }
+  ]
+}

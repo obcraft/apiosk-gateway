@@ -1,0 +1,94 @@
+{
+  "question": "Valideer EU-btw-nummer NL002033354B01 via VIES en toon de geldigheid en controledatum.",
+  "intent": {
+    "goals": [
+      {
+        "subject": 0,
+        "capability": "vat.eu.validate",
+        "constraints": {
+          "source": "vies",
+          "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9"
+        }
+      }
+    ],
+    "subjects": [
+      {
+        "label": "NL002033354B01",
+        "values": {
+          "vat.eu.number": "002033354B01",
+          "vat.eu.country_code": "NL"
+        },
+        "entity_ref": "f306a5f0-12a3-4c6e-8efb-2de1b806d8b3"
+      }
+    ],
+    "answer_operations": [
+      "Cite the retrieved sources and preserve their scope, observation dates and missing fields."
+    ],
+    "unresolved_references": []
+  },
+  "results": [
+    {
+      "result_ref": "66084145-3095-455f-9e9c-f3bd0406ca0d",
+      "data": {
+        "data": {
+          "name": "---",
+          "valid": false,
+          "address": "---",
+          "upstream": {
+            "name": "---",
+            "address": "---",
+            "isValid": false,
+            "userError": "INVALID",
+            "vatNumber": "002033354B01",
+            "requestDate": "2026-10-03T15:48:37.175Z",
+            "viesApproximate": {
+              "city": "---",
+              "name": "---",
+              "street": "---",
+              "matchCity": 3,
+              "matchName": 3,
+              "postalCode": "---",
+              "companyType": "---",
+              "matchStreet": 3,
+              "matchPostalCode": 3,
+              "matchCompanyType": 3
+            },
+            "originalVatNumber": "002033354B01",
+            "requestIdentifier": ""
+          },
+          "vat_number": "002033354B01",
+          "country_code": "NL",
+          "request_date": "2026-10-03T15:48:37.175Z"
+        },
+        "notice": "VIES VAT registration validity at the request time; missing name/address is unknown. This is not a company register extract.",
+        "coverage": {
+          "scope": "One bounded upstream response per purchased call",
+          "complete": false
+        },
+        "source_url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/002033354B01"
+      },
+      "source": {
+        "url": "https://ec.europa.eu/taxation_customs/vies/",
+        "name": "VIES EU VAT Validation",
+        "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+        "provider": "vies",
+        "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+        "retrieved_at": "2026-10-03T15:48:38.482185017Z",
+        "contract_version": 1
+      },
+      "subject": {
+        "label": "NL002033354B01",
+        "entity_ref": "f306a5f0-12a3-4c6e-8efb-2de1b806d8b3"
+      },
+      "coverage": "partial",
+      "currency": "USD",
+      "receipt_ref": "a0bc6ead-8d56-4f07-b651-db9cf1224952",
+      "execution_id": "37857bbb-d62d-4eb7-8100-b31a24ba0f14",
+      "coverage_note": "One bounded upstream response per purchased call",
+      "charged_atomic": "97826",
+      "missing_fields": [],
+      "apiosk_fee_micro_usd": "12760",
+      "provider_cost_micro_usd": "85066"
+    }
+  ]
+}

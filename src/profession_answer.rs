@@ -2,7 +2,7 @@
 //! from the purchased documents, including negative validation results.
 use crate::{
     parser::Intent,
-    profession_request::{recognize, Request},
+    profession_request::{recognize_with_language, Request},
 };
 use anyhow::{ensure, Context};
 use serde_json::{json, Value};
@@ -70,13 +70,15 @@ fn reference(source: &Value, pointer: &str) -> Value {
 }
 
 struct Answer {
+    english: bool,
     rows: Vec<Value>,
     observations: Vec<Value>,
     limitations: Vec<String>,
 }
 impl Answer {
-    fn new() -> Self {
+    fn new(language: &str) -> Self {
         Self {
+            english: language == "en",
             rows: vec![],
             observations: vec![],
             limitations: vec![],
@@ -129,7 +131,7 @@ impl Answer {
             }
         }
         let raw = json!({"observations":self.observations,"limitations":self.limitations,
-            "presentation":{"kind":"comparison","title":title,"columns":[{"label":"Gegeven"},{"label":"Bronwaarde"}],"rows":self.rows}});
+            "presentation":{"kind":"comparison","title":title,"columns":[{"label":if self.english { "Field" } else { "Gegeven" }},{"label":if self.english { "Source value" } else { "Bronwaarde" }}],"rows":self.rows}});
         let mut answer = crate::parser::validate_analysis(&raw.to_string(), sources, false)?;
         answer["projection"] = json!("saved_profession_source_fields");
         Ok(answer)
@@ -141,7 +143,7 @@ pub(crate) fn compose(
     intent: &Intent,
     sources: &[Value],
 ) -> anyhow::Result<Option<Value>> {
-    let Some(request) = recognize(question) else {
+    let Some((language, request)) = recognize_with_language(question) else {
         return Ok(None);
     };
     ensure!(
@@ -157,7 +159,9 @@ pub(crate) fn compose(
         intent.goals.len() == expected_count && sources.len() == expected_count,
         "incomplete reviewed lookup"
     );
-    let mut answer = Answer::new();
+    let mut answer = Answer::new(language);
+    let local =
+        |english: &'static str, dutch: &'static str| if language == "en" { english } else { dutch };
     let title = match request {
         Request::Vat { country, number } => {
             let (capability, path) = match intent.goals[0].capability.as_str() {
@@ -192,9 +196,15 @@ pub(crate) fn compose(
             answer.observe(
                 source,
                 if valid {
-                    "VIES meldt het gecontroleerde btw-nummer {{a}} als geldig op {{b}}."
+                    local(
+                        "VIES reports the checked VAT number {{a}} as valid on {{b}}.",
+                        "VIES meldt het gecontroleerde btw-nummer {{a}} als geldig op {{b}}.",
+                    )
                 } else {
-                    "VIES meldt het gecontroleerde btw-nummer {{a}} als ongeldig op {{b}}."
+                    local(
+                        "VIES reports the checked VAT number {{a}} as invalid on {{b}}.",
+                        "VIES meldt het gecontroleerde btw-nummer {{a}} als ongeldig op {{b}}.",
+                    )
                 },
                 &[
                     "/data/data/vat_number",
@@ -203,17 +213,23 @@ pub(crate) fn compose(
                 ],
             );
             for (label, key) in [
-                ("Landcode", "country_code"),
-                ("Btw-nummer", "vat_number"),
-                ("Geldig volgens VIES", "valid"),
-                ("Controledatum", "request_date"),
-                ("Naam volgens VIES", "name"),
-                ("Adres volgens VIES", "address"),
+                (local("Country code", "Landcode"), "country_code"),
+                (local("VAT number", "Btw-nummer"), "vat_number"),
+                (
+                    local("Valid according to VIES", "Geldig volgens VIES"),
+                    "valid",
+                ),
+                (local("Check date", "Controledatum"), "request_date"),
+                (local("Name reported by VIES", "Naam volgens VIES"), "name"),
+                (
+                    local("Address reported by VIES", "Adres volgens VIES"),
+                    "address",
+                ),
             ] {
                 answer.field(source, label, &format!("/data/data/{key}"));
             }
-            answer.limitations.push("Dit is de VIES-registratiestatus op het controlemoment. Een ongeldig nummer is een controle-uitkomst, geen technische fout. Ontbrekende naam- en adresgegevens blijven onbekend; dit is geen Handelsregisteruittreksel.".into());
-            "Btw-validatie via VIES"
+            answer.limitations.push(local("This is the VIES registration status at the time of the check. An invalid number is a validation outcome, not a technical error. Missing names and addresses remain unknown; this is not a business register extract.", "Dit is de VIES-registratiestatus op het controlemoment. Een ongeldig nummer is een controle-uitkomst, geen technische fout. Ontbrekende naam- en adresgegevens blijven onbekend; dit is geen Handelsregisteruittreksel.").into());
+            local("VAT validation through VIES", "Btw-validatie via VIES")
         }
         Request::Vehicle { plate } => {
             let source = saved(
@@ -244,36 +260,54 @@ pub(crate) fn compose(
                 ensure!(row["kenteken"] == plate, "RDW returned another vehicle");
                 answer.observe(
                     source,
-                    "De RDW heeft een voertuigregistratie teruggegeven voor kenteken {{a}}.",
+                    local(
+                        "RDW returned a vehicle registration for plate {{a}}.",
+                        "De RDW heeft een voertuigregistratie teruggegeven voor kenteken {{a}}.",
+                    ),
                     &["/data/items/0/kenteken"],
                 );
                 for (label, key) in [
-                    ("Kenteken", "kenteken"),
-                    ("Merk", "merk"),
-                    ("Handelsbenaming", "handelsbenaming"),
-                    ("Voertuigsoort", "voertuigsoort"),
-                    ("APK-vervaldatum", "vervaldatum_apk_dt"),
-                    ("APK-datum (broncode)", "vervaldatum_apk"),
+                    (local("Registration plate", "Kenteken"), "kenteken"),
+                    (local("Make", "Merk"), "merk"),
+                    (local("Trade name", "Handelsbenaming"), "handelsbenaming"),
+                    (local("Vehicle type", "Voertuigsoort"), "voertuigsoort"),
                     (
-                        "Openstaande terugroepactie",
+                        local("Inspection expiry date", "APK-vervaldatum"),
+                        "vervaldatum_apk_dt",
+                    ),
+                    (
+                        local("Inspection date (source code)", "APK-datum (broncode)"),
+                        "vervaldatum_apk",
+                    ),
+                    (
+                        local("Outstanding recall indicator", "Openstaande terugroepactie"),
                         "openstaande_terugroepactie_indicator",
                     ),
-                    ("Eerste toelating", "datum_eerste_toelating_dt"),
-                    ("Kleur", "eerste_kleur"),
-                    ("Aantal zitplaatsen", "aantal_zitplaatsen"),
+                    (
+                        local("First admission date", "Eerste toelating"),
+                        "datum_eerste_toelating_dt",
+                    ),
+                    (local("Colour", "Kleur"), "eerste_kleur"),
+                    (
+                        local("Seat count", "Aantal zitplaatsen"),
+                        "aantal_zitplaatsen",
+                    ),
                 ] {
                     answer.field(source, label, &format!("/data/items/0/{key}"));
                 }
             } else {
                 answer.observe(
                     source,
-                    "De RDW heeft geen voertuigregistratie teruggegeven voor kenteken {{a}}.",
+                    local(
+                        "RDW returned no vehicle registration for plate {{a}}.",
+                        "De RDW heeft geen voertuigregistratie teruggegeven voor kenteken {{a}}.",
+                    ),
                     &["/data/requested_plate"],
                 );
             }
-            answer.field(source, "RDW-bron", "/data/source_url");
-            answer.limitations.push("Dit zijn technische registergegevens, geen eigendomsgegevens of oordeel over de staat of veiligheid van het voertuig. De terugroepindicator bevat geen terugroephistorie of reparatiedetails. Ontbrekende velden blijven onbekend.".into());
-            "RDW-voertuiggegevens"
+            answer.field(source, local("RDW source", "RDW-bron"), "/data/source_url");
+            answer.limitations.push(local("These are technical register data, not ownership information or an assessment of the vehicle's condition or safety. The recall indicator does not include recall history or repair details. Missing fields remain unknown.", "Dit zijn technische registergegevens, geen eigendomsgegevens of oordeel over de staat of veiligheid van het voertuig. De terugroepindicator bevat geen terugroephistorie of reparatiedetails. Ontbrekende velden blijven onbekend.").into());
+            local("RDW vehicle data", "RDW-voertuiggegevens")
         }
         Request::Ecb { quote } => {
             let source = saved(
@@ -304,19 +338,22 @@ pub(crate) fn compose(
             )?;
             answer.observe(
                 source,
-                "De ECB-referentiekoers voor {{a}} naar {{b}} is {{c}} op waarnemingsdatum {{d}}.",
+                local("The ECB reference exchange rate from {{a}} to {{b}} is {{c}} for observation date {{d}}.", "De ECB-referentiekoers voor {{a}} naar {{b}} is {{c}} op waarnemingsdatum {{d}}."),
                 &["/data/base", "/data/quote", "/data/rate", "/data/date"],
             );
             for (label, key) in [
-                ("Basisvaluta", "base"),
-                ("Doelvaluta", "quote"),
-                ("Referentiekoers per euro", "rate"),
-                ("Waarnemingsdatum", "date"),
+                (local("Base currency", "Basisvaluta"), "base"),
+                (local("Target currency", "Doelvaluta"), "quote"),
+                (
+                    local("Reference rate per euro", "Referentiekoers per euro"),
+                    "rate",
+                ),
+                (local("Observation date", "Waarnemingsdatum"), "date"),
             ] {
                 answer.field(source, label, &format!("/data/{key}"));
             }
-            answer.limitations.push("Dagelijkse ECB-referentiekoers via Frankfurter, geen live handelskoers. Op weekenden en feestdagen kan de meest recente waarneming van een eerdere werkdag zijn. ECB-data is gratis bij de ECB; Apiosk rekent voor het ophalen.".into());
-            "ECB-referentiewisselkoers"
+            answer.limitations.push(local("Daily ECB reference rate via Frankfurter, not a live trading quote. On weekends and holidays, the latest observation may be from an earlier business day. ECB data is free at the ECB; Apiosk charges for retrieval.", "Dagelijkse ECB-referentiekoers via Frankfurter, geen live handelskoers. Op weekenden en feestdagen kan de meest recente waarneming van een eerdere werkdag zijn. ECB-data is gratis bij de ECB; Apiosk rekent voor het ophalen.").into());
+            local("ECB reference exchange rate", "ECB-referentiewisselkoers")
         }
         Request::Domain { domain } => {
             ensure!(
@@ -346,22 +383,33 @@ pub(crate) fn compose(
             }
             answer.observe(
                 registration,
-                "De openbare RDAP-registratie betreft domein {{a}}.",
+                local(
+                    "The public RDAP registration concerns domain {{a}}.",
+                    "De openbare RDAP-registratie betreft domein {{a}}.",
+                ),
                 &["/data/data/domain"],
             );
             for (label, key) in [
-                ("Domein", "domain"),
-                ("Geregistreerd op", "registered_at"),
-                ("Laatst gewijzigd", "last_changed_at"),
-                ("Verloopt op", "expires_at"),
+                (local("Domain", "Domein"), "domain"),
+                (local("Registered on", "Geregistreerd op"), "registered_at"),
+                (local("Last changed", "Laatst gewijzigd"), "last_changed_at"),
+                (local("Expires on", "Verloopt op"), "expires_at"),
                 ("Registrar", "registrar"),
-                ("RDAP-server", "rdap_server"),
+                (local("RDAP server", "RDAP-server"), "rdap_server"),
             ] {
                 answer.field(registration, label, &format!("/data/data/{key}"));
             }
-            answer.strings(registration, "Registratiestatus", "/data/data/statuses")?;
+            answer.strings(
+                registration,
+                local("Registration status", "Registratiestatus"),
+                "/data/data/statuses",
+            )?;
             answer.strings(registration, "Nameserver", "/data/data/nameservers")?;
-            answer.field(registration, "RDAP-bron", "/data/source_url");
+            answer.field(
+                registration,
+                local("RDAP source", "RDAP-bron"),
+                "/data/source_url",
+            );
             let mail = &dns["document"]["data"]["data"];
             ensure!(
                 mail["exists"].is_boolean()
@@ -371,20 +419,39 @@ pub(crate) fn compose(
             );
             answer.observe(
                 dns,
-                "De mail-DNS-bron rapporteert voor {{a}} de indicator voor een gevonden MX-mailserver als {{b}}.",
+                local("The mail DNS source reports the MX mail-server indicator for {{a}} as {{b}}.", "De mail-DNS-bron rapporteert voor {{a}} de indicator voor een gevonden MX-mailserver als {{b}}."),
                 &["/data/data/domain", "/data/data/accepts_mail"],
             );
             for (label, key) in [
-                ("DNS bestaat volgens bron", "exists"),
-                ("MX-mailserver gevonden", "accepts_mail"),
-                ("DNSSEC gevalideerd door resolver", "dnssec_validated"),
+                (
+                    local("DNS exists according to source", "DNS bestaat volgens bron"),
+                    "exists",
+                ),
+                (
+                    local("MX mail server found", "MX-mailserver gevonden"),
+                    "accepts_mail",
+                ),
+                (
+                    local(
+                        "DNSSEC validated by resolver",
+                        "DNSSEC gevalideerd door resolver",
+                    ),
+                    "dnssec_validated",
+                ),
             ] {
                 answer.field(dns, label, &format!("/data/data/{key}"));
             }
-            answer.strings(dns, "MX-record", "/data/data/mx")?;
-            answer.field(dns, "Mail-DNS-bron", "/data/source_url");
-            answer.limitations.push("Dit zijn openbare registratie- en MX-records op het opvraagmoment. Ze bewijzen geen eigendom of identiteit van de houder en testen geen daadwerkelijke e-mailbezorging. Een expliciet null-MX-record betekent dat het domein volgens DNS geen e-mail accepteert.".into());
-            "Openbare domeinregistratie en mail-DNS"
+            answer.strings(dns, local("MX record", "MX-record"), "/data/data/mx")?;
+            answer.field(
+                dns,
+                local("Mail DNS source", "Mail-DNS-bron"),
+                "/data/source_url",
+            );
+            answer.limitations.push(local("These are public registration and MX records at the time of retrieval. They do not prove ownership or the holder's identity and do not test actual email delivery. An explicit null MX record means the domain declares that it does not accept email.", "Dit zijn openbare registratie- en MX-records op het opvraagmoment. Ze bewijzen geen eigendom of identiteit van de houder en testen geen daadwerkelijke e-mailbezorging. Een expliciet null-MX-record betekent dat het domein volgens DNS geen e-mail accepteert.").into());
+            local(
+                "Public domain registration and mail DNS",
+                "Openbare domeinregistratie en mail-DNS",
+            )
         }
     };
     Ok(Some(answer.finish(sources, title)?))
@@ -396,6 +463,9 @@ mod tests {
     fn fixture(name: &str) -> (String, Intent, Vec<Value>) {
         let text = match name {
             "vat" => include_str!("../tests/fixtures/profession-examples/vat.json"),
+            "vat-get" => include_str!("../tests/fixtures/profession-examples/vat-get.json"),
+            "ecb" => include_str!("../tests/fixtures/profession-examples/ecb.json"),
+            "domain" => include_str!("../tests/fixtures/profession-examples/domain.json"),
             _ => include_str!("../tests/fixtures/profession-examples/vehicle.json"),
         };
         let value: Value = serde_json::from_str(text).unwrap();
@@ -470,6 +540,59 @@ mod tests {
             "2027-09-19T00:00:00.000"
         );
         assert_eq!(row(&answer, "Openstaande terugroepactie")["value"], "Nee");
+        assert_exact_citations(&answer, &sources);
+    }
+
+    #[test]
+    fn english_examples_render_all_generated_text_in_english_from_actual_paid_sources() {
+        for (name, question, title, observation) in [
+            ("vat-get", "Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.", "VAT validation through VIES", "VIES reports the checked VAT number"),
+            ("ecb", "Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.", "ECB reference exchange rate", "The ECB reference exchange rate"),
+            ("vehicle", "Get RDW vehicle data for registration plate GZ805N, including make, trade name, inspection expiry date and the outstanding recall indicator.", "RDW vehicle data", "RDW returned a vehicle registration"),
+            ("domain", "Get public RDAP registration data and mail DNS records for example.org. Cite the sources.", "Public domain registration and mail DNS", "The public RDAP registration concerns"),
+        ] {
+            let (dutch_question, intent, sources) = fixture(name);
+            let answer = compose(question, &intent, &sources).unwrap().unwrap();
+            assert_eq!(answer["status"], "completed");
+            assert_eq!(answer["presentation"]["title"], title);
+            assert_eq!(answer["presentation"]["columns"][0]["value"], "Field");
+            assert_eq!(answer["presentation"]["columns"][1]["value"], "Source value");
+            assert!(answer["observations"][0]["text"].as_str().unwrap().starts_with(observation));
+            let generated = json!({"observations":answer["observations"].as_array().unwrap().iter().map(|o|o["text"].clone()).collect::<Vec<_>>(),
+                "labels":answer["presentation"]["rows"].as_array().unwrap().iter().map(|r|r[0]["value"].clone()).collect::<Vec<_>>(),
+                "limitations":answer["limitations"]}).to_string();
+            for dutch in ["Landcode", "Controledatum", "Btw-nummer", "Kenteken", "Handelsbenaming", "APK-vervaldatum", "Voertuigsoort", "Waarnemingsdatum", "Doelvaluta", "Domein", "Geregistreerd op", "Registratiestatus", "De RDW", "De ECB", "De openbare", "De mail-DNS", "Dit zijn", "Dit is", "Dagelijkse"] {
+                assert!(!generated.contains(dutch), "{name} leaked generated Dutch: {dutch}");
+            }
+            assert_exact_citations(&answer, &sources);
+            let dutch = compose(&dutch_question, &intent, &sources).unwrap().unwrap();
+            assert_eq!(dutch["status"], "completed");
+            assert_eq!(dutch["presentation"]["columns"][0]["value"], "Gegeven");
+            assert_ne!(dutch["presentation"]["title"], answer["presentation"]["title"]);
+            let values = |answer: &Value| answer["presentation"]["rows"].as_array().unwrap().iter().map(|row| row[1].clone()).collect::<Vec<_>>();
+            assert_eq!(values(&answer), values(&dutch), "language changes do not rewrite cited source values");
+        }
+    }
+
+    #[test]
+    fn english_negative_and_empty_results_keep_outcomes_and_missing_values() {
+        let (question, intent, sources) = fixture("vat");
+        assert!(question.starts_with("Valideer"));
+        let answer = compose("Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.", &intent, &sources).unwrap().unwrap();
+        assert!(answer["observations"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("invalid"));
+        assert_eq!(row(&answer, "Valid according to VIES")["value"], false);
+        assert!(row(&answer, "Name reported by VIES").is_null());
+        let (_, intent, mut sources) = fixture("vehicle");
+        sources[0]["document"]["data"]["items"] = json!([]);
+        sources[0]["document"]["data"]["total"] = json!(0);
+        let answer = compose("Get RDW vehicle data for registration plate GZ-805-N, including make, trade name, inspection expiry date and the outstanding recall indicator.", &intent, &sources).unwrap().unwrap();
+        assert!(answer["observations"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("RDW returned no vehicle registration"));
         assert_exact_citations(&answer, &sources);
     }
     #[test]

@@ -14,7 +14,7 @@ pub(crate) enum Request {
 }
 
 pub(crate) fn recognize(question: &str) -> Option<Request> {
-    recognized(question).map(|(_, request)| request)
+    recognize_with_language(question).map(|(_, request)| request)
 }
 
 impl Request {
@@ -87,17 +87,33 @@ fn between<'a>(text: &'a str, prefix: &str, suffix: &str) -> Option<&'a str> {
     text.get(prefix.len()..text.len() - suffix.len())
 }
 
-fn recognized(question: &str) -> Option<(&'static str, Request)> {
-    let text = question
+fn request_text(question: &str) -> &str {
+    question
         .trim()
         .strip_suffix('.')
         .unwrap_or(question.trim())
-        .trim();
-    for (language, prefix, suffix) in [(
-        "nl",
-        "Geef de laatste officiële ECB-referentiewisselkoers voor EUR/",
-        " met waarnemingsdatum via Frankfurter",
-    )] {
+        .trim()
+}
+
+const VEHICLE_FORMS: &[(&str, &str, &str)] = &[
+    ("nl", "Geef RDW-voertuiggegevens voor kenteken ", ", inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties"),
+    ("en", "Get RDW vehicle data for registration plate ", ", including make, trade name, inspection expiry date and the outstanding recall indicator"),
+];
+
+pub(crate) fn recognize_with_language(question: &str) -> Option<(&'static str, Request)> {
+    let text = request_text(question);
+    for (language, prefix, suffix) in [
+        (
+            "nl",
+            "Geef de laatste officiële ECB-referentiewisselkoers voor EUR/",
+            " met waarnemingsdatum via Frankfurter",
+        ),
+        (
+            "en",
+            "Get the latest official ECB reference exchange rate for EUR/",
+            ", including the observation date, via Frankfurter",
+        ),
+    ] {
         if let Some(quote) = between(text, prefix, suffix)
             .filter(|v| v.len() == 3 && v.bytes().all(|c| c.is_ascii_alphabetic()))
         {
@@ -109,11 +125,18 @@ fn recognized(question: &str) -> Option<(&'static str, Request)> {
             ));
         }
     }
-    for (language, prefix, suffix) in [(
-        "nl",
-        "Valideer EU-btw-nummer ",
-        " via VIES en toon de geldigheid en controledatum",
-    )] {
+    for (language, prefix, suffix) in [
+        (
+            "nl",
+            "Valideer EU-btw-nummer ",
+            " via VIES en toon de geldigheid en controledatum",
+        ),
+        (
+            "en",
+            "Validate EU VAT number ",
+            " through VIES and show its validity and check date",
+        ),
+    ] {
         if let Some(vat) = between(text, prefix, suffix)
             .filter(|v| (3..=16).contains(&v.len()) && v.bytes().all(|c| c.is_ascii_alphanumeric()))
         {
@@ -128,21 +151,38 @@ fn recognized(question: &str) -> Option<(&'static str, Request)> {
             }
         }
     }
-    for (language, prefix, suffix) in [
-        ("nl", "Geef RDW-voertuiggegevens voor kenteken ", ", inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties"),
-    ] {
-        if let Some(plate) = between(text, prefix, suffix).filter(|v| v.len() >= 6 && v.len() <= 10 && v.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')) {
+    for &(language, prefix, suffix) in VEHICLE_FORMS {
+        if let Some(plate) = between(text, prefix, suffix).filter(|v| {
+            v.len() >= 6
+                && v.len() <= 10
+                && v.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')
+        }) {
             let compact = plate.replace('-', "");
-            if compact.len() == 6 && compact.bytes().any(|c| c.is_ascii_digit()) && compact.bytes().any(|c| c.is_ascii_alphabetic()) {
-                return Some((language, Request::Vehicle { plate: compact.to_ascii_uppercase() }));
+            if compact.len() == 6
+                && compact.bytes().any(|c| c.is_ascii_digit())
+                && compact.bytes().any(|c| c.is_ascii_alphabetic())
+            {
+                return Some((
+                    language,
+                    Request::Vehicle {
+                        plate: compact.to_ascii_uppercase(),
+                    },
+                ));
             }
         }
     }
-    for (language, prefix, suffix) in [(
-        "nl",
-        "Geef openbare RDAP-registratiegegevens en mail-DNS-records voor ",
-        ". Citeer de bronnen",
-    )] {
+    for (language, prefix, suffix) in [
+        (
+            "nl",
+            "Geef openbare RDAP-registratiegegevens en mail-DNS-records voor ",
+            ". Citeer de bronnen",
+        ),
+        (
+            "en",
+            "Get public RDAP registration data and mail DNS records for ",
+            ". Cite the sources",
+        ),
+    ] {
         if let Some(domain) = between(text, prefix, suffix).filter(|v| valid_domain(v)) {
             return Some((
                 language,
@@ -184,7 +224,7 @@ fn valid_domain(value: &str) -> bool {
 }
 
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
-    let (language, request) = recognized(question)?;
+    let (language, request) = recognize_with_language(question)?;
     let (label, kind, identifiers) = match &request {
         Request::Ecb { quote } => (
             format!("EUR/{quote}"),
@@ -198,7 +238,9 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
         ),
         Request::Vehicle { .. } => {
             // Preserve the user literal until the RDW adapter removes separators.
-            let literal = between(question.trim().trim_end_matches('.').trim(), "Geef RDW-voertuiggegevens voor kenteken ", ", inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties")?;
+            let literal = VEHICLE_FORMS
+                .iter()
+                .find_map(|(_, prefix, suffix)| between(request_text(question), prefix, suffix))?;
             (
                 literal.into(),
                 "vehicle",
@@ -288,6 +330,33 @@ pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<Parse
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn english_profession_questions_preserve_language_identifiers_and_complete_scope() {
+        for (question, expected) in [
+            ("Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.", Request::Vat { country: "NL".into(), number: "002033354B01".into() }),
+            ("Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.", Request::Ecb { quote: "USD".into() }),
+            ("Get RDW vehicle data for registration plate GZ805N, including make, trade name, inspection expiry date and the outstanding recall indicator.", Request::Vehicle { plate: "GZ805N".into() }),
+            ("Get public RDAP registration data and mail DNS records for example.org. Cite the sources.", Request::Domain { domain: "example.org".into() }),
+            ("Get the latest official ECB reference exchange rate for EUR/GBP, including the observation date, via Frankfurter.", Request::Ecb { quote: "GBP".into() }),
+            ("Get RDW vehicle data for registration plate RZ-874-R, including make, trade name, inspection expiry date and the outstanding recall indicator.", Request::Vehicle { plate: "RZ874R".into() }),
+            ("Get public RDAP registration data and mail DNS records for mollie.nl. Cite the sources.", Request::Domain { domain: "mollie.nl".into() }),
+        ] {
+            assert_eq!(recognize_with_language(question), Some(("en", expected)));
+            let parsed = crate::capability_intake::normalize("{}", question, "fixture").unwrap();
+            assert_eq!(parsed.language, "en");
+            assert!(parsed.capabilities.iter().all(|cap| cap.missing.is_empty()));
+            for extra in [" Also include owner identity.", " As JSON.", " Use data from 2020."] {
+                assert!(recognize(&format!("{question}{extra}")).is_none(), "additional scope must remain requested");
+            }
+        }
+        for question in [
+            "Get the latest official ECB reference exchange rate for USD/EUR, including the observation date, via Frankfurter.",
+            "Get the latest official ECB reference exchange rate for EUR/USD and GBP, including the observation date, via Frankfurter.",
+            "Get public RDAP registration data and all DNS records for example.org. Cite the sources.",
+            "Get public RDAP registration data and mail DNS records for www.example.org. Cite the sources.",
+        ] { assert!(recognize(question).is_none(), "{question}"); }
+    }
+
     #[test]
     fn literal_questions_keep_supplied_values_and_requested_fields() {
         for (question, expected) in [

@@ -1,5 +1,5 @@
 //! Preserve a supplied procurement topic and country, then serialize the
-//! literal topic with TenderNed's phrase-search syntax. No CPV code, source
+//! topic with TenderNed's phrase-search syntax and reviewed Dutch keywords. No CPV code, source
 //! result, deadline or open/awarded status is inferred from the question.
 use crate::{
     capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject},
@@ -213,8 +213,26 @@ pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<Intak
     (!restricted.selected_capabilities.is_empty()).then_some(restricted)
 }
 
-/// TenderNed combines unquoted words broadly. A literal multiword topic is a
-/// phrase, not implicit OR. Retain explicit provider query syntax unchanged.
+/// Two reviewed English procurement topics use the same Dutch source keywords
+/// as the verified examples. The user's subject and question stay unchanged.
+/// Explicit provider syntax and every other topic retain their literal form.
+fn source_search(topic: &str, translate_browse_topic: bool) -> String {
+    let native = if translate_browse_topic && topic.eq_ignore_ascii_case("solar panels") {
+        "zonnepanelen"
+    } else if translate_browse_topic && topic.eq_ignore_ascii_case("cleaning services") {
+        "schoonmaak"
+    } else {
+        topic
+    };
+    if plain_topic(native) && native.split_whitespace().count() > 1 {
+        format!("\"{native}\"")
+    } else {
+        native.into()
+    }
+}
+
+/// TenderNed combines unquoted words broadly. A multiword topic is a phrase,
+/// not implicit OR. Retain explicit provider query syntax unchanged.
 /// Both the quote and execution use Service::inputs, so they agree exactly.
 pub(crate) fn refine(service: &Service, inputs: &mut Map<String, Value>) {
     if service.api_slug != "tenderned"
@@ -235,8 +253,9 @@ pub(crate) fn refine(service: &Service, inputs: &mut Map<String, Value>) {
     let Some(search) = inputs.get("search").and_then(Value::as_str) else {
         return;
     };
-    if plain_topic(search) && search.split_whitespace().count() > 1 {
-        inputs.insert("search".into(), json!(format!("\"{search}\"")));
+    let query = source_search(search, service.contract.capability_slug == BROWSE);
+    if query != search {
+        inputs.insert("search".into(), json!(query));
     }
 }
 
@@ -303,11 +322,7 @@ pub(crate) fn compose(
         return None;
     }
     let params = document["source"]["request_parameters"].as_object()?;
-    let expected_search = if subject.label.split_whitespace().count() > 1 {
-        format!("\"{}\"", subject.label)
-    } else {
-        subject.label.clone()
-    };
+    let expected_search = source_search(&subject.label, true);
     if params.get("search")?.as_str()? != expected_search
         || params.get("page")? != &json!(0)
         || params
@@ -464,9 +479,17 @@ mod tests {
         let service = &catalog().services[0];
         for (input, expected) in [
             ("IT services", "\"IT services\""),
-            ("solar panels", "\"solar panels\""),
+            ("solar panels", "zonnepanelen"),
+            ("Solar Panels", "zonnepanelen"),
+            ("cleaning services", "schoonmaak"),
+            ("zonnepanelen", "zonnepanelen"),
+            ("schoonmaak", "schoonmaak"),
+            ("cybersecurity", "cybersecurity"),
+            ("solar panel installation", "\"solar panel installation\""),
             ("laadpalen", "laadpalen"),
             ("\"IT services\"", "\"IT services\""),
+            ("\"solar panels\"", "\"solar panels\""),
+            ("\"cleaning services\"", "\"cleaning services\""),
             ("IT OR software", "IT OR software"),
             ("IT AND services", "IT AND services"),
         ] {
@@ -485,6 +508,11 @@ mod tests {
         let mut inputs = json!({"search":"IT services"}).as_object().unwrap().clone();
         refine(&other, &mut inputs);
         assert_eq!(inputs["search"], "IT services");
+        let mut company = service.clone();
+        company.contract.capability_slug = "company_intel.search".into();
+        let mut inputs = json!({"search":"solar panels"}).as_object().unwrap().clone();
+        refine(&company, &mut inputs);
+        assert_eq!(inputs["search"], "\"solar panels\"", "a company name is not a translated procurement topic");
     }
 
     #[test]
@@ -530,6 +558,7 @@ mod tests {
         for question in [
             "Find public tenders for IT services in the Netherlands.",
             "Find public tenders for solar panels in the Netherlands.",
+            "Find public tenders for cleaning services in the Netherlands.",
             "Zoek openbare aanbestedingen voor laadpalen in Nederland.",
         ] {
             let intake = parser
@@ -565,7 +594,11 @@ mod tests {
                 .service
                 .inputs(&task, step.entity_ref, &catalog.vocabulary)
                 .unwrap();
-            let expected = if topic.split_whitespace().count() > 1 {
+            let expected = if topic == "solar panels" {
+                "zonnepanelen".into()
+            } else if topic == "cleaning services" {
+                "schoonmaak".into()
+            } else if topic.split_whitespace().count() > 1 {
                 format!("\"{topic}\"")
             } else {
                 topic
@@ -575,6 +608,58 @@ mod tests {
                 json!({"page":0,"size":20,"sort":"publicatieDatum,desc","search":expected})
             );
         }
+    }
+
+    #[tokio::test]
+    async fn english_examples_keep_user_topics_and_bind_verified_dutch_source_queries() {
+        let catalog = catalog();
+        let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
+        for (topic, native, fixture) in [
+            ("solar panels", "zonnepanelen", include_str!("../tests/fixtures/additional-examples/tender-zonnepanelen.json")),
+            ("cleaning services", "schoonmaak", include_str!("../tests/fixtures/additional-examples/tender-schoonmaak.json")),
+        ] {
+            let question = format!("Find public tenders for {topic} in the Netherlands.");
+            let intake = parser.ask_intake(&question, &Default::default(), &catalog, None).await.unwrap();
+            assert_eq!(intake.parsed_request.language, "en");
+            assert_eq!(intake.parsed_request.subjects[0].label, topic);
+            let reply = parser.chat_from_capabilities(&question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            let mut intent = reply.intent.unwrap();
+            assert_eq!(intent.subjects[0].label, topic);
+            assert_eq!(intent.subjects[0].values[SEARCH], topic);
+            let mut task = crate::state::Task { capability_intake: Some(intake), ..Default::default() };
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("complete tender plan required") };
+            assert_eq!(plan.steps.len(), 1);
+            let step = &plan.steps[0];
+            let inputs = step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap();
+            assert_eq!(inputs, json!({"search":native,"page":0,"size":20,"sort":"publicatieDatum,desc"}));
+            let fixture: Value = serde_json::from_str(fixture).unwrap();
+            let url = url::Url::parse(fixture["url"].as_str().unwrap()).unwrap();
+            assert_eq!(url.query_pairs().find(|(key, _)| key == "search").unwrap().1, native);
+            let extracted = step.service.contract.extract(&fixture["body"], &catalog.vocabulary).unwrap();
+            assert!(extracted.rejected.is_empty());
+            let mut document = json!({"subject":{"entity_ref":step.entity_ref,"label":topic},"source":{"provider":"tenderned","path":"/v2/publicaties","endpoint_id":step.service.endpoint_id},"data":fixture["body"],"missing_fields":[],"coverage":"source_response"});
+            record_request(&step.service, &inputs, &mut document);
+            let source = json!({"result_ref":uuid::Uuid::new_v4(),"document":document});
+            let answer = crate::direct_answer::reviewed_compose(&question, &intent, &[source.clone()]).unwrap().unwrap();
+            assert_eq!(answer["status"], "completed");
+            assert_eq!(answer["presentation"]["title"], "TenderNed publications");
+            assert_eq!(answer["presentation"]["columns"][0]["value"], "Title");
+            assert_eq!(answer["presentation"]["rows"].as_array().unwrap().len(), 20);
+            assert!(answer["observations"][0]["text"].as_str().unwrap().starts_with("The source reports "));
+            assert!(answer["limitations"][0].as_str().unwrap().starts_with("This is one bounded page "));
+            for row in answer["presentation"]["rows"].as_array().unwrap() {
+                for cell in row.as_array().unwrap() {
+                    if let Some(pointer) = cell["pointer"].as_str() {
+                        assert_eq!(&cell["value"], source["document"].pointer(pointer).unwrap());
+                    }
+                }
+            }
+            let mut wrong = source.clone();
+            wrong["document"]["source"]["request_parameters"]["search"] = json!(format!("\"{topic}\""));
+            assert!(compose(&question, &intent, &[wrong]).is_none(), "an old English phrase result must not be relabelled as the reviewed Dutch search");
+        }
+        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
     }
 
     #[test]

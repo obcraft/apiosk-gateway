@@ -564,6 +564,10 @@ mod tests {
     async fn profession_questions_bind_real_source_inputs_without_a_model_or_partial_scope() {
         let catalog = profession_catalog();
         for (question, expected) in [
+            ("Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"USD"}))]),
+            ("Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.", vec![("vat.eu.validate", json!({"cc":"NL","nr":"002033354B01"}))]),
+            ("Get RDW vehicle data for registration plate GZ805N, including make, trade name, inspection expiry date and the outstanding recall indicator.", vec![("vehicle.technical-profile", json!({"kenteken":"GZ805N"}))]),
+            ("Get public RDAP registration data and mail DNS records for example.org. Cite the sources.", vec![("domain.registration", json!({"domain":"example.org"})), ("domain.mail-dns", json!({"domain":"example.org"}))]),
             ("Geef de laatste officiële ECB-referentiewisselkoers voor EUR/USD met waarnemingsdatum via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"USD"}))]),
             ("Geef de laatste officiële ECB-referentiewisselkoers voor EUR/GBP met waarnemingsdatum via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"GBP"}))]),
             ("Valideer EU-btw-nummer NL002033354B01 via VIES en toon de geldigheid en controledatum.", vec![("vat.eu.validate", json!({"cc":"NL","nr":"002033354B01"}))]),
@@ -575,6 +579,10 @@ mod tests {
             let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
             let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
             assert!(reply.discover, "{question}: {}", reply.message);
+            if question.starts_with("Get ") || question.starts_with("Validate ") {
+                assert_eq!(intake.parsed_request.language, "en");
+                assert_eq!(reply.message, "I will retrieve the requested data from the matched sources and show the total price first.");
+            }
             assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
             let mut intent = reply.intent.unwrap();
             let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
