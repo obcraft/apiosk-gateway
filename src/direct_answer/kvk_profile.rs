@@ -60,13 +60,36 @@ pub(super) fn compose(question: &str, intent: &Intent, sources: &[Value]) -> any
     let Some(parsed) = crate::capability_intake::company_lookup::parse(question, "saved-kvk-profile") else {
         return Ok(None);
     };
+    compose_profile(&parsed, intent, sources)
+}
+
+pub(super) fn compose_intake(question: &str, intake: &crate::capability_intake::Intake, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
+    let Some(parsed) = crate::capability_intake::company_lookup::plain_profile(question, intake) else {
+        return Ok(None);
+    };
+    // This projection owns the official KVK profile shape only. A different
+    // selected provider or requested response language keeps normal analysis.
+    if !matches!(parsed.language.as_str(), "nl" | "en")
+        || intent.goals.len() != 1
+        || intent.goals[0].capability != "company.registry-profile"
+        || intent.goals[0].constraints.get("source") != Some(&json!(PROVIDER)) {
+        return Ok(None);
+    }
+    compose_profile(parsed, intent, sources)
+}
+
+fn compose_profile(parsed: &crate::capability_intake::ParsedRequest, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
     ensure!(intent.subjects.len() == 1 && intent.goals.len() == 1 && sources.len() == 1
         && intent.unresolved_references.is_empty(), "KVK profile requires one exact saved subject and source");
     let number = &parsed.subjects[0].identifiers["kvk_number"];
     let subject = &intent.subjects[0];
-    ensure!(subject.label == *number
+    ensure!(subject.label == parsed.subjects[0].label
         && subject.values.get("company_registry.kvknummer") == Some(&json!(number))
-        && subject.values.iter().all(|(key, value)| matches!(key.as_str(), "company_registry.kvknummer" | "company.name") && value == number)
+        && subject.values.iter().all(|(key, value)| match key.as_str() {
+            "company_registry.kvknummer" => value == number,
+            "company.name" => value == &parsed.subjects[0].label,
+            _ => false,
+        })
         && intent.answer_operations.iter().all(|operation| operation == "Requested answer format: chat"),
         "KVK profile must preserve the literal registration and answer scope");
     let entity = subject.entity_ref.context("KVK profile has no saved entity")?;
@@ -175,6 +198,7 @@ pub(super) fn legacy_contract_gap(answer: &Value, task: &Task, sources: &[Value]
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::{Digest, Sha256};
 
     async fn fixture(number: &str) -> (String, Intent, Vec<Value>, Task) {
         let question = format!("{number} check dit kvk nummer");
@@ -203,6 +227,58 @@ mod tests {
         task.intent = Some(json!(intent));
         task.proposal = Some(json!(plan));
         (question, intent, sources, task)
+    }
+
+    #[tokio::test]
+    async fn normalized_profile_composition_follows_saved_scope_across_wordings_and_context() {
+        for (question, number, label, language) in [
+            ("Kun je het bedrijfsprofiel voor KVK 87560488 ophalen?", "87560488", "87560488", "nl"),
+            ("Please retrieve the registered company profile for KVK 30204462.", "30204462", "30204462", "en"),
+            ("Toon het profiel van Example B.V. met KVK 00123456", "00123456", "Example B.V.", "nl"),
+            ("Laat dat bedrijfsprofiel zien.", "87560488", "87560488", "nl"),
+        ] {
+            let (_, mut intent, mut sources, mut task) = fixture(number).await;
+            let intake = task.capability_intake.as_mut().unwrap();
+            intake.parsed_request.meta.text_sha256 = hex::encode(Sha256::digest(question.as_bytes()));
+            intake.parsed_request.language = language.into();
+            intake.parsed_request.subjects[0].label = label.into();
+            intake.parsed_request.capabilities[0].slug = "company.profile".into();
+            intake.parsed_request.capabilities[0].source_hint = None;
+            intent.subjects[0].label = label.into();
+            intent.subjects[0].values.insert("company.name".into(), json!(label));
+            sources[0]["document"]["subject"]["label"] = json!(label);
+            assert!(compose(question, &intent, &sources).unwrap().is_none(), "not a literal phrase");
+            let answer = super::super::reviewed_compose_with_intake(question, &intent, &sources, Some(intake)).unwrap().unwrap();
+            assert_eq!(answer["method"], METHOD);
+            assert_eq!(answer["status"], "completed");
+            assert_eq!(answer["observations"][0]["evidence"][0]["value"], number);
+            assert!(answer["observations"][0]["text"].as_str().unwrap().starts_with(if language == "nl" { "Het opgeslagen" } else { "The saved" }));
+            let mut wrong = sources.clone();
+            wrong[0]["document"]["subject"]["entity_ref"] = json!(uuid::Uuid::new_v4());
+            assert!(super::super::reviewed_compose_with_intake(question, &intent, &wrong, Some(intake)).is_err());
+            wrong = sources.clone(); wrong[0]["document"]["data"]["kvkNummer"] = json!("99999999");
+            assert!(super::super::reviewed_compose_with_intake(question, &intent, &wrong, Some(intake)).is_err());
+        }
+    }
+
+    #[tokio::test]
+    async fn normalized_profile_composition_never_replaces_a_richer_or_stale_saved_intake() {
+        let (question, intent, sources, task) = fixture("87560488").await;
+        let intake = task.capability_intake.unwrap();
+        for kind in ["field", "analysis", "country", "date", "format", "multiple", "stale"] {
+            let mut changed = intake.clone();
+            match kind {
+                "field" => changed.parsed_request.capabilities[0].outputs.push("email".into()),
+                "analysis" => changed.parsed_request.deliverable.operations.push("analyze".into()),
+                "country" => { changed.parsed_request.subjects[0].identifiers.insert("country".into(), "Belgium".into()); },
+                "date" => { changed.parsed_request.subjects[0].identifiers.insert("year".into(), "2024".into()); },
+                "format" => changed.parsed_request.deliverable.format = "json".into(),
+                "multiple" => changed.parsed_request.capabilities.push(changed.parsed_request.capabilities[0].clone()),
+                _ => changed.parsed_request.meta.text_sha256 = "different-question".into(),
+            }
+            assert!(super::super::reviewed_compose_with_intake(&question, &intent, &sources, Some(&changed)).unwrap().is_none(),
+                "even a formerly recognized literal sentence must preserve {kind}");
+        }
     }
 
     #[tokio::test]

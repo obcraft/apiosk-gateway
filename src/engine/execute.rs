@@ -168,7 +168,7 @@ impl Engine {
                 // Reviewed comparisons fail closed on incomplete saved source
                 // slices; a model must not turn a truncated page into a complete answer.
                 let reviewed = task.conversation.last()
-                    .map(|turn| crate::direct_answer::reviewed_compose(&turn.question, &intent, &sources))
+                    .map(|turn| crate::direct_answer::reviewed_compose_with_intake(&turn.question, &intent, &sources, task.capability_intake.as_ref()))
                     .unwrap_or(Ok(None));
                 let reviewed = match reviewed {
                     Ok(Some(answer)) if crate::direct_answer::reviewed_sources_ready(&answer, &task, &sources) => Some(answer),

@@ -1235,8 +1235,10 @@ impl Parser {
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
         if selection.is_none() {
-            if crate::capability_intake::company_lookup::matches_intake(question, intake) {
-                if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, question, task) { return Ok(reply); }
+            if crate::capability_intake::company_lookup::matches_intake(question, intake)
+                || crate::capability_intake::company_lookup::plain_profile(question, intake).is_some() {
+                let literals = capability_binding::literal_context(question, task, None);
+                if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
             }
             if let Some(reply) = plan_coverage::cbs_comparison_reply(intake, catalog, question, task) { return Ok(reply); }
             if let Some(tender) = crate::tenderned::executable_intake(question, intake) {

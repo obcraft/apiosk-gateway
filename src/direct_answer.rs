@@ -135,8 +135,20 @@ pub(crate) fn registry_fallback(intent: &Intent, sources: &[Value], dutch: bool)
 /// Reviewed source projections return an error when a recognized question has
 /// incomplete or mismatched saved evidence. That error must not fall through
 /// to model synthesis or trigger another purchase.
+#[cfg(test)]
 pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
-    if let Some(answer) = kvk_profile::compose(question, intent, sources)? {
+    reviewed_compose_with_intake(question, intent, sources, None)
+}
+
+/// A saved normalized intake determines profile scope for rewordings and
+/// continued requests. When supplied, it must not be replaced by a narrower
+/// interpretation of the current sentence.
+pub(crate) fn reviewed_compose_with_intake(question: &str, intent: &Intent, sources: &[Value], intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<Option<Value>> {
+    let profile = match intake {
+        Some(intake) => kvk_profile::compose_intake(question, intake, intent, sources)?,
+        None => kvk_profile::compose(question, intent, sources)?,
+    };
+    if let Some(answer) = profile {
         return Ok(Some(answer));
     }
     if let Some(answer) = crate::profession_answer::compose(question, intent, sources)? {
