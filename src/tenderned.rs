@@ -323,13 +323,18 @@ pub(crate) fn compose(
     let page = &document["data"];
     let rows = page["content"].as_array()?;
     let total = page["totalElements"].as_u64()?;
-    if rows.len() > 100
-        || total < rows.len() as u64
+    let size = params.get("size")?.as_u64()?;
+    // A completed bounded page must contain the whole page that was quoted.
+    // Agreement between content and numberOfElements alone also accepts a
+    // truncated or empty first page while the source reports existing matches.
+    if rows.len() as u64 != total.min(size)
+        || page["size"].as_u64()? != size
         || page["number"] != 0
         || page["numberOfElements"].as_u64()? != rows.len() as u64
     {
         return None;
     }
+    let mut publication_ids = BTreeSet::new();
     for row in rows {
         for pointer in [
             "/publicatieId",
@@ -342,6 +347,9 @@ pub(crate) fn compose(
             if value.trim().is_empty() {
                 return None;
             }
+        }
+        if !publication_ids.insert(row["publicatieId"].as_str()?) {
+            return None;
         }
         let link = url::Url::parse(row["link"]["href"].as_str()?).ok()?;
         if link.scheme() != "https"
@@ -665,6 +673,10 @@ mod tests {
             "wrong_subject",
             "unsafe_link",
             "extra_filter",
+            "empty_positive_page",
+            "short_first_page",
+            "wrong_page_size",
+            "duplicate_notice",
         ] {
             let mut changed = source.clone();
             match mutation {
@@ -689,15 +701,34 @@ mod tests {
                     changed["document"]["data"]["content"][0]["link"]["href"] =
                         json!("https://example.com/wrong-notice")
                 }
-                _ => {
+                "extra_filter" => {
                     changed["document"]["source"]["request_parameters"]["cpvCodes"] =
                         json!("72000000-5")
                 }
+                "empty_positive_page" => {
+                    changed["document"]["data"]["content"] = json!([]);
+                    changed["document"]["data"]["numberOfElements"] = json!(0);
+                }
+                "short_first_page" => {
+                    changed["document"]["data"]["content"].as_array_mut().unwrap().truncate(19);
+                    changed["document"]["data"]["numberOfElements"] = json!(19);
+                }
+                "wrong_page_size" => changed["document"]["data"]["size"] = json!(10),
+                "duplicate_notice" => changed["document"]["data"]["content"][1] = changed["document"]["data"]["content"][0].clone(),
+                _ => unreachable!(),
             }
             assert!(
                 compose(question, &intent, &[changed]).is_none(),
                 "{mutation}"
             );
         }
+        let mut empty = source.clone();
+        empty["document"]["data"]["content"] = json!([]);
+        empty["document"]["data"]["totalElements"] = json!(0);
+        empty["document"]["data"]["numberOfElements"] = json!(0);
+        let answer = crate::direct_answer::reviewed_compose(question, &intent, &[empty]).unwrap().unwrap();
+        assert_eq!(answer["status"], "completed", "a confirmed empty page is a valid source answer");
+        assert!(answer["follow_up_question"].is_null());
+        assert_eq!(answer["presentation"]["kind"], "text");
     }
 }

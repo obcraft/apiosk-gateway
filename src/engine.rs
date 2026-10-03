@@ -40,6 +40,15 @@ pub struct Engine {
 }
 pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
 
+/// The task view can reconstruct a saved-answer retry after an older snapshot
+/// lost its action list. Dispatch must accept the same narrow recovery scope.
+fn saved_analysis_retry(task: &Task, person: bool) -> bool {
+    !task.cancelled && !task.active_results.is_empty()
+        && (task.workflow.is_some() || person && task.analysis.as_ref().is_some_and(|analysis|
+            analysis["observations"].as_array().is_some_and(Vec::is_empty)
+                && !analysis["follow_up_question"].is_string()))
+}
+
 /// Where a person approves a task: Ask's task view in the App. Links sent
 /// before this (`/gateway-v2?task=`) still redirect there.
 fn approval_url(app_url: &str, task: Uuid) -> String {
@@ -909,11 +918,7 @@ impl Engine {
                 r.next_actions.retain(|action| action.action_id != pending.action_id);
                 r.next_actions.push(Action::Poll { action_id: pending.action_id, execution_id: pending.action_id }.public());
             }
-            if (task.workflow.is_some() && !task.active_results.is_empty()
-                || p.is_person() && task.analysis.as_ref().is_some_and(|analysis|
-                    analysis["observations"].as_array().is_some_and(Vec::is_empty)
-                    && !analysis["follow_up_question"].is_string()) && !task.active_results.is_empty())
-                && !task.cancelled
+            if saved_analysis_retry(&task, p.is_person())
                 && !r.next_actions.iter().any(|action| action.kind == "retry_analysis") {
                 if let Some(quote) = task.proposal.as_ref().and_then(|plan| plan["quote_ref"].as_str()).and_then(|id| id.parse().ok()) {
                     r.next_actions.push(Action::RetryAnalysis { action_id: quote }.public());

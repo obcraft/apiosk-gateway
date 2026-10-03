@@ -98,7 +98,7 @@ impl Engine {
             }
         } else if req.action_id == id && task.proposal.is_some() {
             Action::Cancel { action_id: id }
-        } else if task.workflow.is_some() && !task.active_results.is_empty()
+        } else if saved_analysis_retry(&task, p.is_person())
             && task.proposal.as_ref().is_some_and(|plan| plan["quote_ref"] == json!(req.action_id)) {
             anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
             Action::RetryAnalysis { action_id: req.action_id }

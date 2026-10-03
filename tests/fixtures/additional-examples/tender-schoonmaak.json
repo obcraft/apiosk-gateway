@@ -1,0 +1,808 @@
+{
+  "checked_at": "2026-10-03T12:08:53.669168+00:00",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20&sort=publicatieDatum%2Cdesc&search=schoonmaak",
+  "http_status": 200,
+  "sha256": "bae7272654e0c1109a91cb15b4ea1286b6e3f28120f73ceabe6bfb2e0011e27f",
+  "body": {
+    "content": [
+      {
+        "publicatieId": "442563",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "SCHOONMAAK & ONDERHOUD GEMEENTE BEESEL",
+        "opdrachtgeverNaam": "Gemeente Beesel",
+        "sluitingsDatum": "2026-12-01T10:00:00",
+        "aantalDagenTotSluitingsDatum": 59,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het doel van deze aanbesteding is het komen tot een marktconform, resultaatgericht schoonmaakcontract op basis van dagelijkse en periodieke schoonmaak waarmee de representativiteit van de locaties van de gemeente Beesel geborgd wordt (zowel op het gebied van de technische kwaliteit als de belevingskwaliteit).",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615870,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442563",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442413",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Aanbesteding schoonmaakonderhoud en glasbewassing locaties Veiligheidsregio Brabant Noord",
+        "opdrachtgeverNaam": "Veiligheidsregio Brabant-Noord",
+        "sluitingsDatum": "2026-09-01T10:00:00",
+        "aantalDagenTotSluitingsDatum": -32,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het verzorgen van het schoonmaakonderhoud en glasbewassing locaties Veiligheidsregio Brabant Noord",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 574236,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442413",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442400",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Schoonmaakdiensten gemeente Laarbeek",
+        "opdrachtgeverNaam": "Bizob",
+        "sluitingsDatum": "2026-11-23T11:00:29",
+        "aantalDagenTotSluitingsDatum": 51,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/234419",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De doelstelling van de opdracht is het zorgen voor een hygiënische en schone werkomgeving in het kantoorpand van de gemeente waarbij de medewerkers zo min mogelijk last hebben van de werkzaamheden. Verder vindt de gemeente het van belang dat mensen met een afstand tot de arbeidsmarkt en arbeidsgehandicapten participeren in het arbeidsproces. \n\nOp grond van artikel 2.82 van de Aanbestedingswet 2012 is deelname aan deze aanbestedingsprocedure voorbehouden aan sociale werkplaatsen, ondernemingen met als hoofddoel de maatschappelijke en professionele integratie van gehandicapten of kansarmen, of programma’s voor beschermde arbeid. Voorwaarde is dat ten minste 30% van de werknemers binnen de betreffende sociale werkplaats, onderneming of het programma bestaat uit gehandicapte of kansarme werknemers.\n\nDe gemeente Laarbeek streeft naar een hygiënische, zichtbaar schone, gezonde en prettige (werk)omgeving voor alle werknemers, bezoekers en gebruikers van het gemeentehuis. Dit dient te worden gerealiseerd met minimale overlast door schoonmaakwerkzaamheden, zodat de dagelijkse activiteiten ongestoord kunnen plaatsvinden. \n\nOm die doelstelling te bereiken zal de gemeente met één dienstverlener de overeenkomst aangaan. \n\nDe overeenkomst wordt aangegaan voor een periode van twee (2) jaar en zeven (7) maanden met de mogelijkheid om twee (2) maal te verlengen met telkens één (1) jaar. De ingangsdatum van de overeenkomst is 1 juni 2027.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615686,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442400",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442237",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "VBE",
+          "omschrijving": "Vroegtijdige beëindiging"
+        },
+        "aanbestedingNaam": "Europese aanbesteding Schoonmaakdienstverlening het Baarnsch lyceum ism Contractables",
+        "opdrachtgeverNaam": "Contractables",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/215148",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": true,
+        "opdrachtBeschrijving": "Levering schoonmaakdienstverlening",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 615446,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442237",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442125",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Schoonmaakdienstverlening Gemeente Sluis",
+        "opdrachtgeverNaam": "Gemeente Sluis",
+        "sluitingsDatum": "2026-12-18T10:00:00",
+        "aantalDagenTotSluitingsDatum": 76,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Gemeente Sluis is voornemens een Europese aanbesteding uit te voeren voor de schoonmaakdienstverlening van vijf multifunctionele accommodaties binnen de gemeente Sluis. De locaties worden onder meer gebruikt door basisscholen, kinderdagverblijven en de GGD.\n\nDe opdracht is verdeeld in vijf percelen, waarbij ieder perceel betrekking heeft op één multifunctionele accommodatie. Inschrijvers kunnen inschrijven op één, meerdere of alle percelen. De beoordeling en gunning vinden per perceel plaats.\n\nGemeente Sluis zoekt per perceel een professionele en betrouwbare schoonmaakpartner die zorgdraagt voor kwalitatief goede en continue dienstverlening, met aandacht voor herkenbare medewerkers, duidelijke communicatie, kwaliteitsbewaking en een goede samenwerking met de gebruikers van de locaties.\n\nDe beoogde looptijd van de overeenkomst bedraagt acht jaar.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 609943,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442125",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442114",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Schoonmaakdienstverlening en aanverwante diensten",
+        "opdrachtgeverNaam": "Gemeente Amersfoort",
+        "sluitingsDatum": "2026-07-06T12:00:00",
+        "aantalDagenTotSluitingsDatum": -89,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De opdrachtnemer wordt verantwoordelijk voor geïntegreerde facilitaire dienstverlening, wat betekent dat de integrale aansturing, uitvoering, kwaliteitsbewaking en coördinatie van alle diensten onder deze opdracht valt. Opdrachtnemer fungeert daarbinnen als primair aanspreekpunt om de opdrachtgever volledig te ontzorgen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 590806,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442114",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442022",
+        "publicatieDatum": "2026-09-30",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "DAS Schoonmaakdiensten",
+        "opdrachtgeverNaam": "LEV Scholengroep West-Nederland (LEV-WN)",
+        "sluitingsDatum": "2029-07-31T10:00:00",
+        "aantalDagenTotSluitingsDatum": 1032,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Welkom op het DAS voor schoonmaakdiensten voor LEV Scholengroep West-Nederland (LEV-WN). Via dit DAS worden op rechtmatige wijze schoonmaakdiensten ingekocht. Hiermee wordt beoogd een diversiteit aan aanbieders aan te spreken en de vraag en aanbod op zo'n goed mogelijke wijze bij elkaar te brengen. \nDit DAS wordt gepubliceerd op grond van de aanbestedingswet 2012, en valt hiermee onder de Europese richtlijn 2014/24/EU.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614855,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442022",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "442048",
+        "publicatieDatum": "2026-09-29",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Stichting Opsoor Schoonmaakonderhoud",
+        "opdrachtgeverNaam": "Stichting openbaar primair en speciaal onderwijs Purmerend",
+        "sluitingsDatum": "2026-10-23T12:00:00",
+        "aantalDagenTotSluitingsDatum": 20,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het doel van deze Aanbesteding van Opdrachtgever is een Overeenkomst te sluiten met drie Inschrijvers voor het leveren van schoonmaakdienstverlening. De focus voor het leveren van schoonmaakdienstverlening ligt op het contracteren van kwalitatief hoogwaardige Dienstverlening.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 610059,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442048",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441786",
+        "publicatieDatum": "2026-09-27",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Punt Speciaal onderwijsgroep - EA Schoonmaak & Glasbewassing",
+        "opdrachtgeverNaam": "Kaleidon B.V.",
+        "sluitingsDatum": "2026-11-13T14:00:00",
+        "aantalDagenTotSluitingsDatum": 41,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/214205",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF20",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, lichte regeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het verzorgen van de schoonmaakdienstverlening en de glasbewassing van 6 scholen inclusief bestuursbureau, verdeeld over 2 percelen. \n\nVanwege de aflopende Overeenkomsten, de verplichting tot het Europees aanbesteden van de Opdracht, de doelmatige besteding van gemeenschapsgelden en de wens van de Aanbestedende dienst om voor de locatie(s) van Opdrachtgever per perceel één Overeenkomst met één Opdrachtnemer te sluiten, is besloten om deze Aanbestedingsprocedure te starten. De Aanbestedende dienst gaat voor de dienstverlening schoonmaakonderhoud en glasbewassing per 1 april 2027 een Overeenkomst aan.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614819,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441786",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441750",
+        "publicatieDatum": "2026-09-27",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Schoonmaak - Karel de Grote College en Novalis College",
+        "opdrachtgeverNaam": "Stichting Scholengemeenschap voor Vrijeschoolonderwijs",
+        "sluitingsDatum": "2026-11-27T09:00:00",
+        "aantalDagenTotSluitingsDatum": 55,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De opdracht betreft het uitvoeren van regulier schoonmaakonderhoud, specialistisch vloeronderhoud, glasbewassing en aanvullende werkzaamheden op regie voor het Novalis College en het Karel de Grote College.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614646,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441750",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441670",
+        "publicatieDatum": "2026-09-27",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Verwerken van Groenafval en Hekkelzoden",
+        "opdrachtgeverNaam": "Gemeente Súdwest-Fryslân",
+        "sluitingsDatum": "2026-11-06T12:00:00",
+        "aantalDagenTotSluitingsDatum": 34,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Hekkelzoden is het grotendeels plantaardige materiaal dat vrijkomt bij het\nschoonmaken van sloten en vijvers in onze gemeente.\n\nVerwerken van Groenafval, Onder Verwerken van Groenafval wordt verstaan:  Op de meest duurzaam en circulair mogelijke wijze verwerken van Groenafval door composteren en/of vergisting waardoor biogas vrijkomt.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 613377,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441670",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441430",
+        "publicatieDatum": "2026-09-24",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Raamovereenkomst Onderhoud waterkeringen 2027 - 2032",
+        "opdrachtgeverNaam": "Waterschap Hollandse Delta",
+        "sluitingsDatum": "2026-11-05T14:00:11",
+        "aantalDagenTotSluitingsDatum": 33,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/196464",
+        "digitaal": false,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Voorwerp van de opdracht\nDe aanbesteding heeft tot doel een raamovereenkomst af te sluiten voor het verrichten van onderhoud aan de waterkeringen binnen het verzorgingsgebied van WSHD middels een RAW-raamovereenkomst. Deze dienst is te classificeren met de \n\nEr wordt één (1) RAW-raamovereenkomst gesloten met één (1) opdrachtnemers. Het uitgangspunt is dat WSHD de regie voert op de uitvoering van het onderhoud van de waterkeringen en de hieruit voortkomende onderhoudswerkzaamheden door middel van nader te verstrekken deelopdrachten onder de raamovereenkomst. \n\nInhoud van de opdracht\nMet het onderhouden van de waterkeringen wordt in ieder geval voldaan aan de doelstellingen van WSHD te weten:\nHet waarborgen van de veiligheid van de waterkeringen;\nDe dijken en duinen voldoende sterk zijn en voldoen aan de wettelijke normen;\nDe kans op een overstroming alsmede de gevolgen daarvan worden beperkt;\nHet toevoegen van maatschappelijke meerwaarde;\nHet duurzaam en ecologisch uitvoeren van de waterveiligheidstaak alsmede het terugdringen van CO2-uitstoot bij het beheer en onderhoud; \nHet verbeteren van de inrichting en uitvoering van de zorgplicht. \n\nDe onderhoudswerkzaamheden binnen de scope van de opdracht omvatten hoofdzakelijk regulier onderhoud op primaire (ongeveer 3.000 kilometer) en regionale waterkeringen (ongeveer 3.000 kilometer), maar zijn niet beperkt tot het:\nHet aanbrengen van bestortingen;\nHet herstellen van zetwerk;\nHet bestrijden van onkruid;\nHet uitvoeren van grondwerk;\nHet vervangen van en onderhouden van drainagesystemen; \nHet vervangen van en onderhouden van afrasteringen;\nHet vervangen van oeververdediging;\nHet verwijderen van opschot en ruigten;\nHet schoonmaken van strandopgangen en onderhoud aan strandpalen.\nWSHD stelt haar gebiedsinformatie ter beschikking via ArcGIS Online, waarin onder andere alle assets gelegen in het werkgebied zijn opgenomen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614375,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441430",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441408",
+        "publicatieDatum": "2026-09-24",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Schoonmaak ten behoeve van 1Stroom (gemeenten Duiven en Westervoort)",
+        "opdrachtgeverNaam": "Samenwerking De Liemers",
+        "sluitingsDatum": "2026-09-28T10:00:00",
+        "aantalDagenTotSluitingsDatum": -5,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/228196",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze aanbesteding heeft als doel om een schoonmaakleverancier te contracteren voor schoonmaak van de gebouwen die in bezit zijn van - of verhuurd worden door de gemeenten Duiven en Westervoort en die de beoogde kwaliteit levert tegen een marktconforme prijs. Opdrachtgever beoogt verder met deze aanbesteding een schoonmaakpartner te vinden die continuïteit in personeel biedt en tijdig communiceert over wijzigingen.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 606949,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441408",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441262",
+        "publicatieDatum": "2026-09-24",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Schoonmaakartikelen",
+        "opdrachtgeverNaam": "WerkSaam Westfriesland",
+        "sluitingsDatum": "2026-11-11T09:00:00",
+        "aantalDagenTotSluitingsDatum": 39,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Met deze aanbesteding kiezen we één (1) Opdrachtnemers waarmee we een overeenkomst afsluiten voor het leveren van schoonmaakartikelen. \nDe levering zal op meerdere locatie bezorgd dienen te worden.\n\nDe aan te besteden opdracht omvat de afname van verschillende schoonmaakartikelen ter ondersteuning van de schoonmaakwerkzaamheden die door het leerwerkbedrijf Schoonmaak wordt uitgevoerd. \nDeze schoonmaakartikelen bestaan uit:\n-\tSchoonmaakmiddelen (verbruiksartikelen zoals toiletpapier, vuilniszakken, schoonmaakmiddelen);\n-\tSchoonmaakmaterialen (gebruiksartikelen zoals een wisser, stoffer en blik en vliesdoeken);\n-\tWasmiddelen;",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614133,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441262",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441156",
+        "publicatieDatum": "2026-09-24",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "EA Schoonmaak & Aanverwante Diensten - Trippenhuiscomplex",
+        "opdrachtgeverNaam": "Koninklijke Nederlandse Akademie van Wetenschappen",
+        "sluitingsDatum": "2026-07-03T12:00:00",
+        "aantalDagenTotSluitingsDatum": -92,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De opdracht omvat het leveren van schoonmaakonderhoud (dagelijks, periodiek en regie) & aanverwante diensten bij het Trippenhuis te Amsterdam. Onder de scope van de opdracht valt in ieder geval, maar niet uitsluitend, het volgende:\n•\tReguliere dagelijkse schoonmaakwerkzaamheden;\n•\tPeriodiek vloeronderhoud;\n•\tPeriodiek onderhoud;\n•\tGlasbewassing van gevelglas, separatieglas & overige glasdelen;\n•\tRegiewerkzaamheden.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 578840,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441156",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441194",
+        "publicatieDatum": "2026-09-23",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Teamleider Facilitair",
+        "opdrachtgeverNaam": "Kamer van Koophandel",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Inhuurdesk Kamer van Koophandel",
+        "tsenderLink": "http://www.kvkhuurtin.nl",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Voor Team Facilitair van KVK zijn wij op zoek naar een ervaren Teamleider Facilitair. Het team is verantwoordelijk voor het organiseren en borgen van alle facilitaire voorzieningen op de verschillende locaties, zodat medewerkers onbezorgd kunnen werken in een veilige, goed verzorgde en goed functionerende werkomgeving. De Teamleider Facilitair geeft leiding aan een multidisciplinair team met uiteenlopende expertises, vari?rend van servicedesk, veiligheid tot applicatiebeheer. Daarnaast is de teamleider eindverantwoordelijk voor de BHV-organisatie (Hoofd BHV) en draagt zorg voor de continu?teit van de facilitaire bedrijfsvoering. De opdracht richt zich op de run van de bestaande facilitaire organisatie. Apart nast deze opdracht zal een opdracht in de markt worden gezet voor het ontwikkelen van scenario?s voor dienstverlening en inrichting, inclusief bijbehorende functieprofielen tbv het toekomstbestendig maken van de facilitaire organisatie.&nbsp; Wat ga je doen?Als Teamleider Facilitair ben je verantwoordelijk voor de dagelijkse aansturing en doorontwikkeling van het facilitaire team en de dienstverlening. Je houdt je onder andere bezig met: ?\tHet leidinggeven aan en coachen van een divers team van facilitaire professionals ?\tHet borgen en verbeteren van de facilitaire dienstverlening op alle locaties ?\tHet aansturen en regisseren van externe leveranciers (zoals schoonmaak, catering en beveiliging) en zorgen voor optimale samenwerking ?\tHet bewaken van kwaliteit, kosten en prestaties van facilitaire contracten en processen ?\tHet vervullen van de rol van Hoofd BHV en het verder ontwikkelen en borgen van de BHV-organisatie ?\tHet waarborgen van een veilige werkomgeving, inclusief beveiliging van mensen, middelen en gebouwen ?\tHet zorgdragen voor de continu?teit van de facilitaire bedrijfsvoering en het anticiperen op verstoringen ?\tHet sturen op facilitaire processen zoals meldingen en storingen, post en documentmanagement en kantoorvoorzieningen ?\tHet bijdragen aan thema?s zoals duurzaamheid, mobiliteit en kwaliteit ?\tHet verbinden van verschillende vakgebieden binnen het team en het versterken van de samenwerking ?\tHet onderhouden van contacten met interne stakeholders en bijdragen aan organisatie brede doelstellingen Wat vragen wij?Wij zoeken een stevige en verbindende teamleider met ervaring in een complexe facilitaire omgeving. Je beschikt over: De teamleider Facilitair die wij zoeken beschikt over ruime en aantoonbare ervaring op het gebied van facilitaire dienstverlening, huisvesting en organisatieontwikkeling. De kandidaat heeft minimaal acht jaar ervaring met facilitaire vraagstukken binnen de (semi)publieke of kennisintensieve organisaties, en beschikt over ervaring met organisatieontwikkeling in relatie tot facilitaire dienstverlening en huisvesting. Hij of zij heeft inzicht in thema's als veiligheid, gastvrijheid, duurzaamheid en kwaliteit binnen de facilitaire dienstverlening. De kandidaat heeft een proactieve, resulttaatgerichte en besluitvaardige houding.  Hij of zij is in staat soepel te schakelen tussen strategisch, tactisch en operationeel niveau en weet complexe vraagstukken te vertalen naar heldere, uitvoerbare stappen. Daarnaast kenmerken een sterk analytisch vermogen, uitstekende communicatieve vaardigheden en een verbindende stijl van samenwerken deze professional ? iemand die inhoud, proces en mensen op natuurlijke wijze weet te combineren en draagvlak weet te cre?ren voor verandering. Brengt naast inhoud ook humor en relativering. HBO werk- en denkniveau.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614053,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441194",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441078",
+        "publicatieDatum": "2026-09-23",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Rijnvicus schoonmaakmiddelen",
+        "opdrachtgeverNaam": "Rijnvicus B.V.",
+        "sluitingsDatum": "2026-07-02T17:00:00",
+        "aantalDagenTotSluitingsDatum": -93,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Aanbesteding voor diverse schoonmaakmiddelen en - machines welke gebruikt of verbruikt worden door het schoonmaakpersoneel.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 568618,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441078",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441173",
+        "publicatieDatum": "2026-09-22",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Schoonmaakdienstverlening",
+        "opdrachtgeverNaam": "Metropoolregio Rotterdam- Den Haag",
+        "sluitingsDatum": "2026-10-13T13:00:00",
+        "aantalDagenTotSluitingsDatum": 10,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De MRDH zet een opdracht in de markt voor de schoonmaakdienstverlening van haar kantoorpand aan de Westersingel 12, 3014 GN te Rotterdam. Het betreft de dagelijkse schoonmaak van het gebouw (kelder tot en met de vijfde etage), inclusief de sanitaire voorzieningen, de levering en vervanging van sanitaire producten en de glasbewassing binnen en buiten.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 608796,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441173",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "440871",
+        "publicatieDatum": "2026-09-22",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Europese aanbesteding Sanitaire voorzieningen",
+        "opdrachtgeverNaam": "Stichting Talland College",
+        "sluitingsDatum": "2026-11-11T09:00:13",
+        "aantalDagenTotSluitingsDatum": 39,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/208840",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze Europese openbare aanbesteding betreft een opdracht voor sanitaire voorzieningen. Aanbestedende dienst is op zoek naar een gedegen leverancier voor het leveren, plaatsen en (indien nodig) reparatie/vervanging van sanitaire voorzieningen o.b.v. huur en het leveren van sanitaire verbruiksartikelen (disposables). Tevens is het plaatsen, schoonmaken en verwisselen van dames hygiëneboxen onderdeel van de opdracht.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 613630,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/440871",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "440831",
+        "publicatieDatum": "2026-09-22",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "EA Schoonmaak gemeentelijke opvanglocaties Almere",
+        "opdrachtgeverNaam": "Gemeente Almere",
+        "sluitingsDatum": "2025-09-08T12:00:00",
+        "aantalDagenTotSluitingsDatum": -390,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De scope van de opdracht betreft: \n• Het uitvoeren van het schoonmaakonderhoud voor interieur en vloeren;\n• Het dagelijks controleren en indien nodig bijvullen van sanitaire  \n  dispensers en het op peil houden van de benodigde voorraad;\n• Het afvoeren van afval naar de daarvoor bestemde containerruimten;\n• Het uitvoeren van glasbewassing;\n• Het (kunnen) uitvoeren van ad-hoc (regie) werkzaamheden, die niet in de \n  overeenkomst zijn vastgelegd maar wel gerelateerd zijn aan de  \n  schoonmaakdienstverlening.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 534664,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/440831",
+          "title": "self"
+        }
+      }
+    ],
+    "first": true,
+    "last": false,
+    "totalElements": 3812,
+    "totalPages": 191,
+    "size": 20,
+    "numberOfElements": 20,
+    "number": 0
+  },
+  "provenance": "Official anonymous public TenderNed first page, exact single-word search matching gateway request serialization. Mixed notice types; not all open and not an exhaustive result. No Apiosk payment or App end-to-end execution."
+}

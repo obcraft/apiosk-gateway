@@ -109,6 +109,9 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // The Coinbase Bazaar import asserts the full production catalogue; its own
   // PGlite check is scripts/test-bazaar-source-migration.mjs.
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)
+  // Reviewed source metadata asserts existing production provider/catalog
+  // rows. The source-flow suites seed their reviewed catalog fixtures instead.
+  &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison)\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
   &&!name.endsWith('_recurring_orders.sql')).sort()) {

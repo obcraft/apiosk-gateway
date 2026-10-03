@@ -1,0 +1,209 @@
+{
+  "provenance": "Actual saved native KVK responses from 2026-09-12. Public company source payloads only. Cached financial year2025 does not establish the latest filing or current provider availability. No replay for this fixture.",
+  "profile": {
+    "saved_at": "2026-09-12 16:12:23.002196+00",
+    "public_profile": {
+      "naam": "Volve Capital B.V.",
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162"
+        },
+        {
+          "rel": "vestigingen",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162/vestigingen"
+        }
+      ],
+      "_embedded": {
+        "eigenaar": {
+          "rsin": "864061614",
+          "links": [
+            {
+              "rel": "self",
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162/eigenaar"
+            },
+            {
+              "rel": "basisprofiel",
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162"
+            }
+          ],
+          "rechtsvorm": "Besloten Vennootschap",
+          "uitgebreideRechtsvorm": "Besloten Vennootschap"
+        },
+        "hoofdvestiging": {
+          "links": [
+            {
+              "rel": "self",
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162/hoofdvestiging"
+            },
+            {
+              "rel": "vestigingen",
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162/vestigingen"
+            },
+            {
+              "rel": "basisprofiel",
+              "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162"
+            },
+            {
+              "rel": "vestigingsprofiel",
+              "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000052675661"
+            }
+          ],
+          "adressen": [
+            {
+              "land": "Nederland",
+              "type": "bezoekadres",
+              "plaats": "Heemstede",
+              "postcode": "2106BL",
+              "huisnummer": 2,
+              "straatnaam": "Narcissenlaan",
+              "volledigAdres": "Narcissenlaan 2 2106BL Heemstede",
+              "indAfgeschermd": "Nee"
+            }
+          ],
+          "kvkNummer": "86717162",
+          "vestigingsnummer": "000052675661",
+          "eersteHandelsnaam": "Volve Capital B.V.",
+          "indHoofdvestiging": "Ja",
+          "materieleRegistratie": {
+            "datumAanvang": "20220621"
+          },
+          "totaalWerkzamePersonen": 0,
+          "formeleRegistratiedatum": "20220621",
+          "indCommercieleVestiging": "Ja"
+        }
+      },
+      "kvkNummer": "86717162",
+      "handelsnamen": [
+        {
+          "naam": "Volve Capital B.V.",
+          "volgorde": 0
+        }
+      ],
+      "indNonMailing": "Ja",
+      "statutaireNaam": "Volve Capital B.V.",
+      "sbiActiviteiten": [
+        {
+          "sbiCode": "64210",
+          "sbiOmschrijving": "Activiteiten van financiële holdings",
+          "indHoofdactiviteit": "Ja"
+        }
+      ],
+      "materieleRegistratie": {
+        "datumAanvang": "20220621"
+      },
+      "totaalWerkzamePersonen": 0,
+      "formeleRegistratiedatum": "20220621"
+    }
+  },
+  "financial": {
+    "kvk_number": "86717162",
+    "status": "succeeded",
+    "error_code": null,
+    "financial_year": 2025,
+    "document_type": "kvk-hvds-xbrl-v1",
+    "fresh_until": "2026-09-13 11:33:00.720366+00",
+    "updated_at": "2026-09-12 11:33:00.720366+00",
+    "source_url": "https://opendata.kvk.nl/api/v1/hvds/jaarrekeningen/kvknummer/86717162",
+    "payload": {
+      "opendataFields": [
+        {
+          "key": "SbiBusinessCode",
+          "value": "64210"
+        },
+        {
+          "key": "DocumentAdoptionDate",
+          "value": "2026-04-26"
+        },
+        {
+          "key": "FinancialYear",
+          "value": "2025"
+        },
+        {
+          "key": "BalanceSheet",
+          "opendataFields": [
+            {
+              "key": "BalanceSheetBeforeAfterAppropriationResultsTitle",
+              "opendataFields": [
+                {
+                  "key": "BalanceSheetBeforeAfterAppropriationResults",
+                  "value": "Na"
+                }
+              ]
+            },
+            {
+              "key": "BalanceSheetTitle",
+              "opendataFields": [
+                {
+                  "key": "AssetsTitle",
+                  "opendataFields": [
+                    {
+                      "key": "AssetsNoncurrentTitle",
+                      "opendataFields": [
+                        {
+                          "key": "AssetsNoncurrentOther",
+                          "value": "581377"
+                        },
+                        {
+                          "key": "AssetsNoncurrent",
+                          "value": "581377"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "AssetsCurrentTitle",
+                      "opendataFields": [
+                        {
+                          "key": "AssetsCurrent",
+                          "value": "101610"
+                        },
+                        {
+                          "key": "AssetsCurrentOther",
+                          "value": "101610"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "Assets",
+                      "value": "682987"
+                    }
+                  ]
+                },
+                {
+                  "key": "EquityAndLiabilitiesTitle",
+                  "opendataFields": [
+                    {
+                      "key": "LiabilitiesTitle",
+                      "opendataFields": [
+                        {
+                          "key": "LiabilitiesMaturityExceedingOneYear",
+                          "value": "955105"
+                        },
+                        {
+                          "key": "LiabilitiesMaturityLessThanOneYear",
+                          "value": "101149"
+                        },
+                        {
+                          "key": "Liabilities",
+                          "value": "1056254"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "EquityAndLiabilities",
+                      "value": "682987"
+                    },
+                    {
+                      "key": "Equity",
+                      "value": "-373267"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

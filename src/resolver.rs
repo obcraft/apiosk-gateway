@@ -474,9 +474,17 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "statistics.eurostat-gdp-netherlands" => "Retrieve Dutch GDP for the requested year".to_owned(),
             "statistics.eurostat-gdp-germany" => "Retrieve German GDP for the requested year".to_owned(),
             "statistics.cbs-bankruptcies" => "Retrieve the newest bankruptcy observations".to_owned(),
+            "statistics.cbs-bankruptcy-sector-comparison" => "Retrieve bankruptcy counts by sector".to_owned(),
+            "statistics.cbs-bankruptcy-periods" => "Check reporting periods and publication status".to_owned(),
             "statistics.cbs-bankruptcy-measures" => "Read the CBS measures and units".to_owned(),
             "statistics.cbs-bankruptcy-sectors" => "Read the CBS sector definitions".to_owned(),
             "statistics.cbs-bankruptcy-entity-types" => "Read the CBS business-type definitions".to_owned(),
+            "procurement.nl-public-contracts" => "Find matching public tender publications".to_owned(),
+            "location.property-search" => "Find the address in the official register".to_owned(),
+            "building.bag-unit" => "Retrieve the registered property unit".to_owned(),
+            "location.bag-address-context" => "Identify the address and neighbourhood".to_owned(),
+            "building.bag-building" => "Retrieve building details".to_owned(),
+            "area.cbs-neighbourhood-2025" => "Retrieve neighbourhood statistics for 2025".to_owned(),
             _ => service.description.as_deref().filter(|_|service.is_document_retrieval())
                 .map(|text| text.split(". ").next().unwrap_or(text).chars().take(180).collect())
                 .unwrap_or_else(||capability.replace(['.', '_', '-'], " ")),

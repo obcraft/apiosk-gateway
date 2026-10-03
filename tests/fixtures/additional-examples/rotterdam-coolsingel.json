@@ -1,0 +1,340 @@
+{
+  "provenance": "Official anonymous public PDOK responses captured 2026-10-03. Geometry omitted; properties, identifiers, counts and links retained. No Apiosk payment or App end-to-end execution.",
+  "address": {
+    "response": {
+      "numFound": 1,
+      "start": 0,
+      "maxScore": 1.0747124,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3086",
+          "type": "adres",
+          "woonplaatsnaam": "Rotterdam",
+          "wijkcode": "WK059901",
+          "huis_nlt": "40",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Stadsdriehoek",
+          "gemeentecode": "0599",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0599200000239721",
+          "weergavenaam": "Coolsingel 40, 3011AD Rotterdam",
+          "straatnaam_verkort": "Coolsngl",
+          "id": "adr-2b8ff43ab15e2797010d826e22b3ff80",
+          "gekoppeld_perceel": [
+            "RTD08-AD-6"
+          ],
+          "gemeentenaam": "Rotterdam",
+          "buurtcode": "BU05990110",
+          "wijknaam": "Rotterdam Centrum",
+          "identificatie": "0599010000156729-0599200000239721",
+          "openbareruimte_id": "0599300000003070",
+          "waterschapsnaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+          "provinciecode": "PV28",
+          "postcode": "3011AD",
+          "provincienaam": "Zuid-Holland",
+          "centroide_ll": "POINT(4.47920127 51.92272076)",
+          "nummeraanduiding_id": "0599200000239721",
+          "waterschapscode": "39",
+          "adresseerbaarobject_id": "0599010000156729",
+          "huisnummer": 40,
+          "provincieafkorting": "ZH",
+          "centroide_rd": "POINT(92539.395 437527.922)",
+          "straatnaam": "Coolsingel",
+          "score": 1.0747124
+        }
+      ]
+    }
+  },
+  "bag-unit": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-03T12:14:28Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=json&identificatie=0599010000156729&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=jsonfg&identificatie=0599010000156729&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=html&identificatie=0599010000156729&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "bronhouder_identificatie": "0599",
+          "bronhouder_naam": "Rotterdam",
+          "documentdatum": "2023-07-25",
+          "documentnummer": "Corsanr.23-13874",
+          "gebruiksdoel": "kantoorfunctie",
+          "geconstateerd": "N",
+          "hoofdadres_identificatie": "0599200000239721",
+          "hoofdadres_status": "Naamgeving uitgegeven",
+          "huisletter": null,
+          "huisnummer": 40,
+          "identificatie": "0599010000156729",
+          "openbare_ruimte_identificatie": "0599300000003070",
+          "openbare_ruimte_naam": "Coolsingel",
+          "openbare_ruimte_naam_kort": null,
+          "openbare_ruimte_status": "Naamgeving uitgegeven",
+          "oppervlakte": 29319,
+          "pand.href": [
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/e3390311-2ee6-5b18-8e81-aabafdaf9d6a"
+          ],
+          "postcode": "3011AD",
+          "provincie_afkorting": "ZH",
+          "provincie_naam": "Zuid-Holland",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0599010000156729",
+          "status": "Verblijfsobject in gebruik",
+          "toevoeging": null,
+          "woonplaats_identificatie": "3086",
+          "woonplaats_naam": "Rotterdam",
+          "woonplaats_status": "Woonplaats aangewezen"
+        },
+        "id": "85fa0d73-2d18-5130-9210-a686c59aa351"
+      }
+    ],
+    "numberReturned": 1
+  },
+  "building": {
+    "type": "Feature",
+    "properties": {
+      "aantal_verblijfsobjecten": 1,
+      "bouwjaar": 1920,
+      "documentdatum": "2017-09-15",
+      "documentnummer": "Corsanr.17/31232",
+      "gebruiksdoel": "kantoorfunctie",
+      "geconstateerd": "N",
+      "identificatie": "0599100000701897",
+      "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0599100000701897",
+      "status": "Pand in gebruik",
+      "verblijfsobject.href": [
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/85fa0d73-2d18-5130-9210-a686c59aa351"
+      ]
+    },
+    "id": "e3390311-2ee6-5b18-8e81-aabafdaf9d6a",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/e3390311-2ee6-5b18-8e81-aabafdaf9d6a?f=json"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/e3390311-2ee6-5b18-8e81-aabafdaf9d6a?f=jsonfg"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/e3390311-2ee6-5b18-8e81-aabafdaf9d6a?f=html"
+      },
+      {
+        "rel": "collection",
+        "title": "The collection to which this feature belongs",
+        "type": "application/json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand?f=json"
+      }
+    ]
+  },
+  "bag-address": {
+    "response": {
+      "numFound": 2,
+      "start": 0,
+      "maxScore": 1.0747124,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3086",
+          "type": "adres",
+          "woonplaatsnaam": "Rotterdam",
+          "wijkcode": "WK059901",
+          "huis_nlt": "4",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Stadsdriehoek",
+          "gemeentecode": "0599",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0599200000734115",
+          "weergavenaam": "Raam 4, 3011AH Rotterdam",
+          "straatnaam_verkort": "Raam",
+          "id": "adr-150dcadce7c457a7cd09ba838ed3fb68",
+          "gemeentenaam": "Rotterdam",
+          "buurtcode": "BU05990110",
+          "wijknaam": "Rotterdam Centrum",
+          "identificatie": "0599010000156729-0599200000734115",
+          "openbareruimte_id": "0599300000005488",
+          "waterschapsnaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+          "provinciecode": "PV28",
+          "postcode": "3011AH",
+          "provincienaam": "Zuid-Holland",
+          "centroide_ll": "POINT(4.47920127 51.92272076)",
+          "nummeraanduiding_id": "0599200000734115",
+          "waterschapscode": "39",
+          "adresseerbaarobject_id": "0599010000156729",
+          "huisnummer": 4,
+          "provincieafkorting": "ZH",
+          "centroide_rd": "POINT(92539.395 437527.922)",
+          "straatnaam": "Raam",
+          "score": 1.0747124
+        },
+        {
+          "bron": "BAG",
+          "woonplaatscode": "3086",
+          "type": "adres",
+          "woonplaatsnaam": "Rotterdam",
+          "wijkcode": "WK059901",
+          "huis_nlt": "40",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Stadsdriehoek",
+          "gemeentecode": "0599",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0599200000239721",
+          "weergavenaam": "Coolsingel 40, 3011AD Rotterdam",
+          "straatnaam_verkort": "Coolsngl",
+          "id": "adr-2b8ff43ab15e2797010d826e22b3ff80",
+          "gekoppeld_perceel": [
+            "RTD08-AD-6"
+          ],
+          "gemeentenaam": "Rotterdam",
+          "buurtcode": "BU05990110",
+          "wijknaam": "Rotterdam Centrum",
+          "identificatie": "0599010000156729-0599200000239721",
+          "openbareruimte_id": "0599300000003070",
+          "waterschapsnaam": "Hoogheemraadschap van Schieland en de Krimpenerwaard",
+          "provinciecode": "PV28",
+          "postcode": "3011AD",
+          "provincienaam": "Zuid-Holland",
+          "centroide_ll": "POINT(4.47920127 51.92272076)",
+          "nummeraanduiding_id": "0599200000239721",
+          "waterschapscode": "39",
+          "adresseerbaarobject_id": "0599010000156729",
+          "huisnummer": 40,
+          "provincieafkorting": "ZH",
+          "centroide_rd": "POINT(92539.395 437527.922)",
+          "straatnaam": "Coolsingel",
+          "score": 1.0747124
+        }
+      ]
+    }
+  },
+  "neighbourhood": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-03T12:14:28Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU05990110&f=json&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU05990110&f=jsonfg&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU05990110&f=html&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "aantal_huishoudens": 12140,
+          "aantal_inwoners": 18365,
+          "bevolkingsdichtheid_inwoners_per_km2": 13518,
+          "buurtcode": "BU05990110",
+          "buurtnaam": "Stadsdriehoek",
+          "dekkingspercentage": 1,
+          "gemeentecode": "GM0599",
+          "gemeentenaam": "Rotterdam",
+          "gemiddelde_huishoudsgrootte": 1.5,
+          "indelingswijziging_wijken_en_buurten": 1,
+          "jaar": 2025,
+          "jrstatcode": "2025BU05990110",
+          "mannen": 9435,
+          "meest_voorkomende_postcode": "3011",
+          "omgevingsadressendichtheid": 7071,
+          "oppervlakte_land_in_ha": 136,
+          "oppervlakte_totaal_in_ha": 173,
+          "oppervlakte_water_in_ha": 37,
+          "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 25,
+          "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 15,
+          "perc_geb_in_nl_met_herkomstland_buiten_europa": 15,
+          "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 5,
+          "percentage_eenpersoonshuishoudens": 63,
+          "percentage_geb_in_nl_met_herkomstland_nederland": 40,
+          "percentage_gehuwd": 20,
+          "percentage_gescheid": 6,
+          "percentage_huishoudens_met_kinderen": 11,
+          "percentage_huishoudens_zonder_kinderen": 27,
+          "percentage_met_herkomstland_buiten_europa": 40,
+          "percentage_met_herkomstland_nederland": 40,
+          "percentage_met_herkomstland_uit_europa_excl_nl": 20,
+          "percentage_ongehuwd": 72,
+          "percentage_personen_0_tot_15_jaar": 6,
+          "percentage_personen_15_tot_25_jaar": 19,
+          "percentage_personen_25_tot_45_jaar": 45,
+          "percentage_personen_45_tot_65_jaar": 19,
+          "percentage_personen_65_jaar_en_ouder": 11,
+          "percentage_verweduwd": 2,
+          "stedelijkheid_adressen_per_km2": 1,
+          "vrouwen": 8930,
+          "water": "NEE",
+          "wijkcode": "WK059901"
+        },
+        "id": "d50a794a-28e1-5d2a-9052-49fe8d6faea0"
+      }
+    ],
+    "numberReturned": 1
+  },
+  "source_checks": [
+    {
+      "checked_at": "2026-10-03T12:14:28.203332+00:00",
+      "url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=%2A%3A%2A&fq=type%3Aadres+AND+straatnaam%3A%22Coolsingel%22+AND+huisnummer%3A40+AND+woonplaatsnaam%3A%22Rotterdam%22+AND+-huisletter%3A%5B%2A+TO+%2A%5D+AND+-huisnummertoevoeging%3A%5B%2A+TO+%2A%5D&rows=5",
+      "http_status": 200,
+      "sha256": "8c482b19395f2facc3c6ba0e6dcfbd72457653cb1c7c5a68f35ba7e9616dd540"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.288180+00:00",
+      "url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?identificatie=0599010000156729&limit=2&f=json",
+      "http_status": 200,
+      "sha256": "8d919dfd0aa10a514e61365b981959a622e6a050c12a5c836b5e10ee3942129a"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.346799+00:00",
+      "url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/e3390311-2ee6-5b18-8e81-aabafdaf9d6a?f=json",
+      "http_status": 200,
+      "sha256": "5487f2a67bf60f811986f7a2a70669c6a6230383c53b27ae677b017663600306"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.423967+00:00",
+      "url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=%2A%3A%2A&fq=type%3Aadres+AND+adresseerbaarobject_id%3A0599010000156729&rows=100",
+      "http_status": 200,
+      "sha256": "c033f5993677c47aa2aa9d726f6165b8ba06afdf8b649a6528486584e3227958"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.542568+00:00",
+      "url": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU05990110&limit=2&f=json",
+      "http_status": 200,
+      "sha256": "b71ca158c47cdbaaaf8807a556e008ba9d4f475be015dd88f290f87d6f83c2ba"
+    }
+  ]
+}

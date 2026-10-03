@@ -56,3 +56,6 @@ pub mod readiness;
 pub mod replay;
 
 pub mod recurring;
+
+#[cfg(test)]
+mod additional_examples_tests;

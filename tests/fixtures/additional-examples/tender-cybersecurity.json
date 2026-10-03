@@ -1,0 +1,812 @@
+{
+  "checked_at": "2026-10-03T12:08:53.645498+00:00",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20&sort=publicatieDatum%2Cdesc&search=cybersecurity",
+  "http_status": 200,
+  "sha256": "3cafb5bad268a0417ec8c00d13bd181671ca85f6d2f9581064f6c6e09dcb7924",
+  "body": {
+    "content": [
+      {
+        "publicatieId": "442506",
+        "publicatieDatum": "2026-10-02",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Cyber Team Europe initiative ‘Safe Digital Boost for Africa (SDBA) Continental’",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken",
+        "sluitingsDatum": "2026-11-11T12:00:00",
+        "aantalDagenTotSluitingsDatum": 39,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "The purpose of this tender procedure is a service contract to support the implementation of RVO activities of the European project Safe Digital Boost for Africa (SDBA) – Continental, with the African union. Particularly focusing on the four RVO themes for cyber security capacity building: Critical information infrastructure protection (CIIP), Public- private partnerships (PPPs), Cyber skills development/Human capital agenda (HCA) & Cyber hygiene awareness.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 607403,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/442506",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441628",
+        "publicatieDatum": "2026-09-26",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Implementatie, beheer en onderhoud en aanpassingen cameratoezichtsysteem",
+        "opdrachtgeverNaam": "gemeente Nissewaard",
+        "sluitingsDatum": "2026-11-16T10:00:00",
+        "aantalDagenTotSluitingsDatum": 44,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het Voorwerp van aanbesteding betreft het implementeren, gedeeltelijk vervangen en in beheer en onderhoud nemen van het cameratoezichtsysteem. Aanpassing van het cameratoezichtsysteem, zoals levering van nieuwe camera’s valt ook onder deze raamovereenkomst. Ook het beheren en onderhouden van het huidig cameratoezichtsysteem tot het nieuwe systeem operationeel is, valt onder de scope van de opdracht, e.e.a. conform de offerteleidraad en de bijhorende bijlagen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614588,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441628",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441634",
+        "publicatieDatum": "2026-09-24",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Incident Response Retainer diensten",
+        "opdrachtgeverNaam": "Belastingdienst, IUC Belastingdienst",
+        "sluitingsDatumMarktconsultatie": "2026-10-30",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "De Belastingdienst wil een breed beeld krijgen van de beschikbare dienstverlening en de volwassenheid van leveranciers op het gebied van incident response, digitale forensics, cybercrisismanagement, ransomware-respons, dreigingsinformatie en herstelondersteuning. De marktconsultatie is nadrukkelijk niet uitsluitend gericht op ondersteuning tijdens een incident, maar ook op voorbereiding, weerbaarheidsverhoging, kennisoverdracht en nazorg.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 613216,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441634",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "441077",
+        "publicatieDatum": "2026-09-23",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Security Incident Response 2.0 (2026)",
+        "opdrachtgeverNaam": "SURF B.V.",
+        "sluitingsDatum": "2026-10-22T12:00:00",
+        "aantalDagenTotSluitingsDatum": 19,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/232542",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het leveren van Security Incident Respons diensten ten behoeve van de Deelnemers via een SLA.  De scope van deze aanbesteding bestaat uit de volgende kernonderdelen.\n\n- Analyse: het in kaart brengen van de omvang en oorzaak van een incident en het voortvarend en adequaat onderzoeken/hierop reageren;\n- Coördinatie: het coördineren van de aanpak van het incident bij Deelnemers. Coördinatie van de werkzaamheden kan betrekking hebben op alle onderdelen van de Opdracht.  \n- Verdediging en mitigatie: het indammen en uitroeien van de “besmette” onderdelen van de IT- en OT-Infrastructuur (“brandweerfunctie”)  \n- Onderzoek; digitaal forensisch onderzoek uitvoeren (“detective functie”).   \n- Evaluatie en rapportage: adequaat overdragen van resultaten (details onderzoeken) aan door ons aangewezen incident response partners (“rapporteer functie”). Met deze rapportages dient ook bijgedragen te kunnen worden aan ‘compliancy’, bijvoorbeeld door het opleveren van een ‘second opinion’.  \n\nAls onderdeel van deze kernonderdelen kan geleverd worden:\n- De levering en/of inzet van hard- en software ter uitvoering van onderdelen van deze Opdracht. Hierbij houdt Opdrachtnemer rekening met de bij de Deelnemer gebruikte standaarden en/of installed base.   \n- Trainingen: In voorkomend geval kan Deelnemer Opdrachtnemer verzoeken trainin-gen uit te voeren of te verzorgen.  \nNaast deze kernonderdelen, zijn ook de volgende zaken onderdeel van de scope.\n\n- Strategische en technische advisering: Strategisch en technisch advies over de afhandeling van incidenten. Denk hierbij aan advies over het betalen van vergoedin-gen bij aanvallen/ransomware. Of strategische advisering over beleid ten aanzien van deze onderwerpen. \n- Communicatieadvies; advies over communicatiestrategieën en advies over communicatie bij specifieke incidenten. Hierbij kan gedacht worden aan het bijstaan van de Instelling bij het opstellen van communiqués en/of het vertalen van technische zaken in begrijpelijke taal ter ondersteuning van algemene communicatie richting de buitenwereld. Hier kunnen ook aanvullende rapportage-activiteiten onder worden verstaan, zoals het adviseren over hoe rapportages gedeeld kunnen worden met de (SURF)communities en/of derden of het leveren van bijdragen aan presentaties waarin resultaten worden gedeeld.\n- Gespreksvoering namens Instelling over de beveiligingsincidenten met ‘kwaadwillenden’.\n- Andere wijzen van kennisdeling binnen en buiten de Instellingen/community, zoals de inbreng van kennis en expertise bij oefeningen, redteaming en trainingen om de samenwerking binnen het proces van incident respons te versterken.\n\nElk incident response verzoek kan één of meer van de genoemde taken omvatten, maar hoeft niet alle taken te omvatten. Zo kan bij het plaatsvinden van een incident door Instelling beroep worden gedaan op de ‘verdediging en mitigatie’, maar kan deze Instelling zelf voorzien in de coördinatie van de werkzaamheden. Ook andere combinaties van onderdelen van de opdracht kunnen door Instelling aan opdrachtnemer worden opgedragen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 613900,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441077",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "439234",
+        "publicatieDatum": "2026-09-10",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "27469 | Ontwerpopdracht Beveiligingsmaatregelen Gerechtsgebouw Utrecht te Utrecht",
+        "opdrachtgeverNaam": "Rijksvastgoedbedrijf",
+        "sluitingsDatum": "2025-11-21T09:00:00",
+        "aantalDagenTotSluitingsDatum": -316,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het Gerechtsgebouw Utrecht is in 2000 opgeleverd en is een samenstelling van diverse nieuwbouwdelen en 2 bestaande gebouwen, te weten bouwdeel H (bouwjaar 1903) en bouwdeel G (bouwjaar 1893/ Rijksmonument). Sinds 2017 loopt er een integraal onderhouds- en herinrichtingsgrogramma dat in 4 fases is/wordt uitgevoerd. Deze aanbesteding betreft fase 4a, het project Beveiligingsmaatregelen. Dit project beslaat alle bouwdelen van het gerechtsgebouw met uitzondering van bouwdeel H (perimeter van bouwdeel H valt wel binnen de scope).",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 549068,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/439234",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "438619",
+        "publicatieDatum": "2026-09-05",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Informatiebeveiligingsonderzoeken (RVICTO-PT) 2026",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken, Rijksdienst voor Ondernemend Nederland (RVO)",
+        "sluitingsDatum": "2026-11-30T14:00:00",
+        "aantalDagenTotSluitingsDatum": 58,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze aanbesteding betreft het sluiten van een raamovereenkomst voor het uitvoeren van informatiebeveiligingsonderzoeken (penetratietesten). Het doel is het identificeren van digitale kwetsbaarheden in systemen, applicaties en andere objecten, teneinde deze te verhelpen of te mitigeren.\n\nDe penetratietesten worden uitgevoerd via geautomatiseerde én handmatige methoden en vloeien voort uit de zorgplicht die deelnemers hebben op grond van de NIS2-richtlijn en de daarop gebaseerde Cyberbeveiligingswet.\n\nDeze raamovereenkomst is bestemd voor meerdere rijksdeelnemers, waaronder verschillende ministeries en centrale overheidsorganen. Voor de volledige lijst van deelnemers per ministerie en organisatie verwijzen wij naar paragraaf 1.1.1 van het Aanbestedingsdocument.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 609833,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/438619",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "438178",
+        "publicatieDatum": "2026-09-01",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Marktconsultatie Awareness- en E-learningplatform Informatiebeveiliging en Privacy VRK",
+        "opdrachtgeverNaam": "Veiligheidsregio Kennemerland",
+        "sluitingsDatumMarktconsultatie": "2026-09-25",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "Marktconsultatie ten behoeve van de voorgenomen aanbesteding van een awareness- en e-learningplatform voor informatiebeveiliging en privacy. De beoogde oplossing betreft een SaaS-platform inclusief trainingscontent, rapportages, managementinformatie, phishing-simulaties en overige functionaliteiten gericht op bewustwording en gedragsverandering. De marktconsultatie heeft als doel inzicht te verkrijgen in beschikbare marktoplossingen, innovatieve ontwikkelingen, contractvormen, prijsmodellen en implementatiemogelijkheden.\n\noor deze marktconsultatie is geen vragenronde voorzien via TenderNed. Eventuele reacties dienen uiterlijk 25 september 2026 om 18.00 uur te zijn ingediend. Er worden geen afzonderlijke antwoorden of Nota van Inlichtingen gepubliceerd.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 609609,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/438178",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "437357",
+        "publicatieDatum": "2026-08-26",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "SOC Analist 2x",
+        "opdrachtgeverNaam": "Kamer van Koophandel",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Inhuurdesk Kamer van Koophandel",
+        "tsenderLink": "http://www.kvkhuurtin.nl",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Binnen de Kamer van Koophandel is er een product genaamd Cyber Security Operations. Het team draagt zorg voor de gehele bedrijfsvoering van de veiligheid over de deelgebieden bescherming, verdediging, weerbaarheid en governance.  Dit doen we door verschillende clusters in het productteam onder te brengen met 1 gezamenlijk doel; de KVK een veiligere plek maken. De ontwikkelingen rondom het onderwerp security gaan steeds sneller en is een belangrijk thema in de bedrijfsvoering. Het productteam wil daardoor de reeds gemaakte roadmap en de vernieuwde strategie verder gaan uitvoeren. Het productteam werkt in scrum teams aan ontwikkeling en beheer. De teams zijn breed en multidisciplinair samen gesteld. Voor het maken van de volgende stap voor het productteam is de KVK op zoek naar twee Cybersecurity SOC analisten.De SOC analist maakt deel uit van het Security Operations Center (SOC). Als SOC analist monitor je de cybersecurity status van de organisatie, handel je incidenten als gevolg van cybersecurity aanvallen en draag je zorg voor de beschikbaarheid en continu?teit van de KVK dienst verlening.De kandidaat werkt aan het pro- en reactief aan het bewaken en   onderhouden van de cybersecurity weerbaarheid van KVK. Hieraan valt te   denken:     &nbsp;     -\tReguliere monitoring en analyse security-incidenten volgens afgesproken   kaders;     -\tStem af met de diverse oplosgroepen en neemt de regie bij het tijdig   oplossen van security incidenten;     -\tDocumenteren incident resultaten en uitgevoerde handelingen;     -\tOntwikkelen, onderhouden en validateren van het Incident Response   Plan;     -\tBijdrage leveren aan het verbeteren en valideren van het incident   afhandeling proces;     -\tPeriodiek uitvoeren van een kwetsbaarheden onderzoek naar bedreigingen   volgens afgesproken kaders en indien nodig n.a.v. penetratietesten;     -\tBepaal je in samenspraak met ontwikkelteams de inhoud en diepgang van   penetratietesten;     -\tVoer je periodieke rapportages uit over de operationele security   resultaten en draagt zorg voor de verbeter activiteiten;      -\tMeten van effectiviteit detectie incidenten en response;     -\tAnalyseren en beoordelen cybersecurity controls en mitigatie acties na   een incident;     -\tOntwikkelen en invoeren test methoden op het incident afhandeling;     -\tAnalyseren en onderzoeken vraagstukken op het gebied van IT-security;     -\tVoer je periodieke beoordelingsanalyse uit op de geleverde producten en   diensten;     -\tStel risicoclassificaties op binnen verschillende IT-security gebieden;     -\tGeef gevraagd en ongevraagd adviezen over IT-security vraagstukken;     -\tMaken, onderhouden en valideren van use cases;     -\tMaken, onderhouden en valideren van play books;     -\tSamenwerken met het Cyber Security Incident Response Team (CSIRT).     \tDe kandidaat werkt samen met de product owner en het product team. Hierbij is de kandidaat gewend om te werken binnen de kaders en richtlijnen van een bestaande security architectuur en informatie beveiliging normen, standaarden en frameworks. ( bv ISO, NIST, Mitre etc.) Vanuit de werkzaamheden opereert de kandidaat als een teamplayer maar ook zelfstandig waarbij zowel mondeling als in schrift goed wordt gecommuniceerd/rapporteert.  Van de kandidaat wordt verwacht dat hij/zij kritisch meedenkt inzake het verbetering van detectie, monitoring en response met als doel het verbeteren van de cybersecurity van de KVK.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 608292,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/437357",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "436293",
+        "publicatieDatum": "2026-08-16",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Rijksbrede aanbesteding Auditdiensten 2026-2030",
+        "opdrachtgeverNaam": "Ministerie van Infrastructuur en Waterstaat",
+        "sluitingsDatum": "2026-05-18T11:00:00",
+        "aantalDagenTotSluitingsDatum": -138,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Betreft inspanningsgerichte auditdiensten, inspannings- en resultaatgerichte IT-auditdiensten, en multidisciplinaire resultaatgerichte auditdiensten.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 571879,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/436293",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "435836",
+        "publicatieDatum": "2026-08-09",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Laboratoriummetingen",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken",
+        "sluitingsDatum": "2026-10-12T13:00:00",
+        "aantalDagenTotSluitingsDatum": 9,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De RDI is op zoek naar een leverancier die laboratoriummetingen uit gaat voeren. De laboratoriummetingen bestaan uit de onderstaande vier componenten:\n1. Radio-eigenschappen (RF): Het uitvoeren van metingen aan radioapparaten om te toetsen of deze voldoen aan de eisen;\n2. Elektromagnetische compatibiliteitsaspecten (EMC):  Het uitvoeren van metingen aan uitrusting (Apparaten) of radioapparaten om te toetsen of deze voldoen aan de eisen; \n3. Gezondheids- en veiligheidsaspecten: Het uitvoeren van testen en beproevingen aan radioapparaten om te toetsen of deze voldoen aan de eisen;\n4. Cyberaspecten: het onderzoeken van de cybersecurity-eisen van radioapparatuur met een internetverbinding.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 595337,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/435836",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "435111",
+        "publicatieDatum": "2026-07-31",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Dienstverlening SIEM-SOC",
+        "opdrachtgeverNaam": "Veiligheidsregio Haaglanden",
+        "sluitingsDatum": "2026-09-28T12:00:00",
+        "aantalDagenTotSluitingsDatum": -5,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze opdracht betreft het leveren, implementeren en beheren van een SIEM-platform in combinatie met SOC-dienstverlening ten behoeve van Veiligheidsregio Haaglanden (afgekort VRH). Doel van de opdracht is het realiseren van een toekomstbestendige, betrouwbare en schaalbare oplossing voor het centraal verzamelen, correleren en analyseren van beveiligingsgegevens, teneinde cybersecuritydreigingen tijdig te signaleren en de continuïteit van de organisatie te waarborgen. De oplossing dient als dienstverlening te worden aangeboden en te voldoen aan de geldende wet- en regelgeving ten aanzien van informatiebeveiliging en gegevensbescherming. Onderdeel van de opdracht zijn tevens implementatie, inrichting, beheer, monitoring, incidentrespons, rapportage, advisering en doorontwikkeling van de dienstverlening gedurende de looptijd van de overeenkomst.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 603669,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/435111",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "434225",
+        "publicatieDatum": "2026-07-22",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "50068| Vervangen beveiligingsinstallaties PI Krimpen te Krimpen a/d IJssel",
+        "opdrachtgeverNaam": "Rijksvastgoedbedrijf",
+        "sluitingsDatum": "2026-09-25T09:00:00",
+        "aantalDagenTotSluitingsDatum": -8,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "PI Krimpen wordt de komende jaren volledig gerevitaliseerd. Dit gebeurt in vier aanbestedingsdelen, te weten:\n•\tDeelproject 1 Renovatie leefafdelingen en DIOO (in uitvoering)\n•\tDeelproject 2 Dakbedekking, PV panelen en buitenruimte \n•\tDeelproject 3 Vervangen beveiligingsinstallaties (dit project)\n•\tDeelproject 4 Centrale energievoorziening en binnenruimte\n\nIn dit project, aanbestedingsdeel 3, worden diverse beveiligingsinstallaties gelijktijdig gemoderniseerd of vervangen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 602537,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/434225",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "433836",
+        "publicatieDatum": "2026-07-19",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "1-W-0018876-25 Onderhouden, beheren, leveren en plaatsen van installaties voor toezicht- en verkeersobservatiecamera's",
+        "opdrachtgeverNaam": "Gemeente Rotterdam",
+        "sluitingsDatum": "2026-10-12T12:00:00",
+        "aantalDagenTotSluitingsDatum": 9,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/224367",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het beheren en onderhouden van bestaande gemeentelijke toezicht- en verkeersbewakingcamera-installaties en het leveren en plaatsen van nieuwe camera-installaties en het uitvoeren van bijbehorende en bijkomende werkzaamheden in de gemeente Rotterdam",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 602545,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/433836",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "433831",
+        "publicatieDatum": "2026-07-19",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "SIEM, SOC, SOAR-dienstverlening",
+        "opdrachtgeverNaam": "Veiligheidsregio Noord- en Oost- Gelderland",
+        "sluitingsDatum": "2026-09-25T12:00:00",
+        "aantalDagenTotSluitingsDatum": -8,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF18",
+          "omschrijving": "Aankondiging van een opdracht - defensierichtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Veiligheidsregio Noord- en Oost-Gelderland (VNOG) wenst een raamovereenkomst te sluiten met één opdrachtnemer voor de levering, implementatie, inrichting, het beheer en de doorontwikkeling van geïntegreerde SIEM-, SOC- en SOAR-dienstverlening. De dienstverlening is gericht op het monitoren, detecteren, analyseren en opvolgen van cybersecuritydreigingen en beveiligingsincidenten, ter versterking van de digitale weerbaarheid van VNOG.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 600148,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/433831",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "433891",
+        "publicatieDatum": "2026-07-17",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Basisbeveiliging.nl",
+        "opdrachtgeverNaam": "Belastingdienst, IUC Belastingdienst",
+        "procedure": {
+          "code": "OZB",
+          "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": false,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "In reikwijdte van de opdracht valt het volgende:\n- Jaarlijks metingen Basisbeveiliging.nl;\n- Ondersteuning op verzoek op basis van fair use.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 598546,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/433891",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "433486",
+        "publicatieDatum": "2026-07-15",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Marktconsultatie - Raamovereenkomst Industriële Automatisering, Machineveiligheid en Cyber Security van IA (ROK IA 3)",
+        "opdrachtgeverNaam": "Rijkswaterstaat Centrale Informatievoorziening",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "OBK",
+          "omschrijving": "Onbekend"
+        },
+        "opdrachtBeschrijving": "Deze vooraankondiging heeft betrekking op een marktconsultatie voor een (opvolger van de) Raamovereenkomst Dienstverlening Industriële Automatisering (IA). \nDe beoogde dienstverlening richt zich op dienstverlening binnen de IA-keten, machineveiligheid en cybersecurity van IA, inclusief mogelijke integrale vormen van dienstverlening op deze gebieden. \n\nRWS is voornemens om de markt te informeren en te betrekken bij de voorbereiding van deze Europese aanbesteding. In het nog te publiceren marktconsultatiedocument zullen deze momenten nader worden toegelicht.\n\nRWS nodigt marktpartijen uit om deel te nemen aan deze marktconsultatie. Deze aankondiging betreft uitsluitend een vooraankondiging van een marktconsultatie en vormt geen aanbesteding of toezegging daartoe. \n\nAan deze aankondiging kunnen geen rechten worden ontleend.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 593229,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/433486",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "433091",
+        "publicatieDatum": "2026-07-15",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Procesautomatisering Civiele Kunstwerken",
+        "opdrachtgeverNaam": "Gemeente Rotterdam",
+        "sluitingsDatum": "2026-10-20T12:00:15",
+        "aantalDagenTotSluitingsDatum": 17,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/211734",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze opdracht met kenmerk 1-D-0024204-25 gaat over procesautomatisering van civiele kunstwerken. Deze opdracht richt zich specifiek op het onderhoud en beheer van de procesautomatiseringssystemen van de civiele kunstwerken, met de nadruk op het waarborgen van een stabiele, veilige en betrouwbare werking van de procesautomatiseringssystemen, terwijl tegelijkertijd de ambitie van de aanbestedende dienst op het gebied van cybersecurity wordt gerealiseerd.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 601525,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/433091",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "431374",
+        "publicatieDatum": "2026-07-02",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Het leveren, monteren en inbedrijfstellen van één (1) stuks gasmotor inclusief hulpwerktuigen.",
+        "opdrachtgeverNaam": "Waterschap Scheldestromen",
+        "procedure": {
+          "code": "OZB",
+          "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/219531",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF25",
+          "omschrijving": "Aankondiging in geval van vrijwillige transparantie vooraf - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Inleiding\nMet deze aankondiging van vrijwillige transparantie vooraf wil waterschap Scheldestromen, hierna te noemen aanbestedende dienst, marktpartijen op de hoogte brengen van het voornemen om de opdracht, middels een onderhandelingsprocedure zonder voorafgaande aankondiging op te starten als bedoeld onder paragraaf 2.2.1.7 van de Aanbestedingswet 2012, voor het leveren, monteren en inbedrijfsstellen van één (1) stuks gasmotor inclusief hulpwerktuigen te gunnen aan de firma Biogas Holland service B.V.\n \nToelichting en motivatie op gekozen procedure\nAanbestedende dienst voert actief beleid op het gebied van duurzaamheid en energie, zoals ondermeer vastgelegd in de geldende beleidsnota “duurzame bedrijfsvoering” uit 2014 en het klimaatakkoord tussen de Unie van waterschappen en het Rijk. Belangrijke doelstellingen zijn onder andere het verhogen van de energie-efficiëntie en het vergroten van de eigen energieopwekking. Energie is een belangrijk onderwerp voor duurzaamheidbeleid. Aanbestedende dienst zet bij al haar activiteiten de ‘trias energetica’ in.\n\nHet klimaatakkoord (en deels ook MJA-3) tussen de Unie van waterschappen en het Rijk heeft zich  vertaald in een aantal concrete ambities die aanbestedende dienst nastreeft:\nEnergie-efficiënte van 2% per jaar tussen 2005 en 2020 (30% voor de gehele periode, grootste winst bij zuiveringsbeheer en mobiliteit);\n30% CO2 reductie in 2020 t.o.v 1990 (hier voldoen aanbestedende dienst reeds aan, zie tekstkader ‘energievoetafdruk’ in paragraaf 3.2);\n40% energie door eigen opwekking (bijvoorbeeld biovergisting bij zuiveringen of wind en zonne-energie).\n\nTer verwezenlijking van deze doelstellingen heeft aanbestedende dienst haar drie (3) grootste zuiveringsinstallaties uitgerust met biovergisting en WKK-installaties. Eén van deze installaties moet op korte termijn worden vervangen, omdat deze technisch en economisch is afgeschreven. Gelet op de urgentie, staat van de huidige gasmotor, is snel leveren, monteren en inbedrijfsstelling noodzakelijk.\n\nDe vervanging van deze gasmotor dient plaats te vinden binnen een bestaand technisch systeem en besturingsomgeving. De nieuwe installatie moet volledig compatibel zijn met de aanwezige installaties, besturingssystemen en onderhoudsstructuur. Het waarborgen van interoperabiliteit, bedrijfszekerheid en veiligheid (waaronder naleving van BIO‑cybersecurityeisen) is daarbij essentieel.\n\nAanbestedende dienst heeft vastgesteld dat uitsluitend Biogas Holland Service B.V. in staat is om aan deze specifieke technische eisen en randvoorwaarden te voldoen, mede gelet op:\nDe noodzakelijke compatibiliteit met bestaande installaties en besturingssystemen;\nDe reeds ingerichte en gevalideerde cyberveiligheidsmaatregelen;\nDe bestaande onderhoudsstructuur en vereiste uniformiteit daarin, die van belang is voor de bedrijfszekerheid en uitwisselbaarheid van onderdelen;\nHet feit dat toepassing van een andere oplossing zou leiden tot disproportionele technische aanpassingen, risico’s voor de continuïteit en aanzienlijke extra kosten.\n\nGelet op het voorgaande is naar het oordeel van aanbestedende dienst sprake van een situatie waarin, om technische redenen en wegens het ontbreken van reële alternatieven, de opdracht slechts door één ondernemer kan worden uitgevoerd als bedoeld in artikel 2.32, eerste lid, onder b, van de Aanbestedingswet 2012.\n\nVoornemen tot onderhandelingsprocedure met Biogas Holland Service B.V.\nAanbestedende dienst is derhalve voornemens de opdracht voor het leveren, monteren en inbedrijfstellen van één (1) gasmotor inclusief hulpwerktuigen rechtstreeks te gunnen aan Biogas Holland Service B.V.\n\nWaarde van de overeenkomst\nDe geraamde waarde van deze overeenkomst is door aanbestedende dienst vastgesteld op maximaal € 700.000,00 exclusief BTW.\n \nMogelijkheid tot bezwaar\nAanbestedende dienst wil marktpartijen met deze aankondiging in de gelegenheid stellen om eventueel gemotiveerd bezwaar te maken tegen het voornemen van aanbestedende dienst.\n\nIndien e",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 599136,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/431374",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "430417",
+        "publicatieDatum": "2026-06-25",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Informatiebeveiliging en cybersecurity",
+        "opdrachtgeverNaam": "Radboud Universiteit",
+        "sluitingsDatum": "2034-06-25T08:00:00",
+        "aantalDagenTotSluitingsDatum": 2822,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Tenpu",
+        "tsenderLink": "https://app.tenpu.eu/public/tender/dps/967",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Diensten met betrekking tot security governance, risico‑analyses, compliance met ISO/NEN/BIO, Advies over bescherming tegen hackers, cyber criminelen en onzorgvuldige eigen medewerkers; geen operationele SOC‑diensten.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 597775,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/430417",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "428466",
+        "publicatieDatum": "2026-06-11",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Werving & Selectie diensten",
+        "opdrachtgeverNaam": "Stichting Z-CERT",
+        "sluitingsDatum": "2026-09-04T10:00:00",
+        "aantalDagenTotSluitingsDatum": -29,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het doel van de aanbesteding is om te komen tot een duurzaam samenwerkingsmodel met geselecteerde, gespecialiseerde W&S-partners, waarbij:\n•\tStructurele toegang wordt geborgd tot schaars en specialistisch talent binnen: cybersecurity, IT en bedrijfsvoering;\n•\tDe kwaliteit van instroom en dienstverlening verder wordt verhoogd en geborgd;\n•\tMeer uniformiteit ontstaat in processen, werkwijzen en kandidaat presentaties;\n•\tInzicht en sturing op prestaties, kosten en effectiviteit worden verbeterd;\n•\tHeldere en consistente contractuele afspraken worden gemaakt, waaronder tarieven, garanties en rapportage.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 594403,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/428466",
+          "title": "self"
+        }
+      }
+    ],
+    "first": true,
+    "last": false,
+    "totalElements": 182,
+    "totalPages": 10,
+    "size": 20,
+    "numberOfElements": 20,
+    "number": 0
+  },
+  "provenance": "Official anonymous public TenderNed first page, exact single-word search matching gateway request serialization. Mixed notice types; not all open and not an exhaustive result. No Apiosk payment or App end-to-end execution."
+}

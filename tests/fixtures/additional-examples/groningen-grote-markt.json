@@ -1,0 +1,307 @@
+{
+  "provenance": "Official anonymous public PDOK responses captured 2026-10-03. Geometry omitted; properties, identifiers, counts and links retained. No Apiosk payment or App end-to-end execution.",
+  "address": {
+    "response": {
+      "numFound": 1,
+      "start": 0,
+      "maxScore": 1.0747124,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "1070",
+          "type": "adres",
+          "woonplaatsnaam": "Groningen",
+          "wijkcode": "WK001400",
+          "huis_nlt": "1",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Binnenstad-Noord",
+          "gemeentecode": "0014",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0014200010873239",
+          "weergavenaam": "Grote Markt 1, 9712HN Groningen",
+          "straatnaam_verkort": "Grote Markt",
+          "id": "adr-9f4d704608aa4834664426f033520d24",
+          "gekoppeld_perceel": [
+            "GNG00-G-6954"
+          ],
+          "gemeentenaam": "Groningen",
+          "buurtcode": "BU00140000",
+          "wijknaam": "Centrum",
+          "identificatie": "0014010011065378-0014200010873239",
+          "openbareruimte_id": "0014300010785143",
+          "waterschapsnaam": "Waterschap Hunze en Aa's",
+          "provinciecode": "PV20",
+          "postcode": "9712HN",
+          "provincienaam": "Groningen",
+          "centroide_ll": "POINT(6.56719613 53.21856902)",
+          "nummeraanduiding_id": "0014200010873239",
+          "waterschapscode": "33",
+          "adresseerbaarobject_id": "0014010011065378",
+          "huisnummer": 1,
+          "provincieafkorting": "GR",
+          "centroide_rd": "POINT(233817.714 581973.707)",
+          "straatnaam": "Grote Markt",
+          "score": 1.0747124
+        }
+      ]
+    }
+  },
+  "bag-unit": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-03T12:14:28Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=json&identificatie=0014010011065378&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=jsonfg&identificatie=0014010011065378&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?f=html&identificatie=0014010011065378&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "bronhouder_identificatie": "0014",
+          "bronhouder_naam": "Groningen",
+          "documentdatum": "1995-12-04",
+          "documentnummer": "199500988",
+          "gebruiksdoel": "bijeenkomstfunctie",
+          "geconstateerd": "N",
+          "hoofdadres_identificatie": "0014200010873239",
+          "hoofdadres_status": "Naamgeving uitgegeven",
+          "huisletter": null,
+          "huisnummer": 1,
+          "identificatie": "0014010011065378",
+          "openbare_ruimte_identificatie": "0014300010785143",
+          "openbare_ruimte_naam": "Grote Markt",
+          "openbare_ruimte_naam_kort": null,
+          "openbare_ruimte_status": "Naamgeving uitgegeven",
+          "oppervlakte": 3818,
+          "pand.href": [
+            "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/68121c6c-8f83-50de-b563-f36a71a23f5a"
+          ],
+          "postcode": "9712HN",
+          "provincie_afkorting": "Gr",
+          "provincie_naam": "Groningen",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/verblijfsobject/0014010011065378",
+          "status": "Verblijfsobject in gebruik",
+          "toevoeging": null,
+          "woonplaats_identificatie": "1070",
+          "woonplaats_naam": "Groningen",
+          "woonplaats_status": "Woonplaats aangewezen"
+        },
+        "id": "0ccb8ad6-37cc-553b-aeb4-5a33d230c4ba"
+      }
+    ],
+    "numberReturned": 1
+  },
+  "building": {
+    "type": "Feature",
+    "properties": {
+      "aantal_verblijfsobjecten": 1,
+      "bouwjaar": 1813,
+      "documentdatum": "2025-02-04",
+      "documentnummer": "35589-2025:580374",
+      "gebruiksdoel": "bijeenkomstfunctie",
+      "geconstateerd": "N",
+      "identificatie": "0014100010934570",
+      "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/pand/0014100010934570",
+      "status": "Pand in gebruik",
+      "verblijfsobject.href": [
+        "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items/0ccb8ad6-37cc-553b-aeb4-5a33d230c4ba"
+      ]
+    },
+    "id": "68121c6c-8f83-50de-b563-f36a71a23f5a",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/68121c6c-8f83-50de-b563-f36a71a23f5a?f=json"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/68121c6c-8f83-50de-b563-f36a71a23f5a?f=jsonfg"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/68121c6c-8f83-50de-b563-f36a71a23f5a?f=html"
+      },
+      {
+        "rel": "collection",
+        "title": "The collection to which this feature belongs",
+        "type": "application/json",
+        "href": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand?f=json"
+      }
+    ]
+  },
+  "bag-address": {
+    "response": {
+      "numFound": 1,
+      "start": 0,
+      "maxScore": 1.0747124,
+      "numFoundExact": true,
+      "docs": [
+        {
+          "bron": "BAG",
+          "woonplaatscode": "1070",
+          "type": "adres",
+          "woonplaatsnaam": "Groningen",
+          "wijkcode": "WK001400",
+          "huis_nlt": "1",
+          "openbareruimtetype": "Weg",
+          "buurtnaam": "Binnenstad-Noord",
+          "gemeentecode": "0014",
+          "rdf_seealso": "http://bag.basisregistraties.overheid.nl/bag/id/nummeraanduiding/0014200010873239",
+          "weergavenaam": "Grote Markt 1, 9712HN Groningen",
+          "straatnaam_verkort": "Grote Markt",
+          "id": "adr-9f4d704608aa4834664426f033520d24",
+          "gekoppeld_perceel": [
+            "GNG00-G-6954"
+          ],
+          "gemeentenaam": "Groningen",
+          "buurtcode": "BU00140000",
+          "wijknaam": "Centrum",
+          "identificatie": "0014010011065378-0014200010873239",
+          "openbareruimte_id": "0014300010785143",
+          "waterschapsnaam": "Waterschap Hunze en Aa's",
+          "provinciecode": "PV20",
+          "postcode": "9712HN",
+          "provincienaam": "Groningen",
+          "centroide_ll": "POINT(6.56719613 53.21856902)",
+          "nummeraanduiding_id": "0014200010873239",
+          "waterschapscode": "33",
+          "adresseerbaarobject_id": "0014010011065378",
+          "huisnummer": 1,
+          "provincieafkorting": "GR",
+          "centroide_rd": "POINT(233817.714 581973.707)",
+          "straatnaam": "Grote Markt",
+          "score": 1.0747124
+        }
+      ]
+    }
+  },
+  "neighbourhood": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-10-03T12:14:28Z",
+    "links": [
+      {
+        "rel": "self",
+        "title": "This document as GeoJSON",
+        "type": "application/geo+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU00140000&f=json&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as JSON-FG",
+        "type": "application/vnd.ogc.fg+json",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU00140000&f=jsonfg&limit=2"
+      },
+      {
+        "rel": "alternate",
+        "title": "This document as HTML",
+        "type": "text/html",
+        "href": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU00140000&f=html&limit=2"
+      }
+    ],
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "aantal_huishoudens": 3885,
+          "aantal_inwoners": 4765,
+          "bevolkingsdichtheid_inwoners_per_km2": 12845,
+          "buurtcode": "BU00140000",
+          "buurtnaam": "Binnenstad-Noord",
+          "dekkingspercentage": 1,
+          "gemeentecode": "GM0014",
+          "gemeentenaam": "Groningen",
+          "gemiddelde_huishoudsgrootte": 1.2,
+          "indelingswijziging_wijken_en_buurten": 1,
+          "jaar": 2025,
+          "jrstatcode": "2025BU00140000",
+          "mannen": 2495,
+          "meest_voorkomende_postcode": "9712",
+          "omgevingsadressendichtheid": 7062,
+          "oppervlakte_land_in_ha": 37,
+          "oppervlakte_totaal_in_ha": 39,
+          "oppervlakte_water_in_ha": 2,
+          "perc_geb_buiten_nl_met_herkomstlnd_buiten_europa": 10,
+          "perc_geb_buiten_nl_met_herkomstlnd_in_europa_ex_nl": 15,
+          "perc_geb_in_nl_met_herkomstland_buiten_europa": 5,
+          "perc_geb_in_nl_met_herkomstland_in_europa_ex_nl": 5,
+          "percentage_eenpersoonshuishoudens": 82,
+          "percentage_geb_in_nl_met_herkomstland_nederland": 65,
+          "percentage_gehuwd": 7,
+          "percentage_gescheid": 4,
+          "percentage_huishoudens_met_kinderen": 2,
+          "percentage_huishoudens_zonder_kinderen": 15,
+          "percentage_met_herkomstland_buiten_europa": 15,
+          "percentage_met_herkomstland_nederland": 65,
+          "percentage_met_herkomstland_uit_europa_excl_nl": 20,
+          "percentage_ongehuwd": 88,
+          "percentage_personen_0_tot_15_jaar": 1,
+          "percentage_personen_15_tot_25_jaar": 48,
+          "percentage_personen_25_tot_45_jaar": 33,
+          "percentage_personen_45_tot_65_jaar": 10,
+          "percentage_personen_65_jaar_en_ouder": 7,
+          "percentage_verweduwd": 1,
+          "stedelijkheid_adressen_per_km2": 1,
+          "vrouwen": 2270,
+          "water": "NEE",
+          "wijkcode": "WK001400"
+        },
+        "id": "b7ec51a6-54f6-549c-bfc1-3a732877504a"
+      }
+    ],
+    "numberReturned": 1
+  },
+  "source_checks": [
+    {
+      "checked_at": "2026-10-03T12:14:28.203957+00:00",
+      "url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=%2A%3A%2A&fq=type%3Aadres+AND+straatnaam%3A%22Grote+Markt%22+AND+huisnummer%3A1+AND+woonplaatsnaam%3A%22Groningen%22+AND+-huisletter%3A%5B%2A+TO+%2A%5D+AND+-huisnummertoevoeging%3A%5B%2A+TO+%2A%5D&rows=5",
+      "http_status": 200,
+      "sha256": "40c2e37311040c1e01a84ad5a380aa492bb33848cf000a7e67c9c701db7c6c35"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.280774+00:00",
+      "url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/verblijfsobject/items?identificatie=0014010011065378&limit=2&f=json",
+      "http_status": 200,
+      "sha256": "086dddbe28e21f5ad0d6dd6c54339aa837a694a175933ec2fbd19e7bea8dc3f4"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.349268+00:00",
+      "url": "https://api.pdok.nl/kadaster/bag/ogc/v2/collections/pand/items/68121c6c-8f83-50de-b563-f36a71a23f5a?f=json",
+      "http_status": 200,
+      "sha256": "66d0da47ac604fcfdea21838408256dfa0eaac0c0ec58bfaf4fdb4d069166103"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.425215+00:00",
+      "url": "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=%2A%3A%2A&fq=type%3Aadres+AND+adresseerbaarobject_id%3A0014010011065378&rows=100",
+      "http_status": 200,
+      "sha256": "40c2e37311040c1e01a84ad5a380aa492bb33848cf000a7e67c9c701db7c6c35"
+    },
+    {
+      "checked_at": "2026-10-03T12:14:28.531691+00:00",
+      "url": "https://api.pdok.nl/cbs/wijken-en-buurten-2025/ogc/v1/collections/buurten/items?buurtcode=BU00140000&limit=2&f=json",
+      "http_status": 200,
+      "sha256": "37b1b446df428bf4e673dc76ba330eee3b4b100748735b879e2f6be4f0927faf"
+    }
+  ]
+}

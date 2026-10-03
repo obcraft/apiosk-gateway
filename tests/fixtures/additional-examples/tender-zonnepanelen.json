@@ -1,0 +1,800 @@
+{
+  "checked_at": "2026-10-03T12:08:53.644668+00:00",
+  "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20&sort=publicatieDatum%2Cdesc&search=zonnepanelen",
+  "http_status": 200,
+  "sha256": "7b9b419710b598ff643b8dc2328da7ef4322be4d6cf402648bb02c7e6ad7d110",
+  "body": {
+    "content": [
+      {
+        "publicatieId": "441673",
+        "publicatieDatum": "2026-09-27",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Realisatie zonnepanelen Limburgs Museum",
+        "opdrachtgeverNaam": "Provincie Limburg",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/198042",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Het Limburgs Museum is gelegen in Venlo aan de Keulsepoort 5. Het pand is in 2000 in gebruik genomen als museum. In 2012 is het Limburgs Museum uitgebreid met 1.100 m2. De opdracht omhelst het ontwerpen, leveren, monteren en bedrijfsvaardig opleveren van een zonnepanelen installatie op het dak van het Limburgs Museum.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 614680,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/441673",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "440606",
+        "publicatieDatum": "2026-09-20",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "Vervanging dakbedekking en plaatsen van PV-panelen",
+        "opdrachtgeverNaam": "Sociale Verzekeringsbank",
+        "sluitingsDatum": "2027-02-19T11:00:00",
+        "aantalDagenTotSluitingsDatum": 139,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF07",
+          "omschrijving": "Vooraankondiging gebruikt om termijnen voor ontvangst van inschrijvingen te verkorten - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De daken op de SVB panden in Nijmegen, Breda en deels Zaandam zijn verouderd en dienen vervangen te worden. Naast de vervanging dienen er zonnepanelen te worden aangebracht. De uitvoering van deze opdracht moet worden gecombineerd met het uitwerken en aanbrengen van valveiligheid op het dak.\n\nDe schouw van de daken vindt plaats op:\n8 december 2026 Zaandam 9.00/11.00 uur. \n9 december 2026 Nijmegen 9.00/11.00 uur.\n9 december 2026 Breda 13.00/14.30 uur.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 613247,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/440606",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "440091",
+        "publicatieDatum": "2026-09-17",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Raamovereenkomst ten behoeve van preventief-, storings- en correctief onderhoud E-installaties",
+        "opdrachtgeverNaam": "Gemeente Houten",
+        "sluitingsDatum": "2026-03-24T10:00:00",
+        "aantalDagenTotSluitingsDatum": -193,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De gemeente Houten beheert diverse panden binnen haar grondgebied. Voor deze panden is de gemeente op zoek naar een betrouwbare partner voor het preventief-, storings- en correctief onderhoud aan de E-installaties. Tevens zal de nieuwe contractpartner de voorkeursleverancier worden voor het leveren en installeren van nieuwe installaties.\n\nOok valt onder deze opdracht eventuele werkzaamheden ten behoeve van nog aan te schaffen zonnepanelen e.d.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 569929,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/440091",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "439239",
+        "publicatieDatum": "2026-09-09",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Verduurzaming dorpshuis \"Swanla\"",
+        "opdrachtgeverNaam": "Gemeente Zuidplas",
+        "sluitingsDatum": "2026-10-02T12:00:00",
+        "aantalDagenTotSluitingsDatum": -1,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Verduurzaming van een pand",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 587266,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/439239",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "438124",
+        "publicatieDatum": "2026-09-01",
+        "typePublicatie": {
+          "code": "VBE",
+          "omschrijving": "Vroegtijdige beëindiging"
+        },
+        "aanbestedingNaam": "DAS Zonne-energie installaties",
+        "opdrachtgeverNaam": "Gemeente Hollands Kroon",
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/21901",
+        "digitaal": false,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": true,
+        "opdrachtBeschrijving": "Per december 2026 beëindigd de gemeente Hollands Kroon de dienstverlening met Mercell, en daarmee is de gemeente genoodzaakt deze DAS Zonne-energie installaties te beëindigen per 1 september 2026. Toekomstige aanbestedingen worden via Tenderned gepubliceerd. Eerder – via Mercell - toegelaten partijen worden verzocht Tenderned in de gaten te houden voor toekomstige opdrachten.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 609536,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/438124",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "437170",
+        "publicatieDatum": "2026-08-26",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Onderhoud, reiniging en monitoring pv-installaties",
+        "opdrachtgeverNaam": "Hoogheemraadschap Hollands Noorderkwartier",
+        "sluitingsDatum": "2026-10-05T09:30:00",
+        "aantalDagenTotSluitingsDatum": 2,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Deze aanbesteding betreft onderhoud, reiniging en monitoring van pv-installaties.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 567772,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/437170",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "436520",
+        "publicatieDatum": "2026-08-18",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Onderzoek doorrekenen maatregelen zonnepanelen",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken, Rijksdienst voor Ondernemend Nederland (RVO)",
+        "sluitingsDatumMarktconsultatie": "2026-09-01",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "De beëindiging van de salderingsregeling zorgt voor onzekerheid ten aanzien van de rendabiliteit van zonnepanelen bij huishoudens. Per motie heeft de Tweede Kamer het kabinet opgeroepen om een brede verkenning uit te voeren naar maatregelen die de investering in zonnepanelen aantrekkelijk houden.\n\nMet deze Marktconsultatie wil de organisatie inzicht verkrijgen in de uitvoerbaarheid van de beoogde opdracht, de beschikbare onderzoeksmethoden en rekenmodellen, de benodigde doorlooptijd, de verwachte kosten en eventuele aandachtspunten, risico's of alternatieve oplossingsrichtingen.",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 605595,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/436520",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "435756",
+        "publicatieDatum": "2026-08-06",
+        "typePublicatie": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "aanbestedingNaam": "Onderzoek doorrekenen maatregelen zonnepanelen",
+        "opdrachtgeverNaam": "Ministerie van Economische Zaken, Rijksdienst voor Ondernemend Nederland (RVO)",
+        "sluitingsDatumMarktconsultatie": "2026-08-25",
+        "procedure": {
+          "code": "MAC",
+          "omschrijving": "Marktconsultatie"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE1",
+          "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "looptijd": {
+          "code": "BKN",
+          "omschrijving": "Bekend"
+        },
+        "opdrachtBeschrijving": "De beëindiging van de salderingsregeling zorgt voor onzekerheid ten aanzien van de rendabiliteit van zonnepanelen bij huishoudens. Per motie heeft de Tweede Kamer het kabinet opgeroepen om een brede verkenning uit te voeren naar maatregelen die de investering in zonnepanelen aantrekkelijk houden.\n\nMet deze Marktconsultatie wil de organisatie inzicht verkrijgen in de uitvoerbaarheid van de beoogde opdracht, de beschikbare onderzoeksmethoden en rekenmodellen, de benodigde doorlooptijd, de verwachte kosten en eventuele aandachtspunten, risico's of alternatieve oplossingsrichtingen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 605595,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/435756",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "435572",
+        "publicatieDatum": "2026-08-06",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Verduurzaming vastgoedportefeuille gemeente Maastricht",
+        "opdrachtgeverNaam": "Gemeente Maastricht",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/185923",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De opdracht heeft betrekking op het verduurzamen van het gemeentelijk vastgoed door middel van glasvervanging, (spouw) isolatie en zonnepanelen. Gezien de verschillende markten wordt de onderhavige opdracht in drie (3) percelen opgedeeld:\n\n- Perceel 1 Glasvervanging;\n- Perceel 2 Isolatiewerkzaamheden;\n- Perceel 3 PV-panelen. \n\nBuiten de scope van de aanbesteding vallen schoolgebouwen en overige niet direct gerelateerde bouwkundige aanpassingen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 605298,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/435572",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "434533",
+        "publicatieDatum": "2026-07-24",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Zonnepanelen en Energieopslag",
+        "opdrachtgeverNaam": "Veiligheidsregio Rotterdam-Rijnmond",
+        "sluitingsDatum": "2026-10-08T16:00:00",
+        "aantalDagenTotSluitingsDatum": 5,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De scope van deze opdracht omvat het ontwerpen, leveren, installeren, in bedrijf stellen en werkend opleveren van zonnepaneelinstallaties en energieopslag (accupakketten) op de in dit document benoemde vijf VRR-locaties. Onder de scope vallen tevens alle benodigde engineering, werkvoorbereiding, veiligheidsmaatregelen, afstemming met opdrachtgever en ketenpartners, en het opleveren van de bijbehorende documentatie (incl. tekeningen, meetstaten en opleverdossier). Na implementatie is opdrachtnemer verantwoordelijk voor het beheer en onderhoud van de installaties gedurende minimaal 4 jaar.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 599611,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/434533",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "432447",
+        "publicatieDatum": "2026-07-09",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Onderhoud zonneweides (PV-Installaties)",
+        "opdrachtgeverNaam": "Waterschap Aa en Maas",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/197806",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Op dit moment is het onderhoud van verschillende PV installaties bij waterschap Aa en Maas onder gebracht bij verschillende leveranciers, al dan niet bij de partijen die ook de installaties gerealiseerd hebben. Waterschap Aa en Maas heeft de wens om het in de overeenkomst omschreven onderhoud aan PV installaties bij Aa en Maas bij één partij onder te brengen. Het gaat hier om onderhoud aan de zonneweides bij de zeven (7) rioolwaterzuiveringsinstallaties (RWZI’s), zon op dak installaties op meerdere kantoren en/of bedrijfsgebouwen en eventueel in de toekomst te realiseren installaties. \nDe opdracht omvat onder meer:\n• Preventief onderhoud (onder meer reinigen en inspecties);\n• SCIOS Scope 12 inspecties (tijdens optionele verlengingen); \n• Correctief onderhoud inclusief responstijden;\n• Monitoring van prestaties en storingen;\n• Jaarlijkse rapportage van prestaties, opbrengsten en inspectieresultaten;",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 600646,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/432447",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "432164",
+        "publicatieDatum": "2026-07-06",
+        "typePublicatie": {
+          "code": "AAO",
+          "omschrijving": "Aankondiging opdracht"
+        },
+        "aanbestedingNaam": "Nationale niet-openbare aanbesteding Bouwkundige en Installatietechnische werkzaamheden Giekerkstraat 57 Tilburg",
+        "opdrachtgeverNaam": "Stichting Koninklijke Auris Groep",
+        "sluitingsDatum": "2026-08-31T09:00:00",
+        "aantalDagenTotSluitingsDatum": -33,
+        "procedure": {
+          "code": "NOP",
+          "omschrijving": "Niet-openbaar"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "digitaal": true,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EFE3",
+          "omschrijving": "Vrijwillige aankondiging van een opdracht"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Bouwkundige- en installatietechnische werkzaamheden ten baten van renovatie en uitbreiding schoolgebouw.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 588004,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/432164",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "432160",
+        "publicatieDatum": "2026-07-06",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Verduurzaming dorpshuis \"Swanla\"",
+        "opdrachtgeverNaam": "Gemeente Zuidplas",
+        "sluitingsDatum": "2026-09-17T12:00:00",
+        "aantalDagenTotSluitingsDatum": -16,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Verduurzaming van een pand",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 587266,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/432160",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "431940",
+        "publicatieDatum": "2026-07-03",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "KV Flex - Slimme Apparaten",
+        "opdrachtgeverNaam": "Alliander N.V.",
+        "procedure": {
+          "code": "NA"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/222145",
+        "digitaal": false,
+        "europees": false,
+        "publicatiecode": {
+          "code": "EF04",
+          "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Introductie en toelichting procedure\n\nGedreven door de energietransitie elektrificeert het energieverbruik in woningen in hoog tempo: er komen veel meer EV-laadpalen, zonnepanelen, warmtepompen en thuisbatterijen bij. Dit zorgt voor een toename van de piekbelasting op elektriciteitsnet, welke doorwerkt op de hogere netvlakken, en daarmee congestie veroorzaakt. \nDoor het slimmer en flexibeler inzetten van apparaten die de piekbelasting mede veroorzaken, kunnen we energieverbruik verplaatsen of reduceren, overbelasting voorkomen, en zo ruimte creëren op het net. We willen dit bereiken door flexibiliteit te benutten in het verbruik en de opwek van elektriciteit door kleinverbruikers; voornamelijk consumenten. Dit betekent bijvoorbeeld het op verzoek tijdelijk beperken van EV-laadpaalvermogen, het tijdelijk terug- of uitschakelen van de warmtepomp of het ontladen van thuisbatterijen bij voorziene piekbelasting. Dit creëert flexibele capaciteit, of “flex” in het kort.  \n\nMet deze uitvraag willen de drie grote distributiesysteembeheerders – Enexis, Liander en Stedin – deze flexcapaciteit inkopen bij aggregators; partijen die in staat zijn om deze flexcapaciteit te ontsluiten bij hun klanten en aan te bieden aan bijvoorbeeld de Systeembeheerders. In de Inkoop Leidraad hieronder kunt u alle relevante informatie met betrekking tot deze congestiebeheerdienst vinden. \n\nDeze uitvraag wordt gepubliceerd door Alliander namens Enexis, Stedin en Liander.\n\nToelichting procedure\nAls u alle vragenlijsten in deze portal hebt doorlopen - alle vragen zijn beantwoord en document zijn toegevoegd - en uw inschrijving is ingediend, zal er een accountmanager van één van de systeembeheerders binnen 3 werkdagen contact met u opnemen om het vervolgproces met u te bespreken. Het doorlopen van deze portal en het indienen van uw inschrijving is een eerste noodzakelijk stap in het proces om flexibiliteit te kunnen leveren. Het daadwerkelijk aanmelden van het flexvermogen volgt daarna. Hoe dat werkt staat beschreven in de Inkoop Leidraad.\n\nDe procedure is op 1 juli 2026 geopend en sluit op 31 maart 2027.  \n\nTeam\nU kunt onder het kopje 'Team' collega's aanmelden op samen in de portal te kunnen werken.\n\nVragen\nU kunt uw vragen stellen door een mail te sturen naar slimmeapparaten@partnersinenergie.nl \nTevens bestaat er de mogelijkheid om een één-op-één gesprek te voeren met een expert van de distributiesysteembeheerders. Indien u van deze mogelijkheid gebruik wenst te maken, stuurt u een mail met uw vragen naar slimmeapparaten@partnersinenergie.nl en geeft u aan dat u graag een afspraak  zou willen plannen.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 599891,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/431940",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "431677",
+        "publicatieDatum": "2026-07-03",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "16376 | Gevelvervanging Zittingszalen gebouw Rechtbank Rotterdam (onderhandelingsprocedure)",
+        "opdrachtgeverNaam": "Rijksvastgoedbedrijf",
+        "procedure": {
+          "code": "OZB",
+          "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+        },
+        "typeOpdracht": {
+          "code": "W",
+          "omschrijving": "Werken"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Renovatiewerkzaamheden aan het rechtbankcomplex van de rechtbank Rotterdam. De beschrijving van het project en de opdracht zijn in algemene aard opgenomen in de documenten van de reeds doorlopen Europese niet-openbare procedure, TenderNed uitvraag met kenmerk TN 424756.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 542475,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/431677",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "431488",
+        "publicatieDatum": "2026-07-03",
+        "typePublicatie": {
+          "code": "VAK",
+          "omschrijving": "Vooraankondiging"
+        },
+        "aanbestedingNaam": "KV Flex",
+        "opdrachtgeverNaam": "Alliander N.V.",
+        "procedure": {
+          "code": "NA"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "Mercell",
+        "tsenderLink": "https://s2c.mercell.com/today/220525",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF04",
+          "omschrijving": "Vooraankondiging die alleen ter informatie wordt gebruikt - algemene richtlijn"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "Gedreven door de energietransitie elektrificeert het energieverbruik in woningen in hoog tempo: er komen veel meer EV-laadpalen, zonnepanelen, warmtepompen en thuisbatterijen bij. Dit zorgt voor een toename van de piekbelasting op elektriciteitsnet, welke doorwerkt op de hogere netvlakken, en daarmee congestie veroorzaakt. \nDoor het slimmer en flexibeler inzetten van apparaten die de piekbelasting mede veroorzaken, kunnen we energieverbruik verplaatsen of reduceren, overbelasting voorkomen, en zo ruimte creëren op het net. We willen dit bereiken door flexibiliteit te benutten in het verbruik en de opwek van elektriciteit door kleinverbruikers; voornamelijk consumenten. Dit betekent bijvoorbeeld het op verzoek tijdelijk beperken van EV-laadpaalvermogen, het tijdelijk terug- of uitschakelen van de warmtepomp of het ontladen van thuisbatterijen bij voorziene piekbelasting. Dit creëert flexibele capaciteit, of “flex” in het kort.  \n\nMet deze uitvraag willen de drie grote distributiesysteembeheerders – Enexis, Liander en Stedin – deze flexcapaciteit inkopen bij aggregators; partijen die in staat zijn om deze flexcapaciteit te ontsluiten bij hun klanten en aan te bieden aan bijvoorbeeld de Systeembeheerders. In de Inkoop Leidraad hieronder kunt u alle relevante informatie met betrekking tot deze congestiebeheerdienst vinden. \n\nDeze uitvraag wordt gepubliceerd door Alliander namens Enexis, Stedin en Liander.\n\nToelichting procedure\nAls u alle vragenlijsten in deze portal hebt doorlopen - alle vragen zijn beantwoord en document zijn toegevoegd - en uw inschrijving is ingediend, zal er een accountmanager van één van de systeembeheerders binnen 3 werkdagen contact met u opnemen om het vervolgproces met u te bespreken. Het doorlopen van deze portal en het indienen van uw inschrijving is een eerste noodzakelijk stap in het proces om flexibiliteit te kunnen leveren. Het daadwerkelijk aanmelden van het flexvermogen volgt daarna. Hoe dat werkt staat beschreven in de Inkoop Leidraad.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 599305,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/431488",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "430563",
+        "publicatieDatum": "2026-06-25",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Leveren en plaatsen PV-installaties op de terreinen van RWZI Den Helder, Baggerdepot Oostoever en (optioneel) Balgzannd",
+        "opdrachtgeverNaam": "Hoogheemraadschap Hollands Noorderkwartier",
+        "sluitingsDatum": "2026-07-15T10:00:00",
+        "aantalDagenTotSluitingsDatum": -80,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De aanbestedingsprocedure betreft een Opdracht voor het leveren en plaatsen van PV-installaties in veldopstellingen op drie terreinen in de Noordkop van Noord-Holland: RWZI Den Helder, voormalig baggerdepot Oostoever, Balgzand (optioneel). Door de nabijheid van het militaire vliegveld Kooijmeer mogen er op \nalle locaties alleen glasloze kunststof pv-panelen geleverd worden om te voorkomen dat het \nvliegverkeer hinder ondervindt van eventuele schittering van de panelen. De specificaties die Aanbesteder aan deze panelen stelt zijn in de Werkomschrijving opgenomen. Het aanbieden van panelen die hieraan niet voldoen leidt tot uitsluiting van deelname aan de aanbestedingsprocedure",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 581533,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/430563",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "430371",
+        "publicatieDatum": "2026-06-24",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Leveren en plaatsen PV-installaties op de terreinen van RWZI Den Helder, Baggerdepot Oostoever en (optioneel) Balgzannd",
+        "opdrachtgeverNaam": "Hoogheemraadschap Hollands Noorderkwartier",
+        "sluitingsDatum": "2026-07-15T10:00:00",
+        "aantalDagenTotSluitingsDatum": -80,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De aanbestedingsprocedure betreft een Opdracht voor het leveren en plaatsen van PV-installaties in veldopstellingen op drie terreinen in de Noordkop van Noord-Holland: RWZI Den Helder, voormalig baggerdepot Oostoever, Balgzand (optioneel). Door de nabijheid van het militaire vliegveld Kooijmeer mogen er op \nalle locaties alleen glasloze kunststof pv-panelen geleverd worden om te voorkomen dat het \nvliegverkeer hinder ondervindt van eventuele schittering van de panelen. De specificaties die Aanbesteder aan deze panelen stelt zijn in de Werkomschrijving opgenomen. Het aanbieden van panelen die hieraan niet voldoen leidt tot uitsluiting van deelname aan de aanbestedingsprocedure",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 581533,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/430371",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "430028",
+        "publicatieDatum": "2026-06-22",
+        "typePublicatie": {
+          "code": "REC",
+          "omschrijving": "Rectificatie"
+        },
+        "aanbestedingNaam": "Leveren en plaatsen PV-installaties op de terreinen van RWZI Den Helder, Baggerdepot Oostoever en (optioneel) Balgzannd",
+        "opdrachtgeverNaam": "Hoogheemraadschap Hollands Noorderkwartier",
+        "sluitingsDatum": "2026-07-15T10:00:00",
+        "aantalDagenTotSluitingsDatum": -80,
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "L",
+          "omschrijving": "Leveringen"
+        },
+        "digitaal": true,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF16",
+          "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "De aanbestedingsprocedure betreft een Opdracht voor het leveren en plaatsen van PV-installaties in veldopstellingen op drie terreinen in de Noordkop van Noord-Holland: RWZI Den Helder, voormalig baggerdepot Oostoever, Balgzand (optioneel). Door de nabijheid van het militaire vliegveld Kooijmeer mogen er op \nalle locaties alleen glasloze kunststof pv-panelen geleverd worden om te voorkomen dat het \nvliegverkeer hinder ondervindt van eventuele schittering van de panelen. De specificaties die Aanbesteder aan deze panelen stelt zijn in de Werkomschrijving opgenomen. Het aanbieden van panelen die hieraan niet voldoen leidt tot uitsluiting van deelname aan de aanbestedingsprocedure",
+        "isEformsWijziging": true,
+        "score": null,
+        "kenmerk": 581533,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/430028",
+          "title": "self"
+        }
+      },
+      {
+        "publicatieId": "429104",
+        "publicatieDatum": "2026-06-15",
+        "typePublicatie": {
+          "code": "AGO",
+          "omschrijving": "Aankondiging gegunde opdracht"
+        },
+        "aanbestedingNaam": "Medewerker duurzaamheid en energie",
+        "opdrachtgeverNaam": "Gemeente Land van Cuijk",
+        "procedure": {
+          "code": "OPE",
+          "omschrijving": "Openbaar"
+        },
+        "typeOpdracht": {
+          "code": "D",
+          "omschrijving": "Diensten"
+        },
+        "tsenderNaam": "WerkenInNoordoostBrabant.nl",
+        "tsenderLink": "http://inhuurdesk.werkeninnoordoostbrabant.nl",
+        "digitaal": false,
+        "europees": true,
+        "publicatiecode": {
+          "code": "EF29",
+          "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+        },
+        "publicatiestatus": {
+          "code": "PUB",
+          "omschrijving": "Gepubliceerd"
+        },
+        "isVroegtijdigeBeeindiging": false,
+        "opdrachtBeschrijving": "OpdrachtomschrijvingSinds enkele jaren werkt de gemeente Land van Cuijk aan een aanpak tegen energiearmoede. Energiearmoede is een (steeds groter wordend) probleem waar een bepaalde groep huurders en huiseigenaren mee te maken heeft.Jouw opdracht valt binnen de pilot TNE (Tijdelijk Noodfonds Energie) / woningeigenaren.Dit betekent dat je aan de slag gaat met de doelgroep huiseigenaren met een laag inkomen, een hoge energierekening ?n een slechte energetische staat van de woning. Deze groep heeft vorig jaar een&nbsp; aanvraag ingediend bij het Tijdelijk Noodfonds Energie ?n wil hulp vanuit de gemeente om de energierekening (blijvend) te verlagen. Voor deze groep wordt gedacht aan begeleiding/ ondersteuning bij het nemen van een eerste of tweede verduurzamingsstap, zoals bijvoorbeeld een isolatiemaatregel. Het gaat om een doelgroep van +/- 150 huiseigenaren.Als&nbsp;trajectbegeleider energiearmoede-aanpak Land van Cuijk&nbsp;helpt jij deze groep bij het verduurzamen van de eigen woning. Je helpt huiseigenaren die niet weten waar te beginnen met verduurzamen of bang zijn voor schulden.Je overbrugt de kloof tussen technische maatregelen (isolatie, ventilatie, warmtepomp) en de financi?le/sociale situatie van de bewoner. De focus binnen dit project ligt op isolatiemaatregelen.Wat ga je doen?Je neemt proactief contact op met elke mogelijke deelnemer (energiearme huiseigenaar van de TNE-lijst).1-op-1 begeleiding:&nbsp;Als trajectbegeleider heb je meerdere keren contact met ten minste 75% van de eigenaren zoals op de lijst van TNE is opgenomen, zowel fysiek, telefonisch of via mail.Vanuit je achtergrond als energieadviseur breng je de technisch/ energetische staat van de woning in kaart&nbsp; en bespreek je de mogelijkheden om te verduurzamen met de bewoner. Je legt dit vast in een kort en overzichtelijk verslag voor de bewoner. &nbsp;Je helpt de bewoner bij het maken van keuzes om te verduurzamen, passend bij de woning; zoals (spouwmuur, dak, vloer, glas)isolatie, ventilatie, zonnepanelen of een warmtepomp.Je ondersteunt de deelnemer bij het vinden van betrouwbare uitvoerende partijen en het beoordelen van aangevraagde offertes.&nbsp; &nbsp;&nbsp;Je helpt de deelnemer bij het in kaart brengen van de kosten van verduurzaming en verkent globaal de financieringsmogelijkheden om te kunnen verduurzamen (subsidies/ leningen). Indien een bredere kijk op de financieringsmogelijkheden nodig is, breng je de deelnemer in contact met een financieel adviseur (voor een light advies).Je begeleidt de deelnemer bij het aanvragen van subsidies, leningen. De deelnemer vraagt deze zelf aan.Je signaleert (psycho)sociale&nbsp; en financi?le problematiek bij de deelnemer, die verduurzaming in de weg staat. Je schakelt zo nodig ondersteuning in voor een aanpak op maat. Je kunt hierbij denken aan de inzet van een energie-aanpakker, sociaal raadslieden, budgetcoach, klusdienst, formulierenbrigade, sociaal domein e.d.Je legt de hele klantreis van de deelnemer goed vast in een monitoringssysteem en houdt zicht op de voortgang van het traject. Waar nodig, stuur je bij.Je werkt samen met de beleidsmedewerker Energiearmoede en stemt de voortgang en eventuele knelpunten die je tegen komt met haar af.Voor deze nieuwe functie zoeken wij een ervaren trajectbegeleider verduurzaming woningen die kennis heeft van ?n affiniteit heeft met de doelgroep energiearme huiseigenaren. Je kent de belevingswereld van de doelgroep en weet deze te inspireren, te motiveren en aan te zetten tot verduurzaming van de woning.Je kunt zelfstandig werken en houdt van pionieren.Je komt in een team van 26 professionals te werken op het gebied van energie, klimaat, milieu, water, bodem en natuur.Je werkt binnen een team van bevlogen medewerkers aan energiebesparing-projecten en specifiek aan de energiearmoede-aanpak van de gemeente Land van Cuijk.",
+        "isEformsWijziging": false,
+        "score": null,
+        "kenmerk": 595898,
+        "link": {
+          "href": "https://www.tenderned.nl/aankondigingen/overzicht/429104",
+          "title": "self"
+        }
+      }
+    ],
+    "first": true,
+    "last": false,
+    "totalElements": 483,
+    "totalPages": 25,
+    "size": 20,
+    "numberOfElements": 20,
+    "number": 0
+  },
+  "provenance": "Official anonymous public TenderNed first page, exact single-word search matching gateway request serialization. Mixed notice types; not all open and not an exhaustive result. No Apiosk payment or App end-to-end execution."
+}
