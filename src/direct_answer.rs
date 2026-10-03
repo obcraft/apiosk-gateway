@@ -126,6 +126,9 @@ pub(crate) fn registry_fallback(intent: &Intent, sources: &[Value], dutch: bool)
 /// incomplete or mismatched saved evidence. That error must not fall through
 /// to model synthesis or trigger another purchase.
 pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value]) -> anyhow::Result<Option<Value>> {
+    if let Some(answer) = crate::profession_answer::compose(question, intent, sources)? {
+        return Ok(Some(answer));
+    }
     if let Some(answer) = crate::location_answer::compose(question, intent, sources)? {
         return Ok(Some(answer));
     }

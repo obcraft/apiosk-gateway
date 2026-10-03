@@ -347,7 +347,9 @@ pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question:
 /// output-coverage check still applies. This never purchases a source.
 pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
     let canonical = crate::company_request::executable_intake(question, intake)
+        .or_else(|| crate::profession_request::executable_intake(question, intake))
         .or_else(|| crate::capability_intake::broad_information::parse(question, "literal"))?;
+    let profession = crate::profession_request::recognize(question);
     if canonical.subjects.len() != intake.parsed_request.subjects.len()
         || canonical.subjects.iter().zip(&intake.parsed_request.subjects).any(|(expected, actual)| expected.label != actual.label || expected.kind != actual.kind)
         || canonical.capabilities.len() != intake.parsed_request.capabilities.len()
@@ -368,20 +370,21 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             // contract supplies requested scope. It must not become an extra
             // separately requested purchase.
             if !catalog.services.iter().any(|service| service.contract.capability_slug == *capability
+                && profession.as_ref().is_none_or(|request| request.allows_operation(service))
                 && candidate.source_slug.as_deref() == Some(service.api_slug.as_str())
                 && candidate.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str())
                 && cap.outputs.iter().any(|output| output_covered(output, service, catalog, false))) {continue;}
             if seen.insert((goal.capability.clone(), serde_json::to_string(&goal.constraints).ok()?)) { choices.push(goal); }
         }
     }
-    if choices.is_empty() || choices.len() > 8 { return None; }
+    if choices.is_empty() || choices.len() > 8 { return profession.map(|_| rejected_reply(intake)); }
     for size in 1..=choices.len() {
         for mask in (1usize..1usize << choices.len()).filter(|mask| mask.count_ones() as usize == size) {
             let mut intent = Intent { subjects: vec![super::Subject { entity_ref: None, label: canonical.subjects[0].label.clone(), values: Default::default() }],
                 goals: choices.iter().enumerate().filter(|(index, _)| mask & (1 << index) != 0).map(|(_, goal)| goal.clone()).collect(),
-                answer_operations: vec![if canonical.subjects[0].kind == "company" {
+                answer_operations: if crate::profession_request::recognize(question).is_some() { vec!["Cite the retrieved sources and preserve their scope, observation dates and missing fields.".into()] } else { vec![if canonical.subjects[0].kind == "company" {
                     "Summarize the registered details and available annual figures; preserve the reported financial year, currency, units, consolidation scope, source and missing fields. These available figures do not establish the latest filing or a complete original annual report.".into()
-                } else { "Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into() }], unresolved_references: vec![] };
+                } else { "Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into() }] }, unresolved_references: vec![] };
             super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
             if prepare(&mut intent, intake, catalog).is_err() || intent.bind_constraint_inputs(question, catalog).is_err()
                 || intent.validate(question, task, catalog).is_err() {continue;}
@@ -390,13 +393,16 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             if crate::engine::bind_subjects(&mut preview, catalog, &mut bound).is_err() {continue;}
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
             if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
-            let message = if canonical.subjects[0].kind == "company" { "I will retrieve the registered details and available annual financial figures, preserving their reported year and scope. Review the total price first." }
+            let message = if crate::profession_request::recognize(question).is_some() {
+                if canonical.language == "nl" { "Ik haal de gevraagde gegevens uit de gevonden bronnen en toon eerst de totale prijs." }
+                else { "I will retrieve the requested data from the matched sources and show the total price first." }
+            } else if canonical.subjects[0].kind == "company" { "I will retrieve the registered details and available annual financial figures, preserving their reported year and scope. Review the total price first." }
                 else if canonical.language == "nl" {"Ik zoek de beschikbare gegevens bij dit adres en toon eerst de totale prijs."}
                 else {"I will retrieve the available records for this address and show the total price first."};
             return Some(super::ChatReply { message: message.into(), discover: true, intent: Some(intent), decline_reason: Some("none".into()) });
         }
     }
-    None
+    profession.map(|_| rejected_reply(intake))
 }
 
 fn outputs_cover(
@@ -541,6 +547,125 @@ mod tests {
         let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
         let selected_capabilities = matches.iter().flat_map(|matched| matched.operations.iter().cloned()).collect();
         (Intake { parsed_request, matches, selected_capabilities, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() }, catalog)
+    }
+
+    fn profession_catalog() -> Catalog {
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/catalog.json")).unwrap();
+        let reviewed: Value = serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/reviewed-schemas.json")).unwrap();
+        for fact in &mut snapshot.vocabulary {
+            if let Some(schema) = reviewed["schemas"].get(&fact.slug) { fact.value_schema = schema.clone(); }
+        }
+        let catalog = Catalog::build(snapshot);
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        catalog
+    }
+
+    #[tokio::test]
+    async fn profession_questions_bind_real_source_inputs_without_a_model_or_partial_scope() {
+        let catalog = profession_catalog();
+        for (question, expected) in [
+            ("Geef de laatste officiële ECB-referentiewisselkoers voor EUR/USD met waarnemingsdatum via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"USD"}))]),
+            ("Geef de laatste officiële ECB-referentiewisselkoers voor EUR/GBP met waarnemingsdatum via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"GBP"}))]),
+            ("Valideer EU-btw-nummer NL002033354B01 via VIES en toon de geldigheid en controledatum.", vec![("vat.eu.validate", json!({"cc":"NL","nr":"002033354B01"}))]),
+            ("Geef RDW-voertuiggegevens voor kenteken GZ-805-N, inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties.", vec![("vehicle.technical-profile", json!({"kenteken":"GZ-805-N"}))]),
+            ("Geef openbare RDAP-registratiegegevens en mail-DNS-records voor example.org. Citeer de bronnen.", vec![("domain.registration", json!({"domain":"example.org"})), ("domain.mail-dns", json!({"domain":"example.org"}))]),
+            ("Geef openbare RDAP-registratiegegevens en mail-DNS-records voor mollie.nl. Citeer de bronnen.", vec![("domain.registration", json!({"domain":"mollie.nl"})), ("domain.mail-dns", json!({"domain":"mollie.nl"}))]),
+        ] {
+            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
+            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
+            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            assert!(reply.discover, "{question}: {}", reply.message);
+            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+            let mut intent = reply.intent.unwrap();
+            let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("{question}: expected complete plan") };
+            assert_eq!(plan.steps.len(), expected.len(), "{question}");
+            for (capability, inputs) in expected {
+                let step = plan.steps.iter().find(|s| s.service.contract.capability_slug == capability).unwrap();
+                assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap(), inputs, "{question}");
+            }
+            assert!(uncovered_outputs(&task, &catalog, &intent, &plan).is_empty());
+            let mut extra = intake.clone(); extra.parsed_request.capabilities[0].outputs.push("owner_identity".into());
+            assert!(broad_information_reply(&extra, &catalog, question, &Default::default()).is_none(), "extra scope never discarded");
+            let mut changed = intake.clone(); changed.parsed_request.subjects[0].identifiers.insert("extra_requirement".into(), "different input".into());
+            assert!(broad_information_reply(&changed, &catalog, question, &Default::default()).is_none(), "changed identifiers never discarded");
+        }
+    }
+
+    #[test]
+    fn profession_planner_keeps_missing_contracts_and_unsupported_targets_blocked() {
+        let catalog = profession_catalog();
+        for question in [
+            "Geef de laatste officiële ECB-referentiewisselkoers voor EUR/AAA met waarnemingsdatum via Frankfurter.",
+            "Valideer EU-btw-nummer US12345 via VIES en toon de geldigheid en controledatum.",
+        ] {
+            let parsed_request = crate::profession_request::parse(question, "fixture").unwrap();
+            let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+            let intake = Intake { parsed_request, selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(), matches, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() };
+            assert!(!broad_information_reply(&intake, &catalog, question, &Default::default()).unwrap().discover);
+        }
+        let question = "Geef openbare RDAP-registratiegegevens en mail-DNS-records voor example.org. Citeer de bronnen.";
+        let parsed_request = crate::profession_request::parse(question, "fixture").unwrap();
+        let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+        let mut intake = Intake { parsed_request, selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(), matches, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() };
+        for matched in &mut intake.matches { matched.apiosk.retain(|candidate| candidate.capability.as_deref() != Some("domain.mail-dns")); }
+        assert!(!broad_information_reply(&intake, &catalog, question, &Default::default()).unwrap().discover, "registration alone is not a complete domain+mail request");
+    }
+
+    #[tokio::test]
+    async fn profession_newly_planned_get_vat_and_hyphenated_plate_reach_source_cited_answers() {
+        let catalog = profession_catalog();
+        for (question, capability) in [
+            ("Valideer EU-btw-nummer NL004495445B01 via VIES en toon de geldigheid en controledatum.", "vat.eu.validate"),
+            ("Geef RDW-voertuiggegevens voor kenteken GZ-805-N, inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties.", "vehicle.technical-profile"),
+        ] {
+            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
+            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
+            let mut intent = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap().intent.unwrap();
+            let mut task = crate::state::Task { capability_intake: Some(intake), ..Default::default() };
+            crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("expected one complete lookup") };
+            assert_eq!(plan.steps.len(), 1);
+            let step = &plan.steps[0]; assert_eq!(step.service.contract.capability_slug, capability);
+            // GET VIES uses its captured normalized GET response; the vehicle
+            // payload is the separately saved paid GZ805N response. This is an
+            // offline contract/composition test, not a fresh paid execution.
+            let payload = if capability == "vat.eu.validate" { step.service.sample_payload.clone().unwrap() }
+                else { serde_json::from_str::<Value>(include_str!("../../tests/fixtures/profession-examples/vehicle.json")).unwrap()["results"][0]["data"].clone() };
+            let extracted = step.service.contract.extract(&payload, &catalog.vocabulary).unwrap();
+            assert!(extracted.rejected.is_empty());
+            let mut source = step.service.result_source(); source["path"] = json!(step.service.path);
+            let sources = vec![json!({"result_ref":uuid::Uuid::new_v4(),"document":{
+                "subject":{"entity_ref":step.entity_ref},"source":source,
+                "coverage":"source_response","missing_fields":[],"data":payload}})];
+            let answer = crate::profession_answer::compose(question, &intent, &sources).unwrap().unwrap();
+            assert_eq!(answer["status"], "completed");
+            assert!(!answer["presentation"]["rows"].as_array().unwrap().is_empty());
+            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn profession_plan_cannot_purchase_a_future_unreviewed_route_with_the_same_fields() {
+        let question = "Geef openbare RDAP-registratiegegevens en mail-DNS-records voor example.org. Citeer de bronnen.";
+        for changed in ["provider", "capability", "method", "path"] {
+            let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/profession-output-coverage/catalog.json")).unwrap();
+            let service = snapshot.services.iter_mut().find(|s| s.contract.capability_slug == "domain.registration").unwrap();
+            match changed {
+                "provider" => service.api_slug = "unreviewed-domain-provider".into(),
+                "capability" => service.contract.capability_slug = "domain.unreviewed-registration".into(),
+                "method" => service.method = "POST".into(),
+                "path" => service.path = "/unreviewed/{domain}".into(),
+                _ => unreachable!(),
+            }
+            let catalog = Catalog::build(snapshot); assert!(catalog.rejected.is_empty());
+            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
+            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
+            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            assert!(!reply.discover && reply.intent.is_none(), "{changed} cannot reach a purchase");
+            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0, "{changed}: a model may not bypass reviewed operation scope");
+        }
     }
 
     #[tokio::test]

@@ -1,0 +1,121 @@
+{
+  "question": "Geef RDW-voertuiggegevens voor kenteken GZ805N, inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties.",
+  "intent": {
+    "goals": [
+      {
+        "subject": 0,
+        "capability": "vehicle.technical-profile",
+        "constraints": {
+          "source": "rdw",
+          "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77"
+        }
+      }
+    ],
+    "subjects": [
+      {
+        "label": "GZ805N",
+        "values": {
+          "vehicle.registration.nl.plate": "GZ805N"
+        },
+        "entity_ref": "35a31d95-1c80-48da-815c-27de622eea26"
+      }
+    ],
+    "answer_operations": [
+      "geef de merknaam, handelsbenaming, APK-vervaldatum en indicator voor openstaande terugroepacties"
+    ],
+    "unresolved_references": []
+  },
+  "results": [
+    {
+      "result_ref": "aa551468-2804-4217-a478-566f194faa92",
+      "data": {
+        "items": [
+          {
+            "merk": "SUZUKI",
+            "type": "LF",
+            "lengte": "360",
+            "breedte": "160",
+            "variant": "E42S",
+            "kenteken": "GZ805N",
+            "bruto_bpm": "1840",
+            "wielbasis": "243",
+            "inrichting": "hatchback",
+            "uitvoering": "AMT5S",
+            "eerste_kleur": "BLAUW",
+            "tweede_kleur": "Niet geregistreerd",
+            "aantal_deuren": "5",
+            "aantal_wielen": "4",
+            "voertuigsoort": "Personenauto",
+            "wam_verzekerd": "Ja",
+            "catalogusprijs": "13398",
+            "cilinderinhoud": "998",
+            "massa_rijklaar": "885",
+            "taxi_indicator": "Nee",
+            "handelsbenaming": "CELERIO",
+            "hoogte_voertuig": "154",
+            "vervaldatum_apk": "20270919",
+            "wacht_op_keuren": "Geen verstrekking in Open Data",
+            "aantal_cilinders": "3",
+            "export_indicator": "Nee",
+            "aantal_zitplaatsen": "5",
+            "tellerstandoordeel": "Logisch",
+            "vervaldatum_apk_dt": "2027-09-19T00:00:00.000",
+            "datum_tenaamstelling": "20200814",
+            "massa_ledig_voertuig": "785",
+            "plaats_chassisnummer": "in motorruimte a.",
+            "datum_eerste_toelating": "20150919",
+            "tenaamstellen_mogelijk": "Ja",
+            "typegoedkeuringsnummer": "e6*2007/46*0119*02",
+            "vermogen_massarijklaar": "0.06",
+            "datum_tenaamstelling_dt": "2020-08-14T00:00:00.000",
+            "zuinigheidsclassificatie": "B",
+            "datum_eerste_toelating_dt": "2015-09-19T00:00:00.000",
+            "europese_voertuigcategorie": "M1",
+            "maximum_massa_samenstelling": "1660",
+            "maximum_trekken_massa_geremd": "400",
+            "technische_max_massa_voertuig": "1260",
+            "maximum_massa_trekken_ongeremd": "400",
+            "api_gekentekende_voertuigen_assen": "https://opendata.rdw.nl/resource/3huj-srit.json",
+            "toegestane_maximum_massa_voertuig": "1260",
+            "code_toelichting_tellerstandoordeel": "00",
+            "jaar_laatste_registratie_tellerstand": "2026",
+            "openstaande_terugroepactie_indicator": "Nee",
+            "api_gekentekende_voertuigen_brandstof": "https://opendata.rdw.nl/resource/8ys7-d773.json",
+            "api_gekentekende_voertuigen_carrosserie": "https://opendata.rdw.nl/resource/vezc-m2t6.json",
+            "volgnummer_wijziging_eu_typegoedkeuring": "0",
+            "datum_eerste_tenaamstelling_in_nederland": "20150919",
+            "api_gekentekende_voertuigen_voertuigklasse": "https://opendata.rdw.nl/resource/kmfi-hrps.json",
+            "datum_eerste_tenaamstelling_in_nederland_dt": "2015-09-19T00:00:00.000",
+            "api_gekentekende_voertuigen_carrosserie_specifiek": "https://opendata.rdw.nl/resource/jhie-znh9.json"
+          }
+        ],
+        "query": {
+          "kenteken": "GZ805N"
+        },
+        "total": 1,
+        "notice": "Technical register data. No owner identity or fleet ownership. Missing fields remain unknown; fuel/emissions datasets are not included.",
+        "coverage": {
+          "scope": "Exact plate in RDW registered-vehicle dataset",
+          "complete": true
+        },
+        "source_url": "https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=GZ805N&%24limit=2",
+        "requested_plate": "GZ805N"
+      },
+      "source": {
+        "url": "https://opendata.rdw.nl/en/en/Vehicles/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+        "name": "RDW Vehicle Technical Data",
+        "path": "/resource/m9d7-ebf2.json",
+        "provider": "rdw",
+        "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+        "retrieved_at": "2026-10-03T15:17:16.557694902Z",
+        "contract_version": 1
+      },
+      "subject": {
+        "label": "GZ805N",
+        "entity_ref": "35a31d95-1c80-48da-815c-27de622eea26"
+      },
+      "coverage": "source_response",
+      "missing_fields": []
+    }
+  ]
+}

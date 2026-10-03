@@ -313,6 +313,7 @@ pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedReques
     broad_information::parse(request, model)
         .or_else(|| crate::tenderned::parse(request, model))
         .or_else(|| crate::company_request::parse(request, model))
+        .or_else(|| crate::profession_request::parse(request, model))
         .or_else(|| crate::cbs_comparison::canonical_request(request))
 }
 

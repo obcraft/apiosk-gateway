@@ -29,6 +29,8 @@ mod tenderned;
 mod company_request;
 mod cbs_comparison;
 mod location_answer;
+mod profession_request;
+mod profession_answer;
 pub mod annual_report;
 pub mod research_report;
 pub mod report_assets;
