@@ -16,6 +16,7 @@ use std::{
 
 mod discovery_cache;
 pub(crate) mod broad_information;
+pub(crate) mod company_lookup;
 #[cfg(test)]
 mod tests;
 
@@ -311,6 +312,7 @@ pub fn conversation_language(request: &str) -> Option<&'static str> {
 }
 pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
     broad_information::parse(request, model)
+        .or_else(|| company_lookup::parse(request, model))
         .or_else(|| crate::tenderned::parse(request, model))
         .or_else(|| crate::company_request::parse(request, model))
         .or_else(|| crate::profession_request::parse(request, model))

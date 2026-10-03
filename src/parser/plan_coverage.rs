@@ -540,6 +540,46 @@ mod tests {
         parser::{Goal, Subject},
     };
 
+    #[tokio::test]
+    async fn bare_kvk_check_quotes_one_exact_profile_and_keeps_explicit_fields_required() {
+        let question = "87560488 check dit kvk nummer";
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
+        let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
+        let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+        assert!(reply.discover, "{}", reply.message);
+        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+        let mut intent = reply.intent.unwrap();
+        let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("the supplied KVK must resolve to a profile quote") };
+        assert_eq!(plan.steps.len(), 1, "a known KVK needs no company-name search or annual accounts");
+        let step = &plan.steps[0];
+        assert_eq!(step.service.api_slug, "kvk-dutch-business-register");
+        assert_eq!(step.service.contract.capability_slug, "company.registry-profile");
+        assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap(), json!({"kvkNummer":"87560488"}));
+        assert!(plan.cap_atomic > 0);
+        assert!(uncovered_outputs(&task, &catalog, &intent, &plan).is_empty());
+
+        for field in ["email", "capital", "employees"] {
+            let mut extra = intake.clone();
+            extra.parsed_request.capabilities[0].outputs.push(field.into());
+            assert!(!crate::capability_intake::company_lookup::matches_intake(question, &extra));
+            assert!(single_retrieval_reply(&extra, &catalog, question, question, &Default::default()).is_none());
+            task.capability_intake = Some(extra);
+            assert_eq!(uncovered_outputs(&task, &catalog, &intent, &plan), [format!("Company profile: {field}")]);
+        }
+        let mut changed = intake.clone();
+        changed.parsed_request.subjects[0].identifiers.insert("kvk_number".into(), "24330087".into());
+        assert!(!crate::capability_intake::company_lookup::matches_intake(question, &changed));
+        changed = intake.clone();
+        changed.parsed_request.deliverable.format = "json".into();
+        assert!(!crate::capability_intake::company_lookup::matches_intake(question, &changed));
+        let mut absent = intake;
+        absent.matches.iter_mut().for_each(|matched| matched.apiosk.clear());
+        assert!(single_retrieval_reply(&absent, &catalog, question, question, &Default::default()).is_none());
+    }
+
     fn broad_location_fixture(question: &str) -> (Intake, Catalog) {
         let catalog = crate::ask_v2::test_catalog::locations();
         assert!(catalog.rejected.is_empty());
