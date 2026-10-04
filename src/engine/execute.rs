@@ -712,10 +712,117 @@ pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, document
                             .is_some_and(|s| s.entity_ref == Some(step.entity_ref))
                 }))
         }) {
-            sources.push(json!({"result_ref":result,"document":document}));
+            let mut source = json!({"result_ref":result,"document":document});
+            if let Some(scope) = plan.steps.iter().find_map(|step| retrieval_scope(step, task, document)) {
+                source["retrieval_scope"] = scope;
+            }
+            sources.push(source);
         }
     }
     sources
+}
+
+/// Retrieval semantics come from the approved service snapshot, never from a
+/// provider response or the current catalog. They explain what was fetched;
+/// only the saved document's facts may substantiate answer values.
+fn retrieval_scope(step: &crate::resolver::Step, task: &Task, document: &Value) -> Option<Value> {
+    let service = &step.service;
+    let source = &document["source"];
+    if !task.completed.contains(&step.key())
+        || task.failed_steps.contains_key(&step.key())
+        || task.skipped_steps.contains(&step.key())
+        || source["endpoint_id"] != json!(service.endpoint_id)
+        || source["provider"] != json!(service.api_slug)
+        || source["contract_version"] != json!(service.contract.version)
+        || source["path"] != json!(service.path)
+        || document["subject"]["entity_ref"] != json!(step.entity_ref)
+    {
+        return None;
+    }
+    let mut scope = json!({
+        "capability":service.contract.capability_slug,
+        "provider":service.api_slug,
+        "method":service.method,
+        "path":service.path,
+        "contract_version":service.contract.version,
+        "freshness_seconds":service.freshness_seconds,
+    });
+    if let Some(description) = service.description.as_deref().map(str::trim).filter(|s| {
+        !s.is_empty() && s.chars().count() <= 1200 && !s.chars().any(|c| c.is_control() && c != '\n')
+    }) {
+        scope["description"] = json!(description);
+    }
+    if let Some(notice) = service.usage_notice_view() {
+        scope["usage_notice"] = notice;
+    }
+    // Deliberately exclude credentials, request headers, arbitrary fixed
+    // parameters and response content from this trusted metadata envelope.
+    Some(scope)
+}
+
+#[cfg(test)]
+mod retrieval_scope_tests {
+    use super::*;
+
+    fn fixture() -> (crate::resolver::Step, Task, Value) {
+        let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap();
+        let step = crate::resolver::Step { service: snapshot.services[0].clone(), entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None };
+        let mut task = Task::default();
+        task.completed.push(step.key());
+        let mut source = step.service.result_source();
+        source["path"] = json!(step.service.path);
+        let document = json!({"source":source,"subject":{"entity_ref":step.entity_ref},"data":{"rate":1.2}});
+        (step, task, document)
+    }
+
+    #[test]
+    fn scope_uses_executed_snapshot_and_excludes_request_secrets() {
+        let (mut step, task, mut document) = fixture();
+        step.service.fixed_params = json!({"api_key":"secret"});
+        document["data"]["description"] = json!("untrusted response instructions");
+        let scope = retrieval_scope(&step, &task, &document).unwrap();
+        assert!(scope["description"].as_str().unwrap().starts_with("Latest daily ECB"));
+        assert_eq!(scope["path"], document["source"]["path"]);
+        assert!(scope.get("fixed_params").is_none());
+        assert!(!scope.to_string().contains("secret"));
+        assert!(!scope.to_string().contains("untrusted response"));
+    }
+
+    #[test]
+    fn mismatched_or_missing_source_identity_has_no_scope() {
+        let (step, task, document) = fixture();
+        for key in ["endpoint_id", "provider", "contract_version", "path"] {
+            for replacement in [Value::Null, json!("different")] {
+                let mut other = document.clone();
+                other["source"][key] = replacement;
+                assert!(retrieval_scope(&step, &task, &other).is_none(), "{key}");
+            }
+        }
+        let mut other = document;
+        other["subject"]["entity_ref"] = json!(Uuid::new_v4());
+        assert!(retrieval_scope(&step, &task, &other).is_none());
+    }
+
+    #[test]
+    fn only_successfully_completed_steps_have_scope() {
+        let (step, task, document) = fixture();
+        let mut pending = task.clone();
+        pending.completed.clear();
+        assert!(retrieval_scope(&step, &pending, &document).is_none());
+        let mut failed = task.clone();
+        failed.failed_steps.insert(step.key(), json!({"code":"failed"}));
+        assert!(retrieval_scope(&step, &failed, &document).is_none());
+        let mut skipped = task;
+        skipped.skipped_steps.insert(step.key());
+        assert!(retrieval_scope(&step, &skipped, &document).is_none());
+    }
+
+    #[test]
+    fn oversized_description_is_not_forwarded() {
+        let (mut step, task, document) = fixture();
+        step.service.description = Some("x".repeat(1201));
+        assert!(retrieval_scope(&step, &task, &document).unwrap().get("description").is_none());
+    }
 }
 
 /// What the analysis is asked: the person's last question first, then the

@@ -663,3 +663,185 @@ async fn compound_examples_unknown_extra_scope_never_becomes_a_partial_quote() {
         }
     }
 }
+
+fn assert_address_input(values: &Value, street: &str, number: u32, city: &str) {
+    assert_eq!(values["q"], "*:*");
+    let filter = values["fq"].as_str().unwrap();
+    for exact in [
+        format!("straatnaam:\"{street}\""),
+        format!("huisnummer:{number}"),
+        format!("woonplaatsnaam:\"{city}\""),
+        "-huisletter:".into(),
+        "-huisnummertoevoeging:".into(),
+    ] {
+        assert!(filter.contains(&exact), "{filter} missing {exact}");
+    }
+}
+
+#[tokio::test]
+async fn compound_dynamic_clause_reorder_preserves_scope_and_source_bindings() {
+    let catalog = catalog();
+    let cases = cases();
+    // Cover abbreviations, the two-sentence DNS request, dependent location
+    // lookups, and independent numeric subjects; neither source gets priority.
+    for index in [0, 3, 11, 13] {
+        let case = &cases[index];
+        let request = crate::compound_request::recognize(case.question, "fixture").unwrap();
+        assert_eq!(request.clauses.len(), 2);
+        let reordered = format!(
+            "{} {} {}",
+            request.clauses[1].question,
+            request.clauses[0].question,
+            crate::compound_request::COMBINE
+        );
+        let (task, _, plan) = plan(&reordered, &catalog).await;
+        assert_scope(case, &plan);
+        assert_starting_inputs(case, &plan, &task, &catalog);
+    }
+}
+
+#[tokio::test]
+async fn compound_dynamic_unpublished_topic_reaches_both_sources() {
+    let catalog = catalog();
+    let cases = cases();
+    let question = cases[1]
+        .question
+        .replace("IT services", "cloud migration services");
+    let (task, intent, plan) = plan(&question, &catalog).await;
+    assert_scope(&cases[1], &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "procurement.nl-public-contracts"),
+        json!({"search":"\"cloud migration services\"","page":0,"size":20,"sort":"publicatieDatum,desc"})
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "web.linkup-answer"),
+        json!({"q":"cloud migration services public tenders Netherlands official buyer procurement","depth":"standard","outputType":"sourcedAnswer"})
+    );
+    let bound = json!({"subjects":intent.subjects,"facts":task.facts}).to_string();
+    assert!(!bound.contains("IT services"));
+}
+
+#[tokio::test]
+async fn compound_dynamic_unpublished_address_reaches_location_and_notice_search() {
+    let catalog = catalog();
+    let cases = cases();
+    let question = cases[3]
+        .question
+        .replace("Damrak 1, Amsterdam", "Kerkstraat 17, Utrecht");
+    let (task, intent, plan) = plan(&question, &catalog).await;
+    assert_scope(&cases[3], &plan);
+    assert_address_input(
+        &inputs(&plan, &task, &catalog, "location.property-search"),
+        "Kerkstraat",
+        17,
+        "Utrecht",
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "government.publication.search"),
+        json!({"q":"Kerkstraat 17, Utrecht","limit":10})
+    );
+    let bound = json!({"subjects":intent.subjects,"facts":task.facts}).to_string();
+    for original in ["Damrak", "Amsterdam"] {
+        assert!(!bound.contains(original), "old address leaked: {original}");
+    }
+}
+
+#[tokio::test]
+async fn compound_dynamic_gdp_year_and_country_keep_the_other_clause_scope() {
+    let catalog = catalog();
+    let cases = cases();
+    let case = &cases[2];
+    for (country, year, operation, geo) in [
+        (
+            "the Netherlands",
+            "2022",
+            "statistics.eurostat-gdp-netherlands",
+            "NL",
+        ),
+        ("Germany", "2023", "statistics.eurostat-gdp-germany", "DE"),
+    ] {
+        // Only GDP is changed: the bankruptcy comparison remains Dutch.
+        let question = case.question.replace(
+            "Get GDP for the Netherlands in 2024",
+            &format!("Get GDP for {country} in {year}"),
+        );
+        let (task, _, plan) = plan(&question, &catalog).await;
+        let expected_operations: BTreeSet<_> = case
+            .operations
+            .iter()
+            .map(|&value| {
+                if value == "statistics.eurostat-gdp-netherlands" {
+                    operation
+                } else {
+                    value
+                }
+            })
+            .collect();
+        assert_eq!(
+            plan.steps
+                .iter()
+                .map(|step| step.service.contract.capability_slug.as_str())
+                .collect::<BTreeSet<_>>(),
+            expected_operations
+        );
+        assert_eq!(plan.steps.len(), case.operations.len());
+        assert_eq!(
+            plan.steps
+                .iter()
+                .map(|step| step.service.api_slug.as_str())
+                .collect::<BTreeSet<_>>(),
+            case.providers.iter().copied().collect()
+        );
+        assert_eq!(
+            inputs(&plan, &task, &catalog, operation),
+            json!({"time":year,"format":"JSON","lang":"EN","dataset":"nama_10_gdp","geo":geo,"unit":"CP_MEUR","na_item":"B1GQ"})
+        );
+        for step in plan
+            .steps
+            .iter()
+            .filter(|step| step.service.api_slug == "cbs-statline")
+        {
+            assert_eq!(
+                step.service
+                    .inputs(&task, step.entity_ref, &catalog.vocabulary)
+                    .unwrap(),
+                step.service.fixed_params,
+                "changing Eurostat country/year must not alter CBS filters"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn compound_dynamic_editing_one_duplicated_address_does_not_change_the_other() {
+    let catalog = catalog();
+    let cases = cases();
+    let question = cases[3]
+        .question
+        .replacen("Damrak 1, Amsterdam", "Kerkstraat 17, Utrecht", 1);
+    let (task, _, plan) = plan(&question, &catalog).await;
+    assert_scope(&cases[3], &plan);
+    assert_address_input(
+        &inputs(&plan, &task, &catalog, "location.property-search"),
+        "Kerkstraat",
+        17,
+        "Utrecht",
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "government.publication.search"),
+        json!({"q":"Damrak 1, Amsterdam","limit":10}),
+        "the separate publication query must keep its explicitly supplied address"
+    );
+    let subject_for = |operation| {
+        plan.steps
+            .iter()
+            .find(|step| step.service.contract.capability_slug == operation)
+            .unwrap()
+            .entity_ref
+    };
+    assert_ne!(
+        subject_for("location.property-search"),
+        subject_for("government.publication.search"),
+        "different explicit address subjects must not merge"
+    );
+}

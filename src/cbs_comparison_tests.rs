@@ -199,3 +199,127 @@ fn source_grouping_changes_require_review_instead_of_double_counting() {
     latest.as_object_mut().unwrap().remove("Status");
     assert!(compose(QUESTION, &no_status).is_err());
 }
+
+fn projection_requirements() -> Vec<Requirement> {
+    [CAPABILITY, "statistics.cbs-bankruptcy-sectors", "statistics.cbs-bankruptcy-periods",
+        "statistics.cbs-bankruptcy-measures", "statistics.cbs-bankruptcy-entity-types"]
+        .into_iter().enumerate().map(|(index, criterion)| serde_json::from_value(json!({
+            "id":format!("r{}", index + 1), "subject":0, "subject_label":"Netherlands",
+            "entity_ref":uuid::Uuid::nil().to_string(), "criterion":criterion,
+            "criterion_kind":"capability", "status":"pending"
+        })).unwrap()).collect()
+}
+
+#[test]
+fn cbs_evidence_projection_preserves_complete_disjoint_slice_and_original_pointers() {
+    let mut sources = saved_sources();
+    sources.push(json!({"result_ref":uuid::Uuid::from_u128(100).to_string(),
+        "document":{"source":{"provider":"another-source"},"data":{"year":2024,"value":123}}}));
+    let original = sources.clone();
+    let projected = evidence_projection(&sources, &projection_requirements()).unwrap();
+    assert_eq!(sources, original, "saved evidence is never modified");
+    assert_eq!(projected[5], sources[5], "other source scope is unchanged");
+    for (index, expected) in [(0,22), (1,22), (2,1), (3,1), (4,1)] {
+        let rows = projected[index]["document"]["data"]["value"].as_object().unwrap();
+        assert_eq!(rows.len(), expected);
+        for (key, row) in rows {
+            let pointer = format!("/data/value/{key}");
+            assert_eq!(sources[index]["document"].pointer(&pointer), Some(row));
+            for (field, value) in row.as_object().unwrap() {
+                assert_eq!(sources[index]["document"].pointer(&format!("{pointer}/{field}")), Some(value));
+            }
+        }
+        assert_eq!(projected[index]["document"]["source"], sources[index]["document"]["source"]);
+        assert_eq!(projected[index]["document"]["coverage"], sources[index]["document"]["coverage"]);
+        assert_eq!(projected[index]["document"]["evidence_selection"]["comparison_values_complete"], true);
+    }
+    let observations = projected[0]["document"]["data"]["value"].as_object().unwrap();
+    assert!(observations.values().all(|row| row["Perioden"] == "2026MM08"
+        && row["Measure"] == MEASURE && row["TypeGefailleerde"] == POPULATION));
+    let sectors = projected[1]["document"]["data"]["value"].as_object().unwrap();
+    assert_eq!(sectors.values().filter(|row| row["DimensionGroupId"] == "3").count(), 20);
+    assert_eq!(sectors.values().filter(|row| row["Identifier"] == TOTAL).count(), 1);
+    assert_eq!(sectors.values().filter(|row| row["Identifier"] == UNKNOWN).count(), 1);
+    let national = observations.values().find(|row| row["BedrijfstakkenBranchesSBI2008"] == TOTAL).unwrap();
+    assert_eq!(national["Value"], 288.0);
+    assert_eq!(observations.values().filter(|row| row["BedrijfstakkenBranchesSBI2008"] != TOTAL)
+        .map(|row| row["Value"].as_f64().unwrap()).sum::<f64>(), 288.0);
+    let period = projected[2]["document"]["data"]["value"].as_object().unwrap().values().next().unwrap();
+    assert_eq!(period["Title"], "2026 augustus");
+    assert_eq!(period["Status"], "Voorlopig");
+    let measure = projected[3]["document"]["data"]["value"].as_object().unwrap().values().next().unwrap();
+    assert_eq!(measure["Unit"], "Aantal");
+    let population = projected[4]["document"]["data"]["value"].as_object().unwrap().values().next().unwrap();
+    assert_eq!(population["Title"], "Bedrijven, instellingen en eenmanszaken");
+}
+
+#[test]
+fn cbs_evidence_projection_requires_exact_default_period_scope_and_bound_entity() {
+    let sources = saved_sources();
+    for change in ["no_comparison", "missing_codebook", "explicit_period", "other_cbs_goal", "other_entity", "unbound_entity", "duplicate_comparison"] {
+        let mut requirements = projection_requirements();
+        match change {
+            "no_comparison" => requirements[0].criterion = "unrelated-capability".into(),
+            "missing_codebook" => { requirements.pop(); },
+            "explicit_period" => requirements[0].period = Some("2024".into()),
+            "other_cbs_goal" => { let mut extra = requirements[0].clone(); extra.criterion = "statistics.cbs-bankruptcy-rate".into(); requirements.push(extra); },
+            "other_entity" => requirements[1].entity_ref = Some(uuid::Uuid::from_u128(99).to_string()),
+            "unbound_entity" => requirements[0].entity_ref = None,
+            "duplicate_comparison" => requirements.push(requirements[0].clone()),
+            _ => unreachable!(),
+        }
+        assert!(evidence_projection(&sources, &requirements).is_none(), "{change}");
+    }
+    let mut requirements = projection_requirements();
+    let mut gdp = requirements[0].clone();
+    gdp.criterion = "statistics.eurostat-gdp-netherlands".into();
+    gdp.period = Some("2024".into());
+    gdp.entity_ref = Some(uuid::Uuid::from_u128(99).to_string());
+    requirements.push(gdp);
+    assert!(evidence_projection(&sources, &requirements).is_some(), "another source's annual period does not change CBS monthly scope");
+}
+
+#[test]
+fn cbs_evidence_projection_reuses_join_guards_and_keeps_missing_counts_unknown() {
+    for change in ["truncated", "unit", "entity", "missing_fields", "duplicate_ref", "group", "period_status"] {
+        let mut sources = saved_sources();
+        match change {
+            "truncated" => sources[0]["document"]["data"]["value"].as_array_mut().unwrap().truncate(100),
+            "unit" => sources[3]["document"]["data"]["value"][0]["Unit"] = json!("Percent"),
+            "entity" => sources[2]["document"]["subject"]["entity_ref"] = json!(uuid::Uuid::from_u128(99).to_string()),
+            "missing_fields" => sources[0]["document"]["missing_fields"] = json!(["cbs.observations"]),
+            "duplicate_ref" => { let mut extra = sources[0].clone(); extra["document"]["source"]["provider"] = json!("another-source"); sources.push(extra); },
+            "group" => sources[1]["document"]["data"]["value"][1]["DimensionGroupId"] = json!("5"),
+            "period_status" => { let period = sources[2]["document"]["data"]["value"].as_array_mut().unwrap().iter_mut().find(|row| row["Identifier"] == "2026MM08").unwrap(); period.as_object_mut().unwrap().remove("Status"); },
+            _ => unreachable!(),
+        }
+        assert!(evidence_projection(&sources, &projection_requirements()).is_none(), "{change}");
+    }
+    let mut sources = saved_sources();
+    sources[0]["document"]["data"]["value"][1]["Value"] = Value::Null;
+    sources[0]["document"]["data"]["value"][1]["ValueAttribute"] = json!("Missing");
+    let projected = evidence_projection(&sources, &projection_requirements()).unwrap();
+    assert_eq!(projected[0]["document"]["data"]["value"]["1"]["Value"], Value::Null);
+    assert_eq!(projected[0]["document"]["data"]["value"]["1"]["ValueAttribute"], "Missing");
+    assert_eq!(projected[0]["document"]["evidence_selection"]["comparison_values_complete"], false);
+}
+
+#[test]
+fn cbs_evidence_projection_uses_saved_new_period_and_status_without_question_matching() {
+    let mut sources = saved_sources();
+    for row in sources[0]["document"]["data"]["value"].as_array_mut().unwrap() {
+        if row["Perioden"] == "2026MM08" { row["Perioden"] = json!("2027MM02"); }
+    }
+    for row in sources[2]["document"]["data"]["value"].as_array_mut().unwrap() {
+        if row["Identifier"] == "2026MM08" {
+            row["Identifier"] = json!("2027MM02");
+            row["Title"] = json!("2027 februari");
+            row["Status"] = json!("Definitief");
+        }
+    }
+    let projected = evidence_projection(&sources, &projection_requirements()).unwrap();
+    assert!(projected[0]["document"]["data"]["value"].as_object().unwrap().values().all(|row| row["Perioden"] == "2027MM02"));
+    let period = projected[2]["document"]["data"]["value"].as_object().unwrap().values().next().unwrap();
+    assert_eq!(period["Title"], "2027 februari");
+    assert_eq!(period["Status"], "Definitief");
+}

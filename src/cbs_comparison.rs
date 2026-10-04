@@ -1,6 +1,7 @@
 //! A source-backed projection of CBS bankruptcy table 82244NED. This module
 //! performs no retrieval. A complete latest monthly slice and its saved
 //! codebooks must be present before it can describe a sector comparison.
+use crate::answer_blocks::{CriterionKind, Requirement};
 use crate::capability_intake::{Capability, Deliverable, Meta, ParsedRequest, Subject};
 use anyhow::{ensure, Context};
 use serde_json::{json, Value};
@@ -127,12 +128,23 @@ fn count(value: &Value) -> anyhow::Result<Option<f64>> {
     Ok(Some(number))
 }
 
-/// `None` means this question is outside the reviewed whole-request scope.
-/// An error for a recognized request must stop synthesis: a bounded or mismatched
-/// source response cannot be passed off as a complete sector comparison.
-pub(crate) fn compose(question: &str, sources: &[Value]) -> anyhow::Result<Option<Value>> {
-    let Some(language) = language(question) else { return Ok(None) };
-    let dutch = language == "nl";
+struct Comparison<'a> {
+    observations: Source<'a>,
+    sectors: Source<'a>,
+    periods: Source<'a>,
+    measures: Source<'a>,
+    populations: Source<'a>,
+    period_row: usize,
+    measure_row: usize,
+    population_row: usize,
+    total_sector: usize,
+    total_row: usize,
+    section_rows: Vec<(&'a str, usize, usize, Option<f64>)>,
+    missing: bool,
+}
+
+/// Validate the saved join once for both the direct answer and model projection.
+fn comparison(sources: &[Value]) -> anyhow::Result<Comparison<'_>> {
     let observations = source(sources, "Observations", false)?;
     let sectors = source(sources, "BedrijfstakkenBranchesSBI2008Codes", true)?;
     let periods = source(sources, "PeriodenCodes", true)?;
@@ -189,6 +201,76 @@ pub(crate) fn compose(question: &str, sources: &[Value]) -> anyhow::Result<Optio
     }
     section_rows.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap_or(std::cmp::Ordering::Equal).then(a.0.cmp(b.0)));
     section_rows.push((UNKNOWN, unknown_sector, unknown_row, unknown));
+    Ok(Comparison { observations, sectors, periods, measures, populations, period_row,
+        measure_row, population_row, total_sector, total_row, section_rows, missing })
+}
+
+/// A semantic input adapter for the reviewed default-period comparison. It
+/// keeps complete original records under their original array indices, so all
+/// evidence IDs still resolve against the unmodified saved documents. Invalid
+/// or differently scoped sources use the ordinary analysis path, without a
+/// claim that their comparison is complete.
+pub(crate) fn evidence_projection(sources: &[Value], requirements: &[Requirement]) -> Option<Vec<Value>> {
+    const CRITERIA: [&str; 5] = [CAPABILITY, "statistics.cbs-bankruptcy-sectors",
+        "statistics.cbs-bankruptcy-periods", "statistics.cbs-bankruptcy-measures",
+        "statistics.cbs-bankruptcy-entity-types"];
+    let requested: Vec<_> = requirements.iter().filter(|requirement|
+        requirement.criterion_kind == CriterionKind::Capability
+            && requirement.criterion.starts_with("statistics.cbs-")).collect();
+    // Do not substitute the latest slice for a requested period, another CBS
+    // population/measure, a second subject, or additional CBS retrieval scope.
+    if requested.len() != CRITERIA.len() || CRITERIA.iter().any(|criterion|
+        requested.iter().filter(|requirement| requirement.criterion == *criterion).count() != 1) {
+        return None;
+    }
+    let entity = requested[0].entity_ref.as_deref()?;
+    if requested.iter().any(|requirement| requirement.period.is_some()
+        || requirement.entity_ref.as_deref() != Some(entity)) { return None; }
+    let comparison = comparison(sources).ok()?;
+    let selected = [
+        (&comparison.observations, comparison.section_rows.iter().map(|row| row.2)
+            .chain(std::iter::once(comparison.total_row)).collect::<BTreeSet<_>>()),
+        (&comparison.sectors, comparison.section_rows.iter().map(|row| row.1)
+            .chain(std::iter::once(comparison.total_sector)).collect()),
+        (&comparison.periods, BTreeSet::from([comparison.period_row])),
+        (&comparison.measures, BTreeSet::from([comparison.measure_row])),
+        (&comparison.populations, BTreeSet::from([comparison.population_row])),
+    ];
+    if selected.iter().any(|(source, _)|
+        source.saved["document"]["subject"]["entity_ref"].as_str() != Some(entity)
+        || source.saved["document"]["missing_fields"].as_array().is_some_and(|fields| !fields.is_empty())) {
+        return None;
+    }
+    // A result reference must be unambiguous across every saved provider.
+    let mut references = BTreeSet::new();
+    for source in sources {
+        if !references.insert(source["result_ref"].as_str()?) { return None; }
+    }
+    Some(sources.iter().map(|saved| {
+        let Some((source, rows)) = selected.iter().find(|(source, _)| source.saved["result_ref"] == saved["result_ref"]) else {
+            return saved.clone();
+        };
+        let mut projected = saved.clone();
+        projected["document"]["data"]["value"] = Value::Object(rows.iter()
+            .map(|row| (row.to_string(), source.rows[*row].clone())).collect());
+        projected["document"]["evidence_selection"] = json!({
+            "method":"validated_cbs_bankruptcy_comparison",
+            "note":"The complete latest monthly source slice and codebook joins were verified. This projection retains every disjoint section, the separate unclassified sector and national total, and the matching period status, count unit and business population. Historical months and nested detailed industries are omitted; they must not be ranked or added alongside sections. Records use their original array indices and all values remain unchanged. Null counts remain unknown. This is a complete comparison slice, not the complete source history.",
+            "collections":[{"pointer":"/data/value", "fetched":source.rows.len(), "kept":rows.len()}],
+            "comparison_values_complete":!comparison.missing
+        });
+        projected
+    }).collect())
+}
+
+/// `None` means this question is outside the reviewed whole-request scope.
+/// An error for a recognized request must stop synthesis: a bounded or mismatched
+/// source response cannot be passed off as a complete sector comparison.
+pub(crate) fn compose(question: &str, sources: &[Value]) -> anyhow::Result<Option<Value>> {
+    let Some(language) = language(question) else { return Ok(None) };
+    let dutch = language == "nl";
+    let Comparison { observations, sectors, periods, measures, populations, period_row,
+        measure_row, population_row, total_sector, total_row, section_rows, missing } = comparison(sources)?;
     let rows: Vec<_> = section_rows.iter().map(|(_, sector, observation, _)| json!([
         sectors.reference(*sector, "Title"), observations.reference(*observation, "Value"),
         periods.reference(period_row, "Title"), periods.reference(period_row, "Status")

@@ -19,6 +19,9 @@ use uuid::Uuid;
 mod capability_binding;
 use capability_binding::Bindings;
 mod analysis_source_coverage;
+mod analysis_evidence;
+mod analysis_period;
+mod analysis_schema;
 mod explicit_request;
 pub(crate) mod plan_coverage;
 mod constraint_policy;
@@ -408,17 +411,19 @@ pub struct WorkflowChatReply {
     pub ready: bool,
 }
 
-/// Apiosk's model, served through OpenRouter, for every stage: intent,
-/// planning, analysis and the Ask parse. The only other model Apiosk calls is
-/// [`CHAT_MODEL`], and only for the conversation replies below.
+/// Apiosk's OpenRouter model for intent, planning, single-provider analysis
+/// and the Ask parse. Conversation and multi-provider synthesis have their
+/// own explicit stage constants below.
 pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// Qwen3 235B A22B Instruct 2507, via OpenRouter: the written reply to a
 /// message that is not yet a clear data question (small talk, an unclear
-/// request, a requirement no source covers), in `conversation_reply` and
-/// nowhere else. It writes text for the person to answer; it never reads a
-/// request into a plan, quotes, analyses or chooses a source. No setting can
-/// select it for another stage, or replace it (see [`pinned_model`]).
+/// request, a requirement no source covers), in `conversation_reply`.
+/// This constant only controls conversational text, never planning or
+/// synthesis. Multi-provider synthesis has its own stage constant below.
 pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
+/// Combining distinct saved providers uses the stronger synthesis stage.
+/// This is separate from conversation replies and never changes planning.
+pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
 // No fixed provider order for [`MODEL`]: OpenRouter's `sort` (latency by
 // default, INTENT_PROVIDER_SORT) picks among the healthy providers. A pinned
 // Nebius first measured 0.9 s in the morning of 2026-09-28 and 13.9 s or 429
@@ -426,7 +431,8 @@ pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
 
 /// The deployment boundary: a variable naming any other model (including
 /// [`CHAT_MODEL`]) is ignored, loudly, so a stale setting can never
-/// reintroduce it. The conversation replies' model is a constant, not a setting.
+/// reintroduce it. Conversation and multi-provider synthesis use constants,
+/// not model environment overrides.
 pub fn pinned_model(variable: &str) -> String {
     if let Some(configured) = std::env::var(variable).ok().map(|v| v.trim().to_owned()).filter(|v| !v.is_empty() && v != MODEL) {
         tracing::warn!(variable, %configured, model = MODEL, "ignoring a model other than Apiosk's OpenRouter model");
@@ -587,6 +593,10 @@ fn analysis_validation_reason(error: &anyhow::Error) -> &'static str {
 }
 
 fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_observations: usize, max_limitations: usize) -> anyhow::Result<Value> {
+    validate_analysis_bounds(raw, sources, partial, max_observations, max_limitations, 4)
+}
+
+fn validate_analysis_bounds(raw: &str, sources: &[Value], partial: bool, max_observations: usize, max_limitations: usize, max_evidence: usize) -> anyhow::Result<Value> {
     let value: Value = serde_json::from_str(raw)?;
     let observations = value["observations"]
         .as_array()
@@ -618,7 +628,7 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("missing evidence"))?;
         anyhow::ensure!(
-            !refs.is_empty() && refs.len() <= 4,
+            !refs.is_empty() && refs.len() <= max_evidence,
             "invalid evidence count"
         );
         let mut evidence = Vec::new();
@@ -649,7 +659,7 @@ fn validate_analysis_limits(raw: &str, sources: &[Value], partial: bool, max_obs
                 "subject":source["document"]["subject"],"source":source["document"]["source"]}));
         }
         // Numeric facts are copied from validated pointers, never model prose.
-        for (index, letter) in ["a", "b", "c", "d"].iter().enumerate() {
+        for (index, letter) in ["a", "b", "c", "d", "e", "f", "g", "h"].iter().enumerate() {
             let slot = format!("{{{{{letter}}}}}");
             if text.contains(&slot) {
                 let field = evidence
@@ -858,6 +868,25 @@ mod analysis_tests {
         assert!(validate_analysis(&answer.to_string(), &sources, false).is_err());
     }
     #[test]
+    fn multisource_slots_are_exact_and_bounded_without_widening_single_source() {
+        let sources = vec![json!({"result_ref":"saved","document":{"data":{"values":[0,false,"00007",-12,25,2024,"EUR",99,100]}}})];
+        let refs = (0..8).map(|i|json!({"result_ref":"saved","pointer":format!("/data/values/{i}")})).collect::<Vec<_>>();
+        let mut answer=json!({"observations":[{"text":"Values {{a}}, {{b}}, {{c}}, {{d}}, {{e}}, {{f}}, {{g}}, {{h}}.","evidence":refs}],"limitations":[]});
+        let check=|v:&Value| validate_analysis_bounds(&v.to_string(),&sources,false,8,6,8);
+        assert_eq!(check(&answer).unwrap()["observations"][0]["text"],"Values 0, false, 00007, -12, 25, 2024, EUR, 99.");
+        assert!(validate_analysis(&answer.to_string(),&sources,false).is_err(),"single-source still allows four");
+        answer["observations"][0]["evidence"].as_array_mut().unwrap().push(json!({"result_ref":"saved","pointer":"/data/values/8"}));
+        assert!(check(&answer).is_err(),"ninth citation rejected");
+        answer["observations"][0]["evidence"].as_array_mut().unwrap().pop();
+        answer["observations"][0]["text"]=json!("Unsupported {{i}}.");
+        assert!(check(&answer).is_err());
+        answer["observations"][0]["text"]=json!("Missing {{h}}.");
+        answer["observations"][0]["evidence"].as_array_mut().unwrap().pop();
+        assert!(check(&answer).is_err());
+        answer["observations"][0]["text"]=json!("Invented literal 777.");
+        assert!(check(&answer).is_err(),"numeric facts must still be copied from source evidence");
+    }
+    #[test]
     fn web_evidence_uses_only_short_exact_quotes_from_the_saved_page() {
         let sources = vec![json!({"result_ref":"page","document":{"data":{"text":format!("{}Plan costs $12 per seat monthly.", "long page ".repeat(1000))}}})];
         let mut answer = json!({"observations":[{"text":"Pricing: {{a}}", "evidence":[{"result_ref":"page","pointer":"/data/text"}]}],"limitations":[]});
@@ -945,6 +974,21 @@ impl Parser {
         let mut input = json!({"answer_operations":operations,"sources":[],"unavailable_steps":failures,"requested_parts":requirements});
         let budget = crate::evidence_selection::ANALYSIS_INPUT_BYTES.saturating_sub(serde_json::to_vec(&input)?.len());
         input["sources"] = json!(crate::evidence_selection::project(sources, operations, budget));
+        let evidence_index = if analysis_evidence::multiple_providers(sources) {
+            let reviewed_projection = crate::cbs_comparison::evidence_projection(sources, requirements);
+            let selected = reviewed_projection.as_deref().unwrap_or(sources);
+            let mut projection_budget = budget / 2;
+            loop {
+                let projected = analysis_evidence::project(selected, operations, projection_budget);
+                let index = analysis_evidence::Index::new(&projected, sources);
+                input["sources"] = json!(index.input_sources());
+                if serde_json::to_vec(&input)?.len() <= crate::evidence_selection::ANALYSIS_INPUT_BYTES {
+                    break Some(index);
+                }
+                anyhow::ensure!(projection_budget > 4096, "analysis input too large");
+                projection_budget /= 2;
+            }
+        } else { None };
         anyhow::ensure!(
             serde_json::to_vec(&input)?.len() <= crate::evidence_selection::ANALYSIS_INPUT_BYTES,
             "analysis input too large"
@@ -968,20 +1012,30 @@ impl Parser {
                 json!({"status":"partial","observations":[],"limitations":limitations}),
             );
         }
-        let mut prompt = include_str!("../contracts/analysis-prompt.txt").to_owned();
+        let mut prompt = if evidence_index.is_some() {
+            include_str!("../contracts/multisource-analysis-prompt.txt")
+        } else { include_str!("../contracts/analysis-prompt.txt") }.to_owned();
         if workflow {
             prompt = prompt.replace("At most eight observations, four evidence fields each, and six limitations.", "At most twenty-four observations, four evidence fields each, and twelve limitations. Cover every requested check with a supported finding or an explicit unknown in limitations. For shortlists, name each candidate and explain its fit; for comparisons, group findings by company. A completed retrieval is not a passed check.");
+            prompt = prompt.replace("At most eight observations, each at most eight evidence items.", "At most twenty-four observations, each at most eight evidence items, and twelve limitations. Cover each requested check with a supported finding or an explicit unknown.");
         }
-        // Gemini rejects this analysis schema at the provider boundary. JSON mode
-        // is portable; validate_analysis_limits remains the authority on output
-        // shape, evidence pointers, bounds, and numeric claims.
-        let payload = json!({"model":self.model,"temperature":0,"max_tokens":if workflow {8192} else {4096},
+        // Multi-provider synthesis uses a model that supports the bounded schema.
+        // Single-provider calls keep their existing portable JSON mode. Both
+        // paths still validate every source pointer, quote and numeric claim.
+        let payload = json!({"model":self.model,"temperature":0,"max_tokens":if workflow || evidence_index.is_some() {8192} else {4096},
             "reasoning":{"effort":"low","exclude":true},"provider":{"require_parameters":true},
-            "response_format":{"type":"json_object"},"messages":[
+            "response_format":if evidence_index.is_some() {analysis_schema::format(max_observations,max_limitations)} else {json!({"type":"json_object"})},"messages":[
                 {"role":"system","content":prompt},
                 {"role":"user","content":input.to_string()}]});
-        self.completion("analysis", &payload, |raw| {
-            let mut checked = validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)?;
+        self.completion(if evidence_index.is_some() { "multi-source-analysis" } else { "analysis" }, &payload, |raw| {
+            let expanded;
+            let raw = if let Some(index) = &evidence_index {
+                let mut value: Value = serde_json::from_str(&index.expand(raw)?)?;
+                analysis_period::hydrate(&mut value, requirements, sources);
+                expanded = serde_json::to_string(&value)?;
+                expanded.as_str()
+            } else { raw };
+            let mut checked = validate_analysis_bounds(raw, sources, !failures.is_empty(), max_observations, max_limitations, if evidence_index.is_some() { 8 } else { 4 })?;
             analysis_source_coverage::validate(raw, &mut checked, sources, failures)?;
             // Only a model that engages with requested_parts is held to it:
             // a fixture or an older model that never mentions requirement_status
@@ -1084,13 +1138,13 @@ impl Parser {
 
     fn routed_payload(&self, surface: &str, payload: &Value) -> Value {
         let mut payload = payload.clone();
-        let analysis = surface == "analysis";
-        payload["model"] = json!(if analysis { &self.analysis_model } else { &self.model });
-        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma") || model == MODEL) {
+        let analysis = matches!(surface, "analysis" | "multi-source-analysis");
+        payload["model"] = json!(if surface == "multi-source-analysis" { MULTISOURCE_ANALYSIS_MODEL } else if analysis { &self.analysis_model } else { &self.model });
+        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma") || model == MODEL || model == CHAT_MODEL) {
             // Neither Qwen3 Instruct 2507 nor Gemma 3 providers support a
             // reasoning parameter; with require_parameters it would match no
             // provider at all. Gemma 4 supports it, but needs thinking disabled.
-            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-") || model == MODEL) {
+            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-") || model == MODEL || model == CHAT_MODEL) {
                 payload.as_object_mut().unwrap().remove("reasoning");
             } else if payload.get("reasoning").is_some() {
                 payload["reasoning"] = json!({"enabled": false});
@@ -1102,6 +1156,9 @@ impl Parser {
                     payload["response_format"] = json!({"type":"json_schema","json_schema":{"name":surface.replace('-', "_"),"strict":false,"schema":schema}});
                 }
             }
+        }
+        if surface == "multi-source-analysis" {
+            payload.as_object_mut().unwrap().remove("temperature");
         }
         if url::Url::parse(&self.url).is_ok_and(|url| url.host_str() == Some("openrouter.ai")) {
             let sort = if analysis { &self.analysis_provider_sort } else { &self.intent_provider_sort };
@@ -1433,7 +1490,7 @@ impl Parser {
             (20, 30)
         } else if surface == "clarification" {
             (6, 12)
-        } else if surface == "analysis" {
+        } else if matches!(surface, "analysis" | "multi-source-analysis") {
             (30, 65)
         } else {
             (12, 25)
@@ -1547,7 +1604,7 @@ impl Parser {
                                                     messages.push(json!({"role":"user","content":format!("The proposed review failed validation ({reason}). Preserve the original subjects, goal count, capabilities and constraints exactly. Do not add identifier lookup goals; the compiler supplies dependencies. If no executable correction exists, return {{\"message\":\"one focused clarification about the unsupported requirement, in the user's language\",\"intent\":null}}. Do not claim retrieval is planned or that an available filing is necessarily the latest.")}));
                                                 }
                                             }
-                                            if surface == "analysis" {
+                                            if matches!(surface, "analysis" | "multi-source-analysis") {
                                                 // Fixed validator classifications only; never log the model answer.
                                                 let reason = analysis_validation_reason(&error);
                                                 tracing::warn!(
@@ -1564,7 +1621,12 @@ impl Parser {
                                                     // This remains inside the bounded model request;
                                                     // neither the answer nor source data is logged.
                                                     messages.push(json!({"role":"assistant","content":raw}));
-                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response. Preserve evidence from each distinct provider in observations or presentation data cells; do not drop a provider to make the response smaller. If a provider cannot support this answer, add a visible limitation and a source_gaps entry with its exact result_ref, an allowed reason and the matching limitation_index.")}));
+                                                    let repair = if surface == "multi-source-analysis" {
+                                                        format!("The response failed validation ({reason}). Correct the complete JSON. Keep concise observations with at most eight fact_id references each. Cite the supplied field IDs only; do not write pointers or quotes. Text and limitations must contain no literal digits or URLs: use {{{{a}}}} through {{{{h}}}} in observations for cited exact values, and make limitations qualitative. Cover every requested source finding and give a joined, evidence-supported conclusion. Do not substitute a format-example sentence for the answer. Preserve each provider's substantive evidence or its visible specific source_gaps limitation. requirement_status answered_by uses o1 for the first observation; do not repeat evidence arrays.")
+                                                    } else {
+                                                        format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response. Preserve evidence from each distinct provider in observations or presentation data cells; do not drop a provider to make the response smaller. If a provider cannot support this answer, add a visible limitation and a source_gaps entry with its exact result_ref, an allowed reason and the matching limitation_index.")
+                                                    };
+                                                    messages.push(json!({"role":"user","content":repair}));
                                                 }
                                             }
                                             Err("invalid_output")
@@ -1964,7 +2026,7 @@ mod tests {
         for (url, routed) in [("https://openrouter.ai/api/v1/chat/completions", true), ("https://example.com/completions", false)] {
             let parser = Parser::new(reqwest::Client::new(), url.into(), "fixture".into(), "fast-intent".into())
                 .with_routing(Some("analysis-model".into()), Some("latency".into()), Some("throughput".into())).unwrap();
-            for (surface, model, sort) in [("chat", "fast-intent", "latency"), ("intent", "fast-intent", "latency"), ("analysis", "analysis-model", "throughput")] {
+            for (surface, model, sort) in [("chat", "fast-intent", "latency"), ("intent", "fast-intent", "latency"), ("analysis", "analysis-model", "throughput"), ("multi-source-analysis", MULTISOURCE_ANALYSIS_MODEL, "throughput")] {
                 let value = parser.routed_payload(surface, &payload);
                 assert_eq!(value["model"], model);
                 assert_eq!(value["provider"]["require_parameters"], true);
@@ -2000,6 +2062,11 @@ mod tests {
             assert_eq!(routed["provider"]["require_parameters"], true);
         }
         assert_eq!(qwen.routed_payload("chat", &payload)["response_format"]["type"], "json_schema");
+        let multi = qwen.routed_payload("multi-source-analysis", &payload);
+        assert_eq!(multi["model"], MULTISOURCE_ANALYSIS_MODEL);
+        assert_eq!(multi["reasoning"], payload["reasoning"]);
+        assert!(multi.get("temperature").is_none());
+        assert_eq!(multi["response_format"]["type"], "json_object");
     }
     #[test]
     fn gemma_answers_without_thinking_and_other_models_keep_their_effort() {

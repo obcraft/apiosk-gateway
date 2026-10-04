@@ -425,8 +425,9 @@ mod tests {
     }
 
     #[test]
-    fn the_chat_model_is_used_only_for_conversation_replies() {
-        // Every other stage keeps Apiosk's pinned model; no setting can name this one.
+    fn stronger_models_are_confined_to_explicit_conversation_and_synthesis_stages() {
+        // Intent/planning and single-provider analysis keep the pinned model.
+        // Multi-provider synthesis has its own explicit constant in parser.rs.
         assert_ne!(CHAT_MODEL, super::super::MODEL);
         std::env::set_var("ASK_V2_MODEL_CONVERSATION_POLICY_PROBE", CHAT_MODEL);
         assert_eq!(super::super::pinned_model("ASK_V2_MODEL_CONVERSATION_POLICY_PROBE"), super::super::MODEL);

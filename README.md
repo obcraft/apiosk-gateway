@@ -2,7 +2,7 @@
 
 Nieuw zelfstandig Rust-project voor de chatbotflow: vraag → voorstel en totaalprijs → toestemming → deterministische uitvoering → bronresultaten → doorvragen met bewaarde context.
 
-De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sources`, `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. De bestaande betaaladministratie en treasury-executor blijven verantwoordelijk voor betalingen. V2 heeft geen tweede saldo-administratie en geen antwoordmodel.
+De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sources`, `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. De bestaande betaaladministratie en treasury-executor blijven verantwoordelijk voor betalingen. V2 heeft geen tweede saldo-administratie.
 
 ## Status
 
@@ -10,7 +10,7 @@ De betaalroute is verder aangescherpt met afzonderlijke ledgerbetaalstatus, exac
 
 De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De toen geconfigureerde Gemini 3.8 Flash-parser heeft een echte modeltest met uitsluitend synthetische invoer doorstaan. Uitvoering staat standaard uit.
 
-De huidige standaard voor `INTENT_MODEL` en `APIOSK_ENGINE_MODEL` is `google/gemma-3-12b-it` (Google: Gemma 3 12B). Antwoordanalyse gebruikt hetzelfde model tenzij `ANALYSIS_MODEL` is ingesteld. De App gebruikt deze modellen via de Gateway. Gemma 3-verzoeken laten de niet-ondersteunde reasoning-parameter weg en behouden de bestaande uitvoervalidatie.
+Intentie, planning, Ask-parsing en analyse van één bronaanbieder gebruiken de in code vastgelegde `qwen/qwen3-30b-a3b-instruct-2507`. Analyse die meerdere bronaanbieders combineert gebruikt uitsluitend voor die stap `openai/gpt-6.1-sol`, met een begrensd uitvoerschema en verwijzingen naar exact opgeslagen bronvelden. Gespreksreacties hebben hun eigen Qwen3 235B-stap. Modelinstellingen in omgevingsvariabelen veranderen deze productiegrenzen niet. Alle stappen behouden bronvalidatie; analyse kan geen bronnen kiezen, uitvoeren of kopen.
 
 De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en gevalideerde uitvoeringscontracten; alle 133 doorstonden de lokale contractvalidatie. De catalogus bevat meer listings/capabilities dan daadwerkelijk ondersteunde uitvoeringscontracten. Een beschikbare listing telt daarom niet automatisch als uitvoerbare dienst.
 

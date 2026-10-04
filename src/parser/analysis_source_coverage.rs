@@ -350,15 +350,18 @@ mod tests {
             async move {
                 let first = requests.fetch_add(1, Ordering::SeqCst) == 0;
                 let messages = request["messages"].as_array().unwrap();
+                assert_eq!(request["model"], super::super::MULTISOURCE_ANALYSIS_MODEL);
+                assert_eq!(request["response_format"]["type"], "json_schema");
+                assert!(request.get("temperature").is_none());
                 let evidence = if first {
-                    assert!(messages[0]["content"].as_str().unwrap().contains("join the relevant source findings"));
-                    json!([{"result_ref":"company","pointer":"/data/active"}])
+                    assert!(messages[0]["content"].as_str().unwrap().contains("joined conclusion"));
+                    json!([{"fact_id":"f1"}])
                 } else {
                     assert_eq!(messages.len(), 4);
                     let repair = messages[3]["content"].as_str().unwrap();
                     assert!(repair.contains("source_coverage_missing"));
-                    assert!(repair.contains("Preserve evidence from each distinct provider"));
-                    json!([{"result_ref":"company","pointer":"/data/active"},{"result_ref":"screening","pointer":"/data/matches"}])
+                    assert!(repair.contains("Preserve each provider"));
+                    json!([{"fact_id":"f1"},{"fact_id":"f3"}])
                 };
                 Json(json!({"choices":[{"message":{"content":answer(evidence).to_string()}}]}))
             }
@@ -383,6 +386,8 @@ mod tests {
             .unwrap();
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         assert_eq!(result["status"], "completed");
+        assert_eq!(result["observations"][0]["evidence"][0]["value"], true);
+        assert_eq!(result["observations"][0]["evidence"][1]["value"], 0);
         assert_eq!(
             result["observations"][0]["evidence"]
                 .as_array()
