@@ -1,0 +1,114 @@
+{
+  "app_commit": "d42a840b215128c9340fe6a29b201f3f537cedd4",
+  "checked_at": "2026-10-04T16:00:16.242Z",
+  "method": "CUA actual production card clicks and input/URL/task-region inspection",
+  "cases": [
+    {
+      "case": 1,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 2,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 3,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 4,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 5,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 6,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 7,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 8,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 9,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 10,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 11,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 12,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 13,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "case": 14,
+      "exact_value": true,
+      "focused": true,
+      "task_count": 0,
+      "url": "https://app.apiosk.com/"
+    }
+  ],
+  "editing": {
+    "example": 14,
+    "from": "example.org",
+    "to": "iana.org",
+    "all_occurrences_changed": true,
+    "focused": true,
+    "task_count": 0,
+    "submitted": false
+  }
+}

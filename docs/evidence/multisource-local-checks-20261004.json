@@ -1,0 +1,133 @@
+{
+  "scope": "Local checks; these do not certify live paid answers. Logs are hashed; private paths and complete console output are omitted.",
+  "checks": [
+    {
+      "command": "RUST_MIN_STACK=16777216 cargo test --all-targets -- --test-threads=1",
+      "exit_code": 0,
+      "log_sha256": "0640d461f726b24753e3e95fb3ec1bfd0a900eb423a3d9dfbfa028224d39e384",
+      "repository": "gateway",
+      "code_commit": "cd715d8021cd13d9f2e71fa60f903b188f43e477",
+      "passed": 826,
+      "failed": 0,
+      "ignored": 87
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "log_sha256": "20b8b5ae91bc91414c4f1db0d17bda081949106b4ab11487b7230158c8df9fc5",
+      "repository": "app",
+      "code_commit": "d1eba43d888005b2d4bbb13864e358f746d71b3d",
+      "passed": 2577,
+      "test_files": 235,
+      "failed": 0
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "log_sha256": "390210a0ddbf488e368aa23427c84f4a70011c20761e00d227a29cca5d9c4bf7",
+      "repository": "app",
+      "code_commit": "d1eba43d888005b2d4bbb13864e358f746d71b3d"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "log_sha256": "83f08050e80934ea854702aa57498705e7bc02992786c694644ed67fbc5ced26",
+      "repository": "app",
+      "code_commit": "d1eba43d888005b2d4bbb13864e358f746d71b3d"
+    },
+    {
+      "command": "RUST_MIN_STACK=16777216 cargo test --all-targets -- --test-threads=1",
+      "exit_code": 0,
+      "log_sha256": "b79432bad255f01e322a6a41828a5539b85ec9433c09e185aaf3a58a7d49b3ab",
+      "repository": "gateway",
+      "code_commit": "1c91498c0131ae3ea9f5c1a924a0b35a988a4b4d",
+      "passed": 832,
+      "failed": 0,
+      "ignored": 88
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "log_sha256": "2f0353dd06b65386dbab597dfb69e8e2c236bb7b1da10512ae7f0214322cbd65",
+      "repository": "app",
+      "code_commit": "d42a840b215128c9340fe6a29b201f3f537cedd4",
+      "passed": 2582,
+      "test_files": 235,
+      "failed": 0
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "log_sha256": "390210a0ddbf488e368aa23427c84f4a70011c20761e00d227a29cca5d9c4bf7",
+      "repository": "app",
+      "code_commit": "d42a840b215128c9340fe6a29b201f3f537cedd4"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "log_sha256": "0fb1c6a1784d3b8598d88b9a499b2a18e24b587661bbf55b8fd807839c5fb14a",
+      "repository": "app",
+      "code_commit": "d42a840b215128c9340fe6a29b201f3f537cedd4"
+    },
+    {
+      "command": "RUST_MIN_STACK=16777216 cargo test --all-targets -- --test-threads=1",
+      "exit_code": 0,
+      "log_sha256": "436f4a210c3bd0716de448101a5d3ec156c4d66c14185f341252194f75d57558",
+      "repository": "gateway",
+      "code_commit": "baaaf727f906c9f11b0381915ba89bbd841fcf0e",
+      "passed": 836,
+      "failed": 0,
+      "ignored": 89,
+      "targets": 82
+    }
+  ],
+  "additional_focused_checks": {
+    "cbs_comparison_module": {
+      "passed": 12,
+      "failed": 0,
+      "new_projection_cases": 4
+    },
+    "annual_filing_and_related_rendering": {
+      "passed": 59,
+      "failed": 0,
+      "new_annual_filing_cases": 14
+    },
+    "compound_dynamic": {
+      "passed": 5,
+      "failed": 0
+    },
+    "location_identity_context": {
+      "new_regressions_passed": 4,
+      "existing_location_tests_passed": 5,
+      "actual_saved_task_selection": "4 of 6 exact original documents; BAG-address dependency restored; no original bodies changed",
+      "model_replay_completed": true,
+      "model_replay_first_attempt_ms": 22487,
+      "source_calls": 0,
+      "production_verdict": "passed: cases 04, 09 and 10 completed with exact original BAG/CBS code joins and were explicitly reloaded; minor unit-area versus total-building-area wording notes retained",
+      "production_evidence": "multisource-examples-20261004.json"
+    },
+    "saved_manual_refresh": {
+      "test": "tests/latency_flow.rs::saved_nonempty_analysis_retry_is_offered_and_preserves_findings_and_payments_on_model_failure",
+      "passed": 1,
+      "failed": 0,
+      "scope": "isolated support database; completed and partial answers; expired quote; owner/worker guards; model failure preserves findings; zero source calls; unchanged authorizations/executions/results/receipts/balance"
+    }
+  },
+  "diff_check": "passed",
+  "public_boundary_verification": {
+    "command": "node scripts/verify-request-release.mjs",
+    "exit_code": 0,
+    "log_sha256": "5929432417cc6ce7520379390b79c428e1a21c68db03170d35c3c20e5420fcb7",
+    "gateway_commit": "baaaf727f906c9f11b0381915ba89bbd841fcf0e",
+    "fly_release": "01M43VH4KK7YYNYG0XHDCF5T5Q",
+    "image_digest": "sha256:ba04f5668f5b985f389d67d4ffcacd3348894bb3955b3a2a6af5864443aa7974",
+    "exact_health_version": true,
+    "payment_executor": "ready",
+    "protocol_version": 2,
+    "unauthenticated_task_boundary": "passed",
+    "app_only_approval_cors": "passed",
+    "mcp_tools": 7,
+    "mcp_card_version": 57,
+    "boundary": "Public availability and access checks, not paid-answer proof."
+  }
+}

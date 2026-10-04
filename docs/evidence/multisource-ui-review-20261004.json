@@ -1,0 +1,96 @@
+{
+  "scope": "Root-agent reported live browser checks, kept separate from the fourteen paid recovery verdicts.",
+  "observed_app_commit": "974a2cffdedd2cd652b3665e43fa613d443d3337",
+  "observed_app_deployment": "6ac24eec07c0820008c011e8",
+  "source_fallback_case": {
+    "task_id": "05f0195a-1856-4d17-8833-cd609ff526c1",
+    "visible_useful_tables": 3,
+    "generic_analysis_failure_visible": false,
+    "provider_marks": 2,
+    "provider_images_loaded": true,
+    "provider_image_dimensions_px": [
+      20,
+      20
+    ],
+    "round_overflow_hidden_wrapper": true
+  },
+  "typography": {
+    "main_heading_px": 24,
+    "main_heading_weight": 600,
+    "source_heading_px": 16,
+    "source_heading_weight": 600,
+    "table_heading_px": 14,
+    "table_heading_weight": 700
+  },
+  "original_kvk_task_revisit": {
+    "task_id": "a9642504-b9e5-42da-beb6-ce0c29207f19",
+    "title": "87560488 check dit kvk nummer",
+    "visible_profile_rows": 10,
+    "registered_name": "Bas Grave Web Development",
+    "other_trade_name": "Onderstreept",
+    "readable_address": true,
+    "generic_analysis_failure_visible": false,
+    "false_missing_company_name_visible": false,
+    "new_purchase": false,
+    "analysis_retry": false
+  },
+  "subsequent_app_release": {
+    "commit": "d1eba43d888005b2d4bbb13864e358f746d71b3d",
+    "deployment": "6ac250ea02dbe30008a4fb47",
+    "published_at": "2026-10-04T13:13:49.735Z",
+    "state": "ready",
+    "browser_recheck": "superseded by final history-race release below"
+  },
+  "final_app_release": {
+    "commit": "d42a840b215128c9340fe6a29b201f3f537cedd4",
+    "deployment": "6ac274cfbdf14500085d0dc1",
+    "published_at": "2026-10-04T15:47:06Z",
+    "state": "ready",
+    "history_switch_live_check": {
+      "checked_at": "2026-10-04T15:52:56.589Z",
+      "correct_saved_task_opened": true,
+      "task_id": "e4e5cefc-194a-40d4-98c4-382efc6bc0e3"
+    },
+    "live_combined_answer_visual_review": {
+      "approx_checked_at": "2026-10-04T15:58Z",
+      "task_id": "e4e5cefc-194a-40d4-98c4-382efc6bc0e3",
+      "screenshot_viewed": true,
+      "screenshot_saved": false,
+      "main_title_px": 24,
+      "body_px": 14,
+      "smaller_bold_section_headings": true,
+      "generic_analysis_failure_visible": false,
+      "round_provider_images_loaded": true,
+      "provider_images": [
+        "https://api.apiosk.com/storage/v1/object/public/provider-avatars/kvk-logo.png",
+        "https://apiosk.com/brands/rdw.svg"
+      ]
+    },
+    "location_branding_check": {
+      "task_id": "d4168970-97ba-4336-bd01-15fe8159b0aa",
+      "method": "root actual latest App DOM inspection",
+      "provider_images_loaded": true,
+      "image_dimensions_px": [
+        20,
+        20
+      ],
+      "round_parent_wrapper": true,
+      "provider_images": [
+        "https://apiosk.com/brands/koop.png",
+        "https://api.apiosk.com/storage/v1/object/public/provider-avatars/pdok-logo.png"
+      ],
+      "new_purchase": false,
+      "analysis_retry": false
+    },
+    "final_user_handoff": {
+      "checked_at": "2026-10-04T16:38:19.055Z",
+      "card": "Research a market",
+      "canonical_question_prefilled": true,
+      "input_focused": true,
+      "url_path": "/",
+      "task_regions": 0,
+      "submitted": false,
+      "browser_tab_marked_deliverable": true
+    }
+  }
+}

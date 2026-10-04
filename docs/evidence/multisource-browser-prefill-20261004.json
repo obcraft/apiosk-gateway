@@ -1,0 +1,112 @@
+{
+  "observed_at": "2026-10-04T13:08:26.500851+00:00",
+  "app_commit": "974a2cffdedd2cd652b3665e43fa613d443d3337",
+  "deployment": "6ac24eec07c0820008c011e8",
+  "method": "CUA live DOM: click each observed card, read textbox value/focus, task region count and URL",
+  "cases": [
+    {
+      "title": "Check a company",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Find opportunities",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Research a market",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Check locations",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Volve Capital",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Cybersecurity",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Solar panels",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Cleaning",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Coolsingel, Rotterdam",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Grote Markt, Groningen",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Accountant",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "CFO / treasury",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Fleet manager",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    },
+    {
+      "title": "Research journalist",
+      "exact_prefill": true,
+      "input_focused": true,
+      "task_regions": 0,
+      "url": "https://app.apiosk.com/"
+    }
+  ],
+  "edit_check": {
+    "from": "example.org",
+    "to": "iana.org",
+    "editable": true,
+    "submitted": false
+  }
+}
