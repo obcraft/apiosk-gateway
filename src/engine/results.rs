@@ -210,10 +210,13 @@ impl Engine {
             json!(body["provider_micro_usd"].as_i64().map(|v| v.to_string()));
         document["apiosk_fee_micro_usd"] =
             json!(body["fee_micro_usd"].as_i64().map(|v| v.to_string()));
-        let missing: Vec<String> = match &extraction {
+        let mut missing: Vec<String> = match &extraction {
             Ok(e) => missing_required_outputs(&step.service, e, &data),
             Err(_) => vec!["output_schema_mismatch".into()],
         };
+        if let Some(gap) = crate::company_name_request::query_identity_gap(&step.service, request_inputs, &data) {
+            missing.push(gap.into());
+        }
         let missing_required = !missing.is_empty();
         let truncated = body["result_truncated"] == true;
         // A remaining call that needs one of these rows continues on the

@@ -27,6 +27,7 @@ pub mod parser;
 mod pdok_address;
 mod tenderned;
 mod company_request;
+mod company_name_request;
 mod compound_request;
 #[cfg(test)]
 mod compound_examples_tests;

@@ -83,7 +83,7 @@ pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<Parse
     Some(expected)
 }
 
-fn literal_name(value: &str) -> Option<String> {
+pub(crate) fn literal_name(value: &str) -> Option<String> {
     let value = value.trim();
     let quoted = value
         .strip_prefix('"')

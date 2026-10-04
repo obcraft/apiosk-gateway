@@ -42,6 +42,8 @@ use serde_json::Value;
 mod uk_supplier;
 #[path = "document.rs"]
 mod document;
+#[path = "website.rs"]
+mod website;
 
 /// Every adapter a contract may name. A contract naming anything else fails
 /// its check and never reaches `validated`.
@@ -52,6 +54,7 @@ pub const KNOWN: &[&str] = &[
     "point.rd-extent",
     "roster.active-director",
     "search.uk-vat-candidates",
+    "record.website-query",
 ];
 
 /// Field names that carry the NAME half of a pair. Shape vocabulary, not a
@@ -72,6 +75,7 @@ pub fn run(adapter: &str, key: &str, body: &Value) -> Option<Value> {
         "point.rd-extent" => rd_extent(body, key),
         "roster.active-director" => uk_supplier::directors(body, key),
         "search.uk-vat-candidates" => uk_supplier::vat_candidates(body, key),
+        "record.website-query" => website::query(body, key),
         _ => None,
     }
 }

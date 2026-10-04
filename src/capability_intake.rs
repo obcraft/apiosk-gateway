@@ -319,6 +319,7 @@ pub(crate) fn atomic_literal_request(request: &str, model: &str) -> Option<Parse
         .or_else(|| company_lookup::parse(request, model))
         .or_else(|| crate::tenderned::parse(request, model))
         .or_else(|| crate::company_request::parse(request, model))
+        .or_else(|| crate::company_name_request::parse(request, model))
         .or_else(|| crate::profession_request::parse(request, model))
         .or_else(|| crate::cbs_comparison::canonical_request(request))
 }

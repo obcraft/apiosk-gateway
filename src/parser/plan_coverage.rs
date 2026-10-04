@@ -418,9 +418,11 @@ pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question:
 /// output-coverage check still applies. This never purchases a source.
 pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
     let canonical = crate::company_request::executable_intake(question, intake)
+        .or_else(|| crate::company_name_request::executable_intake(question, intake))
         .or_else(|| crate::profession_request::executable_intake(question, intake))
         .or_else(|| crate::capability_intake::broad_information::parse(question, "literal"))?;
     let profession = crate::profession_request::recognize(question);
+    let named_company = crate::company_name_request::parse(question, "literal").is_some();
     if canonical.subjects.len() != intake.parsed_request.subjects.len()
         || canonical.subjects.iter().zip(&intake.parsed_request.subjects).any(|(expected, actual)| expected.label != actual.label || expected.kind != actual.kind)
         || canonical.capabilities.len() != intake.parsed_request.capabilities.len()
@@ -453,7 +455,8 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
         for mask in (1usize..1usize << choices.len()).filter(|mask| mask.count_ones() as usize == size) {
             let mut intent = Intent { subjects: vec![super::Subject { entity_ref: None, label: canonical.subjects[0].label.clone(), values: Default::default() }],
                 goals: choices.iter().enumerate().filter(|(index, _)| mask & (1 << index) != 0).map(|(_, goal)| goal.clone()).collect(),
-                answer_operations: if crate::profession_request::recognize(question).is_some() { vec!["Cite the retrieved sources and preserve their scope, observation dates and missing fields.".into()] } else { vec![if canonical.subjects[0].kind == "company" {
+                answer_operations: if named_company { vec![crate::company_name_request::ANSWER_SCOPE.into()] }
+                else if crate::profession_request::recognize(question).is_some() { vec!["Cite the retrieved sources and preserve their scope, observation dates and missing fields.".into()] } else { vec![if canonical.subjects[0].kind == "company" {
                     "Summarize the registered details and available annual figures; preserve the reported financial year, currency, units, consolidation scope, source and missing fields. These available figures do not establish the latest filing or a complete original annual report.".into()
                 } else { "Summarize the available requested building or neighbourhood records; preserve their scope, reporting periods, sources and missing fields.".into() }] }, unresolved_references: vec![] };
             super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
@@ -464,7 +467,9 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             if crate::engine::bind_subjects(&mut preview, catalog, &mut bound).is_err() {continue;}
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
             if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
-            let message = if crate::profession_request::recognize(question).is_some() {
+            let message = if named_company {
+                "I will look up the company by name and combine its registered details, available annual figures and website information. Review the total price first."
+            } else if crate::profession_request::recognize(question).is_some() {
                 if canonical.language == "nl" { "Ik haal de gevraagde gegevens uit de gevonden bronnen en toon eerst de totale prijs." }
                 else { "I will retrieve the requested data from the matched sources and show the total price first." }
             } else if canonical.subjects[0].kind == "company" { "I will retrieve the registered details and available annual financial figures, preserving their reported year and scope. Review the total price first." }

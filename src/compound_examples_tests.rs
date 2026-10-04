@@ -19,7 +19,7 @@ struct Case {
     operations: &'static [&'static str],
 }
 
-fn catalog() -> Catalog {
+pub(crate) fn catalog() -> Catalog {
     let mut services = BTreeMap::new();
     let mut vocabulary = BTreeMap::new();
     let mut known_sources = BTreeMap::new();

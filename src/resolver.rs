@@ -458,6 +458,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             "company.sanctions-screen" | "company.sirenic-sanctions-check" => "Screen for sanctions matches".to_owned(),
             "news.reuters-search" => "Find relevant public news".to_owned(),
             "web.search" | "web.stableenrich-search" => "Find supporting public sources".to_owned(),
+            "web.company-website-search" => "Find website information for the selected company".to_owned(),
             "company.enrich-by-name" | "company.enrich" => "Retrieve additional company information".to_owned(),
             "company.lei-verification" => "Verify the Legal Entity Identifier".to_owned(),
             "domain.registration" => "Check the website domain".to_owned(),
@@ -494,7 +495,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
             plan.steps[..index].iter().enumerate().rev().find(|(_, previous)|
                 previous.entity_ref == step.entity_ref && previous.service.contract.output_map.produces.contains_key(&required.fact_type)
             ).map(|(previous, _)| json!({"step":previous+1,"field":required.fact_type,
-                "label":match required.fact_type.as_str() { "company_registry.kvknummer" => "KVK number".to_owned(), "company.name" => "Company name".to_owned(), "company.nl.main_establishment_addresses" => "Registered visiting address".to_owned(), "source.bodemloket.b_b_o_x" | "source.pdok_ruimtelijke_plannen.b_b_o_x" => "Location from the verified address".to_owned(), _ => required.fact_type.replace(['.', '_', '-'], " ") }}))
+                "label":match required.fact_type.as_str() { "company_registry.kvknummer" => "KVK number".to_owned(), "company.name" => "Company name".to_owned(), "web.company_website_query" => "Selected company name and KVK number".to_owned(), "company.nl.main_establishment_addresses" => "Registered visiting address".to_owned(), "source.bodemloket.b_b_o_x" | "source.pdok_ruimtelijke_plannen.b_b_o_x" => "Location from the verified address".to_owned(), _ => required.fact_type.replace(['.', '_', '-'], " ") }}))
         }).collect();
         json!({"number":index+1,"title":title,"capability":capability,
             "max_total_atomic":plan.step_total(step).to_string(),"currency":"USD",
