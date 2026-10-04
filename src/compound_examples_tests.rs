@@ -518,6 +518,99 @@ example_test!(compound_example_treasury, 11);
 example_test!(compound_example_fleet, 12);
 example_test!(compound_example_journalist, 13);
 
+/// The simplified App cards are actual submitted questions, without an
+/// expanded hidden prompt or the former synthesis-instruction suffix.
+#[tokio::test]
+async fn compound_examples_six_short_published_questions_keep_sources_inputs_and_synthesis() {
+    let catalog = catalog();
+    let historical = cases();
+    let simple = [
+        Case {
+            title: "A company and its website",
+            question: "Find the registered details for Mollie B.V. (KVK 30204462). Retrieve the web page https://mollie.com through Linkup.",
+            providers: &["kvk-dutch-business-register", "linkup"],
+            operations: &["company.registry-profile", "web.source-fetch"],
+        },
+        Case {
+            title: "Find cleaning contracts",
+            question: "Find public tenders for cleaning services in the Netherlands. Search the web through Linkup for \"cleaning tenders Netherlands\".",
+            providers: historical[7].providers,
+            operations: historical[7].operations,
+        },
+        Case {
+            title: "Learn about an address",
+            question: "Find building and neighbourhood information for Damrak 1, Amsterdam. Search official publications through KOOP for \"Damrak 1, Amsterdam\".",
+            providers: historical[3].providers,
+            operations: historical[3].operations,
+        },
+        Case {
+            title: "Check a VAT number",
+            question: "Find the registered details for Mollie B.V. (KVK 30204462). Validate EU VAT number NL815839091B01 through VIES and show its validity and check date.",
+            providers: historical[10].providers,
+            operations: historical[10].operations,
+        },
+        Case {
+            title: "Find solar panel contracts",
+            question: "Find public tenders for solar panels in the Netherlands. Search the web through Linkup for \"solar panel tenders Netherlands\".",
+            providers: historical[6].providers,
+            operations: historical[6].operations,
+        },
+        Case {
+            title: "Explore the Dutch economy",
+            question: "Compare bankruptcies per sector in the Netherlands. Get GDP for the Netherlands in 2024 from Eurostat.",
+            providers: historical[2].providers,
+            operations: historical[2].operations,
+        },
+    ];
+    for (index, case) in simple.iter().enumerate() {
+        assert!(!case.question.contains(crate::compound_request::COMBINE));
+        let (task, _, plan) = plan(case.question, &catalog).await;
+        assert_scope(case, &plan);
+        let requested = &task.capability_intake.as_ref().unwrap().parsed_request;
+        for operation in ["summarize", "analyze"] {
+            assert!(requested.deliverable.operations.iter().any(|value| value == operation));
+        }
+        if matches!(index, 0 | 3) {
+            assert_eq!(inputs(&plan, &task, &catalog, "company.registry-profile"), json!({"kvkNummer":"30204462"}));
+            assert!(requested.subjects.iter().any(|subject| subject.label == "Mollie B.V."));
+        }
+        match index {
+            0 => assert_eq!(
+                inputs(&plan, &task, &catalog, "web.source-fetch"),
+                json!({"url":"https://mollie.com","mode":"standard"}),
+            ),
+            1 | 4 => {
+                let (search, query) = if index == 1 {
+                    ("schoonmaak", "cleaning tenders Netherlands")
+                } else {
+                    ("zonnepanelen", "solar panel tenders Netherlands")
+                };
+                assert_eq!(
+                    inputs(&plan, &task, &catalog, "procurement.nl-public-contracts"),
+                    json!({"search":search,"page":0,"size":20,"sort":"publicatieDatum,desc"}),
+                );
+                assert_eq!(
+                    inputs(&plan, &task, &catalog, "web.linkup-answer"),
+                    json!({"q":query,"depth":"standard","outputType":"sourcedAnswer"}),
+                );
+            }
+            2 => {
+                assert_address_input(&inputs(&plan, &task, &catalog, "location.property-search"), "Damrak", 1, "Amsterdam");
+                assert_eq!(
+                    inputs(&plan, &task, &catalog, "government.publication.search"),
+                    json!({"q":"Damrak 1, Amsterdam","limit":10}),
+                );
+            }
+            3 => assert_eq!(
+                inputs(&plan, &task, &catalog, "vat.eu.validate"),
+                json!({"cc":"NL","nr":"815839091B01"}),
+            ),
+            5 => assert_starting_inputs(&historical[2], &plan, &task, &catalog),
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[tokio::test]
 async fn compound_examples_changed_values_reach_their_own_sources_without_original_identity() {
     let catalog = catalog();
