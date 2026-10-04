@@ -115,6 +115,142 @@ async fn failed_registry_analysis_recovers_saved_results_without_model_or_purcha
     server.abort();
 }
 
+#[tokio::test]
+#[ignore = "isolated support-db only"]
+async fn saved_nonempty_analysis_retry_is_offered_and_preserves_findings_and_payments_on_model_failure() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let model_calls = Arc::new(AtomicUsize::new(0));
+    let source_calls = Arc::new(AtomicUsize::new(0));
+    let observed_models = model_calls.clone();
+    let observed_sources = source_calls.clone();
+    let mock = axum::Router::new()
+        .route("/model", axum::routing::post(move || {
+            let calls = observed_models.clone();
+            async move {
+                calls.fetch_add(1, Ordering::SeqCst);
+                axum::Json(json!({"choices":[{"message":{"content":"{}"}}]}))
+            }
+        }))
+        .fallback(axum::routing::any(move || {
+            let calls = observed_sources.clone();
+            async move { calls.fetch_add(1, Ordering::SeqCst); axum::http::StatusCode::BAD_GATEWAY }
+        }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
+    let database_url = std::env::var("TEST_DATABASE_URL").unwrap();
+    assert_eq!(reqwest::Url::parse(&database_url).unwrap().host_str(), Some("127.0.0.1"), "fixture must use an isolated loopback database");
+    let pool = PgPoolOptions::new().max_connections(1).after_connect(|conn, _| {
+        Box::pin(async move { sqlx::query("SET search_path TO public,gateway_v2").execute(conn).await?; Ok(()) })
+    }).connect(&database_url).await.unwrap();
+    let store = Store { pool: pool.clone() };
+    let http = reqwest::Client::new();
+    let engine = Engine {
+        store: store.clone(), catalog: CatalogCache::new(pool.clone()),
+        parser: Parser::new(http.clone(), format!("{base}/model"), "fixture".into(), "fixture".into()),
+        signer: Signer::new(vec![7; 32]).unwrap(),
+        executor: Executor { store: store.clone(), http, supabase_url: base, enabled: true },
+        app_url: "https://example.test".into(),
+    };
+    let catalog = Catalog::build(serde_json::from_str(include_str!("fixtures/integration-catalog.json")).unwrap());
+    for status in ["completed", "partial"] {
+        let person = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+        let task_id = store.create(person.owner, None).await.unwrap();
+        let entity = Uuid::new_v4();
+        let quote = Uuid::new_v4();
+        let authorization = Uuid::new_v4();
+        sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,'saved-fixture',200,now()-interval '1 hour')")
+            .bind(authorization).bind(task_id).bind(person.owner).bind(quote).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO user_balances(user_id,balance_micro_usd) VALUES($1,800)")
+            .bind(person.owner).execute(&pool).await.unwrap();
+        let mut task = Task::default();
+        task.entities.push(Entity { entity_ref: entity, label: "Saved fixture".into(), selected: true });
+        task.record_turn("Combine the saved first and second source findings.", None);
+        let mut steps = Vec::new();
+        let mut goals = Vec::new();
+        let mut evidence = Vec::new();
+        for index in 0..2 {
+            let mut service = catalog.services[0].clone();
+            service.id = Uuid::new_v4();
+            service.endpoint_id = Uuid::new_v4();
+            service.api_slug = format!("saved-fixture-{index}");
+            service.contract.capability_slug = format!("saved.fixture.{index}");
+            service.path = format!("/saved-fixture/{index}");
+            let execution = Uuid::new_v4();
+            let result = Uuid::new_v4();
+            let document = json!({"data":{"finding":format!("Saved finding {index}")},"source":service.result_source(),
+                "subject":{"entity_ref":entity,"label":"Saved fixture"},"coverage":"source_response","missing_fields":[],"charged_atomic":"100","currency":"USD"});
+            sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,actual_atomic,status) VALUES($1,$2,$3,$1,$4,'saved-fixture',$1,100,100,'succeeded')")
+                .bind(execution).bind(person.owner).bind(task_id).bind(authorization).execute(&pool).await.unwrap();
+            sqlx::query("INSERT INTO results(id,owner_id,task_id,execution_id,document) VALUES($1,$2,$3,$4,$5)")
+                .bind(result).bind(person.owner).bind(task_id).bind(execution).bind(&document).execute(&pool).await.unwrap();
+            sqlx::query("INSERT INTO balance_charges(id,user_id,idempotency_key,status,charged_micro_usd,actual_provider_micro_usd,fee_micro_usd) VALUES($1,$2,$3,'charged',100,87,13)")
+                .bind(Uuid::new_v4()).bind(person.owner).bind(execution.to_string()).execute(&pool).await.unwrap();
+            goals.push(json!({"capability":service.contract.capability_slug,"subject":0,"constraints":{}}));
+            evidence.push(json!({"result_ref":result,"pointer":"/data/finding","value":document["data"]["finding"],"source":document["source"],"subject":document["subject"]}));
+            let step = Step { service, entity_ref: entity, goal_index: index, browser_fallback: None };
+            task.completed.push(step.key());
+            steps.push(step);
+            task.active_results.push(result);
+            task.result_refs.push(result);
+        }
+        task.intent = Some(json!({"subjects":[{"entity_ref":entity,"label":"Saved fixture","values":{}}],"goals":goals,
+            "answer_operations":["Combine the saved findings"],"unresolved_references":[]}));
+        task.proposal = Some(serde_json::to_value(Plan { quote_ref: quote, cap_atomic: 200, steps, expires_at: Utc::now()-Duration::hours(1),
+            hash: "saved-fixture".into(), fee_bps: 1500, workflow_slug: None }).unwrap());
+        let previous = json!({"status":status,"observations":[{"text":"The saved findings remain available.","evidence":evidence}],
+            "presentation":{"kind":"text"},"limitations":if status=="partial" {vec!["The saved sources have a bounded scope."]} else {vec![]},"follow_up_question":null});
+        task.analysis = Some(previous.clone());
+        assert!(task.actions.is_empty(), "the server must reconstruct the offered action");
+        store.save(person.owner, task_id, 0, &task).await.unwrap();
+        let snapshot_sql = "SELECT jsonb_build_object('authorizations',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM authorizations a WHERE a.task_id=$1),'executions',(SELECT jsonb_agg(to_jsonb(e) ORDER BY e.id) FROM executions e WHERE e.task_id=$1),'results',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM results r WHERE r.task_id=$1),'receipts',(SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM balance_charges c WHERE c.user_id=$2),'balance',(SELECT balance_micro_usd FROM user_balances WHERE user_id=$2))";
+        let before: Value = sqlx::query_scalar(snapshot_sql).bind(task_id).bind(person.owner).fetch_one(&pool).await.unwrap();
+        let offered = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+        let retries: Vec<_> = offered.next_actions.iter().filter(|action| action.kind == "retry_analysis").collect();
+        assert_eq!(retries.len(), 1, "{status}: {offered:?}");
+        assert_eq!(retries[0].action_id, quote);
+        assert!(!retries[0].requires_authorization);
+        let calls_before = model_calls.load(Ordering::SeqCst);
+        let other = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+        assert!(engine.view(&other, task_id, Uuid::new_v4(), None).await.is_err(), "another owner cannot access the saved task");
+        let foreign = engine.execute(&other, "", ExecuteRequest {
+            request_id: Uuid::new_v4(), action_id: quote, state: offered.state.clone().unwrap(),
+            quote_ref: Some(quote), authorization_ref: None, idempotency_key: Uuid::new_v4(), input: Value::Null,
+        }).await.unwrap();
+        assert!(!foreign.errors.is_empty(), "another owner cannot invoke the offered saved retry");
+        sqlx::query("INSERT INTO execution_leases(task_id,worker_id,expires_at) VALUES($1,$2,now()+interval '1 minute')")
+            .bind(task_id).bind(Uuid::new_v4()).execute(&pool).await.unwrap();
+        let busy_view = engine.view(&person, task_id, Uuid::new_v4(), None).await.unwrap();
+        assert!(!busy_view.next_actions.iter().any(|action| action.kind == "retry_analysis"), "active workers suppress manual recovery");
+        let busy = engine.execute(&person, "", ExecuteRequest {
+            request_id: Uuid::new_v4(), action_id: quote, state: offered.state.clone().unwrap(),
+            quote_ref: Some(quote), authorization_ref: None, idempotency_key: Uuid::new_v4(), input: Value::Null,
+        }).await.unwrap();
+        assert!(!busy.errors.is_empty(), "an earlier offered action cannot bypass the active worker guard");
+        assert_eq!(model_calls.load(Ordering::SeqCst), calls_before, "guard failures must not call the model");
+        sqlx::query("DELETE FROM execution_leases WHERE task_id=$1").bind(task_id).execute(&pool).await.unwrap();
+        let response = engine.execute(&person, "", ExecuteRequest {
+            request_id: Uuid::new_v4(), action_id: retries[0].action_id, state: offered.state.unwrap(),
+            quote_ref: Some(quote), authorization_ref: None, idempotency_key: Uuid::new_v4(), input: Value::Null,
+        }).await.unwrap();
+        assert!(model_calls.load(Ordering::SeqCst) > calls_before, "the fixture must actually exercise model failure");
+        let (_, recovered, _) = store.load(person.owner, task_id).await.unwrap();
+        let analysis = recovered.analysis.as_ref().unwrap();
+        assert_eq!(analysis["observations"], previous["observations"], "{status}: prior verified evidence must survive");
+        assert_eq!(analysis["presentation"], previous["presentation"]);
+        assert_eq!(analysis["status"], previous["status"]);
+        assert!(analysis["follow_up_question"].is_null(), "a failed refresh must not invent missing user context: {response:?}");
+        assert!(analysis["limitations"].as_array().unwrap().iter().any(|note| note.as_str().is_some_and(|s| s.contains("previously verified findings"))));
+        assert_eq!(recovered.active_results, task.active_results);
+        assert_eq!(recovered.completed, task.completed);
+        assert_eq!(recovered.proposal, task.proposal);
+        let after: Value = sqlx::query_scalar(snapshot_sql).bind(task_id).bind(person.owner).fetch_one(&pool).await.unwrap();
+        assert_eq!(after, before, "{status}: saved-only retry must preserve every execution, receipt, source document, approval and balance");
+        assert_eq!(source_calls.load(Ordering::SeqCst), 0, "saved-only retry must never dispatch a provider request");
+    }
+    server.abort();
+}
+
 async fn event(response: &mut reqwest::Response, buffer: &mut Vec<u8>) -> (String, Value) {
     tokio::time::timeout(std::time::Duration::from_secs(3), async {
         loop {

@@ -189,6 +189,7 @@ impl Engine {
                         .or_else(||task.conversation.last().and_then(|turn| crate::direct_answer::compose(&turn.question, &intent, &sources)))
                 } else { None });
                 let answering_span = telemetry::span(if direct.is_some() { Phase::DirectAnswer } else { Phase::Analysis }).task(id);
+                let mut preserved_previous_analysis = false;
                 task.analysis = Some(if let Some(answer) = direct {
                     tracing::info!(task = %id, "saved source answered directly");
                     answer
@@ -218,6 +219,7 @@ impl Engine {
                         Ok(analysis) => analysis,
                         Err(_) => {
                             if let Some(mut previous) = previous_analysis {
+                                preserved_previous_analysis = true;
                                 if !analysis_failures.is_empty() { previous["status"] = json!("partial"); }
                                 let notice = json!("The refreshed analysis is unavailable. The previously verified findings are shown; no additional source purchase was made.");
                                 if let Some(limitations) = previous["limitations"].as_array_mut() {
@@ -250,6 +252,9 @@ impl Engine {
                     }
                 }
                 if task.workflow.is_none() && task.supplier_check.is_none()
+                    // A failed manual refresh retains the prior answer. It is
+                    // not a new request for clarification or another model call.
+                    && !preserved_previous_analysis
                     // Missing values in a verified source projection are
                     // source limitations, not missing information from the user.
                     && !reviewed_source_answer

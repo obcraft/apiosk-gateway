@@ -111,7 +111,7 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
-  &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort)\.sql$/.test(name)
+  &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles)\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
   &&!name.endsWith('_recurring_orders.sql')).sort()) {

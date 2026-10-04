@@ -40,13 +40,19 @@ pub struct Engine {
 }
 pub fn single_call_mode() -> bool { std::env::var("V2_SINGLE_CALL_MODE").as_deref() == Ok("1") }
 
-/// The task view can reconstruct a saved-answer retry after an older snapshot
-/// lost its action list. Dispatch must accept the same narrow recovery scope.
+/// Offer a manual recomposition of saved answers without reopening source
+/// execution. The same predicate governs the view and dispatch; questions
+/// awaiting a follow-up keep their existing continuation instead.
 fn saved_analysis_retry(task: &Task, person: bool) -> bool {
     !task.cancelled && !task.active_results.is_empty()
         && (task.workflow.is_some() || person && task.analysis.as_ref().is_some_and(|analysis|
-            analysis["observations"].as_array().is_some_and(Vec::is_empty)
-                && !analysis["follow_up_question"].is_string()))
+            analysis["observations"].as_array().is_some_and(|observations|
+                (observations.is_empty() && !analysis["follow_up_question"].is_string())
+                    || (matches!(analysis["status"].as_str(), Some("completed" | "partial"))
+                        && task.intent.is_some() && task.proposal.is_some()
+                        && task.intake_recovery.is_none() && task.pending_candidates.is_empty()
+                        && task.pending_dispatches.is_empty()
+                        && task.actions.iter().all(|action| matches!(action["kind"].as_str(), Some("read" | "cancel" | "retry_analysis")))))))
 }
 
 /// Where a person approves a task: Ask's task view in the App. Links sent
@@ -1047,6 +1053,77 @@ impl Engine {
         tracing::info!(trace = telemetry::id(), task = %id, view_ms = started.elapsed().as_millis() as u64,
             result_documents = documents.len(), fetched_documents = fetched_count, "task view completed");
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod saved_analysis_retry_tests {
+    use super::*;
+
+    fn saved(status: &str) -> Task {
+        let mut task = Task::default();
+        task.active_results.push(Uuid::new_v4());
+        task.intent = Some(json!({"goals":[]}));
+        task.proposal = Some(json!({"quote_ref":Uuid::new_v4()}));
+        task.analysis = Some(json!({"status":status,"observations":[{"text":"Previously verified finding","evidence":[]}],"limitations":[]}));
+        task
+    }
+
+    #[test]
+    fn saved_completed_and_partial_answers_offer_person_only_manual_recomposition() {
+        for status in ["completed", "partial"] {
+            let task = saved(status);
+            let before = serde_json::to_value(&task).unwrap();
+            assert!(saved_analysis_retry(&task, true));
+            assert!(!saved_analysis_retry(&task, false));
+            assert_eq!(serde_json::to_value(&task).unwrap(), before, "eligibility never starts work or changes the answer");
+            assert!(task.actions.is_empty(), "view reconstructs a manual action; no execution action is scheduled");
+        }
+    }
+
+    #[test]
+    fn saved_answer_retry_does_not_accept_unfinished_or_missing_current_state() {
+        for mutation in ["cancelled", "no_results", "no_intent", "no_plan", "pending_candidates", "pending_dispatch", "pending_action", "no_analysis", "unknown_status", "invalid_observations"] {
+            let mut task = saved("partial");
+            match mutation {
+                "cancelled" => task.cancelled = true,
+                "no_results" => task.active_results.clear(),
+                "no_intent" => task.intent = None,
+                "no_plan" => task.proposal = None,
+                "pending_candidates" => task.pending_candidates.push(json!({"entity_ref":Uuid::new_v4()})),
+                "pending_dispatch" => task.pending_dispatches.push(crate::state::PendingDispatch {step:0,action_id:Uuid::new_v4(),inputs:json!({})}),
+                "pending_action" => task.actions.push(json!({"kind":"supply","action_id":Uuid::new_v4()})),
+                "no_analysis" => task.analysis = None,
+                "unknown_status" => task.analysis.as_mut().unwrap()["status"] = json!("running"),
+                "invalid_observations" => task.analysis.as_mut().unwrap()["observations"] = Value::Null,
+                _ => unreachable!(),
+            }
+            assert!(!saved_analysis_retry(&task, true), "{mutation}");
+        }
+    }
+
+    #[test]
+    fn old_answer_clarification_does_not_block_manual_recomposition_of_saved_sources() {
+        let mut task = saved("partial");
+        task.analysis.as_mut().unwrap()["follow_up_question"] = json!("What else should I check?");
+        assert!(saved_analysis_retry(&task, true));
+        task.analysis.as_mut().unwrap()["status"] = json!("unavailable");
+        task.analysis.as_mut().unwrap()["observations"] = json!([]);
+        assert!(!saved_analysis_retry(&task, true), "legacy unanswered clarification keeps its scope");
+    }
+
+    #[test]
+    fn legacy_empty_answers_and_workflow_retry_keep_their_existing_scope() {
+        let mut task = saved("unavailable");
+        assert!(!saved_analysis_retry(&task, true));
+        task.analysis.as_mut().unwrap()["observations"] = json!([]);
+        assert!(saved_analysis_retry(&task, true));
+        assert!(!saved_analysis_retry(&task, false));
+        task.analysis = None;
+        task.workflow = Some(serde_json::from_value(json!({"slug":"fixture","title":"Fixture","input":{},"limitations":[]})).unwrap());
+        assert!(saved_analysis_retry(&task, false));
+        task.cancelled = true;
+        assert!(!saved_analysis_retry(&task, true));
     }
 }
 
