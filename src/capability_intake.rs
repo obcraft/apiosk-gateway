@@ -310,6 +310,20 @@ pub fn conversation_language(request: &str) -> Option<&'static str> {
         None
     }
 }
+/// Recognizers may read a polite question as the same complete request. This
+/// borrowed view never rewrites stored text, literal values or the input hash.
+/// An unmatched prefix or punctuation is left to the usual whole-scope parser.
+pub(crate) fn literal_sentence(request: &str) -> &str {
+    let text = request.trim();
+    let Some(body) = text.strip_suffix('?') else { return text };
+    const PREFIX: &str = "Can you ";
+    if body.get(..PREFIX.len()).is_some_and(|prefix| prefix.eq_ignore_ascii_case(PREFIX)) {
+        body[PREFIX.len()..].trim()
+    } else {
+        text
+    }
+}
+
 pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
     crate::compound_request::parse(request, model).or_else(|| atomic_literal_request(request, model))
 }

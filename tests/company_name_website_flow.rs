@@ -13,7 +13,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::{collections::BTreeMap, sync::{Arc, Mutex, atomic::{AtomicUsize, Ordering}}, time::Duration};
 use uuid::Uuid;
 
-const QUESTION: &str = "Look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information.";
+const QUESTION: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
 const WEBSITE_QUERY: &str = "web.company_website_query";
 
 fn fixture() -> Value {

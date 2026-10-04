@@ -12,10 +12,10 @@ const PREFIX: &str = "Find the registered details and available annual financial
 /// Recognize the complete supported sentence, including its explicit KVK
 /// number. Extra requirements fall through to ordinary strict interpretation.
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
-    let text = question
-        .trim()
+    let text = crate::capability_intake::literal_sentence(question);
+    let text = text
         .strip_suffix('.')
-        .unwrap_or(question.trim())
+        .unwrap_or(text)
         .trim();
     let prefix = text.get(..PREFIX.len())?;
     if !prefix.eq_ignore_ascii_case(PREFIX) {

@@ -727,6 +727,76 @@ async fn compound_examples_six_short_published_questions_keep_sources_inputs_and
 }
 
 #[tokio::test]
+async fn compound_examples_question_forms_preserve_entire_plans_and_original_hashes() {
+    use sha2::{Digest, Sha256};
+    let catalog = catalog();
+    for (statement, question) in [
+        ("Find public tenders for cleaning services in the Netherlands. Search the web through Linkup for \"cleaning tenders Netherlands\".",
+         "Can you find public tenders for cleaning services in the Netherlands? Can you search the web through Linkup for \"cleaning tenders Netherlands\"?"),
+        ("Find building and neighbourhood information for Damrak 1, Amsterdam. Search official publications through KOOP for \"Damrak 1, Amsterdam\".",
+         "Can you find building and neighbourhood information for Damrak 1, Amsterdam? Can you search official publications through KOOP for \"Damrak 1, Amsterdam\"?"),
+        ("Find the registered details for Mollie B.V. (KVK 30204462). Validate EU VAT number NL815839091B01 through VIES and show its validity and check date.",
+         "Can you find the registered details for Mollie B.V. (KVK 30204462)? Can you validate EU VAT number NL815839091B01 through VIES and show its validity and check date?"),
+        ("Compare bankruptcies per sector in the Netherlands. Get GDP for the Netherlands in 2024 from Eurostat.",
+         "Can you compare bankruptcies per sector in the Netherlands? Can you get GDP for the Netherlands in 2024 from Eurostat?"),
+    ] {
+        let (old_task, old_intent, old_plan) = plan(statement, &catalog).await;
+        let (new_task, new_intent, new_plan) = plan(question, &catalog).await;
+        let semantic = |task: &Task| {
+            let mut value = serde_json::to_value(&task.capability_intake.as_ref().unwrap().parsed_request).unwrap();
+            value.as_object_mut().unwrap().remove("meta");
+            value
+        };
+        assert_eq!(semantic(&new_task), semantic(&old_task), "{question}");
+        assert_eq!(new_task.capability_intake.as_ref().unwrap().parsed_request.meta.text_sha256,
+            hex::encode(Sha256::digest(question.as_bytes())));
+        assert_eq!(old_task.capability_intake.as_ref().unwrap().parsed_request.meta.text_sha256,
+            hex::encode(Sha256::digest(statement.as_bytes())));
+        let steps = |plan: &Plan, task: &Task| plan.steps.iter().map(|step| json!({
+            "source":step.service.api_slug,"operation":step.service.contract.capability_slug,
+            "endpoint":step.service.endpoint_id,"version":step.service.contract.version,
+            "inputs":step.service.inputs(task,step.entity_ref,&catalog.vocabulary).ok(),
+        })).collect::<Vec<_>>();
+        assert_eq!(steps(&new_plan, &new_task), steps(&old_plan, &old_task));
+        assert_eq!(new_plan.cap_atomic, old_plan.cap_atomic);
+        assert_eq!(new_intent.answer_operations, old_intent.answer_operations);
+    }
+}
+
+#[tokio::test]
+async fn compound_examples_question_boundaries_preserve_quoted_question_marks_and_edited_values() {
+    let catalog = catalog();
+    let question = "Can you find public tenders for heat pumps in the Netherlands? Can you search the web through Linkup for \"heat pumps? Netherlands\"?";
+    let (task, _, plan) = plan(question, &catalog).await;
+    assert_eq!(inputs(&plan, &task, &catalog, "web.linkup-answer"),
+        json!({"q":"heat pumps? Netherlands","depth":"standard","outputType":"sourcedAnswer"}));
+    let parsed = &task.capability_intake.as_ref().unwrap().parsed_request;
+    assert!(parsed.subjects.iter().any(|subject| subject.label == "heat pumps? Netherlands"));
+    assert!(!serde_json::to_string(parsed).unwrap().contains("cleaning"));
+
+    let question = "Can you find building and neighbourhood information for Coolsingel 41, Rotterdam? Can you search official publications through KOOP for \"Coolsingel 41, Rotterdam? nearby permits\"?";
+    let (task, _, plan) = self::plan(question, &catalog).await;
+    assert_address_input(&inputs(&plan, &task, &catalog, "location.property-search"), "Coolsingel", 41, "Rotterdam");
+    assert_eq!(inputs(&plan, &task, &catalog, "government.publication.search"),
+        json!({"q":"Coolsingel 41, Rotterdam? nearby permits","limit":10}));
+    assert!(!serde_json::to_string(&task.capability_intake).unwrap().contains("Damrak"));
+}
+
+#[test]
+fn compound_examples_question_forms_never_quote_only_supported_clauses() {
+    let base = "Can you find public tenders for cleaning services in the Netherlands? Can you search the web through Linkup for \"cleaning tenders Netherlands\"?";
+    assert!(crate::compound_request::parse(base, "fixture").is_some());
+    for question in [
+        format!("{base} Can you include private salaries?"),
+        format!("Can you include private salaries? {base}"),
+        base.replace("in the Netherlands?", "in the Netherlands closing tomorrow?"),
+        base.replace("\"cleaning tenders Netherlands\"?", "\"cleaning tenders Netherlands\" and export a PDF?"),
+    ] {
+        assert!(crate::capability_intake::literal_request(&question, "fixture").is_none(), "{question}");
+    }
+}
+
+#[tokio::test]
 async fn compound_examples_changed_values_reach_their_own_sources_without_original_identity() {
     let catalog = catalog();
     let cases = cases();

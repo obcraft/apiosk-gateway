@@ -3,7 +3,7 @@
 use super::*;
 
 pub(crate) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
-    let text = request.trim().trim_end_matches(['.', '?', '!']).trim();
+    let text = literal_sentence(request).trim_end_matches(['.', '?', '!']).trim();
     let words: Vec<_> = text.split_whitespace().collect();
     let number = |word: &str| word.len() == 8 && word.bytes().all(|b| b.is_ascii_digit());
     let (identifier, phrase) = if number(words.first()?) {

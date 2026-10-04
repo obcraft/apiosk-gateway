@@ -4,7 +4,7 @@
 use super::*;
 
 pub(crate) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
-    let text = request.trim().trim_end_matches(['.', '?', '!']).trim();
+    let text = literal_sentence(request).trim_end_matches(['.', '?', '!']).trim();
     let lower = text.to_lowercase();
     let (language, categories, address) = [
         ("en", "Find ", " information for "),

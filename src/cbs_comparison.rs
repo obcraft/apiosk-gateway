@@ -15,7 +15,7 @@ const TOTAL: &str = "T001081";
 const UNKNOWN: &str = "999999";
 
 fn language(question: &str) -> Option<&'static str> {
-    let text = question.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    let text = crate::capability_intake::literal_sentence(question).split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
     match text.trim_end_matches(['.', '?', '!']) {
         "compare bankruptcies per sector in the netherlands"
         | "compare bankruptcies by sector in the netherlands" => Some("en"),

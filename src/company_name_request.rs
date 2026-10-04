@@ -9,7 +9,8 @@ pub(crate) const WEBSITE_QUERY: &str = "web.company_website_query";
 pub(crate) const ANSWER_SCOPE: &str = "Combine the selected company's registered details, available annual financial figures and sourced website information into one cited answer. Preserve the resolved company identity, financial year, units, currency, consolidation scope and missing fields. Website search uses the registered name and KVK number returned for the selected company; verify the cited pages' identity before attributing statements to that company. Search results alone do not establish domain ownership or independently verify website claims. Do not infer a domain from the company name. State unavailable website information and identity uncertainty. Available figures do not establish the latest filing or a complete original annual report.";
 
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
-    let text = question.trim().strip_suffix('.').unwrap_or(question.trim());
+    let text = crate::capability_intake::literal_sentence(question);
+    let text = text.strip_suffix('.').unwrap_or(text);
     let end = text.len().checked_sub(SUFFIX.len())?;
     if !text.get(..PREFIX.len())?.eq_ignore_ascii_case(PREFIX)
         || !text.get(end..)?.eq_ignore_ascii_case(SUFFIX)
@@ -71,6 +72,7 @@ mod tests {
     use crate::{catalog::{Catalog, Snapshot}, parser::Parser, resolver::Resolution, state::{Fact, Task}};
     use std::{collections::BTreeSet, sync::atomic::Ordering};
     pub(super) const QUESTION: &str = "Look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information.";
+    const QUESTION_FORM: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
 
     fn catalog() -> Catalog {
         let original = crate::compound_examples_tests::catalog();
@@ -112,12 +114,18 @@ mod tests {
     async fn named_company_plans_one_quote_with_source_bound_website_search() {
         let catalog = catalog();
         let parser = Parser::new(reqwest::Client::new(), "offline://model-calls-forbidden".into(), String::new(), "fixture".into());
-        for (name, selected_name, number) in [("Mollie B.V.", "Mollie B.V.", "30204462"),
+        for (name, selected_name, number, form) in [("Mollie B.V.", "Mollie B.V.", "30204462"),
             ("Bas Grave Web Development", "Bas Grave Web Development", "87560488"),
-            ("Atelier De Blauwe Maan", "Atelier De Blauwe Maan B.V.", "00123456")] {
-            let question = QUESTION.replace("Mollie B.V.", name);
+            ("Atelier De Blauwe Maan", "Atelier De Blauwe Maan B.V.", "00123456")].into_iter()
+            .flat_map(|(name, selected, number)| [QUESTION, QUESTION_FORM].map(|form| (name, selected, number, form))) {
+            let question = form.replace("Mollie B.V.", name);
             let mut task = Task::default();
             let intake = parser.ask_intake(&question, &task, &catalog, None).await.unwrap();
+            assert_eq!(intake.parsed_request.meta.text_sha256, hex::encode(Sha256::digest(question.as_bytes())));
+            let mut expected = serde_json::to_value(parse(&QUESTION.replace("Mollie B.V.", name), "fixture").unwrap()).unwrap();
+            let mut actual = serde_json::to_value(&intake.parsed_request).unwrap();
+            expected.as_object_mut().unwrap().remove("meta"); actual.as_object_mut().unwrap().remove("meta");
+            assert_eq!(actual, expected, "the question form preserves every semantic field");
             assert!(intake.parsed_request.subjects[0].identifiers.is_empty());
             let reply = parser.chat_from_capabilities(&question, None, &task, &catalog, &intake).await.unwrap();
             assert!(reply.discover, "{question}: {}", reply.message);
@@ -185,6 +193,8 @@ mod tests {
     fn extra_scope_and_ambiguous_names_are_not_silently_discarded() {
         for question in [
             format!("{QUESTION} Include salaries."),
+            format!("{QUESTION_FORM} Can you include salaries?"),
+            QUESTION_FORM.replace("website information?", "website information and credit rating?"),
             QUESTION.replace("Mollie B.V.", "Mollie B.V. and show ownership"),
             QUESTION.replace("Mollie B.V.", "Mollie B.V. (KVK 30204462)"),
             QUESTION.replace("Mollie B.V.", "Mollie B.V. and https://example.org"),

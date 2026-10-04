@@ -16,7 +16,7 @@ const SEARCH: &str = "company_intel.input.search";
 /// countries. Additional formats, sources, dates or result requirements stay
 /// on the normal extraction path instead of disappearing into this shortcut.
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
-    let text = question.trim().trim_end_matches(['.', '?', '!']).trim();
+    let text = crate::capability_intake::literal_sentence(question).trim_end_matches(['.', '?', '!']).trim();
     let lower = text.to_lowercase();
     let (language, prefix) = [
         ("en", "find public tenders for "),

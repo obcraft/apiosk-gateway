@@ -96,7 +96,8 @@ fn request(
 }
 
 pub(super) fn parse(clause: &str, model: &str) -> Option<ParsedRequest> {
-    let text = clause.trim().strip_suffix('.').unwrap_or(clause.trim());
+    let text = crate::capability_intake::literal_sentence(clause);
+    let text = text.strip_suffix('.').unwrap_or(text);
     let one = |label: &str,
                kind: &str,
                input: &str,

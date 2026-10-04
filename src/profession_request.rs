@@ -88,10 +88,10 @@ fn between<'a>(text: &'a str, prefix: &str, suffix: &str) -> Option<&'a str> {
 }
 
 fn request_text(question: &str) -> &str {
-    question
-        .trim()
+    let text = crate::capability_intake::literal_sentence(question);
+    text
         .strip_suffix('.')
-        .unwrap_or(question.trim())
+        .unwrap_or(text)
         .trim()
 }
 

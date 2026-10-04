@@ -42,7 +42,7 @@ fn spans(text: &str, model: &str, depth: usize) -> Option<Vec<Clause>> {
         }
         if !quoted
             && (ch == '\n'
-                || matches!(ch, '.' | ';')
+                || matches!(ch, '.' | ';' | '?')
                     && text
                         .get(index + ch.len_utf8()..)
                         .is_some_and(|tail| tail.starts_with(char::is_whitespace)))
