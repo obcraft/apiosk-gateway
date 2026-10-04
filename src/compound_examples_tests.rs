@@ -518,6 +518,121 @@ example_test!(compound_example_treasury, 11);
 example_test!(compound_example_fleet, 12);
 example_test!(compound_example_journalist, 13);
 
+async fn assert_edited_company_name_plan(name: &str, number: &str, domain: &str) {
+    let catalog = catalog();
+    let question = format!(
+        "Find the registered details and available annual financial figures for {name} (KVK {number}). Get public RDAP registration data and mail DNS records for {domain}. Cite the sources. {}",
+        crate::compound_request::COMBINE,
+    );
+    let (task, intent, plan) = plan(&question, &catalog).await;
+    assert_scope(&cases()[0], &plan);
+    for operation in ["company.registry-profile", "company.financial-statements"] {
+        assert_eq!(
+            inputs(&plan, &task, &catalog, operation),
+            json!({"kvkNummer": number}),
+            "{question}",
+        );
+    }
+    for operation in ["domain.registration", "domain.mail-dns"] {
+        assert_eq!(
+            inputs(&plan, &task, &catalog, operation),
+            json!({"domain": domain}),
+            "{question}",
+        );
+    }
+    let bound = json!({"subjects": intent.subjects, "facts": task.facts}).to_string();
+    for original in ["Mollie", "30204462", "mollie.com"] {
+        assert!(!bound.contains(original), "original example identity leaked: {original}");
+    }
+}
+
+#[tokio::test]
+async fn compound_edited_company_screenshot_period_before_kvk_keeps_entire_request() {
+    // Exact reported first clause: a period separates a trade name from its
+    // explicit registry number; the company has no B.V. legal-form suffix.
+    assert_edited_company_name_plan("Bas Grave Web Development.", "87560488", "basgrave.com").await;
+}
+
+#[tokio::test]
+async fn compound_edited_company_unquoted_trade_names_do_not_require_legal_form() {
+    for (name, number, domain) in [
+        ("Bas Grave Web Development", "87560488", "basgrave.com"),
+        ("O'Neill & Partners", "00123456", "oneill.nl"),
+        ("Atelier De Blauwe Maan.", "08765432", "blauwemaan.nl"),
+    ] {
+        assert_edited_company_name_plan(name, number, domain).await;
+    }
+}
+
+#[tokio::test]
+async fn compound_edited_company_quoted_and_legal_form_controls_keep_identifiers() {
+    for (name, number, domain) in [
+        ("\"Bas Grave Web Development\"", "87560488", "basgrave.com"),
+        ("\"Bas Grave Web Development.\"", "87560488", "basgrave.com"),
+        ("Another B.V.", "00123456", "other.nl"),
+    ] {
+        assert_edited_company_name_plan(name, number, domain).await;
+    }
+}
+
+#[tokio::test]
+async fn compound_edited_short_company_website_keeps_trade_name_and_profile_only_scope() {
+    let catalog = catalog();
+    let case = Case {
+        title: "Edited company and website",
+        question: "Find the registered details for Bas Grave Web Development. (KVK 87560488). Retrieve the web page https://basgrave.com through Linkup.",
+        providers: &["kvk-dutch-business-register", "linkup"],
+        operations: &["company.registry-profile", "web.source-fetch"],
+    };
+    let (task, intent, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "company.registry-profile"),
+        json!({"kvkNummer": "87560488"}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "web.source-fetch"),
+        json!({"url": "https://basgrave.com", "mode": "standard"}),
+    );
+    let parsed = &task.capability_intake.as_ref().unwrap().parsed_request;
+    assert!(parsed.subjects.iter().any(|subject| subject.label == "Bas Grave Web Development."));
+    assert_eq!(parsed.capabilities.len(), 2);
+    assert_eq!(parsed.capabilities[0].outputs, ["profile"]);
+    let bound = json!({"subjects": intent.subjects, "facts": task.facts}).to_string();
+    for original in ["Mollie", "30204462", "mollie.com"] {
+        assert!(!bound.contains(original), "original example identity leaked: {original}");
+    }
+}
+
+#[tokio::test]
+async fn compound_edited_short_company_vat_keeps_leading_zero_identifier_and_profile_only_scope() {
+    let catalog = catalog();
+    let case = Case {
+        title: "Edited company and VAT number",
+        question: "Find the registered details for Atelier De Blauwe Maan (KVK 00123456). Validate EU VAT number NL012345678B01 through VIES and show its validity and check date.",
+        providers: &["kvk-dutch-business-register", "vies"],
+        operations: &["company.registry-profile", "vat.eu.validate"],
+    };
+    let (task, intent, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "company.registry-profile"),
+        json!({"kvkNummer": "00123456"}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "vat.eu.validate"),
+        json!({"cc": "NL", "nr": "012345678B01"}),
+    );
+    let parsed = &task.capability_intake.as_ref().unwrap().parsed_request;
+    assert!(parsed.subjects.iter().any(|subject| subject.label == "Atelier De Blauwe Maan"));
+    assert_eq!(parsed.capabilities.len(), 2);
+    assert_eq!(parsed.capabilities[0].outputs, ["profile"]);
+    let bound = json!({"subjects": intent.subjects, "facts": task.facts}).to_string();
+    for original in ["Mollie", "30204462", "815839091B01"] {
+        assert!(!bound.contains(original), "original example identity leaked: {original}");
+    }
+}
+
 /// The simplified App cards are actual submitted questions, without an
 /// expanded hidden prompt or the former synthesis-instruction suffix.
 #[tokio::test]

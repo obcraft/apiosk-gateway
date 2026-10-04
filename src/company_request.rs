@@ -99,15 +99,14 @@ fn literal_name(value: &str) -> Option<String> {
         return None;
     }
     if quoted.is_none() {
-        // An unquoted name needs an explicit legal-form ending. This keeps
-        // additional prose outside the canonical shortcut. Quoted literal
-        // names support organisations without such an ending.
+        // The explicit KVK identifier delimits the supplied company name.
+        // Trade names need no legal-form suffix. Additional instructions still
+        // belong to the full parser instead of becoming part of that name.
         let lower = name.to_lowercase();
-        let suffix = [
-            " b.v.", " b.v", " bv", " n.v.", " n.v", " nv", " v.o.f.", " v.o.f", " vof", " c.v.",
-            " c.v", " cv", " u.a.", " u.a", " ua", " b.a.", " b.a", " ba", " w.a.", " w.a", " wa",
-        ];
-        if !suffix.iter().any(|suffix| lower.ends_with(suffix)) {
+        // A terminal dot (including B.V.) is part of the literal name. An
+        // internal sentence boundary is ambiguous; quoted names can retain it.
+        let words: Vec<_> = name.split_whitespace().collect();
+        if words.windows(2).any(|pair| pair[0].ends_with('.')) {
             return None;
         }
         // Ambiguous clauses belong to the full parser even when someone
@@ -416,11 +415,13 @@ pub(crate) fn compose(
         profile["result_ref"] != figures["result_ref"],
         "company sources share a result reference"
     );
+    let name_pointer = ["/data/statutaireNaam", "/data/naam"]
+        .into_iter()
+        .find(|pointer| profile["document"].pointer(pointer)
+            .and_then(Value::as_str).is_some_and(|name| !name.trim().is_empty()))
+        .context("company profile has no registered name")?;
     ensure!(
-        profile["document"]["data"]["kvkNummer"] == *number
-            && profile["document"]["data"]["statutaireNaam"]
-                .as_str()
-                .is_some_and(|name| !name.trim().is_empty()),
+        profile["document"]["data"]["kvkNummer"] == *number,
         "company profile does not identify the supplied KVK number"
     );
     let identifiers = figures["document"]["report_subject"]["identifiers"]
@@ -468,7 +469,7 @@ pub(crate) fn compose(
 
     let mut rows = Vec::new();
     for (label, pointer) in [
-        ("Registered name", "/data/statutaireNaam"),
+        ("Registered name", name_pointer),
         ("KVK number", "/data/kvkNummer"),
         ("Legal form", "/data/_embedded/eigenaar/rechtsvorm"),
         ("RSIN", "/data/_embedded/eigenaar/rsin"),
@@ -569,7 +570,7 @@ pub(crate) fn compose(
     );
     let mut observations = vec![
         json!({"text":"The register identifies {{a}} with KVK number {{b}}.",
-        "evidence":[reference(profile,"/data/statutaireNaam"), reference(profile,"/data/kvkNummer")]}),
+        "evidence":[reference(profile,name_pointer), reference(profile,"/data/kvkNummer")]}),
     ];
     if let Some(year) = year {
         observations.push(json!({"text":"The available annual figures report financial year {{a}}. The table keeps the source's statement scopes separate.",
@@ -902,6 +903,37 @@ mod tests {
     }
 
     #[test]
+    fn trade_name_profile_and_empty_annuals_keep_the_available_registered_evidence() {
+        let (_, mut intent, mut sources) = saved_fixture();
+        let name = "Bas Grave Web Development.";
+        let number = "87560488";
+        let question = format!("{PREFIX}{name} (KVK {number}).");
+        intent.subjects[0].label = name.into();
+        intent.subjects[0].values = BTreeMap::from([
+            ("company.name".into(), json!(name)),
+            ("company_registry.kvknummer".into(), json!(number)),
+        ]);
+        for source in &mut sources {
+            source["document"]["subject"]["label"] = json!(name);
+            source["document"]["report_subject"] = json!({"name":name,"identifiers":[number]});
+        }
+        sources[0]["document"]["data"] = json!({"kvkNummer":number,"naam":"Bas Grave Web Development"});
+        sources[1]["document"]["data"] = json!({"opendataFields":[]});
+        let original = sources.clone();
+        let answer = compose(&question, &intent, &sources).unwrap().unwrap();
+        assert_eq!(answer["status"], "partial");
+        assert_eq!(shown(&answer, "Registered name")["value"], "Bas Grave Web Development");
+        assert_eq!(shown(&answer, "Registered name")["pointer"], "/data/naam");
+        assert_eq!(answer["observations"][0]["evidence"][0]["pointer"], "/data/naam");
+        assert_eq!(shown(&answer, "KVK number")["value"], number);
+        assert_eq!(sources, original);
+        assert!(answer["limitations"].as_array().unwrap().iter().any(|value|
+            value.as_str().unwrap().contains("no recognized nonempty financial figures")));
+        sources[0]["document"]["data"]["kvkNummer"] = json!("30204462");
+        assert!(compose(&question, &intent, &sources).is_err());
+    }
+
+    #[test]
     fn recognized_company_mismatches_fail_closed_and_other_questions_remain_unhandled() {
         let (question, intent, sources) = saved_fixture();
         for mutation in [
@@ -972,6 +1004,10 @@ mod tests {
     #[test]
     fn exact_company_and_explicit_identifier_are_preserved_without_extra_fields() {
         for (name, number, expected) in [
+            ("Bas Grave Web Development", "87560488", "Bas Grave Web Development"),
+            ("Bas Grave Web Development.", "87560488", "Bas Grave Web Development."),
+            ("Stichting Voor Elkaar", "12345678", "Stichting Voor Elkaar"),
+            ("Check Point", "01234567", "Check Point"),
             ("Coolblue B.V.", "24330087", "Coolblue B.V."),
             ("Mollie B.V.", "30204462", "Mollie B.V."),
             (
@@ -1030,6 +1066,12 @@ mod tests {
             "Find the registered details and available annual financial figures for Coolblue B.V. (KVK 243300870).",
             "Find the registered details and available annual financial figures for Coolblue B.V. (KVK 2433O087).",
         ] { assert!(parse(question, "fixture").is_none(), "{question}"); }
+        for action in ["Get", "Find", "Retrieve", "Fetch", "Check", "Validate", "Add", "List", "Also get", "Please retrieve", "Can you show"] {
+            for name in ["Example Company.", "Example B.V.", "A."] {
+                let question = format!("{PREFIX}{name} {action} salaries (KVK 12345678).");
+                assert!(parse(&question, "fixture").is_none(), "{question}");
+            }
+        }
     }
 
     #[test]
