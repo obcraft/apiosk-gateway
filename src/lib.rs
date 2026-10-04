@@ -27,6 +27,9 @@ pub mod parser;
 mod pdok_address;
 mod tenderned;
 mod company_request;
+mod compound_request;
+#[cfg(test)]
+mod compound_examples_tests;
 mod cbs_comparison;
 mod location_answer;
 mod profession_request;

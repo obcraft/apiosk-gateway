@@ -311,6 +311,10 @@ pub fn conversation_language(request: &str) -> Option<&'static str> {
     }
 }
 pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
+    crate::compound_request::parse(request, model).or_else(|| atomic_literal_request(request, model))
+}
+
+pub(crate) fn atomic_literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
     broad_information::parse(request, model)
         .or_else(|| company_lookup::parse(request, model))
         .or_else(|| crate::tenderned::parse(request, model))

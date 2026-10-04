@@ -305,6 +305,77 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
     None
 }
 
+/// Combine complete literal clauses using the same discovery, input and output
+/// checks as individual requests. A failed clause never becomes a partial quote.
+pub(super) fn compound_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
+    let request = crate::compound_request::recognize(question, "literal-compound")?;
+    let same = |expected: &crate::capability_intake::ParsedRequest, actual: &crate::capability_intake::ParsedRequest| {
+        expected.language == actual.language && serde_json::to_value(&expected.subjects).ok() == serde_json::to_value(&actual.subjects).ok()
+            && serde_json::to_value(&expected.capabilities).ok() == serde_json::to_value(&actual.capabilities).ok()
+            && serde_json::to_value(&expected.deliverable).ok() == serde_json::to_value(&actual.deliverable).ok()
+    };
+    if !same(&request.parsed, &intake.parsed_request) { return None; }
+    let attempt = || -> Option<Intent> {
+        let mut intent = Intent { subjects: vec![], goals: vec![], answer_operations: vec![
+            "Combine all requested source findings into one cited answer. Connect supported findings, preserve each source's identity, dates, units and scope, and state unknowns. Co-occurrence is not evidence of ownership, a verified identity match or causation.".into()], unresolved_references: vec![] };
+        let mut offset = 0;
+        for clause in &request.clauses {
+            let matches = (offset..offset + clause.parsed.capabilities.len())
+                .map(|index| request_match(intake, index).cloned()).collect::<Option<Vec<_>>>()?;
+            offset += clause.parsed.capabilities.len();
+            let part = Intake { parsed_request: clause.parsed.clone(),
+                selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+                matches, apiosk_sources_searched: intake.apiosk_sources_searched, catalog_version: intake.catalog_version.clone() };
+            let reply = cbs_comparison_reply(&part, catalog, &clause.question, task)
+                .or_else(|| crate::tenderned::executable_intake(&clause.question, &part)
+                    .and_then(|part| single_retrieval_reply(&part, catalog, &clause.question, &clause.question, task)))
+                .or_else(|| broad_information_reply(&part, catalog, &clause.question, task))
+                .or_else(|| single_retrieval_reply(&part, catalog, &clause.question, &clause.question, task))?;
+            let part_intent = reply.intent.filter(|_| reply.discover)?;
+            let mut subjects = Vec::new();
+            for subject in part_intent.subjects {
+                let index = if let Some(index) = intent.subjects.iter().position(|s| s.label == subject.label && s.entity_ref == subject.entity_ref) {
+                    let values = &mut intent.subjects[index].values;
+                    for (key, value) in subject.values {
+                        if values.get(&key).is_some_and(|existing| existing != &value) { return None; }
+                        values.insert(key, value);
+                    }
+                    index
+                } else { let index = intent.subjects.len(); intent.subjects.push(subject); index };
+                subjects.push(index);
+            }
+            for mut goal in part_intent.goals {
+                goal.subject = *subjects.get(goal.subject)?;
+                if !intent.goals.iter().any(|g| g.subject == goal.subject && g.capability == goal.capability && g.constraints == goal.constraints) {
+                    intent.goals.push(goal);
+                }
+            }
+            for operation in part_intent.answer_operations {
+                if !intent.answer_operations.contains(&operation) { intent.answer_operations.push(operation); }
+            }
+        }
+        super::capability_binding::bind_source_requirements(&mut intent, intake, catalog);
+        prepare(&mut intent, intake, catalog).ok()?;
+        intent.bind_constraint_inputs(question, catalog).ok()?;
+        intent.validate(question, task, catalog).ok()?;
+        let mut preview = task.clone(); preview.capability_intake = Some(intake.clone());
+        let mut bound = intent.clone();
+        crate::engine::bind_subjects(&mut preview, catalog, &mut bound).ok()?;
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else { return None; };
+        if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() { return None; }
+        Some(intent)
+    };
+    Some(match attempt() {
+        Some(intent) => super::ChatReply { message: if intake.parsed_request.language == "nl" {
+            "Ik combineer de gevraagde brongegevens in één antwoord. Bekijk eerst de totale prijs."
+        } else { "I will combine the requested source data in one answer. Review the total price first." }.into(),
+            discover: true, intent: Some(intent), decline_reason: Some("none".into()) },
+        // A limitation of this shortcut is not proof the whole request is
+        // unsupported. Keep the complete intake for the ordinary planner.
+        None => return None,
+    })
+}
+
 /// A complete CBS comparison needs the reviewed monthly observations and all
 /// four codebooks. Keep normal discovery, binding, scope and coverage checks.
 pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
@@ -539,6 +610,32 @@ mod tests {
         capability_intake::{Candidate, Match, ParsedRequest},
         parser::{Goal, Subject},
     };
+
+    #[test]
+    fn repeated_country_with_distinct_years_preserves_both_literals_for_the_normal_planner() {
+        let question = "Get GDP for Germany in 2023 from Eurostat. Get GDP for Germany in 2024 from Eurostat.";
+        let request = crate::compound_request::recognize(question, "fixture").unwrap();
+        assert_eq!(request.parsed.subjects.len(), 2);
+        assert_eq!(request.parsed.subjects[0].identifiers["eurostat.input.time"], "2023");
+        assert_eq!(request.parsed.subjects[1].identifiers["eurostat.input.time"], "2024");
+        assert_eq!(request.parsed.capabilities[0].subject_id.as_deref(), Some("s1"));
+        assert_eq!(request.parsed.capabilities[1].subject_id.as_deref(), Some("s2"));
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/statistics-presets.json")).unwrap());
+        let intake_for = |parsed_request: ParsedRequest| {
+            let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+            Intake { selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+                parsed_request, matches, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() }
+        };
+        // Each clause is executable; only combining different period inputs
+        // under the same subject label exceeds this shortcut's scope.
+        for clause in &request.clauses {
+            assert!(single_retrieval_reply(&intake_for(clause.parsed.clone()), &catalog, &clause.question, &clause.question, &Default::default()).is_some());
+        }
+        let intake = intake_for(request.parsed);
+        let before = serde_json::to_value(&intake).unwrap();
+        assert!(compound_reply(&intake, &catalog, question, &Default::default()).is_none());
+        assert_eq!(serde_json::to_value(&intake).unwrap(), before);
+    }
 
     #[tokio::test]
     async fn bare_kvk_check_quotes_one_exact_profile_and_keeps_explicit_fields_required() {

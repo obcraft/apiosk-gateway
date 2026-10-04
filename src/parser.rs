@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 mod capability_binding;
 use capability_binding::Bindings;
+mod analysis_source_coverage;
 mod explicit_request;
 pub(crate) mod plan_coverage;
 mod constraint_policy;
@@ -574,6 +575,8 @@ fn analysis_validation_reason(error: &anyhow::Error) -> &'static str {
         "invalid evidence quote" => "quote_empty_or_too_long",
         "missing answer value" | "invalid answer value slot" => "invalid_value_placeholder",
         "analysis too large" => "analysis_size_limit",
+        "missing multi-source coverage" => "source_coverage_missing",
+        "invalid source coverage gap" => "source_coverage_invalid",
         "missing observations" | "missing limitations" | "invalid narrative" | "empty analysis" => "invalid_analysis_shape",
         "unknown presentation source" => "unknown_presentation_source",
         "invalid presentation pointer" | "missing presentation field" | "presentation field must be scalar" | "missing column pointer" => "invalid_presentation_field",
@@ -979,6 +982,7 @@ impl Parser {
                 {"role":"user","content":input.to_string()}]});
         self.completion("analysis", &payload, |raw| {
             let mut checked = validate_analysis_limits(raw, sources, !failures.is_empty(), max_observations, max_limitations)?;
+            analysis_source_coverage::validate(raw, &mut checked, sources, failures)?;
             // Only a model that engages with requested_parts is held to it:
             // a fixture or an older model that never mentions requirement_status
             // keeps its existing behavior unchanged.
@@ -1235,6 +1239,7 @@ impl Parser {
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
         if selection.is_none() {
+            if let Some(reply) = plan_coverage::compound_reply(intake, catalog, question, task) { return Ok(reply); }
             if crate::capability_intake::company_lookup::matches_intake(question, intake)
                 || crate::capability_intake::company_lookup::plain_profile(question, intake).is_some() {
                 let literals = capability_binding::literal_context(question, task, None);
@@ -1559,7 +1564,7 @@ impl Parser {
                                                     // This remains inside the bounded model request;
                                                     // neither the answer nor source data is logged.
                                                     messages.push(json!({"role":"assistant","content":raw}));
-                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response.")}));
+                                                    messages.push(json!({"role":"user","content":format!("The previous response failed validation ({reason}). Return a corrected, smaller JSON response. Use at most four observations with at most four scalar field references each. Every pointer must exist under /data/ in its named document. For a long text field include a short exact contiguous quote copied from that field, preserving whitespace; never paraphrase a quote. Prefer short scalar title, URL or date fields when possible. No digits, dates, amounts, numeric codes, URLs or markdown in text OR limitations. Insert exact values using {{{{a}}}}, {{{{b}}}}, {{{{c}}}}, {{{{d}}}} with matching evidence references. Do not reproduce the invalid response. Preserve evidence from each distinct provider in observations or presentation data cells; do not drop a provider to make the response smaller. If a provider cannot support this answer, add a visible limitation and a source_gaps entry with its exact result_ref, an allowed reason and the matching limitation_index.")}));
                                                 }
                                             }
                                             Err("invalid_output")
