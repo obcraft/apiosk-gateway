@@ -691,7 +691,8 @@ impl Engine {
 }
 
 /// The saved documents an answer may cite: results of the asked steps, of a
-/// quoted fallback, of a requested map and of a UK supplier check, in the
+/// quoted fallback, of a requested map, of a location identity dependency and
+/// of a UK supplier check, in the
 /// order they were saved. The offline replay (`crate::replay`) uses the same
 /// selection as a live answer.
 pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, documents: &std::collections::BTreeMap<Uuid, Value>) -> Vec<Value> {
@@ -704,6 +705,8 @@ pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, document
                 && (step.browser_fallback.is_some()
                     || task.conversation.last().is_some_and(|turn| crate::report_assets::requested(&turn.question))
                     || (document["source"]["provider"] == "pdok" && task.conversation.last().is_some_and(|turn| crate::location_answer::includes_dependency(&turn.question, intent, step)))
+                    || (location_identity_dependency(plan, intent, step)
+                        && retrieval_scope(step, task, document).is_some())
                     || crate::uk_supplier::is_check(intent) || intent.goals.iter().any(|goal| {
                     goal.capability == step.service.contract.capability_slug
                         && intent
@@ -721,6 +724,45 @@ pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, document
     }
     sources
 }
+
+/// A neighbourhood record is joined to an address by a quoted BAG-address
+/// dependency. Keep that original evidence even when the user also requests
+/// another source: prose grammar must not erase an already-established join.
+/// This admits context only, never an inferred identity or a completeness pass.
+fn location_identity_dependency(plan: &Plan, intent: &Intent, step: &crate::resolver::Step) -> bool {
+    let service = &step.service;
+    let requested = |target: &crate::resolver::Step| intent.goals.iter().any(|goal| {
+        goal.capability == target.service.contract.capability_slug
+            && intent.subjects.get(goal.subject)
+                .is_some_and(|subject| subject.entity_ref == Some(target.entity_ref))
+            && goal.constraints.get("source").is_none_or(|source| source == &json!(target.service.api_slug))
+            && goal.constraints.get("endpoint_id").is_none_or(|id| id == &json!(target.service.endpoint_id))
+    });
+    if !plan.steps.iter().any(|target| target.service.api_slug != "pdok" && requested(target))
+        || service.api_slug != "pdok"
+        || service.method != "GET"
+        || service.path != "/apiosk/bag-address"
+        || service.contract.capability_slug != "location.bag-address-context"
+        || !service.contract.output_map.produces.contains_key("location.neighbourhood_code")
+    {
+        return false;
+    }
+    plan.steps.iter().any(|target| {
+        target.entity_ref == step.entity_ref
+            && target.service.api_slug == "pdok"
+            && target.service.method == "GET"
+            && target.service.path == "/apiosk/neighbourhood"
+            && target.service.contract.capability_slug == "area.cbs-neighbourhood-2025"
+            && target.service.contract.requires.iter().any(|input| {
+                !input.optional && input.fact_type == "location.neighbourhood_code"
+            })
+            && requested(target)
+    })
+}
+
+#[cfg(test)]
+#[path = "answer_context_tests.rs"]
+mod answer_context_tests;
 
 /// Retrieval semantics come from the approved service snapshot, never from a
 /// provider response or the current catalog. They explain what was fetched;

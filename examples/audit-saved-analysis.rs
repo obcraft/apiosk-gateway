@@ -29,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .init();
     let path = std::env::args().nth(1).expect("saved input JSON path");
+    let request_only = std::env::args().any(|arg| arg == "--request-only");
     let out = std::env::var("ANALYSIS_AUDIT_OUT")
         .unwrap_or_else(|_| "/private/tmp/apiosk-analysis-reproduction".into());
     std::fs::create_dir_all(&out)?;
@@ -38,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .filter(|s| !s.is_empty())
         .or_else(|| std::env::var("INTENT_API_KEY").ok())
+        .or_else(|| request_only.then(String::new))
         .expect("model key");
     let url = std::env::var("INTENT_API_URL")
         .unwrap_or_else(|_| "https://openrouter.ai/api/v1/chat/completions".into());
@@ -61,6 +63,11 @@ async fn main() -> anyhow::Result<()> {
                     serde_json::to_vec_pretty(&payload).unwrap(),
                 )
                 .unwrap();
+                // Inspect the exact production projection locally before
+                // authorizing any outbound model request.
+                if request_only {
+                    return (reqwest::StatusCode::BAD_REQUEST, [("content-type", "application/json")], b"{\"request_only\":true}".to_vec().into());
+                }
                 let start = Instant::now();
                 let response = http
                     .post(url)

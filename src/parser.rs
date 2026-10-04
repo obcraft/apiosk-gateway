@@ -424,6 +424,28 @@ pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
 /// Combining distinct saved providers uses the stronger synthesis stage.
 /// This is separate from conversation replies and never changes planning.
 pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
+
+fn completion_budget(surface: &str) -> (u64, u64) {
+    match surface {
+        "capability-intake" | "capability-search" => (10, 20),
+        "chat" => (20, 30),
+        "clarification" => (6, 12),
+        // A complete joined answer can exceed thirty seconds. Let one attempt
+        // use the existing stage budget instead of restarting it halfway.
+        // The shared deadline still keeps the request below the App's limit.
+        "multi-source-analysis" => (60, 65),
+        "analysis" => (30, 65),
+        _ => (12, 25),
+    }
+}
+
+fn model_envelope_failure(error: &anyhow::Error) -> &'static str {
+    match error.downcast_ref::<reqwest::Error>() {
+        Some(error) if error.is_timeout() => "timeout",
+        Some(_) => "transport_failure",
+        None => "invalid_envelope",
+    }
+}
 // No fixed provider order for [`MODEL`]: OpenRouter's `sort` (latency by
 // default, INTENT_PROVIDER_SORT) picks among the healthy providers. A pinned
 // Nebius first measured 0.9 s in the morning of 2026-09-28 and 13.9 s or 429
@@ -1479,22 +1501,7 @@ impl Parser {
         if self.key.is_empty() {
             return Err(ModelFailure::Unavailable.into());
         }
-        // Analysing saved multi-source documents takes longer than intent parsing.
-        // Keep both retries bounded and below the app's 80-second request limit.
-        let (attempt_seconds, total_seconds) = if surface == "capability-intake" || surface == "capability-search" {
-            (10, 20)
-        } else if surface == "chat" {
-            // Selected contracts and multiple subject bindings can take more
-            // than 12 seconds on the configured model. Both attempts share 30
-            // seconds; intake + search + Bazaar + chat remain under 80 seconds.
-            (20, 30)
-        } else if surface == "clarification" {
-            (6, 12)
-        } else if matches!(surface, "analysis" | "multi-source-analysis") {
-            (30, 65)
-        } else {
-            (12, 25)
-        };
+        let (attempt_seconds, total_seconds) = completion_budget(surface);
         let work = async {
             let mut attempt_payload = payload.clone();
             let mut rejected_requirement = None;
@@ -1636,7 +1643,7 @@ impl Parser {
                                     Err("empty_output")
                                 }
                             }
-                            Err(_) => Err("invalid_envelope"),
+                            Err(error) => Err(model_envelope_failure(&error)),
                         }
                     }
                     Ok(response) => {
@@ -1648,12 +1655,18 @@ impl Parser {
                         }
                         Err("upstream_unavailable")
                     }
-                    Err(_) => Err("transport_failure"),
+                    Err(error) => Err(if error.is_timeout() { "timeout" } else { "transport_failure" }),
                 };
                 if let Err(reason) = outcome {
                     // No prompt, answer, reasoning or credentials in diagnostics.
                     tracing::warn!(surface, attempt, reason, "model response unavailable");
-                    call.finish(Outcome::Failed(if reason == "transport_failure" { ErrorClass::Transport } else { ErrorClass::Validation }), reason);
+                    let class = match reason { "timeout" => ErrorClass::Timeout, "transport_failure" => ErrorClass::Transport, _ => ErrorClass::Validation };
+                    call.finish(Outcome::Failed(class), reason);
+                    if surface == "multi-source-analysis" && reason == "timeout" {
+                        // Another full synthesis cannot fit in the remaining
+                        // stage budget. Keep the saved results retryable.
+                        return Err(ModelFailure::Unavailable.into());
+                    }
                 }
             }
             if let Some(reason) = rejected_requirement {
@@ -1778,6 +1791,39 @@ pub async fn bounded_json_sized(mut response: reqwest::Response, limit: usize) -
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn completion_budget_preserves_other_stages_and_bounds_longer_synthesis() {
+        assert_eq!(completion_budget("multi-source-analysis"), (60, 65));
+        assert_eq!(completion_budget("analysis"), (30, 65));
+        assert_eq!(completion_budget("chat"), (20, 30));
+        assert_eq!(completion_budget("capability-intake"), (10, 20));
+        assert_eq!(completion_budget("capability-search"), (10, 20));
+        assert_eq!(completion_budget("clarification"), (6, 12));
+        for surface in ["intent", "planning"] { assert_eq!(completion_budget(surface), (12, 25)); }
+    }
+
+    #[tokio::test]
+    async fn response_body_timeout_is_not_reported_as_an_invalid_model_envelope() {
+        use axum::{body::Body, routing::get, Router};
+        use futures_util::StreamExt;
+        let app = Router::new().route("/", get(|| async {
+            Body::from_stream(futures_util::stream::once(async { Ok::<_, std::convert::Infallible>(" ") })
+                .chain(futures_util::stream::once(async {
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    Ok::<_, std::convert::Infallible>("{}")
+                })))
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let response = reqwest::Client::new().get(url).timeout(Duration::from_millis(100)).send().await.unwrap();
+        let error = bounded_json_sized(response, 65536).await.unwrap_err();
+        assert_eq!(model_envelope_failure(&error), "timeout");
+        let malformed = serde_json::from_str::<Value>("not json").unwrap_err();
+        assert_eq!(model_envelope_failure(&malformed.into()), "invalid_envelope");
+        server.abort();
+    }
 
     #[test]
     fn sixteen_goals_are_preserved_but_execution_limits_still_refuse_oversized_plans() {
