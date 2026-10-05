@@ -727,6 +727,121 @@ async fn compound_examples_six_short_published_questions_keep_sources_inputs_and
 }
 
 #[tokio::test]
+async fn compound_homepage_extra_it_tenders_keep_both_literal_queries() {
+    let catalog = catalog();
+    let case = Case {
+        title: "IT tenders and web context",
+        question: "Can you find public tenders for IT services in the Netherlands? Can you search the web through Linkup for \"IT tenders Netherlands\"?",
+        providers: &["tenderned", "linkup"],
+        operations: &["procurement.nl-public-contracts", "web.linkup-answer"],
+    };
+    let (task, _, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "procurement.nl-public-contracts"),
+        json!({"search":"\"IT services\"","page":0,"size":20,"sort":"publicatieDatum,desc"}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "web.linkup-answer"),
+        json!({"q":"IT tenders Netherlands","depth":"standard","outputType":"sourcedAnswer"}),
+    );
+}
+
+#[tokio::test]
+async fn compound_homepage_extra_rotterdam_binds_the_same_address_to_both_sources() {
+    let catalog = catalog();
+    let case = Case {
+        title: "Rotterdam building and notices",
+        question: "Can you find building and neighbourhood information for Coolsingel 40, Rotterdam? Can you search official publications through KOOP for \"Coolsingel 40, Rotterdam\"?",
+        providers: &["pdok", "koop"],
+        operations: &[
+            "location.property-search",
+            "building.bag-unit",
+            "building.bag-building",
+            "location.bag-address-context",
+            "area.cbs-neighbourhood-2025",
+            "government.publication.search",
+        ],
+    };
+    let (task, _, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_address_input(
+        &inputs(&plan, &task, &catalog, "location.property-search"),
+        "Coolsingel",
+        40,
+        "Rotterdam",
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "government.publication.search"),
+        json!({"q":"Coolsingel 40, Rotterdam","limit":10}),
+    );
+    assert!(!serde_json::to_string(&task.capability_intake).unwrap().contains("Damrak"));
+}
+
+#[tokio::test]
+async fn compound_homepage_extra_iban_and_ecb_bind_exact_account_and_currency() {
+    let catalog = catalog();
+    let case = Case {
+        title: "IBAN and exchange rate",
+        question: "Can you validate IBAN NL91ABNA0417164300 through IBAN Check? Can you get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter?",
+        providers: &["iban-check", "frankfurter"],
+        operations: &["iban.validate", "fx.ecb-reference-rate"],
+    };
+    let (task, _, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "iban.validate"),
+        json!({"iban":"NL91ABNA0417164300"}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "fx.ecb-reference-rate"),
+        json!({"quote":"USD"}),
+    );
+}
+
+#[tokio::test]
+async fn compound_homepage_extra_isde_preserves_each_sources_search_scope() {
+    let catalog = catalog();
+    let case = Case {
+        title: "ISDE notices and web context",
+        question: "Can you search official publications through KOOP for \"ISDE\"? Can you search the web through Linkup for \"ISDE warmtepomp subsidie RVO\"?",
+        providers: &["koop", "linkup"],
+        operations: &["government.publication.search", "web.linkup-answer"],
+    };
+    let (task, _, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "government.publication.search"),
+        json!({"q":"ISDE","limit":10}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "web.linkup-answer"),
+        json!({"q":"ISDE warmtepomp subsidie RVO","depth":"standard","outputType":"sourcedAnswer"}),
+    );
+}
+
+#[tokio::test]
+async fn compound_homepage_extra_german_gdp_keeps_country_year_unit_and_web_query() {
+    let catalog = catalog();
+    let case = Case {
+        title: "German GDP and economic context",
+        question: "Can you get GDP for Germany in 2024 from Eurostat? Can you search the web through Linkup for \"Germany economy 2024 Destatis\"?",
+        providers: &["eurostat", "linkup"],
+        operations: &["statistics.eurostat-gdp-germany", "web.linkup-answer"],
+    };
+    let (task, _, plan) = plan(case.question, &catalog).await;
+    assert_scope(&case, &plan);
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "statistics.eurostat-gdp-germany"),
+        json!({"time":"2024","format":"JSON","lang":"EN","dataset":"nama_10_gdp","geo":"DE","unit":"CP_MEUR","na_item":"B1GQ"}),
+    );
+    assert_eq!(
+        inputs(&plan, &task, &catalog, "web.linkup-answer"),
+        json!({"q":"Germany economy 2024 Destatis","depth":"standard","outputType":"sourcedAnswer"}),
+    );
+}
+
+#[tokio::test]
 async fn compound_examples_question_forms_preserve_entire_plans_and_original_hashes() {
     use sha2::{Digest, Sha256};
     let catalog = catalog();
