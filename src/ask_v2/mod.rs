@@ -5,6 +5,7 @@ pub mod search;
 pub mod external;
 pub mod purchase;
 pub(crate) mod input_values;
+pub(crate) mod follow_up;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 
@@ -255,14 +256,18 @@ impl Client {
                 prompt.push_str(" Every subject needs a nonempty singular type and a label copied as one contiguous phrase from the original request. Never translate or concatenate separated words into a label. For coordinated country/sector comparisons, use each literal country adjective as its label and keep the shared literal sector in identifiers; preserve both cohorts and their requested data.");
             }
         }
-        // A JSON object, not a strict json_schema: Alibaba, the fastest Qwen
-        // provider, has no strict schema mode. The prompt spells out the shape,
-        // and `interpret` validates and mechanically repairs the parse, with
-        // one correction attempt for anything else.
+        self.generate_object(&prompt, question, 4096).await
+    }
+
+    /// Shared bounded JSON transport. Each interpretation stage validates its
+    /// own output; this transport never chooses or executes an endpoint.
+    async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize) -> Result<String> {
+        ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
+        // Alibaba supports json_object; every field is validated afterwards.
         let body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
-            "stream": true, "temperature": 0, "max_tokens": 4096,
+            "stream": true, "temperature": 0, "max_tokens": max_tokens,
             "provider": {"order": PARSE_PROVIDERS, "require_parameters": true},
             "response_format": {"type": "json_object"}
         })

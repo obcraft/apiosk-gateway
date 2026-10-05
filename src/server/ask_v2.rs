@@ -187,6 +187,64 @@ pub(super) async fn prepare(
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(super) struct FollowUpRequest {
+    task_ref: Uuid,
+    question: String,
+}
+
+/// Read-only interpretation of a completed endpoint request. Ownership is
+/// resolved before loading context or calling the model. No quote is saved.
+pub(super) async fn follow_up(
+    State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<FollowUpRequest>,
+) -> Response {
+    let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
+    if request.task_ref.is_nil() || request.question.trim().is_empty() || request.question.encode_utf16().count() > 16_000 {
+        return failure(StatusCode::BAD_REQUEST, "invalid_follow_up", "Enter a follow-up of up to 16,000 characters.");
+    }
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly. Your selected source is kept.");
+    };
+    let (_, task, _) = match state.engine.store.load_scoped(&person, request.task_ref).await {
+        Ok(saved) => saved,
+        Err(error) if matches!(error.downcast_ref::<crate::store::StoreAccessError>(), Some(crate::store::StoreAccessError::TaskUnavailable)) =>
+            return failure(StatusCode::NOT_FOUND, "task_unavailable", "This saved request is unavailable."),
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "follow_up_unavailable", "The saved request could not be read. Try again."),
+    };
+    match state.engine.worker_active(request.task_ref).await {
+        Ok(false) => {},
+        Ok(true) => return Json(crate::ask_v2::follow_up::needs_input("Wait for this request to finish before changing its inputs.")).into_response(),
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "follow_up_unavailable", "The saved request could not be checked. Try again."),
+    }
+    let catalog = match state.engine.catalog.get().await {
+        Ok(catalog) => catalog,
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "The selected source's inputs could not be checked. Try again."),
+    };
+    let mut context = match crate::ask_v2::follow_up::context(&task, &catalog) {
+        Ok(Some(context)) => context,
+        Ok(None) => return Json(json!({"kind":"new_request"})).into_response(),
+        Err(_) => return Json(crate::ask_v2::follow_up::needs_input("This source's inputs have changed. Choose it again from Sources and review its inputs.")).into_response(),
+    };
+    // Use the same optional source branding as the endpoint descriptor route.
+    if let Ok(Ok(sources)) = tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.sources()).await {
+        if let Some(source) = sources.iter().find(|source| context.descriptor["source"]["slug"] == source.slug) {
+            context.descriptor["source"]["name"] = json!(source.name);
+            context.descriptor["source"]["logo_url"] = json!(source.logo_url.as_deref().or(source.provider_logo_url.as_deref()));
+        }
+    }
+    let Some(client) = state.engine.parser.ask_v2() else {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "follow_up_unavailable", "The follow-up could not be interpreted. Your selected source is kept; try again.");
+    };
+    if !client.admit(&person.owner.to_string()) {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before trying another follow-up.");
+    }
+    match client.endpoint_follow_up(request.question.trim(), &context).await {
+        Ok(response) => Json(response).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "follow_up_unavailable", "The follow-up could not be mapped safely. Your selected source is kept; clarify the input you want to change."),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct ParseRequest {
     request_id: Uuid,
     question: String,
