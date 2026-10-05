@@ -1,6 +1,26 @@
 use super::*;
 use catalog_core::facts::contract::{ContractError, Extraction, SubjectFacts};
 
+const RESULT_PAGE_CHARS: usize = 8000;
+
+/// Offsets are Unicode scalar counts in the public paging protocol. Locate
+/// only this page's UTF-8 boundaries instead of allocating one `char` for
+/// every character of the complete saved document on every status read.
+fn text_page(text: &str, offset: usize) -> anyhow::Result<(&str, Option<usize>)> {
+    let mut characters = text.char_indices();
+    let start = if offset == 0 {
+        0
+    } else {
+        characters.nth(offset - 1)
+            .map(|(index, character)| index + character.len_utf8())
+            .ok_or_else(|| anyhow::anyhow!("invalid result offset"))?
+    };
+    match characters.nth(RESULT_PAGE_CHARS) {
+        Some((end, _)) => Ok((&text[start..end], Some(offset + RESULT_PAGE_CHARS))),
+        None => Ok((&text[start..], None)),
+    }
+}
+
 /// The provider's own response, trimmed to its shape: three items per array,
 /// 600 characters per string, 60 keys per object, nine levels.
 fn evidence(value: &Value, depth: usize) -> Value {
@@ -17,6 +37,89 @@ fn evidence(value: &Value, depth: usize) -> Value {
 #[cfg(test)]
 mod page_metadata_tests {
     use super::*;
+
+    #[test]
+    fn text_pages_keep_unicode_scalar_offsets_and_exact_end_boundaries() {
+        for text in [String::new(), "aé中🦀e\u{301}".repeat(4001)] {
+            let characters: Vec<char> = text.chars().collect();
+            for offset in [0, 1, 2, 3, 4, 5, 7999, 8000, 8001, characters.len(), characters.len() + 1, usize::MAX] {
+                if offset > characters.len() {
+                    assert_eq!(text_page(&text, offset).unwrap_err().to_string(), "invalid result offset");
+                    continue;
+                }
+                let end = (offset + RESULT_PAGE_CHARS).min(characters.len());
+                let (page, next) = text_page(&text, offset).unwrap();
+                assert_eq!(page, characters[offset..end].iter().collect::<String>());
+                assert_eq!(next, (end < characters.len()).then_some(end));
+            }
+        }
+        for size in [RESULT_PAGE_CHARS - 1, RESULT_PAGE_CHARS, RESULT_PAGE_CHARS + 1, 2 * RESULT_PAGE_CHARS] {
+            let text = "🦀".repeat(size);
+            let (first, next) = text_page(&text, 0).unwrap();
+            assert_eq!(first.chars().count(), size.min(RESULT_PAGE_CHARS));
+            assert_eq!(next, (size > RESULT_PAGE_CHARS).then_some(RESULT_PAGE_CHARS));
+        }
+    }
+
+    #[test]
+    fn text_pages_reconstruct_source_json_without_changing_literals_or_escapes() {
+        let source = json!({"empty":"", "zero":0, "false":false, "missing":null,
+            "rows":(0..2001).map(|index| json!({"id":format!("{index:08}"),
+                "text":"\"héllo\"\n中文🦀e\u{301}\\"})).collect::<Vec<_>>()});
+        let serialized = source.to_string();
+        let mut rebuilt = String::new();
+        let mut offset = 0;
+        loop {
+            let (page, next) = text_page(&serialized, offset).unwrap();
+            assert!(page.chars().count() <= RESULT_PAGE_CHARS);
+            rebuilt.push_str(page);
+            match next {
+                Some(next) => { assert!(next > offset); offset = next; }
+                None => break,
+            }
+        }
+        assert!(offset > 0, "fixture must cross page boundaries");
+        assert_eq!(rebuilt, serialized);
+        assert_eq!(serde_json::from_str::<Value>(&rebuilt).unwrap(), source);
+    }
+
+    /// Isolates page-boundary selection; excludes JSON serialization, database
+    /// reads, signing and HTTP. An opt-in local measurement, not a latency gate.
+    #[test]
+    #[ignore = "local saved-result paging microbenchmark"]
+    fn text_page_local_benchmark() {
+        use std::{hint::black_box, time::Instant};
+        for (label, content) in [("ASCII", "x".repeat(1024 * 1024)), ("Unicode", "é中🦀e\u{301}".repeat(100_000))] {
+            let serialized = json!({"data":{"content":content}}).to_string();
+            let old_page = |text: &str| {
+                let characters: Vec<char> = text.chars().collect();
+                let allocation = characters.capacity() * std::mem::size_of::<char>();
+                let end = RESULT_PAGE_CHARS.min(characters.len());
+                (characters[..end].iter().collect::<String>(), (end < characters.len()).then_some(end), allocation)
+            };
+            let expected = old_page(&serialized);
+            let actual = text_page(&serialized, 0).unwrap();
+            assert_eq!((actual.0, actual.1), (expected.0.as_str(), expected.1));
+            let mut before = Vec::new();
+            let mut after = Vec::new();
+            for _ in 0..25 {
+                let start = Instant::now();
+                black_box(old_page(black_box(&serialized)));
+                before.push(start.elapsed().as_nanos());
+                let start = Instant::now();
+                let (text, next) = text_page(black_box(&serialized), 0).unwrap();
+                // Include the output string allocation, as JSON serialization
+                // still copies the borrowed page into its response value.
+                black_box((text.to_owned(), next));
+                after.push(start.elapsed().as_nanos());
+            }
+            before.sort_unstable();
+            after.sort_unstable();
+            eprintln!("LOCAL PAGING FIXTURE {label}: bytes={}, samples=25, old_median_ns={}, new_median_ns={}, old_full_char_buffer_bytes={}, new_full_char_buffer_bytes=0",
+                serialized.len(), before[12], after[12], expected.2);
+        }
+    }
+
     #[tokio::test]
     async fn paged_saved_result_preserves_exact_charge_and_missing_fields() {
         let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://fixture:fixture@127.0.0.1:1/fixture").unwrap();
@@ -112,9 +215,7 @@ impl Engine {
         if serialized.len() <= MAX_INLINE {
             return Ok(data);
         }
-        let chars: Vec<char> = serialized.chars().collect();
-        anyhow::ensure!(offset <= chars.len(), "invalid result offset");
-        let end = (offset + 8000).min(chars.len());
+        let (text, next_offset) = text_page(&serialized, offset)?;
         let preview = crate::source_preview::project(
             data["source"]["provider"].as_str().unwrap_or(""),
             &data["data"],
@@ -122,7 +223,7 @@ impl Engine {
         Ok(
             json!({"result_ref":result_ref,"encoding":"json_text","preview_data":preview,"coverage":data.get("coverage"),"coverage_note":data.get("coverage_note"),"subject":data.get("subject"),"source":data.get("source"),"report":data.get("report"),
                 "charged_atomic":data.get("charged_atomic"),"currency":data.get("currency"),"missing_fields":data.get("missing_fields"),
-                "text":chars[offset..end].iter().collect::<String>(),"next_offset":if end<chars.len(){Some(end)}else{None}}),
+                "text":text,"next_offset":next_offset}),
         )
     }
 
