@@ -204,7 +204,7 @@ pub(super) async fn follow_up(
     let Ok(_permit) = state.permits.try_acquire() else {
         return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly. Your selected source is kept.");
     };
-    let (_, task, _) = match state.engine.store.load_scoped(&person, request.task_ref).await {
+    let (revision, task, _) = match state.engine.store.load_scoped(&person, request.task_ref).await {
         Ok(saved) => saved,
         Err(error) if matches!(error.downcast_ref::<crate::store::StoreAccessError>(), Some(crate::store::StoreAccessError::TaskUnavailable)) =>
             return failure(StatusCode::NOT_FOUND, "task_unavailable", "This saved request is unavailable."),
@@ -219,10 +219,10 @@ pub(super) async fn follow_up(
         Ok(catalog) => catalog,
         Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "The selected source's inputs could not be checked. Try again."),
     };
-    let mut context = match crate::ask_v2::follow_up::context(&task, &catalog) {
+    let mut context = match crate::ask_v2::follow_up::saved_context(&state.engine, &person, request.task_ref, revision, &task, &catalog).await {
         Ok(Some(context)) => context,
         Ok(None) => return Json(json!({"kind":"new_request"})).into_response(),
-        Err(_) => return Json(crate::ask_v2::follow_up::needs_input("This source's inputs have changed. Choose it again from Sources and review its inputs.")).into_response(),
+        Err(_) => return Json(crate::ask_v2::follow_up::needs_input("This saved request cannot be changed right now. Refresh it and review the source inputs.")).into_response(),
     };
     // Use the same optional source branding as the endpoint descriptor route.
     if let Ok(Ok(sources)) = tokio::time::timeout(Duration::from_secs(1), state.engine.catalog.sources()).await {

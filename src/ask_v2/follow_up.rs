@@ -29,22 +29,101 @@ pub(crate) fn needs_input(message: &str) -> Value {
     json!({"kind":"needs_input","message":message})
 }
 
+// The route has already authenticated and loaded this task. Recheck its exact
+// snapshot before allowing a pristine quote to supply continuation inputs.
+const UNAPPROVED_QUOTE_SQL: &str = r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id=$1 AND owner_id=$2 AND revision=$3 AND (document->>'workspace_id')::uuid IS NOT DISTINCT FROM $4 AND expires_at>now())
+AND NOT EXISTS(SELECT 1 FROM authorizations WHERE task_id=$1)
+AND NOT EXISTS(SELECT 1 FROM executions WHERE task_id=$1)
+AND NOT EXISTS(SELECT 1 FROM execution_leases WHERE task_id=$1 AND expires_at>now())"#;
+
+fn pristine_quote(task: &Task) -> bool {
+    task.proposal.is_some()
+        && task.intent.is_some()
+        && !task.cancelled
+        && task.external_purchase.is_none()
+        && task.workflow.is_none()
+        && task.intake_recovery.is_none()
+        && task.execution_error.is_none()
+        && task.completed.is_empty()
+        && task.failed_steps.is_empty()
+        && task.skipped_steps.is_empty()
+        && task.result_refs.is_empty()
+        && task.active_results.is_empty()
+        && task.analysis.is_none()
+        && task.pending_dispatches.is_empty()
+        && task.pending_candidates.is_empty()
+        && task.original_subject.is_none()
+        && task.actions.iter().any(|action| action["kind"] == "run")
+        && task
+            .actions
+            .iter()
+            .all(|action| matches!(action["kind"].as_str(), Some("run" | "cancel")))
+}
+
+pub(crate) async fn saved_context(
+    engine: &Engine,
+    person: &crate::auth::Principal,
+    task_ref: Uuid,
+    revision: i64,
+    task: &Task,
+    catalog: &Catalog,
+) -> Result<Option<Context>> {
+    let prepared = if pristine_quote(task) {
+        let _db = crate::telemetry::db("tasks.follow_up_unapproved");
+        let unapproved: bool = sqlx::query_scalar(UNAPPROVED_QUOTE_SQL)
+            .bind(task_ref)
+            .bind(person.owner)
+            .bind(revision)
+            .bind(person.workspace)
+            .fetch_one(&engine.store.pool)
+            .await?;
+        ensure!(unapproved, "saved_request_not_editable");
+        true
+    } else {
+        false
+    };
+    let result = context_with_prepared(task, catalog, prepared)?;
+    // A known pinned request must not become a generic search merely because
+    // approval/execution state changed while the follow-up was being submitted.
+    let pinned = task
+        .intent
+        .as_ref()
+        .and_then(|intent| intent["goals"].as_array())
+        .is_some_and(|goals| {
+            goals.len() == 1 && goals[0]["constraints"]["endpoint_id"].as_str().is_some()
+        });
+    ensure!(result.is_some() || !pinned, "saved_request_not_editable");
+    Ok(result)
+}
+
 /// Only a saved one-goal endpoint selection is reusable. Generic research and
 /// unfinished tasks cannot accidentally pin their last dependency endpoint.
-pub(crate) fn context(task: &Task, catalog: &Catalog) -> Result<Option<Context>> {
+#[cfg(test)]
+fn context(task: &Task, catalog: &Catalog) -> Result<Option<Context>> {
+    context_with_prepared(task, catalog, false)
+}
+
+fn context_with_prepared(
+    task: &Task,
+    catalog: &Catalog,
+    allow_prepared: bool,
+) -> Result<Option<Context>> {
+    let prepared = allow_prepared && pristine_quote(task);
     if task.external_purchase.is_some()
         || task.workflow.is_some()
         || task.cancelled
         || task.intake_recovery.is_some()
         || !task.pending_dispatches.is_empty()
         || !task.pending_candidates.is_empty()
-        || task.active_result_ref().is_none()
-        || task.actions.iter().any(|action| {
-            matches!(
-                action["kind"].as_str(),
-                Some("run" | "poll" | "wait" | "choose" | "supply" | "analyze")
-            )
-        })
+        || task.execution_error.is_some()
+        || (!prepared && task.active_result_ref().is_none())
+        || (!prepared
+            && task.actions.iter().any(|action| {
+                matches!(
+                    action["kind"].as_str(),
+                    Some("run" | "poll" | "wait" | "choose" | "supply" | "analyze")
+                )
+            }))
     {
         return Ok(None);
     }
@@ -92,7 +171,7 @@ pub(crate) fn context(task: &Task, catalog: &Catalog) -> Result<Option<Context>>
         return Ok(None);
     }
     let saved = selected[0];
-    if !task.completed.contains(&saved.key())
+    if (!prepared && !task.completed.contains(&saved.key()))
         || task.failed_steps.contains_key(&saved.key())
         || task.skipped_steps.contains(&saved.key())
     {
@@ -146,18 +225,22 @@ pub(crate) fn context(task: &Task, catalog: &Catalog) -> Result<Option<Context>>
     }))
 }
 
+fn model_input(question: &str, context: &Context) -> Value {
+    json!({"latest_message":question,"endpoint":{
+            "name":context.descriptor["name"],"description":context.descriptor["description"],
+            "source":context.descriptor["source"],"capability":context.descriptor["capability"],
+            "method":context.method,"path":context.path,"fixed_params":context.fixed_params,"inputs":context.descriptor["inputs"],
+            "outputs":context.descriptor["outputs"],"lookup":context.descriptor["lookup"]
+        },"previous_inputs":context.input})
+}
+
 impl Client {
     pub(crate) async fn endpoint_follow_up(
         &self,
         question: &str,
         context: &Context,
     ) -> Result<Value> {
-        let input = json!({"latest_message":question,"endpoint":{
-            "name":context.descriptor["name"],"description":context.descriptor["description"],
-            "source":context.descriptor["source"],"capability":context.descriptor["capability"],
-            "method":context.method,"path":context.path,"fixed_params":context.fixed_params,"inputs":context.descriptor["inputs"],
-            "outputs":context.descriptor["outputs"],"lookup":context.descriptor["lookup"]
-        },"previous_inputs":context.input});
+        let input = model_input(question, context);
         ensure!(
             serde_json::to_vec(&input)?.len() <= 64_000,
             "follow_up_context_too_large"
@@ -167,8 +250,46 @@ impl Client {
             self.generate_object(PROMPT, &input.to_string(), 2048),
         )
         .await
-        .map_err(|_| anyhow::anyhow!("ask_v2_model_timeout"))??;
-        validate_reply(&raw, question, context)
+        .map_err(|_| {
+            tracing::warn!(
+                surface = "endpoint-follow-up",
+                stage = "generation",
+                reason = "timeout",
+                "follow-up interpretation unavailable"
+            );
+            anyhow::anyhow!("ask_v2_model_timeout")
+        })?
+        .map_err(|error| {
+            tracing::warn!(
+                surface = "endpoint-follow-up",
+                stage = "generation",
+                reason = "transport_or_stream",
+                "follow-up interpretation unavailable"
+            );
+            error
+        })?;
+        validate_reply(&raw, question, context).map_err(|error| {
+            // Classifications only: never log the message, model reply, input,
+            // schema validation detail or saved task/account identifiers.
+            let reason = if error.downcast_ref::<serde_json::Error>().is_some() {
+                "invalid_json_shape"
+            } else {
+                match error.to_string().as_str() {
+                    "invalid_input_evidence" | "ungrounded_input" => "invalid_input_evidence",
+                    "no_requested_change" => "no_requested_change",
+                    "undeclared_input" => "undeclared_input",
+                    "unexpected_edits" | "invalid_follow_up" => "invalid_decision",
+                    _ => "invalid_input",
+                }
+            };
+            tracing::warn!(
+                surface = "endpoint-follow-up",
+                stage = "validation",
+                reason,
+                "follow-up interpretation unavailable"
+            );
+            error
+        })
     }
 }
 
@@ -189,8 +310,13 @@ struct Removal {
 #[serde(deny_unknown_fields)]
 struct Reply {
     kind: String,
+    // JSON-object providers may omit empty fields. Their only safe meaning is
+    // empty; reuse still requires an effective, grounded edit (or literal repeat).
+    #[serde(default)]
     changes: Vec<Edit>,
+    #[serde(default)]
     remove: Vec<Removal>,
+    #[serde(default)]
     message: String,
 }
 
@@ -351,10 +477,39 @@ fn grounded(schema: &Value, value: &Value, quote: &str) -> bool {
                 .as_array()
                 .is_some_and(|options| options.contains(&json!(value)))
                 && (value.eq_ignore_ascii_case(quote)
-                    || currency_alias(quote).is_some_and(|code| code == value))
+                    || quoted_currency(quote).is_some_and(|code| code == *value))
         }
         _ => serde_json::from_str::<Value>(quote).is_ok_and(|literal| literal == *value),
     }
+}
+
+/// Evidence can include a determiner or surrounding request text ("the Yen").
+/// Resolve only one explicit currency within that exact quoted span; a quote
+/// containing two different currencies cannot ground either one on its own.
+fn quoted_currency(quote: &str) -> Option<String> {
+    let words: Vec<_> = quote
+        .split(|ch: char| !ch.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect();
+    let mut codes = BTreeSet::new();
+    const CODES: &[&str] = &[
+        "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS",
+        "INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "SEK", "SGD",
+        "THB", "TRY", "USD", "ZAR",
+    ];
+    for start in 0..words.len() {
+        let code = words[start].to_ascii_uppercase();
+        // Written ISO codes are uppercase, so a verb such as "try" is not TRY.
+        if words[start] == code && CODES.contains(&code.as_str()) {
+            codes.insert(code);
+        }
+        for end in start + 1..=words.len().min(start + 4) {
+            if let Some(code) = currency_alias(&words[start..end].join(" ")) {
+                codes.insert(code.to_owned());
+            }
+        }
+    }
+    (codes.len() == 1).then(|| codes.into_iter().next().unwrap())
 }
 
 /// Standard names, independent of endpoint/provider. Ambiguous names such as
@@ -530,6 +685,46 @@ mod tests {
         .is_err());
     }
     #[test]
+    fn actual_model_yen_reply_may_omit_empty_fields_and_quote_a_determiner() {
+        let (catalog, task) = fixture();
+        let context = context(&task, &catalog).unwrap().unwrap();
+        // Exact real-model output from the first public-fixture diagnostic.
+        let raw = r#"{"kind":"reuse","changes":[{"field":"fx.ecb.quote","value":"JPY","quote":"the Yen"}]}"#;
+        assert_eq!(
+            validate_reply(raw, "now the Yen", &context).unwrap()["input"],
+            json!({"fx.ecb.quote":"JPY"})
+        );
+        // The second genuine model call quoted the complete short message.
+        assert_eq!(
+            validate_reply(
+                &patch("fx.ecb.quote", json!("JPY"), "now the Yen"),
+                "now the Yen",
+                &context
+            )
+            .unwrap()["input"],
+            json!({"fx.ecb.quote":"JPY"})
+        );
+        assert_eq!(
+            validate_reply(r#"{"kind":"new_request"}"#, "explain that", &context).unwrap(),
+            json!({"kind":"new_request"})
+        );
+        assert!(validate_reply(r#"{"kind":"reuse"}"#, "now the Yen", &context).is_err());
+        assert!(validate_reply(r#"{"kind":"needs_input"}"#, "now the dollar", &context).is_err());
+        assert!(validate_reply(
+            &patch("fx.ecb.quote", json!("JPY"), "USD and the Yen"),
+            "USD and the Yen",
+            &context
+        )
+        .is_err());
+        assert!(validate_reply(
+            &patch("fx.ecb.quote", json!("USD"), "the Yen"),
+            "now the Yen",
+            &context
+        )
+        .is_err());
+    }
+
+    #[test]
     fn patches_preserve_unmentioned_typed_values_and_reject_stale_noop_or_unknown_fields() {
         let context = Context {
             descriptor: json!({"inputs":[
@@ -663,6 +858,53 @@ mod tests {
         task.facts.push(conflict);
         assert!(context(&task, &catalog).is_err());
     }
+    #[test]
+    fn unapproved_quote_keeps_its_endpoint_and_latest_inputs_only_after_authoritative_check() {
+        let (catalog, mut task) = fixture();
+        task.completed.clear();
+        task.result_refs.clear();
+        task.active_results.clear();
+        task.actions = vec![json!({"kind":"run","step":0})];
+        task.intent.as_mut().unwrap()["subjects"][0]["values"] = json!({"fx.ecb.quote":"JPY"});
+        assert!(pristine_quote(&task));
+        assert!(context_with_prepared(&task, &catalog, false)
+            .unwrap()
+            .is_none());
+        let context = context_with_prepared(&task, &catalog, true)
+            .unwrap()
+            .unwrap();
+        let response = validate_reply(
+            &patch("fx.ecb.quote", json!("GBP"), "GBP"),
+            "no, GBP",
+            &context,
+        )
+        .unwrap();
+        assert_eq!(response["input"], json!({"fx.ecb.quote":"GBP"}));
+        assert_eq!(
+            response["endpoint"]["endpoint_id"],
+            context.descriptor["endpoint_id"]
+        );
+        for state in ["failed", "partial", "running", "ambiguous", "cancelled"] {
+            let mut changed = task.clone();
+            match state {
+                "failed" => changed.execution_error = Some(json!({"code":"failed"})),
+                "partial" => {
+                    changed.failed_steps.insert("failed".into(), json!({}));
+                }
+                "running" => changed.actions = vec![json!({"kind":"poll"})],
+                "ambiguous" => changed.pending_candidates.push(json!({"id":"choice"})),
+                _ => changed.cancelled = true,
+            }
+            assert!(!pristine_quote(&changed), "{state}");
+            assert!(
+                context_with_prepared(&changed, &catalog, true)
+                    .unwrap()
+                    .is_none(),
+                "{state}"
+            );
+        }
+    }
+
     #[test]
     fn changing_lookup_seed_discards_old_resolved_identifiers_and_keeps_other_inputs() {
         let context = Context {
