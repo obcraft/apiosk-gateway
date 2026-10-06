@@ -1,0 +1,83 @@
+[
+  {
+    "slug": "cryptopulse",
+    "name": "CryptoPulse",
+    "block_reason": null,
+    "metadata": {
+      "endpoints": [
+        {
+          "path": "/api/equity-positioning",
+          "method": "GET",
+          "source_url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+          "description": "Positioning and sentiment on stock perps — which side of TSLA, NVDA or gold is crowded right now, 24/7. Funding rates and open interest on equities exist nowhere else. Answers \"most crowded equity trade\", \"are TSLA longs paying\", \"where is open interest concentrated\". Per market: annualized funding, crowding label, OI in USD, OI share, volume/OI turnover, premium vs oracle. From Hyperliquid HIP-3 markets. Deterministic, no LLM.",
+          "endpoint_id": "0765e83f-010e-4b2e-9bd0-5b87833e9eaf",
+          "list_atomic": 30000
+        },
+        {
+          "path": "/api/research-brief",
+          "method": "GET",
+          "source_url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+          "description": "Institutional-grade, decision-ready crypto market brief — spot, derivatives (funding, options skew, DVOL), on-chain flows, regional premiums and macro-event odds. For trading and advisor agents.",
+          "endpoint_id": "9257513d-2f4e-412d-a738-bec2abf4f2ac",
+          "list_atomic": 500000
+        },
+        {
+          "path": "/api/research-snapshot",
+          "method": "GET",
+          "source_url": "https://cryptopulse.theaslangroupllc.com/llms.txt",
+          "description": "Deterministic, data-only crypto snapshot: BTC/ETH price, 24h change, market cap, BTC dominance, total market cap, and Fear & Greed sentiment. No LLM, no narrative — a $0.25 preview tier for agents with small per-call spend caps. Includes an upsell pointer to the $0.50 /api/research-brief for regime calls, catalysts, derivatives (funding/DVOL/skew), on-chain flows and macro-event odds.",
+          "endpoint_id": "88994768-2735-4a99-9450-143a441f8ae1",
+          "list_atomic": 250000
+        }
+      ],
+      "description": "Real-time cryptocurrency intelligence API. Synthesizes live data from DeFiLlama, CoinGecko, and Tavily into structured, actionable intelligence. 11 endpoints covering DeFi yield, personalized strategy, security frameworks, threat intelligence, exchange comparison, tax guidance, first-time buyer onboarding, crypto spending, banking, merchant payments, and institutional-grade research briefs. Pay-per-query via x402 micropayments on Base.",
+      "provider_slug": "pulsenetwork"
+    }
+  },
+  {
+    "slug": "macropulse",
+    "name": "MacroPulse",
+    "block_reason": null,
+    "metadata": {
+      "endpoints": [
+        {
+          "path": "/api/crypto-pulse",
+          "method": "GET",
+          "source_url": "https://macropulse.theaslangroupllc.com/llms.txt",
+          "description": "Crypto market context for macro and multi-asset agents — BTC, ETH and majors with the Fear and Greed read and the risk-on/risk-off signal that ties crypto to broader macro flows.",
+          "endpoint_id": "10113620-3e13-4378-a615-31e939fd8b97",
+          "list_atomic": 50000
+        },
+        {
+          "path": "/api/sentiment",
+          "method": "GET",
+          "source_url": "https://macropulse.theaslangroupllc.com/llms.txt",
+          "description": "Real-time directional sentiment for any forex pair or gold — retail crowd positioning, COT institutional alignment, and a clear contrarian bias call. Built for FX trading and advisor agents.",
+          "endpoint_id": "d785de6c-cdee-4fd8-8847-ed3d69fa04ce",
+          "list_atomic": 50000
+        }
+      ],
+      "description": "Real-time macro intelligence API for forex and CFD traders, plus deterministic market primitives. 14 endpoints: session briefs, economic events, COT positioning, commodities, equities, economic calendar, crypto, EIA inventory, directional sentiment, intermarket synthesis, rate differentials and macro regime classification (LLM-synthesized from FRED, CFTC, Alpha Vantage, EIA, CoinGecko and Tavily) — plus two zero-LLM, fully deterministic primitives at $0.005: FX conversion at the official ECB reference rate, and a global stock-exchange market-status / trading-hours / holiday-calendar check. Pay-per-query via x402 micropayments on Base and Solana.",
+      "provider_slug": "pulsenetwork"
+    }
+  },
+  {
+    "slug": "signalpulse",
+    "name": "SignalPulse",
+    "block_reason": null,
+    "metadata": {
+      "endpoints": [
+        {
+          "path": "/api/scan/crypto-lite",
+          "method": "GET",
+          "source_url": "https://signalpulse.theaslangroupllc.com/llms.txt",
+          "description": "Crypto market tick — BTC, ETH, SOL live price + 24h change, Fear & Greed index, and a deterministic regime verdict (RISK_ON / DRIFT_UP / CHOP / DRIFT_DOWN / RISK_OFF) in ONE $0.05 call. Built for agent loops that need a cheap market pulse every cycle; escalate to /api/scan/crypto ($2) for the institutional deep scan with technicals, derivatives and a directional call. 60s freshness, no LLM in the path.",
+          "endpoint_id": "285e4ede-4a71-4527-b3c7-9c0de9ee1033",
+          "list_atomic": 50000
+        }
+      ],
+      "description": "Cross-asset trading intelligence engine. Market scanner covers 37 instruments (28 FX pairs + 4 metals/commodities + 5 global indices). FX-only scanner for 28 pairs. Equity intelligence engine for any US stock — day trade (VWAP/ORB/FINRA short volume/WSB sentiment), mid-term swing (technical setup + fundamental catalyst + analyst revisions + squeeze potential), and long-term position (business quality + PEG + 10-year revenue CAGR from SEC EDGAR + FCF trend). Equity screener finds the best stock to buy right now. Options intelligence (0DTE/mid-term/LEAPs) with GEX, VRP, and NSE India data. Sports picks for 35+ sports. Polymarket prediction market scanner. Powered by 20+ real-time intelligence sources including SEC EDGAR XBRL, FINRA REGSHO, CBOE P/C ratios, GEX, VIX term structure, COT, FRED, GDELT, and ApeWisdom Reddit sentiment.",
+      "provider_slug": "pulsenetwork"
+    }
+  }
+]

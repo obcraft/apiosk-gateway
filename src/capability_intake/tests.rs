@@ -506,7 +506,7 @@ async fn external_only_match_cannot_become_an_apiosk_quote() {
     assert!(!intake.matches[0].coinbase.is_empty());
     let reply=parser.chat_from_capabilities(QUESTION, None, &task, &c, &intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none(), "external discovery cannot become an Apiosk quote");
-    assert!(reply.message.contains("geen passende uitvoerbare bron") || reply.message.contains("No matching executable source"));
+    assert!(reply.message.contains("aanvullende diensten gevonden") || reply.message.contains("Additional services were found"));
     server.abort();
 }
 

@@ -4,7 +4,7 @@ use crate::{
     capability_intake::{
         capability_query, normalize_slug, Candidate, Capability, Match, ParsedRequest,
     },
-    catalog::{Catalog, KnownSource, Service},
+    catalog::{Catalog, KnownSource, ListedEndpoint, Service},
     state::Task,
 };
 use std::{
@@ -33,6 +33,7 @@ const INSIDER_TRADES: u16 = 2048;
 const VALUATION: u16 = 4096;
 const LEGISLATION: u16 = 8192;
 const ADVERSE_MEDIA: u16 = 16384;
+const SENTIMENT: u16 = 32768;
 const SPECIFIC_OPERATIONS: u16 = STOCK_MARKET | ANALYST_CONSENSUS | INSIDER_TRADES | VALUATION | ADVERSE_MEDIA;
 const LOCATION_FACETS: u16 = BUILDING | NEIGHBOURHOOD | BOUNDARY | VIOLATIONS | PERMITS;
 const FACETS: &[(u16, &str)] = &[
@@ -43,12 +44,17 @@ const FACETS: &[(u16, &str)] = &[
     (PERMITS, "@permits"), (STOCK_MARKET, "@stock-market"),
     (ANALYST_CONSENSUS, "@analyst-consensus"), (INSIDER_TRADES, "@insider-trades"),
     (VALUATION, "@valuation"), (LEGISLATION, "@legislation"), (ADVERSE_MEDIA, "@adverse-media"),
+    (SENTIMENT, "@sentiment"),
 ];
 
 #[derive(Clone, Copy)]
 enum Target {
     Endpoint(usize),
+    Listing(usize, usize),
     Source(usize),
+}
+impl Target {
+    fn is_endpoint(self) -> bool { matches!(self, Self::Endpoint(_) | Self::Listing(_, _)) }
 }
 
 struct Document {
@@ -238,7 +244,25 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
     }
+    let accepted: BTreeSet<_> = catalog.services.iter().map(|service| service.endpoint_id).collect();
     for (position, source) in catalog.known_sources.iter().enumerate() {
+        for (listing, endpoint) in source.metadata.endpoints.iter().enumerate() {
+            if accepted.contains(&endpoint.endpoint_id) { continue; }
+            let target = Target::Listing(position, listing);
+            // Index the operation, not its provider's marketing or the names
+            // of inputs. The contractless endpoint remains discovery-only.
+            let description = &endpoint.description;
+            let rendering = english.render(&[description]);
+            let mut indexed = document(target, &format!("{description} {rendering}"), BTreeSet::new());
+            indexed.topic_scope = document(target, &format!("{} {}",
+                opening_description(description), opening_description(&rendering)), BTreeSet::new()).tokens;
+            indexed.operation_words = words(&format!("{description} {rendering}"));
+            indexed.derivative_asset = relevance::derivative_market(description) || relevance::derivative_market(&rendering);
+            indexed.enterprise_multiple = relevance::enterprise_ratio(description) || relevance::enterprise_ratio(&rendering);
+            indexed.coverage = country::source(source);
+            rendered.push(rendered_only(&indexed, Some(description)));
+            documents.push(indexed);
+        }
         let descriptions = &source.metadata.capability_descriptions;
         let mut text = format!(
             "{} {} {} {} {}",
@@ -408,7 +432,7 @@ fn singular(word: &str) -> Option<String> {
 }
 
 fn words(text: &str) -> BTreeSet<String> {
-    tokens(text)
+    let mut result: BTreeSet<String> = tokens(text)
         .iter()
         .filter_map(|word| {
             match DUTCH_STATISTICS.iter().find(|(dutch, _)| dutch == word) {
@@ -416,7 +440,11 @@ fn words(text: &str) -> BTreeSet<String> {
                 None => singular(word),
             }
         })
-        .collect()
+        .collect();
+    // Fear & Greed is a named sentiment measurement, including when the
+    // provider spells it without the word "sentiment".
+    if result.contains("fear") && result.contains("greed") { result.insert("sentiment".into()); }
+    result
 }
 
 /// Dutch statistics words and the English word the parser writes for them.
@@ -602,6 +630,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         | u16::from(valuation) * VALUATION
         | u16::from(has("legislation")) * LEGISLATION
         | u16::from(has("adverse") && has("media")) * ADVERSE_MEDIA
+        | u16::from(has("sentiment")) * SENTIMENT
         | location;
     tokens.retain(|token| !vague(token));
     for &(facet, marker) in FACETS {
@@ -882,6 +911,17 @@ fn source(source: &KnownSource) -> Candidate {
     }
 }
 
+fn listing(source: &KnownSource, endpoint: &ListedEndpoint) -> Candidate {
+    Candidate {
+        origin: "apiosk".into(), name: source.name.clone(), description: endpoint.description.clone(),
+        source_slug: Some(source.slug.clone()), capability: None,
+        endpoint_id: Some(endpoint.endpoint_id.to_string()),
+        url: endpoint.source_url.as_deref().and_then(safe_url), method: endpoint.method.clone(),
+        // Execution and its final price still need an accepted contract.
+        price: None, network: None, calls_30d: None, availability: "discovery_only".into(),
+    }
+}
+
 /// A relevant candidate and its place in the ranking.
 struct Ranked<T> {
     /// Bound to another country than the subject's (see `country`).
@@ -925,10 +965,12 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 .union(relevance::Request::new(translated, english));
             let signal = country::Signal::infer(parsed, capability);
             let mut endpoints = Vec::new();
+            let mut listings = Vec::new();
             let mut sources = Vec::new();
             for candidate in &index.documents {
                 let (slug, position) = match candidate.target {
                     Target::Endpoint(position) => (&catalog.services[position].api_slug, position),
+                    Target::Listing(position, _) => (&catalog.known_sources[position].slug, position),
                     Target::Source(position) => (&catalog.known_sources[position].slug, position),
                 };
                 if restricted
@@ -953,6 +995,9 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                         score,
                         item: &catalog.services[position],
                     }),
+                    Target::Listing(_, listing) => listings.push(Ranked {
+                        demoted, score, item: (&catalog.known_sources[position], &catalog.known_sources[position].metadata.endpoints[listing]),
+                    }),
                     Target::Source(_) => sources.push(Ranked {
                         demoted,
                         score,
@@ -975,6 +1020,9 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     .then(b.score.total_cmp(&a.score))
                     .then(a.item.slug.cmp(&b.item.slug))
             });
+            listings.sort_by(|a, b| b.score.total_cmp(&a.score)
+                .then(a.item.0.slug.cmp(&b.item.0.slug))
+                .then(a.item.1.endpoint_id.cmp(&b.item.1.endpoint_id)));
             let mut seen_endpoints = BTreeSet::new();
             let mut apiosk: Vec<_> = endpoints
                 .iter()
@@ -982,12 +1030,17 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 .take(3)
                 .map(|ranked| endpoint(ranked.item))
                 .collect();
+            // Missing automation support must not erase registered matching
+            // endpoints or displace executable choices. Keep both shortlists.
+            apiosk.extend(listings.iter()
+                .filter(|ranked| seen_endpoints.insert(ranked.item.1.endpoint_id))
+                .take(3).map(|ranked| listing(ranked.item.0, ranked.item.1)));
             let mut seen_sources: BTreeSet<_> = apiosk
                 .iter()
                 .filter_map(|candidate| candidate.source_slug.clone())
                 .collect();
             for candidate in sources.iter().map(|ranked| ranked.item) {
-                if apiosk.len() == 3 {
+                if apiosk.len() >= 3 {
                     break;
                 }
                 if seen_sources.insert(candidate.slug.clone()) {
@@ -1110,9 +1163,76 @@ mod tests {
             bazaar("Market & brand sentiment for any keyword, brand, ticker or product: analyses the sentiment of web & news content."),
             bazaar("Composite bull/bear sentiment for a crypto ticker or topic, fused across three sources."),
             bazaar("Composite crypto market sentiment, optionally focused on a coin or query."),
+            bazaar("Real-time directional sentiment for any forex pair or gold — retail crowd positioning and COT alignment."),
         ];
         filter_coinbase(&request, &mut external);
         assert_eq!(external[0].coinbase.len(), 3);
+    }
+
+    #[test]
+    fn pulse_sentiment_endpoints_are_found_without_execution_contracts() {
+        // Exact registered Pulse descriptions/identities read on 2026-10-06.
+        // No execution contracts are manufactured for these directory rows.
+        let sources: Vec<KnownSource> = serde_json::from_str(include_str!(
+            "../../tests/fixtures/pulse-sentiment-discovery.json")).unwrap();
+        let mut request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis",
+            "description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["sentiment_score".into(), "dominant_sentiment".into()];
+        let c = catalog(vec![], sources.clone());
+        let found = search(&request, &c);
+        let expected = BTreeSet::from([
+            "88994768-2735-4a99-9450-143a441f8ae1", // CryptoPulse snapshot
+            "10113620-3e13-4378-a615-31e939fd8b97", // MacroPulse crypto
+            "285e4ede-4a71-4527-b3c7-9c0de9ee1033", // SignalPulse crypto-lite
+        ]);
+        assert_eq!(found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.as_deref()).collect::<BTreeSet<_>>(), expected,
+            "{:#?}", found[0].apiosk);
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.availability == "discovery_only" && candidate.capability.is_none()));
+        assert!(found[0].operations.is_empty());
+        // The match remains visible alongside an executable local result.
+        let city = service(920, "finance_markets.cityfalcon-sentiment", "CityFALCON",
+            "Market sentiment with positive, negative and neutral shares for explicit tickers.", "cityfalcon");
+        let combined = search(&request, &catalog(vec![city], sources.clone()));
+        assert_eq!(combined[0].apiosk.len(), 4);
+        assert_eq!(combined[0].operations, BTreeSet::from(["finance_markets.cityfalcon-sentiment".to_owned()]));
+        // A different subject must not supply false lexical evidence, and a
+        // provider preference must still resolve all of Pulse's member APIs.
+        request.subjects[0].label = "Solana".into();
+        request.capabilities[0].source_hint = Some("Pulse Network".into());
+        assert_eq!(search(&request, &c)[0].apiosk.len(), 3);
+
+        // The real forex sentiment endpoint is discoverable for its domain,
+        // but is excluded from the crypto request above.
+        request.subjects.clear();
+        request.capabilities[0].subject_id = None;
+        request.capabilities[0].description = "Directional sentiment for a forex pair.".into();
+        let forex = search(&request, &c);
+        assert!(forex[0].apiosk.iter().any(|candidate| candidate.endpoint_id.as_deref() == Some("d785de6c-cdee-4fd8-8847-ed3d69fa04ce")));
+    }
+
+    #[test]
+    fn registered_listing_does_not_duplicate_its_executable_endpoint() {
+        let mut endpoint = service(921, "research.sentiment.analysis", "Sentiment source",
+            "Sentiment analysis with positive and negative scores.", "sentiment-source");
+        let mut source = known("sentiment-source", "Sentiment source", "Sentiment analysis.");
+        source.metadata.endpoints.push(ListedEndpoint {
+            endpoint_id: endpoint.endpoint_id, description: endpoint.description.clone().unwrap(),
+            method: "GET".into(), path: "/sentiment".into(), source_url: None,
+        });
+        let request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis"})]);
+        let found = search(&request, &catalog(vec![endpoint.clone()], vec![source.clone()]));
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].availability, "supported");
+        // A rejected contract still leaves its registered endpoint visible,
+        // but cannot become a selected executable operation.
+        endpoint.list_atomic = -1;
+        let found = search(&request, &catalog(vec![endpoint], vec![source]));
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].availability, "discovery_only");
+        assert!(found[0].operations.is_empty());
     }
 
     #[test]

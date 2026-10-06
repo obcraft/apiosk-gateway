@@ -977,7 +977,7 @@ fn without_a_country_signal_the_lexical_order_is_unchanged() {
                     (score > 0.0 && floor.passes(&wanted, candidate, &index, false))
                         .then(|| (score, &catalog.services[position]))
                 }
-                Target::Source(_) => None,
+                Target::Source(_) | Target::Listing(_, _) => None,
             })
             .collect();
         lexical.sort_by(|a, b| {
@@ -1038,6 +1038,8 @@ fn relevant(ask: &Ask) -> Vec<String> {
                 catalog.services[position].contract.capability_slug
             ),
             Target::Source(position) => format!("{}:-", catalog.known_sources[position].slug),
+            Target::Listing(position, listing) => format!("{}:{}", catalog.known_sources[position].slug,
+                catalog.known_sources[position].metadata.endpoints[listing].path),
         })
         .collect()
 }
@@ -1223,5 +1225,4 @@ fn a_country_subject_lifts_its_national_statistics_office() {
         "{german:?}"
     );
 }
-
 

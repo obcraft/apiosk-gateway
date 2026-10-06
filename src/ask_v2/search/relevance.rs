@@ -28,7 +28,7 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
+use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SENTIMENT, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
 use crate::{
     capability_intake::{capability_query, Capability, ParsedRequest},
     state::Task,
@@ -92,6 +92,7 @@ pub(super) struct Request {
     corporate_valuation: bool,
     enterprise_multiple: bool,
     equity_quote: bool,
+    crypto_sentiment: bool,
     metrics: MetricScope,
 }
 
@@ -223,7 +224,12 @@ impl Request {
         let equity_quote = primary_facets & STOCK_MARKET != 0
             && ["price", "quote"].iter().any(|word| valuation_words.contains(*word))
             && !derivative_market(&format!("{} {}", capability.name, capability.description));
+        let crypto_sentiment = primary_facets & SENTIMENT != 0
+            && (valuation_words.iter().any(|word| matches!(word.as_str(), "crypto" | "cryptocurrency"))
+                || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+                    .is_some_and(|subject| subject.kind.starts_with("crypto")));
         Self {
+            crypto_sentiment,
             metrics: MetricScope::new(capability),
             primary_facets,
             corporate_valuation,
@@ -271,14 +277,16 @@ impl Request {
         self.corporate_valuation |= other.corporate_valuation;
         self.enterprise_multiple |= other.enterprise_multiple;
         self.equity_quote |= other.equity_quote;
+        self.crypto_sentiment |= other.crypto_sentiment;
         self.metrics.union(other.metrics);
         self
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
-        if matches!(candidate.target, Target::Endpoint(_)) && !self.metrics.supported_by(candidate) {
+        if candidate.target.is_endpoint() && !self.metrics.supported_by(candidate) {
             return false;
         }
+        if !self.sentiment_scope_matches(candidate) { return false; }
         if self.equity_quote {
             // A derivative mark can track a stock without being that stock's
             // exchange quote. Likewise filings and positioning are not prices.
@@ -306,7 +314,7 @@ impl Request {
         // Measurement/presentation words do not make a second subject:
         // "unemployment rate statistics" still asks about unemployment.
         let core = |word: &String| !matches!(word.as_str(), "statistic" | "rate" | "count" | "volume" | "metric" | "data");
-        let generated = matches!(candidate.target, Target::Endpoint(_)) && candidate.contract.is_empty();
+        let generated = candidate.target.is_endpoint() && candidate.contract.is_empty();
         let anchored = self.topic.iter().filter(|word| (!generated || core(word))
             && (candidate.topic_scope.contains(*word) || candidate.contract.contains(*word))).count();
         // Unreviewed routes cannot establish a compound operation from one
@@ -317,6 +325,10 @@ impl Request {
             self.anchors.iter().filter(|word| core(word)).count().min(2).max(1)
         } else { 1 };
         anchored >= needed
+            // A named measurement is also an explicit output when it follows
+            // a short title such as "Crypto market context — ...".
+            || (self.primary_facets & SENTIMENT != 0
+                && candidate.operation_words.contains("fear") && candidate.operation_words.contains("greed"))
             || self.primary_facets & candidate.contract_facets != 0
             || (self.primary_facets != 0 && wanted.tokens.iter()
                 .filter(|word| word.starts_with('@'))
@@ -332,11 +344,22 @@ impl Request {
         corporate && (!self.enterprise_multiple || candidate.enterprise_multiple)
     }
 
+    fn sentiment_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.crypto_sentiment { return true; }
+        let scope = if candidate.operation_words.is_empty() { &candidate.tokens } else { &candidate.operation_words };
+        // Generic text/topic sentiment remains a discovery option. Explicit
+        // coverage of a different market is not coverage of cryptocurrency.
+        let crypto = ["crypto", "cryptocurrency", "bitcoin", "btc", "ethereum", "eth"].iter().any(|word| scope.contains(*word));
+        let another_scope = ["forex", "gold", "equity", "stock", "country", "geopolitical", "fragrance", "perfume"].iter().any(|word| scope.contains(*word));
+        crypto || !another_scope
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        if !self.sentiment_scope_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
             || self
                 .anchors
@@ -361,13 +384,20 @@ impl Request {
     ) -> bool {
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.
-        if self.enterprise_multiple && matches!(candidate.target, Target::Endpoint(_))
+        if self.enterprise_multiple && candidate.target.is_endpoint()
             && !self.valuation_matches(candidate) { return false; }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
-        if matches!(candidate.target, Target::Endpoint(_))
+        if candidate.target.is_endpoint()
             && !self.primary_topic_matches(wanted, candidate) { return false; }
+        // A registered listing can establish a discovery match from its own
+        // operation description, just like a Bazaar listing. Requiring a
+        // second contract/output signal here hides clear matches such as
+        // "annual accounts" when no execution contract exists yet.
+        if matches!(candidate.target, Target::Listing(_, _)) {
+            return self.mentions(wanted, candidate);
+        }
         if !hinted && candidate.contract.is_empty() && !self.primary_topic_matches(wanted,candidate) { return false; }
         let facet = wanted.facets & candidate.facets != 0;
         // A shared facet already stands for its vocabulary ("officer",

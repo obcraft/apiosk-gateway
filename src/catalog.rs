@@ -171,6 +171,16 @@ pub struct KnownSource {
     #[serde(default)]
     pub metadata: crate::readiness::Metadata,
 }
+/// A registered endpoint is discoverable even before it has an accepted
+/// execution contract. These records never enter the executable catalog.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListedEndpoint {
+    pub endpoint_id: Uuid,
+    pub description: String,
+    pub method: String,
+    pub path: String,
+    pub source_url: Option<String>,
+}
 #[derive(Debug, Clone)]
 pub struct Catalog {
     pub services: Vec<Service>,

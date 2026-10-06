@@ -373,6 +373,7 @@ fn units(catalog: &Catalog) -> Vec<(&str, Kind)> {
         texts.push((&source.name, Kind::Label));
         texts.push((&source.metadata.description, Kind::Prose));
         texts.push((&source.metadata.category, Kind::Label));
+        texts.extend(source.metadata.endpoints.iter().map(|endpoint| (endpoint.description.as_str(), Kind::Prose)));
         if let Some(descriptions) = source.metadata.capability_descriptions.as_object() {
             texts.extend(
                 descriptions
