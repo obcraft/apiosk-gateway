@@ -1220,7 +1220,7 @@ mod tests {
         let mut source = known("sentiment-source", "Sentiment source", "Sentiment analysis.");
         source.metadata.endpoints.push(ListedEndpoint {
             endpoint_id: endpoint.endpoint_id, description: endpoint.description.clone().unwrap(),
-            method: "GET".into(), path: "/sentiment".into(), source_url: None,
+            method: "GET".into(), path: "/sentiment".into(), source_url: None, registration: None,
         });
         let request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis"})]);
         let found = search(&request, &catalog(vec![endpoint.clone()], vec![source.clone()]));

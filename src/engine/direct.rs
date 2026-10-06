@@ -237,6 +237,34 @@ mod tests {
     }
 
     #[test]
+    fn registered_endpoint_asks_for_missing_values_then_prices_and_binds_the_users_inputs() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/registered-endpoints.json")).unwrap());
+        for service in &catalog.services {
+            assert_eq!(Engine::endpoint_service(&catalog, service.endpoint_id, None).unwrap().id, service.id);
+            let mut intent = endpoint_intent(&catalog, service, &BTreeMap::new()).unwrap();
+            let mut task = Task::default();
+            input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            assert!(matches!(resolver::resolve(&catalog, &task, &intent), Resolution::Missing { .. }));
+
+            let values = match service.path.as_str() {
+                "/api/facet/liquidity" => json!({"address":"0x1234567890123456789012345678901234567890","chain":"ethereum"}),
+                "/api/public-data/classified-listing-search" => json!({"city":"sfbay","category":"sss","query":"bicycle","hasPic":true,"proxiesSx":{"country":"US","enabled":false}}),
+                _ => json!({"resourceId":"san-francisco-ca","bedrooms":"1,2"}),
+            };
+            let supplied = service.contract.input_map.iter().filter_map(|(field, binding)| values.get(&binding.name).map(|value| (field.clone(), value.clone()))).collect();
+            let mut intent = endpoint_intent(&catalog, service, &supplied).unwrap();
+            let mut task = Task::default();
+            input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+            let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected registered endpoint quote: {}", service.path) };
+            assert_eq!(plan.steps.len(), 1);
+            assert_eq!(plan.cap_atomic, service.total());
+            let wire = service.inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary).unwrap();
+            for (name, value) in values.as_object().unwrap() { assert_eq!(&wire[name], value); }
+            if service.method == "POST" { assert_eq!(wire["limit"], 25); }
+        }
+    }
+
+    #[test]
     fn native_name_lookup_is_priced_with_the_pinned_endpoint() {
         let catalog = catalog();
         let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();

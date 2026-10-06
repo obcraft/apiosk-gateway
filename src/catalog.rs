@@ -13,6 +13,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
 
 mod refresh;
+mod registered;
 use refresh::{Policy, Refreshing};
 
 pub const CATALOG_SQL: &str = include_str!("catalog.sql");
@@ -24,15 +25,18 @@ pub(crate) fn execution_catalog_sql() -> String {
     let (_, services) = CATALOG_SQL.split_once(" 'vocabulary',")
         .expect("catalog vocabulary boundary");
     let services = services.replace("WHERE (c.status='active' OR", "WHERE c.id=ANY($1) AND (c.status='active' OR");
-    format!("SELECT jsonb_build_object('known_sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'block_reason',listing_metadata->>'planner_block_reason')),'[]') FROM apis WHERE status='active' AND coalesce(active,true) AND is_verified=true AND coalesce(discoverable,true) AND suspended_at IS NULL), 'vocabulary',{services}")
+    let registered = include_str!("catalog/registered.sql");
+    format!("SELECT jsonb_build_object('known_sources',({registered}), 'vocabulary',{services}")
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Service {
-    /// A staged source-document contract without a live response yet. It is
-    /// chosen only when no verified service fits, never in auto mode, and a
-    /// usable first response promotes it (see engine::results).
+    /// A registered operation or staged source-document mapping without live
+    /// response evidence. Purchases require explicit approval; only persisted
+    /// staged mappings are promoted after a usable response (engine::results).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub unverified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registered_input_hash: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -60,6 +64,11 @@ pub struct Service {
     pub jurisdiction: Option<String>,
 }
 impl Service {
+    /// A direct operation derived from the registered endpoint's own inputs.
+    /// It does not need a separately authored planner mapping or database row.
+    pub fn is_registered_operation(&self) -> bool {
+        self.id == self.endpoint_id && self.contract.capability_slug == format!("endpoint.{}", self.endpoint_id.simple())
+    }
     pub fn usage_notice_view(&self) -> Option<Value> {
         let notice = self.usage_notice.as_ref()?;
         let text = notice.get("text")?.as_str()?.trim();
@@ -171,8 +180,7 @@ pub struct KnownSource {
     #[serde(default)]
     pub metadata: crate::readiness::Metadata,
 }
-/// A registered endpoint is discoverable even before it has an accepted
-/// execution contract. These records never enter the executable catalog.
+/// Registered inputs and pricing also support direct, user-selected calls.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListedEndpoint {
     pub endpoint_id: Uuid,
@@ -180,6 +188,8 @@ pub struct ListedEndpoint {
     pub method: String,
     pub path: String,
     pub source_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub registration: Option<registered::Registration>,
 }
 #[derive(Debug, Clone)]
 pub struct Catalog {
@@ -195,16 +205,20 @@ pub struct Catalog {
     pub english: Arc<crate::english::Memory>,
 }
 impl Catalog {
-    pub fn build(snapshot: Snapshot) -> Self {
+    pub fn build(mut snapshot: Snapshot) -> Self {
+        registered::extend(&mut snapshot);
         let version = digest(&snapshot);
         let vocabulary: Vocabulary = snapshot
             .vocabulary
             .into_iter()
             .map(|f| (f.slug.clone(), f))
             .collect();
-        let mut services = vec![];
+        let mut services: Vec<Service> = vec![];
         let mut rejected = vec![];
         for service in snapshot.services {
+            // Authored mappings keep priority when valid. Their absence or
+            // rejection does not disable a registered endpoint's input form.
+            if service.is_registered_operation() && services.iter().any(|accepted| accepted.endpoint_id == service.endpoint_id) { continue; }
             let validation = (|| -> anyhow::Result<()> {
                 anyhow::ensure!(!snapshot.known_sources.iter().any(|s| s.slug == service.api_slug && s.block_reason.is_some()), "source blocked for execution");
                 anyhow::ensure!(

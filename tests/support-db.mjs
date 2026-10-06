@@ -117,5 +117,20 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!name.endsWith('_recurring_orders.sql')).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
 }
+// Production uses providers/catalog/actions schemas. Keep the legacy fixture
+// writers intact while exercising the same qualified runtime SELECTs and grants.
+await db.exec('CREATE SCHEMA IF NOT EXISTS providers; CREATE SCHEMA IF NOT EXISTS actions; GRANT USAGE ON SCHEMA providers,actions TO gateway_v2_runtime;');
+for (const [target, source] of [
+ ['providers.apis','public.apis'], ['providers.api_endpoints','public.api_endpoints'],
+ ['providers.provider_profiles','public.provider_profiles'], ['catalog.fact_types','public.fact_types'],
+ ['catalog.capabilities','public.capabilities'], ['catalog.capability_execution_contracts','public.capability_execution_contracts'],
+ ['actions.executions','gateway_v2.executions'], ['actions.user_selected_apis','public.user_selected_apis'],
+]) {
+ // A SELECT * view would require access to private fixture columns (e.g.
+ // provider credentials) even when the outer query does not select them.
+ const {rows}=await db.query("SELECT attname FROM pg_attribute WHERE attrelid=$1::regclass AND attnum>0 AND NOT attisdropped AND has_column_privilege('gateway_v2_runtime',$1,attname,'SELECT') ORDER BY attnum",[source]);
+ const columns=rows.map(row=>'"'+row.attname.replaceAll('"','""')+'"').join(',');
+ await db.exec(`CREATE VIEW ${target} WITH (security_invoker=true) AS SELECT ${columns} FROM ${source}; GRANT SELECT ON ${target} TO gateway_v2_runtime;`);
+}
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));
 process.on('SIGTERM',()=>{server.close();db.close().finally(()=>process.exit(0));});

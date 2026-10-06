@@ -117,7 +117,7 @@ fn valid_operation(value: &str) -> bool {
 #[serde(deny_unknown_fields)]
 pub(super) struct EndpointQuery { capability: Option<String> }
 
-/// Inputs and prices come from the current executable contract, never from a
+/// Inputs and prices come from the current registered endpoint or mapping, never from a
 /// directory card or the model's parsed metadata. This does not create a task.
 /// Connected chatbots read it too: they fill in the inputs they are shown.
 pub(super) async fn endpoint(
@@ -609,12 +609,12 @@ fn buyer_discovery_price(price: &str) -> Option<String> {
     Some(format!("{}.{:06} USD", total / 1_000_000, total % 1_000_000))
 }
 
-/// Every executable candidate carries its contract's own inputs and price, so
+/// Every purchasable candidate carries its declared inputs and price, so
 /// a caller can fill in the input object that prepare accepts.
 fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, sources: Option<&[crate::sources::Source]>) {
     for found in matches.as_array_mut().into_iter().flatten() {
         for candidate in found["apiosk"].as_array_mut().into_iter().flatten() {
-            if candidate["availability"] != "supported" { continue; }
+            if !matches!(candidate["availability"].as_str(), Some("supported" | "unverified")) { continue; }
             let Some(id) = candidate["endpoint_id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) else { continue };
             let Ok(service) = crate::engine::Engine::endpoint_service(catalog, id, candidate["capability"].as_str()) else { continue };
             let source = sources.and_then(|sources| sources.iter().find(|source| source.slug == service.api_slug));
@@ -911,6 +911,20 @@ mod tests {
         assert_eq!(descriptor["lookup"], json!({"field":"geo.input.q","resolves":["location.neighbourhood_code"],"schema":{"type":"string"}}));
         assert_eq!(descriptor["inputs"][0]["field"], "location.neighbourhood_code");
         assert_eq!(descriptor["price"]["buyer_atomic"], service.total().to_string());
+    }
+
+    #[test]
+    fn registered_candidates_publish_their_input_forms_without_a_planner_mapping() {
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/registered-endpoints.json")).unwrap());
+        let mut found = json!([{"apiosk":catalog.services.iter().map(|service| json!({
+            "endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"availability":"unverified"
+        })).collect::<Vec<_>>()}]);
+        describe_endpoints(&mut found, &catalog, None);
+        for candidate in found[0]["apiosk"].as_array().unwrap() {
+            assert!(candidate["endpoint"]["price"]["buyer_atomic"].is_string());
+            assert!(candidate["endpoint"]["inputs"].as_array().unwrap().iter().any(|input| input["required"] == true));
+            assert!(candidate["endpoint"]["inputs"].as_array().unwrap().iter().all(|input| input["schema"]["title"].is_string()));
+        }
     }
 
     #[test]

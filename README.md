@@ -27,6 +27,13 @@ De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en geva
 
 Zie [ChatGPT, Claude en browserkoppeling](docs/chatbot-setup.md), [architectuur en grenzen](docs/architecture.md), [lokale setup en uitrol](docs/runbook.md) en [hergebruik van bestaande code](docs/source-reuse.md).
 
+`src/catalog.sql` en `src/catalog/registered.sql` zijn alleen-lezen queries die
+in de gatewaybinary worden opgenomen, geen migraties voor de Supabase SQL-editor.
+De tweede query verwacht `$1` als een `uuid[]` met geselecteerde dienst-/endpoint-ID's.
+De directe aankoop op basis van geregistreerde invoervelden vereist geen nieuwe
+databasemigratie; bouw en deploy de gewijzigde gateway en App. Echte migraties
+staan uitsluitend onder `supabase/migrations/`.
+
 ## Controleren
 
 Haal na het clonen eerst de vastgelegde submodules op:
