@@ -1135,6 +1135,34 @@ mod tests {
     }
 
     #[test]
+    fn crypto_market_data_excludes_classified_and_rental_markets() {
+        let mut request = parsed(vec![json!({"slug":"research.market.analysis","name":"Market analysis",
+            "description":"Retrieve price, market cap, trading volume and liquidity for a cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["price".into(), "market_cap".into(), "volume".into()];
+        let crypto = "Crypto token price and market data with market cap and 24-hour volume.";
+        let classified = "Search public classified listings by market area, category, query, and common marketplace filters.";
+        let rentals = "Find public rental listings by market resource id, rental category, price, bedrooms and location.";
+        let catalog = catalog(vec![
+            service(940, "operation.crypto.market", "Crypto prices", crypto, "crypto"),
+            service(941, "operation.classified.market", "AgentBodega", classified, "agentbodega"),
+            service(942, "operation.rental.market", "AgentBodega", rentals, "agentbodega"),
+        ], vec![]);
+        let mut found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk.len(), 1, "{:?}", found[0].apiosk);
+        assert_eq!(found[0].apiosk[0].name, "Crypto prices");
+        found[0].coinbase = vec![bazaar(crypto), bazaar(classified), bazaar(rentals)];
+        filter_coinbase(&request, &mut found);
+        assert_eq!(found[0].coinbase.len(), 1);
+        assert_eq!(found[0].coinbase[0].description, crypto);
+        // The live registered catalog must not reintroduce broad marketplaces.
+        let live = search(&request, calibration::catalog());
+        assert!(live[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("agentbodega")));
+    }
+
+    #[test]
     fn sentiment_analysis_keeps_its_topic_instead_of_matching_news_context() {
         let mut request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis",
             "description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token."})]);

@@ -93,6 +93,7 @@ pub(super) struct Request {
     enterprise_multiple: bool,
     equity_quote: bool,
     crypto_sentiment: bool,
+    crypto_market: bool,
     metrics: MetricScope,
 }
 
@@ -228,8 +229,17 @@ impl Request {
             && (valuation_words.iter().any(|word| matches!(word.as_str(), "crypto" | "cryptocurrency"))
                 || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
                     .is_some_and(|subject| subject.kind.starts_with("crypto")));
+        let crypto_subject = capability.subject_id.as_ref().and_then(|id|
+            parsed.subjects.iter().find(|subject| &subject.id == id))
+            .is_some_and(|subject| subject.kind.starts_with("crypto"));
+        let crypto_market = !crypto_sentiment
+            && (crypto_subject || valuation_words.iter().any(|word|
+                matches!(word.as_str(), "crypto" | "cryptocurrency")))
+            && ["market", "price", "liquidity", "volume", "capitalization"].iter()
+                .any(|word| valuation_words.contains(*word));
         Self {
             crypto_sentiment,
+            crypto_market,
             metrics: MetricScope::new(capability),
             primary_facets,
             corporate_valuation,
@@ -278,6 +288,7 @@ impl Request {
         self.enterprise_multiple |= other.enterprise_multiple;
         self.equity_quote |= other.equity_quote;
         self.crypto_sentiment |= other.crypto_sentiment;
+        self.crypto_market |= other.crypto_market;
         self.metrics.union(other.metrics);
         self
     }
@@ -286,7 +297,7 @@ impl Request {
         if candidate.target.is_endpoint() && !self.metrics.supported_by(candidate) {
             return false;
         }
-        if !self.sentiment_scope_matches(candidate) { return false; }
+        if !self.sentiment_scope_matches(candidate) || !self.crypto_market_matches(candidate) { return false; }
         if self.equity_quote {
             // A derivative mark can track a stock without being that stock's
             // exchange quote. Likewise filings and positioning are not prices.
@@ -354,12 +365,23 @@ impl Request {
         crypto || !another_scope
     }
 
+    fn crypto_market_matches(&self, candidate: &Document) -> bool {
+        if !self.crypto_market { return true; }
+        // Market area, rental price and marketplace listings share pricing
+        // vocabulary, but cannot supply cryptocurrency market data. Require
+        // asset evidence in the operation itself, not its provider branding.
+        let scope = if candidate.operation_words.is_empty() { &candidate.tokens } else { &candidate.operation_words };
+        ["crypto", "cryptocurrency", "token", "blockchain", "onchain", "dex",
+            "bitcoin", "ethereum", "solana", "cardano", "coingecko", "coinpaprika"]
+            .iter().any(|word| scope.contains(*word) || candidate.contract.contains(*word))
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
-        if !self.sentiment_scope_matches(listing) { return false; }
+        if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
             || self
                 .anchors
@@ -384,6 +406,7 @@ impl Request {
     ) -> bool {
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.
+        if !self.crypto_market_matches(candidate) { return false; }
         if self.enterprise_multiple && candidate.target.is_endpoint()
             && !self.valuation_matches(candidate) { return false; }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
