@@ -1082,6 +1082,40 @@ mod tests {
     }
 
     #[test]
+    fn sentiment_analysis_keeps_its_topic_instead_of_matching_news_context() {
+        let mut request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis",
+            "description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].inputs = vec!["token_name".into(), "source_type".into()];
+        request.capabilities[0].outputs = ["sentiment_score", "positive_mentions", "negative_mentions", "neutral_mentions", "dominant_sentiment"].map(str::to_owned).to_vec();
+        let sentiment = "Market sentiment with positive, negative and neutral shares for explicit tickers. Recent 30-day provider window only.";
+        let c = catalog(vec![
+            service(910,"finance_markets.cityfalcon-news","CityFALCON","Financial news for explicit full tickers. Recent 30-day provider window only.","cityfalcon"),
+            service(911,"finance_markets.cityfalcon-sentiment","CityFALCON",sentiment,"cityfalcon"),
+            service(912,"operation.other.sentiment","Another provider",sentiment,"another-provider"),
+            service(913,"operation.pulse.sentiment","Pulse member",sentiment,"pulse-member"),
+        ], vec![]);
+        let found = search(&request, &c);
+        assert_eq!(found[0].apiosk.len(), 3);
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.description == sentiment));
+        let live_catalog = search(&request, calibration::catalog());
+        assert!(live_catalog[0].apiosk.iter().any(|candidate|
+            candidate.capability.as_deref() == Some("finance_markets.cityfalcon-sentiment")),
+            "sentiment must survive the full catalog ranking: {:?}", live_catalog[0].apiosk);
+        assert!(!live_catalog[0].operations.contains("finance_markets.cityfalcon-news"));
+        let mut external = found;
+        external[0].coinbase = vec![
+            bazaar("Market & brand sentiment for any keyword, brand, ticker or product: analyses the sentiment of web & news content."),
+            bazaar("Composite bull/bear sentiment for a crypto ticker or topic, fused across three sources."),
+            bazaar("Composite crypto market sentiment, optionally focused on a coin or query."),
+        ];
+        filter_coinbase(&request, &mut external);
+        assert_eq!(external[0].coinbase.len(), 3);
+    }
+
+    #[test]
     fn dutch_statistics_words_meet_the_parsers_english() {
         assert_eq!(
             words("Faillissementen; bedrijven en instellingen, bedrijfstak"),

@@ -27,7 +27,9 @@ impl Snapshot {
         let snapshot = Self {
             owner: person.owner, workspace: person.workspace, parsed_digest: digest(parsed),
             expires: chrono::Utc::now().timestamp() + TTL_SECONDS,
-            catalog_version: response["catalog_version"].as_str().filter(|v| !v.is_empty()).ok_or_else(|| anyhow::anyhow!("search catalog missing"))?.to_owned(),
+            // External directory searches have no execution catalog version.
+            // They are signed too, but can only contribute discovery metadata.
+            catalog_version: response["catalog_version"].as_str().ok_or_else(|| anyhow::anyhow!("search catalog missing"))?.to_owned(),
             matches: serde_json::from_value(response["matches"].clone())?,
             sources_searched: response["apiosk_sources_searched"].as_u64().unwrap_or(0) as usize,
         };
@@ -54,6 +56,26 @@ impl Snapshot {
     }
     pub(crate) fn current(&self, catalog_version: &str) -> bool {
         self.expires > chrono::Utc::now().timestamp() && self.catalog_version == catalog_version
+    }
+    pub(crate) fn with_discovery(mut self, discovery: Self) -> Result<Self> {
+        ensure!(self.owner == discovery.owner && self.workspace == discovery.workspace
+            && self.parsed_digest == discovery.parsed_digest, "discovery belongs to another request");
+        ensure!(!self.catalog_version.is_empty() && discovery.catalog_version.is_empty()
+            && discovery.matches.iter().all(|found| found.operations.is_empty() && found.apiosk.is_empty()
+                && found.coinbase.iter().all(|candidate| candidate.origin == "coinbase"
+                    && matches!(candidate.availability.as_str(), "discovery_only" | "supported")
+                    && candidate.capability.as_deref().is_none_or(|cap| cap == "external.request")
+                    && candidate.endpoint_id.is_none())), "invalid external discovery snapshot");
+        self.expires = self.expires.min(discovery.expires);
+        // Bazaar queries are generic per capability; the local snapshot owns
+        // every subject occurrence and all executable operation selections.
+        for found in &mut self.matches {
+            if let Some(external) = discovery.matches.iter().find(|external| external.slug == found.slug) {
+                found.coinbase = external.coinbase.clone();
+                found.coinbase_status = external.coinbase_status.clone();
+            }
+        }
+        Ok(self)
     }
     pub(crate) fn intake(self, parsed: ParsedRequest) -> Intake {
         Intake {
@@ -102,6 +124,39 @@ mod tests {
         assert!(Snapshot::open(&signer,&other,&parsed,&token).is_err());
         let mut changed = parsed.clone(); changed.capabilities[0].outputs.push("unseen_output".into());
         assert!(Snapshot::open(&signer,&person,&changed,&token).is_err());
+    }
+    #[test]
+    fn external_discovery_survives_planning_without_becoming_an_execution_contract() {
+        let (signer, person, parsed, response) = fixture();
+        let local = Snapshot::issue(&signer, &person, &parsed, &response).unwrap();
+        let mut external = response.clone();
+        external["catalog_version"] = json!("");
+        external["matches"][0]["operations"] = json!([]);
+        external["matches"][0]["coinbase_status"] = json!("complete");
+        external["matches"][0]["coinbase"] = json!([{
+            "origin":"coinbase","name":"Matching x402 service","description":"Directory description",
+            "source_slug":null,"capability":"external.request","endpoint_id":null,
+            "url":"https://example.test/service","method":"GET","price":"0.040000 USD",
+            "network":"eip155:8453","calls_30d":null,"availability":"supported"
+        }]);
+        let token = Snapshot::issue(&signer, &person, &parsed, &external).unwrap();
+        let read = |token: &str| Snapshot::open(&signer, &person, &parsed, token).unwrap();
+        let combined = read(&local).with_discovery(read(&token)).unwrap();
+        assert!(combined.current("catalog-a"));
+        let intake = combined.intake(parsed.clone());
+        assert_eq!(intake.matches[0].coinbase.len(), 1);
+        assert_eq!(intake.matches[0].coinbase_status, "complete");
+        assert_eq!(intake.selected_capabilities, ["company.registry".into()].into_iter().collect());
+        assert!(read(&local).with_discovery(read(&local)).is_err());
+        let mut expired = read(&token);
+        expired.expires = 0;
+        assert!(!read(&local).with_discovery(expired).unwrap().current("catalog-a"));
+        let mut injected = read(&token);
+        injected.matches[0].operations.insert("external.request".into());
+        assert!(read(&local).with_discovery(injected).is_err());
+        let mut other = read(&token);
+        other.owner = Uuid::new_v4();
+        assert!(read(&local).with_discovery(other).is_err());
     }
     #[test]
     fn unsigned_changed_and_oversized_snapshots_are_refused() {

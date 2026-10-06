@@ -175,7 +175,12 @@ impl Request {
             .rev()
             .find(|raw| !raw.is_empty())
             .is_some_and(|raw| words(raw).iter().any(|word| action(word).is_some()));
-        let described: BTreeSet<String> = if action_named || key.is_empty() {
+        // An analysis still has a topic. "Sentiment analysis" must not let
+        // context words such as news/social media replace sentiment. Expand
+        // genuinely generic actions ("Comparative analysis") from their
+        // description only when the name/id do not already agree on a topic.
+        let named_topic = key.iter().any(|word| name.contains(word));
+        let described: BTreeSet<String> = if (action_named && !named_topic) || key.is_empty() {
             words(&scrubbed(&capability.description, capability, parsed))
                 .into_iter()
                 .filter(|word| meaningful(word) && !supplied.contains(word))

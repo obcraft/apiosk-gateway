@@ -30,6 +30,7 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
+    bazaar_resources: Mutex<Vec<Value>>,
     ask_v2_requests: Mutex<Vec<Value>>,
     /// Requests to the conversation-reply model (OpenRouter in production).
     replies: Mutex<Vec<Value>>,
@@ -235,7 +236,7 @@ impl Intake {
             .route("/conversation-reply", post(conversation_reply_model))
             .route("/bazaar", get(|State(model): State<Arc<Model>>| async move {
                 model.stages.lock().unwrap().push("bazaar");
-                Json(json!({"resources":[]}))
+                Json(json!({"resources":model.bazaar_resources.lock().unwrap().clone()}))
             }))
             .route("/auth/v1/user", get(user))
             .with_state(model.clone())
@@ -436,6 +437,40 @@ async fn researched_plan_refuses_undeclared_fields_without_a_quote_or_charge_and
     assert!(read["proposal"].is_null());
     assert_eq!(intake.model.chats().len(),1,"recovery neither replans nor rewrites the factual refusal");
     assert_no_purchase(&intake,&person,task).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_research_keeps_signed_bazaar_matches_in_the_plan_and_saved_task() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    intake.model.bazaar_resources.lock().unwrap().push(json!({
+        "type":"http","resource":"https://example.test/annual-accounts","serviceName":"Additional annual accounts",
+        "description":"Company financial statements and annual accounts by registered company identifier."
+    }));
+    let question = "Jaarrekening van Coolblue";
+    let parsed = apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(), question, "displayed-fixture").unwrap();
+    let (_, local) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    let (status, external) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({"origin":"coinbase","parsed_request":parsed}))).await;
+    assert_eq!(status, StatusCode::OK, "{external}");
+    assert_eq!(external["matches"][0]["coinbase"].as_array().unwrap().len(), 1);
+    assert!(external["discovery_id"].is_string());
+    assert!(external["search_id"].is_null());
+    let body = json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,
+        "search_id":local["search_id"],"discovery_id":external["discovery_id"]});
+    let mut swapped = body.clone();
+    swapped["discovery_id"] = local["search_id"].clone();
+    assert_eq!(intake.send(&person.bearer, "/v2/ask-v2/research", Some(swapped)).await.0, StatusCode::CONFLICT);
+    let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/research", Some(body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{response}");
+    let task: Uuid = response["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let document: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    let candidates: Vec<apiosk_gateway_v2::capability_intake::Candidate> = serde_json::from_value(external["matches"][0]["coinbase"].clone()).unwrap();
+    assert_eq!(document["capability_intake"]["matches"][0]["coinbase"], json!(candidates));
+    assert_eq!(document["capability_intake"]["matches"][0]["coinbase_status"], "complete");
+    assert!(intake.model.chats()[0]["source_matches"][0]["additional_coinbase_results"].is_array());
+    assert_eq!(intake.send(&person.bearer, "/v2/ask-v2/research", Some(body)).await.1, response);
+    assert!(intake.edge.calls.lock().unwrap().is_empty(), "discovery and planning never execute providers");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

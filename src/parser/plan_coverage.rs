@@ -255,7 +255,13 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
     let names = intake.parsed_request.capabilities.iter()
         .filter(|cap| !answer_instruction(cap)).map(|cap| cap.name.as_str())
         .collect::<Vec<_>>().join("; ");
-    let message = if intake.parsed_request.language == "nl" {
+    let message = if intake.matches.iter().any(|found| !found.coinbase.is_empty()) {
+        if intake.parsed_request.language == "nl" {
+            format!("Er zijn aanvullende diensten gevonden voor {names}. Een volledig automatisch plan is nog niet gereed. Kies een passende dienst uit de gevonden bronnen om de invoer en prijs te controleren.")
+        } else {
+            format!("Additional services were found for {names}. A complete automatic plan is not ready yet. Choose a matching service from the sources to review its inputs and price.")
+        }
+    } else if intake.parsed_request.language == "nl" {
         format!("Ik kon nog geen uitvoerbaar plan maken dat deze onderdelen en de opgegeven gegevens correct behoudt: {names}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. De volledige vraag blijft bewaard; verduidelijk de gewenste gegevens of probeer de planning opnieuw.")
     } else {
         format!("I could not yet build an executable plan that correctly preserves these requirements and the supplied inputs: {names}. No price proposal was made and nothing was executed. The complete question is kept; clarify the required data or try planning again.")

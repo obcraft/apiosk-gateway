@@ -1345,7 +1345,8 @@ impl Parser {
             input.as_object_mut().unwrap().remove("source_groups");
             input["parsed_request"] = json!(intake.parsed_request);
             input["source_matches"] = json!(intake.parsed_request.capabilities.iter().enumerate().filter_map(|(index,cap)| explicit_request::request_match(intake,index).map(|m|
-                json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,"additional_coinbase_results":m.coinbase.len()})
+                json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,
+                    "additional_coinbase_results":m.coinbase,"coinbase_status":m.coinbase_status})
             )).collect::<Vec<_>>());
             input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Dependencies belong to the backend resolver. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Coinbase results are lower-priority discovery metadata only: they cannot be quoted or executed, and are not evidence answering the question. Preserve source selections and the single total-price approval flow.");
         }

@@ -365,7 +365,8 @@ async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_out
     let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none());
     assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
-    assert!(reply.message.contains("geen uitvoerbaar plan") && reply.message.contains("Company registration status"));
+    assert!(reply.message.contains("plan is nog niet gereed") && reply.message.contains("Company registration status"));
+    assert!(reply.message.contains("aanvullende diensten gevonden"), "discovered alternatives must not disappear behind a rejected plan");
     assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
     assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
     assert!(mock.queue.lock().unwrap().is_empty());
