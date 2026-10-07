@@ -122,6 +122,34 @@ impl Auth {
                 owner: row.get("owner_id"),
                 connection: Some(row.get("connection_id")), workspace: None, }, api_key: None });
         }
+        let user = self.session_user(bearer).await?;
+        Ok(AuthContext { principal: Self::session_principal(&user)?, api_key:None })
+    }
+
+    /// Guest onboarding only accepts a confirmed personal sign-in. A
+    /// Supabase anonymous session is authenticated but is not that sign-in.
+    pub(crate) async fn verified_guest_person(&self, bearer: &str) -> Result<Principal, AuthError> {
+        if bearer.is_empty() || bearer.len() > 8192 || bearer.starts_with("apk_") {
+            return Err(AuthError::Unauthorized);
+        }
+        let user = self.session_user(bearer).await?;
+        if !Self::guest_identity_verified(&user) {
+            return Err(AuthError::Unauthorized);
+        }
+        Self::session_principal(&user)
+    }
+
+    fn guest_identity_verified(user: &serde_json::Value) -> bool {
+        let nonempty = |field: &str| user[field].as_str().is_some_and(|value| !value.is_empty());
+        if user["is_anonymous"].as_bool() != Some(false) { return false; }
+        if nonempty("email") { return nonempty("email_confirmed_at"); }
+        // Supabase's verified Web3 identity is server-owned; editable
+        // user_metadata must never be used as proof of wallet sign-in.
+        nonempty("phone") && nonempty("phone_confirmed_at")
+            || user["identities"].as_array().is_some_and(|identities| identities.iter().any(|identity| identity["provider"] == "web3"))
+    }
+
+    async fn session_user(&self, bearer: &str) -> Result<serde_json::Value, AuthError> {
         // Verify a session with Auth, never decode an unverified JWT for owner.
         let response = self
             .http
@@ -140,17 +168,20 @@ impl Auth {
                 response.status()
             )));
         }
-        let user = bounded_json(response, 65536)
+        bounded_json(response, 65536)
             .await
-            .map_err(AuthError::Unavailable)?;
+            .map_err(AuthError::Unavailable)
+    }
+
+    fn session_principal(user: &serde_json::Value) -> Result<Principal, AuthError> {
         let owner = user["id"]
             .as_str()
             .ok_or_else(|| AuthError::Unavailable(anyhow::anyhow!("Supabase Auth response has no user id")))?
             .parse()
             .map_err(|error| AuthError::Unavailable(anyhow::Error::new(error)))?;
-        Ok(AuthContext { principal: Principal {
+        Ok(Principal {
             owner,
-            connection: None, workspace: None, }, api_key: None })
+            connection: None, workspace: None })
     }
 
     /// The key's hash resolves to the organisation's main account and the
@@ -195,6 +226,21 @@ mod tests {
     use super::*;
     use axum::{http::StatusCode, response::IntoResponse, routing::get, Router};
     use sqlx::postgres::PgPoolOptions;
+
+    #[test]
+    fn guest_auth_requires_verified_email_or_server_confirmed_phone_or_wallet() {
+        use serde_json::json;
+        let email = json!({"is_anonymous":false,"email":"person@example.test","email_confirmed_at":"2026-01-01T00:00:00Z"});
+        assert!(Auth::guest_identity_verified(&email));
+        assert!(Auth::guest_identity_verified(&json!({"is_anonymous":false,"phone":"+12025550100","phone_confirmed_at":"2026-01-01T00:00:00Z"})));
+        assert!(Auth::guest_identity_verified(&json!({"is_anonymous":false,"identities":[{"provider":"web3"}]})));
+        for invalid in [
+            json!({"is_anonymous":true,"email":"person@example.test","email_confirmed_at":"2026-01-01T00:00:00Z"}),
+            json!({"is_anonymous":false,"email":"person@example.test","email_confirmed_at":null,"identities":[{"provider":"web3"}]}),
+            json!({"is_anonymous":false,"user_metadata":{"provider":"web3","email_verified":true}}),
+            json!({"is_anonymous":false}), json!({}),
+        ] { assert!(!Auth::guest_identity_verified(&invalid), "{invalid}"); }
+    }
 
     async fn auth_with(status: StatusCode) -> (Auth, tokio::task::JoinHandle<()>) {
         let app = Router::new().route(
