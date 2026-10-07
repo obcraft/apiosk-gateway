@@ -1,0 +1,107 @@
+{
+  "source": {
+    "browsable": false,
+    "category": "Marketplace",
+    "fetch_kind": "queried",
+    "id": "coinbase-x402-bazaar",
+    "logo_url": "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/coinbase-logo-icon.png",
+    "name": "Coinbase Bazaar",
+    "note": "Coinbase x402 Bazaar search. Caps at 20 hits per query.",
+    "requires_query": true,
+    "shape": "x402-items",
+    "tags": [
+      "blockchain"
+    ],
+    "url": "https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?limit=20&query={query}"
+  },
+  "endpoints": [
+    {
+      "buyer_price_usd": 0.040699,
+      "category": "Marketplace",
+      "description": "Look up one public LinkedIn profile per call. Pass {query} as a username (jane-example), a profile URL or a URN; there is no limit field. The normalized object holds name, first_name, last_name, headline, about, location, country_code, current_company, followers, connections, avatar, plus experience (title, company, start_year, end_year, is_current) and education (school, degree, field, years). Email addresses are not returned.",
+      "host": "agdata.shveik.dev",
+      "input": {
+        "body": {
+          "query": "jane-example"
+        },
+        "bodyType": "json",
+        "method": "POST",
+        "type": "http"
+      },
+      "input_schema": {
+        "properties": {
+          "body": {
+            "additionalProperties": true,
+            "properties": {
+              "query": {
+                "maxLength": 500,
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "bodyType": {
+            "enum": [
+              "json"
+            ],
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "POST"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "const": "http"
+          }
+        },
+        "required": [
+          "type",
+          "method",
+          "bodyType",
+          "body"
+        ],
+        "type": "object"
+      },
+      "method": "POST",
+      "network": "eip155:8453",
+      "note": "Unreviewed: Apiosk has not checked or measured this endpoint, and the input/output description is the provider's own claim. Apiosk CAN settle it \u2014 the gateway pays the provider's own 402 and charges you the provider's price plus the usual 15%.",
+      "output": {
+        "example": {
+          "about": "Data eng\u2026",
+          "avatar": null,
+          "connections": 500,
+          "country_code": "US",
+          "current_company": "Example\u2026",
+          "education": [],
+          "experience": [],
+          "first_name": "Jane",
+          "followers": 1200,
+          "headline": "Senior D\u2026",
+          "last_name": "Example",
+          "location": "Austin,\u2026",
+          "name": "Jane Exa\u2026",
+          "url": "https://\u2026",
+          "username": "jane-exa\u2026"
+        },
+        "type": "json"
+      },
+      "pay_to": "0xbBa594F5549392DF7A8182049291b605948F5F86",
+      "price_usd": 0.037,
+      "provider": "Coinbase Bazaar",
+      "provider_logo": "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/coinbase-logo-icon.png",
+      "resource": "https://agdata.shveik.dev/x402/linkedin",
+      "settlement": "apiosk",
+      "settlement_reason": null,
+      "source": "coinbase-x402-bazaar",
+      "tags": [
+        "blockchain"
+      ],
+      "verified": false
+    }
+  ]
+}

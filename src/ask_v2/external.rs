@@ -469,6 +469,13 @@ fn fields(
                     schema::validate(value, &json!("http")).map_err(|_| schema_error())?;
                     continue;
                 }
+                "bodyType" => {
+                    // The balance executor sends a JSON body. Check the
+                    // transport declaration without making it a buyer input
+                    // or forwarding it as part of the provider's payload.
+                    schema::validate(value, &json!("json")).map_err(|_| schema_error())?;
+                    continue;
+                }
                 _ => return Err(schema_error()),
             };
             groups.push((location, checked_schema(value, 0)?));
@@ -759,6 +766,45 @@ mod tests {
             let error = validate_input(&offer, &values).unwrap_err();
             assert_eq!(error.code, "invalid_input");
             assert!(!error.fields.is_empty());
+        }
+    }
+    #[test]
+    fn public_linkedin_json_contract_preserves_the_profile_query() {
+        // Public directory GET captured 2026-10-07. Admission and request
+        // binding only: this fixture is not evidence of a paid provider run.
+        let directory: Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/ask-v2-linkedin-contract.json"
+        )).unwrap();
+        let offer = admit(&directory, "https://agdata.shveik.dev/x402/linkedin", "POST").unwrap();
+        assert_eq!((offer.provider_atomic, offer.total_atomic), (37_000, 42_550));
+        assert_eq!(offer.inputs.len(), 1);
+        assert_eq!(offer.inputs[0].field, "body.query");
+        assert!(offer.inputs[0].required);
+        for profile in ["https://www.linkedin.com/in/jane-example", "jane-example"] {
+            let bound = validate_input(&offer, &json!({"body.query": profile})).unwrap();
+            assert_eq!(bound.input_parts, json!({"path":{},"query":{},"body":{"query":profile}}));
+        }
+        for invalid in [json!({}), json!({"body.query": "x".repeat(501)}), json!({"body.query": 1}),
+            json!({"body.query":"jane-example", "bodyType":"json"})] {
+            assert_eq!(validate_input(&offer, &invalid).unwrap_err().code, "invalid_input");
+        }
+    }
+    #[test]
+    fn grouped_body_encoding_must_allow_the_json_we_send() {
+        let directory: Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/ask-v2-linkedin-contract.json"
+        )).unwrap();
+        for (encoding, accepted) in [
+            (json!({"type":"string","enum":["json"]}), true),
+            (json!({"type":"string","const":"json"}), true),
+            (json!({"type":"string","enum":["json","form-data"]}), true),
+            (json!({"type":"string","enum":["form-data"]}), false),
+            (json!({"type":"string","const":"text"}), false),
+            (json!({"type":"integer"}), false),
+        ] {
+            let mut directory = directory.clone();
+            directory["endpoints"][0]["input_schema"]["properties"]["bodyType"] = encoding.clone();
+            assert_eq!(admit(&directory, "https://agdata.shveik.dev/x402/linkedin", "POST").is_ok(), accepted, "{encoding}");
         }
     }
     #[test]
