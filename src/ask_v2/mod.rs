@@ -861,6 +861,71 @@ mod tests {
         assert!(passed, "live canonical field preservation checks failed; inspect sanitized evidence");
     }
 
+    /// Exercise the actual prompt rather than a canned model response. Role
+    /// and employer context must not manufacture another data request, while
+    /// explicitly requested company/platform guidance must remain intact.
+    #[tokio::test]
+    #[ignore = "requires explicit live-model authorization and configured OpenRouter credentials"]
+    async fn live_person_profile_scope_parse() {
+        dotenvy::dotenv().ok();
+        let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
+            .or_else(|| std::env::var("INTENT_API_KEY").ok()).filter(|key| !key.trim().is_empty())
+            .expect("configured model credentials required");
+        let client = Client::new(reqwest::Client::new(), key, DEFAULT_MODEL.into());
+        let mut rows = Vec::new();
+        for (question, person, employer, expected_company, expected_guidance, expected_details) in [
+            ("Check the linkedin profile from Fictional Person, Founder of Apiosk", "Fictional Person", "Apiosk", false, false, false),
+            ("Check het LinkedIn-profiel van Example Person, directeur van ExampleCo", "Example Person", "ExampleCo", false, false, false),
+            ("Check the LinkedIn profile of Fictional Person, founder of Apiosk. Also retrieve the company profile of Apiosk.", "Fictional Person", "Apiosk", true, false, false),
+            ("Explain which capabilities Apiosk supports, and check the LinkedIn profile of Fictional Person, founder of Apiosk.", "Fictional Person", "Apiosk", false, true, false),
+            ("Retrieve the LinkedIn profile of Example Person, director of ExampleCo, and show her work experience and education.", "Example Person", "ExampleCo", false, false, true),
+        ] {
+            let value = match client.interpret(question, &[]).await {
+                Ok(value) => value,
+                Err(_) => {
+                    rows.push(json!({"question":question,"error":"canonical interpretation failed","passed":false}));
+                    continue;
+                }
+            };
+            let parsed = &value["parsed_request"];
+            let subjects = parsed["subjects"].as_array().cloned().unwrap_or_default();
+            let capabilities = parsed["capabilities"].as_array().cloned().unwrap_or_default();
+            let person_subject = subjects.iter().find(|subject| subject["type"] == "person" && subject["label"] == person);
+            let person_capabilities: Vec<_> = capabilities.iter().filter(|capability| person_subject
+                .is_some_and(|subject| capability["subject_id"] == subject["id"])).collect();
+            let company_requested = capabilities.iter().any(|capability| subjects.iter().any(|subject|
+                subject["type"] == "company" && subject["label"] == employer
+                    && capability["subject_id"] == subject["id"]));
+            let guidance_requested = capabilities.iter().any(|capability| capability["slug"] == "general.capabilities");
+            let person_outputs: Vec<_> = person_capabilities.iter()
+                .flat_map(|capability| capability["outputs"].as_array().into_iter().flatten())
+                .filter_map(Value::as_str).collect();
+            let checks = json!({
+                "exact_person":person_subject.is_some(),
+                "employer_context_preserved":person_subject.is_some_and(|subject| subject["identifiers"].as_object()
+                    .is_some_and(|identifiers| identifiers.values().any(|value| value == employer))),
+                "one_linkedin_profile":person_capabilities.len() == 1 && person_capabilities[0]["source_hint"] == "linkedin"
+                    && person_capabilities[0]["slug"] == "research.person.profile",
+                "profile_field_scope":if expected_details {
+                    person_outputs.contains(&"profile") && person_outputs.contains(&"education")
+                        && person_outputs.iter().any(|field| matches!(*field, "experience" | "work_experience" | "work_history" | "employment_history"))
+                } else { person_outputs == ["profile"] },
+                "company_scope":company_requested == expected_company,
+                "platform_guidance_scope":guidance_requested == expected_guidance,
+                "no_extra_capabilities":capabilities.len() == 1 + usize::from(expected_company) + usize::from(expected_guidance),
+            });
+            let passed = checks.as_object().unwrap().values().all(|check| check == true);
+            rows.push(json!({"question":question,"parsed_request":parsed,"model":value["model"],
+                "attempts":value["attempts"],"timing":value["timing"],"checks":checks,"passed":passed}));
+        }
+        let passed = rows.iter().all(|row| row["passed"] == true);
+        if let Ok(path) = std::env::var("ASK_V2_LIVE_EVIDENCE") {
+            let evidence = json!({"scope":"actual canonical model parse only; no source discovery, quotes or provider execution", "model":DEFAULT_MODEL,"rows":rows,"passed":passed});
+            std::fs::write(path, serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        }
+        assert!(passed, "live person-profile scope checks failed; inspect sanitized evidence");
+    }
+
     #[tokio::test]
     async fn sends_only_exact_prompt_question_and_shape_with_no_planner_fields() {
         let captured = Arc::new(Mutex::new(Vec::<Value>::new()));

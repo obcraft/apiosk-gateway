@@ -447,7 +447,15 @@ async fn two_companies_cannot_be_reduced_to_one_retrieval() {
     complete["intent"]["subjects"].as_array_mut().unwrap().push(json!({"subject_ref":"s2","values":{"company.name":{"ref":"s2.label"}}}));
     complete["intent"]["goals"].as_array_mut().unwrap().push(json!({"capability":"company.accounts","subject":1,"constraints":{}}));
     let (parser, mock, bazaar, server) = fixture(vec![parsed, matched(), planned(), complete], false).await;
-    let c = catalog();
+    // The request explicitly names KVK. Make the synthetic provider match
+    // that source so this test exercises occurrence preservation, without
+    // relying on discovery ignoring an unmatched source preference.
+    let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+    for service in &mut snapshot.services {
+        service.api_slug = "kvk".into();
+        service.name = format!("KVK {}", service.name);
+    }
+    let c = Catalog::build(snapshot);
     let task = Task::default();
     let mut intake = parser.prepare_ask_with_bazaar(&question, None, &task, &c, &bazaar).await.unwrap();
     // The App's local discovery preserves occurrences. The legacy directory

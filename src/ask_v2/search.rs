@@ -75,6 +75,9 @@ struct Document {
     /// The endpoint's own description, excluding provider branding and a
     /// semicolon-separated provider-wide appendix.
     topic_scope: BTreeSet<String>,
+    /// Whether the operation's own wording describes an individual rather
+    /// than an organisation. Used for person-profile requests only.
+    person_scope: bool,
     /// Asset kind stated by the endpoint itself, never provider branding or
     /// caller input names. Keep the full description: a later sentence can
     /// explain that a stock mark is actually a derivative.
@@ -233,6 +236,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 | relevance::dns_record_types(opening) | relevance::dns_record_types(translated_opening)
         };
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
+        indexed.person_scope = relevance::person_scope(&format!("{opening} {translated_opening}"));
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
         indexed.contract_facets = primary;
@@ -266,6 +270,8 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             let mut indexed = document(target, &format!("{description} {rendering}"), BTreeSet::new());
             indexed.topic_scope = document(target, &format!("{} {}",
                 opening_description(description), opening_description(&rendering)), BTreeSet::new()).tokens;
+            indexed.person_scope = relevance::person_scope(&format!("{} {}",
+                opening_description(description), opening_description(&rendering)));
             indexed.operation_words = words(&format!("{description} {rendering}"));
             indexed.dns_record_types = relevance::dns_record_types(&format!("{} {}", opening_description(description), opening_description(&rendering)));
             indexed.derivative_asset = relevance::derivative_market(description) || relevance::derivative_market(&rendering);
@@ -306,6 +312,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 .flat_map(|object| object.keys().map(String::as_str)),
         );
         let mut indexed = document(Target::Source(position), &text, capabilities);
+        indexed.person_scope = relevance::person_scope(opening_description(&source.metadata.description));
         indexed.coverage = country::source(source);
         rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
@@ -653,6 +660,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         operation_words: BTreeSet::new(),
         dns_record_types: relevance::dns_record_types(text),
         topic_scope: tokens.clone(),
+        person_scope: relevance::person_scope(opening_description(text)),
         target,
         tokens,
         facets,
@@ -698,6 +706,25 @@ fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet
             .map(|service| service.api_slug.clone()),
     );
     (!sources.is_empty()).then_some(sources)
+}
+
+/// A named platform can be served by a third-party provider. When it is not
+/// a provider identity in the catalog, retain only operations that actually
+/// name it; an unknown hint must not silently become unrestricted search.
+fn operation_names_source(hint: &str, candidate: &Document, catalog: &Catalog) -> bool {
+    let hint = identity(hint);
+    match candidate.target {
+        Target::Endpoint(position) => {
+            let service = &catalog.services[position];
+            identity_matches(&hint, &service.name)
+                || identity_matches(&hint, opening_description(service.description.as_deref().unwrap_or("")))
+                || service.source_url.as_deref().is_some_and(|url| identity_matches(&hint, url))
+        }
+        Target::Listing(position, listing) => identity_matches(&hint,
+            opening_description(&catalog.known_sources[position].metadata.endpoints[listing].description)),
+        Target::Source(position) => identity_matches(&hint,
+            opening_description(&catalog.known_sources[position].metadata.description)),
+    }
 }
 
 /// Apply the parsed, explicit source preference to public Bazaar metadata.
@@ -751,6 +778,13 @@ pub fn filter_coinbase_in_english(
             .union(relevance::Request::new(translated, english));
         let signal = country::Signal::infer(parsed, capability);
         found.coinbase.retain(|candidate| {
+            let text = listing_text(candidate);
+            let english = rendered(&text);
+            let both = format!("{text} {}", english.as_deref().unwrap_or(""));
+            let mut listing = document(Target::Source(0), &both, BTreeSet::new());
+            listing.person_scope = relevance::person_scope(&format!("{} {}", opening_description(&candidate.description),
+                opening_description(english.as_deref().unwrap_or(""))));
+            if !floor.profile_scope_matches(&listing) { return false; }
             if let Some(hint) = &hint {
                 return [
                     candidate.name.as_str(),
@@ -761,16 +795,12 @@ pub fn filter_coinbase_in_english(
                 .into_iter()
                 .any(|field| identity_matches(hint, field));
             }
-            let text = listing_text(candidate);
-            let english = rendered(&text);
-            let both = format!("{text} {}", english.as_deref().unwrap_or(""));
             if signal.adjustment(&country::listing(&both)).demoted {
                 return false;
             }
             if english.is_none() && crate::english::detect(&text) == crate::english::Language::Other {
                 return true;
             }
-            let listing = document(Target::Source(0), &both, BTreeSet::new());
             (wanted.facets & LOCATION_FACETS == 0 || wanted.facets & listing.facets & LOCATION_FACETS != 0)
                 && floor.mentions(&wanted, &listing)
         });
@@ -989,6 +1019,10 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     .as_ref()
                     .is_some_and(|slugs| !slugs.contains(slug))
                 {
+                    continue;
+                }
+                if restricted.is_none() && capability.source_hint.as_deref()
+                    .is_some_and(|hint| !operation_names_source(hint, candidate, catalog)) {
                     continue;
                 }
                 let score = score(&wanted, candidate, &index);
@@ -1985,6 +2019,72 @@ mod tests {
         );
         assert_eq!(found[0].apiosk.len(), 1);
         assert_eq!(found[0].apiosk[0].source_slug.as_deref(), Some("preferred"));
+    }
+
+    fn person_profile_request() -> ParsedRequest {
+        crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"Olivier Brinkman","type":"person","identifiers":{}}],
+            "capabilities":[{"slug":"research.person.profile","name":"Person profile",
+                "description":"Retrieve a person's professional profile.","domain":"research",
+                "inputs":["person_name"],"outputs":["profile"],"subject_id":"s1",
+                "source_hint":"linkedin","confidence":0.95}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(),
+            "Check the linkedin profile from Olivier Brinkman, Founder of Apiosk", "fixture").unwrap()
+    }
+
+    #[test]
+    fn person_profiles_keep_the_requested_platform_and_exclude_company_and_game_profiles() {
+        // These two descriptions/IDs were returned by the live request on
+        // 2026-10-07, which incorrectly asked the person for a French SIREN.
+        let mut lobbying = service(1, "company.sirenic-entreprise-siren-lobbying", "Sirenic",
+            "Lobbying and influence profile of a French company from the official HATVP register of interest representatives — a transparency, governance and ESG due diligence signal: registration status, category, lobbying-expense brackets per fiscal year, staff count, recent subjects with intervention domains and action types, clients (for consulting firms), affiliations, declaration defaults and deregistrat", "sirenic");
+        lobbying.endpoint_id = "d9e0985f-9425-56c3-8d07-27d6e242dce0".parse().unwrap();
+        let mut person = service(2, "operation.stableenrich.post-api-minerva-enrich", "StableEnrich",
+            "Enrich person records with demographics, work history, education, contact info (emails + phones), address history, financial signals (income/wealth range), relatives, and social profiles.", "stableenrich");
+        person.endpoint_id = "1fb6a3e3-0f69-4122-b3f7-cca5808b1dc8".parse().unwrap();
+        let linkedin = service(3, "operation.profile-provider.lookup-profile", "Third-party profile API",
+            "Look up one person's public LinkedIn profile per call. Returns work history and education.", "profile-provider");
+        let company = service(4, "company.profile", "Company profile API",
+            "Look up a LinkedIn company profile and its business information.", "company-provider");
+        let catalog = catalog(vec![lobbying, person.clone(), linkedin.clone(), company],
+            vec![known("tablepulse", "TablePulse",
+                "Board-game and tabletop intelligence API. Synthesizes Claude's own board-game knowledge with live Tavily web grounding, the free BoardGamePrices.co.uk pricing API, and the free Gamefound crowdfunding API into structured, actionable intelligence. 11 endpoints covering recommendations, comparisons, expansions, collection valuation, crowdfunding, party/solo/family picks, complexity, pricing, and awards.")]);
+        let mut request = person_profile_request();
+        let found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(),
+            [Some("profile-provider")], "{:?}", found[0].apiosk);
+
+        request.capabilities[0].source_hint = None;
+        let found = search(&request, &catalog);
+        let ids: BTreeSet<_> = found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
+        assert_eq!(ids, BTreeSet::from([person.endpoint_id.to_string(), linkedin.endpoint_id.to_string()]));
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("tablepulse")));
+    }
+
+    #[test]
+    fn an_unavailable_named_source_does_not_widen_an_exact_company_profile_match() {
+        let catalog = catalog(vec![service(1, "company.profile", "Company registry",
+            "Retrieve the official company registry profile.", "registry")], vec![]);
+        let mut request = parsed(vec![json!({"slug":"company.profile","name":"Company profile"})]);
+        assert_eq!(search(&request, &catalog)[0].apiosk.len(), 1);
+        request.capabilities[0].source_hint = Some("missing-register".into());
+        assert!(search(&request, &catalog)[0].apiosk.is_empty());
+    }
+
+    #[test]
+    fn named_platform_cannot_bypass_person_profile_scope_in_bazaar() {
+        let request = person_profile_request();
+        let directory: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/ask-v2-linkedin-contract.json")).unwrap();
+        let mut profile = bazaar(directory["endpoints"][0]["description"].as_str().unwrap());
+        profile.url = Some(directory["endpoints"][0]["resource"].as_str().unwrap().into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![profile,
+            bazaar("Retrieve a LinkedIn company profile, employee count and revenue."),
+            bazaar("Board-game profiles and intelligence, promoted on LinkedIn.")];
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        assert_eq!(matches[0].coinbase[0].url.as_deref(), Some("https://agdata.shveik.dev/x402/linkedin"));
     }
 
     #[test]

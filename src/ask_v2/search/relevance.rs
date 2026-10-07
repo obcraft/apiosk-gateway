@@ -46,6 +46,20 @@ fn action(word: &str) -> Option<&'static str> {
     ACTIONS.iter().copied().find(|stem| word.starts_with(stem))
 }
 
+pub(super) fn person_scope(text: &str) -> bool {
+    // Lowercasing first preserves branded words such as LinkedIn instead
+    // of treating their capitalization as a camelCase field boundary.
+    let text = text.to_lowercase();
+    let scope = words(&text);
+    let person = ["person", "people", "personal", "professional", "individual"].iter()
+        .any(|word| scope.contains(*word));
+    let company = ["company", "organisation", "organization", "business"].iter()
+        .any(|word| scope.contains(*word));
+    let linkedin_profile = super::tokens(&text).windows(2)
+        .any(|pair| pair[0] == "linkedin" && matches!(pair[1].as_str(), "profile" | "profiles"));
+    person || (linkedin_profile && !company)
+}
+
 /// The meaningful words of a reviewed capability id (`vat` and `eu` for
 /// `vat.eu.validate`, `registry` and `profile` for `company.registry-profile`).
 /// Generated `operation.*` ids name an HTTP route, not a capability.
@@ -98,6 +112,7 @@ pub(super) struct Request {
     dns: bool,
     dns_record_types: u16,
     exact_dns_records: bool,
+    person_profile: bool,
 }
 
 // The historical mail-DNS adapter drops all but the registrable-domain
@@ -290,6 +305,10 @@ impl Request {
         let enterprise_multiple = enterprise_ratio(&valuation_text);
         let company_subject = capability.subject_id.as_ref().and_then(|id|
             parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
+        let person_subject = capability.subject_id.as_ref().and_then(|id|
+            parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "person");
+        let person_profile = valuation_words.contains("profile")
+            && (person_subject || ["person", "people", "professional"].iter().any(|word| valuation_words.contains(*word)));
         let corporate_valuation = (primary_facets & VALUATION != 0 || enterprise_multiple)
             && (company_subject || capability.domain == "company" || enterprise_multiple);
         let equity_quote = primary_facets & STOCK_MARKET != 0
@@ -308,6 +327,7 @@ impl Request {
             && ["market", "price", "liquidity", "volume", "capitalization"].iter()
                 .any(|word| valuation_words.contains(*word));
         Self {
+            person_profile,
             dns,
             dns_record_types,
             exact_dns_records,
@@ -366,7 +386,17 @@ impl Request {
         self.dns |= other.dns;
         self.dns_record_types |= other.dns_record_types;
         self.exact_dns_records |= other.exact_dns_records;
+        self.person_profile |= other.person_profile;
         self
+    }
+
+    /// A shared word such as "profile" does not make an organisation's
+    /// lobbying report or a board-game guide a profile of an individual.
+    /// Read the operation's own scope, not input names or provider-wide copy.
+    pub fn profile_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.person_profile { return true; }
+        candidate.person_scope || ["person", "people", "personal", "professional", "individual"].iter()
+            .any(|word| candidate.contract.contains(*word))
     }
 
     fn dns_scope_matches(&self, candidate: &Document) -> bool {
@@ -475,6 +505,7 @@ impl Request {
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        if !self.profile_scope_matches(listing) { return false; }
         if !self.dns_scope_matches(listing) { return false; }
         if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
@@ -499,6 +530,7 @@ impl Request {
         index: &Index,
         hinted: bool,
     ) -> bool {
+        if !self.profile_scope_matches(candidate) { return false; }
         if !self.dns_scope_matches(candidate) { return false; }
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.
