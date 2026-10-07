@@ -60,6 +60,35 @@ pub(super) fn person_scope(text: &str) -> bool {
     person || (linkedin_profile && !company)
 }
 
+/// This is an operation distinction, not an inference of a person's identity
+/// from an employer. Named-person profile requests remain profile retrievals.
+pub(super) fn people_discovery(capability: &Capability, parsed: &ParsedRequest) -> bool {
+    // The parser's known-person retrieval shape is authoritative even if
+    // its display name happens to say "profile search".
+    if capability.slug == "research.person.profile" { return false; }
+    let identity = words(&format!("{} {}", capability.slug, capability.name));
+    let person = identity.iter().any(|word| matches!(word.as_str(), "person" | "people" | "professional"))
+        || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+            .is_some_and(|subject| matches!(subject.kind.as_str(), "person" | "people"));
+    person && identity.iter().any(|word| matches!(word.as_str(), "search" | "discovery" | "discover"))
+}
+
+/// Read only the operation's title/opening, never provider branding or an
+/// appendix about other endpoints. A generic web search can discover profile
+/// URLs; a known-URL scraper, reverse-email lookup or company registry cannot.
+pub(super) fn discovery_operation(opening: &str) -> bool {
+    let text = opening.to_lowercase();
+    let normalized = super::tokens(&text).join(" ");
+    let web = ["web search", "semantic web search", "search the web", "search the public web",
+        "search the live web", "free text web search", "real time web search", "live web search",
+        "general web search", "run a query against a web index", "query a web index"]
+        .iter().any(|prefix| normalized == *prefix || normalized.starts_with(&format!("{prefix} ")));
+    let scope = words(&text);
+    let people = person_scope(&text) && scope.contains("search")
+        && ["criteria", "filter", "employer", "seniority"].iter().any(|word| scope.contains(*word));
+    web || people
+}
+
 /// The meaningful words of a reviewed capability id (`vat` and `eu` for
 /// `vat.eu.validate`, `registry` and `profile` for `company.registry-profile`).
 /// Generated `operation.*` ids name an HTTP route, not a capability.
@@ -113,6 +142,7 @@ pub(super) struct Request {
     dns_record_types: u16,
     exact_dns_records: bool,
     person_profile: bool,
+    people_discovery: bool,
 }
 
 // The historical mail-DNS adapter drops all but the registrable-domain
@@ -328,6 +358,7 @@ impl Request {
                 .any(|word| valuation_words.contains(*word));
         Self {
             person_profile,
+            people_discovery: people_discovery(capability, parsed),
             dns,
             dns_record_types,
             exact_dns_records,
@@ -387,6 +418,7 @@ impl Request {
         self.dns_record_types |= other.dns_record_types;
         self.exact_dns_records |= other.exact_dns_records;
         self.person_profile |= other.person_profile;
+        self.people_discovery |= other.people_discovery;
         self
     }
 
@@ -394,9 +426,14 @@ impl Request {
     /// lobbying report or a board-game guide a profile of an individual.
     /// Read the operation's own scope, not input names or provider-wide copy.
     pub fn profile_scope_matches(&self, candidate: &Document) -> bool {
+        if self.people_discovery { return candidate.people_discovery; }
         if !self.person_profile { return true; }
         candidate.person_scope || ["person", "people", "personal", "professional", "individual"].iter()
             .any(|word| candidate.contract.contains(*word))
+    }
+
+    pub fn discovery_match(&self, candidate: &Document) -> bool {
+        self.people_discovery && candidate.people_discovery
     }
 
     fn dns_scope_matches(&self, candidate: &Document) -> bool {
@@ -506,6 +543,7 @@ impl Request {
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
         if !self.profile_scope_matches(listing) { return false; }
+        if self.discovery_match(listing) { return true; }
         if !self.dns_scope_matches(listing) { return false; }
         if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
@@ -531,6 +569,7 @@ impl Request {
         hinted: bool,
     ) -> bool {
         if !self.profile_scope_matches(candidate) { return false; }
+        if self.discovery_match(candidate) { return true; }
         if !self.dns_scope_matches(candidate) { return false; }
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.

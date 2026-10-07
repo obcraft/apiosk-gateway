@@ -926,6 +926,79 @@ mod tests {
         assert!(passed, "live person-profile scope checks failed; inspect sanitized evidence");
     }
 
+    /// A role at an employer names a search cohort, not a known person's
+    /// profile identifier. Keep this live because a canned response cannot
+    /// verify that the model makes that distinction.
+    #[tokio::test]
+    #[ignore = "requires explicit live-model authorization and configured OpenRouter credentials"]
+    async fn live_people_discovery_scope_parse() {
+        dotenvy::dotenv().ok();
+        let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
+            .or_else(|| std::env::var("INTENT_API_KEY").ok()).filter(|key| !key.trim().is_empty())
+            .expect("configured model credentials required");
+        let client = Client::new(reqwest::Client::new(), key, DEFAULT_MODEL.into());
+        let mut rows = Vec::new();
+        for (question, employer, role, expected_platform, requested_provider, named_person) in [
+            ("Look up to linkedin of the Founder of ExampleCo", "ExampleCo", "Founder", Some("linkedin"), None, None),
+            ("Find the founders of Fictional Widgets on LinkedIn", "Fictional Widgets", "founders", Some("LinkedIn"), None, None),
+            ("Zoek de directeuren van Voorbeeldbedrijf op LinkedIn", "Voorbeeldbedrijf", "directeuren", Some("LinkedIn"), None, None),
+            ("Find professional profiles of the founders of Imaginary Labs", "Imaginary Labs", "founders", None, None, None),
+            ("Using Exa, find founders of Fictitious Robotics on LinkedIn", "Fictitious Robotics", "founders", Some("LinkedIn"), Some("exa"), None),
+            ("Check the LinkedIn profile of Example Person, founder of ExampleCo", "ExampleCo", "founder", Some("LinkedIn"), Some("linkedin"), Some("Example Person")),
+        ] {
+            let value = match client.interpret(question, &[]).await {
+                Ok(value) => value,
+                Err(_) => {
+                    rows.push(json!({"question":question,"error":"canonical interpretation failed","passed":false}));
+                    continue;
+                }
+            };
+            let parsed = &value["parsed_request"];
+            let subjects = parsed["subjects"].as_array().cloned().unwrap_or_default();
+            let capabilities = parsed["capabilities"].as_array().cloned().unwrap_or_default();
+            let capability = capabilities.first();
+            // A company subject scoped by employer/role is equivalent to a
+            // person cohort when the only request is to discover its people.
+            let subject = capability.and_then(|capability| subjects.iter()
+                .find(|subject| capability["subject_id"] == subject["id"]));
+            let identifiers = subject.and_then(|subject| subject["identifiers"].as_object());
+            let expected_slug = if named_person.is_some() { "research.person.profile" } else { "research.person.search" };
+            let expected_outputs = if named_person.is_some() { json!(["profile"]) } else { json!(["profiles"]) };
+            let checks = json!({
+                "one_discovery_scope":subjects.len() == 1 && subject.is_some_and(|subject|
+                    if named_person.is_some() { subject["type"] == "person" }
+                    else { subject["type"].as_str().is_some_and(|kind| matches!(kind, "person" | "people" | "company")) }),
+                "literal_label":subject.is_some_and(|subject| subject["label"].as_str().is_some_and(|label|
+                    if let Some(person) = named_person { label == person } else { !label.is_empty() && question.contains(label) })),
+                "literal_employer":identifiers.is_some_and(|identifiers| identifiers.get("employer") == Some(&json!(employer))),
+                "literal_role":identifiers.is_some_and(|identifiers| identifiers.get("role") == Some(&json!(role))),
+                "no_invented_profile_url":identifiers.is_some_and(|identifiers| !identifiers.iter().any(|(key, value)|
+                    key.contains("url") || value.as_str().is_some_and(|value| value.contains("linkedin.com/")))),
+                "one_matching_capability":capabilities.len() == 1 && capability.is_some_and(|capability|
+                    capability["slug"] == expected_slug && subject.is_some_and(|subject| capability["subject_id"] == subject["id"])),
+                "discovery_or_profile_outputs":capability.is_some_and(|capability| capability["outputs"] == expected_outputs),
+                "target_not_provider":capability.is_some_and(|capability| capability["source_hint"] == json!(requested_provider)),
+                "literal_search_query":named_person.is_some() || identifiers.is_some_and(|identifiers|
+                    identifiers.get("query") == Some(&json!(question))),
+                "target_platform_preserved":named_person.is_some() || identifiers.is_some_and(|identifiers|
+                    match (identifiers.get("platform").and_then(Value::as_str), expected_platform) {
+                        (Some(actual), Some(expected)) => actual.eq_ignore_ascii_case(expected),
+                        (None, None) => true,
+                        _ => false,
+                    }),
+            });
+            let passed = checks.as_object().unwrap().values().all(|check| check == true);
+            rows.push(json!({"question":question,"parsed_request":parsed,"model":value["model"],
+                "attempts":value["attempts"],"timing":value["timing"],"checks":checks,"passed":passed}));
+        }
+        let passed = rows.iter().all(|row| row["passed"] == true);
+        if let Ok(path) = std::env::var("ASK_V2_LIVE_EVIDENCE") {
+            let evidence = json!({"scope":"actual canonical model parse only; synthetic names; no source discovery, quotes or provider execution", "model":DEFAULT_MODEL,"rows":rows,"passed":passed});
+            std::fs::write(path, serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        }
+        assert!(passed, "live people-discovery scope checks failed; inspect sanitized evidence");
+    }
+
     #[tokio::test]
     async fn sends_only_exact_prompt_question_and_shape_with_no_planner_fields() {
         let captured = Arc::new(Mutex::new(Vec::<Value>::new()));

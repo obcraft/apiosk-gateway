@@ -326,6 +326,39 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
     None
 }
 
+/// Discover an unknown person's public profile from the supplied employer and
+/// role. This is a search quote, never a claim that an identity was found or a
+/// substitute for retrieving a known person's full profile.
+pub(super) fn people_search_reply(intake:&Intake,catalog:&Catalog,question:&str,task:&crate::state::Task)->Option<super::ChatReply> {
+    let capabilities:Vec<_>=intake.parsed_request.capabilities.iter().filter(|cap|!answer_instruction(cap)).collect();
+    if capabilities.len()!=1 || !crate::ask_v2::search::people_discovery(capabilities[0],&intake.parsed_request) {return None;}
+    let subject=capabilities[0].subject_id.as_ref().and_then(|id|intake.parsed_request.subjects.iter().find(|subject|&subject.id==id))?;
+    // Preserve the complete literal lookup, including any requested platform.
+    // A company label alone cannot replace "the founder of this company".
+    if subject.identifiers.get("query").map(String::as_str)!=Some(question) {return None;}
+    let mut reply=single_retrieval_reply(intake,catalog,question,question,task)?;
+    reply.message=if intake.parsed_request.language=="nl" {
+        "Ik zoek de gevraagde personen en hun openbare profiellinks. Bekijk eerst de totale prijs."
+    } else {"I will search for the requested people and their public profile links. Review the total price first."}.into();
+    if let Some(intent)=&mut reply.intent {
+        intent.answer_operations.push("Identify people only from retrieved evidence matching the requested employer and role. Return the requested platform's profile links when present in the results, with citations. Do not invent names, roles or profile URLs, mistake the company page for a person, claim full profile retrieval from a search snippet, or claim the result list is exhaustive. State when no matching profile was found.".into());
+    }
+    Some(reply)
+}
+
+fn people_search_output_covered(cap:&crate::capability_intake::Capability,parsed:&crate::capability_intake::ParsedRequest,
+    output:&str,service:&crate::catalog::Service,catalog:&Catalog)->bool {
+    if !matches!(output,"profiles"|"profile_urls") || !crate::ask_v2::search::people_discovery(cap,parsed) {return false;}
+    let Some(subject)=cap.subject_id.as_ref().and_then(|id|parsed.subjects.iter().find(|subject|&subject.id==id)) else {return false;};
+    let Some(query)=subject.identifiers.get("query").filter(|query|!query.trim().is_empty()) else {return false;};
+    // A typed web search returns candidate page titles/URLs, which cover
+    // profile discovery only. Descriptive marketing or an opaque document
+    // response cannot prove these fields, nor any requested profile details.
+    service.contract.requires.iter().any(|required|required.fact_type=="web.query" && !required.optional
+        && crate::ask_v2::input_values::literal(&required.fact_type,subject)==Some(json!(query)))
+        && output_covered("url",service,catalog,false) && output_covered("title",service,catalog,false)
+}
+
 /// Combine complete literal clauses using the same discovery, input and output
 /// checks as individual requests. A failed clause never becomes a partial quote.
 pub(super) fn compound_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
@@ -623,7 +656,8 @@ pub(crate) fn uncovered_outputs(task:&crate::state::Task,catalog:&Catalog,intent
             }
         }
         for output in cap.outputs.iter().filter(|output|!output_metadata(output)) {
-            let proven=contributing.iter().any(|index|output_covered(output,&plan.steps[*index].service,catalog,false));
+            let proven=contributing.iter().any(|index|output_covered(output,&plan.steps[*index].service,catalog,false)
+                || people_search_output_covered(cap,&intake.parsed_request,output,&plan.steps[*index].service,catalog));
             if !proven {missing.push(format!("{}: {}",cap.name,output));}
         }
     }
