@@ -78,9 +78,6 @@ struct Document {
     /// Whether the operation's own wording describes an individual rather
     /// than an organisation. Used for person-profile requests only.
     person_scope: bool,
-    /// The operation can discover pages or people from criteria, as opposed
-    /// to fetching a profile whose identity/URL is already known.
-    people_discovery: bool,
     /// Asset kind stated by the endpoint itself, never provider branding or
     /// caller input names. Keep the full description: a later sentence can
     /// explain that a stock mark is actually a derivative.
@@ -137,16 +134,6 @@ fn opening_description(text: &str) -> &str {
         if boundary {return prefix;}
     }
     text
-}
-
-/// A reviewed search contract already establishes its operation without
-/// marketing copy. Require the semantic query input and result URL/title,
-/// not only a generic label on an opaque registered endpoint.
-fn reviewed_web_search(service: &Service) -> bool {
-    !service.unverified && service.contract.capability_slug == "web.search"
-        && service.contract.requires.iter().any(|input| !input.optional && input.fact_type == "web.query")
-        && service.contract.input_map.get("web.query").is_some_and(|input| input.name == "query")
-        && ["web.url", "web.title"].iter().all(|output| service.contract.output_map.produces.contains_key(*output))
 }
 
 // A single catalog version is retained. Concurrent readers may finish with the
@@ -250,9 +237,6 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         };
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
         indexed.person_scope = relevance::person_scope(&format!("{opening} {translated_opening}"));
-        indexed.people_discovery = relevance::discovery_operation(opening)
-            || relevance::discovery_operation(translated_opening)
-            || (opening.trim().is_empty() && reviewed_web_search(service));
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
         indexed.contract_facets = primary;
@@ -288,8 +272,6 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 opening_description(description), opening_description(&rendering)), BTreeSet::new()).tokens;
             indexed.person_scope = relevance::person_scope(&format!("{} {}",
                 opening_description(description), opening_description(&rendering)));
-            indexed.people_discovery = relevance::discovery_operation(opening_description(description))
-                || relevance::discovery_operation(opening_description(&rendering));
             indexed.operation_words = words(&format!("{description} {rendering}"));
             indexed.dns_record_types = relevance::dns_record_types(&format!("{} {}", opening_description(description), opening_description(&rendering)));
             indexed.derivative_asset = relevance::derivative_market(description) || relevance::derivative_market(&rendering);
@@ -331,7 +313,6 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         );
         let mut indexed = document(Target::Source(position), &text, capabilities);
         indexed.person_scope = relevance::person_scope(opening_description(&source.metadata.description));
-        indexed.people_discovery = relevance::discovery_operation(opening_description(&source.metadata.description));
         indexed.coverage = country::source(source);
         rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
@@ -680,7 +661,6 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         dns_record_types: relevance::dns_record_types(text),
         topic_scope: tokens.clone(),
         person_scope: relevance::person_scope(opening_description(text)),
-        people_discovery: relevance::discovery_operation(opening_description(text)),
         target,
         tokens,
         facets,
@@ -804,8 +784,6 @@ pub fn filter_coinbase_in_english(
             let mut listing = document(Target::Source(0), &both, BTreeSet::new());
             listing.person_scope = relevance::person_scope(&format!("{} {}", opening_description(&candidate.description),
                 opening_description(english.as_deref().unwrap_or(""))));
-            listing.people_discovery = relevance::discovery_operation(opening_description(&candidate.description))
-                || relevance::discovery_operation(opening_description(english.as_deref().unwrap_or("")));
             if !floor.profile_scope_matches(&listing) { return false; }
             if let Some(hint) = &hint {
                 return [
@@ -1003,12 +981,6 @@ pub fn search(parsed: &ParsedRequest, catalog: &Catalog) -> Vec<Match> {
     search_in_english(parsed, parsed, catalog)
 }
 
-/// Whether this capability asks to discover people, rather than to retrieve
-/// the profile of an already identified person.
-pub(crate) fn people_discovery(capability: &Capability, parsed: &ParsedRequest) -> bool {
-    relevance::people_discovery(capability, parsed)
-}
-
 /// [`search`] reading each capability in its own wording and in English:
 /// `english` is `parsed` with its capabilities in English (see
 /// `crate::english::English::request`). A candidate matching either wording
@@ -1053,13 +1025,7 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     .is_some_and(|hint| !operation_names_source(hint, candidate, catalog)) {
                     continue;
                 }
-                // A public web search is a way to discover a person's profile
-                // even when its generic contract does not repeat "person".
-                // The typed operation gate below still rejects profile fetches
-                // and unrelated registries; explicit source hints stay intact.
-                let score = if floor.discovery_match(candidate) {
-                    score(&wanted, candidate, &index).max(1.0)
-                } else { score(&wanted, candidate, &index) };
+                let score = score(&wanted, candidate, &index);
                 if score <= 0.0 || !floor.passes(&wanted, candidate, &index, restricted.is_some()) {
                     continue;
                 }
@@ -2066,121 +2032,6 @@ mod tests {
             "Check the linkedin profile from Olivier Brinkman, Founder of Apiosk", "fixture").unwrap()
     }
 
-    fn people_search_request() -> ParsedRequest {
-        let question = "Look up to linkedin of the Founder of Apiosk";
-        crate::capability_intake::normalize(&json!({"language":"en",
-            "subjects":[{"id":"s1","label":"Founder of Apiosk","type":"person",
-                "identifiers":{"employer":"Apiosk","role":"Founder","platform":"linkedin","query":question}}],
-            "capabilities":[{"slug":"research.person.search","name":"Professional profile search",
-                "description":"Search for people and their professional profiles by employer and role.","domain":"research",
-                "inputs":["employer","role"],"outputs":["profiles"],"subject_id":"s1",
-                "source_hint":null,"confidence":0.95}],
-            "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap()
-    }
-
-    #[test]
-    fn people_discovery_uses_real_web_search_contracts_without_guessing_a_profile_identity() {
-        let operations: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/source-operations/catalog.json")).unwrap();
-        let workflows: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
-        let bodega = operations.services.iter().find(|service| service.endpoint_id.to_string() == "535f4e3e-db48-4f61-94de-f25383687075").unwrap().clone();
-        let mut exa = workflows.services.iter().find(|service| service.endpoint_id.to_string() == "e81808c0-623e-4a05-8a37-5c94a6a87175").unwrap().clone();
-        // Current public /v1/discover metadata, read 2026-10-07. The older
-        // workflow fixture keeps the same actual web.query -> body.query
-        // contract but omits its endpoint description.
-        exa.description = Some("Web search with a choice of retrieval mode: auto lets Exa pick, neural finds pages by meaning rather than words, keyword behaves like a classic index. Returns up to 10 ranked results with URL, title and score, and can carry the page text or matching highlights along with each hit.".into());
-        assert_eq!(exa.contract.input_map["web.query"].name, "query");
-        assert!(bodega.contract.requires.iter().any(|input| !input.optional
-            && bodega.contract.input_map[&input.fact_type].name == "query"));
-        let services = vec![bodega.clone(), exa.clone(),
-            service(101, "company.registry-profile", "Sirenic", "Lobbying and influence profile of a French company from the official HATVP register of interest representatives.", "sirenic"),
-            service(102, "operation.profile-provider.lookup-profile", "LinkedIn profile",
-                "Look up one public LinkedIn profile per call. Pass query as a username, a profile URL or a URN.", "profile-provider"),
-            service(103, "people.search", "StableEnrich", "Resolve person identity to a Minerva PID and LinkedIn URL. Supports fuzzy matching (name + contact info) and reverse lookup (email or phone only, no name required).", "stableenrich"),
-            service(104, "web.search", "AgentBodega", "Find related pages, substitutes, competitor pages, or supporting sources from a topic, task, or public seed URL, with normalized source-neutral results and strict search/fetch caps.", "agentbodega"),
-            service(105, "research.person.search", "Company founder profiles", "Retrieve a registered company profile by SIREN. Use the company name or founder as search context.", "wrong-exact-contract"),
-        ];
-        let catalog = Catalog::build(Snapshot { services, known_sources: vec![],
-            vocabulary: operations.vocabulary.into_iter().chain(workflows.vocabulary).collect() });
-        let mut request = people_search_request();
-        assert!(people_discovery(&request.capabilities[0], &request));
-        let found = search(&request, &catalog);
-        let ids: BTreeSet<_> = found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
-        assert_eq!(ids, BTreeSet::from([bodega.endpoint_id.to_string(), exa.endpoint_id.to_string()]), "{:?}", found[0].apiosk);
-        // A requested provider still narrows discovery; the new search route
-        // must not silently relax explicit provider choices.
-        request.capabilities[0].source_hint = Some("exa".into());
-        assert_eq!(search(&request, &catalog)[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(), [Some("exa")]);
-        let profile = person_profile_request();
-        assert!(!people_discovery(&profile.capabilities[0], &profile));
-        assert!(search(&profile, &catalog)[0].apiosk.iter().all(|candidate|
-            !matches!(candidate.source_slug.as_deref(), Some("exa" | "agentbodega"))));
-    }
-
-    #[test]
-    fn people_discovery_bazaar_keeps_search_and_excludes_known_url_scrapers() {
-        let request = people_search_request();
-        let mut found = search(&request, &catalog(vec![], vec![]));
-        found[0].coinbase = vec![
-            bazaar("Free-text web search for AI agents: ranked title/url/snippet results fused across multiple engines (Brave, Google, DuckDuckGo, Mojeek, Startpage, Yahoo), with freshness filters (past day/week/month/year), region/locale and SafeSearch."),
-            bazaar("Search for people/contacts matching criteria."),
-            bazaar("Look up one public LinkedIn profile per call. Pass query as a username, a profile URL or a URN."),
-            bazaar("Retrieve a LinkedIn company profile, employee count and revenue."),
-            bazaar("Board-game and tabletop intelligence with web search grounding and founder profiles."),
-        ];
-        filter_coinbase(&request, &mut found);
-        assert_eq!(found[0].coinbase.len(), 2, "{:?}", found[0].coinbase);
-        assert!(found[0].coinbase[0].description.starts_with("Free-text web search"));
-        assert!(found[0].coinbase[1].description.starts_with("Search for people"));
-    }
-
-    #[test]
-    fn people_discovery_uses_reviewed_web_query_and_results_when_description_is_absent() {
-        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
-        snapshot.services.retain(|service| service.endpoint_id.to_string() == "e81808c0-623e-4a05-8a37-5c94a6a87175");
-        assert_eq!(snapshot.services.len(), 1);
-        assert!(snapshot.services[0].description.is_none());
-        snapshot.known_sources.clear();
-        let original = snapshot.services[0].clone();
-        let mut opaque = original.clone();
-        opaque.id = Uuid::from_u128(9901);
-        opaque.endpoint_id = Uuid::from_u128(9901);
-        opaque.unverified = true;
-        let mut no_results = original.clone();
-        no_results.id = Uuid::from_u128(9902);
-        no_results.endpoint_id = Uuid::from_u128(9902);
-        no_results.contract.output_map.produces.remove("web.title");
-        snapshot.services.extend([opaque, no_results]);
-        let found = search(&people_search_request(), &Catalog::build(snapshot));
-        assert_eq!(found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.as_deref()).collect::<Vec<_>>(),
-            [original.endpoint_id.to_string()], "{:?}", found[0].apiosk);
-    }
-
-    #[test]
-    fn people_discovery_accepts_the_canonical_web_index_operation_but_not_conflicting_descriptions() {
-        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
-        snapshot.services.retain(|service| service.endpoint_id.to_string() == "e81808c0-623e-4a05-8a37-5c94a6a87175");
-        snapshot.known_sources.clear();
-        // Canonical capability description from the production catalog on
-        // 2026-10-07; the endpoint's separate marketing text is not loaded.
-        snapshot.services[0].description = Some("Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer.".into());
-        let expected = snapshot.services[0].endpoint_id.to_string();
-        for (id, description) in [
-            (9911, "Find related pages, substitutes or competitor pages from a public seed URL."),
-            (9912, "Look up one public LinkedIn profile per call. Pass a username, profile URL or URN."),
-            (9913, "Retrieve a French company profile by SIREN."),
-        ] {
-            let mut conflicting = snapshot.services[0].clone();
-            conflicting.id = Uuid::from_u128(id);
-            conflicting.endpoint_id = Uuid::from_u128(id);
-            conflicting.description = Some(description.into());
-            snapshot.services.push(conflicting);
-        }
-        let found = search(&people_search_request(), &Catalog::build(snapshot));
-        assert_eq!(found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.as_deref()).collect::<Vec<_>>(),
-            [expected], "{:?}", found[0].apiosk);
-        assert_eq!(found[0].operations, BTreeSet::from(["web.search".into()]));
-    }
-
     #[test]
     fn person_profiles_keep_the_requested_platform_and_exclude_company_and_game_profiles() {
         // These two descriptions/IDs were returned by the live request on
@@ -2211,22 +2062,44 @@ mod tests {
     }
 
     #[test]
-    fn known_person_profile_is_not_discovery_when_its_display_name_says_search() {
-        let catalog = catalog(vec![
+    fn webpage_discovery_can_mention_profiles_without_requesting_profile_records() {
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
+        snapshot.services.retain(|service| service.contract.capability_slug == "web.search");
+        snapshot.known_sources.clear();
+        assert_eq!(snapshot.services.len(), 1);
+        // Canonical production operation wording, distinct from its endpoint's
+        // marketing copy. Its typed query and URL/title outputs are unchanged.
+        snapshot.services[0].description = Some("Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer.".into());
+        let search_id = snapshot.services[0].endpoint_id.to_string();
+        snapshot.services.extend([
             service(10101, "operation.profile-provider.lookup-profile", "Public profile API",
-                "Look up one person's public LinkedIn profile per call. Pass a username, a profile URL or a URN.", "profile-provider"),
-            service(10102, "web.search", "Web search API",
-                "Search the public web and return ranked result URLs and titles.", "search-provider"),
-        ], vec![]);
+                "Look up one person's public LinkedIn profile by known profile URL.", "profile-provider"),
+            service(10102, "company.registry-profile", "Company registry",
+                "Retrieve a registered company profile by SIREN.", "registry"),
+        ]);
+        let fixture: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+        snapshot.vocabulary.extend(fixture.vocabulary);
+        let catalog = Catalog::build(snapshot);
+        assert_eq!(catalog.services.len(), 3, "{:?}", catalog.rejected);
         let mut request = person_profile_request();
-        request.capabilities[0].name = "Person profile search".into();
-        assert!(!people_discovery(&request.capabilities[0], &request));
-        for hint in [Some("linkedin".into()), None] {
-            request.capabilities[0].source_hint = hint;
-            let found = search(&request, &catalog);
-            assert_eq!(found[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(),
-                [Some("profile-provider")], "{:?}", found[0].apiosk);
-        }
+        request.capabilities[0].slug = "research.web.search".into();
+        request.capabilities[0].name = "Professional profile page search".into();
+        request.capabilities[0].description = "Search the public web for professional profile pages matching the supplied criteria.".into();
+        request.capabilities[0].outputs = vec!["url".into(), "title".into()];
+        request.capabilities[0].source_hint = None;
+        let found = search(&request, &catalog);
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.endpoint_id.as_deref() == Some(&search_id)), "{:?}", found[0].apiosk);
+        assert!(found[0].operations.contains("web.search"));
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("registry")));
+
+        // A request for an actual profile retains its subject gate even when
+        // the display name uses the ordinary verb "search".
+        let mut record = person_profile_request();
+        record.capabilities[0].name = "Person profile search".into();
+        record.capabilities[0].source_hint = None;
+        let found = search(&record, &catalog);
+        assert_eq!(found[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(),
+            [Some("profile-provider")], "{:?}", found[0].apiosk);
     }
 
     #[test]

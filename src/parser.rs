@@ -1325,7 +1325,6 @@ impl Parser {
                 if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
             }
             if let Some(reply) = plan_coverage::cbs_comparison_reply(intake, catalog, question, task) { return Ok(reply); }
-            if let Some(reply) = plan_coverage::people_search_reply(intake, catalog, question, task) { return Ok(reply); }
             if let Some(tender) = crate::tenderned::executable_intake(question, intake) {
                 if let Some(reply) = plan_coverage::single_retrieval_reply(&tender, catalog, question, question, task) { return Ok(reply); }
             }

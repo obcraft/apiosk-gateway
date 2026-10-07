@@ -202,9 +202,9 @@ mod tests {
         let parsed=crate::capability_intake::normalize(&json!({"language":"en",
             "subjects":[{"id":"s1","label":"Founder of ExampleCo","type":"person",
                 "identifiers":{"employer":"ExampleCo","role":"Founder","platform":"linkedin","query":question}}],
-            "capabilities":[{"slug":"research.person.search","name":"Professional profile search",
-                "description":"Find people and their professional profiles by employer and role.","domain":"research",
-                "inputs":["employer","role","query"],"outputs":["profiles"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
+            "capabilities":[{"slug":"research.web.search","name":"Public web search",
+                "description":"Find public professional profile pages matching employer and role criteria.","domain":"research",
+                "inputs":["query"],"outputs":["url","title"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
             "deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
         let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
         snapshot.services.retain(|service|service.contract.capability_slug=="web.search");
@@ -214,16 +214,41 @@ mod tests {
         let matches=crate::ask_v2::search::search(&parsed,&catalog);
         let intake=crate::capability_intake::Intake {selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
             parsed_request:parsed,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone()};
-        // Neither model transport nor provider execution has a reachable
-        // address. Quote generation uses only literals and stored contracts.
+        // Exercise the actual planner HTTP boundary. The fixture is the
+        // model's choice, not a deterministic plan constructed by the engine.
+        use axum::{extract::State, routing::post, Json, Router};
+        use std::sync::{Arc, Mutex};
+        let requests=Arc::new(Mutex::new(Vec::<Value>::new()));
+        let model=Router::new().route("/",post(|State(requests):State<Arc<Mutex<Vec<Value>>>>,Json(body):Json<Value>|async move {
+            requests.lock().unwrap().push(body);
+            let reply=json!({"message":"I will search public pages and show the price first.","discover":true,"decline_reason":"none",
+                "intent":{"subjects":[{"subject_ref":"s1","values":{"web.query":{"ref":"s1.identifiers.query"}}}],
+                    "goals":[{"capability":"web.search","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}});
+            Json(json!({"choices":[{"finish_reason":"stop","message":{"content":reply.to_string()}}]}))
+        })).with_state(requests.clone());
+        let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let model_url=format!("http://{}",listener.local_addr().unwrap());
+        let model_server=tokio::spawn(async move {axum::serve(listener,model).await.unwrap()});
+        // Database and provider execution remain unreachable and disabled.
         let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
         let store=crate::store::Store {pool:pool.clone()};
         let http=reqwest::Client::new();
         let engine=Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(pool),
-            parser:crate::parser::Parser::new(http.clone(),"http://127.0.0.1:1".into(),String::new(),"fixture".into()),
+            parser:crate::parser::Parser::new(http.clone(),model_url,"fixture".into(),"fixture".into()),
             signer:Signer::new(vec![8;32]).unwrap(),app_url:"http://localhost".into(),
             executor:crate::execution::Executor {store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false}};
         let value=engine.guest_plan(question,intake.clone(),&catalog).await.unwrap();
+        model_server.abort();
+        let requests=requests.lock().unwrap();
+        assert_eq!(requests.len(),1,"the AI planner must choose the lookup plan exactly once");
+        let received:Value=serde_json::from_str(requests[0]["messages"][1]["content"].as_str().unwrap()).unwrap();
+        assert_eq!(received["question"],question);
+        assert_eq!(received["parsed_request"],serde_json::to_value(&intake.parsed_request).unwrap());
+        assert_eq!(received["bindings"]["values"]["s1.identifiers.query"],question);
+        assert_eq!(received["catalog"]["service_inputs"][0]["source"],"exa");
+        assert_eq!(received["catalog"]["service_inputs"][0]["capability"],"web.search");
+        assert_eq!(received["catalog"]["service_inputs"][0]["input_names"]["web.query"],"query");
+        assert_eq!(received["source_matches"][0]["apiosk_operations"],json!(["web.search"]));
         assert_eq!(value["status"],"ready","{value}");
         assert!(value["total_atomic"].as_str().unwrap().parse::<i64>().unwrap()>0);
         assert_eq!(value["sources"].as_array().unwrap().len(),1);
@@ -235,7 +260,6 @@ mod tests {
         assert_eq!(step.service.contract.capability_slug,"web.search");
         assert_eq!(step.service.inputs(&restored,step.entity_ref,&catalog.vocabulary).unwrap()["query"],question);
         assert!(restored.completed.is_empty());
-        assert_eq!(engine.parser.calls.load(std::sync::atomic::Ordering::Relaxed),0);
         assert!(!serde_json::to_string(&value).unwrap().to_lowercase().contains("siren"));
 
         // Search snippets/URLs must never be priced as a known person's full
@@ -249,43 +273,90 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "requires saved synthetic parser results and read-only catalog snapshot; no network"]
+    #[ignore = "uses configured OpenRouter planner with saved synthetic parses and read-only catalog metadata; no provider execution"]
     async fn saved_live_people_searches_reach_quotes_against_production_contracts() {
+        use axum::{extract::State,routing::post,Json,Router};
+        use std::sync::{Arc,Mutex,atomic::{AtomicUsize,Ordering}};
+        dotenvy::dotenv().ok();
         let snapshot:crate::catalog::Snapshot=serde_json::from_slice(&std::fs::read(std::env::var("FOUNDER_CATALOG_SNAPSHOT").unwrap()).unwrap()).unwrap();
         let evidence:Value=serde_json::from_slice(&std::fs::read(std::env::var("FOUNDER_PARSE_EVIDENCE").unwrap()).unwrap()).unwrap();
         let catalog=Catalog::build(snapshot);
         let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
         let store=crate::store::Store {pool:pool.clone()};
         let http=reqwest::Client::new();
+        let key=std::env::var("OPENROUTER_API_KEY").ok().filter(|key|!key.trim().is_empty())
+            .or_else(||std::env::var("INTENT_API_KEY").ok().filter(|key|!key.trim().is_empty()))
+            .expect("configured OpenRouter credentials required");
+        let calls=Arc::new(AtomicUsize::new(0));
+        let completions=Arc::new(Mutex::new(Vec::<Value>::new()));
+        // Count real completion requests without changing production code or
+        // relying on Parser.calls, which only counts the separate parse API.
+        type ModelState=(reqwest::Client,String,Arc<AtomicUsize>,Arc<Mutex<Vec<Value>>>);
+        let proxy=Router::new().route("/",post(|State((http,key,calls,completions)):State<ModelState>,Json(body):Json<Value>|async move {
+            calls.fetch_add(1,Ordering::Relaxed);
+            let response=http.post("https://openrouter.ai/api/v1/chat/completions").bearer_auth(key).json(&body).send().await.unwrap();
+            let status=response.status();
+            let response=response.json::<Value>().await.unwrap();
+            let reply=response.pointer("/choices/0/message/content").and_then(Value::as_str)
+                .and_then(|raw|serde_json::from_str::<Value>(raw).ok());
+            completions.lock().unwrap().push(json!({"status":status.as_u16(),
+                "model":response["model"],"finish_reason":response.pointer("/choices/0/finish_reason"),"reply":reply}));
+            (status,Json(response))
+        })).with_state((http.clone(),key,calls.clone(),completions.clone()));
+        let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let model_url=format!("http://{}",listener.local_addr().unwrap());
+        let model_server=tokio::spawn(async move {axum::serve(listener,proxy).await.unwrap()});
         let engine=Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(pool),
-            parser:crate::parser::Parser::new(http.clone(),"http://127.0.0.1:1".into(),String::new(),"fixture".into()),
+            parser:crate::parser::Parser::new(http.clone(),model_url,"local-counting-proxy".into(),
+                std::env::var("DISCOVERY_TEST_MODEL").unwrap_or_else(|_|crate::parser::MODEL.into())),
             signer:Signer::new(vec![8;32]).unwrap(),app_url:"http://localhost".into(),
             executor:crate::execution::Executor {store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false}};
         let mut reports=vec![];
         for row in evidence["rows"].as_array().unwrap() {
-            if row["parsed_request"]["capabilities"][0]["slug"]!="research.person.search" {continue;}
+            if row["requested_goal"]!="discovery" {continue;}
             let question=row["question"].as_str().unwrap();
+            assert!(["ExampleCo","Fictional Widgets","Voorbeeldbedrijf","Imaginary Labs","Fictitious Robotics","ImaginaryTool"].iter()
+                .any(|synthetic|question.contains(synthetic)),"live replay is restricted to synthetic evidence");
             let mut raw=row["parsed_request"].clone();
             for cap in raw["capabilities"].as_array_mut().unwrap() {cap.as_object_mut().unwrap().remove("status");}
             let parsed:crate::capability_intake::ParsedRequest=serde_json::from_value(raw).unwrap();
             let matches=crate::ask_v2::search::search(&parsed,&catalog);
             let intake=crate::capability_intake::Intake {selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
                 parsed_request:parsed,matches,apiosk_sources_searched:catalog.known_sources.len(),catalog_version:catalog.version.clone()};
+            let calls_before=calls.load(Ordering::Relaxed);
+            let completions_before=completions.lock().unwrap().len();
             let value=engine.guest_plan(question,intake,&catalog).await.unwrap();
+            let model_calls=calls.load(Ordering::Relaxed)-calls_before;
+            let completed=completions.lock().unwrap()[completions_before..].to_vec();
+            reports.push(json!({"question":question,"status":value["status"],"total_atomic":value["total_atomic"],"sources":value["sources"],
+                "planner_model_calls":model_calls,"planner_completions":completed,"provider_calls":0}));
+            if let Ok(path)=std::env::var("FOUNDER_QUOTE_EVIDENCE") {std::fs::write(path,serde_json::to_vec_pretty(&reports).unwrap()).unwrap();}
+            // A ready quote after a model rejection/fallback is not evidence
+            // that the model selected it. Require its first choice to succeed.
+            assert_eq!(model_calls,1,"the first AI plan must succeed without repair or fallback for {question}");
+            assert_eq!(completed.len(),1);
+            assert_eq!(completed[0]["reply"]["discover"],true,"{question}: {completed:?}");
             assert_eq!(value["status"],"ready","{question}: {value}");
             let preview=Preview::open(&engine.signer,value["preview_token"].as_str().unwrap()).unwrap();
             let task=preview.current_task(&catalog).unwrap();
             let plan:Plan=serde_json::from_value(task.proposal.clone().unwrap()).unwrap();
+            let chosen:Vec<_>=completed[0]["reply"]["intent"]["goals"].as_array().unwrap().iter()
+                .map(|goal|(&goal["capability"],&goal["subject"])).collect();
+            let retained=task.intent.as_ref().unwrap()["goals"].as_array().unwrap().iter()
+                .map(|goal|(&goal["capability"],&goal["subject"])).collect::<Vec<_>>();
+            assert_eq!(chosen,retained,"the final quote must retain the model's selected goals");
             assert_eq!(plan.steps.len(),1);
             let step=&plan.steps[0];
             assert_eq!(step.service.inputs(&task,step.entity_ref,&catalog.vocabulary).unwrap()["query"],question);
-            reports.push(json!({"question":question,"status":value["status"],"total_atomic":value["total_atomic"],"sources":value["sources"],
-                "literal_query_preserved":true,"provider_calls":0}));
+            assert!(task.completed.is_empty());
+            reports.last_mut().unwrap()["literal_query_preserved"]=json!(true);
+            reports.last_mut().unwrap()["selected_goals_retained"]=json!(true);
         }
         assert!(!reports.is_empty());
-        assert_eq!(engine.parser.calls.load(std::sync::atomic::Ordering::Relaxed),0);
+        assert!(calls.load(Ordering::Relaxed)>=reports.len());
+        model_server.abort();
         if let Ok(path)=std::env::var("FOUNDER_QUOTE_EVIDENCE") {std::fs::write(path,serde_json::to_vec_pretty(&reports).unwrap()).unwrap();}
-        println!("{} saved live people-search parses produced complete one-call quotes; no provider calls, approvals or task writes",reports.len());
+        println!("{} saved synthetic parses reached complete quotes through the live AI planner; no provider calls, approvals or task writes",reports.len());
     }
 
     #[test]
