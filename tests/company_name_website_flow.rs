@@ -14,6 +14,7 @@ use std::{collections::BTreeMap, sync::{Arc, Mutex, atomic::{AtomicUsize, Orderi
 use uuid::Uuid;
 
 const QUESTION: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
+const DUTCH_QUESTION: &str = "Kun je Mollie B.V. op naam opzoeken en de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie combineren?";
 const WEBSITE_QUERY: &str = "web.company_website_query";
 
 fn fixture() -> Value {
@@ -97,6 +98,8 @@ async fn provider(State(mock): State<Mock>, Json(body): Json<Value>) -> Json<Val
     let inputs = &body["inputs"];
     mock.calls.lock().unwrap().push((cap.clone(), inputs.clone()));
     let data = match cap.as_str() {
+        "company_registry.search" if inputs["naam"] == "Single Match Company" => json!({"pagina":1,"totaal":1,"resultaten":[
+            {"naam":inputs["naam"],"kvkNummer":"30204462"}]}),
         "company_registry.search" => json!({"pagina":1,"totaal":2,"resultaten":[
             {"naam":inputs["naam"],"kvkNummer":"30204462"},
             {"naam":"Different registered company","kvkNummer":if inputs["naam"]=="Mismatched Company" {"99887766"} else {"00123456"}}]}),
@@ -196,9 +199,11 @@ async fn selected_registry_identity_controls_all_dependent_calls_under_one_appro
         signer:Signer::new(vec![8;32]).unwrap(),executor:Executor {store:store.clone(),http,supabase_url:base,enabled:true},app_url:"http://localhost".into()});
     let catalog=engine.catalog.get().await.unwrap();assert!(catalog.rejected.is_empty(),"{:?}",catalog.rejected);assert_eq!(catalog.services.len(),4);
     let person=Principal {owner:Uuid::new_v4(),connection:None,workspace:None};
-    for (name,selected) in [("Mollie B.V.","00123456"),("Editable Company B.V.","30204462"),("Mismatched Company","99887766")] {
+    for (name,selected,form) in [("Mollie B.V.","00123456",QUESTION),("Editable Company B.V.","30204462",QUESTION),
+        ("Nederlands Bedrijf B.V.","30204462",DUTCH_QUESTION),("Single Match Company","30204462",QUESTION),
+        ("Mismatched Company","99887766",QUESTION)] {
         let before=mock.calls.lock().unwrap().len();let models_before=mock.models.load(Ordering::SeqCst);
-        let question=QUESTION.replace("Mollie B.V.",name);
+        let question=form.replace("Mollie B.V.",name);
         let priced=engine.discover(&person,DiscoverRequest {request_id:Uuid::new_v4(),question,state:None,context_delta:Default::default()}).await.unwrap();
         assert_eq!(priced.status,Status::Ready,"{priced:?}");
         let task=priced.state.as_ref().unwrap().state_ref;let quote=priced.proposal.clone().unwrap();
@@ -207,17 +212,22 @@ async fn selected_registry_identity_controls_all_dependent_calls_under_one_appro
         engine.executor.approve(&person,task,quote.quote_ref,&quote.max_total_atomic).await.unwrap();
         engine.start_worker(person.clone(),"fixture".into(),task).await.unwrap();
         let choice=settled(&engine,&person,task).await;
-        assert_eq!(choice.status,Status::NeedsSelection,"{choice:?}");
-        assert_eq!(mock.calls.lock().unwrap().len(),before+1,"only name search before explicit identity choice");
         assert_eq!(mock.calls.lock().unwrap()[before],("company_registry.search".into(),json!({"naam":name})));
-        let candidate=choice.context_view["candidates"].as_array().unwrap().iter().find(|candidate|
-            candidate["facts"].as_array().unwrap().iter().any(|fact|fact["type"]=="company_registry.kvknummer"&&fact["value"]==selected)).unwrap();
-        let action=choice.next_actions.iter().find(|a|a.kind=="select_entity").unwrap();
-        let choose=ExecuteRequest {request_id:Uuid::new_v4(),action_id:action.action_id,idempotency_key:action.action_id,state:choice.state.clone().unwrap(),
-            quote_ref:Some(quote.quote_ref),authorization_ref:None,input:json!({"entity_ref":candidate["entity_ref"]})};
-        engine.execute(&person,"fixture",choose).await.unwrap();
-        engine.start_worker(person.clone(),"fixture".into(),task).await.unwrap();
-        let done=settled(&engine,&person,task).await;
+        let done=if name=="Single Match Company" {
+            assert_eq!(choice.status,Status::Succeeded,"an unambiguous registry result needs no extra identity question: {choice:?}");
+            choice
+        } else {
+            assert_eq!(choice.status,Status::NeedsSelection,"{choice:?}");
+            assert_eq!(mock.calls.lock().unwrap().len(),before+1,"only name search before explicit identity choice");
+            let candidate=choice.context_view["candidates"].as_array().unwrap().iter().find(|candidate|
+                candidate["facts"].as_array().unwrap().iter().any(|fact|fact["type"]=="company_registry.kvknummer"&&fact["value"]==selected)).unwrap();
+            let action=choice.next_actions.iter().find(|a|a.kind=="select_entity").unwrap();
+            let choose=ExecuteRequest {request_id:Uuid::new_v4(),action_id:action.action_id,idempotency_key:action.action_id,state:choice.state.clone().unwrap(),
+                quote_ref:Some(quote.quote_ref),authorization_ref:None,input:json!({"entity_ref":candidate["entity_ref"]})};
+            engine.execute(&person,"fixture",choose).await.unwrap();
+            engine.start_worker(person.clone(),"fixture".into(),task).await.unwrap();
+            settled(&engine,&person,task).await
+        };
         let calls=mock.calls.lock().unwrap()[before..].to_vec();
         assert_eq!(calls.iter().filter(|(cap,_)|cap=="company_registry.search").count(),1,"selection reuses saved lookup");
         for (_,inputs) in calls.iter().filter(|(cap,_)|matches!(cap.as_str(),"company.registry-profile"|"company.financial-statements")) {assert_eq!(inputs["kvkNummer"],selected);}

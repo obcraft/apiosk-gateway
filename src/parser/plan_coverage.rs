@@ -489,7 +489,8 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
             if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
             let message = if named_company {
-                "I will look up the company by name and combine its registered details, available annual figures and website information. Review the total price first."
+                if canonical.language == "nl" { "Ik zoek het bedrijf op naam en combineer de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie. Bekijk eerst de totale prijs." }
+                else { "I will look up the company by name and combine its registered details, available annual figures and website information. Review the total price first." }
             } else if crate::profession_request::recognize(question).is_some() {
                 if canonical.language == "nl" { "Ik haal de gevraagde gegevens uit de gevonden bronnen en toon eerst de totale prijs." }
                 else { "I will retrieve the requested data from the matched sources and show the total price first." }

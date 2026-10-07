@@ -30,7 +30,7 @@
 //! as "no sources".
 use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SENTIMENT, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
 use crate::{
-    capability_intake::{capability_query, Capability, ParsedRequest},
+    capability_intake::{capability_query, normalize_slug, Capability, ParsedRequest},
     state::Task,
 };
 use std::collections::BTreeSet;
@@ -95,6 +95,55 @@ pub(super) struct Request {
     crypto_sentiment: bool,
     crypto_market: bool,
     metrics: MetricScope,
+    dns: bool,
+    dns_record_types: u16,
+    exact_dns_records: bool,
+}
+
+// The historical mail-DNS adapter drops all but the registrable-domain
+// labels. It cannot answer an exact owner query such as mail.example.com.
+// Keep this conservative gate aligned with that adapter's legacy contract.
+fn legacy_dns_preserves_name(name: &str) -> bool {
+    let name = name.trim().trim_end_matches('.').to_ascii_lowercase();
+    let labels: Vec<_> = name.split('.').collect();
+    let uk = labels.len() == 3 && labels[2] == "uk"
+        && ["co", "org", "me", "ltd", "plc", "net", "sch", "ac", "gov"].contains(&labels[1]);
+    (labels.len() == 2 || uk) && !name.contains('_')
+}
+
+/// Do not stem DNS types: the lexical index intentionally discards one/two
+/// letter words, which would make A, NS and MX indistinguishable.
+pub(super) fn dns_record_types(text: &str) -> u16 {
+    let tokens: Vec<_> = text.split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|token| !token.is_empty()).collect();
+    let mut types = 0;
+    for (index, token) in tokens.iter().enumerate() {
+        types |= match token.to_ascii_lowercase().as_str() {
+            "a" if (*token == "A" && tokens.get(index + 1).is_none_or(|next|
+                    matches!(next.to_ascii_lowercase().as_str(), "and" | "or" | "aaaa" | "mx" | "ns" | "txt" | "caa" | "soa" | "cname")))
+                || (index.checked_sub(1).is_some_and(|i| matches!(tokens[i].to_ascii_lowercase().as_str(), "dns" | "type" | "types"))
+                    && !tokens.get(index + 1).is_some_and(|next| next.eq_ignore_ascii_case("dns")))
+                || tokens.get(index + 1).is_some_and(|next| matches!(next.to_ascii_lowercase().as_str(), "record" | "records")) => 1,
+            "ipv4" => 1,
+            "aaaa" | "ipv6" => 2,
+            "cname" => 4,
+            "mx" => 8,
+            "ns" | "nameserver" | "nameservers" => 16,
+            // A TXT retrieval does not derive a DMARC owner, DKIM selector,
+            // or evaluate an SPF policy. Only literal TXT record scope.
+            "txt" => 32,
+            "caa" => 64,
+            "soa" => 128,
+            _ => 0,
+        };
+    }
+    if tokens.iter().any(|word| word.eq_ignore_ascii_case("dns"))
+        && tokens.iter().any(|word| word.eq_ignore_ascii_case("mail")) { types |= 8; }
+    types
+}
+
+fn dns_record_types_from_description(text: &str) -> u16 {
+    dns_record_types(super::opening_description(text))
 }
 
 /// A benchmark/rate/market is not interchangeable with another measurement.
@@ -217,6 +266,24 @@ impl Request {
         let valuation_text=format!("{} {} {} {}", capability.slug, capability.name,
             capability.description, capability.outputs.join(" "));
         let valuation_words = words(&valuation_text);
+        // The requested fields and capability identity establish record scope.
+        // Explanatory prose can explicitly exclude other types ("MX, not TXT,
+        // A or AAAA") and must not turn those exclusions into required calls.
+        let dns_record_types = [&capability.slug, &capability.name].into_iter()
+            .chain(capability.outputs.iter())
+            .fold(0, |types, field| types | dns_record_types(field));
+        let dns_record_types = if dns_record_types == 0 {
+            dns_record_types_from_description(&capability.description)
+        } else { dns_record_types };
+        let dns_identity = words(&format!("{} {}", capability.slug, capability.name));
+        let dns = dns_identity.contains("dns")
+            || dns_identity.contains("nameserver")
+            || (dns_record_types != 0 && dns_identity.contains("record"));
+        let exact_dns_records = capability.outputs.iter().any(|output|
+            output.ends_with("_records") || matches!(output.as_str(), "records" | "ttl" | "record_type" | "type_code"))
+            || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+                .and_then(|subject| crate::ask_v2::input_values::literal("domain.dns_name", subject))
+                .and_then(|value| value.as_str().map(|name| !legacy_dns_preserves_name(name))).unwrap_or(false);
         let enterprise_multiple = enterprise_ratio(&valuation_text);
         let company_subject = capability.subject_id.as_ref().and_then(|id|
             parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
@@ -238,6 +305,9 @@ impl Request {
             && ["market", "price", "liquidity", "volume", "capitalization"].iter()
                 .any(|word| valuation_words.contains(*word));
         Self {
+            dns,
+            dns_record_types,
+            exact_dns_records,
             crypto_sentiment,
             crypto_market,
             metrics: MetricScope::new(capability),
@@ -290,7 +360,23 @@ impl Request {
         self.crypto_sentiment |= other.crypto_sentiment;
         self.crypto_market |= other.crypto_market;
         self.metrics.union(other.metrics);
+        self.dns |= other.dns;
+        self.dns_record_types |= other.dns_record_types;
+        self.exact_dns_records |= other.exact_dns_records;
         self
+    }
+
+    fn dns_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.dns { return true; }
+        // Compare in the same normalized namespace as the search index.
+        let has_capability = |slug| normalize_slug(slug, "")
+            .is_some_and(|(slug, _)| candidate.capabilities.contains(&slug.to_lowercase()));
+        // RDAP may list nameservers, but it is not a DNS record lookup. A
+        // shared source title must not sell registry metadata as DNS results.
+        if has_capability("domain.registration") { return false; }
+        if self.exact_dns_records && has_capability("domain.mail-dns") { return false; }
+        self.dns_record_types == 0
+            || candidate.dns_record_types & self.dns_record_types == self.dns_record_types
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
@@ -381,6 +467,7 @@ impl Request {
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        if !self.dns_scope_matches(listing) { return false; }
         if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
             || self
@@ -404,6 +491,7 @@ impl Request {
         index: &Index,
         hinted: bool,
     ) -> bool {
+        if !self.dns_scope_matches(candidate) { return false; }
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.
         if !self.crypto_market_matches(candidate) { return false; }

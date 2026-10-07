@@ -87,6 +87,49 @@ fn missing_identifier_is_resolved_before_accounts_and_priced_once() {
 }
 
 #[test]
+fn value_selection_compares_complete_chain_cost_across_payment_sources() {
+    let (catalog, task, intent) = setup();
+    let mut services = catalog.services.clone();
+    services[1].api_slug = "x402-accounts".into();
+    // 100 + a required 20 lookup costs more than the 110 direct call, even
+    // though the direct endpoint's advertised unit price is higher.
+    let mut direct = service("company.accounts", json!([{"fact_type":"company.name"}]),
+        json!({"company.accounts":{"path":"$.accounts"}}), 110);
+    direct.api_slug = "native-accounts".into();
+    let direct_id = direct.id;
+    services.push(direct);
+    let catalog = Catalog::build(Snapshot { services, known_sources: vec![], vocabulary: catalog.vocabulary.values().cloned().collect() });
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("complete plan") };
+    assert_eq!(plan.steps.len(), 1);
+    assert_eq!(plan.steps[0].service.id, direct_id);
+    assert_eq!(plan.cap_atomic, catalog.services.iter().find(|service| service.id == direct_id).unwrap().total());
+
+    // Payment protocol/provider identity is not an artificial preference.
+    let mut services = catalog.services.clone();
+    for service in &mut services {
+        if service.id == direct_id { service.api_slug = "x402-direct".into(); }
+    }
+    let catalog = Catalog::build(Snapshot { services, known_sources: vec![], vocabulary: catalog.vocabulary.values().cloned().collect() });
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("complete plan") };
+    assert_eq!(plan.steps[0].service.id, direct_id);
+}
+
+#[test]
+fn equal_total_price_prefers_fewer_paid_calls() {
+    let (catalog, task, intent) = setup();
+    let mut services = catalog.services.clone();
+    let direct = service("company.accounts", json!([{"fact_type":"company.name"}]),
+        json!({"company.accounts":{"path":"$.accounts"}}), 120);
+    let direct_id = direct.id;
+    services.push(direct);
+    let catalog = Catalog::build(Snapshot { services, known_sources: vec![], vocabulary: catalog.vocabulary.values().cloned().collect() });
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("complete plan") };
+    assert_eq!(plan.cap_atomic, 138);
+    assert_eq!(plan.steps.len(), 1, "same buyer price should avoid an unnecessary paid dependency");
+    assert_eq!(plan.steps[0].service.id, direct_id);
+}
+
+#[test]
 fn two_companies_search_first_and_reuse_only_their_own_identifiers() {
     let (catalog, mut task, mut intent) = setup();
     let second = Uuid::new_v4();

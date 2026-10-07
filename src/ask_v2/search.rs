@@ -84,6 +84,9 @@ struct Document {
     /// Full endpoint wording for measurement compatibility. Provider names,
     /// input names and unrelated provider metadata cannot supply a metric.
     operation_words: BTreeSet<String>,
+    /// DNS types in the operation itself. A/NS/MX are too short for the
+    /// general lexical index, but they name different paid capabilities.
+    dns_record_types: u16,
     /// Where the candidate can answer, for the country signal.
     coverage: country::Coverage,
 }
@@ -222,6 +225,13 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             || relevance::enterprise_ratio(&service.contract.capability_slug);
         indexed.operation_words = words(&format!("{description} {translated_description}"));
         let translated_opening=opening_description(&translated_description);
+        indexed.dns_record_types = if service.contract.capability_slug.starts_with("domain.dns-")
+            || service.contract.capability_slug == "domain.mail-dns" {
+            relevance::dns_record_types(&service.contract.capability_slug)
+        } else {
+            relevance::dns_record_types(&service.contract.capability_slug)
+                | relevance::dns_record_types(opening) | relevance::dns_record_types(translated_opening)
+        };
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
@@ -257,6 +267,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             indexed.topic_scope = document(target, &format!("{} {}",
                 opening_description(description), opening_description(&rendering)), BTreeSet::new()).tokens;
             indexed.operation_words = words(&format!("{description} {rendering}"));
+            indexed.dns_record_types = relevance::dns_record_types(&format!("{} {}", opening_description(description), opening_description(&rendering)));
             indexed.derivative_asset = relevance::derivative_market(description) || relevance::derivative_market(&rendering);
             indexed.enterprise_multiple = relevance::enterprise_ratio(description) || relevance::enterprise_ratio(&rendering);
             indexed.coverage = country::source(source);
@@ -640,6 +651,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         derivative_asset: false,
         enterprise_multiple: false,
         operation_words: BTreeSet::new(),
+        dns_record_types: relevance::dns_record_types(text),
         topic_scope: tokens.clone(),
         target,
         tokens,
@@ -1132,6 +1144,58 @@ mod tests {
             calls_30d: None,
             availability: "discovery_only".into(),
         }
+    }
+
+    #[test]
+    fn dns_record_types_do_not_treat_an_indefinite_article_as_ipv4() {
+        for text in ["A DNS record lookup", "A quick DNS lookup", "a DNS lookup"] {
+            assert_eq!(relevance::dns_record_types(text), 0, "{text}");
+        }
+        for text in ["DNS A records", "a_records", "domain.dns-a", "DNS type A"] {
+            assert_eq!(relevance::dns_record_types(text), 1, "{text}");
+        }
+        assert_eq!(relevance::dns_record_types("A and AAAA records"), 3);
+    }
+
+    #[test]
+    fn dns_record_types_do_not_collapse_into_mail_or_registration_metadata() {
+        let catalog = catalog(vec![
+            service(991, "domain.registration", "RDAP and DNS", "Domain registration date (RDAP); DNS MX and nameservers are available from other operations.", "domain-intelligence"),
+            service(992, "domain.mail-dns", "RDAP and DNS", "Domain mail servers (DNS MX); Registration and nameservers are separate operations.", "domain-intelligence"),
+            service(993, "domain.dns-a", "DNS records", "Exact DNS A records (IPv4 addresses).", "domain-intelligence"),
+            service(994, "domain.dns-aaaa", "DNS records", "Exact DNS AAAA records (IPv6 addresses).", "domain-intelligence"),
+            service(995, "domain.dns-ns", "DNS records", "Exact DNS NS records (nameservers).", "domain-intelligence"),
+            service(996, "domain.dns-txt", "DNS records", "Exact DNS TXT records including returned SPF and DMARC policy text.", "domain-intelligence"),
+        ], vec![]);
+        for (label, output, expected) in [
+            ("DNS A records", "a_records", "domain.dns-a"),
+            ("DNS AAAA records", "aaaa_records", "domain.dns-aaaa"),
+            ("DNS NS records", "nameservers", "domain.dns-ns"),
+            ("DNS TXT records", "txt_records", "domain.dns-txt"),
+        ] {
+            let mut request = parsed(vec![json!({"slug":"research.domain.dns", "name":label})]);
+            request.capabilities[0].domain = "research".into();
+            request.capabilities[0].outputs = vec![output.into()];
+            let found = search(&request, &catalog);
+            assert_eq!(found[0].operations, BTreeSet::from([expected.into()]), "{label}: {:?}", found[0].apiosk);
+        }
+        let request = parsed(vec![json!({"slug":"domain.mail-dns", "name":"DNS MX mail servers"})]);
+        assert_eq!(search(&request, &catalog)[0].operations, BTreeSet::from(["domain.mail-dns".into()]));
+        let mut request = parsed(vec![json!({"slug":"research.domain.mail.dns", "name":"Domain mail DNS records"})]);
+        request.capabilities[0].description = "Retrieve public DNS MX mail-routing records. This requests MX, not TXT, A, AAAA or CNAME records, and does not prove mail delivery or ownership.".into();
+        request.capabilities[0].outputs = vec!["mx".into(), "accepts_mail".into()];
+        assert_eq!(search(&request, &catalog)[0].operations, BTreeSet::from(["domain.mail-dns".into()]));
+        let mut request = parsed(vec![json!({"slug":"domain.registration", "name":"RDAP registration"})]);
+        request.capabilities[0].outputs = vec!["registered_at".into(), "nameservers".into()];
+        assert!(search(&request, &catalog)[0].operations.contains("domain.registration"));
+    }
+
+    #[test]
+    fn dns_record_scope_is_not_overridden_by_an_exact_slug_or_source_hint() {
+        let catalog = catalog(vec![service(997, "domain.mail-dns", "DNS intelligence", "DNS MX mail servers", "domain-intelligence")], vec![]);
+        let mut request = parsed(vec![json!({"slug":"domain.mail-dns", "name":"DNS TXT and NS records", "source_hint":"domain-intelligence"})]);
+        request.capabilities[0].outputs = vec!["txt_records".into(), "nameservers".into()];
+        assert!(search(&request, &catalog)[0].operations.is_empty());
     }
 
     #[test]

@@ -296,6 +296,7 @@ impl Engine {
                 | "eu-funding-tenders"
                 | "pdok-ruimtelijke-plannen"
                 | "bodemloket"
+                | "domain-intelligence"
         ) && data["coverage"]["complete"] == false
         {
             document["coverage"] = json!("partial");

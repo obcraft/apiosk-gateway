@@ -13,6 +13,7 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         "company.registration.gb.companies_house" => identifier(&["companies_house_number", "company_number", "crn"]),
         "vehicle.registration.nl.plate" => identifier(&["license_plate", "kenteken"]),
         "domain.name" => identifier(&["domain", "domain_name"]),
+        "domain.dns_name" => identifier(&["dns_name", "domain", "domain_name"]),
         "finance_markets.cityfalcon_identifiers" => identifier(&["ticker", "isin"]),
         "vat.eu.country_code" | "vat.eu.number" => {
             let number = identifier(&["vat_number", "btw_number"])?;
@@ -63,7 +64,7 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         || (field == "company.name" && company)
         || (matches!(field, "news.reuters_search_query" | "web.query" | "web.source_search_query") && (company || topic))
         || (matches!(field, "company_intel.input.search" | "subsidy.discovery.keyword" | "source.koop.q") && topic)
-        || (field == "domain.name" && kind == "domain");
+        || (matches!(field, "domain.name" | "domain.dns_name") && kind == "domain");
     named.then(|| json!(subject.label))
 }
 

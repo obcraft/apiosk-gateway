@@ -1,0 +1,126 @@
+Company research verification — 7 October 2026
+
+Production rollout update — 7 October 2026
+
+User authorized Supabase migration and Fly deployment after the local validation
+below. The shared project jgjoiyqdyypouskftzeq now matches all 180 combined App
+and Gateway migration files, with zero local/remote history mismatches.
+Applied 20261004182009_kvk_registered_website_bridge (guarded idempotent replay)
+and 20261007093340_typed_domain_dns_records after the new gateway was healthy.
+Recorded already-applied 20260930091005_recurring_orders and
+20261002084852_frankfurter_ecb_reference_rates_staged_prod_only after comparing
+live schema/contracts with isolated local migration results. No recurring DDL
+was replayed; Frankfurter's newer published state remains active. Renamed both
+local TenderNed migration copies to the recorded 20261003130359 timestamp;
+their exact SQL MD5 matched production: 56f6d13576c2340d416e4e379c9e5db4.
+
+Fly gateway release: deployment-01M4B2P94THA9F6HBSRQ0ZHMDQ, machine version 224.
+Build label: 39c82ad-dirty-company-dns-20261007 (includes uncommitted changes).
+Fly MCP release: deployment-01M4B31Z5X3XHGE2QE2RB1RYEQ, machine version 374.
+Both deployments completed successfully. Gateway health on the Fly and public
+hosts reports the new build and payment_executor=ready. MCP health is ok with
+7 tools. The refreshed public readiness catalog at 2026-10-07T11:53:03Z accepts
+all 10 Domain Intelligence contracts: 2 existing plus 8 new typed DNS routes.
+SQL verified each new route active, expected origin, inherited MX price/payment
+settings, freshness 1 and response cache TTL 0. Company website contract active.
+Recurring orders remain disabled in Fly. No paid source calls were made during
+this rollout. The App frontend and Supabase Edge Functions were not deployed;
+this release covers the shared database and the two Fly services.
+
+Earlier implementation and local validation
+
+The reference request is: “Can you look up Mollie B.V. by name and combine
+its registered details, available annual financial figures and website
+information?” English and Dutch variants keep the complete three-part scope.
+The existing source graph searches the register, resolves or explicitly selects
+the company, obtains its profile and available financial figures, then uses
+the selected register identity for website research. It does not guess a domain.
+
+Changes in this patch
+
+* Common English/Dutch wording shares the checked source plan. Additional years,
+  latest-filing requirements, DNS, extra entities or output formats are not
+  silently discarded by the literal path; they retain the normal full parser.
+* The App displays the gateway's scope limitations before purchase approval.
+  MCP avoids attributing the API billing currency to filing figures, preserves
+  RSIN/date identifiers, and does not switch English headings to Dutch merely
+  because a registry quotation is Dutch.
+* Eight exact-name DNS lookups: A, AAAA, CNAME, MX, NS, TXT, CAA and SOA. Each is
+  one upstream query; subdomains and underscore labels remain intact. Answers
+  retain record type, name, original value, TTL (or null), response status,
+  DNSSEC indicator, source URL and truncation coverage. Unsupported types and
+  mismatched provider questions are rejected. DNS does not prove legal ownership,
+  service availability or a complete zone inventory.
+* DNS search preserves the requested record type. RDAP and legacy MX cannot
+  silently substitute for another type. Record types explicitly excluded in
+  a description are not added to the request. A mixed old/new catalog test
+  verifies that exact-record and subdomain queries cannot select legacy MX,
+  whose adapter strips subdomains; ordinary root-domain mail checks still work.
+* The resolver compares complete buyer cost including prerequisites, then chooses
+  fewer calls when total prices tie. It does not prefer a source because it uses
+  x402. New DNS entries inherit the existing MX tariff rather than inventing one.
+* External discovery distinguishes the configured direct-fetch estimate from
+  the standard balance-purchase estimate. Neither is an executable purchase
+  authorization; the live input contract, network and price must pass admission.
+
+Validation and limits
+
+The isolated company workflow passes with mock providers/model and real SQL:
+English/Dutch, one clear match, ambiguous selection, selected KVK identity,
+mismatched identity blocking website research, one approval, price cap, single
+settlement, persisted evidence and recovery without another purchase.
+Added DNS wording retains the complete original question for general parsing;
+the dedicated company workflow test does not establish company-plus-DNS
+execution. A DNS query needs an evidence-backed or explicitly supplied name.
+
+Typed DNS tests cover real free Google DNS captures for all eight types,
+normalization and extraction equality, invalid/error/truncated responses,
+exact subdomain preservation, source discovery, output coverage and one-step
+quotes. The DNS migration passes in isolated PGlite: current-price inheritance,
+unchanged existing source/MX records, exact contracts and samples, idempotence,
+and rollback on drift. This is not a production database migration.
+
+The App focused suite passed 144 tests plus TypeScript and focused ESLint.
+The MCP suite passed all 176 tests. Legacy discovery fee tests cover configured
+10% and 15% fees and fee floors; existing x402 admission fixtures reject missing
+contracts instead of paying with guessed inputs.
+
+The full offline workspace run completed with 977 passed, 2 failed and 94
+ignored. Both failures concern unchanged CBS/location normalization:
+cbs_2025_special_values_are_missing_statistics_with_source_provenance and
+saved_location_fixture_is_the_normalized_actual_public_chain. The reported
+CBS missing-value sentinel remains numeric rather than null. These failures
+are outside this company/website/DNS patch and are not hidden by the targeted
+passes. A parallel run also exposed a telemetry capture race; gateway unit
+tests passed when run serially.
+
+Live read-only checks: the gateway health endpoint was ready at revision
+39c82ad4c4b195da94efbb33d12474edb09013d7; public catalog/x402 discovery responded.
+Eight free Google DNS queries succeeded. There was no paid company-data or
+x402-provider execution. The saved Mollie financial fixture reports 2020;
+it establishes available historical figures, not the latest filing.
+
+Reproduce from gateway/
+
+  cargo test --workspace --offline -- --test-threads=1
+  python3 scripts/test-chatbot-flow.py --suite company_name_website_flow
+  node scripts/test-domain-dns-migration.mjs
+  node scripts/sync-contracts.mjs --check
+  node scripts/sync-migration.mjs --check
+
+Local test sockets require permission outside the restricted sandbox.
+
+Release order
+
+Deploy the gateway including its updated legacy-executor submodule contents
+before applying 20261007093340_typed_domain_dns_records.sql. The migration
+publishes the new typed routes and requires the existing approved platform DNS
+source. It does not change billing/tenancy permissions or existing tariffs.
+Then deploy App and MCP so pre-purchase coverage and answer formatting match.
+Refresh old quotes/search snapshots after changing the catalog. Verify a real
+company-data purchase through the existing approval UI before claiming paid
+production end-to-end acceptance. Nothing in this work bypasses that approval.
+
+Documentation checked
+https://developers.google.com/speed/public-dns/docs/doh/json
+https://supabase.com/docs/guides/deployment/database-migrations
