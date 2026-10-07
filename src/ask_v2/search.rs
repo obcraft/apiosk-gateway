@@ -1148,10 +1148,10 @@ mod tests {
 
     #[test]
     fn dns_record_types_do_not_treat_an_indefinite_article_as_ipv4() {
-        for text in ["A DNS record lookup", "A quick DNS lookup", "a DNS lookup"] {
+        for text in ["A DNS record lookup", "A quick DNS lookup", "a DNS lookup", "Retrieve a record for this domain", "a record"] {
             assert_eq!(relevance::dns_record_types(text), 0, "{text}");
         }
-        for text in ["DNS A records", "a_records", "domain.dns-a", "DNS type A"] {
+        for text in ["DNS A records", "A records", "a_records", "domain.dns-a", "DNS type A"] {
             assert_eq!(relevance::dns_record_types(text), 1, "{text}");
         }
         assert_eq!(relevance::dns_record_types("A and AAAA records"), 3);
@@ -1196,6 +1196,37 @@ mod tests {
         let mut request = parsed(vec![json!({"slug":"domain.mail-dns", "name":"DNS TXT and NS records", "source_hint":"domain-intelligence"})]);
         request.capabilities[0].outputs = vec!["txt_records".into(), "nameservers".into()];
         assert!(search(&request, &catalog)[0].operations.is_empty());
+    }
+
+    #[test]
+    fn multiple_dns_types_discover_contributing_calls_but_require_complete_output_coverage() {
+        use crate::{capability_intake::Intake, parser::{Goal, Intent, Subject}, resolver::{resolve, Resolution}};
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/domain-intelligence/typed/catalog.json")).unwrap());
+        let mut request = parsed(vec![json!({"slug":"research.domain.dns", "name":"DNS A and MX records"})]);
+        request.subjects[0].label = "www.mollie.com".into();
+        request.subjects[0].kind = "domain".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["a_records".into(), "mx_records".into()];
+        let matches = search(&request, &catalog);
+        assert_eq!(matches[0].operations, BTreeSet::from(["domain.dns-a".into(), "domain.dns-mx".into()]));
+        let intake = Intake { parsed_request:request, selected_capabilities:matches[0].operations.clone(),
+            matches, apiosk_sources_searched:1, catalog_version:catalog.version.clone() };
+        let goal = |capability: &str| {
+            let service = catalog.services.iter().find(|service| service.contract.capability_slug == capability).unwrap();
+            Goal { capability:capability.into(), subject:0, constraints:BTreeMap::from([
+                ("source".into(), json!(service.api_slug)), ("endpoint_id".into(), json!(service.endpoint_id))]) }
+        };
+        let mut task = Task { capability_intake:Some(intake), ..Default::default() };
+        let mut intent = Intent { subjects:vec![Subject {entity_ref:None,label:"www.mollie.com".into(),
+            values:BTreeMap::from([("domain.dns_name".into(),json!("www.mollie.com"))])}],
+            goals:vec![goal("domain.dns-a")], answer_operations:vec![], unresolved_references:vec![] };
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let Resolution::Plan(partial) = resolve(&catalog, &task, &intent) else {panic!("A lookup")};
+        assert_eq!(crate::parser::plan_coverage::uncovered_outputs(&task, &catalog, &intent, &partial), vec!["DNS A and MX records: mx_records"]);
+        intent.goals.push(goal("domain.dns-mx"));
+        let Resolution::Plan(complete) = resolve(&catalog, &task, &intent) else {panic!("A and MX lookups")};
+        assert_eq!(complete.steps.len(), 2);
+        assert!(crate::parser::plan_coverage::uncovered_outputs(&task, &catalog, &intent, &complete).is_empty());
     }
 
     #[test]

@@ -86,18 +86,19 @@ fn typed_dns_live_fixtures_preserve_record_identity_values_and_ttl() {
 }
 
 #[tokio::test]
-async fn typed_dns_search_planning_alias_coverage_and_quote_need_one_exact_name_call() {
+async fn typed_dns_search_planning_alias_coverage_and_quote_buy_only_requested_types() {
     use axum::{routing::post, Json, Router};
     async fn model(Json(body): Json<Value>) -> Json<Value> {
         assert_eq!(body["messages"].as_array().unwrap().len(), 2, "valid typed DNS plan should need no repair: {}", body["messages"].as_array().unwrap().last().unwrap());
         let request: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
         let operations = request["source_matches"][0]["apiosk_operations"].as_array().unwrap();
-        assert_eq!(operations.len(), 1, "a typed DNS requirement gets its matching operation");
+        assert!((1..=3).contains(&operations.len()), "a typed DNS requirement gets its contributing operations");
         let subject = &request["source_matches"][0]["subject_ref"];
         let value_ref = format!("{}.identifiers.domain", subject.as_str().unwrap());
+        let goals: Vec<_> = operations.iter().map(|operation| json!({"capability":operation,"subject":0,"constraints":{}})).collect();
         Json(json!({"choices":[{"message":{"content":json!({
             "message":"Retrieve the requested DNS records after price approval.", "discover":true, "decline_reason":"none",
-            "intent":{"subjects":[{"subject_ref":subject,"values":{"domain.dns_name":{"ref":value_ref}}}],"goals":[{"capability":operations[0],"subject":0,"constraints":{}}],
+            "intent":{"subjects":[{"subject_ref":subject,"values":{"domain.dns_name":{"ref":value_ref}}}],"goals":goals,
                 "answer_operations":["Preserve exact DNS name, type, TTL and source; these records do not prove company ownership."],"unresolved_references":[]}
         }).to_string()}}]}))
     }
@@ -106,33 +107,37 @@ async fn typed_dns_search_planning_alias_coverage_and_quote_need_one_exact_name_
     let server = tokio::spawn(async move { axum::serve(listener, Router::new().route("/model", post(model))).await.unwrap(); });
     let parser = Parser::new(reqwest::Client::new(), format!("http://{address}/model"), "fixture".into(), "fixture".into());
     let catalog = typed_catalog();
-    for kind in ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "CAA", "SOA"] {
-        let name = if kind == "TXT" {"_dmarc.mollie.com"} else {"www.mollie.com"};
-        let question = format!("Get the DNS {kind} records for {name} with source information.");
-        let capability = format!("domain.dns-{}", kind.to_ascii_lowercase());
-        let output = format!("{}_records", kind.to_ascii_lowercase());
+    let kinds: &[&[&str]] = &[&["A"], &["AAAA"], &["CNAME"], &["MX"], &["NS"], &["TXT"], &["CAA"], &["SOA"], &["A", "MX"], &["A", "MX", "TXT"]];
+    for kinds in kinds {
+        let name = if *kinds == ["TXT"] {"_dmarc.mollie.com"} else {"www.mollie.com"};
+        let label = kinds.join(" and ");
+        let question = format!("Get the DNS {label} records for {name} with source information.");
+        let expected: std::collections::BTreeSet<_> = kinds.iter().map(|kind| format!("domain.dns-{}", kind.to_ascii_lowercase())).collect();
+        let outputs: Vec<_> = kinds.iter().map(|kind| format!("{}_records", kind.to_ascii_lowercase()))
+            .chain(["dns_records".into(), "source_url".into()]).collect();
         let parsed_request = capability_intake::normalize(&json!({"language":"en",
             "subjects":[{"id":"site","label":name,"type":"domain","identifiers":{"domain":name}}],
-            "capabilities":[{"slug":"research.domain.dns","name":format!("DNS {kind} records"),"description":format!("Retrieve the requested {kind} DNS records."),
-                "domain":"research","inputs":["domain"],"outputs":[output,"dns_records","source_url"],"subject_id":"site","source_hint":null,"confidence":1.0}],
+            "capabilities":[{"slug":"research.domain.dns","name":format!("DNS {label} records"),"description":format!("Retrieve the requested {label} DNS records."),
+                "domain":"research","inputs":["domain"],"outputs":outputs,"subject_id":"site","source_hint":null,"confidence":1.0}],
             "deliverable":{"format":"chat","operations":["summarize"]}}).to_string(), &question, "fixture").unwrap();
         let matches = search::search(&parsed_request, &catalog);
-        assert_eq!(matches[0].operations, std::collections::BTreeSet::from([capability.clone()]), "{kind}");
+        assert_eq!(matches[0].operations, expected, "{label}");
         let intake = Intake { parsed_request, selected_capabilities:matches.iter().flat_map(|matched| matched.operations.iter().cloned()).collect(),
             matches, apiosk_sources_searched:1, catalog_version:catalog.version.clone() };
         // A local model proposes the semantic operation and an exact parsed
         // value reference; the actual parser must prove every output alias.
         let reply = parser.chat_from_capabilities(&question, None, &Task::default(), &catalog, &intake).await.unwrap();
-        assert!(reply.discover, "{kind}: {}", reply.message);
+        assert!(reply.discover, "{label}: {}", reply.message);
         let mut intent = reply.intent.unwrap();
         let mut task = Task { capability_intake:Some(intake), ..Default::default() };
         apiosk_gateway_v2::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
-        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else {panic!("{kind} did not produce a quote")};
-        assert_eq!(plan.steps.len(), 1, "no automatic purchase of other DNS types");
-        let step = &plan.steps[0];
-        assert_eq!(step.service.contract.capability_slug, capability);
-        assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap()["domain"], name);
-        assert_eq!(plan.cap_atomic, step.service.total());
+        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else {panic!("{label} did not produce a quote")};
+        assert_eq!(plan.steps.len(), kinds.len(), "no automatic purchase of other DNS types");
+        assert_eq!(plan.steps.iter().map(|step| step.service.contract.capability_slug.clone()).collect::<std::collections::BTreeSet<_>>(), expected);
+        for step in &plan.steps {
+            assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap()["domain"], name);
+        }
+        assert_eq!(plan.cap_atomic, plan.steps.iter().map(|step| step.service.total()).sum::<i64>());
     }
     server.abort();
 }
@@ -195,4 +200,21 @@ fn typed_dns_retains_cname_chain_and_does_not_relabel_incidental_records() {
     assert_eq!(result["data"]["records"][1]["name"], "cdn.example.net");
     assert_eq!(result["data"]["records"][1]["data"], "192.0.2.1");
     assert_eq!(result["data"]["dnssec_validated"], true);
+}
+
+#[test]
+fn typed_dns_nxdomain_can_describe_a_missing_alias_target_not_the_queried_name() {
+    for (kind, code) in [("A", 1), ("AAAA", 28)] {
+        let prepared = source_adapter::prepare("domain-intelligence", "GET", &format!("https://dns.google/dns/www.example.com/{kind}")).unwrap().unwrap();
+        let mut raw = json!({"Status":3,"TC":false,"AD":false,
+            "Question":[{"name":"www.example.com.","type":code}],
+            "Answer":[{"name":"www.example.com.","type":5,"TTL":60,"data":"missing.example.net."}]});
+        let result = source_adapter::normalize_bytes(&prepared, &serde_json::to_vec(&raw).unwrap()).unwrap();
+        assert_eq!(result["data"]["exists"], true, "the returned CNAME proves the queried alias exists");
+        assert_eq!(result["data"]["response_code"], 3, "preserve the missing target response");
+        assert_eq!(result["data"]["records"][0]["data"], "missing.example.net.");
+        raw["Answer"][0]["name"] = json!("unrelated.example.com.");
+        let result = source_adapter::normalize_bytes(&prepared, &serde_json::to_vec(&raw).unwrap()).unwrap();
+        assert_eq!(result["data"]["exists"], false, "another owner's alias cannot establish this name");
+    }
 }

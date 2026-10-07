@@ -116,14 +116,17 @@ fn legacy_dns_preserves_name(name: &str) -> bool {
 pub(super) fn dns_record_types(text: &str) -> u16 {
     let tokens: Vec<_> = text.split(|c: char| !c.is_ascii_alphanumeric())
         .filter(|token| !token.is_empty()).collect();
-    let mut types = 0;
+    // Keep the explicit output alias; prose "a record" is an article, not
+    // an IPv4 request. A record-type letter remains case-sensitive here.
+    let mut types = u16::from(text.split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
+        .any(|token| matches!(token.to_ascii_lowercase().as_str(), "a_record" | "a_records" | "a-record" | "a-records")));
     for (index, token) in tokens.iter().enumerate() {
         types |= match token.to_ascii_lowercase().as_str() {
             "a" if (*token == "A" && tokens.get(index + 1).is_none_or(|next|
                     matches!(next.to_ascii_lowercase().as_str(), "and" | "or" | "aaaa" | "mx" | "ns" | "txt" | "caa" | "soa" | "cname")))
                 || (index.checked_sub(1).is_some_and(|i| matches!(tokens[i].to_ascii_lowercase().as_str(), "dns" | "type" | "types"))
                     && !tokens.get(index + 1).is_some_and(|next| next.eq_ignore_ascii_case("dns")))
-                || tokens.get(index + 1).is_some_and(|next| matches!(next.to_ascii_lowercase().as_str(), "record" | "records")) => 1,
+                || (*token == "A" && tokens.get(index + 1).is_some_and(|next| matches!(next.to_ascii_lowercase().as_str(), "record" | "records"))) => 1,
             "ipv4" => 1,
             "aaaa" | "ipv6" => 2,
             "cname" => 4,
@@ -375,8 +378,13 @@ impl Request {
         // shared source title must not sell registry metadata as DNS results.
         if has_capability("domain.registration") { return false; }
         if self.exact_dns_records && has_capability("domain.mail-dns") { return false; }
-        self.dns_record_types == 0
-            || candidate.dns_record_types & self.dns_record_types == self.dns_record_types
+        if self.dns_record_types == 0 { return true; }
+        let matched_types = candidate.dns_record_types & self.dns_record_types;
+        // Several executable operations can jointly retrieve A + MX + TXT.
+        // Keep each contributing type; the planner's output-coverage gate
+        // must prove the complete union before quoting the request.
+        if matches!(candidate.target, Target::Endpoint(_)) { matched_types != 0 }
+        else { matched_types == self.dns_record_types }
     }
 
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
