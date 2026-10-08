@@ -111,6 +111,8 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
   // The API.market metadata import has its own full provider-identity fixture.
   &&!name.endsWith('_onboard_apimarket_business_sources.sql')
+  &&!name.endsWith('_admin_apimarket_credentials.sql')
+  &&!name.endsWith('_show_only_crunchbase_apimarket.sql')
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
   &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge|typed_domain_dns_records)\.sql$/.test(name)

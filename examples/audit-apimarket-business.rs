@@ -30,10 +30,12 @@ async fn main() -> anyhow::Result<()> {
     let catalog=cache.fresh().await?;
     let sources=cache.sources().await?;
     let manifest:Vec<Value>=serde_json::from_str(include_str!("../tests/fixtures/apimarket/business-sources.json"))?;
-    let expected:BTreeSet<_>=manifest.iter().map(|row|row["slug"].as_str().unwrap()).collect();
+    let imported:BTreeSet<_>=manifest.iter().map(|row|row["slug"].as_str().unwrap()).collect();
+    let expected:BTreeSet<_>=["apimarket-magicapi-crunchbase-bbcca0a6"].into_iter().collect();
+    anyhow::ensure!(!catalog.known_sources.iter().any(|row|imported.contains(row.slug.as_str())&&!expected.contains(row.slug.as_str())),"hidden API.market listings leaked into planner catalog");
     let registered:Vec<_>=catalog.known_sources.iter().filter(|row|expected.contains(row.slug.as_str())).collect();
     anyhow::ensure!(registered.len()==expected.len(),"not all reviewed business sources were admitted");
-    anyhow::ensure!(!catalog.services.iter().any(|row|expected.contains(row.api_slug.as_str())),"metadata-only sources must not become executable");
+    anyhow::ensure!(!catalog.services.iter().any(|row|imported.contains(row.api_slug.as_str())),"metadata-only sources must not become executable");
     let parser=catalog.parser_view();
     let planner:Vec<_>=parser["sources"].as_array().unwrap().iter().filter(|row|expected.contains(row["slug"].as_str().unwrap_or(""))).collect();
     anyhow::ensure!(planner.len()==expected.len()&&planner.iter().all(|row|row["available"]==false),"planner discovery/availability mismatch");
@@ -54,9 +56,7 @@ async fn main() -> anyhow::Result<()> {
     }
     let mut probes=vec![];
     for (name,description) in [
-        ("Supplier payment practices","Average days UK companies take to pay suppliers and share of late payments"),
-        ("Trademark risk","Trademark name risk score and phonetic visual similarity by jurisdiction"),
-        ("Korea business registration","Check Korean business registration number status against the National Tax Service"),
+        ("Crunchbase company profiles","Crunchbase business data and company profiles, insights and trends"),
     ] {
         let matches=search(&request(name,description,None),&catalog);
         let found:Vec<_>=matches.iter().flat_map(|m|&m.apiosk).filter(|c|c.source_slug.as_deref().is_some_and(|slug|expected.contains(slug)))
@@ -64,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         probes.push(json!({"request":name,"api_market_matches":found}));
     }
     anyhow::ensure!(probes.iter().any(|p|!p["api_market_matches"].as_array().unwrap().is_empty()),"no API.market matches in representative discovery searches");
-    println!("{}",serde_json::to_string_pretty(&json!({"read_only":true,"known_business_sources":registered.len(),
+    println!("{}",serde_json::to_string_pretty(&json!({"read_only":true,"known_business_sources":registered.len(),"hidden_business_sources":imported.len()-registered.len(),
         "planner_discovery_resources":planner.len(),"directory_sources":listed.len(),"named_search_matches":named_matches,"unmatched_names":unmatched_names,
         "executable_operations":0,"provider_calls":0,"model_calls":0,"search_probes":probes}))?);
     pool.close().await;

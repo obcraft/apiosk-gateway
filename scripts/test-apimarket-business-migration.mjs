@@ -69,5 +69,15 @@ try {
   await assert.rejects(db.exec(migration),/identity collision/);
   await db.exec('ROLLBACK');
   assert.equal((await db.query('SELECT count(*)::int AS n FROM providers.apis')).rows[0].n,37,'collision never duplicates or replaces a listing');
-  console.log('PASS API.market business onboarding: 37 visible metadata sources, no executable offers, idempotence, review gate, preserved curation and identity collisions');
+  await db.exec('CREATE ROLE authenticated; CREATE SCHEMA apiosk_private');
+  const curation=await readFile(new URL('../supabase/migrations/20261008115557_show_only_crunchbase_apimarket.sql',import.meta.url),'utf8');
+  await db.exec(curation);
+  await db.exec(curation);
+  const visible=Object.values((await db.query(sourcesSql)).rows[0])[0];
+  assert.equal(visible.length,1);
+  assert.equal(visible[0].name,'Crunchbase');
+  assert.equal(visible[0].logo_url,'https://www.crunchbase.com/favicon.ico');
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM providers.apis WHERE discoverable=false')).rows[0].n,36);
+  assert.equal((await db.query('SELECT count(*)::int AS n FROM providers.apis')).rows[0].n,37);
+  console.log('PASS API.market onboarding and curation: 37 retained, 36 hidden, only Crunchbase visible with official logo, no executable offers');
 } finally { await db.close(); }

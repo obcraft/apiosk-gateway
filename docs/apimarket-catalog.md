@@ -43,6 +43,12 @@ node scripts/test-apimarket-business-migration.mjs
 cargo run --example audit-apimarket-business
 ```
 
-The audit uses `DATABASE_URL` from the environment or `.env`, forces its database session read-only, and checks all 37 Sources/planner entries, named discovery searches, representative generic searches and the absence of executable offers. It makes no model or provider calls.
+The audit uses `DATABASE_URL` from the environment or `.env`, forces its database session read-only, and checks the currently curated Sources/planner entries, named discovery searches and the absence of executable offers. It makes no model or provider calls.
 
 Production verification on October 8 admitted all 37 entries to Sources and the planner catalog. All three representative searches matched the relevant imported source. Marketing-name/tagline probes matched 36 of 37; Local Business Data's broad tagline did not pass the existing capability relevance filter. The audit reports such search misses separately without weakening relevance gates or treating catalog presence as an execution guarantee.
+
+## Current curation
+
+At the owner’s request, `20261008115557_show_only_crunchbase_apimarket.sql` hides 36 imported listings using `discoverable=false` and keeps only **Crunchbase** visible. The shorter title has no emoji; its logo is the official `https://www.crunchbase.com/favicon.ico` (visually verified). Original metadata and the original title are retained. Hidden listings are excluded from both Sources and the planner.
+
+The user-supplied API.market key is stored in Vault as `APIMARKET_API_KEY`; no key value is kept in this repository. The abandoned admin-form RPCs have been removed. Storing the key does not enable execution.
