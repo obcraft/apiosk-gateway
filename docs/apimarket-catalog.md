@@ -43,7 +43,7 @@ node scripts/test-apimarket-business-migration.mjs
 cargo run --example audit-apimarket-business
 ```
 
-The audit uses `DATABASE_URL` from the environment or `.env`, forces its database session read-only, and checks the currently curated Sources/planner entries, named discovery searches and the absence of executable offers. It makes no model or provider calls.
+The audit uses `DATABASE_URL` from the environment or `.env`, forces its database session read-only, and checks the currently curated Sources/planner entries, branding, endpoint page and the two validated Crunchbase operations. It makes no model or provider calls.
 
 Production verification on October 8 admitted all 37 entries to Sources and the planner catalog. All three representative searches matched the relevant imported source. Marketing-name/tagline probes matched 36 of 37; Local Business Data's broad tagline did not pass the existing capability relevance filter. The audit reports such search misses separately without weakening relevance gates or treating catalog presence as an execution guarantee.
 
@@ -52,3 +52,18 @@ Production verification on October 8 admitted all 37 entries to Sources and the 
 At the owner’s request, `20261008115557_show_only_crunchbase_apimarket.sql` hides 36 imported listings using `discoverable=false` and keeps only **Crunchbase** visible. The shorter title has no emoji; its logo is the official `https://www.crunchbase.com/favicon.ico` (visually verified). Original metadata and the original title are retained. Hidden listings are excluded from both Sources and the planner.
 
 The user-supplied API.market key is stored in Vault as `APIMARKET_API_KEY`; no key value is kept in this repository. The abandoned admin-form RPCs have been removed. Storing the key does not enable execution.
+
+## Crunchbase execution
+
+`20261008122054_register_crunchbase_endpoints.sql` connects two operations to the existing Crunchbase source:
+
+- **Find companies by name**: `POST /autocompletes`, with a company-name query.
+- **Browse companies**: `POST /searches/organizations`, with a result limit and fixed unfiltered request parameters.
+
+Both returned HTTP 200 with structured company results during the October 8 live verification. The existing authenticated subscription is **Free**, with a shared hard limit of **100 calls per month** and no overage. Apiosk lists these operations at zero cost. No subscription was purchased or changed. When the quota is exhausted, execution can fail until it resets.
+
+The embedded executor loads the key from Vault and injects `x-api-market-key` only for the exact reviewed HTTPS origin and these two POST routes. Planner contracts supply the required browse defaults and reject provider errors or malformed responses. The other 36 imported listings stay hidden.
+
+`POST /entities/organizations` is retained as inactive: it returned HTTP 500 for two valid company identifiers. Advanced search filters are not offered because the provider returned unfiltered results during verification. Neither feature is represented as working.
+
+Run `cargo test --test crunchbase` for planner binding and output validation, and the embedded executor's `apimarket::tests` for credential route restrictions. `cargo run --example audit-apimarket-business` checks the live catalog without executing provider calls. [Provider documentation](https://docs.api.market/api-product-docs/magicapi/crunchbase-api).
