@@ -7,6 +7,7 @@ resolver = "2"
 name = "apiosk-gateway-v2"
 version = "0.2.0"
 edition = "2021"
+default-run = "apiosk-gateway-v2"
 
 [dependencies]
 brightdata-linkedin = { path = "crates/brightdata-linkedin" }
