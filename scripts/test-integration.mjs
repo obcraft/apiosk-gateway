@@ -4,7 +4,7 @@ const cwd=new URL('../',import.meta.url);
 const port=process.env.PGTEST_PORT || '54330';
 // Suites intentionally mutate their catalogue. Sharing a database lets the
 // durable suite's cheaper reseller change the public API suite's baseline.
-for (const suite of ['durable_flow','latency_flow','public_api_flow']) {
+for (const suite of ['durable_flow','latency_flow','source_services','public_api_flow']) {
  const db=spawn(process.execPath,['tests/support-db.mjs'],{cwd,env:{...process.env,PGTEST_PORT:port},stdio:['ignore','pipe','inherit']});
  const closed=once(db,'exit');
  const ready=new Promise((resolve,reject)=>{
