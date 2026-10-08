@@ -228,7 +228,7 @@ mod tests {
         })).with_state(requests.clone());
         let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let model_url=format!("http://{}",listener.local_addr().unwrap());
-        let model_server=tokio::spawn(async move {axum::serve(listener,model).await.unwrap()});
+        let model_server=crate::telemetry::spawn(async move {axum::serve(listener,model).await.unwrap()});
         // Database and provider execution remain unreachable and disabled.
         let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
         let store=crate::store::Store {pool:pool.clone()};
@@ -305,7 +305,7 @@ mod tests {
         })).with_state((http.clone(),key,calls.clone(),completions.clone()));
         let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let model_url=format!("http://{}",listener.local_addr().unwrap());
-        let model_server=tokio::spawn(async move {axum::serve(listener,proxy).await.unwrap()});
+        let model_server=crate::telemetry::spawn(async move {axum::serve(listener,proxy).await.unwrap()});
         let engine=Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(pool),
             parser:crate::parser::Parser::new(http.clone(),model_url,"local-counting-proxy".into(),
                 std::env::var("DISCOVERY_TEST_MODEL").unwrap_or_else(|_|crate::parser::MODEL.into())),
