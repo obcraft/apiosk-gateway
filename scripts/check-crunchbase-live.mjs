@@ -1,5 +1,6 @@
 // Operator verification. --execute uses one call per operation from the
-// existing shared Free subscription. No subscription or purchase is created.
+// existing shared Free subscription and verifies a 0.10 USDC Apiosk receipt.
+// No upstream subscription is purchased or changed.
 // Attempt files are exclusive: an uncertain attempt is never auto-retried.
 import fs from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -25,8 +26,13 @@ for(const service of fixture.services){
  const body=await response.json();
  Object.assign(record,{status:'response',http_status:response.status,body});
  await fs.writeFile(file,JSON.stringify(record,null,2)+'\n');
- console.log(JSON.stringify({capability:service.contract.capability_slug,http:response.status,did:body.did,error:body.error,ready:body.request?.ready,execution:body.execution}));
+ console.log(JSON.stringify({capability:service.contract.capability_slug,http:response.status,did:body.did,error:body.error,ready:body.request?.ready,upstream_status:body.execution?.status,charged_usdc:body.execution?.charged_usdc,company_results:body.execution?.body?.entities?.length}));
  assert.equal(response.status,200);
- if(execute)assert.equal(body.did,true);
+ if(execute){
+  assert.equal(body.did,true);
+  assert.equal(body.execution?.status,200);
+  assert.equal(body.execution?.charged_usdc,'0.100000');
+  assert.ok(Array.isArray(body.execution?.body?.entities)&&body.execution.body.entities.length>0);
+ }
  else {assert.equal(body.dry_run,true);assert.equal(body.request.ready,true);assert.deepEqual(body.request.ignored_inputs,[]);}
 }

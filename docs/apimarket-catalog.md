@@ -67,3 +67,11 @@ The embedded executor loads the key from Vault and injects `x-api-market-key` on
 `POST /entities/organizations` is retained as inactive: it returned HTTP 500 for two valid company identifiers. Advanced search filters are not offered because the provider returned unfiltered results during verification. Neither feature is represented as working.
 
 Run `cargo test --test crunchbase` for planner binding and output validation, and the embedded executor's `apimarket::tests` for credential route restrictions. `cargo run --example audit-apimarket-business` checks the live catalog without executing provider calls. [Provider documentation](https://docs.api.market/api-product-docs/magicapi/crunchbase-api).
+
+### Production verification, October 8
+
+Both services completed through production `/v1/do` with upstream HTTP 200 and `charged_usdc: "0.100000"`: name lookup returned 10 matches and browsing returned the requested two companies. `scripts/check-crunchbase-live.mjs --execute` verifies these receipts and records each attempt once under ignored `output/crunchbase-gateway/`. It uses the operator service credential in memory; it never prints or stores credentials.
+
+The read-only production audit confirms one visible API.market source, 36 hidden sources, two executable operations, the Crunchbase title/logo, a Sources endpoint total of two, planner availability and supported company-search results.
+
+Deployment used `deploy/Dockerfile.executor-update` after the full build's unchanged gateway compilation took too long. The base image was pinned to `registry.fly.io/apiosk-gateway-v2@sha256:72fbf077143d22c5c87a7a1fbc1229481d61da83d8da4ee2dc7e5577c4dbf0fa` (gateway `be0c668`); its runtime source, dependencies, contracts, assets and entrypoint match `9cf1446`. Only the newly added, unrelated operator-check binary and Cargo's `default-run` differ, so this release retains the base image's operator tools. The completed executor build uses submodule commit `3aaa2b2`. The resulting production image is `registry.fly.io/apiosk-gateway-v2@sha256:cb357fcd47fc28a49bff4f69f1fcbe86b2f5adc1e45b44d5a6efe62419686630`; health reports gateway `9cf1446` and executor ready. Reuse this component build only after verifying the same source equivalence for its pinned base image.

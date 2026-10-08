@@ -12,8 +12,8 @@ use std::collections::BTreeSet;
 fn request(name: &str, description: &str, hint: Option<&str>) -> ParsedRequest {
     serde_json::from_value(json!({
         "language":"en","subjects":[],
-        "capabilities":[{"slug":"general.resource.lookup","name":name,"description":description,
-            "domain":"general","inputs":[],"outputs":["source_information"],"subject_id":null,"source_hint":hint,"confidence":1}],
+        "capabilities":[{"slug":"company.crunchbase-search","name":name,"description":description,
+            "domain":"company","inputs":["company_name"],"outputs":["company.crunchbase_search_results"],"subject_id":null,"source_hint":hint,"confidence":1}],
         "deliverable":{"format":"chat","operations":["list"]},
         "meta":{"model":"read-only-catalog-audit","parsed_at":"2026-10-08T00:00:00Z","text_sha256":"public-api-market-metadata"}
     })).unwrap()
