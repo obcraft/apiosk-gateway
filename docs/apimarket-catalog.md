@@ -60,7 +60,7 @@ The user-supplied API.market key is stored in Vault as `APIMARKET_API_KEY`; no k
 - **Find companies by name**: `POST /autocompletes`, with a company-name query.
 - **Browse companies**: `POST /searches/organizations`, with a result limit and fixed unfiltered request parameters.
 
-Both returned HTTP 200 with structured company results during the October 8 live verification. The existing authenticated subscription is **Free**, with a shared hard limit of **100 calls per month** and no overage. Apiosk lists these operations at zero cost. No subscription was purchased or changed. When the quota is exhausted, execution can fail until it resets.
+Both returned HTTP 200 with structured company results during the October 8 live verification. The existing authenticated subscription is **Free**, with a shared hard limit of **100 calls per month** and no overage. The owner-requested Apiosk price is **0.10 USDC per standard call**, including the 15% platform markup. Migration `20261008124835_price_crunchbase_calls.sql` stores a list price of 0.086956 USDC; the 0.013044 markup makes the exact buyer total 0.100000 USDC. Workflow bundles retain their separately quoted workflow markup. No subscription was purchased or changed. When the quota is exhausted, execution can fail until it resets.
 
 The embedded executor loads the key from Vault and injects `x-api-market-key` only for the exact reviewed HTTPS origin and these two POST routes. Planner contracts supply the required browse defaults and reject provider errors or malformed responses. The other 36 imported listings stay hidden.
 

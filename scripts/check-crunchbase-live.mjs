@@ -20,7 +20,7 @@ for(const service of fixture.services){
  await fs.writeFile(file,JSON.stringify(record),{flag:'wx'});
  const response=await fetch('https://apiosk-gateway-v2.fly.dev/v1/do',{
   method:'POST',headers:{'content-type':'application/json','X-Apiosk-Service-Key':key,'Idempotency-Key':record.idempotency},
-  body:JSON.stringify({candidate_id:service.endpoint_id,job:'Verify Crunchbase company integration',inputs:record.inputs,deterministic:true,parse:false,max_price:0,max_price_usdc:0,dry_run:!execute,timeout_ms:60000}),signal:AbortSignal.timeout(90000)
+  body:JSON.stringify({candidate_id:service.endpoint_id,job:'Verify Crunchbase company integration',inputs:record.inputs,deterministic:true,parse:false,max_price:0.10,max_price_usdc:0.10,dry_run:!execute,timeout_ms:60000}),signal:AbortSignal.timeout(90000)
  });
  const body=await response.json();
  Object.assign(record,{status:'response',http_status:response.status,body});

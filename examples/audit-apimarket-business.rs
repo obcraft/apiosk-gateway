@@ -70,8 +70,8 @@ async fn main() -> anyhow::Result<()> {
         operations.len() == 2
             && operations
                 .iter()
-                .all(|row| expected.contains(row.api_slug.as_str()) && row.list_atomic == 0),
-        "expected only two free Crunchbase operations"
+                .all(|row| expected.contains(row.api_slug.as_str()) && row.total() == 100_000),
+        "expected only two Crunchbase operations at 0.10 USDC per call"
     );
     let parser = catalog.parser_view();
     let planner: Vec<_> = parser["sources"]

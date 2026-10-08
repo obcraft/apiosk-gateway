@@ -53,7 +53,9 @@ fn verified_operations_resolve_bind_and_reject_provider_errors() {
             panic!("operation did not resolve")
         };
         assert_eq!(plan.steps.len(), 1);
-        assert_eq!(plan.cap_atomic, 0);
+        assert_eq!(s.list_atomic, 86_956);
+        assert_eq!(s.total(), 100_000);
+        assert_eq!(plan.cap_atomic, 100_000);
         let inputs = s.inputs(&task, entity, &c.vocabulary).unwrap();
         if s.path == "/autocompletes" {
             assert_eq!(inputs, json!({"query":"OpenAI"}));
