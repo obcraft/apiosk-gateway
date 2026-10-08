@@ -14,6 +14,10 @@ assert.doesNotMatch(migration.replace(/--.*$/gm, ''), /\bDELETE\s+FROM\b|\bTRUNC
 const logoFix = await readFile(new URL('../supabase/migrations/20260928003000_fix_bazaar_logo_check.sql', import.meta.url), 'utf8');
 assert.equal(await readFile(new URL('../../app/supabase/migrations/20260928003000_fix_bazaar_logo_check.sql', import.meta.url), 'utf8'), logoFix,
   'app/ must carry an identical copy of the logo-check fix');
+const approvalFix = await readFile(new URL('../supabase/migrations/20261008105145_publish_bazaar_on_admin_approval.sql', import.meta.url), 'utf8');
+assert.equal(await readFile(new URL('../../app/supabase/migrations/20261008105145_publish_bazaar_on_admin_approval.sql', import.meta.url), 'utf8'), approvalFix,
+  'app/ must carry an identical copy of the admin approval fix');
+const sourcesSql = await readFile(new URL('../src/sources.sql', import.meta.url), 'utf8');
 // PostgreSQL caps a regular-expression bound at 255; `{1,2040}` compiled fine
 // and failed at the first real batch ("invalid repetition count(s)"). The
 // applied migration keeps it, so the check runs on the functions as installed.
@@ -77,6 +81,7 @@ BEGIN
    WHERE a.id = p_api_id AND a.status = 'pending' RETURNING a.id, a.status;
   IF p_decision = 'approve' THEN PERFORM set_config('apiosk.api_review_approved_id', '', true); END IF;
 END $$;
+GRANT EXECUTE ON FUNCTION public.admin_review_api(uuid, text) TO service_role;
 CREATE TABLE wallets.network_tokens (id uuid PRIMARY KEY);
 INSERT INTO wallets.network_tokens VALUES ('26adabc5-92ec-44f3-9540-3bd636eeb1f4');
 CREATE TABLE providers.api_endpoints (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), api_id uuid NOT NULL REFERENCES providers.apis(id), method text NOT NULL,
@@ -119,6 +124,9 @@ try {
   await db.exec(migration);
   await db.exec(migration); // idempotent
   await db.exec(logoFix);
+  await db.exec(approvalFix);
+  await db.exec(approvalFix); // idempotent; existing RPC grants survive replacement
+  await db.exec('SET search_path = public, providers, catalog');
   for (const { proname, src } of (await db.query(`SELECT p.proname, p.prosrc AS src FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'providers' AND p.proname LIKE '%bazaar%'`)).rows) {
     assert.ok(regexBounds(src).every(n => n <= 255), `providers.${proname}: a regex bound above 255 fails at run time`);
@@ -127,6 +135,8 @@ try {
   const identity = await one(`SELECT p.username, p.display_name, u.email, u.email_confirmed_at, u.banned_until = 'infinity' AS banned
     FROM providers.provider_profiles p JOIN auth.users u ON u.id = p.id WHERE p.id = '${OWNER}'`);
   assert.deepEqual(identity, { username: 'coinbase-bazaar', display_name: 'Coinbase Bazaar', email: 'system+coinbase-bazaar@apiosk.com', email_confirmed_at: null, banned: true });
+  assert.equal((await one(`SELECT avatar_url FROM providers.provider_profiles WHERE id = '${OWNER}'`)).avatar_url,
+    'https://app.apiosk.com/logos/coinbase.svg');
 
   // Every RPC is a definer with an empty search path; only the right roles may call it.
   const fns = (await db.query(`SELECT p.proname, p.prosecdef, p.proconfig FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -139,6 +149,9 @@ try {
   }
   assert.equal(await can('anon', 'providers.approve_bazaar_services(uuid[])'), false);
   assert.equal(await can('authenticated', 'providers.approve_bazaar_services(uuid[])'), true);
+  assert.equal(await can('anon', 'public.admin_review_api(uuid,text)'), false);
+  assert.equal(await can('authenticated', 'public.admin_review_api(uuid,text)'), true);
+  assert.equal(await can('service_role', 'public.admin_review_api(uuid,text)'), true, 'preserve the existing service role grant');
   const tables = (await db.query(`SELECT c.relname, c.relrowsecurity AS rls, has_table_privilege('anon', c.oid, 'SELECT') AS anon,
     has_table_privilege('authenticated', c.oid, 'SELECT') AS authenticated, has_table_privilege('service_role', c.oid, 'SELECT') AS service
     FROM pg_class c WHERE c.oid IN ('providers.bazaar_sync_control'::regclass, 'providers.bazaar_sync_runs'::regclass, 'providers.bazaar_resources'::regclass)`)).rows;
@@ -227,16 +240,73 @@ try {
   assert.deepEqual([finish.missed, finish.retired], [40, 0]);
   assert.match(finish.note, /retirement skipped/);
 
-  // Approval: platform admins only, through admin_review_api, then discoverable.
+  // The real admin UI calls the generic RPC. It must make an accepted Bazaar
+  // service visible through the actual Sources SQL, without validating execution.
   const apiId = api.id;
+  const sourceRows = async () => Object.values(await one(sourcesSql))[0];
+  assert.equal((await sourceRows()).some(r => r.slug === api.slug), false);
+  await assert.rejects(one(`SELECT * FROM public.admin_review_api($1, 'approve')`, [apiId]), /not_authorized/);
   await assert.rejects(one(`SELECT * FROM providers.approve_bazaar_services(ARRAY[$1]::uuid[])`, [apiId]), /not_authorized/);
   await db.exec(`SELECT set_config('request.jwt.claims', '{"sub":"${ADMIN}","role":"authenticated"}', false)`);
+  await assert.rejects(one(`SELECT * FROM public.admin_review_api($1, 'publish')`, [apiId]), /invalid_decision/);
+  await db.exec(`UPDATE providers.apis SET is_verified = false, verified_at = NULL WHERE id = '${apiId}'`);
+  const metadataBeforeReview = (await one(`SELECT listing_metadata FROM providers.apis WHERE id = $1`, [apiId])).listing_metadata;
+  await db.exec('SET ROLE authenticated');
+  assert.deepEqual(await one(`SELECT * FROM public.admin_review_api($1, 'approve')`, [apiId]), { id: apiId, status: 'active' });
+  await db.exec('RESET ROLE');
+  const live = await one(`SELECT status, active, discoverable, is_verified, approved_at IS NOT NULL AS approved,
+    verified_at IS NOT NULL AS verified, reviewed_by FROM providers.apis WHERE id = $1`, [apiId]);
+  assert.deepEqual(live, { status: 'active', active: true, discoverable: true, is_verified: true, approved: true, verified: true, reviewed_by: ADMIN });
+  assert.deepEqual((await one(`SELECT listing_metadata FROM providers.apis WHERE id = $1`, [apiId])).listing_metadata, metadataBeforeReview,
+    'approval never clears operator holds or changes resell settings');
+  assert.equal((await one(`SELECT status FROM catalog.capability_execution_contracts WHERE id = $1`, [a.contract.id])).status, 'validated',
+    'listing acceptance must not claim live contract validation');
+  assert.equal((await one(`SELECT current_setting('apiosk.api_review_approved_id', true) AS gate`)).gate, '', 'close the review gate');
+  const visible = (await sourceRows()).find(r => r.slug === api.slug);
+  assert.equal(visible.provider_slug, 'coinbase-bazaar');
+  assert.equal(visible.provider_logo_url, 'https://app.apiosk.com/logos/coinbase.svg');
+  assert.equal(visible.endpoint_count, 1, 'retired endpoints remain excluded');
+  assert.deepEqual((await db.query(`SELECT * FROM public.admin_review_api($1, 'approve')`, [apiId])).rows, [], 'repeat decisions stay no-ops');
+
+  // Exercise rejection and all publication boundaries using the same imported
+  // service shape, including a slug impersonator owned by another provider.
+  const variant = async (slug, { owner = OWNER, endpoint = true, activeEndpoint = true, suspended = false } = {}) => {
+    const row = await one(`INSERT INTO providers.apis (owner_id, slug, name, origin_url, status, discoverable, listing_metadata, suspended_at)
+      SELECT $1, $2, $2, origin_url, 'pending', false, listing_metadata, CASE WHEN $3 THEN now() ELSE NULL END
+      FROM providers.apis WHERE id = $4 RETURNING id`, [owner, slug, suspended, apiId]);
+    await db.query(`UPDATE providers.apis SET is_verified = false, verified_at = NULL WHERE id = $1`, [row.id]);
+    if (endpoint) await db.query(`INSERT INTO providers.api_endpoints (api_id, method, path, price, active)
+      SELECT $1, method, path, price, $2 FROM providers.api_endpoints WHERE id = $3`, [row.id, activeEndpoint, a.endpoint.id]);
+    return row.id;
+  };
+  const rejectedId = await variant('cbz-rejected');
+  assert.deepEqual(await one(`SELECT * FROM public.admin_review_api($1, 'reject')`, [rejectedId]), { id: rejectedId, status: 'inactive' });
+  assert.deepEqual(await one(`SELECT active, discoverable, is_verified, verified_at FROM providers.apis WHERE id = $1`, [rejectedId]),
+    { active: false, discoverable: false, is_verified: false, verified_at: null });
+  for (const [slug, options] of [
+    ['cbz-empty', { endpoint: false }], ['cbz-inactive-endpoints', { activeEndpoint: false }],
+    ['cbz-impostor', { owner: '11111111-1111-4111-8111-111111111111' }],
+    ['other-owner-source', { owner: '11111111-1111-4111-8111-111111111111' }],
+    ['non-bazaar-slug', {}],
+  ]) {
+    const id = await variant(slug, options);
+    await one(`SELECT * FROM public.admin_review_api($1, 'approve')`, [id]);
+    assert.deepEqual(await one(`SELECT status, discoverable, is_verified, verified_at FROM providers.apis WHERE id = $1`, [id]),
+      { status: 'active', discoverable: false, is_verified: false, verified_at: null }, slug);
+    assert.equal((await sourceRows()).some(r => r.slug === slug), false, slug);
+  }
+  const suspendedId = await variant('cbz-suspended', { suspended: true });
+  await one(`SELECT * FROM public.admin_review_api($1, 'approve')`, [suspendedId]);
+  assert.equal((await one(`SELECT suspended_at IS NOT NULL AS suspended FROM providers.apis WHERE id = $1`, [suspendedId])).suspended, true);
+  assert.equal((await sourceRows()).some(r => r.slug === 'cbz-suspended'), false, 'approval does not lift a suspension');
+
+  // Existing batch callers retain their behavior through the generic review RPC.
+  const wrapperId = await variant('cbz-wrapper');
   await assert.rejects(one(`SELECT * FROM providers.approve_bazaar_services(ARRAY[(SELECT id FROM providers.apis WHERE slug = 'apitoll-prices')])`), /not a Coinbase Bazaar service/);
-  const approved = (await db.query(`SELECT * FROM providers.approve_bazaar_services()`)).rows;
-  assert.deepEqual(approved.map(r => [r.api_slug, r.api_status, r.is_discoverable]), [['cbz-api-onesource-io', 'active', true]]);
-  const live = await one(`SELECT status, active, discoverable, is_verified, approved_at IS NOT NULL AS approved FROM providers.apis WHERE id = $1`, [apiId]);
-  assert.deepEqual(live, { status: 'active', active: true, discoverable: true, is_verified: true, approved: true });
-  console.log(`coinbase_bazaar_source: identity, grants, kill switch, tier ceiling, merge, policy, retirement and approval passed (${rows.length} fixture rows)`);
+  const approved = (await db.query(`SELECT * FROM providers.approve_bazaar_services(ARRAY[$1]::uuid[])`, [wrapperId])).rows;
+  assert.deepEqual(approved.map(r => [r.api_slug, r.api_status, r.is_discoverable]), [['cbz-wrapper', 'active', true]]);
+  assert.equal((await sourceRows()).some(r => r.slug === 'cbz-wrapper'), true);
+  console.log(`coinbase_bazaar_source: identity, grants, kill switch, tier ceiling, merge, policy, retirement, admin approval, visibility and branding passed (${rows.length} fixture rows)`);
 } finally {
   await db.close();
 }

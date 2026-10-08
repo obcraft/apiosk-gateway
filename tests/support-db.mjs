@@ -106,9 +106,9 @@ await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915160000_w
 // isolated runtime fixture deliberately does not load.
 const migrations=new URL('../supabase/migrations/',import.meta.url);
 for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')
-  // The Coinbase Bazaar import asserts the full production catalogue; its own
-  // PGlite check is scripts/test-bazaar-source-migration.mjs.
-  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)
+  // Coinbase Bazaar import/review migrations need its production provider
+  // schema; scripts/test-bazaar-source-migration.mjs covers them together.
+  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
   &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge|typed_domain_dns_records)\.sql$/.test(name)
