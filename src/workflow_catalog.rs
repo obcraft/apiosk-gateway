@@ -239,11 +239,19 @@ pub fn prepare(
     if let Some(number) = values.get_mut("registration") {
         *number = json!(number.as_str().unwrap().to_uppercase());
     }
+    if let Some(iban) = values.get_mut("iban") {
+        *iban = json!(iban.as_str().unwrap().replace(' ', "").to_uppercase());
+    }
     let mut subjects: Vec<Subject> = Vec::new();
     let mut keys: Vec<String> = Vec::new();
     let mut goals = Vec::new();
     for step in &recipe.steps {
         if !step.when.iter().all(|(k, w)| {
+            // An empty condition means the optional field was not provided.
+            // Name searches are quoted only when a registration ID is absent.
+            if w.as_str() == Some("") {
+                return !values.contains_key(k);
+            }
             values
                 .get(k)
                 .is_some_and(|v| {
@@ -405,7 +413,7 @@ pub fn definitions(catalog: &Catalog) -> Vec<Value> {
             let condition=step.when.iter().map(|(key,value)| {
                 let label=r.fields.iter().find(|f|f.key==*key).map(|f|f.label.as_str()).unwrap_or(key);
                 let value=value.as_str().or_else(||value.as_array().and_then(|options|options.first()).and_then(Value::as_str)).unwrap_or_default();
-                if value=="*" {format!("When {} is provided",label.to_lowercase())} else {format!("When {} is {}",label.to_lowercase(),value)}
+                if value=="*" {format!("When {} is provided",label.to_lowercase())} else if value.is_empty() {format!("When {} is not provided",label.to_lowercase())} else {format!("When {} is {}",label.to_lowercase(),value)}
             }).collect::<Vec<_>>().join(" and ");
             let candidates: BTreeMap<_,_>=catalog.services.iter().filter(|s|s.contract.capability_slug==step.capability&&(step.source.is_empty()||s.api_slug==step.source)).map(|s|(&s.api_slug,&s.name)).collect();
             json!({"id":format!("step-{i}"),"label":step.label,"sources":candidates.into_iter().map(|(slug,name)|json!({"slug":slug,"name":name})).collect::<Vec<_>>(),"when":step.when,"condition":condition})

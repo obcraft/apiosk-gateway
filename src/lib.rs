@@ -25,6 +25,7 @@ mod link_preview;
 pub mod maintenance;
 pub mod parser;
 mod pdok_address;
+mod pre_kyb;
 mod tenderned;
 mod company_request;
 mod company_name_request;

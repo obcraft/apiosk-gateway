@@ -19,7 +19,7 @@ fn all_workflows_are_available_and_each_recipe_prices_its_needed_sources() {
     assert!(c.rejected.is_empty(), "{:?}", c.rejected);
     let definitions =
         apiosk_gateway_v2::workflows::definitions(&c, &json!({"currency":"EUR","rate":"0.92"}));
-    assert_eq!(definitions["workflows"].as_array().unwrap().len(), 13);
+    assert_eq!(definitions["workflows"].as_array().unwrap().len(), 14);
     let legacy = apiosk_gateway_v2::workflows::definitions_for_client(&c, &json!({}), false);
     assert_eq!(legacy["workflows"].as_array().unwrap().len(), 1);
     assert_eq!(legacy["workflows"][0]["slug"], "supplier-payment-check");
@@ -204,7 +204,7 @@ fn recipes_only_quote_relevant_country_and_optional_steps() {
         assert_eq!(steps.len(),recipe.steps.len());
         for (public,actual) in steps.iter().zip(&recipe.steps) {
             assert_eq!(public["when"],serde_json::to_value(&actual.when).unwrap());
-            if actual.source.is_empty(){assert_eq!(public["sources"].as_array().unwrap().len(),2);}
+            if actual.source.is_empty(){assert_eq!(public["sources"].as_array().unwrap().len(),c.services.iter().filter(|s|s.contract.capability_slug==actual.capability).map(|s|&s.api_slug).collect::<std::collections::BTreeSet<_>>().len());}
             else {assert_eq!(public["sources"][0]["slug"],actual.source);}
             assert!(!public["label"].as_str().unwrap().is_empty());
         }
@@ -248,4 +248,89 @@ fn european_dossiers_quote_exact_country_coverage_and_registry_bound_screening()
     let screening_outage = Catalog::build(Snapshot { services: screening_outage.services, vocabulary: screening_outage.vocabulary.into_values().collect(), known_sources: screening_outage.known_sources });
     let definitions = workflow_catalog::definitions(&screening_outage);
     assert_eq!(definitions.iter().find(|d|d["slug"] == "european-company-dossier").unwrap()["available"], false);
+}
+
+#[test]
+fn pre_kyb_standard_and_enhanced_quote_only_supported_selected_checks() {
+    let c = catalog();
+    for (country, registration, enhanced_count) in [("NL", "30204462", 7), ("GB", "09446231", 9), ("FR", "552032534", 8)] {
+        for level in ["Standard", "Enhanced"] {
+            for registration_supplied in [true, false] {
+                let mut input = std::collections::BTreeMap::from([
+                    ("name".into(), json!("Example company")), ("country".into(), json!(country)),
+                    ("screening_level".into(), json!(level)), ("domain".into(), json!("example.com")),
+                    ("vat_country".into(), json!("NL")), ("vat_number".into(), json!("815839091B01")),
+                    ("iban".into(), json!("nl91 abna 0417 1643 00")),
+                ]);
+                if registration_supplied { input.insert("registration".into(), json!(registration)); }
+                let (intent, context, _) = workflow_catalog::prepare("pre-kyb-screening", &input, &c).unwrap();
+                let Resolution::Plan(mut plan) = workflow_catalog::plan_preview(&c, &intent) else {
+                    panic!("pre-kyb {country} {level}, registration={registration_supplied}: {:?}", workflow_catalog::plan_preview(&c, &intent));
+                };
+                let caps: Vec<_> = plan.steps.iter().map(|s| s.service.contract.capability_slug.as_str()).collect();
+                let search_count = caps.iter().filter(|cap| ["company_registry.search", "company.uk-registry-search", "company.fr-registry-search"].contains(cap)).count();
+                assert_eq!(search_count, usize::from(!registration_supplied));
+                assert_eq!(plan.steps.len(), if level == "Standard" { 5 } else { enhanced_count } + search_count, "{country} {level}: {caps:?}");
+                assert_eq!(caps.contains(&"domain.mail-dns"), level == "Enhanced");
+                assert_eq!(caps.contains(&"company.officers"), level == "Enhanced" && country == "GB");
+                assert_eq!(caps.contains(&"company.significant-control"), level == "Enhanced" && country == "GB");
+                assert!(intent.subjects.iter().any(|s| s.values.get("bank.iban") == Some(&json!("NL91ABNA0417164300"))));
+                if registration_supplied {
+                    assert!(!intent.subjects[0].values.contains_key("company.name"));
+                    let profile = caps.iter().position(|cap| *cap == "company.registry-profile").unwrap();
+                    let sanctions = caps.iter().position(|cap| *cap == "company.sanctions-screen").unwrap();
+                    assert!(profile < sanctions, "screen the register-returned name when registration is supplied");
+                }
+                plan.apply_markup(2000);
+                assert_eq!(plan.cap_atomic, plan.steps.iter().map(|s| s.service.total_with(2000)).sum::<i64>());
+                assert!(context.limitations.iter().any(|s| s.contains("not individually screened")));
+            }
+        }
+    }
+}
+
+#[test]
+fn pre_kyb_name_only_remains_executable_and_optional_checks_are_not_purchased() {
+    let c = catalog();
+    for country in ["NL", "GB", "FR"] {
+        let input = std::collections::BTreeMap::from([
+            ("name".into(), json!("Example company")), ("country".into(), json!(country)),
+            ("screening_level".into(), json!("Standard")),
+        ]);
+        let (intent, _, _) = workflow_catalog::prepare("pre-kyb-screening", &input, &c).unwrap();
+        let Resolution::Plan(plan) = workflow_catalog::plan_preview(&c, &intent) else { panic!("{country}") };
+        assert_eq!(plan.steps.len(), 3);
+        assert!(plan.steps.iter().all(|s| !["domain-intelligence", "iban-check", "vies"].contains(&s.service.api_slug.as_str())));
+    }
+    for (key, value) in [("country", json!("DE")), ("screening_level", json!("Other")), ("screening_level", Value::Null), ("vat_country", json!("NL")), ("wallet", json!("0x0000000000000000000000000000000000000000")), ("iban", json!("not-an-iban"))] {
+        let mut input = workflow_catalog::recipe("pre-kyb-screening").unwrap().example;
+        input.insert(key.into(), value);
+        assert!(workflow_catalog::prepare("pre-kyb-screening", &input, &c).is_err(), "{key}");
+    }
+    let mut unavailable = c.clone();
+    unavailable.services.retain(|s| s.api_slug != "opensanctions");
+    let r = workflow_catalog::recipe("pre-kyb-screening").unwrap();
+    assert!(workflow_catalog::prepare(&r.slug, &r.example, &unavailable).is_err());
+    let guidance = workflow_catalog::prepare(&r.slug, &r.example, &c).unwrap().0.answer_operations.join(" ");
+    for phrase in ["Pass, Review or Reject", "requires Review", "Reject only", "matching identifiers", "unselected optional checks", "not a compliance certification", "saved evidence", "never invent links"] {
+        assert!(guidance.contains(phrase), "missing decision guardrail: {phrase}");
+    }
+    assert!(!guidance.contains("$0.36") && !guidance.contains("100 pre-screens"));
+}
+
+#[test]
+fn pre_kyb_availability_uses_minimal_per_country_inputs() {
+    for excluded in ["domain-intelligence", "companies-house"] {
+        let c = catalog();
+        let c = Catalog::build(Snapshot {
+            services: c.services.into_iter().filter(|s| s.api_slug != excluded).collect(),
+            vocabulary: c.vocabulary.into_values().collect(), known_sources: c.known_sources,
+        });
+        let definitions = workflow_catalog::definitions(&c);
+        let definition = definitions.iter().find(|r| r["slug"] == "pre-kyb-screening").unwrap();
+        assert_eq!(definition["available"], true, "{excluded}");
+        for coverage in definition["country_coverage"].as_array().unwrap() {
+            assert_eq!(coverage["available"], !(excluded == "companies-house" && coverage["country"] == "GB"), "{excluded}: {coverage}");
+        }
+    }
 }

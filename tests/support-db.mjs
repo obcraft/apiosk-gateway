@@ -112,6 +112,9 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
   &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge|typed_domain_dns_records)\.sql$/.test(name)
+  // Bright Data owns a private provider cache and is covered by its dedicated
+  // migration/admission tests; its grants depend on the omitted onboarding.
+  &&!/_((onboard_brightdata_linkedin)|(brightdata_v2_admission_access))\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
   &&!name.endsWith('_recurring_orders.sql')).sort()) {

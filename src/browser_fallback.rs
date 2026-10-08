@@ -182,6 +182,17 @@ pub fn query(f: &Fallback, task: &Task) -> String {
 
 pub fn inputs(step: &Step, task: &Task, vocab: &Vocabulary) -> anyhow::Result<Value> {
     let Some(f) = &step.browser_fallback else {
+        match crate::pre_kyb::screening(task, step) {
+            crate::pre_kyb::Screening::NotApplicable => (),
+            crate::pre_kyb::Screening::Waiting => anyhow::bail!("Waiting for the registered company identity before screening."),
+            crate::pre_kyb::Screening::Unavailable => anyhow::bail!("The registered company name is unavailable for screening."),
+            crate::pre_kyb::Screening::Ready(name) => {
+                let mut bound = task.clone();
+                bound.facts.retain(|fact| fact.entity_ref != step.entity_ref || fact.semantic_type != "company.name");
+                bound.facts.push(name);
+                return step.service.inputs(&bound, step.entity_ref, vocab);
+            }
+        }
         return step.service.inputs(task, step.entity_ref, vocab);
     };
     // The exact query is part of the hashed quote. Validate it with the real

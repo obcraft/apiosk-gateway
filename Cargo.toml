@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/catalog-core", "crates/kvk-accounts"]
+members = ["crates/catalog-core", "crates/kvk-accounts", "crates/brightdata-linkedin"]
 exclude = ["legacy-executor"]
 resolver = "2"
 
@@ -9,6 +9,7 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+brightdata-linkedin = { path = "crates/brightdata-linkedin" }
 kvk-accounts = { path = "crates/kvk-accounts" }
 catalog-core = { path = "crates/catalog-core" }
 anyhow = "1"
