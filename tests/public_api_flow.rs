@@ -659,3 +659,49 @@ async fn organisation_key_public_api() {
     println!("PASS external parity: identical App/API offer, declared inputs, current buyer cap, one connected dispatch, scoped saved receipt, no paid replay");
 
 }
+
+#[tokio::test]
+#[ignore = "requires local tests/support-db.mjs; no live database"]
+async fn grouped_service_browsing_preserves_visibility_and_authentication() {
+    let pool = PgPoolOptions::new()
+        .after_connect(|conn, _| Box::pin(async move {
+            sqlx::query("SET search_path TO public, gateway_v2, providers, catalog, actions, billing, agents, wallets, research, integrations, observability, support, content, operations, identity, extensions").execute(conn).await?;
+            Ok(())
+        }))
+        .max_connections(1)
+        .acquire_timeout(Duration::from_secs(10))
+        .connect(&std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| "postgresql://postgres@127.0.0.1:54329/postgres?sslmode=disable".into()))
+        .await.unwrap();
+    let bazaar_owner = Uuid::new_v4();
+    sqlx::query("INSERT INTO public.provider_profiles(id,username) VALUES($1,'coinbase-bazaar')")
+        .bind(bazaar_owner).execute(&pool).await.unwrap();
+    for (slug, status, active, verified, discoverable, suspended) in [
+        ("cbz-alpha", "active", true, true, true, false),
+        ("cbz-zeta", "active", true, true, true, false),
+        ("cbz-hidden-pending", "pending", true, true, true, false),
+        ("cbz-hidden-inactive", "active", false, true, true, false),
+        ("cbz-hidden-unverified", "active", true, false, true, false),
+        ("cbz-hidden-undiscoverable", "active", true, true, false, false),
+        ("cbz-hidden-suspended", "active", true, true, true, true),
+    ] {
+        sqlx::query("INSERT INTO public.apis(id,owner_id,slug,name,status,active,is_verified,discoverable,suspended_at,description) VALUES($1,$2,$3,$3,$4,$5,$6,$7,CASE WHEN $8 THEN now() ELSE NULL END,'Unique oracle')")
+            .bind(Uuid::new_v4()).bind(bazaar_owner).bind(slug).bind(status).bind(active).bind(verified).bind(discoverable).bind(suspended)
+            .execute(&pool).await.unwrap();
+    }
+    // No model or provider listener exists: this route reads catalog metadata only.
+    let (api, _) = start_api(&pool, "http://127.0.0.1:1", false).await;
+    let (status, _) = api.get("/v2/sources/coinbase-bazaar/services", "apk_org_live_unknown").await;
+    assert_eq!(status, 401, "group service browsing requires source authentication");
+    let (status, page) = api.get("/v2/sources/coinbase-bazaar/services?limit=1&sort=name-asc", READ_ONLY).await;
+    assert_eq!(status, 200, "{page}");
+    assert_eq!(page["total"], 2, "only visible listings are paged, including both discovery-only services");
+    assert_eq!(page["items"][0]["slug"], "cbz-alpha");
+    assert_eq!(page["next_offset"], 1);
+    let (status, page) = api.get("/v2/sources/coinbase-bazaar/services?limit=1&offset=1&sort=name-asc&search=oracle", READ_ONLY).await;
+    assert_eq!(status, 200, "{page}");
+    assert_eq!(page["items"][0]["slug"], "cbz-zeta");
+    assert!(page["next_offset"].is_null());
+    assert_eq!(api.get("/v2/sources/coinbase-bazaar/services?limit=51", READ_ONLY).await.0, 400);
+    assert_eq!(api.get("/v2/sources/fixture/services", READ_ONLY).await.0, 404);
+    println!("PASS grouped services: scoped authentication, discovery-only pagination, search and all five visibility gates");
+}

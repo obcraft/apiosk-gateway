@@ -24,6 +24,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildOperations } from './source-operation-contracts.mjs';
 
 export const BAZAAR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources';
@@ -718,7 +719,7 @@ async function main() {
   const opts = args(process.argv.slice(2));
   const log = message => console.error(`[bazaar-sync] ${message}`);
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const out = path.resolve(opts.out ?? new URL(`../output/bazaar/${stamp}`, import.meta.url).pathname);
+  const out = path.resolve(opts.out ?? fileURLToPath(new URL(`../output/bazaar/${stamp}`, import.meta.url)));
   let read;
   if (opts.input.length) {
     const pages = await Promise.all(opts.input.map(async f => JSON.parse(await fs.readFile(f, 'utf8'))));
@@ -746,4 +747,4 @@ async function main() {
   }
   console.log(JSON.stringify({ out, admitted: report.admitted_count, excluded: report.excluded_count, pilot: report.pilot.resources, hosts: report.pilot.hosts, batches: chunks.length }));
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname) await main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
