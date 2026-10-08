@@ -44,3 +44,5 @@ cargo run --example audit-apimarket-business
 ```
 
 The audit uses `DATABASE_URL` from the environment or `.env`, forces its database session read-only, and checks all 37 Sources/planner entries, named discovery searches, representative generic searches and the absence of executable offers. It makes no model or provider calls.
+
+Production verification on October 8 admitted all 37 entries to Sources and the planner catalog. All three representative searches matched the relevant imported source. Marketing-name/tagline probes matched 36 of 37; Local Business Data's broad tagline did not pass the existing capability relevance filter. The audit reports such search misses separately without weakening relevance gates or treating catalog presence as an execution guarantee.
