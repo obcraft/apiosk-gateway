@@ -72,6 +72,7 @@ dependencies = [
  "axum",
  "base64",
  "bigdecimal",
+ "brightdata-linkedin",
  "catalog-core",
  "chrono",
  "dotenvy",
@@ -285,6 +286,25 @@ name = "borrow-or-share"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc0b364ead1874514c8c2855ab558056ebfeb775653e7ae45ff72f28f8f3166c"
+
+[[package]]
+name = "brightdata-linkedin"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "hex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "tokio",
+ "url",
+ "uuid",
+]
 
 [[package]]
 name = "bstr"

@@ -14,6 +14,7 @@ mod auto;
 mod direct;
 mod intake_recovery;
 mod name_lookup;
+pub(crate) mod guest_preview;
 use crate::{
     auth::Principal,
     catalog::{Catalog, CatalogCache},

@@ -585,6 +585,18 @@ impl Engine {
                 if choice.is_some() && selection::step_waits_for_choice(task, candidate) {
                     continue;
                 }
+                match crate::pre_kyb::screening(task, candidate) {
+                    crate::pre_kyb::Screening::Waiting => continue,
+                    crate::pre_kyb::Screening::Unavailable => {
+                        task.failed_steps.insert(candidate.key(), json!({
+                            "code":"missing_source_fact",
+                            "message":"Company screening was not requested because the registered identity or registry name could not be established.",
+                            "fields":["company.name"]
+                        }));
+                        continue;
+                    }
+                    _ => (),
+                }
                 if candidate.browser_fallback.is_some() {
                     next_step = Some(index);
                     break;

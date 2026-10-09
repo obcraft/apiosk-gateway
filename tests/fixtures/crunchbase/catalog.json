@@ -1,0 +1,734 @@
+{
+  "known_sources": [
+    {
+      "slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "block_reason": null,
+      "metadata": {
+        "description": "Company information via API.market",
+        "category": "company",
+        "tags": [
+          "company",
+          "crunchbase"
+        ],
+        "identity_documented": true
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "ad8b8fe7-6fad-5c80-ad60-e0e6c8a478a5",
+      "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Find companies by name. Returns matching Crunchbase names, identifiers, profile links and short descriptions. A name can match several different companies.",
+      "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api",
+      "method": "POST",
+      "path": "/autocompletes",
+      "listing_type": "api",
+      "list_atomic": 86956,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "count": 1962,
+        "entities": [
+          {
+            "facet_ids": [
+              "aberdeen",
+              "ai_insight",
+              "apptopia",
+              "bombora",
+              "builtwith",
+              "company",
+              "contact",
+              "investor",
+              "ipqwery",
+              "key_event",
+              "rank",
+              "semrush",
+              "siftery"
+            ],
+            "short_description": "OpenAI develops artificial intelligence models and deploys machine learning software tools, including ChatGPT.",
+            "identifier": {
+              "uuid": "cf2c678c-b81a-80c3-10d1-9c5e76448e51",
+              "value": "OpenAI",
+              "image_id": "jjykwqqhsscreywea4gb",
+              "permalink": "openai",
+              "entity_def_id": "organization",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/jjykwqqhsscreywea4gb",
+              "url": "https://crunchbase.com/organization/openai"
+            }
+          },
+          {
+            "facet_ids": [
+              "ai_insight",
+              "builtwith",
+              "company",
+              "ipqwery",
+              "rank",
+              "semrush"
+            ],
+            "short_description": "OpenAi provides solutions for artificial intelligence and social media management.",
+            "identifier": {
+              "uuid": "30658435-66e6-4d4a-bcce-5ac474713ef1",
+              "value": "OpenAi",
+              "image_id": "zrafm9hariyl22gfnzkq",
+              "permalink": "openai-3ef1",
+              "entity_def_id": "organization",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/zrafm9hariyl22gfnzkq",
+              "url": "https://crunchbase.com/organization/openai-3ef1"
+            }
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "company.crunchbase-search",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.crunchbase_query",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.crunchbase_query": {
+            "name": "query",
+            "in": "body"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_search_results": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    },
+    {
+      "id": "bb627ece-9c3d-5306-ad63-7fa6dbe0e8ae",
+      "endpoint_id": "8a94e2ef-50c4-5816-9d52-3ec606413d1c",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+      "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api",
+      "method": "POST",
+      "path": "/searches/organizations",
+      "listing_type": "api",
+      "list_atomic": 86956,
+      "fixed_params": {
+        "field_ids": [
+          "identifier",
+          "location_identifiers",
+          "short_description",
+          "rank_org"
+        ],
+        "query": []
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "count": 6632917,
+        "entities": [
+          {
+            "uuid": "5cad3164-5946-1b9a-9fa8-815e10cf7db1",
+            "properties": {
+              "identifier": {
+                "permalink": "european-investment-bank",
+                "image_id": "866aae97a23a4c519bdab47ad53cd0f8",
+                "uuid": "5cad3164-5946-1b9a-9fa8-815e10cf7db1",
+                "entity_def_id": "organization",
+                "value": "European Investment Bank"
+              },
+              "short_description": "European Investment Bank provides financing, advisory services, and investment solutions to support public and private sector projects.",
+              "rank_org": 1,
+              "location_identifiers": [
+                {
+                  "permalink": "luxembourg-luxembourg",
+                  "uuid": "0d3a83bd-0c64-04b5-bd58-79fec26d544a",
+                  "location_type": "city",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "luxembourg-luxembourg-1bf1",
+                  "uuid": "1bf1e5fe-1475-95aa-d0be-a7f1cf43ca7e",
+                  "location_type": "region",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "luxembourg",
+                  "uuid": "c8a6d9b7-d70d-91c6-6e97-419a4a1276c3",
+                  "location_type": "country",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "europe",
+                  "uuid": "6106f5dc-823e-5da8-40d7-51612c0b2c4e",
+                  "location_type": "continent",
+                  "entity_def_id": "location",
+                  "value": "Europe"
+                }
+              ]
+            }
+          },
+          {
+            "uuid": "00e32424-3cc3-4798-8361-78914c212fb0",
+            "properties": {
+              "identifier": {
+                "permalink": "mistral-ai",
+                "image_id": "a107708d04ba41bf8f368227209efb3d",
+                "uuid": "00e32424-3cc3-4798-8361-78914c212fb0",
+                "entity_def_id": "organization",
+                "value": "Mistral AI"
+              },
+              "short_description": "Mistral AI develops artificial intelligence models, applications, and infrastructure for organizations and developers.",
+              "rank_org": 2,
+              "location_identifiers": [
+                {
+                  "permalink": "paris-ile-de-france",
+                  "uuid": "5805284c-00a4-f0aa-b811-5843398ff2bb",
+                  "location_type": "city",
+                  "entity_def_id": "location",
+                  "value": "Paris"
+                },
+                {
+                  "permalink": "ile-de-france-france",
+                  "uuid": "104bf883-3a61-03f9-b51a-ba1d9a4d2c62",
+                  "location_type": "region",
+                  "entity_def_id": "location",
+                  "value": "Ile-de-France"
+                },
+                {
+                  "permalink": "france",
+                  "uuid": "f134827e-36a1-fd31-a82f-950489e103ef",
+                  "location_type": "country",
+                  "entity_def_id": "location",
+                  "value": "France"
+                },
+                {
+                  "permalink": "europe",
+                  "uuid": "6106f5dc-823e-5da8-40d7-51612c0b2c4e",
+                  "location_type": "continent",
+                  "entity_def_id": "location",
+                  "value": "Europe"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "company.crunchbase-browse",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.crunchbase_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "company.crunchbase_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 10
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_browse_results": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.crunchbase_query",
+      "name": "Crunchbase company name",
+      "description": "Company name or prefix to find in Crunchbase",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Company name or prefix to find in Crunchbase"
+      }
+    },
+    {
+      "slug": "company.crunchbase_limit",
+      "name": "Crunchbase result limit",
+      "description": "Maximum companies to return",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10,
+        "description": "Maximum companies to return"
+      }
+    },
+    {
+      "slug": "company.crunchbase_search_results",
+      "name": "Find companies by name results",
+      "description": "Find companies by name. Returns matching Crunchbase names, identifiers, profile links and short descriptions. A name can match several different companies.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "identifier"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.crunchbase_browse_results",
+      "name": "Browse companies results",
+      "description": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "uuid",
+                "properties"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "company.crunchbase-search",
+      "name": "Find companies by name",
+      "description": "Find companies by name. Returns matching Crunchbase names, identifiers, profile links and short descriptions. A name can match several different companies.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Company name or prefix to find in Crunchbase"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "identifier"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.crunchbase-browse",
+      "name": "Browse companies",
+      "description": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "Maximum companies to return"
+          },
+          "field_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "identifier",
+              "location_identifiers",
+              "short_description",
+              "rank_org"
+            ],
+            "enum": [
+              [
+                "identifier",
+                "location_identifiers",
+                "short_description",
+                "rank_org"
+              ]
+            ]
+          },
+          "query": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "default": [],
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "field_ids",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "uuid",
+                "properties"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "path": "/autocompletes",
+      "active": true,
+      "description": "Find companies by name. Returns matching Crunchbase names, identifiers, profile links and short descriptions. A name can match several different companies.",
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Company name or prefix to find in Crunchbase"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "request_example": {
+        "query": "OpenAI"
+      },
+      "response_body": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "identifier"
+              ]
+            }
+          }
+        }
+      },
+      "response_example": {
+        "count": 1962,
+        "entities": [
+          {
+            "facet_ids": [
+              "aberdeen",
+              "ai_insight",
+              "apptopia",
+              "bombora",
+              "builtwith",
+              "company",
+              "contact",
+              "investor",
+              "ipqwery",
+              "key_event",
+              "rank",
+              "semrush",
+              "siftery"
+            ],
+            "short_description": "OpenAI develops artificial intelligence models and deploys machine learning software tools, including ChatGPT.",
+            "identifier": {
+              "uuid": "cf2c678c-b81a-80c3-10d1-9c5e76448e51",
+              "value": "OpenAI",
+              "image_id": "jjykwqqhsscreywea4gb",
+              "permalink": "openai",
+              "entity_def_id": "organization",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/jjykwqqhsscreywea4gb",
+              "url": "https://crunchbase.com/organization/openai"
+            }
+          },
+          {
+            "facet_ids": [
+              "ai_insight",
+              "builtwith",
+              "company",
+              "ipqwery",
+              "rank",
+              "semrush"
+            ],
+            "short_description": "OpenAi provides solutions for artificial intelligence and social media management.",
+            "identifier": {
+              "uuid": "30658435-66e6-4d4a-bcce-5ac474713ef1",
+              "value": "OpenAi",
+              "image_id": "zrafm9hariyl22gfnzkq",
+              "permalink": "openai-3ef1",
+              "entity_def_id": "organization",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/zrafm9hariyl22gfnzkq",
+              "url": "https://crunchbase.com/organization/openai-3ef1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "8a94e2ef-50c4-5816-9d52-3ec606413d1c",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "path": "/searches/organizations",
+      "active": true,
+      "description": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "Maximum companies to return"
+          },
+          "field_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "identifier",
+              "location_identifiers",
+              "short_description",
+              "rank_org"
+            ],
+            "enum": [
+              [
+                "identifier",
+                "location_identifiers",
+                "short_description",
+                "rank_org"
+              ]
+            ]
+          },
+          "query": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "default": [],
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "field_ids",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "request_example": {
+        "limit": 2,
+        "field_ids": [
+          "identifier",
+          "location_identifiers",
+          "short_description",
+          "rank_org"
+        ],
+        "query": []
+      },
+      "response_body": {
+        "type": "object",
+        "required": [
+          "count",
+          "entities"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "uuid",
+                "properties"
+              ]
+            }
+          }
+        }
+      },
+      "response_example": {
+        "count": 6632917,
+        "entities": [
+          {
+            "uuid": "5cad3164-5946-1b9a-9fa8-815e10cf7db1",
+            "properties": {
+              "identifier": {
+                "permalink": "european-investment-bank",
+                "image_id": "866aae97a23a4c519bdab47ad53cd0f8",
+                "uuid": "5cad3164-5946-1b9a-9fa8-815e10cf7db1",
+                "entity_def_id": "organization",
+                "value": "European Investment Bank"
+              },
+              "short_description": "European Investment Bank provides financing, advisory services, and investment solutions to support public and private sector projects.",
+              "rank_org": 1,
+              "location_identifiers": [
+                {
+                  "permalink": "luxembourg-luxembourg",
+                  "uuid": "0d3a83bd-0c64-04b5-bd58-79fec26d544a",
+                  "location_type": "city",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "luxembourg-luxembourg-1bf1",
+                  "uuid": "1bf1e5fe-1475-95aa-d0be-a7f1cf43ca7e",
+                  "location_type": "region",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "luxembourg",
+                  "uuid": "c8a6d9b7-d70d-91c6-6e97-419a4a1276c3",
+                  "location_type": "country",
+                  "entity_def_id": "location",
+                  "value": "Luxembourg"
+                },
+                {
+                  "permalink": "europe",
+                  "uuid": "6106f5dc-823e-5da8-40d7-51612c0b2c4e",
+                  "location_type": "continent",
+                  "entity_def_id": "location",
+                  "value": "Europe"
+                }
+              ]
+            }
+          },
+          {
+            "uuid": "00e32424-3cc3-4798-8361-78914c212fb0",
+            "properties": {
+              "identifier": {
+                "permalink": "mistral-ai",
+                "image_id": "a107708d04ba41bf8f368227209efb3d",
+                "uuid": "00e32424-3cc3-4798-8361-78914c212fb0",
+                "entity_def_id": "organization",
+                "value": "Mistral AI"
+              },
+              "short_description": "Mistral AI develops artificial intelligence models, applications, and infrastructure for organizations and developers.",
+              "rank_org": 2,
+              "location_identifiers": [
+                {
+                  "permalink": "paris-ile-de-france",
+                  "uuid": "5805284c-00a4-f0aa-b811-5843398ff2bb",
+                  "location_type": "city",
+                  "entity_def_id": "location",
+                  "value": "Paris"
+                },
+                {
+                  "permalink": "ile-de-france-france",
+                  "uuid": "104bf883-3a61-03f9-b51a-ba1d9a4d2c62",
+                  "location_type": "region",
+                  "entity_def_id": "location",
+                  "value": "Ile-de-France"
+                },
+                {
+                  "permalink": "france",
+                  "uuid": "f134827e-36a1-fd31-a82f-950489e103ef",
+                  "location_type": "country",
+                  "entity_def_id": "location",
+                  "value": "France"
+                },
+                {
+                  "permalink": "europe",
+                  "uuid": "6106f5dc-823e-5da8-40d7-51612c0b2c4e",
+                  "location_type": "continent",
+                  "entity_def_id": "location",
+                  "value": "Europe"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

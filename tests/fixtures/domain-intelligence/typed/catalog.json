@@ -1,0 +1,1689 @@
+{
+  "vocabulary": [
+    {
+      "slug": "domain.dns_name",
+      "value_schema": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 253,
+        "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+        "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name."
+      }
+    },
+    {
+      "slug": "domain.dns-a.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "A"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "A",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"a_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-aaaa.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "AAAA"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "AAAA",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"aaaa_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-cname.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "CNAME"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"cname_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-mx.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "MX"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "MX",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"mx_records\",\"dns_records\",\"mail_servers\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-ns.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "NS"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "NS",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"ns_records\",\"dns_records\",\"nameservers\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-txt.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "TXT"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "TXT",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"txt_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-caa.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "CAA"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "CAA",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"caa_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "domain.dns-soa.result",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "SOA"
+                ]
+              },
+              "response_code": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  3
+                ]
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "SOA",
+                        "CNAME"
+                      ]
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    },
+                    "ttl": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"soa_records\",\"dns_records\"]}"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              }
+            }
+          },
+          "notice": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "0875b0f9-5db2-547e-98ff-1dc7e868880a",
+      "endpoint_id": "6f946771-8a95-559d-8272-27e0e81b5b2a",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS A records",
+      "description": "Retrieve A DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/A",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-a",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-a.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "A",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "A",
+              "type_code": 1,
+              "ttl": 60,
+              "data": "34.128.165.251"
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "A records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=A"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "348ff1df-5a76-59b2-be28-2ec6260d98b3",
+      "endpoint_id": "ede59104-f46f-513c-adaa-2ae9f8e45de2",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS AAAA records",
+      "description": "Retrieve AAAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/AAAA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-aaaa",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-aaaa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "AAAA",
+          "response_code": 0,
+          "exists": true,
+          "records": [],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "AAAA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=AAAA"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "93bdf538-2327-5a3c-b516-5f3e50048aaa",
+      "endpoint_id": "17e788f2-c7f9-5e5c-869c-d2656230a9e8",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS CNAME records",
+      "description": "Retrieve CNAME DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/CNAME",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-cname",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-cname.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "CNAME",
+          "response_code": 0,
+          "exists": true,
+          "records": [],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "CNAME records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=CNAME"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "644fc66c-3e8f-58f7-b82d-9b7ccd80e9e7",
+      "endpoint_id": "5152ff4d-c4df-57dc-b536-46d48a4ed800",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS MX records",
+      "description": "Retrieve MX DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/MX",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-mx",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-mx.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "MX",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "MX",
+              "type_code": 15,
+              "ttl": 60,
+              "data": "10 aspmx2.googlemail.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "MX",
+              "type_code": 15,
+              "ttl": 60,
+              "data": "5 alt1.aspmx.l.google.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "MX",
+              "type_code": 15,
+              "ttl": 60,
+              "data": "10 aspmx3.googlemail.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "MX",
+              "type_code": 15,
+              "ttl": 60,
+              "data": "1 aspmx.l.google.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "MX",
+              "type_code": 15,
+              "ttl": 60,
+              "data": "5 alt2.aspmx.l.google.com."
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "MX records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "91a2a76b-f8e0-5c36-83b1-1a0b3050ebae",
+      "endpoint_id": "a2c312c1-8a21-5ca2-9bf6-d39589bc7d1a",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS NS records",
+      "description": "Retrieve NS DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/NS",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-ns",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-ns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "NS",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "NS",
+              "type_code": 2,
+              "ttl": 15282,
+              "data": "ns-cloud-a2.googledomains.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "NS",
+              "type_code": 2,
+              "ttl": 15282,
+              "data": "ns-cloud-a1.googledomains.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "NS",
+              "type_code": 2,
+              "ttl": 15282,
+              "data": "ns-cloud-a3.googledomains.com."
+            },
+            {
+              "name": "mollie.com",
+              "type": "NS",
+              "type_code": 2,
+              "ttl": 15282,
+              "data": "ns-cloud-a4.googledomains.com."
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "NS records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=NS"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "626c609b-d53b-53d3-9841-0a41af8149cc",
+      "endpoint_id": "8e265b14-7285-5b13-90f1-c7c2239ea96a",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS TXT records",
+      "description": "Retrieve TXT DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/TXT",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-txt",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-txt.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "TXT",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "apple-domain-verification=5ZrXdcuNFQKnXx0Ko_aSz9FbEVrYSj1W-9JYN85NRK4"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "count-okta-S8nBtWGG1pNtjuy5S2p29"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "maven-domain-verification=ylhicbatys"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "remote-domain-verification=20639883-6d0d-4bbd-a3be-31540b29d9b1"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "verification_token=dbUO92W1f1zZpYvYRsw2OAhZG"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "google-site-verification=YI1XhqSOrKf_Pbt1kn92EAUAnm4NEsa32ffRwCdetRE"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "dtm-domain-verification=lySFENUbIP7tqJYSnorjZ92r-rDb_DcligerGlYI_Pw"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "hubspot-domain-verification=ZmVkNDhkZDItNGMzNi00NjBlLWI3MTQtZTUwMDFlM2IyOTQ0"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "linear-domain-verification=8hsjgy6huzte"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "docusign=ed21ba74-b9ba-4227-ad85-cfb18cb1b336"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "facebook-domain-verification=stc7mgdejvo0n3wodfxlzjtbx9rejl"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "jamf-site-verification=yG3KrFNVoQ2dtqMnkks1cQ"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "apple-domain-verification=P6t7ibCD57Ks8ySP"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "CKO=cli_xxru34e4v4kezi7xxkdb4vn6ti"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "postman-domain-verification=0b80cc4be8aa9d58e6d285836415c11ffc7ce3ef02305a3631b2eb0021d6567176cb723034c258a62ab1cec667a30ce2614d55300955864cc53c3b5ec2dfae78"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "1password-site-verification=VICI5I5G3ZFNHNZUMTFUOE7DXQ"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "atlassian-domain-verification=YtEfelC1r3jpY1Fgm+X+JHik3soTZgNbU6ixW/1fZvGwisa38VNcp3cvW0WsYPPj"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "v=spf1 ip4:81.93.166.36/31 ip4:156.70.89.90 ip4:168.203.46.68 include:_spf.google.com include:mail.zendesk.com -all"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "globalsign-domain-verification=Z6VpqooFO95Z21kE24ScZqLH_1b3sgiiLYYJ6YaCLW"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "docker-verification=be34279c-85d7-4673-9750-c256e923396f"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "pinterest-site-verification=fe7b5c9a049f83497c3533f769c78c30"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "google-site-verification=I3p5mTUmo64TgrFkQkFAH0eFxntdrQlRN7Nqz9plxSE"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "h1-domain-verification=HrQEnFVtSHxi5y2MKaxGCRH5KjgqeCPmLppaZHbqpYWgu7Fa"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "anthropic-domain-verification-364c3n=BtBFobfBk8EW4A88hucsd2KQp"
+            },
+            {
+              "name": "mollie.com",
+              "type": "TXT",
+              "type_code": 16,
+              "ttl": 300,
+              "data": "digicert-domain-verification=_zyleeisypsp0kaldv2ci3eei7w1i0z4"
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "TXT records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=TXT"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "6378bcb2-1e27-5988-9cf6-301875fb1aa0",
+      "endpoint_id": "81f3d697-97c6-5118-b515-c722fd829b6b",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS CAA records",
+      "description": "Retrieve CAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/CAA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-caa",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-caa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "CAA",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issuewild \";\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"digicert.com\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 iodef \"mailto:security@mollie.com\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"comodoca.com\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"globalsign.com\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"sectigo.com\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"pki.goog\""
+            },
+            {
+              "name": "mollie.com",
+              "type": "CAA",
+              "type_code": 257,
+              "ttl": 300,
+              "data": "0 issue \"letsencrypt.org\""
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "CAA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=CAA"
+      },
+      "jurisdiction": null
+    },
+    {
+      "id": "27d6d1a8-5c8f-5997-9493-f24908ea0ea3",
+      "endpoint_id": "ade13078-e277-591c-a5bf-05bf8d85fadb",
+      "api_slug": "domain-intelligence",
+      "name": "Public DNS SOA records",
+      "description": "Retrieve SOA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "method": "GET",
+      "path": "/dns/{domain}/SOA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "source_url": "https://developers.google.com/speed/public-dns/docs/doh/json",
+      "contract": {
+        "capability_slug": "domain.dns-soa",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-soa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "data": {
+          "domain": "mollie.com",
+          "record_type": "SOA",
+          "response_code": 0,
+          "exists": true,
+          "records": [
+            {
+              "name": "mollie.com",
+              "type": "SOA",
+              "type_code": 6,
+              "ttl": 21600,
+              "data": "ns-cloud-a1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300"
+            }
+          ],
+          "dnssec_validated": true
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "coverage": {
+          "complete": true,
+          "scope": "SOA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=SOA"
+      },
+      "jurisdiction": null
+    }
+  ]
+}

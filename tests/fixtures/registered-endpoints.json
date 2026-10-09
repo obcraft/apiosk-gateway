@@ -1,0 +1,337 @@
+{
+  "services": [],
+  "vocabulary": [],
+  "known_sources": [
+    {
+      "slug": "onchainpulse",
+      "name": "OnchainPulse",
+      "block_reason": null,
+      "metadata": {
+        "endpoints": [
+          {
+            "endpoint_id": "092d3b6b-16b9-4aa3-8611-76b935501339",
+            "description": "Token liquidity and momentum snapshot, half a cent: live DEX liquidity in USD, price, market cap, pair age, 1h/24h volume, buy-vs-sell transaction ratio, price change — the raw DexScreener read for any EVM token, one source, no fusion. Base, Ethereum, BSC, Arbitrum, Polygon, Optimism, Avalanche. Cheapest pre-trade depth check; upgrade to /api/evmtoken ($0.015) for the fused safety verdict or /api/exit-depth for sell-impact modeling.",
+            "method": "GET",
+            "path": "/api/facet/liquidity",
+            "source_url": "https://onchainpulse.theaslangroupllc.com/llms.txt",
+            "registration": {
+              "list_atomic": 5000,
+              "listing_type": "federated",
+              "query_params": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "chain": {
+                    "enum": [
+                      "base",
+                      "ethereum",
+                      "bsc",
+                      "arbitrum",
+                      "polygon",
+                      "optimism",
+                      "avalanche"
+                    ],
+                    "type": "string",
+                    "default": "base",
+                    "required": false,
+                    "description": "EVM chain (default base)",
+                    "x-parameter-location": "query"
+                  },
+                  "address": {
+                    "type": "string",
+                    "required": true,
+                    "description": "ERC-20 token contract address (0x + 40 hex)",
+                    "x-parameter-location": "query"
+                  }
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "slug": "agentbodega",
+      "name": "AgentBodega",
+      "block_reason": null,
+      "metadata": {
+        "endpoints": [
+          {
+            "endpoint_id": "22111b76-8e15-4900-80c3-46334daaebfc",
+            "description": "Search public classified listings by market area, category, query, and common marketplace filters; returns normalized posting titles, prices, locations, dates, and ids without exposing collection URLs.",
+            "method": "POST",
+            "path": "/api/public-data/classified-listing-search",
+            "source_url": "https://agentbodega.store/openapi.json",
+            "registration": {
+              "list_atomic": 5000,
+              "listing_type": "federated",
+              "query_params": null,
+              "request_body": {
+                "type": "object",
+                "required": [
+                  "city",
+                  "category",
+                  "query"
+                ],
+                "properties": {
+                  "city": {
+                    "type": "string",
+                    "description": "Market area id, such as sfbay, newyork, losangeles, seattle, chicago, or boston."
+                  },
+                  "sort": {
+                    "enum": [
+                      "date",
+                      "rel",
+                      "priceasc",
+                      "pricedsc"
+                    ],
+                    "type": "string",
+                    "default": "date",
+                    "description": "Sort filter for Classified Listing Search. Accepted values: \"date\", \"rel\", \"priceasc\", \"pricedsc\". Constraints: accepted values: \"date\", \"rel\", \"priceasc\", \"pricedsc\"; default: \"date\"."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 25,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "description": "Limit numeric value for Classified Listing Search. Constraints: default: 25; min: 1; max: 100."
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "Search text."
+                  },
+                  "hasPic": {
+                    "type": "boolean",
+                    "description": "Set true to enable has pic behavior for Classified Listing Search."
+                  },
+                  "postal": {
+                    "type": "string",
+                    "description": "Optional postal code to force geo-scoping when the caller's IP region differs from the target city."
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Listing category abbreviation, such as sss, cta, apa, jjj, or zip."
+                  },
+                  "max_price": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Max price numeric value for Classified Listing Search. Constraints: min: 0."
+                  },
+                  "min_price": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Min price numeric value for Classified Listing Search. Constraints: min: 0."
+                  },
+                  "proxiesSx": {
+                    "type": [
+                      "boolean",
+                      "object"
+                    ],
+                    "properties": {
+                      "pool": {
+                        "enum": [
+                          "mobile",
+                          "residential",
+                          "any"
+                        ],
+                        "type": "string",
+                        "default": "mobile",
+                        "description": "Optional pool preference. mobile maps to the Proxies.sx mbl pool, residential maps to peer, and any lets the gateway choose."
+                      },
+                      "reason": {
+                        "type": "string",
+                        "maxLength": 160,
+                        "description": "Optional caller note for internal observability, such as blocked-direct-worker-egress."
+                      },
+                      "country": {
+                        "type": "string",
+                        "default": "US",
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "description": "Two-letter country code for the Proxies.sx pool, for example US."
+                      },
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Set false to force direct Worker egress when service-level Proxies.sx default routing is enabled."
+                      },
+                      "session": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "description": "Optional sticky-session key. Use stable, non-secret text when you need repeated calls to keep the same mobile identity."
+                      },
+                      "rotation": {
+                        "enum": [
+                          "sticky",
+                          "hard",
+                          "auto5",
+                          "auto10",
+                          "auto20",
+                          "auto60",
+                          "ondemand"
+                        ],
+                        "type": "string",
+                        "default": "sticky",
+                        "description": "Rotation mode requested from the runner. sticky keeps the same session; hard asks for a fresh mobile IP."
+                      }
+                    },
+                    "description": "Optional Proxies.sx egress hint for services that need mobile/residential fetches. Pass true for default US mobile egress, or an object with enabled, country, session, and rotation. Credentials and proxy URLs are never accepted from callers.",
+                    "additionalProperties": false
+                  },
+                  "max_bedrooms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Max bedrooms numeric value for Classified Listing Search. Constraints: min: 0."
+                  },
+                  "min_bedrooms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Min bedrooms numeric value for Classified Listing Search. Constraints: min: 0."
+                  },
+                  "search_distance": {
+                    "type": "integer",
+                    "maximum": 500,
+                    "minimum": 1,
+                    "description": "Optional radius in miles when postal is supplied."
+                  },
+                  "bundleDuplicates": {
+                    "type": "boolean",
+                    "description": "Set true to enable bundle duplicates behavior for Classified Listing Search."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "5a8ec18b-aa7c-49c6-8d0d-92574049b3f9",
+            "description": "Find public rental listings by market resource id, rental category, price, bedrooms, bathrooms, and result limit; returns normalized rental/building records without collection links.",
+            "method": "POST",
+            "path": "/api/public-data/rental-listing-search",
+            "source_url": "https://agentbodega.store/openapi.json",
+            "registration": {
+              "list_atomic": 5000,
+              "listing_type": "federated",
+              "query_params": null,
+              "request_body": {
+                "type": "object",
+                "required": [
+                  "resourceId"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 25,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "description": "Limit numeric value for Rental Listing Search. Constraints: default: 25; min: 1; max: 100."
+                  },
+                  "orderBy": {
+                    "enum": [
+                      "score",
+                      "recencyTime",
+                      "price"
+                    ],
+                    "type": "string",
+                    "default": "score",
+                    "description": "Order By filter for Rental Listing Search. Accepted values: \"score\", \"recencyTime\", \"price\". Constraints: accepted values: \"score\", \"recencyTime\", \"price\"; default: \"score\"."
+                  },
+                  "bedrooms": {
+                    "type": "string",
+                    "description": "Comma-separated bedroom filter, such as 1,2,3."
+                  },
+                  "maxPrice": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Max Price numeric value for Rental Listing Search. Constraints: min: 0."
+                  },
+                  "minPrice": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Min Price numeric value for Rental Listing Search. Constraints: min: 0."
+                  },
+                  "bathrooms": {
+                    "type": "string",
+                    "description": "Comma-separated bathroom filter, such as 1,1.5,2."
+                  },
+                  "proxiesSx": {
+                    "type": [
+                      "boolean",
+                      "object"
+                    ],
+                    "properties": {
+                      "pool": {
+                        "enum": [
+                          "mobile",
+                          "residential",
+                          "any"
+                        ],
+                        "type": "string",
+                        "default": "mobile",
+                        "description": "Optional pool preference. mobile maps to the Proxies.sx mbl pool, residential maps to peer, and any lets the gateway choose."
+                      },
+                      "reason": {
+                        "type": "string",
+                        "maxLength": 160,
+                        "description": "Optional caller note for internal observability, such as blocked-direct-worker-egress."
+                      },
+                      "country": {
+                        "type": "string",
+                        "default": "US",
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "description": "Two-letter country code for the Proxies.sx pool, for example US."
+                      },
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Set false to force direct Worker egress when service-level Proxies.sx default routing is enabled."
+                      },
+                      "session": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "description": "Optional sticky-session key. Use stable, non-secret text when you need repeated calls to keep the same mobile identity."
+                      },
+                      "rotation": {
+                        "enum": [
+                          "sticky",
+                          "hard",
+                          "auto5",
+                          "auto10",
+                          "auto20",
+                          "auto60",
+                          "ondemand"
+                        ],
+                        "type": "string",
+                        "default": "sticky",
+                        "description": "Rotation mode requested from the runner. sticky keeps the same session; hard asks for a fresh mobile IP."
+                      }
+                    },
+                    "description": "Optional Proxies.sx egress hint for services that need mobile/residential fetches. Pass true for default US mobile egress, or an object with enabled, country, session, and rotation. Credentials and proxy URLs are never accepted from callers.",
+                    "additionalProperties": false
+                  },
+                  "resourceId": {
+                    "type": "string",
+                    "description": "Market resource slug or id, such as san-francisco-ca, new-york-ny, brooklyn-new-york-ny, or 94110-ca."
+                  },
+                  "searchSlug": {
+                    "type": "string",
+                    "default": "apartments-for-rent",
+                    "description": "Rental search slug, such as apartments-for-rent, houses-for-rent, condos-for-rent, townhomes-for-rent, or rooms-for-rent."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "usage_notice": null
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

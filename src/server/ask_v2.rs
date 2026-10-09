@@ -35,6 +35,8 @@ pub(super) struct ResearchRequest {
     parsed_request: ParsedRequest,
     #[serde(default)]
     search_id: Option<String>,
+    #[serde(default)]
+    discovery_id: Option<String>,
 }
 
 impl ResearchRequest {
@@ -69,6 +71,15 @@ pub(super) async fn research(
     let snapshot = match crate::search_snapshot::Snapshot::open(&state.engine.signer, &person, &request.parsed_request, search_id) {
         Ok(snapshot) => snapshot, Err(_) => return refresh(),
     };
+    let snapshot = if let Some(discovery_id) = &request.discovery_id {
+        let discovery = match crate::search_snapshot::Snapshot::open(&state.engine.signer, &person, &request.parsed_request, discovery_id) {
+            Ok(discovery) => discovery, Err(_) => return refresh(),
+        };
+        match snapshot.with_discovery(discovery) { Ok(snapshot) => snapshot, Err(_) => return refresh() }
+    } else { snapshot };
+    // A retry with different external choices is a different discovery input.
+    let combined_id = request.discovery_id.as_ref().map(|discovery| crate::state::digest(&(search_id, discovery)));
+    let search_id = combined_id.as_deref().unwrap_or(search_id);
     let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
     let discover = crate::protocol::DiscoverRequest { request_id:request.request_id,question:request.question,state:None,context_delta:Default::default() };
     match state.engine.existing_research(&person, &discover, &request.parsed_request, search_id).await {
@@ -106,7 +117,7 @@ fn valid_operation(value: &str) -> bool {
 #[serde(deny_unknown_fields)]
 pub(super) struct EndpointQuery { capability: Option<String> }
 
-/// Inputs and prices come from the current executable contract, never from a
+/// Inputs and prices come from the current registered endpoint or mapping, never from a
 /// directory card or the model's parsed metadata. This does not create a task.
 /// Connected chatbots read it too: they fill in the inputs they are shown.
 pub(super) async fn endpoint(
@@ -485,9 +496,9 @@ pub(super) async fn search(
     }
     match search_catalog(&state, &request.parsed_request, request.origin).await {
         Ok(mut value) => {
-            if person.is_person() && matches!(request.origin, Origin::Apiosk) {
+            if person.is_person() {
                 match crate::search_snapshot::Snapshot::issue(&state.engine.signer, &person, &request.parsed_request, &value) {
-                    Ok(token) => value["search_id"] = json!(token),
+                    Ok(token) => value[match request.origin { Origin::Apiosk => "search_id", Origin::Coinbase => "discovery_id" }] = json!(token),
                     Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY, "search_too_large", "This search contains too much source detail. Narrow the request and search again."),
                 }
             }
@@ -598,12 +609,12 @@ fn buyer_discovery_price(price: &str) -> Option<String> {
     Some(format!("{}.{:06} USD", total / 1_000_000, total % 1_000_000))
 }
 
-/// Every executable candidate carries its contract's own inputs and price, so
+/// Every purchasable candidate carries its declared inputs and price, so
 /// a caller can fill in the input object that prepare accepts.
 fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, sources: Option<&[crate::sources::Source]>) {
     for found in matches.as_array_mut().into_iter().flatten() {
         for candidate in found["apiosk"].as_array_mut().into_iter().flatten() {
-            if candidate["availability"] != "supported" { continue; }
+            if !matches!(candidate["availability"].as_str(), Some("supported" | "unverified")) { continue; }
             let Some(id) = candidate["endpoint_id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) else { continue };
             let Ok(service) = crate::engine::Engine::endpoint_service(catalog, id, candidate["capability"].as_str()) else { continue };
             let source = sources.and_then(|sources| sources.iter().find(|source| source.slug == service.api_slug));
@@ -739,7 +750,7 @@ mod tests {
     fn complete_research_preserves_exact_displayed_live_checks_and_stable_metadata() {
         let fixtures:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-live-planning.json")).unwrap();
         for row in fixtures["cases"].as_array().unwrap() {
-            let request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:row["question"].as_str().unwrap().into(),parsed_request:serde_json::from_value(row["displayed_parse"].clone()).unwrap()};
+            let request=ResearchRequest {search_id:None,discovery_id:None,request_id:Uuid::new_v4(),question:row["question"].as_str().unwrap().into(),parsed_request:serde_json::from_value(row["displayed_parse"].clone()).unwrap()};
             let normalized=request.normalized().unwrap_or_else(|error|panic!("case {}: {error}",row["case"]));
             assert_eq!(serde_json::to_value(&normalized.subjects).unwrap(),row["displayed_parse"]["subjects"]);
             assert_eq!(normalized.capabilities.len(),request.parsed_request.capabilities.len());
@@ -759,7 +770,7 @@ mod tests {
         raw["capabilities"]=json!((0..16).map(|index|{let mut cap=base.clone();cap["slug"]=json!(format!("location.check{index}"));cap}).collect::<Vec<_>>());
         let question=row["question"].as_str().unwrap();
         let parsed=capability_intake::normalize(&raw.to_string(),question,"fixture").unwrap();
-        let mut request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        let mut request=ResearchRequest {search_id:None,discovery_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
         assert_eq!(request.normalized().unwrap().capabilities.len(),16);
         let mut extra=request.parsed_request.capabilities[0].clone();extra.slug="location.check16".into();
         request.parsed_request.capabilities.push(extra);
@@ -769,7 +780,7 @@ mod tests {
     fn complete_research_accepts_full_followup_context_and_refuses_invented_values() {
         let question="Previous request (context only): MONZO BANK LIMITED company number 09446231\n\nCurrent request: and the directors?";
         let parsed=capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"MONZO BANK LIMITED","type":"company","identifiers":{"company_number":"09446231"}}],"capabilities":[{"slug":"company.directors","name":"Company directors","description":"Retrieve company directors","domain":"company","inputs":[],"outputs":[],"subject_id":"s1","source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
-        let mut request=ResearchRequest {search_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
+        let mut request=ResearchRequest {search_id:None,discovery_id:None,request_id:Uuid::new_v4(),question:question.into(),parsed_request:parsed};
         assert_eq!(request.normalized().unwrap().subjects[0].identifiers["company_number"],"09446231");
         request.parsed_request.subjects[0].identifiers.insert("kvk_number".into(),"99998888".into());
         assert!(request.normalized().is_err(),"normalization cannot silently discard an invented supplied identifier");
@@ -900,6 +911,20 @@ mod tests {
         assert_eq!(descriptor["lookup"], json!({"field":"geo.input.q","resolves":["location.neighbourhood_code"],"schema":{"type":"string"}}));
         assert_eq!(descriptor["inputs"][0]["field"], "location.neighbourhood_code");
         assert_eq!(descriptor["price"]["buyer_atomic"], service.total().to_string());
+    }
+
+    #[test]
+    fn registered_candidates_publish_their_input_forms_without_a_planner_mapping() {
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/registered-endpoints.json")).unwrap());
+        let mut found = json!([{"apiosk":catalog.services.iter().map(|service| json!({
+            "endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"availability":"unverified"
+        })).collect::<Vec<_>>()}]);
+        describe_endpoints(&mut found, &catalog, None);
+        for candidate in found[0]["apiosk"].as_array().unwrap() {
+            assert!(candidate["endpoint"]["price"]["buyer_atomic"].is_string());
+            assert!(candidate["endpoint"]["inputs"].as_array().unwrap().iter().any(|input| input["required"] == true));
+            assert!(candidate["endpoint"]["inputs"].as_array().unwrap().iter().all(|input| input["schema"]["title"].is_string()));
+        }
     }
 
     #[test]

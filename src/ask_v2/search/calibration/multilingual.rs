@@ -797,6 +797,7 @@ fn english_renderings_only_add_candidates_to_what_the_original_text_finds() {
                         catalog.services[position].endpoint_id.to_string()
                     }
                     Target::Source(position) => catalog.known_sources[position].slug.clone(),
+                    Target::Listing(position, listing) => catalog.known_sources[position].metadata.endpoints[listing].endpoint_id.to_string(),
                 })
                 .collect()
         };

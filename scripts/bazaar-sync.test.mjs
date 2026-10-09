@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import {
   admitItem, atomicToUsd, batchRows, batches, BASE_USDC, buildCatalog, checkedSchema, contentHash, fetchAll, missedKeys,
   pathShape, scoreListing, serviceSlug, sqlChunk, uuid,
@@ -203,4 +207,40 @@ test('paging is polite, retries a rate limit and reports an incomplete read', as
   await assert.rejects(fetchAll({ fetchImpl: async () => new Response('no', { status: 400 }), gapMs: 0 }), /HTTP 400/);
   const short = await fetchAll({ fetchImpl: async () => Response.json({ items: [], pagination: { total: 5 } }), gapMs: 0 });
   assert.equal(short.complete, false);
+});
+
+test('the dry-run CLI starts in a path with spaces and writes decoded default and explicit output paths', async t => {
+  const directory = await realpath(await mkdtemp(path.join(tmpdir(), 'apiosk bazaar cli ')));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const scripts = path.join(directory, 'scripts');
+  await mkdir(scripts);
+  for (const file of ['bazaar-sync.mjs', 'source-operation-contracts.mjs']) {
+    await copyFile(new URL(file, import.meta.url), path.join(scripts, file));
+  }
+  const input = path.join(directory, 'recorded page.json');
+  const item = good();
+  item.lastUpdated = new Date().toISOString();
+  item.quality.lastCalledAt = item.lastUpdated;
+  await writeFile(input, JSON.stringify({ items: [item], pagination: { total: 1 } }));
+  const noNetwork = path.join(directory, 'no-network.mjs');
+  await writeFile(noNetwork, 'globalThis.fetch = async () => { throw new Error("CLI fixture must not access the network"); };');
+  for (const explicit of [false, true]) {
+    const output = path.join(directory, 'explicit output');
+    const stdout = execFileSync(process.execPath, [
+      '--import', noNetwork, path.join(scripts, 'bazaar-sync.mjs'), `--input=${input}`,
+      ...(explicit ? [`--out=${output}`] : []),
+    ], { cwd: directory, encoding: 'utf8', timeout: 10_000, stdio: ['ignore', 'pipe', 'pipe'] });
+    const result = JSON.parse(stdout);
+    if (explicit) assert.equal(result.out, output);
+    else assert.equal(path.dirname(result.out), path.join(directory, 'output', 'bazaar'));
+    const report = JSON.parse(await readFile(path.join(result.out, 'report.json'), 'utf8'));
+    assert.equal(report.mode, 'dry-run');
+    assert.equal(report.read_count, 1);
+    assert.equal(result.admitted, 1);
+    assert.equal(result.pilot, 1);
+    assert.equal(result.batches, 1);
+    const catalog = JSON.parse(await readFile(path.join(result.out, 'catalog.json'), 'utf8'));
+    assert.equal(catalog.services[0].endpoints[0].resource, item.resource);
+    assert.match(await readFile(path.join(result.out, 'sql', '000.sql'), 'utf8'), /SELECT providers\.upsert_bazaar_batch/);
+  }
 });

@@ -3,28 +3,30 @@
 use crate::capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject};
 use sha2::{Digest, Sha256};
 
-const PREFIX: &str = "Look up ";
-const SUFFIX: &str = " by name and combine its registered details, available annual financial figures and website information";
 pub(crate) const WEBSITE_QUERY: &str = "web.company_website_query";
 pub(crate) const ANSWER_SCOPE: &str = "Combine the selected company's registered details, available annual financial figures and sourced website information into one cited answer. Preserve the resolved company identity, financial year, units, currency, consolidation scope and missing fields. Website search uses the registered name and KVK number returned for the selected company; verify the cited pages' identity before attributing statements to that company. Search results alone do not establish domain ownership or independently verify website claims. Do not infer a domain from the company name. State unavailable website information and identity uncertainty. Available figures do not establish the latest filing or a complete original annual report.";
 
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
-    let text = crate::capability_intake::literal_sentence(question);
-    let text = text.strip_suffix('.').unwrap_or(text);
-    let end = text.len().checked_sub(SUFFIX.len())?;
-    if !text.get(..PREFIX.len())?.eq_ignore_ascii_case(PREFIX)
-        || !text.get(end..)?.eq_ignore_ascii_case(SUFFIX)
-    {
-        return None;
+    let (language, name) = request_name(question)?;
+    let label = crate::company_request::literal_name(name)?;
+    if !name.trim().starts_with('"') {
+        let lower = label.to_lowercase();
+        let words: Vec<_> = lower.split_whitespace().collect();
+        if words.iter().any(|word| matches!(*word, "and" | "en" | "inclusief" | "met" | "zonder"
+            | "vanaf" | "tijdens" | "tussen" | "laatste" | "nieuwste" | "recentste"
+            | "aandeelhouders" | "eigenaren" | "eigenaars" | "toon" | "geef" | "vergelijk"))
+            || words.windows(2).any(|pair| matches!(pair[0], "in" | "over" | "voor")
+                && pair[1].len() == 4 && pair[1].bytes().all(|byte| byte.is_ascii_digit())) {
+            return None;
+        }
     }
-    let label = crate::company_request::literal_name(text.get(PREFIX.len()..end)?)?;
     let capability = |slug: &str, name: &str, domain: &str, source: &str, output: &str, description: &str| Capability {
         slug: slug.into(), name: name.into(), description: description.into(), domain: domain.into(),
         inputs: vec!["company_name".into()], outputs: vec![output.into()], subject_id: Some("s1".into()),
         source_hint: Some(source.into()), confidence: 1.0, missing: vec![],
     };
     Some(ParsedRequest {
-        language: "en".into(),
+        language: language.into(),
         subjects: vec![Subject { id: "s1".into(), label, kind: "company".into(), identifiers: Default::default() }],
         capabilities: vec![
             capability("company.registry.profile", "Company registered details", "company", "kvk", "profile",
@@ -38,6 +40,71 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
         meta: Meta { model: model.into(), parsed_at: chrono::Utc::now().to_rfc3339(),
             text_sha256: hex::encode(Sha256::digest(question.as_bytes())) },
     })
+}
+
+fn strip_prefix<'a>(text: &'a str, prefix: &str) -> Option<&'a str> {
+    text.get(..prefix.len())?.eq_ignore_ascii_case(prefix)
+        .then(|| &text[prefix.len()..])
+}
+
+fn strip_suffix<'a>(text: &'a str, suffix: &str) -> Option<&'a str> {
+    let end = text.len().checked_sub(suffix.len())?;
+    text.get(end..)?.eq_ignore_ascii_case(suffix).then(|| &text[..end])
+}
+
+/// A bounded, whole-request grammar keeps common English and Dutch phrasing
+/// on the same checked source plan. Never remove a field, a period constraint,
+/// a second company or a requested output format to make a sentence fit.
+fn request_name(question: &str) -> Option<(&'static str, &str)> {
+    let text = question.trim();
+    let text = text.strip_suffix(['.', '?', '!']).unwrap_or(text).trim_end();
+    let text = ["Can you ", "Could you ", "Would you ", "Please "]
+        .into_iter().find_map(|prefix| strip_prefix(text, prefix)).unwrap_or(text);
+    let text = strip_prefix(text, "please ").unwrap_or(text);
+
+    for prefix in ["Look up ", "Find "] {
+        if let Some(body) = strip_prefix(text, prefix) {
+            for suffix in [
+                " by name and combine its registered details, available annual financial figures and website information",
+                " by name and combine its registered details, available annual financial figures, and website information",
+                " by name and combine the registered details, available annual financial figures and website information",
+                " and combine its registered details, available annual financial figures and website information",
+            ] {
+                if let Some(name) = strip_suffix(body, suffix) {
+                    return Some(("en", name));
+                }
+            }
+        }
+    }
+
+    // Dutch separable verbs retain their full verb phrase around the name.
+    let text = question.trim();
+    let text = text.strip_suffix(['.', '?', '!']).unwrap_or(text).trim_end();
+    let polite = ["Kun je ", "Kan je ", "Kunt u ", "Wil je ", "Wilt u "]
+        .into_iter().find_map(|prefix| strip_prefix(text, prefix));
+    let text = polite.unwrap_or(text);
+    let (body, joins): (&str, &[&str]) = if let Some(body) = strip_prefix(text, "Zoek ") {
+        (body, &[" op naam en combineer ", " op en combineer "])
+    } else if polite.is_some() {
+        (text, &[" op naam opzoeken en de ", " opzoeken en de "])
+    } else { return None };
+    for join in joins {
+        for scope in [
+            "de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie",
+            "de geregistreerde gegevens, beschikbare jaarcijfers en website-informatie",
+            "de geregistreerde gegevens, beschikbare financiële jaarcijfers en websiteinformatie",
+            "de registratiegegevens, beschikbare jaarcijfers en website-informatie",
+        ] {
+            // The question form ends in "combineren" instead of "combineer".
+            let suffix = if join.ends_with("de ") {
+                format!("{join}{} combineren", scope.strip_prefix("de ")?)
+            } else { format!("{join}{scope}") };
+            if let Some(name) = strip_suffix(body, &suffix) {
+                return Some(("nl", name));
+            }
+        }
+    }
+    None
 }
 
 pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<ParsedRequest> {
@@ -73,6 +140,24 @@ mod tests {
     use std::{collections::BTreeSet, sync::atomic::Ordering};
     pub(super) const QUESTION: &str = "Look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information.";
     const QUESTION_FORM: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
+    const DUTCH_QUESTION: &str = "Kun je Mollie B.V. op naam opzoeken en de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie combineren?";
+
+    fn supported_questions() -> Vec<(&'static str, String)> {
+        vec![
+            ("en", QUESTION.into()),
+            ("en", QUESTION_FORM.into()),
+            ("en", QUESTION_FORM.trim_end_matches('?').into()),
+            ("en", QUESTION_FORM.replace("Can you", "Could you please")),
+            ("en", QUESTION_FORM.replace("Can you", "Would you").replace("figures and", "figures, and")),
+            ("en", format!("Please {}", QUESTION.to_lowercase().replace("mollie b.v.", "Mollie B.V."))),
+            ("en", QUESTION.replace("Look up", "Find").replace("its registered", "the registered")),
+            ("en", QUESTION.replace(" by name", "")),
+            ("nl", DUTCH_QUESTION.into()),
+            ("nl", DUTCH_QUESTION.replace("Kun je", "Kunt u").replace(" op naam", "")),
+            ("nl", "Zoek Mollie B.V. op naam en combineer de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie.".into()),
+            ("nl", "Zoek Mollie B.V. op en combineer de registratiegegevens, beschikbare jaarcijfers en website-informatie".into()),
+        ]
+    }
 
     fn catalog() -> Catalog {
         let original = crate::compound_examples_tests::catalog();
@@ -114,21 +199,23 @@ mod tests {
     async fn named_company_plans_one_quote_with_source_bound_website_search() {
         let catalog = catalog();
         let parser = Parser::new(reqwest::Client::new(), "offline://model-calls-forbidden".into(), String::new(), "fixture".into());
-        for (name, selected_name, number, form) in [("Mollie B.V.", "Mollie B.V.", "30204462"),
+        for (name, selected_name, number, language, form) in [("Mollie B.V.", "Mollie B.V.", "30204462"),
             ("Bas Grave Web Development", "Bas Grave Web Development", "87560488"),
             ("Atelier De Blauwe Maan", "Atelier De Blauwe Maan B.V.", "00123456")].into_iter()
-            .flat_map(|(name, selected, number)| [QUESTION, QUESTION_FORM].map(|form| (name, selected, number, form))) {
+            .flat_map(|(name, selected, number)| supported_questions().into_iter().map(move |(language, form)| (name, selected, number, language, form))) {
             let question = form.replace("Mollie B.V.", name);
             let mut task = Task::default();
             let intake = parser.ask_intake(&question, &task, &catalog, None).await.unwrap();
             assert_eq!(intake.parsed_request.meta.text_sha256, hex::encode(Sha256::digest(question.as_bytes())));
             let mut expected = serde_json::to_value(parse(&QUESTION.replace("Mollie B.V.", name), "fixture").unwrap()).unwrap();
+            expected["language"] = json!(language);
             let mut actual = serde_json::to_value(&intake.parsed_request).unwrap();
             expected.as_object_mut().unwrap().remove("meta"); actual.as_object_mut().unwrap().remove("meta");
             assert_eq!(actual, expected, "the question form preserves every semantic field");
             assert!(intake.parsed_request.subjects[0].identifiers.is_empty());
             let reply = parser.chat_from_capabilities(&question, None, &task, &catalog, &intake).await.unwrap();
             assert!(reply.discover, "{question}: {}", reply.message);
+            if language == "nl" { assert!(reply.message.starts_with("Ik "), "{question}: {}", reply.message); }
             let mut intent = reply.intent.unwrap();
             assert_eq!(intent.subjects.len(), 1);
             assert_eq!(intent.subjects[0].values, std::collections::BTreeMap::from([("company.name".into(), json!(name))]));
@@ -176,7 +263,7 @@ mod tests {
 
     #[test]
     fn names_are_editable_and_never_supply_an_identifier_or_domain() {
-        for name in ["Mollie B.V.", "Bas Grave Web Development", "O'Neill & Partners", "Atelier De Blauwe Maan"] {
+        for name in ["Mollie B.V.", "Bas Grave Web Development", "O'Neill & Partners", "Atelier De Blauwe Maan", "Stichting Voor Elkaar"] {
             let question = QUESTION.replace("Mollie B.V.", name);
             let parsed = parse(&question, "fixture").unwrap();
             assert_eq!(parsed.subjects.len(), 1);
@@ -186,6 +273,11 @@ mod tests {
             assert!(parsed.capabilities.iter().all(|cap| cap.subject_id.as_deref() == Some("s1")));
             assert_eq!(parsed.capabilities[2].slug, "web.company.website.search");
             assert_eq!(parsed.deliverable.operations, ["summarize", "analyze"]);
+        }
+        for name in ["Smith and Sons", "Brood en Spelen", "Werken met Waarde"] {
+            let question = QUESTION.replace("Mollie B.V.", &format!("\"{name}\""));
+            assert_eq!(parse(&question, "fixture").unwrap().subjects[0].label, name,
+                "quoted trade names can contain words that would otherwise be ambiguous clauses");
         }
     }
 
@@ -200,6 +292,18 @@ mod tests {
             QUESTION.replace("Mollie B.V.", "Mollie B.V. and https://example.org"),
             QUESTION.replace("available annual financial figures", "the latest complete audited annual report"),
             QUESTION.replace("website information", "website information and credit rating"),
+            QUESTION.replace("financial figures", "financial figures for 2024"),
+            QUESTION_FORM.replace("website information?", "website information and DNS records?"),
+            QUESTION_FORM.replace("website information?", "website information in JSON?"),
+            DUTCH_QUESTION.replace("website-informatie combineren?", "website-informatie en DNS-records combineren?"),
+            DUTCH_QUESTION.replace("beschikbare financiële jaarcijfers", "de laatste gecontroleerde jaarrekening"),
+            DUTCH_QUESTION.replace("jaarcijfers", "jaarcijfers over 2024"),
+            DUTCH_QUESTION.replace("Mollie B.V.", "Mollie met kredietscore"),
+            DUTCH_QUESTION.replace("Mollie B.V.", "Mollie voor 2024"),
+            DUTCH_QUESTION.replace("Mollie B.V.", "Mollie B.V. en Adyen N.V."),
+            DUTCH_QUESTION.replace("Mollie B.V.", "Mollie en Adyen"),
+            QUESTION.replace("Mollie B.V.", "Mollie and Adyen"),
+            format!("{DUTCH_QUESTION} Toon ook de aandeelhouders."),
         ] {
             assert!(parse(&question, "fixture").is_none(), "{question}");
         }

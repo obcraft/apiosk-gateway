@@ -28,9 +28,9 @@
 //! An exact capability match always passes. When nothing passes, the
 //! capability has no candidates, which the Ask page and MCP already present
 //! as "no sources".
-use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
+use super::{document, vague, words, Document, Index, Target, DELIVERABLE_OPERATIONS, FACET_WORDS, SENTIMENT, SPECIFIC_OPERATIONS, STOCK_MARKET, VALUATION};
 use crate::{
-    capability_intake::{capability_query, Capability, ParsedRequest},
+    capability_intake::{capability_query, normalize_slug, Capability, ParsedRequest},
     state::Task,
 };
 use std::collections::BTreeSet;
@@ -44,6 +44,20 @@ const ACTIONS: &[&str] = &[
 
 fn action(word: &str) -> Option<&'static str> {
     ACTIONS.iter().copied().find(|stem| word.starts_with(stem))
+}
+
+pub(super) fn person_scope(text: &str) -> bool {
+    // Lowercasing first preserves branded words such as LinkedIn instead
+    // of treating their capitalization as a camelCase field boundary.
+    let text = text.to_lowercase();
+    let scope = words(&text);
+    let person = ["person", "people", "personal", "professional", "individual"].iter()
+        .any(|word| scope.contains(*word));
+    let company = ["company", "organisation", "organization", "business"].iter()
+        .any(|word| scope.contains(*word));
+    let linkedin_profile = super::tokens(&text).windows(2)
+        .any(|pair| pair[0] == "linkedin" && matches!(pair[1].as_str(), "profile" | "profiles"));
+    person || (linkedin_profile && !company)
 }
 
 /// The meaningful words of a reviewed capability id (`vat` and `eu` for
@@ -92,7 +106,62 @@ pub(super) struct Request {
     corporate_valuation: bool,
     enterprise_multiple: bool,
     equity_quote: bool,
+    crypto_sentiment: bool,
+    crypto_market: bool,
     metrics: MetricScope,
+    dns: bool,
+    dns_record_types: u16,
+    exact_dns_records: bool,
+    person_profile: bool,
+}
+
+// The historical mail-DNS adapter drops all but the registrable-domain
+// labels. It cannot answer an exact owner query such as mail.example.com.
+// Keep this conservative gate aligned with that adapter's legacy contract.
+fn legacy_dns_preserves_name(name: &str) -> bool {
+    let name = name.trim().trim_end_matches('.').to_ascii_lowercase();
+    let labels: Vec<_> = name.split('.').collect();
+    let uk = labels.len() == 3 && labels[2] == "uk"
+        && ["co", "org", "me", "ltd", "plc", "net", "sch", "ac", "gov"].contains(&labels[1]);
+    (labels.len() == 2 || uk) && !name.contains('_')
+}
+
+/// Do not stem DNS types: the lexical index intentionally discards one/two
+/// letter words, which would make A, NS and MX indistinguishable.
+pub(super) fn dns_record_types(text: &str) -> u16 {
+    let tokens: Vec<_> = text.split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|token| !token.is_empty()).collect();
+    // Keep the explicit output alias; prose "a record" is an article, not
+    // an IPv4 request. A record-type letter remains case-sensitive here.
+    let mut types = u16::from(text.split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
+        .any(|token| matches!(token.to_ascii_lowercase().as_str(), "a_record" | "a_records" | "a-record" | "a-records")));
+    for (index, token) in tokens.iter().enumerate() {
+        types |= match token.to_ascii_lowercase().as_str() {
+            "a" if (*token == "A" && tokens.get(index + 1).is_none_or(|next|
+                    matches!(next.to_ascii_lowercase().as_str(), "and" | "or" | "aaaa" | "mx" | "ns" | "txt" | "caa" | "soa" | "cname")))
+                || (index.checked_sub(1).is_some_and(|i| matches!(tokens[i].to_ascii_lowercase().as_str(), "dns" | "type" | "types"))
+                    && !tokens.get(index + 1).is_some_and(|next| next.eq_ignore_ascii_case("dns")))
+                || (*token == "A" && tokens.get(index + 1).is_some_and(|next| matches!(next.to_ascii_lowercase().as_str(), "record" | "records"))) => 1,
+            "ipv4" => 1,
+            "aaaa" | "ipv6" => 2,
+            "cname" => 4,
+            "mx" => 8,
+            "ns" | "nameserver" | "nameservers" => 16,
+            // A TXT retrieval does not derive a DMARC owner, DKIM selector,
+            // or evaluate an SPF policy. Only literal TXT record scope.
+            "txt" => 32,
+            "caa" => 64,
+            "soa" => 128,
+            _ => 0,
+        };
+    }
+    if tokens.iter().any(|word| word.eq_ignore_ascii_case("dns"))
+        && tokens.iter().any(|word| word.eq_ignore_ascii_case("mail")) { types |= 8; }
+    types
+}
+
+fn dns_record_types_from_description(text: &str) -> u16 {
+    dns_record_types(super::opening_description(text))
 }
 
 /// A benchmark/rate/market is not interchangeable with another measurement.
@@ -175,7 +244,12 @@ impl Request {
             .rev()
             .find(|raw| !raw.is_empty())
             .is_some_and(|raw| words(raw).iter().any(|word| action(word).is_some()));
-        let described: BTreeSet<String> = if action_named || key.is_empty() {
+        // An analysis still has a topic. "Sentiment analysis" must not let
+        // context words such as news/social media replace sentiment. Expand
+        // genuinely generic actions ("Comparative analysis") from their
+        // description only when the name/id do not already agree on a topic.
+        let named_topic = key.iter().any(|word| name.contains(word));
+        let described: BTreeSet<String> = if (action_named && !named_topic) || key.is_empty() {
             words(&scrubbed(&capability.description, capability, parsed))
                 .into_iter()
                 .filter(|word| meaningful(word) && !supplied.contains(word))
@@ -210,15 +284,63 @@ impl Request {
         let valuation_text=format!("{} {} {} {}", capability.slug, capability.name,
             capability.description, capability.outputs.join(" "));
         let valuation_words = words(&valuation_text);
+        // The requested fields and capability identity establish record scope.
+        // Explanatory prose can explicitly exclude other types ("MX, not TXT,
+        // A or AAAA") and must not turn those exclusions into required calls.
+        let dns_record_types = [&capability.slug, &capability.name].into_iter()
+            .chain(capability.outputs.iter())
+            .fold(0, |types, field| types | dns_record_types(field));
+        let dns_record_types = if dns_record_types == 0 {
+            dns_record_types_from_description(&capability.description)
+        } else { dns_record_types };
+        let dns_identity = words(&format!("{} {}", capability.slug, capability.name));
+        let dns = dns_identity.contains("dns")
+            || dns_identity.contains("nameserver")
+            || (dns_record_types != 0 && dns_identity.contains("record"));
+        let exact_dns_records = capability.outputs.iter().any(|output|
+            output.ends_with("_records") || matches!(output.as_str(), "records" | "ttl" | "record_type" | "type_code"))
+            || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+                .and_then(|subject| crate::ask_v2::input_values::literal("domain.dns_name", subject))
+                .and_then(|value| value.as_str().map(|name| !legacy_dns_preserves_name(name))).unwrap_or(false);
         let enterprise_multiple = enterprise_ratio(&valuation_text);
         let company_subject = capability.subject_id.as_ref().and_then(|id|
             parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "company");
+        let person_subject = capability.subject_id.as_ref().and_then(|id|
+            parsed.subjects.iter().find(|subject| &subject.id == id)).is_some_and(|subject| subject.kind == "person");
+        // The requested operation/record establishes profile retrieval. A
+        // page-search description may mention profile pages as its topic,
+        // while requesting only URLs/titles; that does not require a profile
+        // reader. Link-shaped outputs likewise describe discovery results.
+        let profile_record = |text: &str| {
+            let scope = words(text);
+            scope.contains("profile") && !scope.contains("url") && !scope.contains("link")
+        };
+        let person_profile = (profile_record(&capability.slug) || capability.outputs.iter().any(|output| profile_record(output)))
+            && (person_subject || ["person", "people", "professional"].iter().any(|word| valuation_words.contains(*word)));
         let corporate_valuation = (primary_facets & VALUATION != 0 || enterprise_multiple)
             && (company_subject || capability.domain == "company" || enterprise_multiple);
         let equity_quote = primary_facets & STOCK_MARKET != 0
             && ["price", "quote"].iter().any(|word| valuation_words.contains(*word))
             && !derivative_market(&format!("{} {}", capability.name, capability.description));
+        let crypto_sentiment = primary_facets & SENTIMENT != 0
+            && (valuation_words.iter().any(|word| matches!(word.as_str(), "crypto" | "cryptocurrency"))
+                || capability.subject_id.as_ref().and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+                    .is_some_and(|subject| subject.kind.starts_with("crypto")));
+        let crypto_subject = capability.subject_id.as_ref().and_then(|id|
+            parsed.subjects.iter().find(|subject| &subject.id == id))
+            .is_some_and(|subject| subject.kind.starts_with("crypto"));
+        let crypto_market = !crypto_sentiment
+            && (crypto_subject || valuation_words.iter().any(|word|
+                matches!(word.as_str(), "crypto" | "cryptocurrency")))
+            && ["market", "price", "liquidity", "volume", "capitalization"].iter()
+                .any(|word| valuation_words.contains(*word));
         Self {
+            person_profile,
+            dns,
+            dns_record_types,
+            exact_dns_records,
+            crypto_sentiment,
+            crypto_market,
             metrics: MetricScope::new(capability),
             primary_facets,
             corporate_valuation,
@@ -266,14 +388,48 @@ impl Request {
         self.corporate_valuation |= other.corporate_valuation;
         self.enterprise_multiple |= other.enterprise_multiple;
         self.equity_quote |= other.equity_quote;
+        self.crypto_sentiment |= other.crypto_sentiment;
+        self.crypto_market |= other.crypto_market;
         self.metrics.union(other.metrics);
+        self.dns |= other.dns;
+        self.dns_record_types |= other.dns_record_types;
+        self.exact_dns_records |= other.exact_dns_records;
+        self.person_profile |= other.person_profile;
         self
     }
 
+    /// A shared word such as "profile" does not make an organisation's
+    /// lobbying report or a board-game guide a profile of an individual.
+    /// Read the operation's own scope, not input names or provider-wide copy.
+    pub fn profile_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.person_profile { return true; }
+        candidate.person_scope || ["person", "people", "personal", "professional", "individual"].iter()
+            .any(|word| candidate.contract.contains(*word))
+    }
+
+    fn dns_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.dns { return true; }
+        // Compare in the same normalized namespace as the search index.
+        let has_capability = |slug| normalize_slug(slug, "")
+            .is_some_and(|(slug, _)| candidate.capabilities.contains(&slug.to_lowercase()));
+        // RDAP may list nameservers, but it is not a DNS record lookup. A
+        // shared source title must not sell registry metadata as DNS results.
+        if has_capability("domain.registration") { return false; }
+        if self.exact_dns_records && has_capability("domain.mail-dns") { return false; }
+        if self.dns_record_types == 0 { return true; }
+        let matched_types = candidate.dns_record_types & self.dns_record_types;
+        // Several executable operations can jointly retrieve A + MX + TXT.
+        // Keep each contributing type; the planner's output-coverage gate
+        // must prove the complete union before quoting the request.
+        if matches!(candidate.target, Target::Endpoint(_)) { matched_types != 0 }
+        else { matched_types == self.dns_record_types }
+    }
+
     fn primary_topic_matches(&self, wanted: &Document, candidate: &Document) -> bool {
-        if matches!(candidate.target, Target::Endpoint(_)) && !self.metrics.supported_by(candidate) {
+        if candidate.target.is_endpoint() && !self.metrics.supported_by(candidate) {
             return false;
         }
+        if !self.sentiment_scope_matches(candidate) || !self.crypto_market_matches(candidate) { return false; }
         if self.equity_quote {
             // A derivative mark can track a stock without being that stock's
             // exchange quote. Likewise filings and positioning are not prices.
@@ -301,7 +457,7 @@ impl Request {
         // Measurement/presentation words do not make a second subject:
         // "unemployment rate statistics" still asks about unemployment.
         let core = |word: &String| !matches!(word.as_str(), "statistic" | "rate" | "count" | "volume" | "metric" | "data");
-        let generated = matches!(candidate.target, Target::Endpoint(_)) && candidate.contract.is_empty();
+        let generated = candidate.target.is_endpoint() && candidate.contract.is_empty();
         let anchored = self.topic.iter().filter(|word| (!generated || core(word))
             && (candidate.topic_scope.contains(*word) || candidate.contract.contains(*word))).count();
         // Unreviewed routes cannot establish a compound operation from one
@@ -312,6 +468,10 @@ impl Request {
             self.anchors.iter().filter(|word| core(word)).count().min(2).max(1)
         } else { 1 };
         anchored >= needed
+            // A named measurement is also an explicit output when it follows
+            // a short title such as "Crypto market context — ...".
+            || (self.primary_facets & SENTIMENT != 0
+                && candidate.operation_words.contains("fear") && candidate.operation_words.contains("greed"))
             || self.primary_facets & candidate.contract_facets != 0
             || (self.primary_facets != 0 && wanted.tokens.iter()
                 .filter(|word| word.starts_with('@'))
@@ -327,11 +487,35 @@ impl Request {
         corporate && (!self.enterprise_multiple || candidate.enterprise_multiple)
     }
 
+    fn sentiment_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.crypto_sentiment { return true; }
+        let scope = if candidate.operation_words.is_empty() { &candidate.tokens } else { &candidate.operation_words };
+        // Generic text/topic sentiment remains a discovery option. Explicit
+        // coverage of a different market is not coverage of cryptocurrency.
+        let crypto = ["crypto", "cryptocurrency", "bitcoin", "btc", "ethereum", "eth"].iter().any(|word| scope.contains(*word));
+        let another_scope = ["forex", "gold", "equity", "stock", "country", "geopolitical", "fragrance", "perfume"].iter().any(|word| scope.contains(*word));
+        crypto || !another_scope
+    }
+
+    fn crypto_market_matches(&self, candidate: &Document) -> bool {
+        if !self.crypto_market { return true; }
+        // Market area, rental price and marketplace listings share pricing
+        // vocabulary, but cannot supply cryptocurrency market data. Require
+        // asset evidence in the operation itself, not its provider branding.
+        let scope = if candidate.operation_words.is_empty() { &candidate.tokens } else { &candidate.operation_words };
+        ["crypto", "cryptocurrency", "token", "blockchain", "onchain", "dex",
+            "bitcoin", "ethereum", "solana", "cardano", "coingecko", "coinpaprika"]
+            .iter().any(|word| scope.contains(*word) || candidate.contract.contains(*word))
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        if !self.profile_scope_matches(listing) { return false; }
+        if !self.dns_scope_matches(listing) { return false; }
+        if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
         wanted.facets & listing.facets != 0
             || self
                 .anchors
@@ -354,15 +538,25 @@ impl Request {
         index: &Index,
         hinted: bool,
     ) -> bool {
+        if !self.profile_scope_matches(candidate) { return false; }
+        if !self.dns_scope_matches(candidate) { return false; }
         // A generic financial label, or even an exact accounts slug, does not
         // turn filed accounts into the explicitly requested enterprise ratios.
-        if self.enterprise_multiple && matches!(candidate.target, Target::Endpoint(_))
+        if !self.crypto_market_matches(candidate) { return false; }
+        if self.enterprise_multiple && candidate.target.is_endpoint()
             && !self.valuation_matches(candidate) { return false; }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
-        if matches!(candidate.target, Target::Endpoint(_))
+        if candidate.target.is_endpoint()
             && !self.primary_topic_matches(wanted, candidate) { return false; }
+        // A registered listing can establish a discovery match from its own
+        // operation description, just like a Bazaar listing. Requiring a
+        // second contract/output signal here hides clear matches such as
+        // "annual accounts" when no execution contract exists yet.
+        if matches!(candidate.target, Target::Listing(_, _)) {
+            return self.mentions(wanted, candidate);
+        }
         if !hinted && candidate.contract.is_empty() && !self.primary_topic_matches(wanted,candidate) { return false; }
         let facet = wanted.facets & candidate.facets != 0;
         // A shared facet already stands for its vocabulary ("officer",

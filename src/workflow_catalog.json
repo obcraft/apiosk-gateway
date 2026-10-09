@@ -1,5 +1,397 @@
 [
   {
+    "slug": "pre-kyb-screening",
+    "name": "Pre-KYB Screening",
+    "description": "Screen a prospective business customer before full KYB: company registration, potential sanctions matches and optional tax, bank and website checks.",
+    "category": "compliance",
+    "fields": [
+      {
+        "key": "name",
+        "label": "Company name",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "Mollie B.V.",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "country",
+        "label": "Register country",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "GB",
+          "FR"
+        ]
+      },
+      {
+        "key": "screening_level",
+        "label": "Screening level",
+        "required": true,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "Standard checks identity and company sanctions, plus the optional details you supply. Enhanced adds available country-specific records and mail DNS.",
+        "options": [
+          "Standard",
+          "Enhanced"
+        ]
+      },
+      {
+        "key": "registration",
+        "label": "Company registration number",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "30204462",
+        "help": "Optional. Supplying the national registration number avoids a paid name search. Otherwise select the correct company if several match.",
+        "options": []
+      },
+      {
+        "key": "domain",
+        "label": "Website domain",
+        "required": false,
+        "input_type": "domain",
+        "placeholder": "mollie.com",
+        "help": "Optional. Checks domain registration; Enhanced also checks mail DNS.",
+        "options": []
+      },
+      {
+        "key": "vat_country",
+        "label": "VAT country code",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": [
+          "NL",
+          "BE",
+          "DE",
+          "FR",
+          "IE",
+          "ES",
+          "IT",
+          "AT",
+          "DK",
+          "SE",
+          "FI",
+          "PL",
+          "PT",
+          "LU",
+          "EL",
+          "XI"
+        ]
+      },
+      {
+        "key": "vat_number",
+        "label": "VAT number without country prefix",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "",
+        "help": "",
+        "options": []
+      },
+      {
+        "key": "iban",
+        "label": "IBAN",
+        "required": false,
+        "input_type": "text",
+        "placeholder": "NL91ABNA0417164300",
+        "help": "Optional. Validates the IBAN and available bank details; does not establish account ownership.",
+        "options": []
+      }
+    ],
+    "checks": [
+      "Registered identity, current status and consistency with the supplied company name",
+      "Company sanctions and watchlist candidates, separating possible matches from confirmed identities",
+      "VAT validity and available identity details when supplied",
+      "Domain registration when supplied; mail DNS in Enhanced",
+      "IBAN validity and available bank details when supplied",
+      "Enhanced country-specific records: UK officers, significant controllers and insolvency; Dutch available accounts; French financials and alerts"
+    ],
+    "limitations": [
+      "This is preliminary screening before full KYB/KYC, not a compliance certification or replacement for it. Pass means no red flags in the completed checks only.",
+      "Registration coverage is limited to the Netherlands, United Kingdom and France. Name searches can return multiple companies; identity must be resolved before a positive verdict.",
+      "OpenSanctions returns potential company matches. A name match, PEP association or high matching score alone is not a confirmed sanctions identity and must be reviewed.",
+      "Officers and controllers are retrieved only in Enhanced UK screening. They are not individually screened for sanctions, PEP status or director disqualification; ultimate beneficial ownership is not established.",
+      "Wallet/crypto screening, LEI and corporate parents, licensing, adverse media and standalone disqualified-director checks are not included in this workflow."
+    ],
+    "source_limitations": {
+      "companies-house": [
+        "Companies House officers and significant control are disclosed register records; they do not establish complete ultimate ownership. Check pagination, ceased roles and reporting dates."
+      ],
+      "sirenic": [
+        "French financial figures and alerts depend on source freshness and coverage. Missing records are not measured absence or proof of solvency."
+      ],
+      "kvk-dutch-business-register": [
+        "Enhanced Dutch accounts are the supported KVK XBRL subset, not every deposited account; missing accounts are not evidence of non-filing."
+      ],
+      "vies": [
+        "VIES name/address availability varies by country. VAT validity does not establish company ownership of that number unless available identity details match."
+      ],
+      "iban-check": [
+        "IBAN validity and bank details do not verify the account holder or the customer’s ownership of the account."
+      ],
+      "domain-intelligence": [
+        "Domain age or mail configuration alone cannot prove legitimacy or justify rejection."
+      ]
+    },
+    "output": "A preliminary Pass, Review or Reject verdict, a source-backed checklist, coverage gaps and the next action before full KYB.",
+    "answer_instructions": "Begin with exactly one preliminary verdict: Pass, Review or Reject, and explain its evidence. Pass only when the registered identity is resolved, the supplied company name matches, and every selected applicable check completed with sufficient evidence and no material red flags. Missing, failed, pending, stale, truncated, ambiguous or contradictory evidence in selected checks requires Review; a successful retrieval alone is never a pass. Review all possible sanctions/watchlist name matches and PEP flags unless the saved records independently establish identity. Reject only for a clearly evidenced material disqualifying finding such as a confirmed sanctions identity or a confirmed dissolved company, with the specific source evidence and matching identifiers; never reject on a name similarity, absent data, domain age or PEP status alone. Separate unselected optional checks from failed or incomplete selected checks. Report unperformed director/owner sanctions, PEP, disqualification, wallet and licensing checks explicitly, without implying clearance. For each finding retain saved evidence citations and source-record URLs when supplied; never invent links. Finish with a concrete next action and state this complements full KYB/KYC. The exact maximum price comes from the approved live source quote, never from the pilot proposal.",
+    "example": {
+      "name": "MONZO BANK LIMITED",
+      "country": "GB",
+      "screening_level": "Standard",
+      "registration": "09446231",
+      "domain": "monzo.com"
+    },
+    "steps": [
+      {
+        "label": "Find the registered company when no registration number is supplied",
+        "source": "kvk-dutch-business-register",
+        "capability": "company_registry.search",
+        "subject": "{name}",
+        "inputs": {
+          "company.name": "{name}"
+        },
+        "when": {
+          "country": "NL",
+          "registration": ""
+        }
+      },
+      {
+        "label": "Find the registered company when no registration number is supplied",
+        "source": "companies-house",
+        "capability": "company.uk-registry-search",
+        "subject": "{name}",
+        "inputs": {
+          "company.name": "{name}"
+        },
+        "when": {
+          "country": "GB",
+          "registration": ""
+        }
+      },
+      {
+        "label": "Find the registered company when no registration number is supplied",
+        "source": "sirenic",
+        "capability": "company.fr-registry-search",
+        "subject": "{name}",
+        "inputs": {
+          "company.name": "{name}"
+        },
+        "when": {
+          "country": "FR",
+          "registration": ""
+        }
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company_registry.kvknummer": "{registration}"
+        },
+        "when": {
+          "country": "NL"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.gb.companies_house": "{registration}"
+        },
+        "when": {
+          "country": "GB"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.registry-profile",
+        "subject": "{name}",
+        "inputs": {
+          "company.registration.fr.siren": "{registration}"
+        },
+        "when": {
+          "country": "FR"
+        },
+        "label": "Check registered company details"
+      },
+      {
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "subject": "{name}",
+        "inputs": {
+          "company.search.country_code": "{country}"
+        },
+        "when": {},
+        "label": "Screen the company for sanctions and watchlist candidates"
+      },
+      {
+        "source": "domain-intelligence",
+        "capability": "domain.registration",
+        "subject": "{domain}",
+        "inputs": {
+          "domain.name": "{domain}"
+        },
+        "when": {
+          "domain": "*"
+        },
+        "label": "Read website registration"
+      },
+      {
+        "source": "domain-intelligence",
+        "capability": "domain.mail-dns",
+        "subject": "{domain}",
+        "inputs": {
+          "domain.name": "{domain}"
+        },
+        "when": {
+          "domain": "*",
+          "screening_level": "Enhanced"
+        },
+        "label": "Check mail DNS"
+      },
+      {
+        "source": "vies",
+        "capability": "vat.eu.validate",
+        "subject": "VAT registration",
+        "inputs": {
+          "vat.eu.country_code": "{vat_country}",
+          "vat.eu.number": "{vat_number}"
+        },
+        "when": {
+          "vat_number": "*"
+        },
+        "label": "Validate VAT details"
+      },
+      {
+        "label": "Validate the IBAN and available bank details",
+        "source": "iban-check",
+        "capability": "iban.validate",
+        "subject": "Bank account",
+        "inputs": {
+          "bank.iban": "{iban}"
+        },
+        "when": {
+          "iban": "*"
+        }
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.officers",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB",
+          "screening_level": "Enhanced"
+        },
+        "label": "Read current and former officers"
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.significant-control",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB",
+          "screening_level": "Enhanced"
+        },
+        "label": "Read significant controllers"
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.financial-statements",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "NL",
+          "screening_level": "Enhanced"
+        },
+        "label": "Read available financial statements"
+      },
+      {
+        "source": "",
+        "capability": "company.sirenic-eu-entreprise-gb-company-number-insolvabilite",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "GB",
+          "screening_level": "Enhanced"
+        },
+        "label": "Check insolvency records"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.fr-financials",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR",
+          "screening_level": "Enhanced"
+        },
+        "label": "Read available financial figures"
+      },
+      {
+        "source": "sirenic",
+        "capability": "company.sirenic-entreprise-siren-alertes",
+        "subject": "{name}",
+        "inputs": {},
+        "when": {
+          "country": "FR",
+          "screening_level": "Enhanced"
+        },
+        "label": "Check company alerts"
+      }
+    ],
+    "country_coverage": [
+      {
+        "country": "NL",
+        "identity": "KVK registered profile; name search when no registration is supplied.",
+        "screening": "Company OpenSanctions candidates; possible matches require review. Individuals are not screened.",
+        "filings": "Enhanced: supported KVK XBRL accounts only.",
+        "procurement": "",
+        "example": {
+          "name": "Mollie B.V.",
+          "registration": "30204462",
+          "screening_level": "Standard",
+          "domain": null
+        }
+      },
+      {
+        "country": "GB",
+        "identity": "Companies House registered profile; name search when no registration is supplied.",
+        "screening": "Company OpenSanctions candidates; possible matches require review. Individuals are not screened.",
+        "filings": "Enhanced: Companies House officers and significant controllers, plus available insolvency records via Sirenic.",
+        "procurement": "",
+        "example": {
+          "name": "MONZO BANK LIMITED",
+          "registration": "09446231",
+          "screening_level": "Standard",
+          "domain": null
+        }
+      },
+      {
+        "country": "FR",
+        "identity": "French registered profile via Sirenic; name search when no registration is supplied.",
+        "screening": "Company OpenSanctions candidates; possible matches require review. Individuals are not screened.",
+        "filings": "Enhanced: available financial figures and registry alerts via Sirenic.",
+        "procurement": "",
+        "example": {
+          "name": "DANONE",
+          "registration": "552032534",
+          "screening_level": "Standard",
+          "domain": null
+        }
+      }
+    ]
+  },
+  {
     "slug": "prospect-shortlist",
     "name": "Find my next customers",
     "description": "Find and rank companies that match your ideal customer.",

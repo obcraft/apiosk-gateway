@@ -8,7 +8,7 @@ import socket
 import subprocess
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--suite', choices=['durable_flow', 'research_report_flow'], default='durable_flow')
+parser.add_argument('--suite', choices=['durable_flow', 'research_report_flow', 'company_name_website_flow'], default='durable_flow')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 with socket.socket() as sock:

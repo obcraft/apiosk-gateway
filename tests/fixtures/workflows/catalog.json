@@ -8750,6 +8750,152 @@
         "identifies": null,
         "max_fan_out": 1
       }
+    },
+    {
+      "id": "9d88c9ff-537b-5b3e-b7a5-c3684b884808",
+      "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+      "api_slug": "companies-house",
+      "name": "Companies House \u2014 UK Company Register",
+      "source_url": "https://developer.company-information.service.gov.uk",
+      "method": "GET",
+      "path": "/search/companies",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "items_per_page": 10
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "items": [
+          {
+            "kind": "searchresults#company",
+            "company_status": "active",
+            "company_number": "00445790",
+            "title": "TESCO PLC",
+            "description": "00445790 - Incorporated on 27 November 1947",
+            "links": {
+              "self": "/company/00445790"
+            }
+          },
+          {
+            "kind": "searchresults#company",
+            "company_status": "active",
+            "company_number": "09384423",
+            "title": "KFORD TYRES (GORNAL) LTD",
+            "description": "09384423 - Incorporated on 12 January 2015",
+            "links": {
+              "self": "/company/09384423"
+            }
+          }
+        ],
+        "kind": "search#companies",
+        "page_number": 1,
+        "items_per_page": 2,
+        "total_results": 356,
+        "start_index": 0
+      },
+      "jurisdiction": "GB",
+      "contract": {
+        "capability_slug": "company.uk-registry-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "q",
+            "in": "query"
+          }
+        },
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.title"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "cardinality": "many",
+        "identifies": "company.registration.gb.companies_house",
+        "max_fan_out": 1
+      },
+      "activation_status": "active",
+      "evidence": "Live Companies House capture on 2026-09-08; unnecessary personal fields omitted from fixture"
+    },
+    {
+      "id": "6c31699d-3cae-580d-a18c-c11b3addd0c3",
+      "endpoint_id": "ae26f7f0-75fc-4d1b-b112-4ddb25c6e041",
+      "api_slug": "sirenic",
+      "name": "Sirenic",
+      "source_url": "https://api.sirenic.eu/openapi.json",
+      "method": "GET",
+      "path": "/v1/recherche",
+      "listing_type": "federated",
+      "list_atomic": 2000,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "jurisdiction": "FR",
+      "sample_payload": {
+        "total_results": 10,
+        "resultats": [
+          {
+            "siren": "552032534",
+            "denomination": "DANONE",
+            "statut_diffusion": "totale",
+            "etat_administratif": "actif",
+            "activite_principale": "70.10Z",
+            "commune_siege": "PARIS",
+            "code_postal_siege": "75009",
+            "score_confiance": 1
+          }
+        ],
+        "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0",
+        "disclaimer": "Donn\u00e9es issues de l'open data, fournies en l'\u00e9tat sans garantie. / Open data, provided as is without warranty.",
+        "etages_abandonnes": [],
+        "data_freshness": "stock Sirene mensuel (2026-08-01), dirigeants temps r\u00e9el"
+      },
+      "contract": {
+        "capability_slug": "company.fr-registry-search",
+        "version": 1,
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "name": "q",
+            "in": "query"
+          }
+        },
+        "output_map": {
+          "base": "$.resultats[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.denomination"
+            },
+            "company.registration.fr.siren": {
+              "path": "$.siren"
+            }
+          }
+        },
+        "cardinality": "many",
+        "identifies": "company.registration.fr.siren",
+        "max_fan_out": 1
+      }
     }
   ],
   "vocabulary": [

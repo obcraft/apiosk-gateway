@@ -30,6 +30,7 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
+    bazaar_resources: Mutex<Vec<Value>>,
     ask_v2_requests: Mutex<Vec<Value>>,
     /// Requests to the conversation-reply model (OpenRouter in production).
     replies: Mutex<Vec<Value>>,
@@ -235,7 +236,7 @@ impl Intake {
             .route("/conversation-reply", post(conversation_reply_model))
             .route("/bazaar", get(|State(model): State<Arc<Model>>| async move {
                 model.stages.lock().unwrap().push("bazaar");
-                Json(json!({"resources":[]}))
+                Json(json!({"resources":model.bazaar_resources.lock().unwrap().clone()}))
             }))
             .route("/auth/v1/user", get(user))
             .with_state(model.clone())
@@ -436,6 +437,94 @@ async fn researched_plan_refuses_undeclared_fields_without_a_quote_or_charge_and
     assert!(read["proposal"].is_null());
     assert_eq!(intake.model.chats().len(),1,"recovery neither replans nor rewrites the factual refusal");
     assert_no_purchase(&intake,&person,task).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_research_keeps_signed_bazaar_matches_in_the_plan_and_saved_task() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let listing = Uuid::new_v4();
+    let api = Uuid::new_v4();
+    sqlx::query("INSERT INTO apis(id,slug,name,status,active,is_verified,discoverable,description) VALUES($1,$2,'Registered accounts service','active',true,true,true,'Company annual accounts')")
+        .bind(api).bind(format!("accounts-discovery-{api}")).execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO api_endpoints(id,api_id,method,path,price,active,description) VALUES($1,$2,'GET','/accounts',0.01,true,'Company financial statements and annual accounts by registered company identifier.')")
+        .bind(listing).bind(api).execute(&intake.pool).await.unwrap();
+    intake.model.bazaar_resources.lock().unwrap().push(json!({
+        "type":"http","resource":"https://example.test/annual-accounts","serviceName":"Additional annual accounts",
+        "description":"Company financial statements and annual accounts by registered company identifier."
+    }));
+    let question = "Jaarrekening van Coolblue";
+    let parsed = apiosk_gateway_v2::capability_intake::normalize(&ask_v2_capabilities().to_string(), question, "displayed-fixture").unwrap();
+    let (_, local) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    let registered = local["matches"][0]["apiosk"].as_array().unwrap().iter()
+        .find(|candidate| candidate["endpoint_id"] == listing.to_string()).expect("an endpoint without a contract must be discoverable");
+    assert_eq!(registered["availability"], "discovery_only");
+    assert!(registered["capability"].is_null());
+    let (status, external) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({"origin":"coinbase","parsed_request":parsed}))).await;
+    assert_eq!(status, StatusCode::OK, "{external}");
+    assert_eq!(external["matches"][0]["coinbase"].as_array().unwrap().len(), 1);
+    assert!(external["discovery_id"].is_string());
+    assert!(external["search_id"].is_null());
+    let body = json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,
+        "search_id":local["search_id"],"discovery_id":external["discovery_id"]});
+    let mut swapped = body.clone();
+    swapped["discovery_id"] = local["search_id"].clone();
+    assert_eq!(intake.send(&person.bearer, "/v2/ask-v2/research", Some(swapped)).await.0, StatusCode::CONFLICT);
+    let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/research", Some(body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{response}");
+    let task: Uuid = response["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let document: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    let candidates: Vec<apiosk_gateway_v2::capability_intake::Candidate> = serde_json::from_value(external["matches"][0]["coinbase"].clone()).unwrap();
+    assert_eq!(document["capability_intake"]["matches"][0]["coinbase"], json!(candidates));
+    assert_eq!(document["capability_intake"]["matches"][0]["coinbase_status"], "complete");
+    assert!(intake.model.chats()[0]["source_matches"][0]["additional_coinbase_results"].is_array());
+    let local_candidates: Vec<apiosk_gateway_v2::capability_intake::Candidate> = serde_json::from_value(local["matches"][0]["apiosk"].clone()).unwrap();
+    assert_eq!(document["capability_intake"]["matches"][0]["apiosk"], json!(local_candidates));
+    assert_eq!(intake.model.chats()[0]["source_matches"][0]["apiosk_results"], json!(local_candidates));
+    assert_eq!(intake.send(&person.bearer, "/v2/ask-v2/research", Some(body)).await.1, response);
+    assert!(intake.edge.calls.lock().unwrap().is_empty(), "discovery and planning never execute providers");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_research_discovery_finds_real_pulse_listings_without_contracts() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let sources: Vec<apiosk_gateway_v2::catalog::KnownSource> = serde_json::from_str(include_str!("fixtures/pulse-sentiment-discovery.json")).unwrap();
+    let provider = Uuid::new_v4();
+    sqlx::query("INSERT INTO provider_profiles(id,username) VALUES($1,'pulsenetwork')")
+        .bind(provider).execute(&intake.pool).await.unwrap();
+    for source in sources {
+        let api = Uuid::new_v4();
+        sqlx::query("INSERT INTO apis(id,owner_id,slug,name,status,active,is_verified,discoverable,description) VALUES($1,$2,$3,$4,'active',true,true,true,$5)")
+            .bind(api).bind(provider).bind(source.slug).bind(source.name).bind(source.metadata.description).execute(&intake.pool).await.unwrap();
+        for endpoint in source.metadata.endpoints {
+            sqlx::query("INSERT INTO api_endpoints(id,api_id,method,path,price,active,description) VALUES($1,$2,$3,$4,0.05,true,$5)")
+                .bind(endpoint.endpoint_id).bind(api).bind(endpoint.method).bind(endpoint.path).bind(endpoint.description).execute(&intake.pool).await.unwrap();
+        }
+    }
+    let question = "i need a sentiment analysis about the crypto token Cardano";
+    let raw = json!({"language":"en","subjects":[{"id":"s1","label":"Cardano","type":"cryptocurrency_token","identifiers":{}}],
+        "capabilities":[{"slug":"research.sentiment.analysis","name":"Sentiment analysis","description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token.","domain":"research","inputs":["token_name","source_type"],"outputs":["sentiment_score","positive_mentions","negative_mentions","neutral_mentions","dominant_sentiment"],"subject_id":"s1","source_hint":null,"confidence":0.85}],
+        "deliverable":{"format":"chat","operations":[]}});
+    let parsed = apiosk_gateway_v2::capability_intake::normalize(&raw.to_string(), question, "displayed-fixture").unwrap();
+    let (status, found) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    let candidates = found["matches"][0]["apiosk"].as_array().unwrap();
+    assert_eq!(candidates.iter().filter_map(|candidate| candidate["endpoint_id"].as_str()).collect::<std::collections::BTreeSet<_>>(),
+        std::collections::BTreeSet::from(["88994768-2735-4a99-9450-143a441f8ae1", "10113620-3e13-4378-a615-31e939fd8b97", "285e4ede-4a71-4527-b3c7-9c0de9ee1033"]), "{found}");
+    assert!(candidates.iter().all(|candidate| candidate["availability"] == "discovery_only" && candidate["capability"].is_null()));
+    let (status, response) = intake.send(&person.bearer, "/v2/ask-v2/research", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,"search_id":found["search_id"]}))).await;
+    assert_eq!(status, StatusCode::OK, "{response}");
+    assert!(response["proposal"].is_null());
+    let task: Uuid = response["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let document: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert!(document["conversation"].as_array().unwrap().last().unwrap()["reply"].as_str().unwrap().contains("Source endpoints were found"));
+    let saved_candidates: Vec<apiosk_gateway_v2::capability_intake::Candidate> = serde_json::from_value(json!(candidates)).unwrap();
+    assert_eq!(document["capability_intake"]["matches"][0]["apiosk"], json!(saved_candidates));
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

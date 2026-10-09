@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+const sql=await readFile(new URL('../supabase/migrations/20261008112818_admin_apimarket_credentials.sql',import.meta.url),'utf8');
+const db=new PGlite();
+try {
+  await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE SCHEMA auth; CREATE SCHEMA vault;
+  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('test.uid',true),'')::uuid $$;
+  CREATE FUNCTION public.is_active_platform_admin() RETURNS boolean LANGUAGE sql AS $$ SELECT coalesce(current_setting('test.admin',true),'false')='true' $$;
+  CREATE TABLE vault.secrets(id uuid DEFAULT gen_random_uuid(), name text UNIQUE, secret text, updated_at timestamptz DEFAULT now());
+  CREATE FUNCTION vault.create_secret(new_secret text,new_name text,new_description text) RETURNS uuid LANGUAGE sql AS $$ INSERT INTO vault.secrets(name,secret) VALUES(new_name,new_secret) RETURNING id $$;
+  CREATE FUNCTION vault.update_secret(secret_id uuid,new_secret text) RETURNS void LANGUAGE sql AS $$ UPDATE vault.secrets SET secret=new_secret,updated_at=now() WHERE id=secret_id $$;`);
+  await db.exec(sql);
+  await db.exec('SET ROLE anon');
+  await assert.rejects(db.query('SELECT public.admin_apimarket_key_status()'),/permission denied/);
+  await assert.rejects(db.query("SELECT public.admin_save_apimarket_key('dummy-test-key')"),/permission denied/);
+  await db.exec("RESET ROLE; SET test.uid='11111111-1111-1111-1111-111111111111'; SET ROLE authenticated");
+  await assert.rejects(db.query('SELECT public.admin_apimarket_key_status()'),/not_authorized/);
+  await assert.rejects(db.query("SELECT public.admin_save_apimarket_key('dummy-test-key')"),/not_authorized/);
+  await db.exec("SET test.admin='true'");
+  const status=async()=> (await db.query('SELECT public.admin_apimarket_key_status() AS status')).rows[0].status;
+  assert.equal((await status()).configured,false);
+  for (const key of ['',null,'short','with spaces','line\nbreak']) await assert.rejects(db.query('SELECT public.admin_save_apimarket_key($1)',[key]),/valid API.market key/);
+  const saved=(await db.query('SELECT public.admin_save_apimarket_key($1) AS status',['dummy-first-key'])).rows[0].status;
+  assert.deepEqual(Object.keys(saved).sort(),['configured','updated_at']); assert.equal(saved.configured,true);
+  await assert.rejects(db.query('SELECT secret FROM vault.secrets'),/permission denied/);
+  await db.query('SELECT public.admin_save_apimarket_key($1)',['dummy-replacement-key']);
+  assert.equal((await status()).configured,true);
+  await db.exec("SET test.admin='false'");
+  await assert.rejects(db.query('SELECT public.admin_save_apimarket_key($1)',['dummy-overwrite-key']),/not_authorized/);
+  await db.exec('RESET ROLE');
+  const rows=(await db.query('SELECT secret FROM vault.secrets')).rows;
+  assert.deepEqual(rows,[{secret:'dummy-replacement-key'}]);
+  console.log('PASS: anonymous/non-admin denied, admin save/replace, invalid values rejected, no credential read grants or returned secret');
+} finally { await db.close(); }

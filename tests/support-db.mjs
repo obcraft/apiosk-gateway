@@ -106,16 +106,41 @@ await db.exec(await fs.readFile(new URL('../supabase/migrations/20260915160000_w
 // isolated runtime fixture deliberately does not load.
 const migrations=new URL('../supabase/migrations/',import.meta.url);
 for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')
-  // The Coinbase Bazaar import asserts the full production catalogue; its own
-  // PGlite check is scripts/test-bazaar-source-migration.mjs.
-  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check)\.sql$/.test(name)
+  // Coinbase Bazaar import/review migrations need its production provider
+  // schema; scripts/test-bazaar-source-migration.mjs covers them together.
+  &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
+  // The API.market metadata import has its own full provider-identity fixture.
+  &&!name.endsWith('_onboard_apimarket_business_sources.sql')
+  &&!name.endsWith('_admin_apimarket_credentials.sql')
+  &&!name.endsWith('_show_only_crunchbase_apimarket.sql')
+  &&!name.endsWith('_register_crunchbase_endpoints.sql')
+  &&!name.endsWith('_price_crunchbase_calls.sql')
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
-  &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge)\.sql$/.test(name)
+  &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge|typed_domain_dns_records)\.sql$/.test(name)
+  // Bright Data owns a private provider cache and is covered by its dedicated
+  // migration/admission tests; its grants depend on the omitted onboarding.
+  // Operator publication additionally requires production probe records.
+  &&!/_((onboard_brightdata_linkedin)|(brightdata_v2_admission_access)|(activate_brightdata_linkedin))\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
   &&!name.endsWith('_recurring_orders.sql')&&!name.endsWith('_locked_recurring_workflows.sql')&&!name.endsWith('_recurring_self_email.sql')).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
+}
+// Production uses providers/catalog/actions schemas. Keep the legacy fixture
+// writers intact while exercising the same qualified runtime SELECTs and grants.
+await db.exec('CREATE SCHEMA IF NOT EXISTS providers; CREATE SCHEMA IF NOT EXISTS actions; GRANT USAGE ON SCHEMA providers,actions TO gateway_v2_runtime;');
+for (const [target, source] of [
+ ['providers.apis','public.apis'], ['providers.api_endpoints','public.api_endpoints'],
+ ['providers.provider_profiles','public.provider_profiles'], ['catalog.fact_types','public.fact_types'],
+ ['catalog.capabilities','public.capabilities'], ['catalog.capability_execution_contracts','public.capability_execution_contracts'],
+ ['actions.executions','gateway_v2.executions'], ['actions.user_selected_apis','public.user_selected_apis'],
+]) {
+ // A SELECT * view would require access to private fixture columns (e.g.
+ // provider credentials) even when the outer query does not select them.
+ const {rows}=await db.query("SELECT attname FROM pg_attribute WHERE attrelid=$1::regclass AND attnum>0 AND NOT attisdropped AND has_column_privilege('gateway_v2_runtime',$1,attname,'SELECT') ORDER BY attnum",[source]);
+ const columns=rows.map(row=>'"'+row.attname.replaceAll('"','""')+'"').join(',');
+ await db.exec(`CREATE VIEW ${target} WITH (security_invoker=true) AS SELECT ${columns} FROM ${source}; GRANT SELECT ON ${target} TO gateway_v2_runtime;`);
 }
 server.listen(port,'127.0.0.1',()=>console.log(`Test PostgreSQL on 127.0.0.1:${port} (one connection)`));
 process.on('SIGTERM',()=>{server.close();db.close().finally(()=>process.exit(0));});

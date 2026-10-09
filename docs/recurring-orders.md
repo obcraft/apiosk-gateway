@@ -267,7 +267,7 @@ does not modify that fixture or its analysis implementation.
 1. Review the mirrored migrations in App/Gateway:
    20260930091005_recurring_orders.sql and
    20261009110915_locked_recurring_workflows.sql, plus the narrow verified-email
-   helper 20261009142120_recurring_self_email.sql. Apply each once to the shared
+   helper 20261009142403_recurring_self_email.sql. Apply each once to the shared
    database. Verify actual roles, RLS, grants, and existing ledger behavior.
    Existing active/paused legacy orders become attention, preserving financial
    holds. They need a new reviewed recipe rather than blind legacy replay.

@@ -13,6 +13,7 @@ pub struct Metadata {
     pub category: String,
     pub tags: Vec<String>,
     pub capability_descriptions: Value,
+    pub endpoints: Vec<crate::catalog::ListedEndpoint>,
     pub identity_documented: bool,
     pub endpoint_count: usize,
     pub described: usize,

@@ -352,72 +352,105 @@ impl Executor {
         );
         let payload_hash = digest(&(task_id, action_id, &step.service, step.entity_ref, inputs));
         let reserve = telemetry::span(Phase::DispatchReserve).task(task_id);
-        let mut tx = self.store.pool.begin().await?;
-        let task=sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE").bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
-        if let Some(row)=sqlx::query("SELECT id,payload_hash,status,response FROM executions WHERE owner_id=$1 AND (action_id=$2 OR id=$3)").bind(p.owner).bind(action_id).bind(idempotency).fetch_optional(&mut *tx).await? {
-            anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
-            reserve.tag("result", "receipt_replayed").finish(Outcome::Ok);
-            let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
-        }
-        anyhow::ensure!(task.get::<Value, _>("document")["workspace_id"] == json!(p.workspace), "task belongs to another workspace");
-        let queued = task.get::<Value, _>("document")["pending_dispatches"].as_array()
-            .is_some_and(|calls| calls.iter().any(|call| call["action_id"] == json!(action_id) && call["inputs"] == *inputs));
-        // A completed sibling can advance the revision while this bounded,
-        // already-saved wave is reserving its other independent calls.
-        anyhow::ensure!(task.get::<i64, _>("revision") == revision || queued, "state_conflict");
-        anyhow::ensure!(
-            !task.get::<Value, _>("document")["cancelled"]
-                .as_bool()
-                .unwrap_or(false),
-            "task cancelled"
-        );
-        let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions WHERE task_id=$1 AND status IN ('dispatching','unresolved') AND authorization_id<>$2)").bind(task_id).bind(authorization).fetch_one(&mut *tx).await?;
-        anyhow::ensure!(!concurrent, "another approved execution is pending reconciliation");
-        // Parallel reservations serialize on the task and authorization rows.
-        // Each reservation is included in allocated before the next is admitted.
-        let auth=sqlx::query("SELECT cap_atomic,plan_hash,quote_ref FROM authorizations WHERE id=$1 AND task_id=$2 AND owner_id=$3 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE").bind(authorization).bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
-        anyhow::ensure!(
-            auth.get::<String, _>("plan_hash") == plan.hash
-                && auth.get::<Uuid, _>("quote_ref") == plan.quote_ref
-                && plan.expires_at > Utc::now(),
-            "authorization does not match quote"
-        );
-        let allocated:i64=sqlx::query_scalar("SELECT coalesce(sum(coalesce(actual_atomic,reserved_atomic)),0)::bigint FROM executions WHERE authorization_id=$1 AND status!='failed'").bind(authorization).fetch_one(&mut *tx).await?;
-        anyhow::ensure!(
-            allocated
-                .checked_add(plan.step_total(step))
-                .is_some_and(|total| total <= auth.get::<i64, _>("cap_atomic")),
-            "budget exhausted"
-        );
-        // Validate the whole remaining primary chain before reserving even its
-        // first lookup. A valid search is worthless if its quoted report has
-        // already been withdrawn or repriced. Do this inside the reservation
-        // transaction, after receipt replay, so saved purchases remain readable
-        // and resumed queued actions cannot bypass the same check.
-        let saved: Task = serde_json::from_value(task.get("document"))?;
-        if saved.failed_steps.values().any(|failure| failure["code"] == "quote_changed") {
-            reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
-            return Ok(Dispatch::Failed { body: json!({
-                "ok":false,"error":"quote_changed","charged_micro_usd":0
-            }) });
-        }
-        let remaining: Vec<_> = plan.steps.iter().filter(|candidate| {
-            !saved.step_finished(&candidate.key())
-                && (candidate.browser_fallback.is_none()
-                    || crate::browser_fallback::ready(&saved, candidate))
-        }).collect();
-        let service_ids: Vec<_> = remaining.iter().map(|candidate| candidate.service.id).collect();
-        let snapshot: Value = sqlx::query_scalar(&crate::catalog::execution_catalog_sql())
-            .bind(&service_ids).fetch_one(&mut *tx).await?;
-        let catalog = crate::catalog::Catalog::build(serde_json::from_value(snapshot)?);
-        if remaining.iter().any(|candidate| !catalog.services.iter().any(|current|
-            current.id == candidate.service.id
-                && current.version_hash() == candidate.service.version_hash())) {
-            reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
-            return Ok(Dispatch::Failed { body: json!({
-                "ok":false,"error":"quote_changed","charged_micro_usd":0
-            }) });
-        }
+        let mut brightdata_ready = false;
+        // Bright Data may perform a bounded network request before the result
+        // is ready to buy. Re-run admission after that request so no task or
+        // authorization lock spans HTTP, and a cancellation/reprice/revocation
+        // during collection cannot turn into a buyer reservation.
+        let mut tx = loop {
+            let mut tx = self.store.pool.begin().await?;
+            let task=sqlx::query("SELECT revision,document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE").bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+            if let Some(row)=sqlx::query("SELECT id,payload_hash,status,response FROM executions WHERE owner_id=$1 AND (action_id=$2 OR id=$3)").bind(p.owner).bind(action_id).bind(idempotency).fetch_optional(&mut *tx).await? {
+                anyhow::ensure!(row.get::<String,_>("payload_hash")==payload_hash,"idempotency conflict");
+                reserve.tag("result", "receipt_replayed").finish(Outcome::Ok);
+                let id=row.get("id");return Ok(match row.get::<String,_>("status").as_str(){"succeeded"=>Dispatch::Done{execution_id:id,body:row.get("response")},"failed"=>Dispatch::Failed{body:row.get::<Option<Value>,_>("response").unwrap_or(json!({"error":"refunded"}))},_=>Dispatch::Pending{execution_id:id}})
+            }
+            anyhow::ensure!(task.get::<Value, _>("document")["workspace_id"] == json!(p.workspace), "task belongs to another workspace");
+            let queued = task.get::<Value, _>("document")["pending_dispatches"].as_array()
+                .is_some_and(|calls| calls.iter().any(|call| call["action_id"] == json!(action_id) && call["inputs"] == *inputs));
+            // A completed sibling can advance the revision while this bounded,
+            // already-saved wave is reserving its other independent calls.
+            anyhow::ensure!(task.get::<i64, _>("revision") == revision || queued, "state_conflict");
+            anyhow::ensure!(
+                !task.get::<Value, _>("document")["cancelled"]
+                    .as_bool()
+                    .unwrap_or(false),
+                "task cancelled"
+            );
+            let concurrent:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions WHERE task_id=$1 AND status IN ('dispatching','unresolved') AND authorization_id<>$2)").bind(task_id).bind(authorization).fetch_one(&mut *tx).await?;
+            anyhow::ensure!(!concurrent, "another approved execution is pending reconciliation");
+            // Parallel reservations serialize on the task and authorization rows.
+            // Each reservation is included in allocated before the next is admitted.
+            let auth=sqlx::query("SELECT cap_atomic,plan_hash,quote_ref FROM authorizations WHERE id=$1 AND task_id=$2 AND owner_id=$3 AND revoked_at IS NULL AND expires_at>now() FOR UPDATE").bind(authorization).bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+            anyhow::ensure!(
+                auth.get::<String, _>("plan_hash") == plan.hash
+                    && auth.get::<Uuid, _>("quote_ref") == plan.quote_ref
+                    && plan.expires_at > Utc::now(),
+                "authorization does not match quote"
+            );
+            let allocated:i64=sqlx::query_scalar("SELECT coalesce(sum(coalesce(actual_atomic,reserved_atomic)),0)::bigint FROM executions WHERE authorization_id=$1 AND status!='failed'").bind(authorization).fetch_one(&mut *tx).await?;
+            anyhow::ensure!(
+                allocated
+                    .checked_add(plan.step_total(step))
+                    .is_some_and(|total| total <= auth.get::<i64, _>("cap_atomic")),
+                "budget exhausted"
+            );
+            // Validate the whole remaining primary chain before reserving even its
+            // first lookup. A valid search is worthless if its quoted report has
+            // already been withdrawn or repriced. Do this inside the reservation
+            // transaction, after receipt replay, so saved purchases remain readable
+            // and resumed queued actions cannot bypass the same check.
+            let saved: Task = serde_json::from_value(task.get("document"))?;
+            if saved.failed_steps.values().any(|failure| failure["code"] == "quote_changed") {
+                reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
+                return Ok(Dispatch::Failed { body: json!({
+                    "ok":false,"error":"quote_changed","charged_micro_usd":0
+                }) });
+            }
+            let remaining: Vec<_> = plan.steps.iter().filter(|candidate| {
+                !saved.step_finished(&candidate.key())
+                    && (candidate.browser_fallback.is_none()
+                        || crate::browser_fallback::ready(&saved, candidate))
+            }).collect();
+            let service_ids: Vec<_> = remaining.iter().map(|candidate| candidate.service.id).collect();
+            let snapshot: Value = sqlx::query_scalar(&crate::catalog::execution_catalog_sql())
+                .bind(&service_ids).fetch_one(&mut *tx).await?;
+            let catalog = crate::catalog::Catalog::build(serde_json::from_value(snapshot)?);
+            if remaining.iter().any(|candidate| !catalog.services.iter().any(|current|
+                current.id == candidate.service.id
+                    && current.version_hash() == candidate.service.version_hash())) {
+                reserve.finish(Outcome::Failed(ErrorClass::QuoteChanged));
+                return Ok(Dispatch::Failed { body: json!({
+                    "ok":false,"error":"quote_changed","charged_micro_usd":0
+                }) });
+            }
+            if step.service.api_slug == brightdata_linkedin::SOURCE && !brightdata_ready {
+                tx.commit().await?;
+                let body = serde_json::to_vec(inputs)?;
+                match brightdata_linkedin::answer(
+                    &self.store.pool, &step.service.method, &step.service.path, None, &body,
+                ).await {
+                    Ok(_) => {
+                        brightdata_ready = true;
+                        continue;
+                    }
+                    Err(error) if error.code == "brightdata_pending" => {
+                        reserve.tag("result", "provider_queue").finish(Outcome::Ok);
+                        return Ok(Dispatch::Waiting {
+                            until: Utc::now() + chrono::Duration::seconds(10),
+                        });
+                    }
+                    Err(error) => {
+                        reserve.finish(Outcome::Failed(ErrorClass::Unsupported));
+                        return Ok(Dispatch::Failed {
+                            body: json!({"ok":false,"error":error.code,"charged_micro_usd":0,
+                                "message":error.message}),
+                        });
+                    }
+                }
+            }
+            break tx;
+        };
         let selection = Uuid::new_v4();
         if step.service.api_slug == kvk_accounts::PROVIDER
             && step.service.path == kvk_accounts::ENDPOINT

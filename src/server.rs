@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 pub(crate) mod ask_v2;
 mod ask_v2_external;
+mod ask_v2_guest;
 mod integrations;
 mod link_preview;
 mod recurring;
@@ -86,6 +87,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/link-preview", post(link_preview::preview).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/chat", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
+        .route("/v2/ask-v2/guest/preview", post(ask_v2_guest::preview).layer(DefaultBodyLimit::max(128 * 1024)))
+        .route("/v2/ask-v2/guest/approve", post(ask_v2_guest::approve).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/reply", post(ask_v2::reply).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/endpoints/:id", get(ask_v2::endpoint))
@@ -100,6 +103,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/capabilities/resolve", post(crate::public_api::resolve_capability))
         .route("/v2/capabilities/plan", post(crate::public_api::plan_capability))
         .route("/v2/sources/:source_id/endpoints", get(source_endpoints))
+        .route("/v2/sources/:source_id/services", get(source_services))
         .route("/v1/source-readiness", get(source_readiness))
         .route("/v2/follow-up", post(followup))
         .route("/v2/execute", post(execute))
@@ -354,6 +358,32 @@ async fn sources(
             "catalog_unavailable",
             "Sources are temporarily unavailable. Try again shortly.",
         ),
+    }
+}
+async fn source_services(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(source_id): Path<String>,
+    Query(query): Query<crate::sources::ServiceQuery>,
+) -> HttpResponse {
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly.");
+    };
+    match authenticated(&state, &headers).await {
+        Ok(ctx) if !ctx.allows("sources:read") => return crate::public_api::insufficient_scope("sources:read"),
+        Ok(_) => {}
+        Err(refusal) if is_api_key(&headers) => return crate::public_api::refused(refusal),
+        Err(refusal) => return failure(refusal.status, refusal.code, refusal.message),
+    }
+    if !query.valid() || source_id.len() > 100 || !source_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+        return failure(StatusCode::BAD_REQUEST, "invalid_query", "Use a grouped source slug, up to 200 characters per filter, a limit from 1 to 50, and recommended, name-asc or name-desc sorting.");
+    }
+    match tokio::try_join!(state.engine.catalog.sources(), state.engine.catalog.get()) {
+        Ok((sources, catalog)) => match crate::sources::service_page(&sources, &catalog, &source_id, &query) {
+            Some(page) => Json(page).into_response(),
+            None => failure(StatusCode::NOT_FOUND, "source_not_found", "No visible grouped source has this id."),
+        },
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Source services are temporarily unavailable."),
     }
 }
 async fn source_endpoints(

@@ -389,7 +389,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
     .await
     .unwrap();
     sqlx::raw_sql(include_str!(
-        "../supabase/migrations/20261009142120_recurring_self_email.sql"
+        "../supabase/migrations/20261009142403_recurring_self_email.sql"
     ))
     .execute(&pool)
     .await

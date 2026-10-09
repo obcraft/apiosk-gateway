@@ -8,12 +8,13 @@ use catalog_core::facts::contract::Cardinality;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Workflows that assemble several checks about one organisation.
-const DOSSIER_WORKFLOWS: [&str; 6] = [
+const DOSSIER_WORKFLOWS: [&str; 7] = [
     "european-company-dossier",
     "tender-company-dossier",
     "company-ownership",
     "company-health",
     "customer-onboarding",
+    "pre-kyb-screening",
     crate::workflows::SUPPLIER_CHECK,
 ];
 /// Words in a capability or a required input that mark a list of matches

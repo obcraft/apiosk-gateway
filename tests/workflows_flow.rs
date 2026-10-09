@@ -88,18 +88,38 @@ async fn model(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Valu
         let ready = input["fields"].as_array().unwrap().iter().all(|f| f["required"] != true || values.get(f["key"].as_str().unwrap()).is_some_and(|v| !v.is_null() && v.as_str() != Some("")));
         return Json(json!({"choices":[{"message":{"content":json!({"message":if ready {"I'll prepare the price for approval."} else {"Which details should I use?"},"input":patch,"ready":ready}).to_string()}}]}));
     }
-    assert_eq!(body["response_format"]["type"], "json_object");
+    assert!(["json_object", "json_schema"].contains(&body["response_format"]["type"].as_str().unwrap()));
     assert!(body["messages"][0]["content"].as_str().unwrap().contains("twenty-four observations"));
     assert!(
         input.get("answer_operations").is_some(),
         "Named workflows never ask the model to invent their source plan"
     );
-    let observations:Vec<_>=input["sources"].as_array().unwrap().iter().take(8).filter_map(|source|{
-  let pointer=scalar(&source["document"]["data"],"/data".into())?;
-  Some(json!({"text":"The source reports {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":pointer}]}))
+    let pre_kyb = input["answer_operations"].to_string().contains("Begin with exactly one preliminary verdict");
+    if pre_kyb {
+        let instructions = input["answer_operations"].to_string();
+        assert!(instructions.contains("requires Review") && instructions.contains("Reject only"));
+        assert!(instructions.contains("not individually screened") && instructions.contains("complements full KYB/KYC"));
+    }
+    let mut cited_subjects = Vec::new();
+    let observations:Vec<_>=input["sources"].as_array().unwrap().iter().take(24).filter_map(|source|{
+  let evidence = if body["response_format"]["type"] == "json_schema" {
+      let id = source["records"].as_array()?.iter().flat_map(|r| r["fields"].as_array().into_iter().flatten()).find_map(|field| field["id"].as_str())?;
+      json!({"fact_id":id})
+  } else {
+      let pointer=scalar(&source["document"]["data"],"/data".into())?;
+      json!({"result_ref":source["result_ref"],"pointer":pointer})
+  };
+  cited_subjects.push(if body["response_format"]["type"] == "json_schema" { source["subject"]["entity_ref"].clone() } else { source["document"]["subject"]["entity_ref"].clone() });
+  Some(json!({"text":if pre_kyb {"Review. The source reports {{a}}; confirm the applicant identity before full KYB."} else {"The source reports {{a}}."},"evidence":[evidence]}))
  }).collect();
+    let limitations = if input["unavailable_steps"].as_object().is_some_and(|steps| !steps.is_empty()) { json!(["Some selected source checks failed; those findings remain unknown."]) } else { json!([]) };
+    let requirement_status: Vec<_> = input["requested_parts"].as_array().into_iter().flatten().map(|requirement| {
+        let answered_by: Vec<_> = cited_subjects.iter().enumerate().filter(|(_, subject)| requirement["entity_ref"].is_null() || **subject == requirement["entity_ref"]).map(|(i, _)| format!("o{}", i + 1)).collect();
+        let evidence: Vec<_> = cited_subjects.iter().enumerate().filter(|(_, subject)| requirement["entity_ref"].is_null() || **subject == requirement["entity_ref"]).flat_map(|(i, _)| observations[i]["evidence"].as_array().into_iter().flatten().cloned()).collect();
+        json!({"requirement_id":requirement["id"],"status":if answered_by.is_empty() {"unknown"} else {"answered"},"answered_by":answered_by,"evidence":evidence,"reason":if answered_by.is_empty() {json!("source_failed")} else {Value::Null}})
+    }).collect();
     Json(
-        json!({"choices":[{"message":{"content":json!({"observations":observations,"limitations":[]}).to_string()}}]}),
+        json!({"choices":[{"message":{"content":json!({"observations":observations,"limitations":limitations,"requirement_status":requirement_status}).to_string()}}]}),
     )
 }
 async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<Value> {
@@ -116,7 +136,7 @@ async fn provider(State(s): State<TestState>, Json(body): Json<Value>) -> Json<V
     assert!(workflow_catalog::known(
         metadata["workflow"].as_str().unwrap()
     ));
-    if cap == "company.sanctions-screen" && matches!(metadata["workflow"].as_str(), Some("european-company-dossier" | "tender-company-dossier")) {
+    if cap == "company.sanctions-screen" && matches!(metadata["workflow"].as_str(), Some("european-company-dossier" | "tender-company-dossier" | "pre-kyb-screening")) {
         let country = body["inputs"]["queries"]["q1"]["properties"]["country"][0].as_str().unwrap();
         let (source, path, name_field) = match country {
             "NL" => ("kvk-dutch-business-register", "/api/v1/basisprofielen", "statutaireNaam"),
@@ -177,6 +197,24 @@ fn request(r: &Response) -> Option<ExecuteRequest> {
         idempotency_key: a.action_id,
         input,
     })
+}
+fn save_workflow_artifacts(outcomes: &[Value], views: &[Value], catalog: &apiosk_gateway_v2::catalog::Catalog, edge_checks: bool) {
+    std::fs::create_dir_all("output/eleven-workflows").unwrap();
+    std::fs::write("output/eleven-workflows/local-durable-results.json",serde_json::to_vec_pretty(&json!({"environment":"isolated local database; fixture billing, model and source responses","results":outcomes,"source_failure":edge_checks,"cancellation":edge_checks})).unwrap()).unwrap();
+    std::fs::write(
+        "output/eleven-workflows/browser-views.json",
+        serde_json::to_vec(&views).unwrap(),
+    )
+    .unwrap();
+    std::fs::write(
+        "output/eleven-workflows/browser-definitions.json",
+        serde_json::to_vec(&apiosk_gateway_v2::workflows::definitions(
+            catalog,
+            &json!({"currency":"USD","rate":"1"}),
+        ))
+        .unwrap(),
+    )
+    .unwrap();
 }
 #[tokio::test]
 #[ignore = "requires isolated support-db; all source responses and billing are fixtures"]
@@ -246,7 +284,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     // Exercise the whole migration twice against the fixture catalog, including
     // creating the new property contract. These public compatibility views match
     // the schema layout used by production's catalog query.
-    sqlx::raw_sql("CREATE SCHEMA IF NOT EXISTS catalog; ALTER TABLE public.capabilities ADD COLUMN name text NOT NULL DEFAULT 'Fixture'; ALTER TABLE public.capabilities SET SCHEMA catalog; CREATE VIEW public.capabilities AS SELECT * FROM catalog.capabilities; ALTER TABLE public.capability_execution_contracts SET SCHEMA catalog; CREATE VIEW public.capability_execution_contracts AS SELECT * FROM catalog.capability_execution_contracts; DELETE FROM catalog.capability_execution_contracts WHERE capability_slug='location.property-search';").execute(&pool).await.unwrap();
+    sqlx::raw_sql("CREATE SCHEMA IF NOT EXISTS catalog; DROP VIEW IF EXISTS catalog.capabilities; DROP VIEW IF EXISTS catalog.capability_execution_contracts; ALTER TABLE public.capabilities ADD COLUMN name text NOT NULL DEFAULT 'Fixture'; ALTER TABLE public.capabilities SET SCHEMA catalog; CREATE VIEW public.capabilities AS SELECT * FROM catalog.capabilities; ALTER TABLE public.capability_execution_contracts SET SCHEMA catalog; CREATE VIEW public.capability_execution_contracts AS SELECT * FROM catalog.capability_execution_contracts; DELETE FROM catalog.capability_execution_contracts WHERE capability_slug='location.property-search';").execute(&pool).await.unwrap();
     let migration =
         include_str!("../supabase/migrations/20260920222320_eleven_workflow_catalog.sql");
     sqlx::raw_sql(migration).execute(&pool).await.unwrap();
@@ -254,6 +292,9 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     let dossier_migration = include_str!("../supabase/migrations/20260923162344_registry_names_for_european_dossiers.sql");
     sqlx::raw_sql(dossier_migration).execute(&pool).await.unwrap();
     sqlx::raw_sql(dossier_migration).execute(&pool).await.unwrap();
+    let pre_kyb_migration = include_str!("../supabase/migrations/20261008091016_pre_kyb_screening_workflow.sql");
+    sqlx::raw_sql(pre_kyb_migration).execute(&pool).await.unwrap();
+    sqlx::raw_sql(pre_kyb_migration).execute(&pool).await.unwrap();
     sqlx::raw_sql("CREATE ROLE service_role").execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20260912111106_kvk_annual_accounts_queue.sql")).execute(&pool).await.unwrap();
     let account=f["services"].as_array().unwrap().iter().find(|s|s["contract"]["capability_slug"]=="company.financial-statements").unwrap()["sample_payload"].clone();
@@ -447,6 +488,10 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             .as_array()
             .unwrap()
             .is_empty());
+        if recipe.slug == "pre-kyb-screening" {
+            assert!(response.context_view["analysis"]["observations"][0]["text"].as_str().unwrap().starts_with("Review."));
+            assert!(!response.context_view["analysis"]["observations"][0]["evidence"].as_array().unwrap().is_empty());
+        }
         assert!(
             response.context_view["analysis"]["limitations"]
                 .as_array()
@@ -513,6 +558,43 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             "PASS {}: {calls} operations, one approval, saved result",
             recipe.slug
         );
+    }
+    // Name-only pre-screening must search and resolve identity before the real
+    // screening request. The provider fixture above checks the outbound name.
+    state.fail.store(0, Ordering::SeqCst);
+    for (country, name) in [("NL", "Mollie"), ("GB", "Monzo"), ("FR", "Danone")] {
+        let person = Principal { owner: Uuid::new_v4(), connection: None, workspace: None };
+        let before = state.count.load(Ordering::SeqCst);
+        let mut response = engine.start_workflow(&person, "pre-kyb-screening", StartRequest {
+            request_id: Uuid::new_v4(),
+            input: std::collections::BTreeMap::from([
+                ("name".into(), json!(name)), ("country".into(), json!(country)),
+                ("screening_level".into(), json!("Standard")),
+            ]),
+        }).await.unwrap();
+        assert_eq!(response.status, Status::Ready, "{country}: {response:?}");
+        assert_eq!(state.count.load(Ordering::SeqCst), before, "quoting cannot spend");
+        let quote = response.proposal.clone().unwrap();
+        assert_eq!(quote.steps.len(), 3);
+        let task = response.state.as_ref().unwrap().state_ref;
+        engine.executor.approve(&person, task, quote.quote_ref, &quote.max_total_atomic).await.unwrap();
+        let mut selected = false;
+        for _ in 0..20 {
+            if matches!(response.status, Status::Succeeded | Status::Partial | Status::Failed) { break; }
+            selected |= response.status == Status::NeedsSelection;
+            response = engine.execute(&person, "fixture", request(&response).unwrap_or_else(|| panic!("{country}: {response:?}"))).await.unwrap();
+        }
+        assert_eq!(response.status, Status::Succeeded, "{country}: {response:?}");
+        if country == "GB" { assert!(selected, "ambiguous registry candidates require a choice"); }
+        assert_eq!(state.count.load(Ordering::SeqCst) - before, 3);
+        assert!(response.context_view["analysis"]["observations"][0]["text"].as_str().unwrap().starts_with("Review."));
+        outcomes.push(json!({"workflow":"pre-kyb-screening","country":country,"input":"name_only","operations":3,"registry_bound_screening":true,"one_approval":true,"passed":true}));
+    }
+    // Focused acceptance includes all normal workflow quotes/results plus the
+    // new name-only variants; older unrelated edge scenarios remain below.
+    if std::env::var_os("PRE_KYB_FLOW_ONLY").is_some() {
+        save_workflow_artifacts(&outcomes, &views, &engine.catalog.get().await.unwrap(), false);
+        return;
     }
     // Cancellation prevents purchase and appears in history.
     let r = workflow_catalog::recipe("company-news").unwrap();
@@ -747,22 +829,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
             );
         }
     }
-    std::fs::create_dir_all("output/eleven-workflows").unwrap();
-    std::fs::write("output/eleven-workflows/local-durable-results.json",serde_json::to_vec_pretty(&json!({"environment":"isolated local database; fixture billing, model and source responses","results":outcomes,"source_failure":true,"cancellation":true})).unwrap()).unwrap();
-    std::fs::write(
-        "output/eleven-workflows/browser-views.json",
-        serde_json::to_vec(&views).unwrap(),
-    )
-    .unwrap();
-    std::fs::write(
-        "output/eleven-workflows/browser-definitions.json",
-        serde_json::to_vec(&apiosk_gateway_v2::workflows::definitions(
-            &engine.catalog.get().await.unwrap(),
-            &json!({"currency":"USD","rate":"1"}),
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+    save_workflow_artifacts(&outcomes, &views, &engine.catalog.get().await.unwrap(), true);
     // Partner API uses the same deterministic recipe and one saved quote.
     state.fail.store(0, Ordering::SeqCst);
     let engine = Arc::new(engine);

@@ -221,6 +221,11 @@ fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Ca
         _ => false,
     })
 }
+/// Compare the complete buyer quote, including prerequisite calls. At the
+/// same price, avoid extra paid requests and their additional failure points.
+fn plan_value(steps: &[Step]) -> (i64, usize) {
+    (steps.iter().map(|step| step.service.total()).sum(), steps.len())
+}
 pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     if !intent.unresolved_references.is_empty() {
         return Resolution::Unsupported(intent.unresolved_references.join("; "));
@@ -275,10 +280,9 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
                 &mut expansions,
             ) {
                 Ok(()) => {
-                    let total = trial.iter().map(|s| s.service.total()).sum::<i64>();
                     if best
                         .as_ref()
-                        .is_none_or(|b| total < b.iter().map(|s| s.service.total()).sum())
+                        .is_none_or(|b| plan_value(&trial) < plan_value(b))
                     {
                         best = Some(trial)
                     }
@@ -420,8 +424,7 @@ fn add(
             )
             .is_ok()
                 && found.as_ref().is_none_or(|b: &Vec<Step>| {
-                    trial.iter().map(|s| s.service.total()).sum::<i64>()
-                        < b.iter().map(|s| s.service.total()).sum()
+                    plan_value(&trial) < plan_value(b)
                 })
             {
                 found = Some(trial)

@@ -121,6 +121,23 @@ impl SourceQuery {
 }
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ServiceQuery {
+    pub search: Option<String>,
+    pub category: Option<String>,
+    pub sort: Option<String>,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
+}
+impl ServiceQuery {
+    pub fn valid(&self) -> bool {
+        [&self.search, &self.category].iter().all(|value| value.as_ref().is_none_or(|s| s.chars().count() <= 200))
+            && self.sort.as_deref().is_none_or(|sort| matches!(sort, "recommended" | "name-asc" | "name-desc"))
+            && self.limit.is_none_or(|limit| (1..=50).contains(&limit))
+            && self.offset.is_none_or(|offset| offset <= 10_000)
+    }
+}
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EndpointQuery {
     pub search: Option<String>,
     pub capabilities: Option<String>,
@@ -307,6 +324,66 @@ fn frequent_tags<'a>(groups: &BTreeMap<&str, Vec<(usize, &'a Source)>>, limit: u
     ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
     ranked.into_iter().take(limit).map(|(tag, _)| tag).collect()
 }
+fn source_capabilities(source: &Source, catalog: &Catalog) -> BTreeSet<String> {
+    source.offered_capabilities.iter().cloned()
+        .chain(catalog.services.iter().filter(|s| s.api_slug == source.slug).map(|s| s.contract.capability_slug.clone()))
+        .filter(|slug| crate::eu_capabilities::find(slug).is_none())
+        .chain(crate::eu_capabilities::definitions().iter()
+            .filter(|c| c.role(&source.slug) == Some("primary"))
+            .map(|c| c.slug.clone()))
+        .collect()
+}
+fn search_terms(search: Option<&str>) -> Vec<String> {
+    let ignored = ["a", "an", "and", "for", "in", "information", "of", "on", "or", "the", "to", "with"];
+    search.unwrap_or_default().to_lowercase().replace(['.', '_'], " ")
+        .split_whitespace().filter(|term| term.len() > 1 && !ignored.contains(term))
+        .map(str::to_owned).collect()
+}
+fn source_search_score(source: &Source, catalog: &Catalog, terms: &[String]) -> usize {
+    let haystack = format!("{} {} {} {} {} {} {} {} {} {}",
+        directory_name(source), directory_slug(source), source.name, source.slug, source.description,
+        source.category, source.categories.join(" "), source.tags.join(" "), source.sectors.join(" "),
+        source_capabilities(source, catalog).into_iter().collect::<Vec<_>>().join(" ").replace(['.', '_'], " ")
+    ).to_lowercase();
+    terms.iter().filter(|term| haystack.contains(term.as_str())).count()
+}
+
+/// Page the visible listings within one grouped provider. The same source
+/// cache used by the main directory has already applied database visibility;
+/// executable catalog membership must not erase discovery-only services.
+pub fn service_page(sources: &[Source], catalog: &Catalog, source_id: &str, query: &ServiceQuery) -> Option<Value> {
+    let group = grouped_provider(source_id)?;
+    let members: Vec<_> = sources.iter().filter(|s| s.provider_slug.as_deref() == Some(group.handle)).collect();
+    if members.is_empty() { return None; }
+    let categories: BTreeSet<_> = members.iter().flat_map(|s| s.categories.iter().chain(std::iter::once(&s.category)))
+        .filter(|category| !category.is_empty()).collect();
+    let terms = search_terms(query.search.as_deref());
+    let executable: BTreeSet<_> = catalog.services.iter().map(|s| s.api_slug.as_str()).collect();
+    let restricted: BTreeSet<_> = catalog.known_sources.iter().filter(|s| s.block_reason.is_some()).map(|s| s.slug.as_str()).collect();
+    let mut matching: Vec<_> = members.iter().filter_map(|source| {
+        let score = source_search_score(source, catalog, &terms);
+        ((terms.is_empty() || score > 0)
+            && selected(&query.category, source.categories.iter().chain(std::iter::once(&source.category))))
+            .then_some((score, *source))
+    }).collect();
+    matching.sort_by(|(left_score, left), (right_score, right)| {
+        let name = left.name.to_lowercase().cmp(&right.name.to_lowercase()).then(left.slug.cmp(&right.slug));
+        let reach = |source: &Source| if restricted.contains(source.slug.as_str()) { 2 } else if executable.contains(source.slug.as_str()) { 0 } else { 1 };
+        match query.sort.as_deref() {
+            Some("name-asc") => name,
+            Some("name-desc") => name.reverse(),
+            _ => right_score.cmp(left_score).then(reach(left).cmp(&reach(right))).then(name),
+        }
+    });
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(40).clamp(1, 50);
+    let items: Vec<_> = matching.iter().skip(offset).take(limit).map(|(_, source)|
+        json!({"slug":source.slug,"name":source.name,"description":source.description,"category":source.category})).collect();
+    let end = offset.saturating_add(items.len());
+    Some(json!({"source":{"slug":group.handle,"name":group.name},"items":items,
+        "total":matching.len(),"offset":offset,"limit":limit,"next_offset":(end < matching.len()).then_some(end),
+        "categories":categories}))
+}
 pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Value {
     // Keep every verified listing in the directory. Readiness and executable
     // capabilities remain separate: a discovery-only source is visible, but
@@ -319,25 +396,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         .flat_map(|s| s.categories.iter().chain(std::iter::once(&s.category)))
         .filter(|s| !s.is_empty()).collect();
     let sectors: BTreeSet<_> = sources.iter().flat_map(|s| &s.sectors).collect();
-    let executable_capabilities_for = |slug: &str| {
-        catalog
-            .services
-            .iter()
-            .filter(|s| s.api_slug == slug)
-            .map(|s| s.contract.capability_slug.clone())
-            .collect::<BTreeSet<_>>()
-    };
-    let capabilities_for = |source: &Source| {
-        source.offered_capabilities.iter().cloned()
-            .chain(executable_capabilities_for(&source.slug))
-            // These names group sources for discovery; they do not create a
-            // runnable contract or grant an unreviewed source membership.
-            .filter(|slug| crate::eu_capabilities::find(slug).is_none())
-            .chain(crate::eu_capabilities::definitions().iter()
-                .filter(|c| c.role(&source.slug) == Some("primary"))
-                .map(|c| c.slug.clone()))
-            .collect::<BTreeSet<_>>()
-    };
+    let capabilities_for = |source: &Source| source_capabilities(source, catalog);
     let capability_filter = query.capability.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let selected_group = capability_filter.and_then(crate::eu_capabilities::find)
         .or_else(|| if capability_filter.is_none() {
@@ -359,30 +418,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
     }
     let catalog_total = groups.len();
     let tags = frequent_tags(&groups, TAG_FACET_CAP);
-    let search = query
-        .search
-        .as_deref()
-        .unwrap_or_default()
-        .to_lowercase()
-        .replace(['.', '_'], " ");
-    let ignored = [
-        "a",
-        "an",
-        "and",
-        "for",
-        "in",
-        "information",
-        "of",
-        "on",
-        "or",
-        "the",
-        "to",
-        "with",
-    ];
-    let terms: Vec<_> = search
-        .split_whitespace()
-        .filter(|t| t.len() > 1 && !ignored.contains(t))
-        .collect();
+    let terms = search_terms(query.search.as_deref());
     let reach = |slug: &str| {
         if restricted.contains(slug) {
             2u8
@@ -397,28 +433,7 @@ pub fn browse(sources: &[Source], catalog: &Catalog, query: &SourceQuery) -> Val
         let matching: Vec<_> = members
             .iter()
             .filter_map(|(index, source)| {
-                let haystack = format!(
-                    "{} {} {} {} {} {} {} {} {} {}",
-                    directory_name(source),
-                    key,
-                    source.name,
-                    source.slug,
-                    source.description,
-                    source.category,
-                    source.categories.join(" "),
-                    source.tags.join(" "),
-                    source.sectors.join(" "),
-                    capabilities_for(source)
-                        .into_iter()
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                        .replace(['.', '_'], " ")
-                )
-                .to_lowercase();
-                let score = terms
-                    .iter()
-                    .filter(|term| haystack.contains(**term))
-                    .count();
+                let score = source_search_score(source, catalog, &terms);
                 ((terms.is_empty() || score > 0)
                     && selected(&query.category, source.categories.iter().chain(std::iter::once(&source.category)))
                     && selected(&query.tag, &source.tags)
@@ -709,6 +724,77 @@ mod tests {
         assert!(sql.contains("(($1 = ANY($7::text[]) AND p.username = $1) OR (NOT ($1 = ANY($7::text[])) AND a.slug = $1))"));
         assert!(!sql.contains("pulsenetwork"));
         assert_eq!(sql.matches("$7").count(), 2);
+    }
+    fn grouped_services() -> Vec<Source> {
+        (0..125).rev().map(|index| serde_json::from_value(json!({
+            "slug":format!("cbz-service-{index:03}"),"provider_slug":"coinbase-bazaar",
+            "name":format!("Service {index:03}"),"description":if index == 124 {"Unique oracle"} else {"Web search"},
+            "category":if index % 2 == 0 {"data"} else {"finance"},
+            "tags":[],"sectors":[],"endpoint_count":1
+        })).unwrap()).collect()
+    }
+    #[test]
+    fn grouped_service_pages_cover_members_beyond_the_embedded_cap_without_leaking_other_sources() {
+        let mut rows = grouped_services();
+        let mut impostor = rows[0].clone();
+        impostor.provider_slug = Some("someone-else".into());
+        impostor.slug = "coinbase-bazaar-lookalike".into();
+        rows.push(impostor);
+        let c = catalog();
+        // None of these visible listings has a runtime contract. They must
+        // still be reachable, while unrelated catalog-only sources stay out.
+        let mut slugs = BTreeSet::new();
+        for offset in [0, 50, 100] {
+            let page = service_page(&rows, &c, "coinbase-bazaar", &ServiceQuery {
+                limit: Some(50), offset: Some(offset), sort: Some("name-asc".into()), ..Default::default()
+            }).unwrap();
+            assert_eq!(page["total"], 125);
+            assert_eq!(page["source"]["slug"], "coinbase-bazaar");
+            assert_eq!(page["items"][0]["slug"], format!("cbz-service-{offset:03}"));
+            let items = page["items"].as_array().unwrap();
+            assert_eq!(items.len(), if offset == 100 {25} else {50});
+            assert_eq!(page["next_offset"], if offset == 100 {Value::Null} else {json!(offset + 50)});
+            for item in items { assert!(slugs.insert(item["slug"].as_str().unwrap().to_owned())); }
+        }
+        assert_eq!(slugs.len(), 125);
+        assert!(slugs.contains("cbz-service-124"));
+        assert!(!slugs.contains("coinbase-bazaar-lookalike"));
+        assert!(service_page(&rows, &c, "someone-else", &ServiceQuery::default()).is_none());
+        assert!(service_page(&[], &c, "coinbase-bazaar", &ServiceQuery::default()).is_none());
+        let past_end = service_page(&rows, &c, "coinbase-bazaar", &ServiceQuery { offset: Some(200), ..Default::default() }).unwrap();
+        assert_eq!(past_end["items"], json!([]));
+        assert!(past_end["next_offset"].is_null());
+    }
+    #[test]
+    fn grouped_service_search_category_and_sort_apply_before_pagination_with_full_group_facets() {
+        let rows = grouped_services();
+        let c = catalog();
+        let selected = service_page(&rows, &c, "coinbase-bazaar", &ServiceQuery {
+            search: Some("unique oracle".into()), category: Some("DATA".into()), limit: Some(1), ..Default::default()
+        }).unwrap();
+        assert_eq!(selected["total"], 1);
+        assert_eq!(selected["items"][0]["slug"], "cbz-service-124");
+        assert_eq!(selected["categories"], json!(["data", "finance"]));
+        let descending = service_page(&rows, &c, "coinbase-bazaar", &ServiceQuery {
+            category: Some("finance".into()), sort: Some("name-desc".into()), offset: Some(1), limit: Some(1), ..Default::default()
+        }).unwrap();
+        assert_eq!(descending["total"], 62);
+        assert_eq!(descending["items"][0]["slug"], "cbz-service-121");
+        assert_eq!(descending["next_offset"], 2);
+        assert_eq!(descending["categories"], selected["categories"]);
+        let no_match = service_page(&rows, &c, "coinbase-bazaar", &ServiceQuery { search: Some("unmatched".into()), ..Default::default() }).unwrap();
+        assert_eq!(no_match["total"], 0);
+        assert_eq!(no_match["categories"], selected["categories"]);
+    }
+    #[test]
+    fn grouped_service_queries_bound_payloads_and_reject_unknown_sorting() {
+        for value in [json!({}), json!({"limit":50,"offset":10000,"sort":"recommended"}), json!({"sort":"name-desc"})] {
+            assert!(serde_json::from_value::<ServiceQuery>(value).unwrap().valid());
+        }
+        for value in [json!({"limit":0}), json!({"limit":51}), json!({"offset":10001}), json!({"sort":"price"}), json!({"search":"x".repeat(201)})] {
+            assert!(!serde_json::from_value::<ServiceQuery>(value).unwrap().valid());
+        }
+        assert!(serde_json::from_value::<ServiceQuery>(json!({"include_hidden":true})).is_err());
     }
     fn catalog() -> Catalog {
         Catalog::build(

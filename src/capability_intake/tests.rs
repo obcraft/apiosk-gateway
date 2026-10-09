@@ -365,7 +365,8 @@ async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_out
     let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none());
     assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
-    assert!(reply.message.contains("geen uitvoerbaar plan") && reply.message.contains("Company registration status"));
+    assert!(reply.message.contains("plan is nog niet gereed") && reply.message.contains("Company registration status"));
+    assert!(reply.message.contains("aanvullende diensten gevonden"), "discovered alternatives must not disappear behind a rejected plan");
     assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
     assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
     assert!(mock.queue.lock().unwrap().is_empty());
@@ -446,7 +447,15 @@ async fn two_companies_cannot_be_reduced_to_one_retrieval() {
     complete["intent"]["subjects"].as_array_mut().unwrap().push(json!({"subject_ref":"s2","values":{"company.name":{"ref":"s2.label"}}}));
     complete["intent"]["goals"].as_array_mut().unwrap().push(json!({"capability":"company.accounts","subject":1,"constraints":{}}));
     let (parser, mock, bazaar, server) = fixture(vec![parsed, matched(), planned(), complete], false).await;
-    let c = catalog();
+    // The request explicitly names KVK. Make the synthetic provider match
+    // that source so this test exercises occurrence preservation, without
+    // relying on discovery ignoring an unmatched source preference.
+    let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+    for service in &mut snapshot.services {
+        service.api_slug = "kvk".into();
+        service.name = format!("KVK {}", service.name);
+    }
+    let c = Catalog::build(snapshot);
     let task = Task::default();
     let mut intake = parser.prepare_ask_with_bazaar(&question, None, &task, &c, &bazaar).await.unwrap();
     // The App's local discovery preserves occurrences. The legacy directory
@@ -505,7 +514,7 @@ async fn external_only_match_cannot_become_an_apiosk_quote() {
     assert!(!intake.matches[0].coinbase.is_empty());
     let reply=parser.chat_from_capabilities(QUESTION, None, &task, &c, &intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none(), "external discovery cannot become an Apiosk quote");
-    assert!(reply.message.contains("geen passende uitvoerbare bron") || reply.message.contains("No matching executable source"));
+    assert!(reply.message.contains("aanvullende diensten gevonden") || reply.message.contains("Additional services were found"));
     server.abort();
 }
 

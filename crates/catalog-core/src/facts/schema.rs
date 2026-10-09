@@ -124,6 +124,14 @@ fn walk_schema(schema: &Value, at: &str) -> Result<(), SchemaError> {
         }
     }
 
+    if let Some(types) = object.get("type") {
+        let valid = |value: &Value| value.as_str().is_some_and(|name|
+            matches!(name, "string" | "number" | "integer" | "boolean" | "object" | "array" | "null"));
+        if !(valid(types) || types.as_array().is_some_and(|types| !types.is_empty() && types.iter().all(valid))) {
+            return Err(SchemaError::MalformedSchema { at: at.into(), detail: "`type` must name a type or a nonempty array of types".into() });
+        }
+    }
+
     if let Some(properties) = object.get("properties") {
         let map = properties
             .as_object()
@@ -181,11 +189,13 @@ fn check(schema: &Value, value: &Value, at: &str) -> Result<(), SchemaError> {
         }
     }
 
-    if let Some(expected) = object.get("type").and_then(Value::as_str) {
-        if !type_matches(expected, value) {
+    if let Some(expected) = object.get("type") {
+        let matches = expected.as_str().is_some_and(|name| type_matches(name, value))
+            || expected.as_array().is_some_and(|types| types.iter().any(|name| name.as_str().is_some_and(|name| type_matches(name, value))));
+        if !matches {
             return Err(SchemaError::WrongType {
                 at: at.to_string(),
-                expected: expected.to_string(),
+                expected: expected.as_str().map(str::to_owned).unwrap_or_else(|| expected.to_string()),
                 found: type_name(value).to_string(),
             });
         }

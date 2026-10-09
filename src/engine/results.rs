@@ -157,6 +157,7 @@ impl Engine {
     /// response promotes the contract with that response as evidence; a
     /// failure is counted, and the second one withdraws it. Never fails the run.
     async fn settle_unverified(&self, service: &crate::catalog::Service, usable: Option<&Value>) {
+        if service.is_registered_operation() { return; }
         let outcome = match usable {
             Some(data) => sqlx::query("SELECT catalog.promote_source_operation($1,$2)")
                 .bind(service.id).bind(evidence(data, 0)).execute(&self.store.pool).await,
@@ -295,6 +296,7 @@ impl Engine {
                 | "eu-funding-tenders"
                 | "pdok-ruimtelijke-plannen"
                 | "bodemloket"
+                | "domain-intelligence"
         ) && data["coverage"]["complete"] == false
         {
             document["coverage"] = json!("partial");

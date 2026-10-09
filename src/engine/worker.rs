@@ -491,3 +491,100 @@ mod fallback_tests {
         assert!(enqueue_ready(&mut cancelled,&plan,&catalog).unwrap().is_empty());
     }
 }
+
+#[cfg(test)]
+mod pre_kyb_tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn fixture(country: &str, registration: Option<&str>) -> (Catalog, Task, Plan) {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let mut input = BTreeMap::from([
+            ("name".into(), json!("Search trading name")),
+            ("country".into(), json!(country)),
+            ("screening_level".into(), json!("Standard")),
+        ]);
+        if let Some(registration) = registration { input.insert("registration".into(), json!(registration)); }
+        let (mut intent, workflow, _) = crate::workflow_catalog::prepare("pre-kyb-screening", &input, &catalog).unwrap();
+        let mut task = Task { workflow: Some(workflow), ..Task::default() };
+        for subject in &mut intent.subjects {
+            let entity_ref = Uuid::new_v4();
+            subject.entity_ref = Some(entity_ref);
+            task.entities.push(Entity { entity_ref, label: subject.label.clone(), selected: true });
+            for (kind, value) in &subject.values {
+                task.facts.push(Fact { entity_ref, semantic_type: kind.clone(), value: value.clone(),
+                    provenance: json!({"kind":"user_input"}), verification: "user_asserted".into(),
+                    observed_at: Utc::now(), expires_at: Utc::now() + chrono::Duration::hours(1) });
+            }
+        }
+        let Resolution::Plan(mut plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected a plan") };
+        plan.workflow_slug = Some("pre-kyb-screening".into());
+        task.intent = Some(json!(intent));
+        task.proposal = Some(json!(plan));
+        (catalog, task, plan)
+    }
+
+    fn registry_name(task: &mut Task, profile: &resolver::Step) -> Fact {
+        let result_ref = Uuid::new_v4();
+        task.active_results.push(result_ref);
+        Fact { entity_ref: profile.entity_ref, semantic_type: "company.name".into(),
+            value: json!("RESOLVED REGISTERED LIMITED"), verification: "source_observed".into(),
+            provenance: json!({"kind":"provider_response", "contract_id":profile.service.id, "result_ref":result_ref}),
+            observed_at: Utc::now(), expires_at: Utc::now() + chrono::Duration::hours(1) }
+    }
+
+    #[test]
+    fn pre_kyb_dispatch_waits_for_profile_and_uses_its_canonical_name() {
+        for (country, registration) in [("NL", "30204462"), ("GB", "09446231"), ("FR", "552032534")] {
+            for number in [None, Some(registration)] {
+                let (catalog, mut task, plan) = fixture(country, number);
+                let profile = plan.steps.iter().find(|step| step.service.contract.capability_slug == "company.registry-profile").unwrap();
+                let screening = plan.steps.iter().position(|step| step.service.contract.capability_slug == "company.sanctions-screen").unwrap();
+                let queued = enqueue_ready(&mut task, &plan, &catalog).unwrap();
+                assert!(!queued.is_empty());
+                assert!(queued.iter().all(|pending| pending.step != screening), "{country}: do not screen the search name");
+                assert!(crate::browser_fallback::inputs(&plan.steps[screening], &task, &catalog.vocabulary).is_err(), "manual execution uses the same gate");
+                task.pending_dispatches.clear();
+                // Even a source-observed search/selected-candidate name is insufficient
+                // while the same company's profile is still pending.
+                let canonical = registry_name(&mut task, profile);
+                task.facts.push(canonical);
+                assert!(crate::browser_fallback::inputs(&plan.steps[screening], &task, &catalog.vocabulary).is_err());
+                for step in plan.steps.iter().filter(|step| step.service.contract.capability_slug != "company.sanctions-screen") {
+                    task.completed.push(step.key());
+                }
+                let queued = enqueue_ready(&mut task, &plan, &catalog).unwrap();
+                assert_eq!(queued.len(), 1, "{country}: screening becomes runnable after registry completion");
+                assert_eq!(queued[0].step, screening);
+                assert!(queued[0].inputs.to_string().contains("RESOLVED REGISTERED LIMITED"));
+                assert!(!queued[0].inputs.to_string().contains("Search trading name"));
+            }
+        }
+    }
+
+    #[test]
+    fn pre_kyb_does_not_dispatch_with_missing_stale_or_unrelated_identity_evidence() {
+        for scenario in ["missing", "user_asserted", "search_result", "other_entity", "expired", "failed_profile", "skipped_profile", "missing_result", "conflict"] {
+            let (catalog, mut task, plan) = fixture("GB", Some("09446231"));
+            let profile = plan.steps.iter().find(|step| step.service.contract.capability_slug == "company.registry-profile").unwrap();
+            let screening = plan.steps.iter().find(|step| step.service.contract.capability_slug == "company.sanctions-screen").unwrap();
+            task.completed.push(profile.key());
+            let mut name = registry_name(&mut task, profile);
+            match scenario {
+                "user_asserted" => name.verification = "user_asserted".into(),
+                "search_result" => name.provenance["contract_id"] = json!(Uuid::new_v4()),
+                "other_entity" => name.entity_ref = Uuid::new_v4(),
+                "expired" => name.expires_at = Utc::now() - chrono::Duration::seconds(1),
+                "failed_profile" => { task.failed_steps.insert(profile.key(), json!({"code":"incomplete_source"})); },
+                "skipped_profile" => { task.skipped_steps.insert(profile.key()); },
+                "missing_result" => task.active_results.clear(),
+                "conflict" => { let mut other = name.clone(); other.value = json!("OTHER COMPANY"); task.facts.push(other); },
+                _ => (),
+            }
+            if scenario != "missing" { task.facts.push(name); }
+            assert!(matches!(crate::pre_kyb::screening(&task, screening), crate::pre_kyb::Screening::Unavailable), "{scenario} is terminal, not a wait that strands the workflow");
+            assert!(enqueue_ready(&mut task, &plan, &catalog).unwrap().is_empty(), "{scenario}");
+            assert!(crate::browser_fallback::inputs(screening, &task, &catalog.vocabulary).is_err(), "{scenario}");
+        }
+    }
+}

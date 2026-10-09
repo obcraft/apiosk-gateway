@@ -4,7 +4,7 @@ use crate::{
     capability_intake::{
         capability_query, normalize_slug, Candidate, Capability, Match, ParsedRequest,
     },
-    catalog::{Catalog, KnownSource, Service},
+    catalog::{Catalog, KnownSource, ListedEndpoint, Service},
     state::Task,
 };
 use std::{
@@ -33,6 +33,7 @@ const INSIDER_TRADES: u16 = 2048;
 const VALUATION: u16 = 4096;
 const LEGISLATION: u16 = 8192;
 const ADVERSE_MEDIA: u16 = 16384;
+const SENTIMENT: u16 = 32768;
 const SPECIFIC_OPERATIONS: u16 = STOCK_MARKET | ANALYST_CONSENSUS | INSIDER_TRADES | VALUATION | ADVERSE_MEDIA;
 const LOCATION_FACETS: u16 = BUILDING | NEIGHBOURHOOD | BOUNDARY | VIOLATIONS | PERMITS;
 const FACETS: &[(u16, &str)] = &[
@@ -43,12 +44,17 @@ const FACETS: &[(u16, &str)] = &[
     (PERMITS, "@permits"), (STOCK_MARKET, "@stock-market"),
     (ANALYST_CONSENSUS, "@analyst-consensus"), (INSIDER_TRADES, "@insider-trades"),
     (VALUATION, "@valuation"), (LEGISLATION, "@legislation"), (ADVERSE_MEDIA, "@adverse-media"),
+    (SENTIMENT, "@sentiment"),
 ];
 
 #[derive(Clone, Copy)]
 enum Target {
     Endpoint(usize),
+    Listing(usize, usize),
     Source(usize),
+}
+impl Target {
+    fn is_endpoint(self) -> bool { matches!(self, Self::Endpoint(_) | Self::Listing(_, _)) }
 }
 
 struct Document {
@@ -69,6 +75,9 @@ struct Document {
     /// The endpoint's own description, excluding provider branding and a
     /// semicolon-separated provider-wide appendix.
     topic_scope: BTreeSet<String>,
+    /// Whether the operation's own wording describes an individual rather
+    /// than an organisation. Used for person-profile requests only.
+    person_scope: bool,
     /// Asset kind stated by the endpoint itself, never provider branding or
     /// caller input names. Keep the full description: a later sentence can
     /// explain that a stock mark is actually a derivative.
@@ -78,6 +87,9 @@ struct Document {
     /// Full endpoint wording for measurement compatibility. Provider names,
     /// input names and unrelated provider metadata cannot supply a metric.
     operation_words: BTreeSet<String>,
+    /// DNS types in the operation itself. A/NS/MX are too short for the
+    /// general lexical index, but they name different paid capabilities.
+    dns_record_types: u16,
     /// Where the candidate can answer, for the country signal.
     coverage: country::Coverage,
 }
@@ -216,7 +228,15 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             || relevance::enterprise_ratio(&service.contract.capability_slug);
         indexed.operation_words = words(&format!("{description} {translated_description}"));
         let translated_opening=opening_description(&translated_description);
+        indexed.dns_record_types = if service.contract.capability_slug.starts_with("domain.dns-")
+            || service.contract.capability_slug == "domain.mail-dns" {
+            relevance::dns_record_types(&service.contract.capability_slug)
+        } else {
+            relevance::dns_record_types(&service.contract.capability_slug)
+                | relevance::dns_record_types(opening) | relevance::dns_record_types(translated_opening)
+        };
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
+        indexed.person_scope = relevance::person_scope(&format!("{opening} {translated_opening}"));
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
         indexed.contract_facets = primary;
@@ -238,7 +258,28 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
     }
+    let accepted: BTreeSet<_> = catalog.services.iter().map(|service| service.endpoint_id).collect();
     for (position, source) in catalog.known_sources.iter().enumerate() {
+        for (listing, endpoint) in source.metadata.endpoints.iter().enumerate() {
+            if accepted.contains(&endpoint.endpoint_id) { continue; }
+            let target = Target::Listing(position, listing);
+            // Index the operation, not its provider's marketing or the names
+            // of inputs. The contractless endpoint remains discovery-only.
+            let description = &endpoint.description;
+            let rendering = english.render(&[description]);
+            let mut indexed = document(target, &format!("{description} {rendering}"), BTreeSet::new());
+            indexed.topic_scope = document(target, &format!("{} {}",
+                opening_description(description), opening_description(&rendering)), BTreeSet::new()).tokens;
+            indexed.person_scope = relevance::person_scope(&format!("{} {}",
+                opening_description(description), opening_description(&rendering)));
+            indexed.operation_words = words(&format!("{description} {rendering}"));
+            indexed.dns_record_types = relevance::dns_record_types(&format!("{} {}", opening_description(description), opening_description(&rendering)));
+            indexed.derivative_asset = relevance::derivative_market(description) || relevance::derivative_market(&rendering);
+            indexed.enterprise_multiple = relevance::enterprise_ratio(description) || relevance::enterprise_ratio(&rendering);
+            indexed.coverage = country::source(source);
+            rendered.push(rendered_only(&indexed, Some(description)));
+            documents.push(indexed);
+        }
         let descriptions = &source.metadata.capability_descriptions;
         let mut text = format!(
             "{} {} {} {} {}",
@@ -271,6 +312,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
                 .flat_map(|object| object.keys().map(String::as_str)),
         );
         let mut indexed = document(Target::Source(position), &text, capabilities);
+        indexed.person_scope = relevance::person_scope(opening_description(&source.metadata.description));
         indexed.coverage = country::source(source);
         rendered.push(rendered_only(&indexed, original.as_deref()));
         documents.push(indexed);
@@ -408,7 +450,7 @@ fn singular(word: &str) -> Option<String> {
 }
 
 fn words(text: &str) -> BTreeSet<String> {
-    tokens(text)
+    let mut result: BTreeSet<String> = tokens(text)
         .iter()
         .filter_map(|word| {
             match DUTCH_STATISTICS.iter().find(|(dutch, _)| dutch == word) {
@@ -416,7 +458,11 @@ fn words(text: &str) -> BTreeSet<String> {
                 None => singular(word),
             }
         })
-        .collect()
+        .collect();
+    // Fear & Greed is a named sentiment measurement, including when the
+    // provider spells it without the word "sentiment".
+    if result.contains("fear") && result.contains("greed") { result.insert("sentiment".into()); }
+    result
 }
 
 /// Dutch statistics words and the English word the parser writes for them.
@@ -602,6 +648,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         | u16::from(valuation) * VALUATION
         | u16::from(has("legislation")) * LEGISLATION
         | u16::from(has("adverse") && has("media")) * ADVERSE_MEDIA
+        | u16::from(has("sentiment")) * SENTIMENT
         | location;
     tokens.retain(|token| !vague(token));
     for &(facet, marker) in FACETS {
@@ -611,7 +658,9 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         derivative_asset: false,
         enterprise_multiple: false,
         operation_words: BTreeSet::new(),
+        dns_record_types: relevance::dns_record_types(text),
         topic_scope: tokens.clone(),
+        person_scope: relevance::person_scope(opening_description(text)),
         target,
         tokens,
         facets,
@@ -657,6 +706,25 @@ fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet
             .map(|service| service.api_slug.clone()),
     );
     (!sources.is_empty()).then_some(sources)
+}
+
+/// A named platform can be served by a third-party provider. When it is not
+/// a provider identity in the catalog, retain only operations that actually
+/// name it; an unknown hint must not silently become unrestricted search.
+fn operation_names_source(hint: &str, candidate: &Document, catalog: &Catalog) -> bool {
+    let hint = identity(hint);
+    match candidate.target {
+        Target::Endpoint(position) => {
+            let service = &catalog.services[position];
+            identity_matches(&hint, &service.name)
+                || identity_matches(&hint, opening_description(service.description.as_deref().unwrap_or("")))
+                || service.source_url.as_deref().is_some_and(|url| identity_matches(&hint, url))
+        }
+        Target::Listing(position, listing) => identity_matches(&hint,
+            opening_description(&catalog.known_sources[position].metadata.endpoints[listing].description)),
+        Target::Source(position) => identity_matches(&hint,
+            opening_description(&catalog.known_sources[position].metadata.description)),
+    }
 }
 
 /// Apply the parsed, explicit source preference to public Bazaar metadata.
@@ -710,6 +778,13 @@ pub fn filter_coinbase_in_english(
             .union(relevance::Request::new(translated, english));
         let signal = country::Signal::infer(parsed, capability);
         found.coinbase.retain(|candidate| {
+            let text = listing_text(candidate);
+            let english = rendered(&text);
+            let both = format!("{text} {}", english.as_deref().unwrap_or(""));
+            let mut listing = document(Target::Source(0), &both, BTreeSet::new());
+            listing.person_scope = relevance::person_scope(&format!("{} {}", opening_description(&candidate.description),
+                opening_description(english.as_deref().unwrap_or(""))));
+            if !floor.profile_scope_matches(&listing) { return false; }
             if let Some(hint) = &hint {
                 return [
                     candidate.name.as_str(),
@@ -720,16 +795,12 @@ pub fn filter_coinbase_in_english(
                 .into_iter()
                 .any(|field| identity_matches(hint, field));
             }
-            let text = listing_text(candidate);
-            let english = rendered(&text);
-            let both = format!("{text} {}", english.as_deref().unwrap_or(""));
             if signal.adjustment(&country::listing(&both)).demoted {
                 return false;
             }
             if english.is_none() && crate::english::detect(&text) == crate::english::Language::Other {
                 return true;
             }
-            let listing = document(Target::Source(0), &both, BTreeSet::new());
             (wanted.facets & LOCATION_FACETS == 0 || wanted.facets & listing.facets & LOCATION_FACETS != 0)
                 && floor.mentions(&wanted, &listing)
         });
@@ -882,6 +953,17 @@ fn source(source: &KnownSource) -> Candidate {
     }
 }
 
+fn listing(source: &KnownSource, endpoint: &ListedEndpoint) -> Candidate {
+    Candidate {
+        origin: "apiosk".into(), name: source.name.clone(), description: endpoint.description.clone(),
+        source_slug: Some(source.slug.clone()), capability: None,
+        endpoint_id: Some(endpoint.endpoint_id.to_string()),
+        url: endpoint.source_url.as_deref().and_then(safe_url), method: endpoint.method.clone(),
+        // Execution and its final price still need an accepted contract.
+        price: None, network: None, calls_30d: None, availability: "discovery_only".into(),
+    }
+}
+
 /// A relevant candidate and its place in the ranking.
 struct Ranked<T> {
     /// Bound to another country than the subject's (see `country`).
@@ -925,16 +1007,22 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 .union(relevance::Request::new(translated, english));
             let signal = country::Signal::infer(parsed, capability);
             let mut endpoints = Vec::new();
+            let mut listings = Vec::new();
             let mut sources = Vec::new();
             for candidate in &index.documents {
                 let (slug, position) = match candidate.target {
                     Target::Endpoint(position) => (&catalog.services[position].api_slug, position),
+                    Target::Listing(position, _) => (&catalog.known_sources[position].slug, position),
                     Target::Source(position) => (&catalog.known_sources[position].slug, position),
                 };
                 if restricted
                     .as_ref()
                     .is_some_and(|slugs| !slugs.contains(slug))
                 {
+                    continue;
+                }
+                if restricted.is_none() && capability.source_hint.as_deref()
+                    .is_some_and(|hint| !operation_names_source(hint, candidate, catalog)) {
                     continue;
                 }
                 let score = score(&wanted, candidate, &index);
@@ -952,6 +1040,9 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                         demoted,
                         score,
                         item: &catalog.services[position],
+                    }),
+                    Target::Listing(_, listing) => listings.push(Ranked {
+                        demoted, score, item: (&catalog.known_sources[position], &catalog.known_sources[position].metadata.endpoints[listing]),
                     }),
                     Target::Source(_) => sources.push(Ranked {
                         demoted,
@@ -975,6 +1066,9 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     .then(b.score.total_cmp(&a.score))
                     .then(a.item.slug.cmp(&b.item.slug))
             });
+            listings.sort_by(|a, b| b.score.total_cmp(&a.score)
+                .then(a.item.0.slug.cmp(&b.item.0.slug))
+                .then(a.item.1.endpoint_id.cmp(&b.item.1.endpoint_id)));
             let mut seen_endpoints = BTreeSet::new();
             let mut apiosk: Vec<_> = endpoints
                 .iter()
@@ -982,12 +1076,17 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 .take(3)
                 .map(|ranked| endpoint(ranked.item))
                 .collect();
+            // Missing automation support must not erase registered matching
+            // endpoints or displace executable choices. Keep both shortlists.
+            apiosk.extend(listings.iter()
+                .filter(|ranked| seen_endpoints.insert(ranked.item.1.endpoint_id))
+                .take(3).map(|ranked| listing(ranked.item.0, ranked.item.1)));
             let mut seen_sources: BTreeSet<_> = apiosk
                 .iter()
                 .filter_map(|candidate| candidate.source_slug.clone())
                 .collect();
             for candidate in sources.iter().map(|ranked| ranked.item) {
-                if apiosk.len() == 3 {
+                if apiosk.len() >= 3 {
                     break;
                 }
                 if seen_sources.insert(candidate.slug.clone()) {
@@ -1079,6 +1178,218 @@ mod tests {
             calls_30d: None,
             availability: "discovery_only".into(),
         }
+    }
+
+    #[test]
+    fn dns_record_types_do_not_treat_an_indefinite_article_as_ipv4() {
+        for text in ["A DNS record lookup", "A quick DNS lookup", "a DNS lookup", "Retrieve a record for this domain", "a record"] {
+            assert_eq!(relevance::dns_record_types(text), 0, "{text}");
+        }
+        for text in ["DNS A records", "A records", "a_records", "domain.dns-a", "DNS type A"] {
+            assert_eq!(relevance::dns_record_types(text), 1, "{text}");
+        }
+        assert_eq!(relevance::dns_record_types("A and AAAA records"), 3);
+    }
+
+    #[test]
+    fn dns_record_types_do_not_collapse_into_mail_or_registration_metadata() {
+        let catalog = catalog(vec![
+            service(991, "domain.registration", "RDAP and DNS", "Domain registration date (RDAP); DNS MX and nameservers are available from other operations.", "domain-intelligence"),
+            service(992, "domain.mail-dns", "RDAP and DNS", "Domain mail servers (DNS MX); Registration and nameservers are separate operations.", "domain-intelligence"),
+            service(993, "domain.dns-a", "DNS records", "Exact DNS A records (IPv4 addresses).", "domain-intelligence"),
+            service(994, "domain.dns-aaaa", "DNS records", "Exact DNS AAAA records (IPv6 addresses).", "domain-intelligence"),
+            service(995, "domain.dns-ns", "DNS records", "Exact DNS NS records (nameservers).", "domain-intelligence"),
+            service(996, "domain.dns-txt", "DNS records", "Exact DNS TXT records including returned SPF and DMARC policy text.", "domain-intelligence"),
+        ], vec![]);
+        for (label, output, expected) in [
+            ("DNS A records", "a_records", "domain.dns-a"),
+            ("DNS AAAA records", "aaaa_records", "domain.dns-aaaa"),
+            ("DNS NS records", "nameservers", "domain.dns-ns"),
+            ("DNS TXT records", "txt_records", "domain.dns-txt"),
+        ] {
+            let mut request = parsed(vec![json!({"slug":"research.domain.dns", "name":label})]);
+            request.capabilities[0].domain = "research".into();
+            request.capabilities[0].outputs = vec![output.into()];
+            let found = search(&request, &catalog);
+            assert_eq!(found[0].operations, BTreeSet::from([expected.into()]), "{label}: {:?}", found[0].apiosk);
+        }
+        let request = parsed(vec![json!({"slug":"domain.mail-dns", "name":"DNS MX mail servers"})]);
+        assert_eq!(search(&request, &catalog)[0].operations, BTreeSet::from(["domain.mail-dns".into()]));
+        let mut request = parsed(vec![json!({"slug":"research.domain.mail.dns", "name":"Domain mail DNS records"})]);
+        request.capabilities[0].description = "Retrieve public DNS MX mail-routing records. This requests MX, not TXT, A, AAAA or CNAME records, and does not prove mail delivery or ownership.".into();
+        request.capabilities[0].outputs = vec!["mx".into(), "accepts_mail".into()];
+        assert_eq!(search(&request, &catalog)[0].operations, BTreeSet::from(["domain.mail-dns".into()]));
+        let mut request = parsed(vec![json!({"slug":"domain.registration", "name":"RDAP registration"})]);
+        request.capabilities[0].outputs = vec!["registered_at".into(), "nameservers".into()];
+        assert!(search(&request, &catalog)[0].operations.contains("domain.registration"));
+    }
+
+    #[test]
+    fn dns_record_scope_is_not_overridden_by_an_exact_slug_or_source_hint() {
+        let catalog = catalog(vec![service(997, "domain.mail-dns", "DNS intelligence", "DNS MX mail servers", "domain-intelligence")], vec![]);
+        let mut request = parsed(vec![json!({"slug":"domain.mail-dns", "name":"DNS TXT and NS records", "source_hint":"domain-intelligence"})]);
+        request.capabilities[0].outputs = vec!["txt_records".into(), "nameservers".into()];
+        assert!(search(&request, &catalog)[0].operations.is_empty());
+    }
+
+    #[test]
+    fn multiple_dns_types_discover_contributing_calls_but_require_complete_output_coverage() {
+        use crate::{capability_intake::Intake, parser::{Goal, Intent, Subject}, resolver::{resolve, Resolution}};
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/domain-intelligence/typed/catalog.json")).unwrap());
+        let mut request = parsed(vec![json!({"slug":"research.domain.dns", "name":"DNS A and MX records"})]);
+        request.subjects[0].label = "www.mollie.com".into();
+        request.subjects[0].kind = "domain".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["a_records".into(), "mx_records".into()];
+        let matches = search(&request, &catalog);
+        assert_eq!(matches[0].operations, BTreeSet::from(["domain.dns-a".into(), "domain.dns-mx".into()]));
+        let intake = Intake { parsed_request:request, selected_capabilities:matches[0].operations.clone(),
+            matches, apiosk_sources_searched:1, catalog_version:catalog.version.clone() };
+        let goal = |capability: &str| {
+            let service = catalog.services.iter().find(|service| service.contract.capability_slug == capability).unwrap();
+            Goal { capability:capability.into(), subject:0, constraints:BTreeMap::from([
+                ("source".into(), json!(service.api_slug)), ("endpoint_id".into(), json!(service.endpoint_id))]) }
+        };
+        let mut task = Task { capability_intake:Some(intake), ..Default::default() };
+        let mut intent = Intent { subjects:vec![Subject {entity_ref:None,label:"www.mollie.com".into(),
+            values:BTreeMap::from([("domain.dns_name".into(),json!("www.mollie.com"))])}],
+            goals:vec![goal("domain.dns-a")], answer_operations:vec![], unresolved_references:vec![] };
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let Resolution::Plan(partial) = resolve(&catalog, &task, &intent) else {panic!("A lookup")};
+        assert_eq!(crate::parser::plan_coverage::uncovered_outputs(&task, &catalog, &intent, &partial), vec!["DNS A and MX records: mx_records"]);
+        intent.goals.push(goal("domain.dns-mx"));
+        let Resolution::Plan(complete) = resolve(&catalog, &task, &intent) else {panic!("A and MX lookups")};
+        assert_eq!(complete.steps.len(), 2);
+        assert!(crate::parser::plan_coverage::uncovered_outputs(&task, &catalog, &intent, &complete).is_empty());
+    }
+
+    #[test]
+    fn crypto_market_data_excludes_classified_and_rental_markets() {
+        let mut request = parsed(vec![json!({"slug":"research.market.analysis","name":"Market analysis",
+            "description":"Retrieve price, market cap, trading volume and liquidity for a cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["price".into(), "market_cap".into(), "volume".into()];
+        let crypto = "Crypto token price and market data with market cap and 24-hour volume.";
+        let classified = "Search public classified listings by market area, category, query, and common marketplace filters.";
+        let rentals = "Find public rental listings by market resource id, rental category, price, bedrooms and location.";
+        let catalog = catalog(vec![
+            service(940, "operation.crypto.market", "Crypto prices", crypto, "crypto"),
+            service(941, "operation.classified.market", "AgentBodega", classified, "agentbodega"),
+            service(942, "operation.rental.market", "AgentBodega", rentals, "agentbodega"),
+        ], vec![]);
+        let mut found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk.len(), 1, "{:?}", found[0].apiosk);
+        assert_eq!(found[0].apiosk[0].name, "Crypto prices");
+        found[0].coinbase = vec![bazaar(crypto), bazaar(classified), bazaar(rentals)];
+        filter_coinbase(&request, &mut found);
+        assert_eq!(found[0].coinbase.len(), 1);
+        assert_eq!(found[0].coinbase[0].description, crypto);
+        // The live registered catalog must not reintroduce broad marketplaces.
+        let live = search(&request, calibration::catalog());
+        assert!(live[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("agentbodega")));
+    }
+
+    #[test]
+    fn sentiment_analysis_keeps_its_topic_instead_of_matching_news_context() {
+        let mut request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis",
+            "description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].inputs = vec!["token_name".into(), "source_type".into()];
+        request.capabilities[0].outputs = ["sentiment_score", "positive_mentions", "negative_mentions", "neutral_mentions", "dominant_sentiment"].map(str::to_owned).to_vec();
+        let sentiment = "Market sentiment with positive, negative and neutral shares for explicit tickers. Recent 30-day provider window only.";
+        let c = catalog(vec![
+            service(910,"finance_markets.cityfalcon-news","CityFALCON","Financial news for explicit full tickers. Recent 30-day provider window only.","cityfalcon"),
+            service(911,"finance_markets.cityfalcon-sentiment","CityFALCON",sentiment,"cityfalcon"),
+            service(912,"operation.other.sentiment","Another provider",sentiment,"another-provider"),
+            service(913,"operation.pulse.sentiment","Pulse member",sentiment,"pulse-member"),
+        ], vec![]);
+        let found = search(&request, &c);
+        assert_eq!(found[0].apiosk.len(), 3);
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.description == sentiment));
+        let live_catalog = search(&request, calibration::catalog());
+        assert!(live_catalog[0].apiosk.iter().any(|candidate|
+            candidate.capability.as_deref() == Some("finance_markets.cityfalcon-sentiment")),
+            "sentiment must survive the full catalog ranking: {:?}", live_catalog[0].apiosk);
+        assert!(!live_catalog[0].operations.contains("finance_markets.cityfalcon-news"));
+        let mut external = found;
+        external[0].coinbase = vec![
+            bazaar("Market & brand sentiment for any keyword, brand, ticker or product: analyses the sentiment of web & news content."),
+            bazaar("Composite bull/bear sentiment for a crypto ticker or topic, fused across three sources."),
+            bazaar("Composite crypto market sentiment, optionally focused on a coin or query."),
+            bazaar("Real-time directional sentiment for any forex pair or gold — retail crowd positioning and COT alignment."),
+        ];
+        filter_coinbase(&request, &mut external);
+        assert_eq!(external[0].coinbase.len(), 3);
+    }
+
+    #[test]
+    fn pulse_sentiment_endpoints_are_found_without_execution_contracts() {
+        // Exact registered Pulse descriptions/identities read on 2026-10-06.
+        // No execution contracts are manufactured for these directory rows.
+        let sources: Vec<KnownSource> = serde_json::from_str(include_str!(
+            "../../tests/fixtures/pulse-sentiment-discovery.json")).unwrap();
+        let mut request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis",
+            "description":"Analyze the sentiment of public discussions, news, and social media about a specific cryptocurrency token."})]);
+        request.subjects[0].label = "Cardano".into();
+        request.subjects[0].kind = "cryptocurrency_token".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].outputs = vec!["sentiment_score".into(), "dominant_sentiment".into()];
+        let c = catalog(vec![], sources.clone());
+        let found = search(&request, &c);
+        let expected = BTreeSet::from([
+            "88994768-2735-4a99-9450-143a441f8ae1", // CryptoPulse snapshot
+            "10113620-3e13-4378-a615-31e939fd8b97", // MacroPulse crypto
+            "285e4ede-4a71-4527-b3c7-9c0de9ee1033", // SignalPulse crypto-lite
+        ]);
+        assert_eq!(found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.as_deref()).collect::<BTreeSet<_>>(), expected,
+            "{:#?}", found[0].apiosk);
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.availability == "discovery_only" && candidate.capability.is_none()));
+        assert!(found[0].operations.is_empty());
+        // The match remains visible alongside an executable local result.
+        let city = service(920, "finance_markets.cityfalcon-sentiment", "CityFALCON",
+            "Market sentiment with positive, negative and neutral shares for explicit tickers.", "cityfalcon");
+        let combined = search(&request, &catalog(vec![city], sources.clone()));
+        assert_eq!(combined[0].apiosk.len(), 4);
+        assert_eq!(combined[0].operations, BTreeSet::from(["finance_markets.cityfalcon-sentiment".to_owned()]));
+        // A different subject must not supply false lexical evidence, and a
+        // provider preference must still resolve all of Pulse's member APIs.
+        request.subjects[0].label = "Solana".into();
+        request.capabilities[0].source_hint = Some("Pulse Network".into());
+        assert_eq!(search(&request, &c)[0].apiosk.len(), 3);
+
+        // The real forex sentiment endpoint is discoverable for its domain,
+        // but is excluded from the crypto request above.
+        request.subjects.clear();
+        request.capabilities[0].subject_id = None;
+        request.capabilities[0].description = "Directional sentiment for a forex pair.".into();
+        let forex = search(&request, &c);
+        assert!(forex[0].apiosk.iter().any(|candidate| candidate.endpoint_id.as_deref() == Some("d785de6c-cdee-4fd8-8847-ed3d69fa04ce")));
+    }
+
+    #[test]
+    fn registered_listing_does_not_duplicate_its_executable_endpoint() {
+        let mut endpoint = service(921, "research.sentiment.analysis", "Sentiment source",
+            "Sentiment analysis with positive and negative scores.", "sentiment-source");
+        let mut source = known("sentiment-source", "Sentiment source", "Sentiment analysis.");
+        source.metadata.endpoints.push(ListedEndpoint {
+            endpoint_id: endpoint.endpoint_id, description: endpoint.description.clone().unwrap(),
+            method: "GET".into(), path: "/sentiment".into(), source_url: None, registration: None,
+        });
+        let request = parsed(vec![json!({"slug":"research.sentiment.analysis","name":"Sentiment analysis"})]);
+        let found = search(&request, &catalog(vec![endpoint.clone()], vec![source.clone()]));
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].availability, "supported");
+        // A rejected contract still leaves its registered endpoint visible,
+        // but cannot become a selected executable operation.
+        endpoint.list_atomic = -1;
+        let found = search(&request, &catalog(vec![endpoint], vec![source]));
+        assert_eq!(found[0].apiosk.len(), 1);
+        assert_eq!(found[0].apiosk[0].availability, "discovery_only");
+        assert!(found[0].operations.is_empty());
     }
 
     #[test]
@@ -1708,6 +2019,113 @@ mod tests {
         );
         assert_eq!(found[0].apiosk.len(), 1);
         assert_eq!(found[0].apiosk[0].source_slug.as_deref(), Some("preferred"));
+    }
+
+    fn person_profile_request() -> ParsedRequest {
+        crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"Olivier Brinkman","type":"person","identifiers":{}}],
+            "capabilities":[{"slug":"research.person.profile","name":"Person profile",
+                "description":"Retrieve a person's professional profile.","domain":"research",
+                "inputs":["person_name"],"outputs":["profile"],"subject_id":"s1",
+                "source_hint":"linkedin","confidence":0.95}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(),
+            "Check the linkedin profile from Olivier Brinkman, Founder of Apiosk", "fixture").unwrap()
+    }
+
+    #[test]
+    fn person_profiles_keep_the_requested_platform_and_exclude_company_and_game_profiles() {
+        // These two descriptions/IDs were returned by the live request on
+        // 2026-10-07, which incorrectly asked the person for a French SIREN.
+        let mut lobbying = service(1, "company.sirenic-entreprise-siren-lobbying", "Sirenic",
+            "Lobbying and influence profile of a French company from the official HATVP register of interest representatives — a transparency, governance and ESG due diligence signal: registration status, category, lobbying-expense brackets per fiscal year, staff count, recent subjects with intervention domains and action types, clients (for consulting firms), affiliations, declaration defaults and deregistrat", "sirenic");
+        lobbying.endpoint_id = "d9e0985f-9425-56c3-8d07-27d6e242dce0".parse().unwrap();
+        let mut person = service(2, "operation.stableenrich.post-api-minerva-enrich", "StableEnrich",
+            "Enrich person records with demographics, work history, education, contact info (emails + phones), address history, financial signals (income/wealth range), relatives, and social profiles.", "stableenrich");
+        person.endpoint_id = "1fb6a3e3-0f69-4122-b3f7-cca5808b1dc8".parse().unwrap();
+        let linkedin = service(3, "operation.profile-provider.lookup-profile", "Third-party profile API",
+            "Look up one person's public LinkedIn profile per call. Returns work history and education.", "profile-provider");
+        let company = service(4, "company.profile", "Company profile API",
+            "Look up a LinkedIn company profile and its business information.", "company-provider");
+        let catalog = catalog(vec![lobbying, person.clone(), linkedin.clone(), company],
+            vec![known("tablepulse", "TablePulse",
+                "Board-game and tabletop intelligence API. Synthesizes Claude's own board-game knowledge with live Tavily web grounding, the free BoardGamePrices.co.uk pricing API, and the free Gamefound crowdfunding API into structured, actionable intelligence. 11 endpoints covering recommendations, comparisons, expansions, collection valuation, crowdfunding, party/solo/family picks, complexity, pricing, and awards.")]);
+        let mut request = person_profile_request();
+        let found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(),
+            [Some("profile-provider")], "{:?}", found[0].apiosk);
+
+        request.capabilities[0].source_hint = None;
+        let found = search(&request, &catalog);
+        let ids: BTreeSet<_> = found[0].apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
+        assert_eq!(ids, BTreeSet::from([person.endpoint_id.to_string(), linkedin.endpoint_id.to_string()]));
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("tablepulse")));
+    }
+
+    #[test]
+    fn webpage_discovery_can_mention_profiles_without_requesting_profile_records() {
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
+        snapshot.services.retain(|service| service.contract.capability_slug == "web.search");
+        snapshot.known_sources.clear();
+        assert_eq!(snapshot.services.len(), 1);
+        // Canonical production operation wording, distinct from its endpoint's
+        // marketing copy. Its typed query and URL/title outputs are unchanged.
+        snapshot.services[0].description = Some("Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer.".into());
+        let search_id = snapshot.services[0].endpoint_id.to_string();
+        snapshot.services.extend([
+            service(10101, "operation.profile-provider.lookup-profile", "Public profile API",
+                "Look up one person's public LinkedIn profile by known profile URL.", "profile-provider"),
+            service(10102, "company.registry-profile", "Company registry",
+                "Retrieve a registered company profile by SIREN.", "registry"),
+        ]);
+        let fixture: Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+        snapshot.vocabulary.extend(fixture.vocabulary);
+        let catalog = Catalog::build(snapshot);
+        assert_eq!(catalog.services.len(), 3, "{:?}", catalog.rejected);
+        let mut request = person_profile_request();
+        request.capabilities[0].slug = "research.web.search".into();
+        request.capabilities[0].name = "Professional profile page search".into();
+        request.capabilities[0].description = "Search the public web for professional profile pages matching the supplied criteria.".into();
+        request.capabilities[0].outputs = vec!["url".into(), "title".into()];
+        request.capabilities[0].source_hint = None;
+        let found = search(&request, &catalog);
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.endpoint_id.as_deref() == Some(&search_id)), "{:?}", found[0].apiosk);
+        assert!(found[0].operations.contains("web.search"));
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("registry")));
+
+        // A request for an actual profile retains its subject gate even when
+        // the display name uses the ordinary verb "search".
+        let mut record = person_profile_request();
+        record.capabilities[0].name = "Person profile search".into();
+        record.capabilities[0].source_hint = None;
+        let found = search(&record, &catalog);
+        assert_eq!(found[0].apiosk.iter().map(|candidate| candidate.source_slug.as_deref()).collect::<Vec<_>>(),
+            [Some("profile-provider")], "{:?}", found[0].apiosk);
+    }
+
+    #[test]
+    fn an_unavailable_named_source_does_not_widen_an_exact_company_profile_match() {
+        let catalog = catalog(vec![service(1, "company.profile", "Company registry",
+            "Retrieve the official company registry profile.", "registry")], vec![]);
+        let mut request = parsed(vec![json!({"slug":"company.profile","name":"Company profile"})]);
+        assert_eq!(search(&request, &catalog)[0].apiosk.len(), 1);
+        request.capabilities[0].source_hint = Some("missing-register".into());
+        assert!(search(&request, &catalog)[0].apiosk.is_empty());
+    }
+
+    #[test]
+    fn named_platform_cannot_bypass_person_profile_scope_in_bazaar() {
+        let request = person_profile_request();
+        let directory: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/ask-v2-linkedin-contract.json")).unwrap();
+        let mut profile = bazaar(directory["endpoints"][0]["description"].as_str().unwrap());
+        profile.url = Some(directory["endpoints"][0]["resource"].as_str().unwrap().into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![profile,
+            bazaar("Retrieve a LinkedIn company profile, employee count and revenue."),
+            bazaar("Board-game profiles and intelligence, promoted on LinkedIn.")];
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        assert_eq!(matches[0].coinbase[0].url.as_deref(), Some("https://agdata.shveik.dev/x402/linkedin"));
     }
 
     #[test]

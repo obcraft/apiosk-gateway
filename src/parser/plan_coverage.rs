@@ -222,13 +222,16 @@ pub(super) fn uncovered_reply(intake: &Intake) -> Option<super::ChatReply> {
                 && !cap.slug.starts_with("general.")
                 && request_match(intake, *index).is_none_or(|matched| !executable_match(matched))
         })
-        .map(|(_, cap)| cap.name.as_str())
+        .map(|(index, cap)| (index, cap.name.as_str()))
         .collect();
     if missing.is_empty() {
         return None;
     }
-    let names = missing.join("; ");
-    let message = if intake.parsed_request.language == "nl" {
+    let names = missing.iter().map(|(_, name)| *name).collect::<Vec<_>>().join("; ");
+    let discovered = missing.iter().filter_map(|(index, _)| request_match(intake, *index)).collect::<Vec<_>>();
+    let message = if let Some(message) = discovery_message(&intake.parsed_request.language, &names, &discovered) {
+        message
+    } else if intake.parsed_request.language == "nl" {
         format!("Voor deze onderdelen is geen passende uitvoerbare bron gevonden: {names}. De volledige aanvraag krijgt daarom nog geen prijs. Verduidelijk deze onderdelen of pas de vraag aan; de overige onderdelen blijven bewaard.")
     } else {
         format!("No matching executable source was found for these requirements: {names}. The complete request cannot be priced yet. Clarify these requirements or revise the question; the other requirements are kept.")
@@ -249,13 +252,31 @@ fn executable_match(matched: &crate::capability_intake::Match) -> bool {
         && candidate.capability.as_ref().is_some_and(|capability| matched.operations.contains(capability)))
 }
 
+fn discovery_message(language: &str, names: &str, matches: &[&crate::capability_intake::Match]) -> Option<String> {
+    if matches.iter().any(|found| !found.coinbase.is_empty()) {
+        Some(if language == "nl" {
+            format!("Er zijn aanvullende diensten gevonden voor {names}. Een volledig automatisch plan is nog niet gereed. Kies een passende dienst uit de gevonden bronnen om de invoer en prijs te controleren.")
+        } else {
+            format!("Additional services were found for {names}. A complete automatic plan is not ready yet. Choose a matching service from the sources to review its inputs and price.")
+        })
+    } else if matches.iter().any(|found| found.apiosk.iter().any(|candidate| candidate.availability != "supported" && candidate.endpoint_id.is_some())) {
+        Some(if language == "nl" {
+            format!("Er zijn bronendpoints gevonden voor {names}. Een volledig automatisch plan is nog niet gereed; de dekking en uitvoerbaarheid moeten nog worden gecontroleerd. Bekijk de gevonden bronnen.")
+        } else {
+            format!("Source endpoints were found for {names}. A complete automatic plan is not ready yet; coverage and execution support still need verification. Review the matching sources below.")
+        })
+    } else { None }
+}
+
 /// A complete model reply was rejected for changing or duplicating the
 /// requirements. This is neither evidence of an outage nor of absent sources.
 pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
     let names = intake.parsed_request.capabilities.iter()
         .filter(|cap| !answer_instruction(cap)).map(|cap| cap.name.as_str())
         .collect::<Vec<_>>().join("; ");
-    let message = if intake.parsed_request.language == "nl" {
+    let message = if let Some(message) = discovery_message(&intake.parsed_request.language, &names, &intake.matches.iter().collect::<Vec<_>>()) {
+        message
+    } else if intake.parsed_request.language == "nl" {
         format!("Ik kon nog geen uitvoerbaar plan maken dat deze onderdelen en de opgegeven gegevens correct behoudt: {names}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. De volledige vraag blijft bewaard; verduidelijk de gewenste gegevens of probeer de planning opnieuw.")
     } else {
         format!("I could not yet build an executable plan that correctly preserves these requirements and the supplied inputs: {names}. No price proposal was made and nothing was executed. The complete question is kept; clarify the required data or try planning again.")
@@ -468,7 +489,8 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else {continue};
             if !uncovered_outputs(&preview, catalog, &bound, &plan).is_empty() {continue;}
             let message = if named_company {
-                "I will look up the company by name and combine its registered details, available annual figures and website information. Review the total price first."
+                if canonical.language == "nl" { "Ik zoek het bedrijf op naam en combineer de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie. Bekijk eerst de totale prijs." }
+                else { "I will look up the company by name and combine its registered details, available annual figures and website information. Review the total price first." }
             } else if crate::profession_request::recognize(question).is_some() {
                 if canonical.language == "nl" { "Ik haal de gevraagde gegevens uit de gevonden bronnen en toon eerst de totale prijs." }
                 else { "I will retrieve the requested data from the matched sources and show the total price first." }
