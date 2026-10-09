@@ -15,7 +15,9 @@ use uuid::Uuid;
 /// The person the integration belongs to. An organisation key has no person
 /// behind it to give consent, so it is refused rather than mapped to one.
 async fn person(state: &ServerState, headers: &HeaderMap) -> Result<Uuid, Response> {
-    let ctx = authenticated(state, headers).await.map_err(|r| failure(r.status, r.code, r.message))?;
+    let ctx = authenticated(state, headers)
+        .await
+        .map_err(|r| failure(r.status, r.code, r.message))?;
     if ctx.api_key.is_some() {
         return Err(failure(StatusCode::FORBIDDEN, "integrations_person_only", "Integrations belong to a person. Connect them in the Apiosk app or through a connected agent, not with an organisation API key."));
     }
@@ -27,7 +29,11 @@ fn client() -> Result<&'static integrations::Composio, Response> {
 }
 
 fn not_configured() -> Response {
-    failure(StatusCode::SERVICE_UNAVAILABLE, "integrations_not_configured", "App integrations are not available yet.")
+    failure(
+        StatusCode::SERVICE_UNAVAILABLE,
+        "integrations_not_configured",
+        "App integrations are not available yet.",
+    )
 }
 
 fn toolkit(slug: &str) -> Result<&'static str, Response> {
@@ -42,11 +48,22 @@ fn provider_failed(context: &str, error: ComposioError) -> Response {
         return not_configured();
     }
     if matches!(error, ComposioError::NeedsSetup) {
-        tracing::error!(context, "toolkit has no auth config; set one up in the Composio dashboard");
-        return failure(StatusCode::CONFLICT, "integration_needs_setup", "This app needs a one-time setup by Apiosk before it can be connected.");
+        tracing::error!(
+            context,
+            "toolkit has no auth config; set one up in the Composio dashboard"
+        );
+        return failure(
+            StatusCode::CONFLICT,
+            "integration_needs_setup",
+            "This app needs a one-time setup by Apiosk before it can be connected.",
+        );
     }
     tracing::warn!(error = %error, context, "composio request failed");
-    failure(StatusCode::BAD_GATEWAY, "integration_provider_unavailable", "The integration provider did not respond. Try again shortly.")
+    failure(
+        StatusCode::BAD_GATEWAY,
+        "integration_provider_unavailable",
+        "The integration provider did not respond. Try again shortly.",
+    )
 }
 
 pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -> Response {
@@ -62,22 +79,32 @@ pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -
 
 /// A hosted consent link. Open it in the person's browser; Composio sends
 /// them back to the App's Integrations page afterwards.
-pub(super) async fn connect(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>) -> Response {
-    let (owner, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
-        (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
-        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
-    };
+pub(super) async fn connect(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(slug): Path<String>,
+) -> Response {
+    let (owner, composio, toolkit) =
+        match (person(&state, &headers).await, client(), toolkit(&slug)) {
+            (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
+            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+        };
     match composio.connect(owner, toolkit).await {
         Ok(link) => Json(link).into_response(),
         Err(error) => provider_failed("connect", error),
     }
 }
 
-pub(super) async fn disconnect(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>) -> Response {
-    let (owner, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
-        (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
-        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
-    };
+pub(super) async fn disconnect(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(slug): Path<String>,
+) -> Response {
+    let (owner, composio, toolkit) =
+        match (person(&state, &headers).await, client(), toolkit(&slug)) {
+            (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
+            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+        };
     match composio.disconnect(owner, toolkit).await {
         Ok(removed) => Json(json!({ "toolkit": toolkit, "removed": removed })).into_response(),
         Err(error) => provider_failed("disconnect", error),
@@ -107,15 +134,45 @@ pub(super) struct ExecuteAction {
 /// Runs one action the person reviewed. App sessions only: an action writes
 /// to somebody's CRM, mailbox or channel, so the arguments are confirmed by a
 /// person on screen, never by an agent on their behalf.
-pub(super) async fn execute(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(body): Json<ExecuteAction>) -> Response {
+pub(super) async fn execute(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(slug): Path<String>,
+    Json(body): Json<ExecuteAction>,
+) -> Response {
     let (owner, composio) = match (super::app_person(&state, &headers).await, client()) {
         (Ok(person), Ok(composio)) => (person.owner, composio),
         (Err(r), _) | (_, Err(r)) => return r,
     };
     match composio.execute(owner, &slug, &body.arguments).await {
         Ok(outcome) => Json(outcome).into_response(),
-        Err(integrations::ExecuteError::InvalidArguments) => failure(StatusCode::BAD_REQUEST, "invalid_arguments", "The action's arguments must be a JSON object under 64 KB."),
-        Err(integrations::ExecuteError::UnknownAction) => failure(StatusCode::NOT_FOUND, "unknown_action", "This action is not available. Connect the app in Integrations first."),
+        Err(integrations::ExecuteError::InvalidArguments) => failure(
+            StatusCode::BAD_REQUEST,
+            "invalid_arguments",
+            "The action's arguments must be a JSON object under 64 KB.",
+        ),
+        Err(integrations::ExecuteError::UnknownAction) => failure(
+            StatusCode::NOT_FOUND,
+            "unknown_action",
+            "This action is not available. Connect the app in Integrations first.",
+        ),
+        Err(integrations::ExecuteError::AccountUnavailable) => failure(
+            StatusCode::CONFLICT,
+            "integration_account_unavailable",
+            "The selected app account is unavailable. Select and review an active connection.",
+        ),
+        Err(
+            integrations::ExecuteError::InvalidContract | integrations::ExecuteError::InvalidSchema,
+        ) => failure(
+            StatusCode::CONFLICT,
+            "integration_contract_changed",
+            "Prepare and review this action again.",
+        ),
+        Err(integrations::ExecuteError::SchemaArguments) => failure(
+            StatusCode::BAD_REQUEST,
+            "invalid_action_arguments",
+            "Check the action's required fields and approved destination.",
+        ),
         Err(integrations::ExecuteError::Provider(error)) => provider_failed("execute", error),
     }
 }
@@ -130,27 +187,48 @@ pub(super) struct PrepareAction {
 
 /// Proposes arguments for one action from the question and the results already
 /// on screen. Nothing runs: the App shows the proposal for the person to check.
-pub(super) async fn prepare(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(body): Json<PrepareAction>) -> Response {
+pub(super) async fn prepare(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(slug): Path<String>,
+    Json(body): Json<PrepareAction>,
+) -> Response {
     let (owner, composio) = match (super::app_person(&state, &headers).await, client()) {
         (Ok(person), Ok(composio)) => (person.owner, composio),
         (Err(r), _) | (_, Err(r)) => return r,
     };
     let question = body.question.trim();
     if question.is_empty() || question.chars().count() > 16_000 {
-        return failure(StatusCode::BAD_REQUEST, "invalid_question", "Enter a question of up to 16,000 characters.");
+        return failure(
+            StatusCode::BAD_REQUEST,
+            "invalid_question",
+            "Enter a question of up to 16,000 characters.",
+        );
     }
     if serde_json::to_vec(&body.results).map_or(true, |bytes| bytes.len() > 64 * 1024) {
-        return failure(StatusCode::PAYLOAD_TOO_LARGE, "results_too_large", "Send at most 64 KB of results.");
+        return failure(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "results_too_large",
+            "Send at most 64 KB of results.",
+        );
     }
     let Ok(_permit) = state.permits.try_acquire() else {
-        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "The service is busy. Try again shortly.");
+        return failure(
+            StatusCode::TOO_MANY_REQUESTS,
+            "busy",
+            "The service is busy. Try again shortly.",
+        );
     };
     let actions = match composio.actions(owner).await {
         Ok(actions) => actions,
         Err(error) => return provider_failed("prepare", error),
     };
     let Some(action) = integrations::find_action(&actions, &slug) else {
-        return failure(StatusCode::NOT_FOUND, "unknown_action", "This action is not available. Connect the app in Integrations first.");
+        return failure(
+            StatusCode::NOT_FOUND,
+            "unknown_action",
+            "This action is not available. Connect the app in Integrations first.",
+        );
     };
     match state.engine.parser.propose_action_arguments(question, action, &body.results).await {
         Ok(proposal) => Json(json!({ "action": action, "arguments": proposal["arguments"], "missing": proposal["missing"] })).into_response(),
@@ -164,7 +242,11 @@ pub(super) async fn prepare(State(state): State<ServerState>, headers: HeaderMap
 
 /// Everything a connected app can do, for the Integrations page. Every tool is
 /// listed; `in_ask` marks the ones Ask plans and runs.
-pub(super) async fn toolkit_actions(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>) -> Response {
+pub(super) async fn toolkit_actions(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(slug): Path<String>,
+) -> Response {
     let (_, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
         (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
         (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,

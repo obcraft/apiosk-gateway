@@ -11,6 +11,18 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 async fn person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
+    let principal = direct_person(s, h).await?;
+    if !recurring::owner_allowed(principal.owner) {
+        return Err(failure(
+            StatusCode::FORBIDDEN,
+            "recurring_forbidden",
+            "Recurring orders are not available for this account.",
+        ));
+    }
+    Ok(principal)
+}
+
+async fn direct_person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
     let c = authenticated(s, h)
         .await
         .map_err(|r| failure(r.status, r.code, r.message))?;
@@ -22,6 +34,43 @@ async fn person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal
         ));
     }
     Ok(c.principal)
+}
+
+/// Only this capability bit is public to an authenticated app session. The
+/// server-side rollout list never leaves the gateway.
+pub(super) async fn access(State(s): State<ServerState>, h: HeaderMap) -> Response {
+    let p = match direct_person(&s, &h).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    Json(json!({"enabled": recurring::enabled_for(p.owner)})).into_response()
+}
+
+/// Stopping an owner's own mandate must still work after workspace membership
+/// is removed. Authenticate the App session normally, but authorize this narrow
+/// non-spending operation against the stored owner/workspace in `control`.
+async fn owner_control(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
+    let workspace = h
+        .get("x-apiosk-workspace")
+        .map(|value| {
+            value
+                .to_str()
+                .ok()
+                .and_then(|value| value.parse::<Uuid>().ok())
+                .ok_or_else(|| {
+                    failure(
+                        StatusCode::BAD_REQUEST,
+                        "invalid_workspace",
+                        "Invalid workspace.",
+                    )
+                })
+        })
+        .transpose()?;
+    let mut authentication = h.clone();
+    authentication.remove("x-apiosk-workspace");
+    let mut principal = person(s, &authentication).await?;
+    principal.workspace = workspace;
+    Ok(principal)
 }
 fn reply(result: anyhow::Result<Value>) -> Response {
     match result {
@@ -43,6 +92,10 @@ pub(super) async fn quote(
     h: HeaderMap,
     Json(b): Json<recurring::QuoteRequest>,
 ) -> Response {
+    let p = match person(&s, &h).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
     if !recurring::enabled() {
         return failure(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -50,10 +103,6 @@ pub(super) async fn quote(
             "Recurring orders are not available yet.",
         );
     }
-    let p = match person(&s, &h).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
     reply(recurring::quote(&s.engine, &p, b).await)
 }
 pub(super) async fn read(
@@ -71,6 +120,8 @@ pub(super) async fn read(
 #[serde(deny_unknown_fields)]
 pub(super) struct Approve {
     total: String,
+    per_run_cap: String,
+    workflow_hash: String,
 }
 pub(super) async fn approve(
     State(s): State<ServerState>,
@@ -78,6 +129,10 @@ pub(super) async fn approve(
     Path(id): Path<Uuid>,
     Json(b): Json<Approve>,
 ) -> Response {
+    let p = match person(&s, &h).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
     if !recurring::enabled() {
         return failure(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -85,19 +140,18 @@ pub(super) async fn approve(
             "Recurring orders are not available yet.",
         );
     }
-    let p = match person(&s, &h).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
     reply(
         async {
-            recurring::read(&s.engine, &p, id).await?;
+            recurring::verify(&s.engine, &p, id).await?;
             s.engine.store.check_spending(&p).await?;
             let total = b.total.parse::<i64>()?;
-            sqlx::query("select billing.approve_recurring_order($1,$2,$3)")
+            let cap = b.per_run_cap.parse::<i64>()?;
+            sqlx::query("select billing.approve_locked_recurring_order($1,$2,$3,$4,$5)")
                 .bind(p.owner)
                 .bind(id)
                 .bind(total)
+                .bind(cap)
+                .bind(b.workflow_hash)
                 .execute(&s.engine.store.pool)
                 .await?;
             recurring::read(&s.engine, &p, id).await
@@ -116,6 +170,15 @@ pub(super) async fn control(
     Path(id): Path<Uuid>,
     Json(b): Json<Control>,
 ) -> Response {
+    let actor = if matches!(b.state.as_str(), "paused" | "cancelled") {
+        owner_control(&s, &h).await
+    } else {
+        person(&s, &h).await
+    };
+    let p = match actor {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
     if b.state == "active" && !recurring::enabled() {
         return failure(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -123,21 +186,30 @@ pub(super) async fn control(
             "Recurring orders are not available yet.",
         );
     }
-    let p = match person(&s, &h).await {
-        Ok(p) => p,
-        Err(r) => return r,
-    };
     reply(
         async {
-            recurring::read(&s.engine, &p, id).await?;
-            s.engine.store.check_spending(&p).await?;
+            if b.state == "active" {
+                recurring::verify(&s.engine, &p, id).await?;
+                s.engine.store.check_spending(&p).await?;
+            } else {
+                // Releasing the owner's future holds must remain possible
+                // after workspace spending access has been revoked.
+                let exists:bool=sqlx::query_scalar("select exists(select 1 from billing.recurring_orders where id=$1 and owner_id=$2 and workspace_id is not distinct from $3)")
+                    .bind(id).bind(p.owner).bind(p.workspace).fetch_one(&s.engine.store.pool).await?;
+                anyhow::ensure!(exists,"Order unavailable.");
+            }
             sqlx::query("select billing.control_recurring_order($1,$2,$3)")
                 .bind(p.owner)
                 .bind(id)
                 .bind(&b.state)
                 .execute(&s.engine.store.pool)
                 .await?;
-            recurring::read(&s.engine, &p, id).await
+            // A revoked workspace member cannot read its sources afterwards.
+            match recurring::read(&s.engine, &p, id).await {
+                Ok(order) => Ok(order),
+                Err(error) if b.state == "active" => Err(error),
+                Err(_) => Ok(json!({"id":id,"state":b.state,"access_revoked":true})),
+            }
         }
         .await,
     )

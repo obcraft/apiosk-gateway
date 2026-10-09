@@ -129,6 +129,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
         .route("/v2/recurring-orders", get(recurring::list))
+        .route("/v2/recurring-orders/access", get(recurring::access))
         .route("/v2/recurring-orders/quote", post(recurring::quote))
         .route("/v2/recurring-orders/:id", get(recurring::read))
         .route("/v2/recurring-orders/:id/approve", post(recurring::approve))
