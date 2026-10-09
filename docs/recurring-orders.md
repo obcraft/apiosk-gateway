@@ -3,12 +3,12 @@
 Status: the frozen execution runtime, scheduling, funding, and Slack/Gmail review
 flow are implemented and tested locally. This is **not the complete product
 flow**: arbitrary manual Ask combinations, versioned editing, more delivery
-channels, and delegated API/MCP recurrence remain later stages. A private
-production rollout is being staged with recurrence disabled until the locked
-workflow migration is approved and applied. No real provider purchase, funded
-live schedule, or real Slack/Gmail send is part of deployment validation.
+channels, and delegated API/MCP recurrence remain later stages. The private
+production rollout is enabled for the approved owner after applying the locked
+workflow migration. No real provider purchase, funded live schedule, or real
+Slack/Gmail send is part of deployment validation.
 
-Production remains disabled with RECURRING_ORDERS_ENABLED="0". The App obtains
+Production uses RECURRING_ORDERS_ENABLED="1". The App obtains
 its capability from authenticated GET /v2/recurring-orders/access; there is no
 browser or development-mode allowlist. The server returns only {enabled:boolean}.
 RECURRING_ALLOWED_OWNER_IDS contains immutable authenticated owner UUIDs and is
@@ -280,8 +280,9 @@ does not modify that fixture or its analysis implementation.
 3. Deploy recurring-execute with its configured verify_jwt=false and HMAC/DB
    mandate checks. Deploy updated use-selection with verify_jwt=true unchanged,
    then Gateway and App while gates remain off.
-4. Keep Gateway and Edge recurrence disabled until the locked migration is
-   applied. Enable only with V2_EXECUTION_ENABLED=1,
+4. Keep Gateway recurrence disabled until the locked migration is applied.
+   Edge execution also requires the matching worker secret and owner allowlist.
+   Enable only with V2_EXECUTION_ENABLED=1,
    RECURRING_ORDERS_ENABLED=1, the worker secret and the one-owner allowlist;
    restart/redeploy for worker startup. Workers recheck the gates before
    claiming, funding, paid calls and sending. Runtime configuration changes still
@@ -295,5 +296,6 @@ does not modify that fixture or its analysis implementation.
    Confirm the production UI and source usage notices.
 
 Monitor attention orders, unresolved calls/runs, uncertain deliveries, missed
-occurrences, stale leases, and reservation balances. Neither deployment nor this
-paid/live acceptance has been completed as part of the local implementation.
+occurrences, stale leases, and reservation balances. Production enablement does
+not establish paid/live acceptance; a real funded schedule and delivery remain
+separate checks.
