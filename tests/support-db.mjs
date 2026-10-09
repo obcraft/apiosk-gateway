@@ -121,7 +121,7 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // Bright Data owns a private provider cache and is covered by its dedicated
   // migration/admission tests; its grants depend on the omitted onboarding.
   // Operator publication additionally requires production probe records.
-  &&!/_((onboard_brightdata_linkedin)|(brightdata_v2_admission_access)|(activate_brightdata_linkedin))\.sql$/.test(name)
+  &&!/_((onboard_brightdata_linkedin)|(brightdata_v2_admission_access)|(activate_brightdata_linkedin)|(brightdata_five_cent_prices_and_examples))\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
   &&!name.endsWith('_recurring_orders.sql')&&!name.endsWith('_locked_recurring_workflows.sql')&&!name.endsWith('_recurring_self_email.sql')).sort()) {

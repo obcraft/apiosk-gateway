@@ -225,7 +225,13 @@ fn parse_allowed_owners(setting: Option<&str>) -> Vec<Uuid> {
     };
     let parsed: Option<Vec<Uuid>> = setting
         .split(',')
-        .map(|part| part.trim().parse::<Uuid>().ok().filter(|id| !id.is_nil()))
+        .map(|part| {
+            let part = part.trim();
+            if part.len() != 36 {
+                return None;
+            }
+            part.parse::<Uuid>().ok().filter(|id| !id.is_nil())
+        })
         .collect();
     parsed.unwrap_or_default()
 }
@@ -627,6 +633,8 @@ mod tests {
             format!("{owner},invalid"),
             format!("{owner},"),
             format!(",{owner}"),
+            owner.simple().to_string(),
+            owner.urn().to_string(),
         ] {
             assert!(parse_allowed_owners(Some(&setting)).is_empty());
         }

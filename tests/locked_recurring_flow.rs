@@ -68,9 +68,10 @@ async fn http(
 
 const FIXTURE_SCHEMA: &str = r#"
 CREATE ROLE service_role BYPASSRLS;
-CREATE SCHEMA auth; CREATE SCHEMA billing; CREATE SCHEMA actions; CREATE SCHEMA tenancy;
+CREATE SCHEMA auth; CREATE SCHEMA billing; CREATE SCHEMA IF NOT EXISTS actions; CREATE SCHEMA tenancy;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT NULL::uuid $$;
 CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz,deleted_at timestamptz);
+DROP VIEW IF EXISTS actions.user_selected_apis;
 ALTER TABLE public.user_selected_apis SET SCHEMA actions;
 ALTER TABLE actions.user_selected_apis ADD COLUMN created_at timestamptz DEFAULT now();
 CREATE VIEW public.user_selected_apis AS SELECT * FROM actions.user_selected_apis;
