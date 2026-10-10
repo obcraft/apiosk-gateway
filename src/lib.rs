@@ -50,6 +50,8 @@ pub mod sources;
 pub mod eu_capabilities;
 pub mod source_preview;
 mod search_snapshot;
+mod supporting_news;
+pub use supporting_news::start_background_refresh as start_supporting_news;
 pub mod state;
 pub mod store;
 pub mod supplier_check;

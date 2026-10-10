@@ -39,6 +39,25 @@ payment, source execution or answer synthesis is created by these routes. Client
 metadata is validated and used only for directory search. Public discovery
 requires `ask:create`; selected execution requires `sources:execute`.
 
+## Complete requests in the App
+
+The App waits for source discovery before allowing a new source selection and
+automatically prepares the complete data question through `/v2/ask-v2/research`.
+A prepared task opens even when the directory also returned alternatives.
+The task owns the combined price ceiling, missing inputs and one approval.
+
+When at least two distinct requested retrievals have server-preferred executable
+matches from different providers, the App keeps them together: no individual
+source picker while preparing, retrying or reopening that request. Alternatives
+for one retrieval and multiple endpoints from one provider do not increase this
+count. The first supported match per request occurrence is used, respecting the
+server's order and subject binding; parser confidence is not a source score.
+The backend still validates complete coverage before quoting. A clarification or
+unsupported part stays with the full saved request rather than silently dropping
+into separate purchases. With insufficient complementary matches, individual
+source review remains available. Existing explicit source choices and receipts
+retain their saved input and approval flow; reopening never prepares or buys again.
+
 ## Selected-source purchases
 
 Selecting **Use** opens the source's input contract below the results table. The
@@ -74,3 +93,79 @@ speed and semantic extraction quality vary; neither two-second latency nor
 complete extraction of every sub-question is guaranteed. Tests cover canonical App/API interpretation and contract parity, legacy
 browser normalization, cancellation and stale responses, origin retries,
 catalog relevance, stream decoding, bounds, and the isolated route contract.
+
+## Optional supporting news
+
+Completed or partial answers with primary findings can include a saved
+`analysis.supporting_news` list. These are recent, relevant publisher feed
+excerpts for additional context, separate from purchased source evidence,
+requirement coverage and supplier verdicts. News never completes a missing
+check or replaces an unavailable primary answer. No match means no visible
+news section. The App and research PDF show publisher, publication date,
+headline, excerpt and a link to the original article.
+
+The fixed public feed allowlist is:
+
+| Publisher | Feed |
+| --- | --- |
+| BBC News | `https://feeds.bbci.co.uk/news/rss.xml` |
+| The Guardian | `https://www.theguardian.com/world/rss` |
+| NPR | `https://feeds.npr.org/1001/rss.xml` |
+| Al Jazeera | `https://www.aljazeera.com/xml/rss/all.xml` |
+| The New York Times | `https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml` |
+| Deutsche Welle | `https://rss.dw.com/rdf/rss-en-all` |
+| Ars Technica | `https://feeds.arstechnica.com/arstechnica/index` |
+| NOS | `https://feeds.nos.nl/nosnieuwsalgemeen` |
+
+One background worker per Gateway process warms the fixed feeds at startup
+and refreshes them every ten minutes with concurrent, bounded requests.
+Answer composition reads only the available cache and never waits for feed
+requests or locks. A cold or busy cache yields no supplement for that answer;
+feed errors cannot delay or block the primary result. This is a current-news
+cache, not a historical news archive. Questions, customer identifiers and
+source results never go to publishers: matching runs locally. News does not
+change parsing, source selection, planning, status, approval, source count or
+charges. Reopening an answer and manually recomposing its saved primary
+findings reuse the stored selection, including an empty selection.
+
+Selection is conservative: topical overlap beyond a named entity is required;
+generic terms, ambiguous names and geographic overlap alone are insufficient.
+Only recent dated articles with publisher-owned links are eligible. Feed text
+is treated as untrusted plain text. It is never a prompt, an instruction or
+proof of an official registry fact, and no full article is fetched.
+
+The result contains at most four articles, with at most two per publisher,
+from the past seven days. Explicit shorter relative time windows and known
+geographic qualifiers narrow the selection further. Historical-only queries
+that the current feeds cannot cover receive no supplemental news. Matching
+uses local text normalization and a small set of English/Dutch topic aliases;
+it does not add a model call or promise exhaustive semantic news search.
+
+## Standalone public news search
+
+`POST /v2/ask-v2/news` accepts only `{ "question": "..." }`, without authentication.
+It handles whole standalone Dutch/English news requests, such as
+“Wat wordt er vandaag in het nieuws gezegd over: Sinterklaas?” or
+“Latest news about Sinterklaas”. Additional retrievals, unsupported source,
+date, location, output or action clauses return `{ "handled": false }` so the
+ordinary Ask flow can handle them. Shared classifier cases live in
+`contracts/standalone-news-cases.json` and are checked by Gateway and App tests.
+
+This separate route may wait for the same bounded public-feed refresh; its
+eight-request semaphore and 8 KiB body limit are independent of paid tasks.
+It uses no parser model, catalog, database, billing or task status. Topics may
+contain one meaningful term. At most twenty matching articles are returned,
+newest first, with publisher, publisher domain, title, excerpt, article URL,
+publication timestamp and feed URL. The App uses its fixed publisher logo map.
+
+Handled responses contain `kind: "rss_news"`, the captured `query`,
+`time_window`, `articles`, and `coverage`. Status is `ready` for matches,
+`empty` for no matches in at least one available successful feed snapshot,
+or `unavailable` when no usable snapshot exists. Coverage reports configured
+and available feed counts and the latest successful refresh timestamp;
+attempted or failed refreshes do not count as available. Last successful
+snapshots may be reused for at most seven days, and feed coverage is partial.
+“Today” uses the Europe/Amsterdam calendar day, including 23/25-hour DST days.
+Other accepted requests cover the past seven days. Future articles are always
+excluded. The conservative supplementary scorer and all existing Ask flows
+are unchanged by this standalone route.

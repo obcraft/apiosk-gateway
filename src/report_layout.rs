@@ -555,6 +555,39 @@ pub fn findings(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
     }
     Ok(())
 }
+fn saved_news(document: &Value) -> Vec<&Value> {
+    let mut seen = BTreeSet::new();
+    document["analysis"]["supporting_news"].as_array().into_iter().flatten()
+        .filter(|article| {
+            let present = |key| article[key].as_str().is_some_and(|s| !s.trim().is_empty());
+            let safe_link = |key| article[key].as_str().and_then(|s| url::Url::parse(s).ok())
+                .is_some_and(|url| matches!(url.scheme(), "http" | "https") && url.has_host()
+                    && url.username().is_empty() && url.password().is_none());
+            present("title") && present("publisher") && safe_link("url") && safe_link("feed_url")
+                && article["published_at"].as_str().is_some_and(|s| chrono::DateTime::parse_from_rfc3339(s).is_ok())
+                && seen.insert(article["url"].as_str().unwrap())
+        }).take(4).collect()
+}
+
+/// Optional publisher excerpts remain separate from the numbered primary evidence.
+/// This projection reads only the saved answer; downloading never refreshes feeds.
+pub fn supporting_news(doc: &mut genpdf::Document, document: &Value) {
+    let articles = saved_news(document);
+    if articles.is_empty() { return; }
+    doc.push(Break::new(0.8));
+    heading(doc, "Related news", 17);
+    small(doc, "Additional context from publisher feeds. These excerpts do not change the findings or resolve evidence gaps.");
+    for article in articles {
+        doc.push(Break::new(0.6));
+        heading(doc, article["title"].as_str().unwrap(), 11);
+        small(doc, &format!("{} | {}", article["publisher"].as_str().unwrap(), date(article["published_at"].as_str().unwrap())));
+        if let Some(summary) = article["summary"].as_str().filter(|s| !s.trim().is_empty()) {
+            text(doc, summary);
+        }
+        small(doc, article["url"].as_str().unwrap());
+    }
+}
+
 fn gap_topic(text: &str) -> (&'static str, &'static str) {
     let s = text.to_lowercase();
     if s.contains("financial") || s.contains("annual accounts") || s.contains("jaarrekening") {
@@ -857,4 +890,36 @@ pub fn register(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
 
 fn table_links(doc: &mut genpdf::Document, rows: &[(String, String)]) -> anyhow::Result<()> {
     table(doc, rows)
+}
+
+#[cfg(test)]
+mod supporting_news_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn saved_news_is_optional_bounded_and_does_not_promote_primary_evidence() {
+        let article = json!({"publisher":"BBC News", "title":"Example company reports investment", "summary":"A publisher feed excerpt.",
+            "url":"https://www.bbc.com/news/articles/example", "feed_url":"https://feeds.bbci.co.uk/news/rss.xml", "published_at":"2026-10-09T12:00:00Z"});
+        let mut document = json!({"analysis":{"status":"partial","observations":[],"limitations":["Unresolved check"]},"sources":[]});
+        assert!(saved_news(&document).is_empty());
+        let mut invalid = article.clone();
+        invalid["url"] = json!("javascript:alert(1)");
+        let mut bad_date = article.clone();
+        bad_date["published_at"] = json!("unknown");
+        let mut articles = vec![invalid, bad_date, article.clone(), article.clone()];
+        for index in 1..6 {
+            let mut item = article.clone();
+            item["url"] = json!(format!("https://www.bbc.com/news/articles/example-{index}"));
+            articles.push(item);
+        }
+        document["analysis"]["supporting_news"] = json!(articles);
+        let before = document.clone();
+        let selected = saved_news(&document);
+        assert_eq!(selected.len(), 4);
+        assert_eq!(selected[0], &article);
+        assert_eq!(document, before);
+        assert!(sources(&document).unwrap().is_empty());
+        assert!(cited(&document).is_empty());
+    }
 }

@@ -204,6 +204,7 @@ async fn main() -> anyhow::Result<()> {
     )?;
     let bind = env::var("BIND_ADDRESS").unwrap_or_else(|_| "127.0.0.1:8082".into());
     let listener = tokio::net::TcpListener::bind(&bind).await?;
+    apiosk_gateway_v2::start_supporting_news();
     tracing::info!(address=%bind,"gateway v2 listening");
     axum::serve(listener, app)
         .with_graceful_shutdown(async {

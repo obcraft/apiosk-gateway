@@ -8,6 +8,7 @@ mod followups;
 mod results;
 mod selection;
 mod supplier;
+mod supporting_news;
 mod workflows;
 mod worker;
 mod auto;

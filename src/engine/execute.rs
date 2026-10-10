@@ -130,6 +130,9 @@ impl Engine {
             task.analysis.clone().filter(|analysis| matches!(analysis["status"].as_str(), Some("completed" | "partial")))
         } else { None };
         let answering = matches!(action, Action::Analyze { .. } | Action::RetryAnalysis { .. });
+        // A manual recomposition reuses the news snapshot too. Reading a saved
+        // task never refreshes feeds or changes its original supporting context.
+        let previous_news = previous_analysis.as_ref().and_then(|analysis| analysis.get("supporting_news")).cloned();
         if matches!(action, Action::RetryAnalysis { .. }) {
             telemetry::set_segment(telemetry::Segment::RetryAnalysis);
         }
@@ -295,6 +298,9 @@ impl Engine {
                             analysis["follow_up_question"] = json!(follow_up);
                         }
                     }
+                }
+                if !preserved_previous_analysis {
+                    super::supporting_news::enrich(&mut task, &intent, previous_news.as_ref());
                 }
                 task.actions.clear();
                 if task

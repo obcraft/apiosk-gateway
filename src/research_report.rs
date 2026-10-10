@@ -162,6 +162,7 @@ pub fn render(document: &Value) -> anyhow::Result<Vec<u8>> {
     crate::report_layout::overview(&mut doc, document)?;
     crate::report_visuals::sections(&mut doc, document)?;
     crate::report_layout::findings(&mut doc, document)?;
+    crate::report_layout::supporting_news(&mut doc, document);
     crate::report_layout::details(&mut doc, document)?;
     crate::report_layout::gaps(&mut doc, document)?;
     crate::report_layout::register(&mut doc, document)?;
@@ -219,6 +220,37 @@ pub fn evidence_bundle(document: &Value) -> anyhow::Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn supporting_news_renders_from_saved_snapshot_without_changing_primary_sources() {
+        use std::io::Read;
+        let articles: Vec<_> = (0..4).map(|index| json!({
+            "publisher":"BBC News", "title":format!("Example company announces semiconductor investment {}", index + 1),
+            "summary":"The publisher reports additional semiconductor investment. This saved feed excerpt provides context alongside the primary source findings.",
+            "url":format!("https://www.bbc.com/news/articles/example-{index}"),
+            "feed_url":"https://feeds.bbci.co.uk/news/rss.xml", "published_at":"2026-10-09T12:00:00Z"
+        })).collect();
+        let document = json!({"question":"What do the saved accounts say about Example company?",
+            "analysis":{"status":"partial","observations":[{"text":"The source reports EUR 1200 in total assets.",
+                "evidence":[{"result_ref":"saved","pointer":"/data/assets","value":1200}]}],
+                "limitations":["The latest annual accounts were not available."],"supporting_news":articles},
+            "sources":[{"result_ref":"saved","document":{"data":{"assets":1200},"source":{"provider":"test", "name":"Company registry", "retrieved_at":"2026-10-09T12:00:00Z"}}}]});
+        let before = document.clone();
+        let pdf = render(&document).unwrap();
+        assert!(pdf.starts_with(b"%PDF-"));
+        if let Ok(path) = std::env::var("APIOSK_SUPPORTING_NEWS_PDF_FIXTURE") {
+            std::fs::write(path, &pdf).unwrap();
+        }
+        let bundle = evidence_bundle(&document).unwrap();
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(bundle)).unwrap();
+        assert!(archive.by_name("sources/S01.json").is_ok());
+        assert!(archive.by_name("sources/S02.json").is_err(), "news is not numbered primary evidence");
+        let mut manifest = String::new();
+        archive.by_name("manifest.json").unwrap().read_to_string(&mut manifest).unwrap();
+        let manifest: Value = serde_json::from_str(&manifest).unwrap();
+        assert_eq!(manifest["analysis"]["supporting_news"], json!(articles));
+        assert_eq!(document, before);
+    }
+
     #[test]
     fn quoted_source_and_pdf_excerpt_render_only_when_verbatim() {
         for pointer in ["/data/text", "/report_assets/assets/0/extracted_text"] {
