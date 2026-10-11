@@ -83,6 +83,13 @@ common words such as "profile" discoverable for the explicitly named source.
 The shortlist retains distinct typed MCP operations sharing an endpoint, while
 keeping room for three different endpoint alternatives.
 
+Discovery also treats the phrase "board members" as the same governance concept
+as "directors". A real extraction split the Starbucks question into six parts
+and described its board as a "board of directors"; the lexical facet gate
+previously discarded the matching company-profile operation for that part.
+The regression now verifies both five-part and six-part extractions through one
+priced profile call, while unrelated board-game/member descriptions remain out.
+
 ## Execution and result boundaries
 
 The adapter forwards one reviewed tools/call without automatic retry. It handles

@@ -618,9 +618,14 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         || (has("annual") && has("account"))
         || (has("balance") && has("sheet"))
         || capabilities.contains("company.accounts");
+    // "Board members" and "directors" describe the same company roster.
+    // Require the phrase: an unrelated board game with club members is not
+    // evidence of a governance endpoint.
+    let board_members = self::tokens(text).windows(2)
+        .any(|pair| pair[0] == "board" && matches!(pair[1].as_str(), "member" | "members"));
     let officers = ["officer", "director", "bestuurder"]
         .iter()
-        .any(|word| has(word)) || (has("executive") && has("company"));
+        .any(|word| has(word)) || (has("executive") && has("company")) || board_members;
     let control = has("psc")
         || has("ubo")
         || (has("significant") && (has("control") || has("controller")))
@@ -1126,6 +1131,25 @@ mod tests {
     use crate::{catalog::Snapshot, readiness::Metadata};
     use serde_json::json;
     use uuid::Uuid;
+
+    #[test]
+    fn board_members_and_directors_share_governance_scope_without_board_game_matches() {
+        for text in ["Company board members", "company.board_members", "Board member profiles", "Company directors"] {
+            assert_ne!(document(Target::Source(0), text, BTreeSet::new()).facets & OFFICERS, 0, "{text}");
+        }
+        for text in ["Board game profiles for club members", "Company beneficial owners", "Employee profiles"] {
+            assert_eq!(document(Target::Source(0), text, BTreeSet::new()).facets & OFFICERS, 0, "{text}");
+        }
+        let catalog = catalog(vec![
+            service(1, "company.profile", "Company data", "Company profile and board members", "business-data"),
+            service(2, "games.profile", "Game data", "Board game profiles for club members", "game-data"),
+            service(3, "company.significant-control", "Registry", "Company beneficial owners", "registry"),
+        ], vec![]);
+        let found = search(&parsed(vec![json!({"slug":"company.board", "name":"Company board members",
+            "description":"Retrieve the list of individuals serving on the company's board of directors.",
+            "outputs":["board_members"]})]), &catalog);
+        assert_eq!(found[0].operations, BTreeSet::from(["company.profile".into()]));
+    }
 
     fn service(id: u128, capability: &str, name: &str, description: &str, source: &str) -> Service {
         let fixture: Snapshot = serde_json::from_str(include_str!(

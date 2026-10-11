@@ -656,6 +656,11 @@ mod tests {
 
     #[test]
     fn split_crunchbase_requirements_share_one_profile_in_a_large_directory() {
+        assert_split_crunchbase_profile(false);
+        assert_split_crunchbase_profile(true);
+    }
+
+    fn assert_split_crunchbase_profile(directors_wording: bool) {
         let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/official-mcp.json")).unwrap();
         // Common directory terms must not hide the explicitly named source.
         for n in 0..50 {
@@ -665,7 +670,19 @@ mod tests {
             snapshot.known_sources.push(other);
         }
         let catalog = Catalog::build(snapshot);
-        let parsed_request: ParsedRequest = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/profile-intake.json")).unwrap();
+        let mut parsed_request: ParsedRequest = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/profile-intake.json")).unwrap();
+        if directors_wording {
+            // Another real extraction of the same question uses the synonym
+            // in its description and separates investors from funding rounds.
+            parsed_request.capabilities[3].description = "Retrieve the list of individuals serving on the company's board of directors.".into();
+            parsed_request.capabilities[4].outputs = vec!["funding_rounds".into()];
+            let mut investors = parsed_request.capabilities[4].clone();
+            investors.slug = "company.investors".into();
+            investors.name = "Company investors".into();
+            investors.description = "Retrieve the list of investors involved in the company's funding rounds.".into();
+            investors.outputs = vec!["investors".into()];
+            parsed_request.capabilities.push(investors);
+        }
         let matches = crate::ask_v2::search::search(&parsed_request,&catalog);
         for found in &matches { assert!(found.operations.contains("company.crunchbase-profile"), "{}: {:?}",found.slug,found.operations); }
         let intake = Intake { selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
