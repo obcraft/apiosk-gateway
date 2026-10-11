@@ -240,6 +240,7 @@ impl Client {
             format!(
                 "{}Known slugs: {}",
                 PROMPT
+                    .trim_end()
                     .strip_suffix("Known slugs: none")
                     .ok_or_else(|| anyhow!("ask_v2_model_unavailable"))?,
                 known_slugs.join(", ")
@@ -1206,7 +1207,7 @@ mod tests {
                 "response_format":{"type":"json_object"}
             })
         );
-        assert_eq!(captured[1]["messages"][0]["content"], format!("{}Known slugs: company.profile\nPrevious output failed validation: subjects must be an array.\nParse the user's request again. Return only one complete JSON object with every required field.", PROMPT.strip_suffix("Known slugs: none").unwrap()));
+        assert_eq!(captured[1]["messages"][0]["content"], format!("{}Known slugs: company.profile\nPrevious output failed validation: subjects must be an array.\nParse the user's request again. Return only one complete JSON object with every required field.", PROMPT.trim_end().strip_suffix("Known slugs: none").unwrap()));
         assert_eq!(captured[1]["messages"].as_array().unwrap().len(), 2);
         assert_eq!(
             captured[1]["messages"][1]["content"],
