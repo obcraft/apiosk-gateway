@@ -89,6 +89,11 @@ and described its board as a "board of directors"; the lexical facet gate
 previously discarded the matching company-profile operation for that part.
 The regression now verifies both five-part and six-part extractions through one
 priced profile call, while unrelated board-game/member descriptions remain out.
+If a model draft invents a constraint, recovery can also combine those field
+requirements into one verified retrieval. It uses only the saved subjects and
+ranked source matches, proves every requested output, validates literal inputs,
+and resolves the entire plan before offering a price. Different subjects or
+unsupported fields cannot be merged or silently omitted.
 
 ## Execution and result boundaries
 

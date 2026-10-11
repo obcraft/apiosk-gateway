@@ -285,13 +285,16 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
 }
 
 /// Recover one concrete retrieval from the already displayed, ranked choices.
+/// It may cover several field requirements for the same explicit subject,
+/// but only when the selected contract proves every requirement in full.
 /// Model mistakes never supply values or scope to this path. Every requested
 /// field, literal binding and exact resolved dependency chain must still pass.
 pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&str,literals:&str,task:&crate::state::Task)->Option<super::ChatReply> {
     let retrievals:Vec<_>=intake.parsed_request.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)).collect();
-    if retrievals.len()!=1 {return None;}
-    let (index,cap)=retrievals[0];
-    if cap.outputs.is_empty() || cap.outputs.iter().all(|output|output_metadata(output)) {return None;}
+    let &(index,cap)=retrievals.first()?;
+    if retrievals.len()>1 && cap.subject_id.is_none() {return None;}
+    if retrievals.iter().any(|(_,other)| other.subject_id!=cap.subject_id
+        || other.outputs.is_empty() || other.outputs.iter().all(|output|output_metadata(output))) {return None;}
     let label=match cap.subject_id.as_ref() {
         Some(id)=>intake.parsed_request.subjects.iter().find(|subject|&subject.id==id)?.label.clone(),
         None if intake.parsed_request.subjects.is_empty()=>question.to_owned(),
@@ -687,9 +690,17 @@ mod tests {
         for found in &matches { assert!(found.operations.contains("company.crunchbase-profile"), "{}: {:?}",found.slug,found.operations); }
         let intake = Intake { selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
             parsed_request,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone() };
-        let mut intent = Intent { subjects:vec![Subject {label:"starbucks".into(),entity_ref:None,values:Default::default()}],
-            goals:vec![Goal {subject:0,capability:"company.crunchbase-profile".into(),constraints:Default::default()}],
-            answer_operations:vec![],unresolved_references:vec![] };
+        let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
+        let recovered = single_retrieval_reply(&intake, &catalog, question, question, &Default::default()).expect("the matched profile must recover every field requirement without model-supplied constraints");
+        let mut intent = recovered.intent.unwrap();
+        assert_eq!(intent.goals.len(), 1);
+        assert_eq!(intent.goals[0].capability, "company.crunchbase-profile");
+        let mut unavailable = intake.clone();
+        unavailable.parsed_request.capabilities[3].outputs.push("private_notes".into());
+        assert!(single_retrieval_reply(&unavailable, &catalog, question, question, &Default::default()).is_none(), "never quote a partial profile");
+        let mut another_subject = intake.clone();
+        another_subject.parsed_request.capabilities[3].subject_id = Some("another-company".into());
+        assert!(single_retrieval_reply(&another_subject, &catalog, question, question, &Default::default()).is_none(), "never merge requirements belonging to different subjects");
         prepare(&mut intent,&intake,&catalog).unwrap();
         let mut task = crate::state::Task {capability_intake:Some(intake),..Default::default()};
         crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();

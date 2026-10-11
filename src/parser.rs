@@ -2070,6 +2070,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn split_profile_requirements_recover_after_invented_model_constraints() {
+        let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/crunchbase/official-mcp.json")).unwrap());
+        let parsed_request = serde_json::from_str(include_str!("../tests/fixtures/crunchbase/profile-intake.json")).unwrap();
+        let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+        let intake = crate::capability_intake::Intake { selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(),
+            parsed_request, matches, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() };
+        let raw = json!({"message":"I will check the price.","discover":true,"decline_reason":"none","intent":{
+            "subjects":[{"subject_ref":"s1","values":{}}],
+            "goals":[{"capability":"company.crunchbase-profile","subject":0,"constraints":{"period":"2024"}}],
+            "answer_operations":[],"unresolved_references":[]}}).to_string();
+        let response = json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]});
+        let (parser, calls, server) = model_fixture(vec![(200,response.clone()),(200,response)]).await;
+        let mut task = Task::default();
+        let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
+        assert!(reply.discover);
+        let mut intent = reply.intent.expect("one matched profile covers every field requirement");
+        assert_eq!(intent.goals.len(), 1);
+        assert!(!intent.goals[0].constraints.contains_key("period"));
+        assert_eq!(intent.subjects[0].values["company.crunchbase_entity_id"], "starbucks");
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("profile must compile"); };
+        assert_eq!(plan.steps.len(), 1);
+        assert_eq!(plan.cap_atomic, 54_347);
+        task.capability_intake = Some(intake);
+        assert!(plan_coverage::uncovered_outputs(&task, &catalog, &intent, &plan).is_empty());
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        server.abort();
+    }
+
+    #[tokio::test]
     async fn postcode_chat_restores_literal_search_text_without_a_second_model_call() {
         let question = "Ik zoek informatie over deze postcode : 7521 BE, Enschede. Zoek nieuws items, overheids data etc";
         let raw = include_str!("../tests/fixtures/postcode-chat-reply.json");
