@@ -17,6 +17,45 @@ fn catalog() -> Catalog {
 }
 
 #[test]
+fn official_live_company_people_and_funding_are_preserved() {
+    let c=Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
+    let records:Vec<Value>=serde_json::from_str(include_str!("../legacy-executor/tests/fixtures/crunchbase-mcp-live.json")).unwrap();
+    for record in &records {
+        let envelope=json!({"source":"Crunchbase","transport":"official_mcp","tool":record["name"],"data":record["data"],"retrieved_at":record["at"]});
+        for service in c.services.iter().filter(|s| s.path==format!("/mcp/{}",record["name"].as_str().unwrap())) {
+            let output=service.contract.extract(&envelope,&c.vocabulary).unwrap();
+            assert!(output.rejected.is_empty());assert_eq!(output.subjects.len(),1);
+        }
+    }
+    let company=records.iter().find(|r| r["name"]=="cb_entity_get"&&r["arguments"]["entity_def_id"]=="organization").unwrap();
+    let cards=company["data"]["cards"].as_array().unwrap();
+    for id in ["founders_lookup","current_employees_image_list","current_advisors_image_list","funding_rounds_list","investors_list"] {
+        assert!(!cards.iter().find(|c| c["card_id"]==id).unwrap()["entities"].as_array().unwrap().is_empty());
+    }
+}
+
+#[test]
+#[ignore = "operator-only: production catalog SQL snapshot after activation"]
+fn activated_database_catalog_is_indexed_and_priced() {
+    let path=std::env::var("APIOSK_CRUNCHBASE_CATALOG_SNAPSHOT").expect("catalog snapshot path required");
+    let c=Catalog::build(serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap());
+    assert!(c.rejected.is_empty(),"{:?}",c.rejected);
+    let services:Vec<_>=c.services.iter().filter(|s| s.path.starts_with("/mcp/")).collect();
+    assert_eq!(services.len(),10);
+    for service in &services {
+        assert_eq!(service.list_atomic,47_259);assert_eq!(service.total(),54_348);
+        assert_eq!(service.source_url.as_deref(),Some("https://data.crunchbase.com/docs/tool-reference"));
+        assert!(service.contract.extract(service.sample_payload.as_ref().unwrap(),&c.vocabulary).unwrap().rejected.is_empty());
+    }
+    for question in ["Starbucks founders and board members from Crunchbase", "Crunchbase funding rounds and investors", "Find people in Crunchbase"] {
+        let index=c.operation_index_for(question).to_string();
+        for capability in ["company.crunchbase-profile","person.crunchbase-search","funding.crunchbase-search"] {
+            assert!(index.contains(capability),"{capability} missing from live catalog index");
+        }
+    }
+}
+
+#[test]
 fn official_mcp_capabilities_bind_the_right_entity_and_keep_filters() {
     let c = Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
     assert!(c.rejected.is_empty(), "{:?}", c.rejected);

@@ -1,7 +1,7 @@
 # Official Crunchbase MCP
 
 The existing `apimarket-magicapi-crunchbase-bbcca0a6` Crunchbase service has four
-additional **draft** operations, all POST:
+additional operations, all POST, validated against the connected account:
 
 - `/mcp/cb_entity_autocomplete`: official company, person, location/category identity search.
 - `/mcp/cb_search_query`: explicit company, people and funding filters.
@@ -51,22 +51,33 @@ fails if any reviewed tool is missing. After discovery, `node scripts/install-cr
 activate public catalog entries. Compare discovered schemas with
 `scripts/crunchbase-mcp-catalog.mjs` before live acceptance.
 
-Activation still requires successful OAuth, confirmed account access and provider
-usage limits, and real responses for each activated
-capability. Do not mark fixtures as live evidence. Crunchbase documents separate
-arrangements for backend/programmatic use; verify that the connected account
-supports the intended service use. Until then endpoints are inactive and contracts,
-facts and capabilities remain draft. The existing two API.market routes stay active.
+OAuth was connected and stored in Vault on 2026-10-11. Authenticated `tools/list`
+and `cb_reference` supplied the real account schemas. The account exposed a
+50,000-data-token monthly allowance and a maximum search page of 15 rows.
+Nine real public responses cover name search, public-field filtering, reference,
+and company/person/funding profiles. The real Rust adapter also passed a free
+Vault-to-Crunchbase reference request. No buyer balance was charged; these checks
+do not claim a paid Ask execution. The activation migration must run only after
+the reviewed adapter deployment. Existing API.market routes retain their prices.
 
 ## Execution and result boundaries
 
 The adapter forwards one reviewed tools/call without automatic retry. It handles
 JSON and SSE, verifies RPC IDs and protocol versions, preserves structured results
 or JSON/text content, and rejects provider/RPC/tool errors before success billing.
-Response memory is capped at 4 MiB. Autocomplete has at most 25 results; search and
-profile cards have at most 100 entities. Pagination is explicit, never automatic.
+Response memory is capped at 4 MiB. Autocomplete has at most 25 results, search
+15 rows, and profile cards a total requested related-entity budget of 100.
+Pagination is explicit, never automatic; `has_more_entities` is retained.
 All requested filters and fields are passed unchanged. Exact collection, field,
 operator, card and identifier values must come from Crunchbase's reference/results.
+
+`legacy-executor/src/proxy/crunchbase/public-schema.json` records the reviewed
+public fields and cards from this account. The adapter restricts collections,
+fields and cards to public data and chooses explicit public profile cards by
+default, including employees **and** board/advisors. Private notes, CRM, saved-list
+membership and recursive relationship queries are rejected. The search limit is
+also enforced in the adapter, with an explicit default of 15. Provider errors in
+`structuredContent.error` or `response_status` cannot become billed successes.
 
 Jina Reader runs internally on at most one public Crunchbase profile URL per data
 action, including existing API.market actions. It has a 12-second deadline, a
@@ -85,11 +96,17 @@ unavailable and cannot become company data. A free Starbucks Reader probe on
 - `cargo test --bin apiosk-gateway proxy::crunchbase` (legacy executor): routing,
   JSON/SSE errors, identity-preserving enrichment, hostile URLs and challenge pages.
 - `node scripts/test-crunchbase-mcp-migration.mjs`: PostgreSQL migration execution,
-  idempotence, draft activation gates, source/contract/schema parity, no duplicate
-  source, and preservation of existing API.market prices and credentials.
-- `node scripts/render-crunchbase-mcp-migration.mjs` regenerates the draft migration
-  and explicitly synthetic planner fixture. Copy only this migration to the App
-  migration directory; do not introduce unrelated historical migrations.
+  idempotence, OAuth/price/schema activation gates, ten real-sample contracts,
+  no duplicate source, and preservation of API.market prices and credentials.
+- `node scripts/check-crunchbase-mcp.mjs --adapter-reference`: operator-only real
+  adapter/Vault acceptance with one free reference request and no buyer charge.
+- `node scripts/check-crunchbase-mcp.mjs cb_metering_get_state`: free quota check.
+  Other explicit reviewed tool calls consume the account's included data tokens;
+  results are saved under ignored `output/crunchbase-mcp/` without credentials.
+- `node scripts/render-crunchbase-mcp-migration.mjs --fixture-only` refreshes the
+  synthetic planner fixture without changing an applied registration migration.
+  The separate account and activation generators reproduce their named migrations.
+  Copy only relevant migrations to the App; avoid unrelated historical copies.
 
 Official documentation: https://data.crunchbase.com/docs/tool-reference and
 https://data.crunchbase.com/docs/connecting-ai-tools .

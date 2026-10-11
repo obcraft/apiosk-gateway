@@ -62,7 +62,7 @@ for(const c of capabilities){
 sql.push(`UPDATE providers.apis SET listing_metadata=coalesce(listing_metadata,'{}'::jsonb) || ${j({official_mcp:{url:origin,tools:tools.map(t=>t.tool),status:'awaiting_oauth_validation',documentation:docs},page_enrichment:{provider:'Jina AI Reader',internal:true,best_effort:true,extra_charge:false,limit:1},coverage_notice:'API.market company name lookup and unfiltered browsing are available. Official Crunchbase company, people and funding search/filter/profile tools are registered but await OAuth, account entitlement and live validation. Public-page enrichment is best effort; login/verification pages are excluded.'})} WHERE slug=${q(source)} AND NOT (coalesce(listing_metadata,'{}'::jsonb) ? 'official_mcp');
 COMMIT;`);
 const file=new URL('../supabase/migrations/20261011133137_register_crunchbase_official_mcp.sql',import.meta.url);
-await fs.writeFile(file,sql.join('\n\n')+'\n');
+if(!process.argv.includes('--fixture-only'))await fs.writeFile(file,sql.join('\n\n')+'\n');
 // Local fixture uses synthetic responses explicitly; it is never activation evidence.
 const base=JSON.parse(await fs.readFile(new URL('../tests/fixtures/crunchbase/catalog.json',import.meta.url)));
 const fixture={known_sources:[{...base.known_sources[0],metadata:{description:'Official Crunchbase company, people and funding search, filter and profile data',category:'company',tags:[...new Set(tools.flatMap(t=>t.tags))],identity_documented:true}}],services:[],vocabulary:[...facts].map(([slug,f])=>({slug,name:f.name,description:f.description,value_schema:f.schema})),capabilities:capabilities.map(c=>({slug:c.slug,name:c.name,description:c.name+'. '+tools.find(t=>t.tool===c.tool).description}))};

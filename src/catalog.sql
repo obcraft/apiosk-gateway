@@ -13,7 +13,7 @@ SELECT jsonb_build_object(
    'provider_slug',p.username,'description',left(coalesce(a.description,''),600),'category',coalesce(a.category,''),
    'endpoints',coalesce((SELECT jsonb_agg(jsonb_build_object(
      'endpoint_id',e.id,'description',left(e.description,800),'method',coalesce(e.method,''),'path',coalesce(e.path,''),
-     'source_url',coalesce(a.docs_url,a.website_url),
+     'source_url',coalesce(CASE WHEN e.origin_override='https://mcp.crunchbase.com' THEN e.external_docs_url END,a.docs_url,a.website_url),
      'registration',jsonb_build_object('list_atomic',ceil(e.price*1000000)::bigint,
        'query_params',e.query_params,'request_body',e.request_body,
        'listing_type',coalesce(a.listing_type::text,'api'),'usage_notice',a.listing_metadata->'usage_notice')
@@ -60,7 +60,7 @@ SELECT jsonb_build_object(
  'vocabulary',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'value_schema',value_schema) ORDER BY slug),'[]') FROM catalog.fact_types WHERE status='active'),
  'services',(SELECT coalesce(jsonb_agg(s.obj ORDER BY s.id),'[]') FROM (
  SELECT c.id,jsonb_build_object(
-  'id',c.id,'unverified',c.status<>'active','endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'description',left(cap.description,400),'source_url',coalesce(a.docs_url,a.website_url),
+  'id',c.id,'unverified',c.status<>'active','endpoint_id',e.id,'api_slug',a.slug,'name',a.name,'description',left(cap.description,400),'source_url',coalesce(CASE WHEN e.origin_override='https://mcp.crunchbase.com' THEN e.external_docs_url END,a.docs_url,a.website_url),
   'usage_notice',a.listing_metadata->'usage_notice',
   'method',e.method,'path',e.path,'listing_type',coalesce(a.listing_type::text,'api'),
   'list_atomic',ceil(e.price*1000000)::bigint,

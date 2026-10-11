@@ -8,6 +8,12 @@ assert.equal(sql,await fs.readFile(new URL('../../app/supabase/migrations/'+file
 const priceFile='20261011142816_price_crunchbase_mcp_tools.sql';
 const priceSql=await fs.readFile(new URL('../supabase/migrations/'+priceFile,import.meta.url),'utf8');
 assert.equal(priceSql,await fs.readFile(new URL('../../app/supabase/migrations/'+priceFile,import.meta.url),'utf8'));
+const accountFile='20261011145243_refine_crunchbase_mcp_account_schema.sql';
+const accountSql=await fs.readFile(new URL('../supabase/migrations/'+accountFile,import.meta.url),'utf8');
+assert.equal(accountSql,await fs.readFile(new URL('../../app/supabase/migrations/'+accountFile,import.meta.url),'utf8'));
+const activationFile='20261011152332_activate_crunchbase_official_mcp.sql';
+const activationSql=await fs.readFile(new URL('../supabase/migrations/'+activationFile,import.meta.url),'utf8');
+assert.equal(activationSql,await fs.readFile(new URL('../../app/supabase/migrations/'+activationFile,import.meta.url),'utf8'));
 const db=new PGlite();
 try{
  await db.exec(`CREATE SCHEMA providers; CREATE SCHEMA catalog;
@@ -19,7 +25,7 @@ try{
  CREATE TABLE catalog.capability_execution_contracts(id uuid PRIMARY KEY,capability_slug text REFERENCES catalog.capabilities(slug),endpoint_id uuid REFERENCES providers.api_endpoints(id),version int,status text,adapter_version text,requires jsonb,produces jsonb,input_map jsonb,fixed_params jsonb,output_map jsonb,cardinality text,max_fan_out int,preconditions jsonb,pagination jsonb,effect text,price_model text,freshness_seconds int,notes text,UNIQUE(capability_slug,endpoint_id,version));`);
  await db.query('INSERT INTO providers.apis(slug,name,listing_metadata) VALUES($1,$2,$3)',[source,'Crunchbase',{apimarket:{id:'magicapi/crunchbase'},credential:{configured:true}}]);
  await db.exec(`INSERT INTO providers.api_endpoints(id,api_id,method,path,price,active) SELECT gen_random_uuid(),id,'POST','/autocompletes',0.086956,true FROM providers.apis`);
- await db.exec(sql);await db.exec(sql);
+ await db.exec(sql);await db.exec(sql);await db.exec(accountSql);await db.exec(accountSql);
  const endpoints=(await db.query("SELECT * FROM providers.api_endpoints WHERE path LIKE '/mcp/%' ORDER BY path")).rows;
  assert.equal(endpoints.length,4);
  for(const t of tools){const e=endpoints.find(e=>e.path==='/mcp/'+t.tool); assert.ok(e);assert.equal(e.active,false);assert.deepEqual(e.request_body,t.schema);assert.ok(e.tags.includes('crunchbase'));assert.ok(e.endpoint_category);assert.equal(e.origin_override,'https://mcp.crunchbase.com');}
@@ -28,6 +34,8 @@ try{
  const facts=(await db.query('SELECT * FROM catalog.fact_types')).rows;
  assert.equal(facts.find(f=>f.slug==='crunchbase.entity_autocomplete_query').value_schema.type,'string');
  assert.equal(facts.find(f=>f.slug==='crunchbase.search_query_query').value_schema.type,'array');
+ assert.equal(facts.find(f=>f.slug==='crunchbase.search_query_limit').value_schema.maximum,15);
+ assert.ok(contracts.every(c=>!c.requires.some(r=>r.fact_type==='crunchbase.search_query_query')));
  assert.equal((await db.query('SELECT count(*)::int AS n FROM providers.apis')).rows[0].n,1);
  const old=(await db.query("SELECT active,price FROM providers.api_endpoints WHERE path='/autocompletes'")).rows[0];assert.equal(old.active,true);assert.equal(Number(old.price),0.086956);
  assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.credential,{configured:true});
@@ -47,5 +55,16 @@ try{
  await db.exec(`UPDATE providers.apis SET listing_metadata=jsonb_set(listing_metadata,'{official_mcp,status}','"verified"')`);
  await db.exec(priceSql);await db.exec(sql);
  assert.equal((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.status,'verified');
- console.log('PASS: same source, four equally priced inactive MCP endpoints, ten typed draft capabilities, preserved API.market route/price, no Jina surcharge, repeatable SQL.');
+ await db.exec(`CREATE SCHEMA vault; CREATE TABLE vault.secrets(name text);
+ ALTER TABLE catalog.capability_execution_contracts ADD COLUMN sample_payload jsonb,ADD COLUMN validated_at timestamptz,ADD COLUMN validated_note text,ADD COLUMN updated_at timestamptz;`);
+ await assert.rejects(db.exec(activationSql),/OAuth not connected/);await db.exec('ROLLBACK');
+ await db.exec("INSERT INTO vault.secrets(name) VALUES('CRUNCHBASE_MCP_OAUTH')");
+ await db.exec(activationSql);await db.exec(activationSql);
+ assert.equal((await db.query("SELECT count(*)::int n FROM providers.api_endpoints WHERE path LIKE '/mcp/%' AND active AND price=0.047259 AND payment_required")).rows[0].n,4);
+ const active=(await db.query('SELECT * FROM catalog.capability_execution_contracts')).rows;
+ assert.equal(active.length,10);assert.ok(active.every(c=>c.status==='active'&&c.sample_payload.data.request_id&&c.validated_note.includes('Buyer charge 0')));
+ assert.equal(active.find(c=>c.capability_slug==='company.crunchbase-filter').fixed_params.collection_id,'organizations');
+ assert.equal((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.status,'active');
+ assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,pricing);
+ console.log('PASS: registration, pricing, account refinement and guarded activation; four tools, ten real-sample contracts, unchanged API.market price, no Jina surcharge.');
 }finally{await db.close();}
