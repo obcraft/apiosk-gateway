@@ -18,6 +18,18 @@ mod country;
 pub(crate) use country::named_countries;
 mod relevance;
 
+/// A fixed endpoint scope can preserve an explicit country without a country
+/// argument. Provider headquarters/jurisdiction alone are not that proof.
+pub(crate) fn fixed_endpoint_country(service: &Service, _source: Option<&KnownSource>) -> Option<String> {
+    let mut reviewed = service.clone();
+    reviewed.jurisdiction = None;
+    reviewed.api_slug.clear();
+    match country::endpoint(&reviewed, None) {
+        country::Coverage::Country(country) => Some(country),
+        _ => None,
+    }
+}
+
 const FINANCIAL: u16 = 1;
 const OFFICERS: u16 = 2;
 const CONTROL: u16 = 4;

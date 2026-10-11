@@ -1,36 +1,26 @@
-//! Offline acceptance of additional published questions against actual public
-//! or previously saved responses. No model, provider request or paid replay.
+//! Offline source-contract and saved-answer regressions. Explicit intake and
+//! planning fixtures do not claim to verify AI interpretation. No provider
+//! request or paid replay is made.
 #[allow(dead_code)]
 #[path = "../legacy-executor/src/proxy/public_sources.rs"]
 mod source_adapter;
 use crate::{
     catalog::{Catalog, Snapshot},
-    parser::{Intent, Parser},
+    parser::Intent,
     resolver::{Plan, Resolution},
     state::Task,
 };
 use serde_json::{json, Value};
-use std::sync::atomic::Ordering;
 use uuid::Uuid;
 
 fn catalog(text: &str) -> Catalog {
     Catalog::build(serde_json::from_str::<Snapshot>(text).unwrap())
 }
 async fn planned(question: &str, catalog: &Catalog, steps: usize) -> (Intent, Task, Plan) {
-    let parser = Parser::new(
-        reqwest::Client::new(),
-        "http://127.0.0.1:1".into(),
-        String::new(),
-        "offline-additional-examples".into(),
-    );
-    let intake = parser
-        .ask_intake(question, &Default::default(), catalog, None)
-        .await
-        .unwrap();
-    let reply = parser
-        .chat_from_capabilities(question, None, &Default::default(), catalog, &intake)
-        .await
-        .unwrap();
+    let intake = crate::capability_intake::offline_fixture_intake(question, catalog);
+    let reply = crate::parser::plan_coverage::offline_fixture_reply(
+        &intake, catalog, question, &Task::default(),
+    ).expect("the declared contract fixture must be complete");
     assert!(reply.discover, "{question}: {}", reply.message);
     let mut intent = reply.intent.unwrap();
     let mut task = Task::default();
@@ -44,7 +34,6 @@ async fn planned(question: &str, catalog: &Catalog, steps: usize) -> (Intent, Ta
         plan.cap_atomic > 0,
         "the ordinary quote and approval boundary is retained"
     );
-    assert_eq!(parser.calls.load(Ordering::Relaxed), 0, "no model fallback");
     (intent, task, plan)
 }
 fn saved(step: &crate::resolver::Step, label: &str, data: Value) -> Value {

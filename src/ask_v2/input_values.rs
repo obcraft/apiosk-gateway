@@ -3,6 +3,14 @@
 use crate::capability_intake::Subject;
 use serde_json::{json, Value};
 
+/// The ECB reference-rate contract fixes the base to EUR. Preserve the
+/// direction of an explicit pair when serializing its target-currency input.
+pub(crate) fn ecb_quote_for_pair(value: &str) -> Option<Value> {
+    let (base, quote) = value.split_once('/')?;
+    (base == "EUR" && quote.len() == 3 && quote.bytes().all(|b| b.is_ascii_uppercase()))
+        .then(|| json!(quote))
+}
+
 /// A supplied public profile URL contains the exact provider identifier. Strip
 /// only the documented entity path; never infer a permalink from a name.
 pub(crate) fn crunchbase_profile_id(field: &str, value: &str) -> Option<Value> {
@@ -23,10 +31,21 @@ pub(crate) fn crunchbase_profile_id(field: &str, value: &str) -> Option<Value> {
 }
 
 pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
+    // Intake canonicalizes identifier names. Match that same complete field
+    // identity; a flattened namespace must not become a fuzzy suffix match.
+    let canonical_field = field.to_lowercase().split(|ch: char| !ch.is_alphanumeric())
+        .filter(|part| !part.is_empty()).collect::<Vec<_>>().join("_");
     let exact: Vec<_> = subject.identifiers.iter()
-        .filter(|(key, _)| field == *key || field.ends_with(&format!(".{key}"))).collect();
+        .filter(|(key, _)| field == *key || canonical_field == **key || field.ends_with(&format!(".{key}"))).collect();
     if exact.len() == 1 { return Some(json!(exact[0].1)); }
+    if exact.len() > 1 { return None; }
     let identifier = |keys: &[&str]| keys.iter().find_map(|key| subject.identifiers.get(*key));
+    if field == "fx.ecb.quote" {
+        if let Some(pair) = identifier(&["currency_pair", "pair"]) {
+            return ecb_quote_for_pair(pair);
+        }
+        if subject.kind == "currency_pair" { return ecb_quote_for_pair(&subject.label); }
+    }
     if let Some(value) = identifier(&["url", "profile_url", "crunchbase_url"])
         .and_then(|url| crunchbase_profile_id(field, url))
         .or_else(|| crunchbase_profile_id(field, &subject.label)) { return Some(value); }
@@ -90,10 +109,48 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
     named.then(|| json!(subject.label))
 }
 
+/// Read only bounded, valid aliases explicitly reviewed in the input schema.
+fn reviewed_input_aliases(schema:&Value)->Option<std::collections::BTreeSet<String>> {
+    let comment=schema.get("$comment").and_then(Value::as_str).filter(|value|value.len()<=2048)?;
+    let metadata=serde_json::from_str::<Value>(comment).ok()?;
+    let metadata=metadata.as_object().filter(|metadata|metadata.len()==1)?;
+    let aliases=metadata.get("apiosk_input_aliases_v1")?.as_array().filter(|values|!values.is_empty() && values.len()<=32)?;
+    let mut names=std::collections::BTreeSet::new();
+    for alias in aliases {
+        let name=alias.as_str().filter(|name|!name.is_empty() && name.len()<=100
+            && name.bytes().all(|c|c.is_ascii_lowercase() || c.is_ascii_digit() || c==b'_'))?;
+        if !names.insert(name.to_owned()) {return None;}
+    }
+    Some(names)
+}
+
+pub(crate) fn reviewed_input_alias(schema:&Value,key:&str)->bool {
+    reviewed_input_aliases(schema).is_some_and(|aliases|aliases.contains(key))
+}
+
 /// Generated operation fields have opaque ids. A documented company/entity
 /// name input may still accept the exact typed subject; a bare field named
 /// `name` alone is not enough to establish that meaning.
 pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject) -> Option<Value> {
+    // Reviewed schema aliases bind literal semantic criteria to a documented
+    // provider input. They never select a source or rewrite the request.
+    if let Some(comment) = schema.get("$comment").and_then(Value::as_str).filter(|value| value.len() <= 2048) {
+        if let Ok(Value::Object(metadata)) = serde_json::from_str(comment) {
+            if metadata.contains_key("apiosk_input_aliases_v1") {
+                let aliases=reviewed_input_aliases(schema)?;
+                let mut values = std::collections::BTreeSet::new();
+                for name in aliases {
+                    if let Some(value) = subject.identifiers.get(&name).filter(|value| !value.trim().is_empty()) {
+                        values.insert(value);
+                    }
+                }
+                // Competing filters need a model-authored binding; never pick
+                // one arbitrarily or silently combine provider parameters.
+                if values.len() > 1 { return None; }
+                if let Some(value) = values.first() { return Some(json!(value)); }
+            }
+        }
+    }
     if let Some(value) = literal(field, subject) { return Some(value); }
     if !field.starts_with("source_input.") { return None; }
     let description = schema["description"].as_str().unwrap_or_default().to_lowercase();
@@ -108,6 +165,43 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn reviewed_input_aliases_bind_only_declared_literal_criteria() {
+        let schema = json!({"type":"string","$comment":"{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\"]}"});
+        let subject = |identifiers: Value| Subject {id:"s1".into(),label:"public records".into(),kind:"record".into(),
+            identifiers:serde_json::from_value(identifiers).unwrap()};
+        assert_eq!(documented_literal("provider.input.search",&schema,&subject(json!({"service":"cleaning services","query":"Find all requested records."}))),Some(json!("cleaning services")));
+        assert_eq!(documented_literal("provider.input.search",&schema,&subject(json!({"service":"cleaning services","keyword":"cleaning services"}))),Some(json!("cleaning services")));
+        for identifiers in [json!({"query":"Find all requested records."}),json!({"service":"cleaning services","keyword":"other work"}),json!({"service":" "})] {
+            assert_eq!(documented_literal("provider.input.search",&schema,&subject(identifiers)),None);
+        }
+        for comment in ["{\"apiosk_input_aliases_v1\":[\"service\",\"service\"]}","{\"apiosk_input_aliases_v1\":[\"Service Name\"]}","{\"apiosk_input_aliases_v1\":[\"service\"],\"extra\":true}"] {
+            assert_eq!(documented_literal("provider.input.search",&json!({"type":"string","$comment":comment}),&subject(json!({"service":"cleaning services"}))),None);
+        }
+    }
+    #[test]
+    fn fixed_base_currency_input_keeps_the_supplied_pair_direction() {
+        assert_eq!(ecb_quote_for_pair("EUR/USD"), Some(json!("USD")));
+        for pair in ["USD/EUR", "GBP/USD", "EUR/USD/JPY", "EUR/US", "EUR/usd", "USD"] {
+            assert_eq!(ecb_quote_for_pair(pair), None, "{pair}");
+        }
+        let subject = Subject { id:"s1".into(), label:"EUR/USD".into(), kind:"currency_pair".into(),
+            identifiers:serde_json::from_value(json!({"currency_pair":"EUR/USD"})).unwrap() };
+        assert_eq!(literal("fx.ecb.quote", &subject), Some(json!("USD")));
+        assert_eq!(literal("another_provider.quote", &subject), None);
+    }
+    #[test]
+    fn normalized_identifiers_keep_complete_field_identity_and_reject_ambiguity() {
+        let subject = |identifiers: Value| Subject {
+            id: "s1".into(), label: "A literal subject".into(), kind: "topic".into(),
+            identifiers: serde_json::from_value(identifiers).unwrap(),
+        };
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx_ecb_quote":"USD"}))), Some(json!("USD")));
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx.ecb.quote":"USD"}))), Some(json!("USD")));
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"other_ecb_quote":"USD"}))), None);
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"ecb_quote":"USD"}))), None);
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx_ecb_quote":"USD","quote":"GBP"}))), None);
+    }
     #[test]
     fn crunchbase_profile_links_keep_the_exact_entity_and_public_host() {
         for (field, path) in [("company.crunchbase_entity_id", "organization"),

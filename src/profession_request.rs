@@ -342,7 +342,7 @@ mod tests {
             ("Get public RDAP registration data and mail DNS records for mollie.nl. Cite the sources.", Request::Domain { domain: "mollie.nl".into() }),
         ] {
             assert_eq!(recognize_with_language(question), Some(("en", expected)));
-            let parsed = crate::capability_intake::normalize("{}", question, "fixture").unwrap();
+            let parsed = parse(question, "offline-fixture").unwrap();
             assert_eq!(parsed.language, "en");
             assert!(parsed.capabilities.iter().all(|cap| cap.missing.is_empty()));
             for extra in [" Also include owner identity.", " As JSON.", " Use data from 2020."] {
@@ -370,7 +370,7 @@ mod tests {
             ("Geef openbare RDAP-registratiegegevens en mail-DNS-records voor mollie.nl. Citeer de bronnen.", Request::Domain { domain: "mollie.nl".into() }),
         ] {
             assert_eq!(recognize(question), Some(expected));
-            let parsed = crate::capability_intake::normalize("{}", question, "fixture").unwrap();
+            let parsed = parse(question, "offline-fixture").unwrap();
             assert_eq!(parsed.subjects.len(), 1);
             assert!(parsed.capabilities.iter().all(|cap| cap.missing.is_empty()));
             assert!(recognize(&format!("{question} Also include owner identity.")).is_none());

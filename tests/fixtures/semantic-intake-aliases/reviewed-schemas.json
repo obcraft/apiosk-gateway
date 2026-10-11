@@ -1,0 +1,793 @@
+{
+  "note": "Reviewed production vocabulary before/after. Aliases change no validation or extraction; runtime must independently prove literal inputs.",
+  "before": [
+    {
+      "slug": "company.profile",
+      "subject_kind": "company",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "legal_name"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "sbi_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trade_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "employee_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "slug": "vat.eu.check.result",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "upstream"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "valid": {
+                "type": "boolean",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "vat_number": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "maxLength": 14,
+                "minLength": 1,
+                "description": "VAT number without country prefix or punctuation."
+              },
+              "country_code": {
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 1,
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+              },
+              "request_date": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}",
+                "maxLength": 200,
+                "minLength": 1,
+                "description": "Time reported by VIES"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Scope of the returned response"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Check VAT registration with optional requester identification"
+      }
+    },
+    {
+      "slug": "vat.eu.validate.result",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "upstream"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "valid": {
+                "type": "boolean",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\"]}"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "vat_number": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "maxLength": 14,
+                "minLength": 1,
+                "description": "VAT number without country prefix or punctuation."
+              },
+              "country_code": {
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 1,
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+              },
+              "request_date": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}",
+                "maxLength": 200,
+                "minLength": 1,
+                "description": "Time reported by VIES"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Scope of the returned response"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Validate a VAT number using VIES"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "subject_kind": "company_intel",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "base": {
+            "enum": [
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"source_date\"]}"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-9,
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"exchange_rate\"]}"
+          },
+          "quote": {
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "type": "string",
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          }
+        }
+      }
+    }
+  ],
+  "after": [
+    {
+      "slug": "company.profile",
+      "subject_kind": "company",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "legal_name"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "sbi_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trade_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "employee_count": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}"
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}"
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "slug": "vat.eu.check.result",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "upstream"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "valid": {
+                "type": "boolean",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\",\"validity\"]}"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "vat_number": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "maxLength": 14,
+                "minLength": 1,
+                "description": "VAT number without country prefix or punctuation."
+              },
+              "country_code": {
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 1,
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+              },
+              "request_date": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}",
+                "maxLength": 200,
+                "minLength": 1,
+                "description": "Time reported by VIES"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Scope of the returned response"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Check VAT registration with optional requester identification"
+      }
+    },
+    {
+      "slug": "vat.eu.validate.result",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "data",
+          "source_url",
+          "notice",
+          "coverage"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "country_code",
+              "vat_number",
+              "valid",
+              "request_date",
+              "upstream"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "valid": {
+                "type": "boolean",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"is_valid\",\"validity\"]}"
+              },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "upstream": {
+                "type": "object"
+              },
+              "vat_number": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,14}$",
+                "maxLength": 14,
+                "minLength": 1,
+                "description": "VAT number without country prefix or punctuation."
+              },
+              "country_code": {
+                "enum": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "EL",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IT",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK",
+                  "XI"
+                ],
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 1,
+                "description": "VIES member-state code; Greece EL, Northern Ireland XI."
+              },
+              "request_date": {
+                "type": "string",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"check_date\",\"validation_date\"]}",
+                "maxLength": 200,
+                "minLength": 1,
+                "description": "Time reported by VIES"
+              }
+            }
+          },
+          "notice": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "description": "Source limitations"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1,
+                "description": "Scope of the returned response"
+              },
+              "complete": {
+                "type": "boolean"
+              }
+            }
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "description": "Exact upstream request URL"
+          }
+        },
+        "description": "Validate a VAT number using VIES"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "subject_kind": "company_intel",
+      "value_schema": {
+        "type": "string",
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\",\"search_term\",\"sector\",\"topic\"]}"
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "subject_kind": "dataset",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "base": {
+            "enum": [
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"source_date\",\"observation_date\"]}"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-9,
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"exchange_rate\"]}"
+          },
+          "quote": {
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "type": "string",
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          }
+        },
+        "$comment": "{\"apiosk_fixed_scope_v1\":[{\"source_slug\":\"frankfurter\",\"endpoint_id\":\"6ff3c2cf-19dc-4555-9051-e1c80c6c6e67\",\"method\":\"GET\",\"path\":\"/v2/providers/ecb/rate/EUR/{quote}\",\"input_facts\":[\"fx.ecb.quote\"],\"inputs\":{\"observation_date\":[\"latest\",\"most recent\",\"laatste\",\"meest recente\"],\"rate_type\":[\"official ECB reference exchange rate\",\"ECB reference exchange rate\",\"official ECB reference rate\",\"ECB reference rate\"]}}]}"
+      }
+    }
+  ]
+}

@@ -18,7 +18,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const DEFAULT_MODEL: &str = crate::parser::MODEL;
+pub const DEFAULT_MODEL: &str = "openai/gpt-6-luna";
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // The parse contract: connected chatbots fill in exactly this shape
@@ -26,13 +26,10 @@ const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // against it. The model itself is asked for a JSON object; see `parse`.
 #[cfg_attr(not(test), allow(dead_code))]
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
-/// Qwen's own provider first. Measured on 2026-09-28 for this parse: Alibaba
-/// 1.4–2.4 s; the providers with strict json_schema 3–14 s (Nebius degraded
-/// and rate-limited, StreamLake 3–7 s, SiliconFlow 7 s). The others stay as
-/// fallbacks.
-const PARSE_PROVIDERS: &[&str] = &["alibaba"];
-// Qwen3 30B streams this parse in about 1–4 s on the preferred provider; the
-// deadline leaves room for a slower fallback provider.
+// Explicit Qwen clients retain their compatible provider preference. The
+// default intake model has independent routing and parameter requirements.
+const QWEN_PARSE_PROVIDERS: &[&str] = &["alibaba"];
+// Bound the complete interpretation request, including provider retries.
 const DEADLINE: Duration = Duration::from_secs(20);
 const MAX_STREAM_BYTES: usize = 256 * 1024;
 const WINDOW: Duration = Duration::from_secs(60);
@@ -198,10 +195,6 @@ impl Client {
         correction: Option<&str>,
     ) -> Result<Output> {
         let started = Instant::now();
-        if let Some(parsed) = crate::capability_intake::literal_request(question, "literal-broad-information") {
-            return Ok(Output { text: serde_json::to_string(&parsed)?, model: "literal-broad-information".into(),
-                timing: Timing { parse_ms: started.elapsed().as_millis() as u64 } });
-        }
         let text = tokio::time::timeout(
             self.deadline,
             self.generate(question, known_slugs, correction),
@@ -263,15 +256,23 @@ impl Client {
     /// own output; this transport never chooses or executes an endpoint.
     async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize) -> Result<String> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
-        // Alibaba supports json_object; every field is validated afterwards.
-        let body = json!({
+        // All models return JSON objects; normalization validates every field.
+        let mut body = json!({
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
-            "stream": true, "temperature": 0, "max_tokens": max_tokens,
-            "provider": {"order": PARSE_PROVIDERS, "require_parameters": true},
+            "stream": true, "max_tokens": max_tokens,
+            "provider": {"require_parameters": true},
             "response_format": {"type": "json_object"}
-        })
-        .to_string();
+        });
+        if self.model == DEFAULT_MODEL {
+            body["reasoning"] = json!({"effort":"low","exclude":true});
+        } else {
+            body["temperature"] = json!(0);
+            if self.model.starts_with("qwen/") {
+                body["provider"]["order"] = json!(QWEN_PARSE_PROVIDERS);
+            }
+        }
+        let body = body.to_string();
         let mut response = self
             .http
             .post(&self.endpoint)
@@ -457,8 +458,9 @@ mod tests {
     }
 
     #[test]
-    fn default_model_is_apiosks_one_model_and_fixture_endpoint_is_loopback_only() {
-        assert_eq!(DEFAULT_MODEL, "qwen/qwen3-30b-a3b-instruct-2507");
+    fn intake_model_is_independent_and_fixture_endpoint_is_loopback_only() {
+        assert_eq!(DEFAULT_MODEL, "openai/gpt-6-luna");
+        assert_ne!(DEFAULT_MODEL, crate::parser::MODEL);
         assert_eq!(
             Client::new(reqwest::Client::new(), "fixture".into(), String::new()).model,
             DEFAULT_MODEL
@@ -592,6 +594,55 @@ mod tests {
     fn scope_capability(slug: &str, inputs: &[&str], outputs: &[&str], subject: Option<&str>, source: Option<&str>) -> Value {
         json!({"slug":slug,"name":"Requested data","description":"Retrieve the requested factual data for the supplied scope.",
             "domain":slug.split('.').next().unwrap(),"inputs":inputs,"outputs":outputs,"subject_id":subject,"source_hint":source,"confidence":0.95})
+    }
+
+    #[tokio::test]
+    async fn interpretation_calls_the_model_for_known_examples_and_preserves_its_scope() {
+        let company_question = "Search Crunchbase for Starbucks and show its company description and profile link.";
+        let tender_question = "Find public tenders for cleaning services in the Netherlands through TenderNed.";
+        let questions = [company_question, tender_question, "Hoi!"];
+        let outputs = [
+            json!({"language":"en","subjects":[{"id":"company","label":"Starbucks","type":"company","identifiers":{"company_name":"Starbucks"}}],
+                "capabilities":[scope_capability("company.public.profile", &["company_name"], &["company_description","official_profile_link"], Some("company"), Some("crunchbase"))],
+                "deliverable":{"format":"chat","operations":[]}}),
+            json!({"language":"en","subjects":[{"id":"search","label":"cleaning services","type":"search_query","identifiers":{"query":"cleaning services","country":"Netherlands"}}],
+                "capabilities":[scope_capability("procurement.public.notices", &["query"], &["publication_title","publication_deadline"], Some("search"), Some("tenderned"))],
+                "deliverable":{"format":"chat","operations":[]}}),
+            json!({"language":"nl","subjects":[],
+                "capabilities":[scope_capability("general.conversation", &[], &["reply","tone"], None, None)],
+                "deliverable":{"format":"chat","operations":[]}}),
+        ];
+        let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+        let requests = captured.clone();
+        let replies = outputs.clone();
+        let app = Router::new().route("/", post(move |body: axum::Json<Value>| {
+            let captured = requests.clone();
+            let replies = replies.clone();
+            async move {
+                let question = body["messages"][1]["content"].as_str().unwrap();
+                let index = questions.iter().position(|expected| *expected == question).unwrap();
+                captured.lock().unwrap().push(body.0);
+                Response::builder().header("content-type", "text/event-stream")
+                    .body(Body::from(format!("{}data: [DONE]\n\n", delta(&replies[index].to_string())))).unwrap()
+            }
+        }));
+        let (endpoint, server) = server(app).await;
+        let client = client().with_local_endpoint(endpoint).unwrap();
+        for (question, expected) in questions.into_iter().zip(outputs) {
+            let response = client.interpret(question, &[]).await.unwrap();
+            assert_eq!(response["model"], DEFAULT_MODEL);
+            assert_eq!(response["attempts"], 1);
+            assert_eq!(response["parsed_request"]["language"], expected["language"]);
+            assert_eq!(response["parsed_request"]["capabilities"][0]["slug"], expected["capabilities"][0]["slug"]);
+            assert_eq!(response["parsed_request"]["capabilities"][0]["outputs"], expected["capabilities"][0]["outputs"]);
+            assert_eq!(response["parsed_request"]["capabilities"].as_array().unwrap().len(), 1);
+        }
+        let calls = captured.lock().unwrap();
+        assert_eq!(calls.len(), questions.len());
+        for (call, question) in calls.iter().zip(questions) {
+            assert_eq!(call["messages"][1]["content"], question);
+        }
+        server.abort();
     }
 
     // These transport fixtures exercise the canonical parse path and its
@@ -928,15 +979,13 @@ mod tests {
 
     #[tokio::test]
     async fn named_source_facts_form_complete_plan() {
-        // No model or provider is reachable: explicit literals and reviewed
-        // source contracts must suffice for this complete combined quote.
-        let client = Client::new(reqwest::Client::new(), String::new(), "fixture".into());
+        // This offline source-contract fixture constructs an intake directly.
+        // Runtime interpretation always uses the model, tested above.
         let exact = "Search Crunchbase for Starbucks and show its short description and profile link. Search Glassdoor for Starbucks and show its employer rating and review count. Search Yelp for Starbucks in Seattle and show the customer ratings and review counts of the locations returned.";
         let mut rows = Vec::new();
         for question in [exact,
             "Search Yelp for Starbucks in Seattle and show customer ratings and number of reviews. Search Glassdoor for Starbucks and show employer rating and review count. Search Crunchbase for Starbucks and show short description and profile URL."] {
-            let value = client.interpret(question, &[]).await.unwrap();
-            let parsed: crate::capability_intake::ParsedRequest = serde_json::from_value(value["parsed_request"].clone()).unwrap();
+            let parsed = crate::capability_intake::literal_request(question, "offline-fixture").unwrap();
             let mut checks = serde_json::Map::new();
             for source in ["crunchbase", "glassdoor", "yelp"] {
                 let cap = parsed.capabilities.iter().find(|cap| cap.source_hint.as_deref() == Some(source));
@@ -960,10 +1009,37 @@ mod tests {
                 && intake.matches.iter().all(|m| !m.operations.is_empty())));
             let mut plan_evidence = Value::Null;
             if checks.values().all(|v| v == true) {
-                let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
+                let mut subjects: Vec<_> = parsed.subjects.iter().map(|subject| json!({"subject_ref":subject.id,"values":{}})).collect();
+                let mut goals = Vec::new();
+                for capability in &parsed.capabilities {
+                    let subject = parsed.subjects.iter().position(|subject| Some(&subject.id) == capability.subject_id.as_ref()).unwrap();
+                    let (goal, field) = match capability.source_hint.as_deref().unwrap() {
+                        "crunchbase" => ("company.crunchbase-search", "company.crunchbase_query"),
+                        "glassdoor" => ("operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829", "source_input.e22c6c82933545999a55d64ac65128077.query"),
+                        "yelp" => ("operation.openwebninja.get-yelp-business-data-business-search-eddb418e", "source_input.eeddb418e721e589b9ea21083dee98afd.query"),
+                        _ => unreachable!(),
+                    };
+                    subjects[subject]["values"][field] = json!({"ref":format!("{}.identifiers.company_name", parsed.subjects[subject].id)});
+                    if capability.source_hint.as_deref() == Some("yelp") {
+                        subjects[subject]["values"]["source_input.eeddb418e721e589b9ea21083dee98afd.location"] = json!({"ref":format!("{}.identifiers.location", parsed.subjects[subject].id)});
+                    }
+                    goals.push(json!({"capability":goal,"subject":subject,"constraints":{}}));
+                }
+                let raw = json!({"message":"I will price the requested sources together.","discover":true,"decline_reason":"none","intent":{
+                    "subjects":subjects,"goals":goals,"answer_operations":[],"unresolved_references":[]}}).to_string();
+                let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+                let model_calls = calls.clone();
+                let app = Router::new().route("/", post(move || {
+                    let raw = raw.clone();
+                    model_calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    async move { axum::Json(json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]})) }
+                }));
+                let (endpoint, server) = server(app).await;
+                let parser = crate::parser::Parser::new(reqwest::Client::new(), endpoint, "fixture-key".into(), "fixture".into());
                 let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
                 let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
-                assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+                assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+                server.abort();
                 if let Some(mut intent) = reply.intent {
                     crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
                     if let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) {
@@ -982,11 +1058,11 @@ mod tests {
             }
             let passed = checks.values().all(|v| v == true);
             rows.push(json!({"question":question,"parsed_request":parsed,"matches":intake.matches,
-                "plan":plan_evidence,"attempts":value["attempts"],"checks":checks,"passed":passed}));
+                "plan":plan_evidence,"checks":checks,"passed":passed}));
         }
         let passed = rows.iter().all(|row| row["passed"] == true);
         if let Ok(path) = std::env::var("ASK_V2_LIVE_EVIDENCE") {
-            std::fs::write(path, serde_json::to_vec_pretty(&json!({"scope":"canonical literal intake, catalog search, input binding and complete price plan; no model, source requests or payments","rows":rows,"passed":passed})).unwrap()).unwrap();
+            std::fs::write(path, serde_json::to_vec_pretty(&json!({"scope":"offline intake fixture, catalog search, input binding and complete price plan; no model, source requests or payments","rows":rows,"passed":passed})).unwrap()).unwrap();
         }
         assert!(passed, "named source/field preservation failed; inspect evidence");
     }
@@ -1091,7 +1167,7 @@ mod tests {
             }),
         );
         let (endpoint, server) = server(app).await;
-        let client = client().with_local_endpoint(endpoint).unwrap();
+        let client = client().with_local_endpoint(endpoint.clone()).unwrap();
         let first = client.parse("Hoi!", &[], None).await.unwrap();
         client
             .parse(
@@ -1101,6 +1177,14 @@ mod tests {
             )
             .await
             .unwrap();
+        let qwen = Client::new(
+            reqwest::Client::new(),
+            "fixture-key".into(),
+            "qwen/qwen3-30b-a3b-instruct-2507".into(),
+        )
+        .with_local_endpoint(endpoint)
+        .unwrap();
+        qwen.parse("Hoi!", &[], None).await.unwrap();
         let captured = captured.lock().unwrap();
         assert!(PROMPT.contains("capabilities: one per piece of data or action requested, at most sixteen."));
         assert_eq!(
@@ -1111,8 +1195,9 @@ mod tests {
             captured[0],
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
-                "stream":true,"temperature":0,"max_tokens":4096,
-                "provider":{"order":["alibaba"],"require_parameters":true},
+                "stream":true,"max_tokens":4096,
+                "provider":{"require_parameters":true},
+                "reasoning":{"effort":"low","exclude":true},
                 "response_format":{"type":"json_object"}
             })
         );
@@ -1121,6 +1206,16 @@ mod tests {
         assert_eq!(
             captured[1]["messages"][1]["content"],
             "Geef \"KVK\" details\né"
+        );
+        assert_eq!(
+            captured[2],
+            json!({
+                "model":"qwen/qwen3-30b-a3b-instruct-2507",
+                "messages":captured[0]["messages"],
+                "stream":true,"temperature":0,"max_tokens":4096,
+                "provider":{"order":["alibaba"],"require_parameters":true},
+                "response_format":{"type":"json_object"}
+            })
         );
         // The shape reaches the model through the prompt alone; no strict schema.
         for request in raw_requests.lock().unwrap().iter() {

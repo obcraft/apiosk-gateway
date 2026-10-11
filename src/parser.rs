@@ -1229,14 +1229,13 @@ impl Parser {
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
-        let parsed = if let Some(parsed) = intake::literal_request(question, "literal-broad-information") {
-            parsed
-        } else if intake::conversation_language(question).is_some() {
-            intake::normalize("", question, "")?
-        } else {
+        let parsed = {
             let client = self.ask_v2.as_ref().ok_or(ModelFailure::Unavailable)?;
-            let known: Vec<_> = catalog.by_capability.keys().filter(|slug| !slug.starts_with("operation."))
-                .filter_map(|slug| intake::normalize_slug(slug, "").map(|(slug, _)| slug)).take(100).collect();
+            // Interpret the user's requirements before discovering services.
+            // An arbitrary first hundred catalog slugs biases extraction toward
+            // unrelated providers and their fields. The App uses this same
+            // provider-independent interpretation contract.
+            let known = Vec::new();
             // A follow-up is parsed as the Ask page sends it: the previous
             // request is context only, and its values stay literal.
             let asked = match task.conversation.last() {
@@ -1287,18 +1286,13 @@ impl Parser {
 
     pub(crate) async fn prepare_ask_with_bazaar(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, bazaar: &str) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
-        let known: Vec<_> = catalog.by_capability.keys().filter(|slug| !slug.starts_with("operation."))
-            .filter_map(|slug| intake::normalize_slug(slug, "").map(|(slug, _)| slug)).take(100).collect();
+        let known: Vec<String> = Vec::new();
         let literals = capability_binding::literal_context(question, task, selection);
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":3000,
             "reasoning":{"effort":"minimal","exclude":true},"response_format":{"type":"json_object"},
             "messages":[{"role":"system","content":include_str!("../contracts/capability-intake-prompt.txt")},
                 {"role":"user","content":json!({"question":question,"known_slugs":known,"previous_context":task.parser_context(),"selection":selection.map(|s| &s.view)}).to_string()}]});
-        let parsed = if intake::conversation_language(question).is_some() {
-            intake::normalize("", question, &self.model)?
-        } else {
-            self.completion("capability-intake", &payload, |raw| intake::normalize_with_context(raw, question, &literals, &self.model)).await?
-        };
+        let parsed = self.completion("capability-intake", &payload, |raw| intake::normalize_with_context(raw, question, &literals, &self.model)).await?;
         let mut input = intake::search_model_input(&intake::search_input(&parsed, task, catalog));
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         let queries = intake::queries(&parsed, task);
@@ -1324,21 +1318,12 @@ impl Parser {
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
         if selection.is_none() {
-            if let Some(reply) = plan_coverage::compound_reply(intake, catalog, question, task) { return Ok(reply); }
-            if crate::capability_intake::company_lookup::matches_intake(question, intake)
-                || crate::capability_intake::company_lookup::plain_profile(question, intake).is_some() {
-                let literals = capability_binding::literal_context(question, task, None);
-                if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
-            }
-            if let Some(reply) = plan_coverage::cbs_comparison_reply(intake, catalog, question, task) { return Ok(reply); }
-            if let Some(tender) = crate::tenderned::executable_intake(question, intake) {
-                if let Some(reply) = plan_coverage::single_retrieval_reply(&tender, catalog, question, question, task) { return Ok(reply); }
-            }
-            if crate::capability_intake::named_source_fields::matches_intake(question, intake) {
-                let literals = capability_binding::literal_context(question, task, None);
-                if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
-            }
-            if let Some(reply) = plan_coverage::broad_information_reply(intake, catalog, question, task) { return Ok(reply); }
+            // The AI extraction owns the request. Plan any fully covered
+            // retrieval from live contracts, irrespective of its wording,
+            // company name, provider or membership of the example list.
+            let literals = capability_binding::literal_context(question, task, None);
+            if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
+            if let Some(reply) = plan_coverage::multiple_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
         }
         let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));
         self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
@@ -2069,7 +2054,7 @@ mod tests {
         assert!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan).is_empty(), "a resolver plan must also cover all six requested outputs before quoting");
         task.capability_intake.as_mut().unwrap().parsed_request.capabilities[0].outputs.push("customer_ratings".into());
         assert_eq!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan),["Company profile: customer_ratings"]);
-        assert_eq!(calls.load(Ordering::Relaxed),1);
+        assert_eq!(calls.load(Ordering::Relaxed),1, "the planner binds the parsed profile URL without a source purchase");
         server.abort();
     }
 
@@ -2088,7 +2073,7 @@ mod tests {
         let response = json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]});
         let (parser, calls, server) = model_fixture(vec![(200,response.clone()),(200,response)]).await;
         let mut task = Task::default();
-        let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
+        let reply = parser.chat_with_view(question, None, &task, &catalog, capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)), Some(&intake)).await.unwrap();
         assert!(reply.discover);
         let mut intent = reply.intent.expect("one matched profile covers every field requirement");
         assert_eq!(intent.goals.len(), 1);
@@ -2492,7 +2477,7 @@ mod tests {
             let mut request=intake.clone();
             if unsupported {request.parsed_request.capabilities[0].outputs.push("vat_registration_date".into());}
             let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope.clone())]).await;
-            let reply=parser.chat_from_capabilities(question,None,&Task::default(),&catalog,&request).await.unwrap();
+            let reply=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&request.selected_capabilities)),Some(&request)).await.unwrap();
             assert_eq!(calls.load(Ordering::Relaxed),2,"bounded correction remains two calls");
             if unsupported {
                 assert!(!reply.discover && reply.intent.is_none(),"recovery cannot remove an unsupported output");
@@ -2506,7 +2491,7 @@ mod tests {
             server.abort();
         }
         let (parser,calls,server)=model_fixture(vec![(503,json!({"error":"unavailable"})),(503,json!({"error":"unavailable"}))]).await;
-        let error=parser.chat_from_capabilities(question,None,&Task::default(),&catalog,&intake).await.unwrap_err();
+        let error=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)),Some(&intake)).await.unwrap_err();
         assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)));
         assert_eq!(calls.load(Ordering::Relaxed),2,"existing bounded upstream retry is preserved without semantic fallback");
         server.abort();

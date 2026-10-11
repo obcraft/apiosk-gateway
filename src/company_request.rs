@@ -752,20 +752,8 @@ mod tests {
         let catalog = crate::catalog::Catalog::build(
             serde_json::from_str(include_str!("../tests/fixtures/workflows/catalog.json")).unwrap(),
         );
-        let parser = crate::parser::Parser::new(
-            reqwest::Client::new(),
-            "http://127.0.0.1:1".into(),
-            String::new(),
-            "fixture".into(),
-        );
-        let intake = parser
-            .ask_intake(&question, &Default::default(), &catalog, None)
-            .await
-            .unwrap();
-        let mut intent = parser
-            .chat_from_capabilities(&question, None, &Default::default(), &catalog, &intake)
-            .await
-            .unwrap()
+        let intake = crate::capability_intake::offline_fixture_intake(&question, &catalog);
+        let mut intent = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, &question, &Default::default()).unwrap()
             .intent
             .unwrap();
         let mut task = crate::state::Task::default();
@@ -830,7 +818,6 @@ mod tests {
                 }),
             "consolidation, currency and filing date are not supplied by this response"
         );
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
     }
 
     #[test]
@@ -1093,25 +1080,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn whole_request_uses_the_normal_two_call_quote_without_a_model_or_name_lookup() {
+    async fn offline_company_fixture_uses_the_normal_two_call_quote_without_name_lookup() {
         let catalog = crate::catalog::Catalog::build(
             serde_json::from_str(include_str!("../tests/fixtures/workflows/catalog.json")).unwrap(),
         );
-        let parser = crate::parser::Parser::new(
-            reqwest::Client::new(),
-            "http://127.0.0.1:1".into(),
-            String::new(),
-            "fixture".into(),
-        );
-        let intake = parser
-            .ask_intake(QUESTION, &Default::default(), &catalog, None)
-            .await
-            .unwrap();
+        let intake = crate::capability_intake::offline_fixture_intake(QUESTION, &catalog);
         assert!(executable_intake(QUESTION, &intake).is_some());
-        let reply = parser
-            .chat_from_capabilities(QUESTION, None, &Default::default(), &catalog, &intake)
-            .await
-            .unwrap();
+        let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, QUESTION, &Default::default()).unwrap();
         assert!(reply.discover, "{}", reply.message);
         let mut intent = reply.intent.unwrap();
         assert_eq!(intent.goals.len(), 2);
@@ -1136,7 +1111,6 @@ mod tests {
             == "kvk-dutch-business-register"
             && ["company.registry-profile", "company.financial-statements"]
                 .contains(&step.service.contract.capability_slug.as_str())));
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
     }
 
     #[test]

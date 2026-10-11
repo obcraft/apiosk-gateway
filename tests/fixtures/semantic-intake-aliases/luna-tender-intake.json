@@ -1,0 +1,46 @@
+{
+  "question": "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.98,
+        "description": "Find matching public tenders.",
+        "domain": "procurement",
+        "inputs": [
+          "service",
+          "country"
+        ],
+        "missing": [],
+        "name": "Tender search",
+        "outputs": [
+          "matching_tenders"
+        ],
+        "slug": "procurement.tenders.search",
+        "source_hint": "tenderned",
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "en",
+    "meta": {
+      "model": "openai/gpt-6-luna",
+      "parsed_at": "2026-10-11T19:39:41.748025+00:00",
+      "text_sha256": "f48396293fa31606f6637b6a79ca3cddfbdd332dacef2bff7026620e3b8761c1"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "country": "Netherlands",
+          "query": "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+          "service": "cleaning services"
+        },
+        "label": "public tenders",
+        "type": "tender"
+      }
+    ]
+  }
+}

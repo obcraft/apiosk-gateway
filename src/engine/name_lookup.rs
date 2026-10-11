@@ -113,8 +113,10 @@ mod tests {
 
     fn parsed(subjects: serde_json::Value) -> ParsedRequest {
         let question = format!("{QUESTION} Bol.com B.V. 24330087");
+        let capabilities:Vec<_>=subjects.as_array().unwrap().iter().map(|subject|
+            json!({"slug":"company.registry.profile","name":"Company registry profile","description":"Retrieve a company's registered name, status and address.","domain":"company","inputs":["kvk_number"],"outputs":["registered_name","status","address"],"subject_id":subject["id"],"source_hint":"kvk","confidence":0.95})).collect();
         capability_intake::normalize(&json!({"language":"en","subjects":subjects,
-            "capabilities":[{"slug":"company.registry.profile","name":"Company registry profile","description":"Retrieve a company's registered name, status and address.","domain":"company","inputs":["kvk_number"],"outputs":["registered_name","status","address"],"subject_id":"s1","source_hint":"kvk","confidence":0.95}],
+            "capabilities":capabilities,
             "deliverable":{"format":"chat","operations":[]}}).to_string(), &question, "fixture").unwrap()
     }
 

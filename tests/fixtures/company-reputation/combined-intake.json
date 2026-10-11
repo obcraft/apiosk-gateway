@@ -1,0 +1,88 @@
+{
+  "question": "Search Crunchbase for Starbucks and show its short description and profile link. Search Glassdoor for Starbucks and show its employer rating and review count. Search Yelp for Starbucks in Seattle and show customer ratings and review counts for the returned locations.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.99,
+        "description": "Retrieve a company\u2019s short description and profile link.",
+        "domain": "company",
+        "inputs": [
+          "company_name"
+        ],
+        "missing": [],
+        "name": "Company profile information",
+        "outputs": [
+          "short_description",
+          "profile_link"
+        ],
+        "slug": "company.profile",
+        "source_hint": "crunchbase",
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 0.99,
+        "description": "Retrieve an employer rating and review count.",
+        "domain": "company",
+        "inputs": [
+          "company_name"
+        ],
+        "missing": [],
+        "name": "Employer rating and reviews",
+        "outputs": [
+          "employer_rating",
+          "review_count"
+        ],
+        "slug": "company.employerRating",
+        "source_hint": "glassdoor",
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 0.99,
+        "description": "Retrieve customer ratings and review counts for matching locations.",
+        "domain": "company",
+        "inputs": [
+          "company_name",
+          "city"
+        ],
+        "missing": [],
+        "name": "Customer ratings and reviews",
+        "outputs": [
+          "customer_rating",
+          "review_count"
+        ],
+        "slug": "company.customerRatings",
+        "source_hint": "yelp",
+        "subject_id": "s2"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "en",
+    "meta": {
+      "model": "openai/gpt-6-luna",
+      "parsed_at": "2026-10-11T19:53:58.464214+00:00",
+      "text_sha256": "447fc6245f6c4f438d31a223b1b9488cb5e122face69409ee5b3bca2d6d3a52c"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "company_name": "Starbucks"
+        },
+        "label": "Starbucks",
+        "type": "company"
+      },
+      {
+        "id": "s2",
+        "identifiers": {
+          "city": "Seattle",
+          "company_name": "Starbucks"
+        },
+        "label": "Starbucks in Seattle",
+        "type": "company"
+      }
+    ]
+  }
+}

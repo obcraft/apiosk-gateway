@@ -78,25 +78,17 @@ pub(crate) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn ask_interpretation_does_not_need_a_model_for_the_literal_information_request() {
-        let client =
-            crate::ask_v2::Client::new(reqwest::Client::new(), String::new(), "fixture".into());
-        let response = client
-            .interpret(
-                "Find building and neighbourhood information for Damrak 1, Amsterdam.",
-                &[],
-            )
-            .await
-            .unwrap();
-        assert_eq!(response["model"], "literal-broad-information");
-        assert_eq!(response["parsed_request"]["language"], "en");
+    #[test]
+    fn offline_information_fixture_preserves_both_requested_categories() {
+        let parsed = parse("Find building and neighbourhood information for Damrak 1, Amsterdam.", "offline-fixture").unwrap();
+        let response = serde_json::to_value(parsed).unwrap();
+        assert_eq!(response["language"], "en");
         assert_eq!(
-            response["parsed_request"]["subjects"][0]["label"],
+            response["subjects"][0]["label"],
             "Damrak 1, Amsterdam"
         );
         assert_eq!(
-            response["parsed_request"]["capabilities"]
+            response["capabilities"]
                 .as_array()
                 .unwrap()
                 .len(),
@@ -123,7 +115,7 @@ mod tests {
                 "nl",
             ),
         ] {
-            let parsed = normalize("{}", question, "fixture").unwrap();
+            let parsed = parse(question, "offline-fixture").unwrap();
             assert_eq!(parsed.subjects.len(), 1);
             assert_eq!(parsed.subjects[0].label, address);
             assert!(

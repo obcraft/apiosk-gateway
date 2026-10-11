@@ -14,24 +14,22 @@ fn saved_sources() -> Vec<Value> {
 }
 
 #[tokio::test]
-async fn public_starter_resolves_all_five_priced_native_calls_without_a_model() {
+async fn offline_public_starter_fixture_resolves_all_five_priced_native_calls() {
     let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/cbs-bankruptcy-comparison-catalog.json")).unwrap();
     let catalog = crate::catalog::Catalog::build(snapshot);
     assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
     assert_eq!(catalog.services.len(), 5);
-    let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
     for question in [QUESTION, "Vergelijk faillissementen per sector in Nederland."] {
         let mut task = crate::state::Task::default();
-        let intake = parser.ask_intake(question, &task, &catalog, None).await.unwrap();
+        let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
         assert_eq!(intake.parsed_request.capabilities.len(), 5);
         assert!(intake.parsed_request.capabilities[0].missing.is_empty());
-        let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
+        let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, question, &task).unwrap();
         assert!(reply.discover, "{}; matches={:?}", reply.message, intake.matches);
         let mut intent = reply.intent.unwrap();
         assert_eq!(intent.goals.len(), 5);
         assert_eq!(intent.subjects.len(), 1);
         assert_eq!(intent.subjects[0].label, intake.parsed_request.subjects[0].label);
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
         task.capability_intake = Some(intake);
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("complete comparison must resolve") };
@@ -57,12 +55,10 @@ async fn changed_presets_or_missing_codebooks_cannot_create_an_incomplete_quote(
             _ => unreachable!(),
         }
         let catalog = crate::catalog::Catalog::build(snapshot);
-        let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
         let task = crate::state::Task::default();
-        let intake = parser.ask_intake(QUESTION, &task, &catalog, None).await.unwrap();
-        let reply = parser.chat_from_capabilities(QUESTION, None, &task, &catalog, &intake).await.unwrap();
-        assert!(!reply.discover && reply.intent.is_none(), "{change}: {}", reply.message);
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+        let intake = crate::capability_intake::offline_fixture_intake(QUESTION, &catalog);
+        let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, QUESTION, &task);
+        assert!(reply.is_none_or(|reply| !reply.discover && reply.intent.is_none()), "{change}");
     }
 }
 

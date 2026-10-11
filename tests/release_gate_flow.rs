@@ -88,9 +88,12 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<Value> {
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("known_slugs").is_some() {
+        // Count AI interpretation as well as any fallback planning call: the
+        // compiler can now price this fixture without a second model request.
+        fake.chat.fetch_add(1, SeqCst);
         let label = input["question"].as_str().unwrap().rsplit(' ').next().unwrap();
         let parsed = json!({"language":"nl","subjects":[{"id":"s1","label":label,"type":"company","identifiers":{}}],
-            "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve annual company accounts.","domain":"company","inputs":[],"outputs":["financial_statements"],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "capabilities":[{"slug":"company.financial.statements","name":"Company financial statements","description":"Retrieve annual company accounts.","domain":"company","inputs":[],"outputs":["accounts"],"subject_id":"s1","source_hint":null,"confidence":1}],
             "deliverable":{"format":"chat","operations":[]}});
         return Json(json!({"choices":[{"message":{"content":parsed.to_string()}}]}));
     }

@@ -203,9 +203,10 @@ mod tests {
     async fn fixture(number: &str) -> (String, Intent, Vec<Value>, Task) {
         let question = format!("{number} check dit kvk nummer");
         let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
-        let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
-        let intake = parser.ask_intake(&question, &Task::default(), &catalog, None).await.unwrap();
-        let mut intent = parser.chat_from_capabilities(&question, None, &Task::default(), &catalog, &intake).await.unwrap().intent.unwrap();
+        // Saved-result projection tests use an explicit catalog intake fixture;
+        // model interpretation is exercised separately by the Ask intake tests.
+        let intake = crate::capability_intake::offline_fixture_intake(&question, &catalog);
+        let mut intent = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, &question, &Task::default()).unwrap().intent.unwrap();
         let mut task = Task { capability_intake: Some(intake), ..Default::default() };
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("expected profile plan") };

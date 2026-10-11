@@ -1,7 +1,8 @@
 //! All six published homepage examples must reach a complete, priced plan.
-//! Recorded source contracts are the only fixtures: intake, discovery, coverage,
-//! subject binding and pricing run their production implementations. There is no
-//! prepared-plan stub, database, model access, source request or payment.
+//! Model interpretation uses a local HTTP fixture; intake, discovery, coverage,
+//! subject binding and pricing run their production implementations against
+//! recorded source contracts. No prepared plan is stubbed and no external model,
+//! source, database or payment is contacted.
 use crate::{
     catalog::{Catalog, Snapshot},
     parser::Parser,
@@ -11,7 +12,134 @@ use crate::{
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeMap, sync::atomic::Ordering};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
+
+struct ModelFixture {
+    parser: Parser,
+    calls: Arc<Mutex<Vec<Value>>>,
+    server: tokio::task::JoinHandle<()>,
+}
+impl Drop for ModelFixture {
+    fn drop(&mut self) {
+        self.server.abort();
+    }
+}
+
+fn model_reply_fixture(question: &str) -> Value {
+    // Historical sentence helpers are used only to DECLARE a model-output
+    // fixture here, never to bypass the production HTTP interpretation path.
+    let parsed =
+        crate::capability_intake::literal_request(question, "declared-model-fixture").unwrap();
+    let mut output = serde_json::to_value(parsed).unwrap();
+    output.as_object_mut().unwrap().remove("meta");
+    // The interpretation model returns semantic identifiers, not the old
+    // recognizer's duplicate copy of the entire request.
+    for subject in output["subjects"].as_array_mut().unwrap() {
+        subject["identifiers"]
+            .as_object_mut()
+            .unwrap()
+            .remove("request");
+    }
+    for capability in output["capabilities"].as_array_mut().unwrap() {
+        capability.as_object_mut().unwrap().remove("missing");
+    }
+    output
+}
+
+async fn model_fixture(question: &str, output: Value) -> ModelFixture {
+    use axum::{routing::post, Json, Router};
+    let question = question.to_owned();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let capture = calls.clone();
+    let app = Router::new().route(
+        "/",
+        post(move |Json(body): Json<Value>| {
+            let output = output.clone();
+            let question = question.clone();
+            let capture = capture.clone();
+            async move {
+                assert_eq!(
+                    body["messages"][1]["content"], question,
+                    "the actual user question must reach the interpretation model"
+                );
+                assert_eq!(body["stream"], true);
+                capture.lock().unwrap().push(body);
+                let event =
+                    serde_json::json!({"choices":[{"delta":{"content":output.to_string()}}]});
+                (
+                    [(axum::http::header::CONTENT_TYPE, "text/event-stream")],
+                    format!("data: {event}\n\ndata: [DONE]\n\n"),
+                )
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}/", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let http = reqwest::Client::new();
+    let client = crate::ask_v2::Client::new(
+        http.clone(),
+        "fixture-key".into(),
+        "fixture-interpretation-model".into(),
+    )
+    .with_local_endpoint(endpoint)
+    .unwrap();
+    let parser = Parser::new(
+        http,
+        "offline://additional-model-calls-forbidden".into(),
+        String::new(),
+        "fixture-planner".into(),
+    )
+    .with_ask_v2(client);
+    ModelFixture {
+        parser,
+        calls,
+        server,
+    }
+}
+
+async fn planner_engine_fixture(
+    output: Value,
+) -> (
+    crate::engine::Engine,
+    Arc<Mutex<Vec<Value>>>,
+    tokio::task::JoinHandle<()>,
+) {
+    use axum::{routing::post, Json, Router};
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let capture = calls.clone();
+    let app = Router::new().route("/", post(move |Json(body): Json<Value>| {
+        let capture = capture.clone();
+        let output = output.clone();
+        async move {
+            capture.lock().unwrap().push(body);
+            Json(serde_json::json!({"choices":[{"finish_reason":"stop","message":{"content":output.to_string()}}]}))
+        }
+    }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}/", listener.local_addr().unwrap());
+    let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+    let http = reqwest::Client::new();
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
+    let store = crate::store::Store { pool: pool.clone() };
+    let engine = crate::engine::Engine {
+        store: store.clone(),
+        catalog: crate::catalog::CatalogCache::new(pool),
+        parser: Parser::new(http.clone(), endpoint, "fixture-key".into(), "fixture-planner".into()),
+        signer: crate::state::Signer::new(vec![8; 32]).unwrap(),
+        app_url: "http://localhost".into(),
+        executor: crate::execution::Executor {
+            store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false,
+        },
+    };
+    (engine, calls, server)
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -92,20 +220,20 @@ async fn complete_plan(id: &str) {
     );
     let case = starters.iter().find(|case| case.id == id).unwrap();
     let catalog = catalog();
-    // An unsupported URL scheme makes accidental model fallback fail without
-    // reaching a local listener or an external API.
-    let parser = Parser::new(
-        reqwest::Client::new(),
-        "offline://model-calls-forbidden".into(),
-        String::new(),
-        "homepage-gate".into(),
-    );
+    let model = model_fixture(&case.question, model_reply_fixture(&case.question)).await;
+    let parser = &model.parser;
     let task = Task::default();
     let intake = parser
         .ask_intake(&case.question, &task, &catalog, None)
         .await
         .unwrap();
     let requested = &intake.parsed_request;
+    assert_eq!(
+        model.calls.lock().unwrap().len(),
+        1,
+        "every published question must be interpreted by the model"
+    );
+    assert_eq!(requested.meta.model, "fixture-interpretation-model");
     assert_eq!(
         requested.meta.text_sha256,
         hex::encode(Sha256::digest(case.question.as_bytes()))
@@ -154,12 +282,7 @@ async fn complete_plan(id: &str) {
     let reply = parser
         .chat_from_capabilities(&case.question, None, &task, &catalog, &intake)
         .await
-        .unwrap();
-    assert_eq!(
-        parser.calls.load(Ordering::Relaxed),
-        0,
-        "{id}: no model dependency for a complete published example"
-    );
+        .unwrap_or_else(|error| panic!("{id}: {error}; semantic intake: {intake:?}"));
     assert!(reply.discover, "{id}: {}", reply.message);
     let mut intent = reply
         .intent
@@ -258,17 +381,40 @@ async fn ecb_rate_and_observation_date_are_priced() {
     complete_plan("ecb").await;
 }
 
-#[test]
-fn extra_requirements_cannot_be_dropped_to_fit_a_homepage_example() {
+#[tokio::test]
+async fn model_returned_extra_requirements_are_preserved_for_every_homepage_example() {
+    let catalog = catalog();
     let starters: Vec<Starter> =
         serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
     for case in starters {
-        let richer = format!(
+        let question = format!(
             "{} Also include a credit-risk assessment and a PDF report.",
             case.question
         );
-        assert!(crate::capability_intake::literal_request(&richer, "homepage-gate").is_none(),
-            "{}: added user requirements must reach full interpretation instead of reusing the narrower starter", case.id);
+        let mut output = model_reply_fixture(&case.question);
+        output["capabilities"][0]["outputs"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!("credit_risk_score"));
+        output["deliverable"]["format"] = serde_json::json!("pdf");
+        let model = model_fixture(&question, output).await;
+        let intake = model
+            .parser
+            .ask_intake(&question, &Task::default(), &catalog, None)
+            .await
+            .unwrap();
+        assert_eq!(model.calls.lock().unwrap().len(), 1);
+        assert!(intake.parsed_request.capabilities[0]
+            .outputs
+            .iter()
+            .any(|field| field == "credit_risk_score"));
+        assert_eq!(intake.parsed_request.deliverable.format, "pdf");
+        let reply = model
+            .parser
+            .chat_from_capabilities(&question, None, &Task::default(), &catalog, &intake)
+            .await;
+        assert!(reply.as_ref().map_or(true, |reply| !reply.discover && reply.intent.is_none()),
+            "{}: model-returned extra requirements cannot be discarded to reuse a narrower starter plan: {reply:?}", case.id);
     }
 }
 
@@ -281,13 +427,9 @@ async fn stale_or_changed_named_source_scope_cannot_shortcut_to_a_narrower_plan(
         .iter()
         .filter(|case| matches!(case.id.as_str(), "crunchbase" | "glassdoor"))
     {
-        for change in ["subject", "outputs", "deliverable", "question_hash"] {
-            let parser = Parser::new(
-                reqwest::Client::new(),
-                "offline://model-calls-forbidden".into(),
-                String::new(),
-                "homepage-gate".into(),
-            );
+        for change in ["subject", "outputs", "question_hash"] {
+            let model = model_fixture(&case.question, model_reply_fixture(&case.question)).await;
+            let parser = &model.parser;
             let task = Task::default();
             let mut intake = parser
                 .ask_intake(&case.question, &task, &catalog, None)
@@ -298,7 +440,6 @@ async fn stale_or_changed_named_source_scope_cannot_shortcut_to_a_narrower_plan(
                 "outputs" => intake.parsed_request.capabilities[0]
                     .outputs
                     .push("credit_risk_score".into()),
-                "deliverable" => intake.parsed_request.deliverable.format = "pdf".into(),
                 "question_hash" => intake.parsed_request.meta.text_sha256 = "old-question".into(),
                 _ => unreachable!(),
             }
@@ -312,21 +453,359 @@ async fn stale_or_changed_named_source_scope_cannot_shortcut_to_a_narrower_plan(
 }
 
 #[tokio::test]
-async fn source_search_location_filters_require_the_full_planner() {
+async fn source_search_location_filters_cannot_be_discarded_after_model_interpretation() {
     let catalog = catalog();
-    let parser = Parser::new(
-        reqwest::Client::new(),
-        "offline://model-calls-forbidden".into(),
-        String::new(),
-        "homepage-gate".into(),
-    );
     for question in [
         "Search Crunchbase for Starbucks in Seattle and show its company description and profile link.",
         "Search Glassdoor for Starbucks in Seattle and show its employer rating and review count.",
     ] {
-        let intake = parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
+        let model = model_fixture(question, model_reply_fixture(question)).await;
+        let intake = model.parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
+        assert_eq!(model.calls.lock().unwrap().len(), 1);
         assert_eq!(intake.parsed_request.subjects[0].identifiers["location"], "Seattle");
-        assert!(!crate::capability_intake::named_source_fields::matches_intake(question, &intake),
-            "a search contract without a location input must not bypass planning merely because it has the requested output fields");
+        let reply = model.parser.chat_from_capabilities(question, None, &Task::default(), &catalog, &intake).await;
+        assert!(reply.as_ref().map_or(true, |reply| !reply.discover && reply.intent.is_none()),
+            "a name-only source contract cannot silently discard the model-extracted location: {reply:?}");
     }
+}
+
+#[tokio::test]
+async fn fallback_model_cannot_quote_a_plan_that_discards_a_parsed_location() {
+    let question = "Search Crunchbase for Starbucks in Seattle and show its company description and profile link.";
+    let catalog = catalog();
+    let interpretation = model_fixture(question, model_reply_fixture(question)).await;
+    let intake = interpretation.parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
+    assert_eq!(intake.parsed_request.subjects[0].identifiers["location"], "Seattle");
+    let subject = &intake.parsed_request.subjects[0].id;
+    let raw = serde_json::json!({"message":"I will retrieve the requested company details.","discover":true,"decline_reason":"none",
+        "intent":{"subjects":[{"subject_ref":subject,"values":{"company.crunchbase_query":{"ref":format!("{subject}.label")}}}],
+            "goals":[{"subject":0,"capability":"company.crunchbase-search","constraints":{}}],
+            "answer_operations":[],"unresolved_references":[]}});
+    let (engine, calls, server) = planner_engine_fixture(raw).await;
+    let quote = engine.guest_plan(question, intake, &catalog).await.unwrap();
+    server.abort();
+    assert_eq!(calls.lock().unwrap().len(), 1, "the fallback planner actually returned the omitted-filter intent");
+    assert_ne!(quote["status"], "ready", "source output coverage cannot excuse a discarded location");
+    assert!(quote["total_atomic"].is_null());
+    assert!(quote["preview_token"].is_null(), "no payable quote may be minted from the incomplete plan");
+}
+
+#[tokio::test]
+async fn dynamic_compiler_prices_both_company_subjects_with_their_own_bound_names() {
+    let question = "Find the company descriptions and profile links for Starbucks and Mollie on Crunchbase.";
+    let catalog = catalog();
+    let output = serde_json::json!({"language":"en",
+        "subjects":[{"id":"coffee","label":"Starbucks","type":"company","identifiers":{"company_name":"Starbucks"}},
+            {"id":"payments","label":"Mollie","type":"company","identifiers":{"company_name":"Mollie"}}],
+        "capabilities":(["coffee","payments"].map(|subject| serde_json::json!({"slug":"company.description","name":"Company description and profile link",
+            "description":"Search the named company and retrieve its description and profile URL.","domain":"company","inputs":["company_name"],
+            "outputs":["description","profile_url"],"subject_id":subject,"source_hint":"crunchbase","confidence":1}))),
+        "deliverable":{"format":"chat","operations":[]}});
+    let interpretation = model_fixture(question, output).await;
+    let intake = interpretation.parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
+    assert_eq!(interpretation.calls.lock().unwrap().len(), 1, "AI interpretation still owns both requirements");
+    let ids: Vec<_> = intake.parsed_request.subjects.iter().map(|subject| subject.id.as_str()).collect();
+    let raw = serde_json::json!({"message":"I will show the total for both company searches.","discover":true,"decline_reason":"none",
+        "intent":{"subjects":(ids.iter().map(|subject| serde_json::json!({"subject_ref":subject,
+            "values":{"company.crunchbase_query":{"ref":format!("{subject}.identifiers.company_name")}}})).collect::<Vec<_>>()),
+            "goals":([0,1].map(|subject| serde_json::json!({"subject":subject,"capability":"company.crunchbase-search","constraints":{}}))),
+            "answer_operations":[],"unresolved_references":[]}});
+    let (engine, calls, server) = planner_engine_fixture(raw).await;
+    let quote = engine.guest_plan(question, intake, &catalog).await
+        .unwrap_or_else(|error| panic!("planner rejected the complete fixture: {error}; requests: {:?}", calls.lock().unwrap()));
+    server.abort();
+    assert_eq!(calls.lock().unwrap().len(), 0, "complete interpreted requirements compile without a second planning model call");
+    assert_eq!(quote["status"], "ready", "both complete source bindings must remain quotable: {quote}");
+    assert_eq!(quote["sources"].as_array().unwrap().len(), 2);
+    let total: i64 = quote["total_atomic"].as_str().unwrap().parse().unwrap();
+    assert!(total > 0);
+    assert_eq!(total, quote["sources"].as_array().unwrap().iter()
+        .map(|source| source["price_atomic"].as_str().unwrap().parse::<i64>().unwrap()).sum::<i64>());
+    let preview = crate::engine::guest_preview::Preview::open(&engine.signer, quote["preview_token"].as_str().unwrap()).unwrap();
+    let saved = serde_json::to_value(preview).unwrap();
+    let task: Task = serde_json::from_value(saved["task"].clone()).unwrap();
+    let intent: crate::parser::Intent = serde_json::from_value(task.intent.clone().unwrap()).unwrap();
+    assert_eq!(intent.subjects.len(), 2);
+    for name in ["Starbucks", "Mollie"] {
+        let subject = intent.subjects.iter().find(|subject| subject.label == name).unwrap();
+        assert_eq!(crate::catalog::fact_value(&task.facts, subject.entity_ref.unwrap(), "company.crunchbase_query").unwrap(), Some(serde_json::json!(name)));
+    }
+}
+
+fn semantic_name_profile_intake(
+    question: &str,
+    name: &str,
+    slug: &str,
+    catalog: &Catalog,
+) -> crate::capability_intake::Intake {
+    // Model-shaped semantic extraction, deliberately no provider hint and no
+    // registration number. The test does not depend on a starter sentence.
+    let parsed_request = crate::capability_intake::normalize(&serde_json::json!({
+        "language":"nl",
+        "subjects":[{"id":"s1","label":name,"type":"company","identifiers":{"company_name":name}}],
+        "capabilities":[{"slug":slug,"name":"Company profile","description":"Retrieve the registered profile information for a company.",
+            "domain":"company","inputs":["company_name"],"outputs":["profile"],"subject_id":"s1","source_hint":null,"confidence":0.96}],
+        "deliverable":{"format":"chat","operations":[]}
+    }).to_string(), question, "semantic-profile-fixture").unwrap();
+    assert!(
+        parsed_request.capabilities[0].source_hint.is_none(),
+        "name lookup must not invent a named provider"
+    );
+    let matches = crate::ask_v2::search::search(&parsed_request, catalog);
+    crate::capability_intake::Intake {
+        selected_capabilities: matches
+            .iter()
+            .flat_map(|found| found.operations.iter().cloned())
+            .collect(),
+        parsed_request,
+        matches,
+        catalog_version: catalog.version.clone(),
+        apiosk_sources_searched: crate::capability_intake::source_count(catalog),
+    }
+}
+
+fn profile_catalog_with_unrelated_directory_entries() -> Catalog {
+    let original = catalog();
+    let mut known_sources = original.known_sources.clone();
+    // Simulate a growing directory where "profile" becomes common, without
+    // changing a real registry's contracts, response schema, inputs or price.
+    // These artist directories have no executable operation and cannot satisfy
+    // a request for an official company registration profile.
+    for index in 0..24 {
+        known_sources.push(
+            serde_json::from_value(serde_json::json!({
+                "slug":format!("unrelated-profile-directory-{index}"),
+                "name":format!("Artist profile directory {index}"),
+                "block_reason":null,
+                "metadata":{"description":"Artist profile and musician biography information."}
+            }))
+            .unwrap(),
+        );
+    }
+    let catalog = Catalog::build(Snapshot {
+        services: original.services,
+        vocabulary: original.vocabulary.into_values().collect(),
+        known_sources,
+    });
+    assert!(catalog.rejected.is_empty());
+    catalog
+}
+
+#[tokio::test]
+async fn semantic_name_only_profiles_discover_and_price_registry_resolution() {
+    let catalog = profile_catalog_with_unrelated_directory_entries();
+    for (name, question, slug) in [
+        (
+            "Mollie B.V.",
+            "Show the registered company details for Mollie B.V.",
+            "company.profile",
+        ),
+        (
+            "Atelier De Blauwe Maan B.V.",
+            "Please retrieve the available registered profile for Atelier De Blauwe Maan B.V.",
+            "company.registry.profile",
+        ),
+        (
+            "Coolblue B.V.",
+            "Can you find the business registration details of Coolblue B.V.?",
+            "company.profile",
+        ),
+    ] {
+        let intake = semantic_name_profile_intake(question, name, slug, &catalog);
+        assert!(intake.matches.iter().flat_map(|found| &found.apiosk).any(|candidate|
+            candidate.source_slug.as_deref() == Some("kvk-dutch-business-register")
+                && candidate.capability.as_deref() == Some("company.registry-profile")),
+            "{question}: semantic company profile discovery must retain the registry profile even without a source hint; {:?}", intake.matches);
+        let parser = Parser::new(
+            reqwest::Client::new(),
+            "offline://model-calls-forbidden".into(),
+            String::new(),
+            "semantic-profile-fixture".into(),
+        );
+        let mut task = Task {
+            capability_intake: Some(intake.clone()),
+            ..Default::default()
+        };
+        let reply = parser
+            .chat_from_capabilities(question, None, &task, &catalog, &intake)
+            .await
+            .unwrap();
+        assert!(reply.discover, "{question}: {}", reply.message);
+        let mut intent = reply
+            .intent
+            .expect("semantic registered profile must retain its retrieval intent");
+        assert_eq!(intent.subjects.len(), 1);
+        assert_eq!(
+            intent.subjects[0].values.get("company.name"),
+            Some(&serde_json::json!(name))
+        );
+        assert!(
+            !intent.subjects[0]
+                .values
+                .contains_key("company_registry.kvknummer"),
+            "a company name does not authorize inventing its registration number"
+        );
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let resolution = crate::resolver::resolve(&catalog, &task, &intent);
+        let Resolution::Plan(plan) = resolution else {
+            panic!("{question}: expected lookup-dependent profile plan, got {resolution:?}")
+        };
+        assert_eq!(
+            plan.steps
+                .iter()
+                .map(|step| step.service.contract.capability_slug.as_str())
+                .collect::<Vec<_>>(),
+            ["company_registry.search", "company.registry-profile"],
+            "name search is a dependency, not a substitute for the requested profile"
+        );
+        assert!(plan
+            .steps
+            .iter()
+            .all(|step| step.service.api_slug == "kvk-dutch-business-register"));
+        assert!(plan.cap_atomic > 0);
+        assert_eq!(
+            plan.cap_atomic,
+            plan.steps
+                .iter()
+                .map(|step| plan.step_total(step))
+                .sum::<i64>()
+        );
+        let lookup = &plan.steps[0];
+        assert_eq!(
+            lookup
+                .service
+                .inputs(&task, lookup.entity_ref, &catalog.vocabulary)
+                .unwrap(),
+            serde_json::json!({"naam":name})
+        );
+        let profile = &plan.steps[1];
+        assert!(
+            profile
+                .service
+                .inputs(&task, profile.entity_ref, &catalog.vocabulary)
+                .is_err(),
+            "profile execution must wait for the registry's resolved or explicitly selected number"
+        );
+        let shown = crate::resolver::describe_steps(&plan, &[]);
+        assert_eq!(
+            shown[1]["dependencies"][0]["field"],
+            "company_registry.kvknummer"
+        );
+        assert_eq!(shown[1]["dependencies"][0]["step"], 1);
+    }
+}
+
+#[test]
+fn semantic_name_only_profile_intake_does_not_pin_other_countries_to_kvk() {
+    let catalog = catalog();
+    for name in [
+        "Example Ltd.",
+        "Example GmbH",
+        "Example S.A.R.L.",
+        "Example Company",
+    ] {
+        let question = format!("Retrieve the registered company profile of {name}");
+        let intake = semantic_name_profile_intake(&question, name, "company.profile", &catalog);
+        assert!(intake.parsed_request.capabilities[0].source_hint.is_none());
+        assert_eq!(intake.parsed_request.subjects[0].identifiers.len(), 1);
+        assert_eq!(
+            intake.parsed_request.subjects[0].identifiers["company_name"],
+            name
+        );
+        if matches!(name, "Example S.A.R.L." | "Example GmbH") {
+            assert!(intake.matches.iter().flat_map(|found| &found.apiosk).all(|candidate|
+                candidate.source_slug.as_deref() != Some("kvk-dutch-business-register")),
+                "a foreign legal form cannot be routed to the Dutch registry because of the parser language");
+        }
+    }
+}
+
+#[tokio::test]
+async fn semantic_name_only_profile_scope_is_never_narrowed_or_rebound() {
+    let catalog = catalog();
+    let question = "Show the registered company details for Mollie B.V.";
+    let intake = semantic_name_profile_intake(question, "Mollie B.V.", "company.profile", &catalog);
+    for change in [
+        "extra_output",
+        "unknown_identifier",
+        "different_name",
+        "country_filter",
+        "stale_question",
+    ] {
+        let mut changed = intake.clone();
+        let parsed = &mut changed.parsed_request;
+        match change {
+            "extra_output" => parsed.capabilities[0].outputs.push("turnover".into()),
+            "unknown_identifier" => {
+                parsed.subjects[0]
+                    .identifiers
+                    .insert("ticker".into(), "EXAMPLE".into());
+            }
+            "different_name" => {
+                parsed.subjects[0]
+                    .identifiers
+                    .insert("company_name".into(), "Another Company B.V.".into());
+            }
+            "country_filter" => {
+                parsed.subjects[0]
+                    .identifiers
+                    .insert("country".into(), "Belgium".into());
+            }
+            "stale_question" => parsed.meta.text_sha256 = "different-question".into(),
+            _ => unreachable!(),
+        }
+        let before = serde_json::to_value(&changed).unwrap();
+        let parser = Parser::new(
+            reqwest::Client::new(),
+            "offline://additional-model-calls-forbidden".into(),
+            String::new(),
+            "fixture-planner".into(),
+        );
+        let reply = parser
+            .chat_from_capabilities(question, None, &Task::default(), &catalog, &changed)
+            .await;
+        assert!(reply.as_ref().map_or(true, |reply| !reply.discover && reply.intent.is_none()),
+            "{change}: a broader, filtered or stale request must not be narrowed to a plain profile: {reply:?}");
+        assert_eq!(
+            serde_json::to_value(&changed).unwrap(),
+            before,
+            "planning must not rewrite requested scope"
+        );
+    }
+}
+
+#[tokio::test]
+async fn model_requested_answer_format_survives_planning() {
+    let catalog = catalog();
+    let starters: Vec<Starter> =
+        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    let case = starters
+        .iter()
+        .find(|case| case.id == "crunchbase")
+        .unwrap();
+    let question = format!("{} Return a PDF.", case.question);
+    let mut output = model_reply_fixture(&case.question);
+    output["deliverable"]["format"] = serde_json::json!("pdf");
+    let model = model_fixture(&question, output).await;
+    let intake = model
+        .parser
+        .ask_intake(&question, &Task::default(), &catalog, None)
+        .await
+        .unwrap();
+    assert_eq!(model.calls.lock().unwrap().len(), 1);
+    assert_eq!(intake.parsed_request.deliverable.format, "pdf");
+    let reply = model
+        .parser
+        .chat_from_capabilities(&question, None, &Task::default(), &catalog, &intake)
+        .await
+        .unwrap();
+    assert!(reply.discover, "{}", reply.message);
+    let intent = reply.intent.unwrap();
+    assert!(
+        intent
+            .answer_operations
+            .iter()
+            .any(|operation| operation.to_ascii_lowercase().contains("pdf")),
+        "the requested file format must remain part of the generated plan"
+    );
 }

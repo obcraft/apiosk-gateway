@@ -30,9 +30,12 @@ mod pre_kyb;
 mod tenderned;
 mod company_request;
 mod company_name_request;
+#[cfg(test)]
 mod compound_request;
 #[cfg(test)]
 mod compound_examples_tests;
+#[cfg(test)]
+mod ecb_split_currency_tests;
 mod cbs_comparison;
 mod location_answer;
 mod profession_request;
@@ -72,3 +75,6 @@ mod additional_examples_tests;
 
 #[cfg(test)]
 mod homepage_starter_tests;
+
+#[cfg(test)]
+mod live_ask_planning_tests;

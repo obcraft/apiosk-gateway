@@ -136,8 +136,8 @@ pub(crate) fn query_identity_gap(service: &crate::catalog::Service, inputs: &ser
 mod tests {
     use super::*;
     use serde_json::json;
-    use crate::{catalog::{Catalog, Snapshot}, parser::Parser, resolver::Resolution, state::{Fact, Task}};
-    use std::{collections::BTreeSet, sync::atomic::Ordering};
+    use crate::{catalog::{Catalog, Snapshot}, resolver::Resolution, state::{Fact, Task}};
+    use std::collections::BTreeSet;
     pub(super) const QUESTION: &str = "Look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information.";
     const QUESTION_FORM: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
     const DUTCH_QUESTION: &str = "Kun je Mollie B.V. op naam opzoeken en de geregistreerde gegevens, beschikbare financiële jaarcijfers en website-informatie combineren?";
@@ -196,16 +196,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn named_company_plans_one_quote_with_source_bound_website_search() {
+    async fn offline_named_company_fixture_prices_source_bound_website_search() {
         let catalog = catalog();
-        let parser = Parser::new(reqwest::Client::new(), "offline://model-calls-forbidden".into(), String::new(), "fixture".into());
         for (name, selected_name, number, language, form) in [("Mollie B.V.", "Mollie B.V.", "30204462"),
             ("Bas Grave Web Development", "Bas Grave Web Development", "87560488"),
             ("Atelier De Blauwe Maan", "Atelier De Blauwe Maan B.V.", "00123456")].into_iter()
             .flat_map(|(name, selected, number)| supported_questions().into_iter().map(move |(language, form)| (name, selected, number, language, form))) {
             let question = form.replace("Mollie B.V.", name);
             let mut task = Task::default();
-            let intake = parser.ask_intake(&question, &task, &catalog, None).await.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(&question, &catalog);
             assert_eq!(intake.parsed_request.meta.text_sha256, hex::encode(Sha256::digest(question.as_bytes())));
             let mut expected = serde_json::to_value(parse(&QUESTION.replace("Mollie B.V.", name), "fixture").unwrap()).unwrap();
             expected["language"] = json!(language);
@@ -213,7 +212,7 @@ mod tests {
             expected.as_object_mut().unwrap().remove("meta"); actual.as_object_mut().unwrap().remove("meta");
             assert_eq!(actual, expected, "the question form preserves every semantic field");
             assert!(intake.parsed_request.subjects[0].identifiers.is_empty());
-            let reply = parser.chat_from_capabilities(&question, None, &task, &catalog, &intake).await.unwrap();
+            let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, &question, &task).unwrap();
             assert!(reply.discover, "{question}: {}", reply.message);
             if language == "nl" { assert!(reply.message.starts_with("Ik "), "{question}: {}", reply.message); }
             let mut intent = reply.intent.unwrap();
@@ -258,7 +257,6 @@ mod tests {
             let web_inputs = plan.steps[3].service.inputs(&task, entity, &catalog.vocabulary).unwrap();
             assert_eq!(web_inputs, json!({"q":query.value,"depth":"standard","outputType":"sourcedAnswer"}));
         }
-        assert_eq!(parser.calls.load(Ordering::Relaxed), 0);
     }
 
     #[test]

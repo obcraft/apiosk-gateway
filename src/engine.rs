@@ -108,7 +108,7 @@ fn reply_to(task: &mut Task, question: &str, message: String) {
 fn planning_review_reply(task:&mut Task,question:&str,message:String) {
     // A revised executable plan still has to pass deterministic field
     // coverage. Its refusal must survive the model's optimistic review text.
-    if !task.actions.iter().any(|action|action.get("missing_output_contracts").is_some()) {
+    if !task.actions.iter().any(|action|action.get("missing_output_contracts").is_some() || action.get("missing_input_bindings").is_some()) {
         reply_to(task,question,message);
     }
 }
@@ -687,6 +687,18 @@ impl Engine {
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
             Resolution::Plan(mut plan) => {
+                let missing_inputs=crate::parser::plan_coverage::uncovered_inputs(task,catalog,intent,&plan);
+                if !missing_inputs.is_empty() {
+                    let fields=missing_inputs.join("; ").replace('_'," ");
+                    let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
+                        format!("Het plan behoudt deze opgegeven gegevens of filters nog niet aantoonbaar: {fields}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. Verduidelijk de gewenste selectie of probeer de planning opnieuw.")
+                    } else {
+                        format!("The plan does not yet confirm that these supplied inputs or filters are preserved: {fields}. No quote was created and nothing was executed. Clarify the requested selection or try planning again.")
+                    };
+                    if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
+                    task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_input_bindings":missing_inputs}));
+                    return Ok(Status::NeedsInput);
+                }
                 let missing=crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan);
                 if !missing.is_empty() {
                     let fields=missing.join("; ").replace('_'," ");
@@ -1195,6 +1207,9 @@ mod account_navigation_tests {
         assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Source does not declare publication date"));
         assert!(task.proposal.is_none());
         assert_eq!(task.actions[0]["kind"],"planning_clarification");
+        task.actions=vec![serde_json::json!({"kind":"planning_clarification","missing_input_bindings":["location"]})];
+        super::planning_review_reply(&mut task,"Give title and date","Complete lookup is ready for approval".into());
+        assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Source does not declare publication date"));
         task.actions.clear();
         super::planning_review_reply(&mut task,"Give title and date","Revised plan is ready".into());
         assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Revised plan is ready"));

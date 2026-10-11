@@ -1,5 +1,7 @@
-//! Local planning regressions for the published multi-source examples.
-//! No model key, database, provider, wallet or network connection is used.
+//! Offline source-contract regressions for historical multi-source examples.
+//! Intake and planning fixtures are declared explicitly; these tests do not
+//! claim to verify live AI interpretation. Homepage transport coverage lives in
+//! `homepage_starter_tests`. No provider, database or payment call is made.
 use crate::{
     catalog::{Catalog, Snapshot},
     parser::{Intent, Parser},
@@ -7,10 +9,7 @@ use crate::{
     state::Task,
 };
 use serde_json::{Value, json};
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    sync::atomic::Ordering,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 struct Case {
     title: &'static str,
@@ -102,22 +101,12 @@ fn parser() -> Parser {
 }
 
 async fn plan(question: &str, catalog: &Catalog) -> (Task, Intent, Plan) {
-    let parser = parser();
     let task = Task::default();
-    let intake = parser
-        .ask_intake(question, &task, catalog, None)
-        .await
-        .unwrap();
+    let intake = crate::capability_intake::offline_fixture_intake(question, catalog);
     assert_eq!(intake.parsed_request.language, "en");
-    let reply = parser
-        .chat_from_capabilities(question, None, &task, catalog, &intake)
-        .await
-        .unwrap();
-    assert_eq!(
-        parser.calls.load(Ordering::Relaxed),
-        0,
-        "literal compounds must not call a model"
-    );
+    let reply = crate::parser::plan_coverage::offline_fixture_reply(
+        &intake, catalog, question, &task,
+    ).expect("the declared contract fixture must be complete");
     assert!(reply.discover, "{question}\n{}", reply.message);
     let mut intent = reply
         .intent
@@ -1052,7 +1041,6 @@ async fn compound_examples_unknown_extra_scope_never_becomes_a_partial_quote() {
                 "{} quoted only the supported prefix",
                 case.title
             );
-            assert_eq!(parser.calls.load(Ordering::Relaxed), 0);
         }
     }
 }

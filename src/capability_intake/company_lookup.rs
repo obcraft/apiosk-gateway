@@ -67,6 +67,7 @@ pub(crate) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
     })
 }
 
+#[cfg(test)]
 pub(crate) fn matches_intake(question: &str, intake: &Intake) -> bool {
     let Some(expected) = parse(question, "literal-company-lookup") else {
         return false;
@@ -115,12 +116,12 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn named_profile_example_binds_the_literal_registration_without_a_model() {
+    async fn offline_named_profile_fixture_binds_the_literal_registration() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
         let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
         for (name,number) in [("Mollie B.V.","30204462"),("Example B.V.","00123456")] {
             let question = format!("Show the registered company details for {name} (KVK {number}).");
-            let intake=parser.ask_intake(&question,&Default::default(),&catalog,None).await.unwrap();
+            let intake=crate::capability_intake::offline_fixture_intake(&question,&catalog);
             assert_eq!(intake.parsed_request.subjects[0].label,name);
             assert_eq!(intake.parsed_request.language,"en");
             let reply=parser.chat_from_capabilities(&question,None,&Default::default(),&catalog,&intake).await.unwrap();
@@ -212,10 +213,8 @@ mod tests {
         assert!(plain_profile("Check another company's profile", &intake).is_none());
     }
 
-    #[tokio::test]
-    async fn bare_kvk_check_interprets_only_the_registered_profile_without_a_model() {
-        let client =
-            crate::ask_v2::Client::new(reqwest::Client::new(), String::new(), "fixture".into());
+    #[test]
+    fn legacy_bare_kvk_fixture_has_only_the_registered_profile() {
         for (question, identifier, language) in [
             ("87560488 check dit kvk nummer", "87560488", "nl"),
             ("Controleer het KvK-nummer 00123456.", "00123456", "nl"),
@@ -224,8 +223,9 @@ mod tests {
             ("Check this KVK number 87560488", "87560488", "en"),
             ("Look up KVK number 00123456.", "00123456", "en"),
         ] {
-            let response = client.interpret(question, &[]).await.unwrap();
-            let parsed = &response["parsed_request"];
+            // Offline historical fixture only; production interpretation calls
+            // the model for these questions like every other question.
+            let parsed = serde_json::to_value(parse(question, "offline-fixture").unwrap()).unwrap();
             assert_eq!(parsed["language"], language, "{question}");
             assert_eq!(parsed["subjects"][0]["label"], identifier);
             assert_eq!(

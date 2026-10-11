@@ -81,12 +81,15 @@ fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
     let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
     assert_eq!(parsed.capabilities[0].missing, ["kvk_number", "postcode"]);
     input["subjects"] = json!([]);
+    assert!(normalize(&input.to_string(), QUESTION, "fixture").is_err(), "a removed subject cannot leave a dangling reference");
+    input["capabilities"][0]["subject_id"] = Value::Null;
     let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
     assert_eq!(parsed.capabilities[0].missing, ["company_name", "kvk_number", "postcode"]);
     input["subjects"] = json!([
         {"id":"original","label":"Coolblue","type":"company","identifiers":{}},
         {"id":"second","label":"KVK","type":"company","identifiers":{"kvk_number":"12345678"}}
     ]);
+    input["capabilities"][0]["subject_id"] = json!("original");
     assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["kvk_number", "postcode"], "another subject's identifier cannot satisfy this one");
     input["capabilities"][0]["subject_id"] = Value::Null;
     assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["postcode"]);
@@ -201,9 +204,14 @@ fn query_uses_generic_fields_and_scrubs_subjects_even_if_model_copies_them() {
 }
 #[test]
 fn greetings_never_search_and_greeting_plus_task_still_parses() {
-    let p = normalize("invalid output", "hoe gaat het met jou?", "model").unwrap();
+    let model_output = json!({"language":"nl","subjects":[],"capabilities":[{
+        "slug":"general.conversation","name":"Conversation","description":"Reply to the greeting.",
+        "domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":0.95
+    }],"deliverable":{"format":"chat","operations":[]}});
+    let p = normalize(&model_output.to_string(), "hoe gaat het met jou?", "model").unwrap();
     assert_eq!(p.capabilities[0].slug, "general.conversation");
     assert!(queries(&p, &Task::default()).is_empty());
+    assert!(normalize("invalid output", "hoe gaat het met jou?", "model").is_err());
     assert!(conversation_language("Hoi, geef de jaarrekening van Coolblue").is_none());
 }
 #[test]
@@ -506,13 +514,17 @@ async fn coinbase_failure_leaves_apiosk_matches_available() {
 }
 #[tokio::test]
 async fn greetings_skip_all_source_searches() {
-    let (parser, mock, bazaar, server) = fixture(vec![], false).await;
+    let response = json!({"language":"nl","subjects":[],"capabilities":[{
+        "slug":"general.conversation","name":"Conversation","description":"Reply to the greeting.",
+        "domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":0.95
+    }],"deliverable":{"format":"chat","operations":[]}});
+    let (parser, mock, bazaar, server) = fixture(vec![response], false).await;
     let intake = parser
         .prepare_ask_with_bazaar("Hoi!", None, &Task::default(), &catalog(), &bazaar)
         .await
         .unwrap();
     assert!(intake.matches.is_empty());
-    assert!(mock.events.lock().unwrap().is_empty());
+    assert_eq!(*mock.events.lock().unwrap(), ["parse"], "the model interprets the greeting, while source searches remain skipped");
     server.abort();
 }
 #[tokio::test]

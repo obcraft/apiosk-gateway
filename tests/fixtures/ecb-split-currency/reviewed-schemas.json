@@ -1,0 +1,252 @@
+{
+  "note": "Production vocabulary read on 2026-10-11; metadata-only reviewed ECB fixed scope and endpoint-owned ECB/Yelp literal input aliases.",
+  "before": [
+    {
+      "slug": "fx.ecb.quote",
+      "value_schema": {
+        "enum": [
+          "AUD",
+          "BRL",
+          "CAD",
+          "CHF",
+          "CNY",
+          "CZK",
+          "DKK",
+          "EUR",
+          "GBP",
+          "HKD",
+          "HUF",
+          "IDR",
+          "ILS",
+          "INR",
+          "ISK",
+          "JPY",
+          "KRW",
+          "MXN",
+          "MYR",
+          "NOK",
+          "NZD",
+          "PHP",
+          "PLN",
+          "RON",
+          "SEK",
+          "SGD",
+          "THB",
+          "TRY",
+          "USD",
+          "ZAR"
+        ],
+        "type": "string",
+        "title": "Target currency",
+        "description": "Target currency from the verified ECB daily euro reference currency set."
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "value_schema": {
+        "type": "object",
+        "$comment": "{\"apiosk_fixed_scope_v1\": [{\"path\": \"/v2/providers/ecb/rate/EUR/{quote}\", \"inputs\": {\"rate_type\": [\"official ECB reference exchange rate\", \"ECB reference exchange rate\", \"official ECB reference rate\", \"ECB reference rate\"], \"observation_date\": [\"latest\", \"most recent\", \"laatste\", \"meest recente\"]}, \"method\": \"GET\", \"endpoint_id\": \"6ff3c2cf-19dc-4555-9051-e1c80c6c6e67\", \"input_facts\": [\"fx.ecb.quote\"], \"source_slug\": \"frankfurter\"}]}",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "base": {
+            "enum": [
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"source_date\",\"observation_date\"]}"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-09,
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"exchange_rate\"]}"
+          },
+          "quote": {
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "type": "string",
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          }
+        }
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.location",
+      "value_schema": {
+        "type": "string",
+        "description": "Search location."
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.query",
+      "value_schema": {
+        "type": "string",
+        "description": "Search query / keyword"
+      }
+    }
+  ],
+  "after": [
+    {
+      "slug": "fx.ecb.quote",
+      "value_schema": {
+        "enum": [
+          "AUD",
+          "BRL",
+          "CAD",
+          "CHF",
+          "CNY",
+          "CZK",
+          "DKK",
+          "EUR",
+          "GBP",
+          "HKD",
+          "HUF",
+          "IDR",
+          "ILS",
+          "INR",
+          "ISK",
+          "JPY",
+          "KRW",
+          "MXN",
+          "MYR",
+          "NOK",
+          "NZD",
+          "PHP",
+          "PLN",
+          "RON",
+          "SEK",
+          "SGD",
+          "THB",
+          "TRY",
+          "USD",
+          "ZAR"
+        ],
+        "type": "string",
+        "title": "Target currency",
+        "description": "Target currency from the verified ECB daily euro reference currency set.",
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"quote_currency\",\"target_currency\"]}"
+      }
+    },
+    {
+      "slug": "fx.ecb.reference_rate",
+      "value_schema": {
+        "type": "object",
+        "$comment": "{\"apiosk_fixed_scope_v1\":[{\"path\":\"/v2/providers/ecb/rate/EUR/{quote}\",\"inputs\":{\"rate_type\":[\"official ECB reference exchange rate\",\"ECB reference exchange rate\",\"official ECB reference rate\",\"ECB reference rate\",\"official ECB reference\",\"ECB reference\"],\"observation_date\":[\"latest\",\"most recent\",\"laatste\",\"meest recente\"],\"base_currency\":[\"EUR\"],\"reference_source\":[\"ECB\"]},\"method\":\"GET\",\"endpoint_id\":\"6ff3c2cf-19dc-4555-9051-e1c80c6c6e67\",\"input_facts\":[\"fx.ecb.quote\"],\"source_slug\":\"frankfurter\"}]}",
+        "required": [
+          "date",
+          "base",
+          "quote",
+          "rate"
+        ],
+        "properties": {
+          "base": {
+            "enum": [
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"source_date\",\"observation_date\"]}"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 1e-09,
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"exchange_rate\"]}"
+          },
+          "quote": {
+            "enum": [
+              "AUD",
+              "BRL",
+              "CAD",
+              "CHF",
+              "CNY",
+              "CZK",
+              "DKK",
+              "EUR",
+              "GBP",
+              "HKD",
+              "HUF",
+              "IDR",
+              "ILS",
+              "INR",
+              "ISK",
+              "JPY",
+              "KRW",
+              "MXN",
+              "MYR",
+              "NOK",
+              "NZD",
+              "PHP",
+              "PLN",
+              "RON",
+              "SEK",
+              "SGD",
+              "THB",
+              "TRY",
+              "USD",
+              "ZAR"
+            ],
+            "type": "string",
+            "description": "Target currency from the verified ECB daily euro reference currency set."
+          }
+        }
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.location",
+      "value_schema": {
+        "type": "string",
+        "description": "Search location.",
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"city\",\"location\"]}"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.query",
+      "value_schema": {
+        "type": "string",
+        "description": "Search query / keyword",
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"company_name\",\"business_name\"]}"
+      }
+    }
+  ]
+}

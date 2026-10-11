@@ -10,10 +10,10 @@ kill_timeout = "120s"
   APP_ORIGIN = "https://app.apiosk.com"
   SUPABASE_URL = "https://api.apiosk.com"
   BIND_ADDRESS = "0.0.0.0:8082"
-  # Apiosk's one model, via OpenRouter, for every stage. The code pins it and
-  # ignores any other value; these lines only document it.
+  # Pinned models via OpenRouter; these values document the code constants.
   INTENT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
-  ASK_V2_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
+  # Ask capability interpretation is independent of planning and analysis.
+  ASK_V2_MODEL = "openai/gpt-6-luna"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
   ASK_PAID_ANALYSIS_ENABLED = "1"

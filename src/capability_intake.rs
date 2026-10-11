@@ -15,6 +15,7 @@ use std::{
 };
 
 mod discovery_cache;
+#[cfg(test)]
 pub(crate) mod named_source_fields;
 pub(crate) mod broad_information;
 pub(crate) mod company_lookup;
@@ -253,6 +254,7 @@ pub fn extract_json(raw: &str) -> anyhow::Result<Value> {
         .ok_or_else(|| anyhow::anyhow!("missing JSON object"))?
         .map_err(Into::into)
 }
+#[cfg(test)]
 pub fn conversation_language(request: &str) -> Option<&'static str> {
     let clean = request
         .trim()
@@ -325,10 +327,12 @@ pub(crate) fn literal_sentence(request: &str) -> &str {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
     crate::compound_request::parse(request, model).or_else(|| atomic_literal_request(request, model))
 }
 
+#[cfg(test)]
 pub(crate) fn atomic_literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
     named_source_fields::parse(request, model)
         .or_else(|| broad_information::parse(request, model))
@@ -340,17 +344,30 @@ pub(crate) fn atomic_literal_request(request: &str, model: &str) -> Option<Parse
         .or_else(|| crate::cbs_comparison::canonical_request(request))
 }
 
+/// Historical catalog fixtures construct their expected intake directly.
+/// Production intake never calls this helper or skips model interpretation.
+#[cfg(test)]
+pub(crate) fn offline_fixture_intake(question: &str, catalog: &Catalog) -> Intake {
+    let parsed_request = literal_request(question, "offline-fixture")
+        .expect("the historical fixture must have an explicit intake");
+    let matches = crate::ask_v2::search::search(&parsed_request, catalog);
+    Intake {
+        selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+        parsed_request,
+        matches,
+        apiosk_sources_searched: source_count(catalog),
+        catalog_version: catalog.version.clone(),
+    }
+}
+
 pub fn normalize(raw: &str, request: &str, model: &str) -> anyhow::Result<ParsedRequest> {
     normalize_with_context(raw, request, request, model)
 }
 
 pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, model: &str) -> anyhow::Result<ParsedRequest> {
-    if let Some(parsed) = literal_request(request, model) { return Ok(parsed); }
-    let raw = if let Some(language) = conversation_language(request) {
-        json!({"language":language,"subjects":[],"capabilities":[{"slug":"general.conversation","name":"Conversation","description":"Reply to a greeting, thanks, or small talk.","domain":"general","inputs":[],"outputs":["reply"],"subject_id":null,"source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}})
-    } else {
-        extract_json(raw)?
-    };
+    // Validate what the model returned. Recognizing the question text must
+    // never replace a model response or turn invalid output into a valid one.
+    let raw = extract_json(raw)?;
     let language = text(&raw["language"]).to_lowercase();
     ensure!(
         language.len() == 2 && language.bytes().all(|c| c.is_ascii_lowercase()),
@@ -433,6 +450,13 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
             let phrase = source.replace('_', " ");
             if literal(literals, &phrase) { source = phrase; }
         }
+        // An invalid link is a model error, not a subjectless request. Dropping
+        // the link would also detach that subject's supplied selection filters.
+        let subject_id = match &cap["subject_id"] {
+            Value::Null => None,
+            Value::String(id) if ids.contains_key(id) => ids.get(id).cloned(),
+            _ => anyhow::bail!("capability subject_id must reference a supplied subject or be null"),
+        };
         let mut capability = Capability {
             slug,
             name,
@@ -440,7 +464,7 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
             domain,
             inputs: names(&cap["inputs"])?,
             outputs: names(&cap["outputs"])?,
-            subject_id: ids.get(&text(&cap["subject_id"])).cloned(),
+            subject_id,
             source_hint: literal(literals, &source).then_some(source),
             confidence: confidence.clamp(0.0, 1.0),
             missing: Vec::new(),
@@ -506,6 +530,63 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
             text_sha256: hex::encode(Sha256::digest(request.as_bytes())),
         },
     })
+}
+
+#[cfg(test)]
+mod model_normalization_regressions {
+    use super::*;
+
+    #[test]
+    fn known_questions_and_greetings_cannot_bypass_model_output_validation() {
+        for request in [
+            "Search Crunchbase for Starbucks and show its company description and profile link.",
+            "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+            "Show the registered company details for Mollie B.V. (KVK 30204462).",
+            "hoe gaat het met jou?",
+        ] {
+            assert!(normalize("invalid output", request, "fixture-model").is_err(), "{request}");
+        }
+    }
+
+    #[test]
+    fn greeting_normalization_preserves_model_fields_instead_of_a_canned_parse() {
+        let raw = json!({"language":"nl","subjects":[],"capabilities":[{
+            "slug":"general.conversation","name":"Reply to the user","description":"Respond to the greeting in the requested tone.",
+            "domain":"general","inputs":[],"outputs":["reply","tone"],"subject_id":null,"source_hint":null,"confidence":0.8
+        }],"deliverable":{"format":"chat","operations":[]}});
+        let parsed = normalize(&raw.to_string(), "hoe gaat het met jou?", "fixture-model").unwrap();
+        assert_eq!(parsed.capabilities[0].outputs, ["reply", "tone"]);
+        assert_eq!(parsed.capabilities[0].name, "Reply to the user");
+        assert_eq!(parsed.capabilities[0].confidence, 0.8);
+        assert_eq!(parsed.meta.model, "fixture-model");
+    }
+
+    #[test]
+    fn invalid_subject_links_cannot_detach_supplied_filters() {
+        let question = "Show the company profile for ExampleCo in Seattle.";
+        let mut raw = json!({"language":"en","subjects":[{
+            "id":"company","label":"ExampleCo","type":"company",
+            "identifiers":{"company_name":"ExampleCo","location":"Seattle"}
+        }],"capabilities":[{
+            "slug":"company.profile","name":"Company profile","description":"Retrieve a company profile.",
+            "domain":"company","inputs":[],"outputs":["profile"],
+            "subject_id":"company","source_hint":null,"confidence":0.95
+        }],"deliverable":{"format":"chat","operations":[]}});
+        let linked = normalize(&raw.to_string(), question, "fixture-model").unwrap();
+        assert_eq!(linked.capabilities[0].subject_id.as_deref(), Some("s1"));
+        assert_eq!(linked.subjects[0].identifiers["location"], "Seattle");
+        // Even when a model omits input names, a bad subject reference must
+        // trigger the existing correction attempt instead of losing Seattle.
+        for invalid in [json!("missing-subject"), json!("s1"), json!(""), json!(7), json!([])] {
+            raw["capabilities"][0]["subject_id"] = invalid.clone();
+            let error = normalize(&raw.to_string(), question, "fixture-model").unwrap_err();
+            assert_eq!(error.to_string(), "capability subject_id must reference a supplied subject or be null", "{invalid}");
+        }
+        raw["capabilities"][0]["subject_id"] = Value::Null;
+        raw["subjects"] = json!([]);
+        assert!(normalize(&raw.to_string(), question, "fixture-model").unwrap().capabilities[0].subject_id.is_none(),
+            "an explicitly subjectless request remains supported");
+    }
 }
 
 /// Port of WebGPU/src/parse/schema.ts::missingInputs. This describes what the

@@ -290,11 +290,15 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
 /// Model mistakes never supply values or scope to this path. Every requested
 /// field, literal binding and exact resolved dependency chain must still pass.
 pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&str,literals:&str,task:&crate::state::Task)->Option<super::ChatReply> {
+    use sha2::Digest;
+    if intake.parsed_request.meta.text_sha256 != hex::encode(sha2::Sha256::digest(question.as_bytes())) { return None; }
     let retrievals:Vec<_>=intake.parsed_request.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)).collect();
     let &(index,cap)=retrievals.first()?;
     if retrievals.len()>1 && cap.subject_id.is_none() {return None;}
     if retrievals.iter().any(|(_,other)| other.subject_id!=cap.subject_id
-        || other.outputs.is_empty() || other.outputs.iter().all(|output|output_metadata(output))) {return None;}
+        || other.outputs.is_empty()
+        || other.outputs.iter().all(|output|output_metadata(output))) {return None;}
+    if intake.parsed_request.subjects.iter().any(|subject| cap.subject_id.as_deref()!=Some(subject.id.as_str())) {return None;}
     let label=match cap.subject_id.as_ref() {
         Some(id)=>intake.parsed_request.subjects.iter().find(|subject|&subject.id==id)?.label.clone(),
         None if intake.parsed_request.subjects.is_empty()=>question.to_owned(),
@@ -322,6 +326,7 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
         if crate::engine::bind_subjects(&mut preview_task,catalog,&mut preview_intent).is_err() {continue;}
         let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(catalog,&preview_task,&preview_intent) else {continue};
         if !uncovered_outputs(&preview_task,catalog,&preview_intent,&plan).is_empty() {continue;}
+        if !retrieval_inputs_preserved(intake,catalog,&preview_task,&preview_intent,&plan,question) {continue;}
         let message=if intake.parsed_request.language=="nl" {"Ik controleer de gevonden bron en toon de totale prijs voordat er iets wordt gekocht."}
             else {"I will check the matched source and show the total price before anything is bought."};
         return Some(super::ChatReply {message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())});
@@ -329,8 +334,352 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
     None
 }
 
+/// Compile independent, already interpreted requirements with the same
+/// contract proof as a single retrieval. Subject ids and all literal criteria
+/// survive the merge; the complete union is validated again before use.
+pub(super) fn multiple_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&str,literals:&str,task:&crate::state::Task)->Option<super::ChatReply> {
+    let parsed=&intake.parsed_request;
+    let retrievals:Vec<_>=parsed.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)).collect();
+    if retrievals.len()<2 || retrievals.len()>super::MAX_GOALS
+        || parsed.subjects.iter().map(|subject|&subject.id).collect::<BTreeSet<_>>().len()!=parsed.subjects.len() {return None;}
+    let mut subjects=std::collections::BTreeMap::new();
+    let mut intent=Intent {subjects:vec![],goals:vec![],answer_operations:vec![],unresolved_references:vec![]};
+    for (index,cap) in retrievals {
+        let id=cap.subject_id.as_ref()?;
+        let subject=parsed.subjects.iter().find(|subject|&subject.id==id)?;
+        let mut part=intake.clone();
+        part.parsed_request.subjects=vec![subject.clone()];part.parsed_request.capabilities=vec![cap.clone()];
+        part.matches=vec![request_match(intake,index)?.clone()];
+        part.selected_capabilities=part.matches[0].operations.clone();
+        let compiled=single_retrieval_reply(&part,catalog,question,literals,task)?.intent?;
+        if compiled.subjects.len()!=1 || !compiled.unresolved_references.is_empty() {return None;}
+        let incoming=&compiled.subjects[0];
+        let target=if let Some(&target)=subjects.get(id) {
+            let existing:&mut super::Subject=&mut intent.subjects[target];
+            if existing.label!=incoming.label || existing.entity_ref!=incoming.entity_ref {return None;}
+            for (field,value) in &incoming.values {
+                if existing.values.get(field).is_some_and(|existing|existing!=value) {return None;}
+                existing.values.insert(field.clone(),value.clone());
+            }
+            target
+        } else {
+            let target=intent.subjects.len();subjects.insert(id.clone(),target);intent.subjects.push(incoming.clone());target
+        };
+        for mut goal in compiled.goals {
+            if goal.subject!=0 {return None;}
+            goal.subject=target;
+            if !intent.goals.iter().any(|existing|existing.subject==goal.subject && existing.capability==goal.capability && existing.constraints==goal.constraints) {
+                intent.goals.push(goal);
+            }
+        }
+        for operation in compiled.answer_operations {
+            if !intent.answer_operations.contains(&operation) {intent.answer_operations.push(operation);}
+        }
+    }
+    // An unassigned subject is still supplied scope, never disposable context.
+    if subjects.len()!=parsed.subjects.len() {return None;}
+    if prepare(&mut intent,intake,catalog).is_err() || intent.bind_constraint_inputs(literals,catalog).is_err()
+        || intent.validate(literals,task,catalog).is_err() {return None;}
+    let mut preview_task=task.clone();preview_task.capability_intake=Some(intake.clone());
+    preview_task.record_turn(question,None);
+    let mut preview_intent=intent.clone();
+    if crate::engine::bind_subjects(&mut preview_task,catalog,&mut preview_intent).is_err() {return None;}
+    let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(catalog,&preview_task,&preview_intent) else {return None;};
+    if !uncovered_outputs(&preview_task,catalog,&preview_intent,&plan).is_empty()
+        || !uncovered_inputs(&preview_task,catalog,&preview_intent,&plan).is_empty() {return None;}
+    let message=if parsed.language=="nl" {"Ik controleer de gevonden bronnen en toon de totale prijs voordat er iets wordt gekocht."}
+        else {"I will check the matched sources and show the total price before anything is bought."};
+    Some(super::ChatReply {message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())})
+}
+
+/// Output coverage alone cannot prove a filtered retrieval. Every supplied
+/// identifier and requested input must reach an actual selected input binding,
+/// including the dependency calls which resolve an identifier from a name.
+/// Uncertain mappings stay with the normal planner; this never infers a value.
+fn retrieval_inputs_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::Task,intent:&Intent,plan:&crate::resolver::Plan,question:&str)->bool {
+    input_bindings_preserved(intake,catalog,task,intent,plan,question,true,false)
+}
+
+/// A reviewed output contract may document scope fixed by one exact endpoint.
+/// This is catalog evidence, not an inference from a provider name, description
+/// or question. A changed route or set of inputs must be reviewed again.
+fn fixed_scope_covered(key:&str,value:&str,service:&crate::catalog::Service,catalog:&Catalog)->bool {
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Annotation { apiosk_fixed_scope_v1:Vec<Scope> }
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Scope {
+        source_slug:String, endpoint_id:uuid::Uuid, method:String, path:String,
+        input_facts:Vec<String>, inputs:std::collections::BTreeMap<String,Vec<String>>,
+    }
+    let normalized=|text:&str|text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    service.contract.output_map.produces.keys().any(|field| {
+        let Some(comment)=catalog.vocabulary.get(field).and_then(|fact|fact.value_schema.get("$comment"))
+            .and_then(Value::as_str).filter(|comment|comment.len()<=16_384) else {return false};
+        let Ok(annotation)=serde_json::from_str::<Annotation>(comment) else {return false};
+        if annotation.apiosk_fixed_scope_v1.is_empty() || annotation.apiosk_fixed_scope_v1.len()>16 {return false;}
+        annotation.apiosk_fixed_scope_v1.iter().any(|scope| {
+            if scope.source_slug!=service.api_slug || scope.endpoint_id!=service.endpoint_id
+                || scope.method!=service.method || scope.path!=service.path || scope.input_facts.len()>32
+                || scope.inputs.is_empty() || scope.inputs.len()>32 {return false;}
+            let declared:BTreeSet<_>=scope.input_facts.iter().collect();
+            if declared.len()!=scope.input_facts.len() || declared!=service.contract.input_map.keys().collect() {return false;}
+            let Some(aliases)=scope.inputs.get(key).filter(|aliases|!aliases.is_empty() && aliases.len()<=16) else {return false};
+            if aliases.iter().any(|alias|alias.trim().is_empty() || alias.len()>256) {return false;}
+            let value=normalized(value);
+            !value.is_empty() && aliases.iter().any(|alias|normalized(alias)==value)
+        })
+    })
+}
+
+fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::Task,intent:&Intent,plan:&crate::resolver::Plan,question:&str,require_every_identifier:bool,allow_model_bindings:bool)->bool {
+    let parsed=&intake.parsed_request;
+    let Some(subject)=parsed.subjects.first() else {
+        return parsed.capabilities.iter().all(|cap| answer_instruction(cap) || (cap.inputs.is_empty() && cap.missing.is_empty()));
+    };
+    let Some(entity)=intent.subjects.first().and_then(|subject|subject.entity_ref) else {return false};
+    let mut bound=Vec::new();
+    for step in plan.steps.iter().filter(|step|step.entity_ref==entity) {
+        for field in step.service.contract.input_map.keys() {
+            let Some(fact)=catalog.vocabulary.get(field) else {return false};
+            if let Ok(Some(value))=crate::catalog::fact_value(&task.facts,entity,field) {
+                bound.push((field.as_str(),&fact.value_schema,value));
+            }
+        }
+    }
+    let mapped=|field:&str,schema:&Value,subject:&crate::capability_intake::Subject| {
+        let value=crate::ask_v2::input_values::documented_literal(field,schema,subject)?;
+        if catalog_core::facts::schema::validate(schema,&value).is_ok() {Some(value)}
+        else {value.as_str().and_then(|text|serde_json::from_str::<Value>(text).ok())
+            .filter(|typed|catalog_core::facts::schema::validate(schema,typed).is_ok())}
+    };
+    let normal=|name:&str|name.split(|ch:char|!ch.is_alphanumeric()).filter(|part|!part.is_empty())
+        .map(str::to_lowercase).collect::<Vec<_>>().join("_");
+    let name_alias=|name:&str| {
+        let name=normal(name);
+        name=="name" || name=="query" || name==normal(&subject.kind) || name==format!("{}_name",normal(&subject.kind))
+            || (matches!(subject.kind.as_str(),"company"|"organization"|"organisation"|"business")
+                && matches!(name.as_str(),"company_name"|"business_name"|"organization_name"|"organisation_name"))
+    };
+    let mut label_only=subject.clone();label_only.identifiers.clear();
+    let mut without_label=label_only.clone();without_label.label.clear();
+    let label_used=bound.iter().any(|(field,schema,value)|mapped(field,schema,&label_only).as_ref()==Some(value)
+        && mapped(field,schema,&without_label).as_ref()!=Some(value));
+    let identifying_input=|field:&str|plan.steps.iter().any(|step|step.entity_ref==entity
+        && step.service.contract.identifies.as_deref()==Some(field) && step.service.contract.input_map.contains_key(field));
+    let identity_bound=bound.iter().any(|(field,schema,value)|identifying_input(field)
+        && (mapped(field,schema,subject).as_ref()==Some(value)
+            || (allow_model_bindings && intent.subjects[0].values.get(*field)==Some(value)
+                && catalog_core::facts::schema::validate(schema,value).is_ok()
+                && subject.identifiers.iter().any(|(key,literal)|!name_alias(key) && literal!=&subject.label
+                    && (value.as_str()==Some(literal.as_str()) || serde_json::from_str::<Value>(literal).ok().as_ref()==Some(value))))));
+    let source_bound=|hint:&str|plan.steps.iter().any(|step|step.entity_ref==entity
+        && intent.goals.iter().any(|goal|goal.capability==step.service.contract.capability_slug)
+        && crate::capability_intake::names_source(&step.service,hint));
+    let whole_query=subject.identifiers.get("query").filter(|query|query.as_str()==question && !query.is_empty())
+        .filter(|query|bound.iter().any(|(field,schema,value)|matches!(field.rsplit('.').next(),Some("query"|"q"|"search"|"source_search_query"))
+            && value.as_str()==Some(query.as_str()) && mapped(field,schema,subject).as_ref()==Some(value)));
+    let mut identifiers=BTreeSet::new();
+    for (key,value) in &subject.identifiers {
+        // Some intake documents retain the original sentence as context.
+        // It is not a filter unless the capability explicitly asks to use it.
+        if ((key=="request" && !value.is_empty() && question.contains(value))
+            || (key=="query" && value==question))
+            && !parsed.capabilities.iter().filter(|cap|!answer_instruction(cap)).any(|cap|
+                cap.inputs.iter().chain(&cap.missing).any(|input|normal(input)==*key || normal(input).ends_with(&format!("_{key}")))) {
+            continue;
+        }
+        if matches!(normal(key).as_str(),"source"|"source_hint"|"provider") {
+            if parsed.capabilities.iter().any(|cap|cap.source_hint.as_ref().is_some_and(|hint|hint.eq_ignore_ascii_case(value) && source_bound(hint))) {
+                identifiers.insert(normal(key));continue;
+            }
+            if require_every_identifier {return false;}
+            continue;
+        }
+        if whole_query.is_some_and(|query| {
+            let query=query.to_lowercase();let value=value.to_lowercase();
+            !value.is_empty() && query.match_indices(&value).any(|(start,matched)|
+                query[..start].chars().next_back().is_none_or(|ch|!ch.is_alphanumeric())
+                && query[start+matched.len()..].chars().next().is_none_or(|ch|!ch.is_alphanumeric()))
+        }) {
+            identifiers.insert(normal(key));continue;
+        }
+        if name_alias(key) && value==&subject.label && label_used {
+            identifiers.insert(normal(key));continue;
+        }
+        let identity_name=name_alias(key) && !matches!(normal(key).as_str(),"query"|"topic"|"keyword");
+        if identity_name && value==&subject.label && identity_bound {
+            identifiers.insert(normal(key));continue;
+        }
+        // A model can bind a literal to a documented input even when its
+        // semantic alias is not one of the deterministic convenience mappings.
+        // Require the exact validated value on this subject's selected input.
+        if allow_model_bindings && bound.iter().any(|(field,schema,bound_value)|
+            intent.subjects[0].values.get(*field)==Some(bound_value)
+            && catalog_core::facts::schema::validate(schema,bound_value).is_ok()
+            && (!name_alias(key) || value==&subject.label || !identifying_input(field))
+            && (name_alias(key) || mapped(field,schema,&label_only).as_ref()!=Some(bound_value))
+            && (bound_value.as_str()==Some(value.as_str()) || serde_json::from_str::<Value>(value).ok().as_ref()==Some(bound_value))) {
+            identifiers.insert(normal(key));continue;
+        }
+        // A canonical field identifier can repeat the label. Its exact field
+        // and value are still consumed even when label fallback is identical.
+        if bound.iter().any(|(field,schema,bound_value)|(normal(field)==normal(key)
+            || crate::ask_v2::input_values::reviewed_input_alias(schema,key))
+            && mapped(field,schema,subject).as_ref()==Some(bound_value)
+            && (bound_value.as_str()==Some(value.as_str())
+                || serde_json::from_str::<Value>(value).ok().as_ref()==Some(bound_value))) {
+            identifiers.insert(normal(key));continue;
+        }
+        if matches!(normal(key).as_str(), "country" | "country_code") {
+            let name=value.trim().to_lowercase();
+            let name=name.strip_prefix("the ").unwrap_or(&name).replace([' ', '-'], "");
+            let countries=crate::ask_v2::search::named_countries(&name);
+            let selected:Vec<_>=plan.steps.iter().filter(|step|step.entity_ref==entity
+                && intent.goals.iter().any(|goal|goal.capability==step.service.contract.capability_slug)).collect();
+            if countries.len()==1 && !selected.is_empty() && selected.iter().all(|step| {
+                let known=catalog.known_sources.iter().find(|source|source.slug==step.service.api_slug);
+                crate::ask_v2::search::fixed_endpoint_country(&step.service,known).as_deref()==countries.first().copied()
+            }) {identifiers.insert(normal(key));continue;}
+        }
+        if plan.steps.iter().any(|step|step.entity_ref==entity
+            && intent.goals.iter().any(|goal|goal.capability==step.service.contract.capability_slug
+                && goal.constraints.get("source").and_then(Value::as_str).is_none_or(|source|source==step.service.api_slug)
+                && endpoint_matches(goal.constraints.get("endpoint_id"),Some(&step.service.endpoint_id.to_string())))
+            && fixed_scope_covered(key,value,&step.service,catalog)) {
+            identifiers.insert(normal(key));continue;
+        }
+        let mut without=subject.clone();without.identifiers.remove(key);
+        if bound.iter().any(|(field,schema,bound_value)|*field=="fx.ecb.quote"
+            && crate::ask_v2::input_values::ecb_quote_for_pair(value).as_ref()==Some(bound_value)
+            && mapped(field,schema,subject).as_ref()==Some(bound_value)
+            && plan.steps.iter().any(|step|step.entity_ref==entity && step.service.contract.capability_slug=="fx.ecb-reference-rate")) {
+            identifiers.insert(normal(key));continue;
+        }
+        // This already-reviewed conversion validates the complete public URL,
+        // entity type and exact permalink; no query or fragment is discarded.
+        // Repeating the same URL in the label does not erase that proof.
+        if bound.iter().any(|(field,schema,bound_value)|
+            crate::ask_v2::input_values::crunchbase_profile_id(field,value).as_ref()==Some(bound_value)
+                && mapped(field,schema,subject).as_ref()==Some(bound_value)) {
+            identifiers.insert(normal(key));continue;
+        }
+        let mut parts=Vec::new();
+        for (field,schema,bound_value) in &bound {
+            if mapped(field,schema,subject).as_ref()!=Some(bound_value)
+                || mapped(field,schema,&without).as_ref()==Some(bound_value) {continue;}
+            let text=match bound_value {Value::String(text)=>text.clone(),Value::Number(number)=>number.to_string(),Value::Bool(value)=>value.to_string(),_=>continue};
+            if !parts.contains(&text) {parts.push(text);}
+        }
+        // A documented split such as a VAT country prefix plus national
+        // number is complete only when all parts reproduce the whole literal.
+        // An assembled address may contain the whole city/postcode literal.
+        fn reconstruct(value:&str,parts:&[String])->bool {
+            if value.is_empty() {return false;}
+            if parts.iter().any(|part|part==value || part.contains(value)) {return true;}
+            fn consume(rest:&str,parts:&[String],used:u16)->bool {
+                if rest.is_empty() {return true;}
+                parts.iter().enumerate().any(|(index,part)|used&(1<<index)==0 && !part.is_empty()
+                    && rest.strip_prefix(part).is_some_and(|tail|consume(tail,parts,used|(1<<index))))
+            }
+            parts.len()<=8 && consume(value,parts,0)
+        }
+        if !reconstruct(value,&parts) {
+            if require_every_identifier {return false;}
+            continue;
+        }
+        identifiers.insert(normal(key));
+    }
+    parsed.capabilities.iter().filter(|cap|!answer_instruction(cap)).all(|cap|cap.inputs.iter().chain(&cap.missing).all(|input| {
+        let input=normal(input);
+        identifiers.contains(&input) || (name_alias(&input) && (label_used
+            || (identity_bound && !matches!(input.as_str(),"query"|"topic"|"keyword"))))
+            || (matches!(input.as_str(),"source"|"source_hint"|"provider") && cap.source_hint.as_ref().is_some_and(|hint|source_bound(hint)))
+            || bound.iter().any(|(field,schema,value)| (normal(field)==input || field.rsplit('.').next().is_some_and(|tail|normal(tail)==input))
+                && mapped(field,schema,subject).as_ref()==Some(value))
+    }))
+}
+
+/// The model and deterministic planner share the same pre-quote input proof.
+/// Scope can only come from the selected subject's matched goal/dependency
+/// chain, never an unused service or another subject with a similar label.
+pub(crate) fn uncovered_inputs(task:&crate::state::Task,catalog:&Catalog,intent:&Intent,plan:&crate::resolver::Plan)->Vec<String> {
+    let Some(intake)=task.capability_intake.as_ref() else {return vec![]};
+    let question=task.conversation.last().map(|turn|turn.question.as_str()).unwrap_or_default();
+    let mut missing=Vec::new();
+    for subject in &intake.parsed_request.subjects {
+        let capabilities:Vec<_>=intake.parsed_request.capabilities.iter().enumerate()
+            .filter(|(_,cap)|!answer_instruction(cap) && cap.subject_id.as_deref()==Some(subject.id.as_str())).collect();
+        if capabilities.is_empty() {
+            // A null or lost capability subject reference cannot erase the
+            // supplied subject's identity/criteria from the purchase proof.
+            let referenced=intake.parsed_request.capabilities.iter().any(|cap|cap.subject_id.as_deref()==Some(subject.id.as_str()));
+            if !referenced && (!subject.label.trim().is_empty() || !subject.identifiers.is_empty())
+                && intake.parsed_request.capabilities.iter().any(|cap|!answer_instruction(cap)) {
+                missing.push(format!("{}: unassigned retrieval subject",subject.label));
+            }
+            continue;
+        }
+        let preserved=intent.subjects.iter().enumerate().filter(|(_,candidate)|candidate.label.eq_ignore_ascii_case(&subject.label)
+            && candidate.entity_ref.is_some()).any(|(subject_index,candidate)| {
+            let mut scoped=intake.clone();scoped.parsed_request.subjects=vec![subject.clone()];
+            scoped.parsed_request.capabilities=capabilities.iter().map(|(_,cap)|(*cap).clone()).collect();
+            let mut selected=Intent {subjects:vec![candidate.clone()],goals:vec![],answer_operations:vec![],unresolved_references:vec![]};
+            let mut chains=Vec::new();let mut union:BTreeSet<usize>=BTreeSet::new();
+            for (index,_) in &capabilities {
+                let Some(found)=request_match(intake,*index) else {return false};
+                let mut included=BTreeSet::new();let mut goals=Vec::new();
+                for goal in intent.goals.iter().filter(|goal|goal.subject==subject_index
+                    && found.operations.contains(&goal.capability) && found.apiosk.iter().any(|source|candidate_matches(goal,source))) {
+                    let source=goal.constraints.get("source").and_then(Value::as_str);
+                    for (root,_) in plan.steps.iter().enumerate().filter(|(_,step)|Some(step.entity_ref)==candidate.entity_ref
+                        && step.service.contract.capability_slug==goal.capability
+                        && source.is_none_or(|source|step.service.api_slug==source)
+                        && endpoint_matches(goal.constraints.get("endpoint_id"),Some(&step.service.endpoint_id.to_string()))) {
+                        dependency_steps(plan,task,catalog,root,source,&mut included);
+                    }
+                    let mut goal=goal.clone();goal.subject=0;goals.push(goal.clone());
+                    if !selected.goals.iter().any(|existing|existing.capability==goal.capability && existing.constraints==goal.constraints) {selected.goals.push(goal);}
+                }
+                if included.is_empty() {return false;}
+                union.extend(&included);chains.push((included,goals));
+            }
+            let mut resolved=plan.clone();resolved.steps=union.iter().map(|index|plan.steps[*index].clone()).collect();
+            if !input_bindings_preserved(&scoped,catalog,task,&selected,&resolved,question,true,true) {return false;}
+            // Inputs explicitly required by one retrieval must reach that
+            // retrieval's chain, even when other retrievals share its subject.
+            for ((_,cap),(included,goals)) in capabilities.iter().zip(chains) {
+                let mut requirement=scoped.clone();requirement.parsed_request.capabilities=vec![(*cap).clone()];
+                let mut chain=plan.clone();chain.steps=included.iter().map(|index|plan.steps[*index].clone()).collect();
+                let mut selected=selected.clone();selected.goals=goals;
+                if !input_bindings_preserved(&requirement,catalog,task,&selected,&chain,question,false,true) {return false;}
+            }
+            true
+        });
+        if !preserved {missing.push(format!("{}: supplied identifiers and filters",subject.label));}
+    }
+    for cap in intake.parsed_request.capabilities.iter().filter(|cap|!answer_instruction(cap) && cap.subject_id.is_none()) {
+        if !cap.inputs.is_empty() || !cap.missing.is_empty() {missing.push(format!("{}: input scope",cap.name));}
+    }
+    missing
+}
+
+/// Historical contract fixtures exercise their explicit expected intake and
+/// resolver directly. This dispatch is never available in production intake.
+#[cfg(test)]
+pub(crate) fn offline_fixture_reply(intake:&Intake,catalog:&Catalog,question:&str,task:&crate::state::Task)->Option<super::ChatReply> {
+    compound_reply(intake,catalog,question,task)
+        .or_else(||cbs_comparison_reply(intake,catalog,question,task))
+        .or_else(||crate::tenderned::executable_intake(question,intake)
+            .and_then(|intake|single_retrieval_reply(&intake,catalog,question,question,task)))
+        .or_else(||broad_information_reply(intake,catalog,question,task))
+        .or_else(||single_retrieval_reply(intake,catalog,question,question,task))
+}
+
 /// Combine complete literal clauses using the same discovery, input and output
 /// checks as individual requests. A failed clause never becomes a partial quote.
+#[cfg(test)]
 pub(super) fn compound_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
     let request = crate::compound_request::recognize(question, "literal-compound")?;
     let same = |expected: &crate::capability_intake::ParsedRequest, actual: &crate::capability_intake::ParsedRequest| {
@@ -402,6 +751,7 @@ pub(super) fn compound_reply(intake: &Intake, catalog: &Catalog, question: &str,
 
 /// A complete CBS comparison needs the reviewed monthly observations and all
 /// four codebooks. Keep normal discovery, binding, scope and coverage checks.
+#[cfg(test)]
 pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
     let canonical = crate::cbs_comparison::canonical_request(question)?;
     if canonical.language != intake.parsed_request.language
@@ -440,6 +790,7 @@ pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question:
 /// their dependency graph contain everything needed to price it. Enumerate a
 /// small set of already-discovered choices; every normal binding, scope and
 /// output-coverage check still applies. This never purchases a source.
+#[cfg(test)]
 pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, question: &str, task: &crate::state::Task) -> Option<super::ChatReply> {
     let canonical = crate::company_request::executable_intake(question, intake)
         .or_else(|| crate::company_name_request::executable_intake(question, intake))
@@ -537,10 +888,15 @@ fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,
             .map(str::to_owned)
             .collect::<Vec<_>>()
     };
-            let requested = parts(output);
+    let normalized_parts=|value:&str| {
+        let mut words=parts(value);
+        if words.len()>1 && words.last().is_some_and(|word|word=="link") { *words.last_mut().unwrap()="url".into(); }
+        words
+    };
+            let requested = normalized_parts(output);
             !requested.is_empty()
                 && service.contract.output_map.produces.keys().any(|fact| {
-                    (!required_only || !service.optional_outputs.contains(fact)) && (parts(fact).ends_with(&requested)
+                    (!required_only || !service.optional_outputs.contains(fact)) && (normalized_parts(fact).ends_with(&requested)
                         || catalog.vocabulary.get(fact).is_some_and(|vocabulary|
                             schema_covers(&vocabulary.value_schema,output,required_only)))
                 })
@@ -563,8 +919,14 @@ fn schema_covers(schema:&Value,output:&str,required_only:bool)->bool {
     let properties=schema.get("properties").and_then(Value::as_object);
     let names:BTreeSet<_>=required.into_iter().flatten().filter_map(Value::as_str)
         .chain(properties.into_iter().flat_map(|props|props.keys().map(String::as_str)).filter(|_|!required_only)).collect();
-    names.iter().any(|name| *name==output || *name==singular || properties.and_then(|properties|properties.get(*name))
+    names.iter().any(|name| *name==output || *name==singular || qualified_link_equivalent(name,output) || qualified_link_equivalent(name,singular) || properties.and_then(|properties|properties.get(*name))
             .is_some_and(|child|property_alias(child,output) || property_alias(child,singular) || schema_covers(child,output,required_only)))
+}
+
+fn qualified_link_equivalent(name:&str,requested:&str)->bool {
+    name.strip_suffix("_url").zip(requested.strip_suffix("_link"))
+        .or_else(||name.strip_suffix("_link").zip(requested.strip_suffix("_url")))
+        .is_some_and(|(left,right)|!left.is_empty() && left==right)
 }
 
 // A reviewed, property-local annotation in an existing JSON Schema keyword.
@@ -577,7 +939,7 @@ fn property_alias(property:&Value,output:&str)->bool {
     let mut unique=BTreeSet::new();
     if !aliases.iter().all(|alias|alias.as_str().is_some_and(|name|!name.is_empty()&&name.len()<=100
         && name.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_') && unique.insert(name))) {return false;}
-    unique.contains(output)
+    unique.contains(output) || unique.iter().any(|name|qualified_link_equivalent(name,output))
 }
 
 fn dependency_steps(plan:&crate::resolver::Plan,task:&crate::state::Task,catalog:&Catalog,root:usize,source:Option<&str>,included:&mut BTreeSet<usize>) {
@@ -661,6 +1023,39 @@ mod tests {
     fn split_crunchbase_requirements_share_one_profile_in_a_large_directory() {
         assert_split_crunchbase_profile(false);
         assert_split_crunchbase_profile(true);
+    }
+
+    #[test]
+    fn profile_url_repeated_as_subject_label_keeps_exact_scope() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/official-mcp.json")).unwrap());
+        let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
+        let mut parsed: ParsedRequest = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/profile-intake.json")).unwrap();
+        parsed.subjects[0].label = parsed.subjects[0].identifiers["url"].clone();
+        parsed.capabilities.truncate(1);
+        parsed.capabilities[0].outputs = ["profile", "founders", "employees", "board_members", "funding_rounds", "investors"].map(str::to_owned).to_vec();
+        let matches = crate::ask_v2::search::search(&parsed, &catalog);
+        let intake = Intake { selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
+            parsed_request:parsed,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone() };
+        let reply = single_retrieval_reply(&intake, &catalog, question, question, &Default::default()).expect("a repeated exact URL must remain executable");
+        let mut intent = reply.intent.unwrap();
+        let mut task = crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog,&task,&intent) else {panic!("profile URL must resolve")};
+        assert_eq!(plan.steps.len(),1);
+        assert_eq!(intent.subjects[0].values["company.crunchbase_entity_id"],json!("starbucks"));
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+        assert!(uncovered_outputs(&task,&catalog,&intent,&plan).is_empty());
+        for url in ["https://www.crunchbase.com/organization/starbucks?scope=private", "https://www.crunchbase.com/person/starbucks",
+            "https://www.crunchbase.com/organization/starbucks/people", "https://crunchbase.com.evil.test/organization/starbucks"] {
+            let mut invalid = intake.clone();
+            invalid.parsed_request.subjects[0].identifiers.insert("url".into(),url.into());
+            assert!(single_retrieval_reply(&invalid,&catalog,question,question,&Default::default()).is_none(),"{url}");
+            task.capability_intake=Some(invalid);
+            assert!(!uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"{url}");
+        }
+        let mut conflicting = intake;
+        conflicting.parsed_request.subjects[0].identifiers.insert("profile_url".into(),"https://www.crunchbase.com/organization/another-company".into());
+        assert!(single_retrieval_reply(&conflicting,&catalog,question,question,&Default::default()).is_none());
     }
 
     fn assert_split_crunchbase_profile(directors_wording: bool) {
@@ -757,11 +1152,9 @@ mod tests {
             }
         }
         let catalog = Catalog::build(snapshot);
-        let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
-        let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
-        let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+        let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
+        let reply = offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap();
         assert!(reply.discover, "{}", reply.message);
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
         let mut intent = reply.intent.unwrap();
         let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
@@ -796,7 +1189,7 @@ mod tests {
     fn broad_location_fixture(question: &str) -> (Intake, Catalog) {
         let catalog = crate::ask_v2::test_catalog::locations();
         assert!(catalog.rejected.is_empty());
-        let parsed_request = crate::capability_intake::normalize("{}", question, "fixture").unwrap();
+        let parsed_request = crate::capability_intake::offline_fixture_intake(question, &catalog).parsed_request;
         let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
         let selected_capabilities = matches.iter().flat_map(|matched| matched.operations.iter().cloned()).collect();
         (Intake { parsed_request, matches, selected_capabilities, apiosk_sources_searched: 1, catalog_version: catalog.version.clone() }, catalog)
@@ -814,7 +1207,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn profession_questions_bind_real_source_inputs_without_a_model_or_partial_scope() {
+    async fn profession_fixture_inputs_bind_without_partial_scope() {
         let catalog = profession_catalog();
         for (question, expected) in [
             ("Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.", vec![("fx.ecb-reference-rate", json!({"quote":"USD"}))]),
@@ -828,15 +1221,13 @@ mod tests {
             ("Geef openbare RDAP-registratiegegevens en mail-DNS-records voor example.org. Citeer de bronnen.", vec![("domain.registration", json!({"domain":"example.org"})), ("domain.mail-dns", json!({"domain":"example.org"}))]),
             ("Geef openbare RDAP-registratiegegevens en mail-DNS-records voor mollie.nl. Citeer de bronnen.", vec![("domain.registration", json!({"domain":"mollie.nl"})), ("domain.mail-dns", json!({"domain":"mollie.nl"}))]),
         ] {
-            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
-            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
-            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
+            let reply = offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap();
             assert!(reply.discover, "{question}: {}", reply.message);
             if question.starts_with("Get ") || question.starts_with("Validate ") {
                 assert_eq!(intake.parsed_request.language, "en");
                 assert_eq!(reply.message, "I will retrieve the requested data from the matched sources and show the total price first.");
             }
-            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
             let mut intent = reply.intent.unwrap();
             let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
             crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
@@ -881,9 +1272,8 @@ mod tests {
             ("Valideer EU-btw-nummer NL004495445B01 via VIES en toon de geldigheid en controledatum.", "vat.eu.validate"),
             ("Geef RDW-voertuiggegevens voor kenteken GZ-805-N, inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties.", "vehicle.technical-profile"),
         ] {
-            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
-            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
-            let mut intent = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap().intent.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
+            let mut intent = offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap().intent.unwrap();
             let mut task = crate::state::Task { capability_intake: Some(intake), ..Default::default() };
             crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
             let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else { panic!("expected one complete lookup") };
@@ -903,7 +1293,6 @@ mod tests {
             let answer = crate::profession_answer::compose(question, &intent, &sources).unwrap().unwrap();
             assert_eq!(answer["status"], "completed");
             assert!(!answer["presentation"]["rows"].as_array().unwrap().is_empty());
-            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
         }
     }
 
@@ -921,24 +1310,20 @@ mod tests {
                 _ => unreachable!(),
             }
             let catalog = Catalog::build(snapshot); assert!(catalog.rejected.is_empty());
-            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
-            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
-            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
+            let reply = offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap();
             assert!(!reply.discover && reply.intent.is_none(), "{changed} cannot reach a purchase");
-            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0, "{changed}: a model may not bypass reviewed operation scope");
         }
     }
 
     #[tokio::test]
-    async fn broad_location_request_prices_the_real_dependency_chain_without_a_planning_model() {
+    async fn broad_location_fixture_prices_the_real_dependency_chain() {
         for question in ["Find building and neighbourhood information for Damrak 1, Amsterdam.",
             "Geef gebouw- en buurtinformatie voor Grote Markt 1, Groningen."] {
             let (_, catalog) = broad_location_fixture(question);
-            let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "".into(), "fixture".into());
-            let intake = parser.ask_intake(question, &Default::default(), &catalog, None).await.unwrap();
-            let reply = parser.chat_from_capabilities(question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
+            let reply = offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap();
             assert!(reply.discover, "{}", reply.message);
-            assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
             let mut intent = reply.intent.unwrap();
             assert_eq!(intent.goals.len(), 2);
             assert_eq!(intent.subjects[0].values["geo.input.q"], intake.parsed_request.subjects[0].label);
@@ -1032,6 +1417,111 @@ mod tests {
     }
 
     #[test]
+    fn resolved_input_proof_keeps_every_identifier_part_and_unknown_filter() {
+        let (question,intake,catalog)=saved_vies();
+        let mut intent=single_retrieval_reply(&intake,&catalog,&question,&question,&Default::default()).unwrap().intent.unwrap();
+        let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("saved VAT plan")};
+        assert!(retrieval_inputs_preserved(&intake,&catalog,&task,&intent,&plan,&question));
+        // The full VAT number cannot be proved by just its country prefix, or
+        // by just its national number, even if output coverage is unchanged.
+        for omitted in ["vat.eu.number","vat.eu.country_code"] {
+            let mut partial=plan.clone();
+            for step in &mut partial.steps {step.service.contract.input_map.remove(omitted);}
+            assert!(!retrieval_inputs_preserved(&intake,&catalog,&task,&intent,&partial,&question),"{omitted}");
+        }
+        for field in ["location","ticker","as_of_date"] {
+            let mut filtered=intake.clone();
+            filtered.parsed_request.subjects[0].identifiers.insert(field.into(),"unbound value".into());
+            assert!(single_retrieval_reply(&filtered,&catalog,&question,&question,&Default::default()).is_none(),"{field}");
+            let mut missing=intake.clone();missing.parsed_request.capabilities[0].missing.push(field.into());
+            assert!(single_retrieval_reply(&missing,&catalog,&question,&question,&Default::default()).is_none(),"missing {field}");
+        }
+    }
+
+    #[test]
+    fn country_filter_requires_fixed_endpoint_scope_not_provider_headquarters() {
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/tenderned-browse.json")).unwrap());
+        let question="Find public tenders for cleaning services in the Netherlands through TenderNed.";
+        let mut intake=crate::capability_intake::offline_fixture_intake(question,&catalog);
+        let subject=&mut intake.parsed_request.subjects[0];
+        subject.identifiers.retain(|key,_|key=="country");
+        subject.identifiers.insert("country".into(),"the Netherlands".into());
+        intake.parsed_request.capabilities[0].inputs=vec!["topic".into(),"country".into()];
+        assert!(single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).is_some());
+        for country in ["Belgium","outside the Netherlands","Netherlands and Belgium"] {
+            let mut other=intake.clone();other.parsed_request.subjects[0].identifiers.insert("country".into(),country.into());
+            assert!(single_retrieval_reply(&other,&catalog,question,question,&Default::default()).is_none(),"{country}");
+        }
+        let (_,_,vat_catalog)=saved_vies();
+        let mut global=vat_catalog.services[0].clone();
+        global.api_slug="global-provider".into();global.contract.capability_slug="company.search".into();
+        global.contract.requires.clear();global.contract.input_map.clear();global.contract.identifies=None;
+        global.jurisdiction=Some("NL".into());
+        assert_eq!(crate::ask_v2::search::fixed_endpoint_country(&global,None),None);
+    }
+
+    #[test]
+    fn model_bound_literal_inputs_do_not_require_a_predefined_identifier_alias() {
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/tenderned-browse.json")).unwrap());
+        let question="Find public tenders for cleaning services in the Netherlands through TenderNed.";
+        let mut intake=crate::capability_intake::offline_fixture_intake(question,&catalog);
+        let mut intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).unwrap().intent.unwrap();
+        intake.parsed_request.subjects[0].kind="service".into();
+        intake.parsed_request.subjects[0].identifiers=BTreeMap::from([
+            ("service".into(),"cleaning services".into()),("country".into(),"the Netherlands".into())]);
+        intake.parsed_request.capabilities[0].inputs=vec!["service".into(),"country".into(),"source".into()];
+        let mut task=crate::state::Task {capability_intake:Some(intake),..Default::default()};
+        task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("typed model binding must resolve")};
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+        task.capability_intake.as_mut().unwrap().parsed_request.subjects[0].identifiers.insert("service".into(),"office supplies".into());
+        assert!(!uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"a different unbound criterion cannot reuse the previous literal");
+    }
+
+    #[test]
+    fn model_bound_identifying_input_preserves_name_context_without_alias_guessing() {
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let question="Show the registered company details for Mollie B.V. (KVK 30204462).";
+        let (mut intake,mut intent)=fixture("Mollie B.V.","company",1);
+        intake.parsed_request.subjects[0].identifiers=BTreeMap::from([
+            ("company_name".into(),"Mollie B.V.".into()),("kvk".into(),"30204462".into())]);
+        let cap=&mut intake.parsed_request.capabilities[0];
+        cap.slug="company.profile".into();cap.name="Company profile".into();cap.description="Registered company details".into();cap.domain="company".into();
+        cap.inputs=vec!["company_name".into(),"kvk".into()];cap.outputs=vec!["profile".into()];
+        intake.matches=crate::ask_v2::search::search(&intake.parsed_request,&catalog);
+        let service=catalog.services.iter().find(|service|service.api_slug=="kvk-dutch-business-register"
+            && service.contract.capability_slug=="company.registry-profile").unwrap();
+        intent.goals[0].capability=service.contract.capability_slug.clone();
+        intent.goals[0].constraints=BTreeMap::from([("source".into(),json!(service.api_slug)),("endpoint_id".into(),json!(service.endpoint_id))]);
+        intent.subjects[0].values.insert("company_registry.kvknummer".into(),json!("30204462"));
+        let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("explicit identifying binding resolves")};
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"model-proven exact identity permits repeated company-name context");
+        assert!(!retrieval_inputs_preserved(&intake,&catalog,&task,&intent,&plan,question),"the deterministic compiler must not guess unfamiliar aliases");
+        for (key,value) in [("location","Seattle"),("ticker","EXAMPLE"),("company_name","Other Company B.V."),("kvk","87654321")] {
+            let mut changed=task.clone();changed.capability_intake.as_mut().unwrap().parsed_request.subjects[0].identifiers.insert(key.into(),value.into());
+            assert!(!uncovered_inputs(&changed,&catalog,&intent,&plan).is_empty(),"{key} is not dispensable name context");
+        }
+        let mut unnamed_identity=task.clone();
+        let parsed=&mut unnamed_identity.capability_intake.as_mut().unwrap().parsed_request;
+        parsed.subjects[0].identifiers=BTreeMap::from([("company_name".into(),"Mollie B.V.".into())]);
+        parsed.capabilities[0].inputs=vec!["company_name".into()];
+        assert!(!uncovered_inputs(&unnamed_identity,&catalog,&intent,&plan).is_empty(),"an invented ID cannot turn a supplied name into context");
+        let mut no_identity=plan.clone();for step in &mut no_identity.steps {step.service.contract.identifies=None;}
+        assert!(!uncovered_inputs(&task,&catalog,&intent,&no_identity).is_empty(),"an ordinary filter binding cannot serve as entity identity");
+        let mut names_as_id=task.clone();
+        let parsed=&mut names_as_id.capability_intake.as_mut().unwrap().parsed_request;
+        parsed.subjects[0].identifiers.insert("company_name".into(),"30204462".into());
+        parsed.subjects[0].identifiers.remove("kvk");parsed.capabilities[0].inputs=vec!["company_name".into()];
+        assert!(!input_bindings_preserved(names_as_id.capability_intake.as_ref().unwrap(),&catalog,&names_as_id,&intent,&plan,question,true,true),
+            "a contradictory company name is not the displayed subject merely because it matches the ID input");
+    }
+
+    #[test]
     fn empty_subject_currency_recovery_requires_the_explicit_fixed_base_pair() {
         let (_,mut intake,_)=saved_vies();
         let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap());
@@ -1039,6 +1529,7 @@ mod tests {
         intake.parsed_request.subjects.clear();
         let cap=&mut intake.parsed_request.capabilities[0];
         cap.subject_id=None;cap.source_hint=Some(service.api_slug.clone());
+        cap.inputs.clear();cap.missing.clear();
         cap.outputs=vec!["rate".into(),"date".into(),"source_link".into()];
         intake.matches[0].operations=BTreeSet::from([service.contract.capability_slug.clone()]);
         intake.matches[0].apiosk.truncate(1);
@@ -1046,11 +1537,248 @@ mod tests {
         candidate.capability=Some(service.contract.capability_slug.clone());
         candidate.source_slug=Some(service.api_slug.clone());candidate.endpoint_id=Some(service.endpoint_id.to_string());
         let question="Geef de laatste ECB referentiekoers van EUR naar USD met datum en bronlink.";
+        use sha2::Digest;
+        intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
         let intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).unwrap().intent.unwrap();
         assert_eq!(intent.subjects[0].values["fx.ecb.quote"],json!("USD"));
         for question in ["ECB USD naar EUR","ECB BTC naar USD; EUR als voorbeeld","ECB EUR naar USD en GBP","ECB USD"] {
+            intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
             assert!(single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).is_none(),"{question}");
         }
+    }
+
+    fn reviewed_currency_scope_fixture()->(&'static str,Intake,Catalog) {
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/frankfurter/catalog.json")).unwrap();
+        let reviewed:Value=serde_json::from_str(include_str!("../../tests/fixtures/semantic-intake-aliases/reviewed-schemas.json")).unwrap();
+        for fact in &mut snapshot.vocabulary {
+            if let Some(schema)=reviewed["after"].as_array().unwrap().iter().find(|row|row["slug"]==fact.slug) {
+                fact.value_schema=schema["value_schema"].clone();
+            }
+        }
+        let catalog=Catalog::build(snapshot);assert!(catalog.rejected.is_empty(),"{:?}",catalog.rejected);
+        let question="Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.";
+        let (mut intake,_)=fixture("EUR/USD","currency_pair",1);
+        intake.parsed_request.subjects[0].identifiers=BTreeMap::from([
+            ("currency_pair".into(),"EUR/USD".into()),("observation_date".into(),"latest".into()),
+            ("rate_type".into(),"official ECB reference exchange rate".into())]);
+        let cap=&mut intake.parsed_request.capabilities[0];
+        cap.slug="finance.exchangeRate".into();cap.name="ECB reference exchange rate".into();
+        cap.description="Retrieve the latest official ECB reference exchange rate for a currency pair.".into();
+        cap.domain="finance".into();cap.source_hint=Some("frankfurter".into());
+        cap.inputs=vec!["currency_pair".into(),"rate_type".into(),"observation_date".into()];
+        cap.outputs=vec!["exchange_rate".into(),"observation_date".into()];
+        use sha2::Digest;
+        intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+        intake.matches=crate::ask_v2::search::search(&intake.parsed_request,&catalog);
+        (question,intake,catalog)
+    }
+
+    #[test]
+    fn reviewed_fixed_scope_proves_only_the_selected_endpoint_semantics() {
+        let (question,intake,catalog)=reviewed_currency_scope_fixture();
+        let mut intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default())
+            .expect("reviewed fixed latest ECB scope completes the dynamically parsed request").intent.unwrap();
+        let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};
+        task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("reviewed currency plan")};
+        assert_eq!(intent.subjects[0].values["fx.ecb.quote"],json!("USD"));
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+        for (key,value) in [("observation_date","2024-01-01"),("observation_date","latest before yesterday"),
+            ("rate_type","intraday market exchange rate"),("rate_type","central bank rate") ] {
+            let mut filtered=intake.clone();filtered.parsed_request.subjects[0].identifiers.insert(key.into(),value.into());
+            assert!(single_retrieval_reply(&filtered,&catalog,question,question,&Default::default()).is_none(),"{key}={value}");
+            let mut filtered_task=task.clone();filtered_task.capability_intake=Some(filtered);
+            assert!(!uncovered_inputs(&filtered_task,&catalog,&intent,&plan).is_empty(),"model plan cannot drop {key}={value}");
+        }
+        let mut dependency_only=intent.clone();dependency_only.goals[0].capability="unrelated.retrieval".into();
+        assert!(!retrieval_inputs_preserved(&intake,&catalog,&task,&dependency_only,&plan,question),"fixed scope cannot be borrowed from a non-goal step");
+    }
+
+    #[test]
+    fn prequote_input_proof_rejects_orphan_subjects_even_with_empty_declared_inputs() {
+        let (question,intake,catalog)=reviewed_currency_scope_fixture();
+        let mut intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).unwrap().intent.unwrap();
+        let mut task=crate::state::Task {capability_intake:Some(intake),..Default::default()};
+        task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("reviewed currency plan")};
+        let parsed=&mut task.capability_intake.as_mut().unwrap().parsed_request;
+        parsed.capabilities[0].subject_id=None;parsed.capabilities[0].inputs.clear();
+        assert!(!uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"subjectless cap cannot discard supplied currency and time scope");
+        let parsed=&mut task.capability_intake.as_mut().unwrap().parsed_request;
+        parsed.capabilities[0].subject_id=Some(parsed.subjects[0].id.clone());
+        let mut orphan=parsed.subjects[0].clone();orphan.id="unassigned".into();orphan.label="Other subject".into();
+        orphan.identifiers=BTreeMap::from([("location".into(),"Seattle".into())]);parsed.subjects.push(orphan);
+        assert!(!uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"another matched subject cannot mask an unassigned location criterion");
+    }
+
+    #[test]
+    fn fixed_scope_annotation_requires_exact_route_inputs_and_reviewed_values() {
+        let (_,_,catalog)=reviewed_currency_scope_fixture();
+        let service=&catalog.services[0];
+        assert!(fixed_scope_covered("observation_date","latest",service,&catalog));
+        assert!(fixed_scope_covered("rate_type","OFFICIAL ECB  reference exchange rate",service,&catalog));
+        assert!(!fixed_scope_covered("settlement_date","latest",service,&catalog));
+        for changed in ["source","endpoint","method","path","added_input","removed_input","output"] {
+            let mut changed_service=service.clone();
+            match changed {
+                "source"=>changed_service.api_slug="other-provider".into(),
+                "endpoint"=>changed_service.endpoint_id=uuid::Uuid::new_v4(),
+                "method"=>changed_service.method="POST".into(),
+                "path"=>changed_service.path="/historical/EUR/{quote}".into(),
+                "added_input"=>{let input=changed_service.contract.input_map["fx.ecb.quote"].clone();changed_service.contract.input_map.insert("fx.date".into(),input);},
+                "removed_input"=>changed_service.contract.input_map.clear(),
+                "output"=>changed_service.contract.output_map.produces.clear(),
+                _=>unreachable!(),
+            }
+            assert!(!fixed_scope_covered("observation_date","latest",&changed_service,&catalog),"{changed}");
+        }
+        for comment in [None,Some("not-json".to_owned()),Some("{}".into()),Some("x".repeat(16_385))] {
+            let mut unreviewed=catalog.clone();
+            let schema=&mut unreviewed.vocabulary.get_mut("fx.ecb.reference_rate").unwrap().value_schema;
+            match comment {Some(comment)=>schema["$comment"]=json!(comment),None=>{schema.as_object_mut().unwrap().remove("$comment");}}
+            assert!(!fixed_scope_covered("observation_date","latest",service,&unreviewed));
+        }
+    }
+
+    #[test]
+    fn full_question_query_is_only_context_when_query_input_is_not_requested() {
+        let (question,mut intake,catalog)=saved_vies();
+        intake.parsed_request.subjects[0].identifiers.insert("query".into(),question.clone());
+        assert!(single_retrieval_reply(&intake,&catalog,&question,&question,&Default::default()).is_some());
+        for query_field in ["query","web.query","web_query"] {
+            let mut explicit=intake.clone();explicit.parsed_request.capabilities[0].inputs.push(query_field.into());
+            assert!(single_retrieval_reply(&explicit,&catalog,&question,&question,&Default::default()).is_none(),"{query_field}");
+        }
+        let mut missing=intake.clone();missing.parsed_request.capabilities[0].missing.push("query".into());
+        assert!(single_retrieval_reply(&missing,&catalog,&question,&question,&Default::default()).is_none());
+        intake.parsed_request.subjects[0].identifiers.insert("query".into(),"different actual query".into());
+        assert!(single_retrieval_reply(&intake,&catalog,&question,&question,&Default::default()).is_none());
+    }
+
+    #[test]
+    fn whole_query_text_cannot_substitute_for_explicit_source_selection() {
+        let question="Find a company profile via other-provider";
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap();
+        snapshot.services.retain(|service|service.contract.capability_slug=="web.search");snapshot.known_sources.clear();
+        let catalog=Catalog::build(snapshot);
+        let (mut intake,_)=fixture("company profile","topic",1);
+        intake.parsed_request.subjects[0].identifiers=BTreeMap::from([("query".into(),question.into())]);
+        let cap=&mut intake.parsed_request.capabilities[0];
+        cap.slug="research.web.search".into();cap.name="Public web search".into();cap.description="Search public web pages".into();
+        cap.inputs=vec!["query".into()];cap.outputs=vec!["url".into(),"title".into()];
+        use sha2::Digest;
+        intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+        intake.matches=crate::ask_v2::search::search(&intake.parsed_request,&catalog);
+        let mut intent=single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).expect("whole query is an ordinary valid web input").intent.unwrap();
+        let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("bound whole query")};
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+        for key in ["source","source_hint","provider"] {
+            let mut filtered=intake.clone();filtered.parsed_request.subjects[0].identifiers.insert(key.into(),"other-provider".into());
+            assert!(single_retrieval_reply(&filtered,&catalog,question,question,&Default::default()).is_none(),"{key}");
+            let mut filtered_task=task.clone();filtered_task.capability_intake=Some(filtered);
+            assert!(!uncovered_inputs(&filtered_task,&catalog,&intent,&plan).is_empty(),"{key} cannot be supplied as mere query text");
+        }
+    }
+
+    fn combined_reputation_fixture(name:&str,city:&str)->(String,Intake,Catalog) {
+        let saved:Value=serde_json::from_str(include_str!("../../tests/fixtures/company-reputation/combined-intake.json")).unwrap();
+        let changed=serde_json::to_string(&saved).unwrap().replace("Starbucks",name).replace("Seattle",city);
+        let saved:Value=serde_json::from_str(&changed).unwrap();
+        let question=saved["question"].as_str().unwrap().to_owned();
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../tests/fixtures/company-reputation/catalog.json")).unwrap();
+        let reviewed:Value=serde_json::from_str(include_str!("../../tests/fixtures/ecb-split-currency/reviewed-schemas.json")).unwrap();
+        for fact in &mut snapshot.vocabulary {
+            if let Some(row)=reviewed["after"].as_array().unwrap().iter().find(|row|row["slug"]==fact.slug) {fact.value_schema=row["value_schema"].clone();}
+        }
+        let catalog=Catalog::build(snapshot);assert!(catalog.rejected.is_empty());
+        let mut parsed:ParsedRequest=serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        use sha2::Digest;
+        parsed.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+        let matches=crate::ask_v2::search::search(&parsed,&catalog);
+        let selected_capabilities=matches.iter().flat_map(|found|found.operations.iter().cloned()).collect();
+        (question,Intake {parsed_request:parsed,matches,selected_capabilities,apiosk_sources_searched:1,catalog_version:catalog.version.clone()},catalog)
+    }
+
+    #[tokio::test]
+    async fn dynamic_compiler_combines_recorded_ai_requirements_and_changed_literals() {
+        for (name,city) in [("Starbucks","Seattle"),("Fictional Coffee Co","Ghent")] {
+            let (question,mut intake,catalog)=combined_reputation_fixture(name,city);
+            intake.parsed_request.deliverable.operations=vec!["compare".into(),"summarize".into()];
+            for (index,cap) in intake.parsed_request.capabilities.iter().enumerate() {
+                let mut part=intake.clone();part.parsed_request.capabilities=vec![cap.clone()];
+                part.parsed_request.subjects.retain(|subject|Some(&subject.id)==cap.subject_id.as_ref());
+                part.matches=vec![request_match(&intake,index).unwrap().clone()];
+                assert!(single_retrieval_reply(&part,&catalog,&question,&question,&Default::default()).is_some(),"individual requirement {} must have complete bindings/outputs: {:?}",cap.name,part.matches);
+            }
+            let parser=crate::parser::Parser::new(reqwest::Client::new(),"offline://extra-planner-forbidden".into(),String::new(),"fixture".into());
+            let mut intent=parser.chat_from_capabilities(&question,None,&Default::default(),&catalog,&intake).await
+                .expect("interpreted independent requirements compile without a second model").intent.unwrap();
+            assert_eq!(intent.subjects.len(),2,"same AI subject is shared; location scope keeps its own subject");
+            assert_eq!(intent.goals.len(),3);
+            assert!(intent.answer_operations.iter().any(|operation|operation=="compare"));
+            assert!(intent.answer_operations.iter().any(|operation|operation=="summarize"));
+            let mut task=crate::state::Task {capability_intake:Some(intake),..Default::default()};task.record_turn(&question,None);
+            crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("combined priced plan")};
+            assert_eq!(plan.steps.len(),3);assert!(plan.cap_atomic>0);
+            assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());assert!(uncovered_outputs(&task,&catalog,&intent,&plan).is_empty());
+            let yelp=plan.steps.iter().find(|step|step.service.path.contains("yelp")).unwrap();
+            let inputs=yelp.service.inputs(&task,yelp.entity_ref,&catalog.vocabulary).unwrap();
+            assert_eq!(inputs["query"],name);assert_eq!(inputs["location"],city);
+            let crunchbase=plan.steps.iter().find(|step|step.service.contract.capability_slug=="company.crunchbase-search").unwrap();
+            assert_eq!(crunchbase.service.inputs(&task,crunchbase.entity_ref,&catalog.vocabulary).unwrap()["query"],name);
+            assert_ne!(crunchbase.entity_ref,yelp.entity_ref);
+        }
+    }
+
+    #[test]
+    fn dynamic_compiler_preserves_two_names_and_refuses_incomplete_or_conflicting_scope() {
+        let (question,intake,catalog)=combined_reputation_fixture("Starbucks","Seattle");
+        assert!(multiple_retrieval_reply(&intake,&catalog,&question,&question,&Default::default()).is_some());
+        for fault in ["field","location","match","conflicting_subject","unassigned_subject"] {
+            let mut changed=intake.clone();
+            match fault {
+                "field"=>changed.parsed_request.capabilities[0].outputs.push("annual_revenue".into()),
+                "location"=>{changed.parsed_request.subjects[0].identifiers.insert("location".into(),"Seattle".into());},
+                "match"=>changed.matches[1].apiosk.clear(),
+                "conflicting_subject"=>{let mut other=changed.parsed_request.subjects[0].clone();other.identifiers.insert("company_name".into(),"Other Company".into());changed.parsed_request.subjects.push(other);},
+                "unassigned_subject"=>{let mut other=changed.parsed_request.subjects[0].clone();other.id="orphan".into();changed.parsed_request.subjects.push(other);},
+                _=>unreachable!(),
+            }
+            assert!(multiple_retrieval_reply(&changed,&catalog,&question,&question,&Default::default()).is_none(),"{fault} must remain for the model/clarification");
+        }
+        let question="Find company descriptions and profile links for Starbucks and Mollie on Crunchbase.";
+        let mut two=intake.clone();two.parsed_request.subjects.truncate(1);two.parsed_request.capabilities.truncate(1);
+        let mut second=two.parsed_request.subjects[0].clone();second.id="other".into();second.label="Mollie".into();
+        second.identifiers=BTreeMap::from([("company_name".into(),"Mollie".into())]);two.parsed_request.subjects.push(second);
+        let mut second=two.parsed_request.capabilities[0].clone();second.subject_id=Some("other".into());two.parsed_request.capabilities.push(second);
+        use sha2::Digest;two.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+        two.matches=crate::ask_v2::search::search(&two.parsed_request,&catalog);
+        let mut intent=multiple_retrieval_reply(&two,&catalog,question,question,&Default::default()).unwrap().intent.unwrap();
+        assert_eq!(intent.subjects.len(),2);assert_eq!(intent.goals.len(),2);
+        let mut task=crate::state::Task {capability_intake:Some(two),..Default::default()};task.record_turn(question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("two subject plan")};
+        assert_eq!(plan.steps.len(),2);
+        for (subject,name) in intent.subjects.iter().zip(["Starbucks","Mollie"]) {
+            assert_eq!(crate::catalog::fact_value(&task.facts,subject.entity_ref.unwrap(),"company.crunchbase_query").unwrap(),Some(json!(name)));
+        }
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+    }
+
+    #[test]
+    fn qualified_link_and_url_names_keep_the_same_resource_qualifier() {
+        let schema=json!({"type":"object","properties":{"profile_url":{"type":"string"},"website_url":{"type":"string"},"review_url":{"type":"string"}}});
+        assert!(schema_covers(&schema,"profile_link",false));
+        assert!(schema_covers(&schema,"profile_links",false));
+        assert!(!schema_covers(&json!({"type":"object","properties":{"website_url":{"type":"string"},"review_url":{"type":"string"}}}),"profile_link",false));
+        assert!(!schema_covers(&schema,"link",false));
+        assert!(!schema_covers(&schema,"funding_profile_link",false));
+        assert!(!schema_covers(&schema,"profile_link",true),"optional property is not guaranteed required coverage");
     }
 
     #[test]
@@ -1697,6 +2425,95 @@ mod tests {
             let extracted = service.contract.extract(service.sample_payload.as_ref().unwrap(), &catalog.vocabulary).unwrap();
             assert!(extracted.rejected.is_empty());
             assert_eq!(extracted.subjects.len(), 1);
+        }
+    }
+}
+
+#[cfg(test)]
+mod reviewed_semantic_scope_tests {
+    use super::*;
+
+    fn reviewed() -> Value {
+        serde_json::from_str(include_str!("../../tests/fixtures/semantic-intake-aliases/reviewed-schemas.json")).unwrap()
+    }
+
+    fn overlay(raw: &str, version: &str) -> Catalog {
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(raw).unwrap();
+        for fact in &mut snapshot.vocabulary {
+            if let Some(row) = reviewed()[version].as_array().unwrap().iter().find(|row| row["slug"] == fact.slug) {
+                fact.value_schema = row["value_schema"].clone();
+            }
+        }
+        let catalog = Catalog::build(snapshot);
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        catalog
+    }
+
+    #[test]
+    fn saved_model_tender_intake_binds_keywords_and_preserves_all_filters() {
+        use sha2::Digest;
+        let fixture: Value = serde_json::from_str(include_str!("../../tests/fixtures/semantic-intake-aliases/luna-tender-intake.json")).unwrap();
+        let question = fixture["question"].as_str().unwrap();
+        let catalog = overlay(include_str!("../../tests/fixtures/tenderned-browse.json"), "after");
+        let parsed_request = serde_json::from_value(fixture["parsed_request"].clone()).unwrap();
+        let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+        let intake = Intake {selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
+            parsed_request,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone()};
+        let reply = single_retrieval_reply(&intake,&catalog,question,question,&Default::default()).expect("reviewed tender data and exact filters are executable");
+        let intent = reply.intent.unwrap();
+        assert_eq!(intent.goals.len(),1);
+        assert_eq!(intent.goals[0].capability,"procurement.nl-public-contracts");
+        assert_eq!(intent.subjects[0].values["company_intel.input.search"],json!("cleaning services"));
+        assert!(!intent.subjects[0].values.values().any(|value|value.as_str()==Some(question)),"the original instruction is not a keyword");
+        let mut extra = intake.clone();
+        let extra_question = format!("{question} Limit the maximum budget to 50000.");
+        extra.parsed_request.meta.text_sha256 = hex::encode(sha2::Sha256::digest(extra_question.as_bytes()));
+        extra.parsed_request.subjects[0].identifiers.insert("query".into(),extra_question.clone());
+        extra.parsed_request.subjects[0].identifiers.insert("maximum_budget".into(),"50000".into());
+        assert!(single_retrieval_reply(&extra,&catalog,&extra_question,&extra_question,&Default::default()).is_none(),"unmapped filters cannot disappear");
+        let mut foreign = intake;
+        let foreign_question = question.replace("Netherlands","Germany");
+        foreign.parsed_request.meta.text_sha256 = hex::encode(sha2::Sha256::digest(foreign_question.as_bytes()));
+        foreign.parsed_request.subjects[0].identifiers.insert("query".into(),foreign_question.clone());
+        foreign.parsed_request.subjects[0].identifiers.insert("country".into(),"Germany".into());
+        assert!(single_retrieval_reply(&foreign,&catalog,&foreign_question,&foreign_question,&Default::default()).is_none(),"fixed Dutch coverage cannot satisfy another country");
+    }
+
+    #[test]
+    fn reviewed_semantic_aliases_prove_existing_fields_without_expanding_scope() {
+        for (raw, capability, alias, absent) in [
+            (include_str!("../../tests/fixtures/overheid-openkvk/catalog.json"), "company_registry.lookup", "registered_details", vec!["funding_rounds", "validity", "private_notes"]),
+            (include_str!("../../tests/fixtures/tenderned-browse.json"), "procurement.nl-public-contracts", "matching_tenders", vec!["open_tenders", "awarded_contracts", "contract_pdf", "deadline"]),
+            (include_str!("../../tests/fixtures/profession-output-coverage/catalog.json"), "vat.eu.validate", "validity", vec!["tax_debts", "expiry_date", "credit_rating"]),
+        ] {
+            let before = overlay(raw, "before");
+            let after = overlay(raw, "after");
+            let old = before.services.iter().find(|service| service.contract.capability_slug == capability).unwrap();
+            let new = after.services.iter().find(|service| service.contract.capability_slug == capability).unwrap();
+            assert!(!output_covered(alias, old, &before, false), "{capability}: alias requires metadata");
+            assert!(output_covered(alias, new, &after, false), "{capability}: {alias}");
+            for missing in absent { assert!(!output_covered(missing, new, &after, false), "{capability}: {missing}"); }
+            if let Some(payload) = old.sample_payload.as_ref() {
+                assert_eq!(old.contract.extract(payload, &before.vocabulary).unwrap(), new.contract.extract(payload, &after.vocabulary).unwrap(), "aliases do not change source extraction");
+            }
+        }
+    }
+
+    #[test]
+    fn reviewed_schema_annotations_leave_validation_unchanged() {
+        fn without_comments(value: &Value) -> Value {
+            match value {
+                Value::Object(fields) => Value::Object(fields.iter().filter(|(key, _)| key.as_str() != "$comment")
+                    .map(|(key, value)| (key.clone(), without_comments(value))).collect()),
+                Value::Array(values) => Value::Array(values.iter().map(without_comments).collect()),
+                _ => value.clone(),
+            }
+        }
+        let reviewed = reviewed();
+        for before in reviewed["before"].as_array().unwrap() {
+            let after = reviewed["after"].as_array().unwrap().iter().find(|after| after["slug"] == before["slug"]).unwrap();
+            catalog_core::facts::schema::check_schema(&after["value_schema"]).unwrap();
+            assert_eq!(without_comments(&before["value_schema"]), without_comments(&after["value_schema"]), "{}", before["slug"]);
         }
     }
 }

@@ -68,10 +68,15 @@ await db.exec(`ALTER TABLE public.api_endpoints
  ADD COLUMN endpoint_category text DEFAULT 'finance',
  ADD COLUMN metadata_source text DEFAULT 'curated',
  ADD COLUMN query_params jsonb DEFAULT '{"type":"object","properties":{}}',
- ADD COLUMN request_body jsonb;
+ ADD COLUMN request_body jsonb,
+ ADD COLUMN origin_override text,
+ ADD COLUMN external_docs_url text;
  ALTER TABLE public.capabilities ADD COLUMN description text DEFAULT 'Fixture capability';
 `);
 await db.exec(await fs.readFile(new URL("../supabase/migrations/20260911113528_source_readiness_audit_access.sql",import.meta.url),"utf8"));
+// These public endpoint metadata columns are included in the production
+// runtime grant. Include them before creating the restricted provider view.
+await db.exec('GRANT SELECT(origin_override,external_docs_url) ON public.api_endpoints TO gateway_v2_runtime');
 
 function msg(type,body=Buffer.alloc(0)){const header=Buffer.alloc(5);header[0]=type.charCodeAt(0);header.writeUInt32BE(body.length+4,1);return Buffer.concat([header,body]);}
 const status=(k,v)=>msg('S',Buffer.from(k+'\0'+v+'\0'));
@@ -112,14 +117,20 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // The API.market metadata import has its own full provider-identity fixture.
   &&!/_((stage_company_reputation_sources)|(activate_company_reputation_sources)|(clarify_glassdoor_company_name_input)|(declare_company_reputation_response_fields)|(bind_company_reputation_typed_results))\.sql$/.test(name)
   &&!name.endsWith('_allow_ask_analysis_compute.sql')
+  &&!name.endsWith('_expand_ask_analysis_model_prices.sql')
   &&!name.endsWith('_onboard_apimarket_business_sources.sql')
   &&!name.endsWith('_admin_apimarket_credentials.sql')
   &&!name.endsWith('_show_only_crunchbase_apimarket.sql')
   &&!name.endsWith('_register_crunchbase_endpoints.sql')
   &&!name.endsWith('_price_crunchbase_calls.sql')
+  // Official Crunchbase onboarding and follow-up source contracts require
+  // production provider rows, OAuth evidence and complete catalog schemas.
+  // Their recorded source-contract suites run independently of task storage.
+  &&!/_(register_crunchbase_official_mcp|price_crunchbase_mcp_tools|refine_crunchbase_mcp_account_schema|activate_crunchbase_official_mcp|allow_gateway_crunchbase_endpoint_docs|refine_crunchbase_profile_discovery_and_price|constrain_crunchbase_profile_planning_inputs|declare_crunchbase_profile_output_coverage|refine_crunchbase_profile_array_contracts|accept_documented_crunchbase_nullable_fields)\.sql$/.test(name)
   // Reviewed source metadata asserts existing production provider/catalog
   // rows. The source-flow suites seed their reviewed catalog fixtures instead.
   &&!/_(describe_pdok_record_coverage|cbs_bankruptcy_sector_comparison|preserve_tenderned_publication_sort|support_kvk_sole_trader_profiles|kvk_registered_website_bridge|typed_domain_dns_records)\.sql$/.test(name)
+  &&!/_(reviewed_intake_semantic_scope|extend_ecb_currency_input_scope|extend_ecb_latest_time_scope|extend_ecb_qualifier_vocabulary)\.sql$/.test(name)
   // Bright Data owns a private provider cache and is covered by its dedicated
   // migration/admission tests; its grants depend on the omitted onboarding.
   // Operator publication additionally requires production probe records.

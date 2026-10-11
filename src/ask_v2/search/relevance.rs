@@ -60,6 +60,12 @@ pub(super) fn person_scope(text: &str) -> bool {
     person || (linkedin_profile && !company)
 }
 
+fn individual_profile_identity(scope: &BTreeSet<String>) -> bool {
+    scope.contains("profile")
+        && ["person", "people", "personal", "individual", "professional", "employee", "officer", "executive", "founder"]
+            .iter().any(|word| scope.contains(*word))
+}
+
 /// The meaningful words of a reviewed capability id (`vat` and `eu` for
 /// `vat.eu.validate`, `registry` and `profile` for `company.registry-profile`).
 /// Generated `operation.*` ids name an HTTP route, not a capability.
@@ -113,6 +119,7 @@ pub(super) struct Request {
     dns_record_types: u16,
     exact_dns_records: bool,
     person_profile: bool,
+    company_profile: bool,
 }
 
 // The historical mail-DNS adapter drops all but the registrable-domain
@@ -317,6 +324,10 @@ impl Request {
         };
         let person_profile = (profile_record(&capability.slug) || capability.outputs.iter().any(|output| profile_record(output)))
             && (person_subject || ["person", "people", "professional"].iter().any(|word| valuation_words.contains(*word)));
+        let company_profile = !person_profile && (company_subject || capability.domain == "company")
+            && (profile_record(&capability.slug) || capability.outputs.iter().any(|output| profile_record(output)))
+            && !individual_profile_identity(&words(&capability.slug))
+            && !capability.outputs.iter().any(|output| individual_profile_identity(&words(output)));
         let corporate_valuation = (primary_facets & VALUATION != 0 || enterprise_multiple)
             && (company_subject || capability.domain == "company" || enterprise_multiple);
         let equity_quote = primary_facets & STOCK_MARKET != 0
@@ -336,6 +347,7 @@ impl Request {
                 .any(|word| valuation_words.contains(*word));
         Self {
             person_profile,
+            company_profile,
             dns,
             dns_record_types,
             exact_dns_records,
@@ -395,6 +407,7 @@ impl Request {
         self.dns_record_types |= other.dns_record_types;
         self.exact_dns_records |= other.exact_dns_records;
         self.person_profile |= other.person_profile;
+        self.company_profile |= other.company_profile;
         self
     }
 
@@ -402,6 +415,12 @@ impl Request {
     /// lobbying report or a board-game guide a profile of an individual.
     /// Read the operation's own scope, not input names or provider-wide copy.
     pub fn profile_scope_matches(&self, candidate: &Document) -> bool {
+        // A company namespace can also contain employee/officer profile
+        // operations. Their shared "profile" key does not turn an individual
+        // record into the requested organisation record.
+        if self.company_profile && individual_profile_identity(&candidate.contract) {
+            return false;
+        }
         if !self.person_profile { return true; }
         candidate.person_scope || ["person", "people", "personal", "professional", "individual"].iter()
             .any(|word| candidate.contract.contains(*word))
@@ -567,12 +586,16 @@ impl Request {
         };
         let generic = (index.documents.len() / GENERIC_SHARE).max(GENERIC_MIN_DOCUMENTS);
         let weight = |word: &String| {
-            // A named provider's reviewed operation keeps its semantic key
-            // even when "profile" is common across the whole directory.
-            // Scope gates above still reject the wrong asset/record type.
-            if hinted && !candidate.contract.is_empty() && self.key.contains(word)
-                && (candidate.contract.contains(word)
-                    || (candidate.namespace.contains(&self.domain) && candidate.topic_scope.contains(word))) {
+            // A reviewed operation's semantic identity does not become weaker
+            // as unrelated directory entries accumulate. In the same domain,
+            // an exact requested key in that identity remains full evidence;
+            // provider prose and incidental output words retain normal weights.
+            // Explicit source hints keep their existing operation-scope rule.
+            // All asset, record and primary-topic guards have already passed.
+            if !candidate.contract.is_empty() && self.key.contains(word)
+                && ((candidate.namespace.contains(&self.domain) && candidate.contract.contains(word))
+                    || (hinted && (candidate.contract.contains(word)
+                        || (candidate.namespace.contains(&self.domain) && candidate.topic_scope.contains(word))))) {
                 1.0
             } else if index.frequency.get(word).copied().unwrap_or(0) >= generic {
                 0.5
@@ -646,4 +669,86 @@ pub(super) fn derivative_market(text: &str) -> bool {
             && !index.checked_sub(1).is_some_and(|previous|
                 matches!(words[previous].as_str(), "not" | "no" | "without" | "exclude" | "excluding"))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    fn profile_request(kind: &str, domain: &str) -> (Request, Document) {
+        profile_request_for(kind, domain, &format!("{domain}.profile"))
+    }
+
+    fn profile_request_for(kind: &str, domain: &str, slug: &str) -> (Request, Document) {
+        let question = "Retrieve the registered profile for Example B.V.";
+        let parsed = crate::capability_intake::normalize(&json!({
+            "language":"en",
+            "subjects":[{"id":"subject","label":"Example B.V.","type":kind,"identifiers":{"company_name":"Example B.V."}}],
+            "capabilities":[{"slug":slug,"name":"Profile",
+                "description":"Retrieve the registered profile information for a company.",
+                "domain":domain,"inputs":["company_name"],"outputs":["profile"],
+                "subject_id":"subject","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), question, "fixture").unwrap();
+        let capability = &parsed.capabilities[0];
+        let wanted = super::super::wanted(capability, &parsed);
+        (Request::new(capability, &parsed), wanted)
+    }
+
+    fn operation(slug: &str, description: &str) -> Document {
+        let capabilities = super::super::normalized_capabilities(std::iter::once(slug));
+        let mut candidate = document(Target::Endpoint(0), &format!("{slug} {description}"), capabilities);
+        candidate.contract = contract_words(slug);
+        candidate.namespace = match slug.split_once('.') {
+            Some(("operation", _)) | None => BTreeSet::new(),
+            Some((namespace, _)) => words(namespace),
+        };
+        candidate.topic_scope = words(description);
+        candidate.person_scope = person_scope(description);
+        candidate.operation_words = words(description);
+        candidate
+    }
+
+    fn crowded_index() -> Index {
+        // These unrelated listings make "profile" a common directory word.
+        // They must not change a reviewed registry operation's identity.
+        let documents = (0..24).map(|index| document(Target::Source(index),
+            "Artist profile and creative portfolio", BTreeSet::new())).collect();
+        Index { documents, frequency: BTreeMap::from([("profile".into(), 24)]) }
+    }
+
+    #[test]
+    fn same_domain_reviewed_profile_identity_survives_directory_growth() {
+        let (request, wanted) = profile_request("company", "company");
+        let candidate = operation("company.registry-profile", "Retrieve a company's official registered profile.");
+        let small = Index { documents: vec![], frequency: BTreeMap::new() };
+        assert!(request.passes(&wanted, &candidate, &small, false));
+        assert!(request.passes(&wanted, &candidate, &crowded_index(), false),
+            "a generic profile request must retain its reviewed registry match without naming a provider");
+    }
+
+    #[test]
+    fn reviewed_identity_weight_does_not_bypass_domain_or_record_scope() {
+        let (request, wanted) = profile_request("company", "company");
+        for (slug, description) in [
+            ("person.profile", "Retrieve an individual person profile."),
+            ("property.profile", "Retrieve a registered property profile."),
+            ("company.person-profile", "Retrieve an individual person profile."),
+            ("company.employee-profile", "Retrieve a company employee profile."),
+            ("company.officers", "Retrieve officers mentioned in a company profile."),
+            ("operation.directory.profile", "Company profile lookup."),
+        ] {
+            assert!(!request.passes(&wanted, &operation(slug, description), &crowded_index(), false),
+                "{slug}: shared or incidental profile wording is not a reviewed company profile identity");
+        }
+        let (person, wanted) = profile_request("person", "research");
+        assert!(!person.passes(&wanted, &operation("company.registry-profile",
+            "Retrieve a company's official registered profile."), &crowded_index(), false));
+        let (employee, wanted) = profile_request_for("company", "company", "company.employee-profile");
+        assert!(employee.passes(&wanted, &operation("company.employee-profile",
+            "Retrieve a company employee profile."), &crowded_index(), false),
+            "an explicitly requested individual record keeps its exact operation match");
+    }
 }

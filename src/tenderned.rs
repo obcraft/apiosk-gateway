@@ -554,15 +554,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn full_question_keeps_country_and_topic_through_one_priced_source_call_without_a_model()
+    async fn offline_tender_fixture_keeps_country_and_topic_through_one_priced_source_call()
     {
         let catalog = catalog();
-        let parser = crate::parser::Parser::new(
-            reqwest::Client::new(),
-            "http://127.0.0.1:1".into(),
-            String::new(),
-            "fixture".into(),
-        );
         for question in [
             "Find public tenders for IT services in the Netherlands.",
             "Find public tenders for solar panels in the Netherlands.",
@@ -571,15 +565,9 @@ mod tests {
             "Zoek openbare aanbestedingen voor schoonmaak in Nederland via TenderNed.",
             "Zoek openbare aanbestedingen voor laadpalen in Nederland.",
         ] {
-            let intake = parser
-                .ask_intake(question, &Default::default(), &catalog, None)
-                .await
-                .unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(question, &catalog);
             let topic = intake.parsed_request.subjects[0].label.clone();
-            let reply = parser
-                .chat_from_capabilities(question, None, &Default::default(), &catalog, &intake)
-                .await
-                .unwrap();
+            let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, question, &Default::default()).unwrap();
             assert!(reply.discover, "{}", reply.message);
             let mut intent = reply.intent.unwrap();
             assert_eq!(intent.goals.len(), 1);
@@ -623,16 +611,15 @@ mod tests {
     #[tokio::test]
     async fn english_examples_keep_user_topics_and_bind_verified_dutch_source_queries() {
         let catalog = catalog();
-        let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
         for (topic, native, fixture) in [
             ("solar panels", "zonnepanelen", include_str!("../tests/fixtures/additional-examples/tender-zonnepanelen.json")),
             ("cleaning services", "schoonmaak", include_str!("../tests/fixtures/additional-examples/tender-schoonmaak.json")),
         ] {
             let question = format!("Find public tenders for {topic} in the Netherlands.");
-            let intake = parser.ask_intake(&question, &Default::default(), &catalog, None).await.unwrap();
+            let intake = crate::capability_intake::offline_fixture_intake(&question, &catalog);
             assert_eq!(intake.parsed_request.language, "en");
             assert_eq!(intake.parsed_request.subjects[0].label, topic);
-            let reply = parser.chat_from_capabilities(&question, None, &Default::default(), &catalog, &intake).await.unwrap();
+            let reply = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, &question, &Default::default()).unwrap();
             let mut intent = reply.intent.unwrap();
             assert_eq!(intent.subjects[0].label, topic);
             assert_eq!(intent.subjects[0].values[SEARCH], topic);
@@ -669,7 +656,6 @@ mod tests {
             wrong["document"]["source"]["request_parameters"]["search"] = json!(format!("\"{topic}\""));
             assert!(compose(&question, &intent, &[wrong]).is_none(), "an old English phrase result must not be relabelled as the reviewed Dutch search");
         }
-        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
     }
 
     #[test]

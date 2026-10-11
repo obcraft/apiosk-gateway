@@ -130,19 +130,18 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    // One model for every stage (planning, analysis, Ask parse), via OpenRouter;
-    // the conversation replies alone use their own constant model
-    // (parser::conversation_reply), never a setting.
+    // Ask capability interpretation has its own pinned model. Planning,
+    // source analysis and conversation replies retain their separate models.
     let intent_model = apiosk_gateway_v2::parser::pinned_model("INTENT_MODEL");
     let analysis_model = apiosk_gateway_v2::parser::pinned_model("ANALYSIS_MODEL");
-    let ask_model = apiosk_gateway_v2::parser::pinned_model("ASK_V2_MODEL");
+    let ask_model = apiosk_gateway_v2::ask_v2::DEFAULT_MODEL.to_owned();
     tracing::info!(model=%intent_model, "intent parser configured");
     let openrouter_key = env::var("OPENROUTER_API_KEY").ok().filter(|key| !key.trim().is_empty())
         .or_else(|| env::var("INTENT_API_KEY").ok()).unwrap_or_default();
     let engine = Arc::new(Engine {
         store: store.clone(),
-        // Ask search also reads the catalog in English, translated in the
-        // background by the same model (ASK_V2_TRANSLATION=0 turns it off).
+        // Ask search also reads the catalog in English through the separate
+        // background translator (ASK_V2_TRANSLATION=0 turns it off).
         catalog: CatalogCache::new(pool.clone()).with_english(
             apiosk_gateway_v2::english::English::from_env(http.clone(), &openrouter_key),
         ),

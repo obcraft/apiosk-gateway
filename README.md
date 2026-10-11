@@ -10,7 +10,7 @@ De betaalroute is verder aangescherpt met afzonderlijke ledgerbetaalstatus, exac
 
 De zes implementatiefasen staan in [de oplevermatrix](docs/verification.md). Lokale ketentests, daadwerkelijke MCP-HTTP-integratie, App-tests en een alleen-lezen snapshot van de productiecatalogus zijn gecontroleerd. Dit is nog geen productiedeployment of bewijs van gebruik in geïnstalleerde ChatGPT-/Claude-clients. De toen geconfigureerde Gemini 3.8 Flash-parser heeft een echte modeltest met uitsluitend synthetische invoer doorstaan. Uitvoering staat standaard uit.
 
-Intentie, planning, Ask-parsing en analyse van één bronaanbieder gebruiken de in code vastgelegde `qwen/qwen3-30b-a3b-instruct-2507`. Analyse die meerdere bronaanbieders combineert gebruikt uitsluitend voor die stap `openai/gpt-6.1-sol`, met een begrensd uitvoerschema en verwijzingen naar exact opgeslagen bronvelden. Gespreksreacties hebben hun eigen Qwen3 235B-stap. Modelinstellingen in omgevingsvariabelen veranderen deze productiegrenzen niet. Alle stappen behouden bronvalidatie; analyse kan geen bronnen kiezen, uitvoeren of kopen.
+Ask interpreteert vragen naar capabilities met de in code vastgelegde `openai/gpt-6-luna`. Intentie, planning en analyse van één bronaanbieder behouden `qwen/qwen3-30b-a3b-instruct-2507`. Analyse die meerdere bronaanbieders combineert gebruikt uitsluitend voor die stap `openai/gpt-6.1-sol`, met een begrensd uitvoerschema en verwijzingen naar exact opgeslagen bronvelden. Gespreksreacties hebben hun eigen Qwen3 235B-stap. Modelinstellingen in omgevingsvariabelen veranderen deze productiegrenzen niet. Alle stappen behouden bronvalidatie; analyse kan geen bronnen kiezen, uitvoeren of kopen.
 
 De Supabase-snapshot van 7 september 2026 bevatte 133 bruikbare, actieve en gevalideerde uitvoeringscontracten; alle 133 doorstonden de lokale contractvalidatie. De catalogus bevat meer listings/capabilities dan daadwerkelijk ondersteunde uitvoeringscontracten. Een beschikbare listing telt daarom niet automatisch als uitvoerbare dienst.
 
@@ -60,7 +60,7 @@ node scripts/test-integration.mjs
 cargo build --release --offline
 ```
 
-De homepagecontrole vergelijkt alle zes gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test de echte intake, bronselectie, invoerbinding en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Er zijn geen modelaanroepen, bronaankopen of betalingen. De lokale releaserunner `scripts/test-release-gate.mjs` voert deze controle eerst uit.
+De homepagecontrole vergelijkt alle zes gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test de echte intake, bronselectie, invoerbinding en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Modelinterpretatie gebruikt een lokale HTTP-fixture; er zijn geen externe modelaanroepen, bronaankopen of betalingen. De lokale releaserunner `scripts/test-release-gate.mjs` voert deze controle eerst uit.
 
 De integratierunner start en stopt zelf een tijdelijke PGlite-database op loopbackpoort 54330. Providers, model en gebruikersidentiteiten in die test zijn expliciete fixtures. De test gebruikt echte SQLx-queries, migraties, rollen, HTTP-authenticatie en de echte MCP-adapter. Hij doet geen externe betalingen. `PGTEST_PORT` kan de lokale testpoort aanpassen.
 
