@@ -23,8 +23,9 @@ The Vault secret `CRUNCHBASE_MCP_OAUTH` contains the server-only OAuth bundle.
 Never copy it into listing metadata, browser code, logs or chat.
 
 `node scripts/connect-crunchbase-mcp.mjs` starts a 15-minute PKCE callback on
-`http://127.0.0.1:18743/callback`. The public CIMD client document is served by the
-Gateway at `/.well-known/crunchbase-client.json`. Its `client_id` and redirect URI
+`http://127.0.0.1:18743/callback`. The public CIMD client document is served at
+`https://app.apiosk.com/.well-known/crunchbase-client.json`. It explicitly declares
+a native client for the loopback redirect. Its `client_id` and redirect URI
 are fixed. The operator opens `.local/crunchbase/authorize-url.txt` in a browser
 and grants the connection on Crunchbase. The callback stores a private 0600
 `.local/crunchbase/oauth.json`. Alternatively, explicitly set `CRUNCHBASE_CLIENT_ID`

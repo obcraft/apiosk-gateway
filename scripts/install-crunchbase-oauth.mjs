@@ -7,7 +7,7 @@ const token=JSON.parse(await fs.readFile(secretFile,'utf8'));
 if(!token.access_token||!token.refresh_token||!token.client_id||token.expires_at<Date.now()/1000+90)throw Error('Valid local OAuth connection required');
 let database=process.env.APIOSK_CRUNCHBASE_DATABASE_URL;
 if(!database){
- try {database=execFileSync('fly',['ssh','console','-a','apiosk-gateway-v2','-q','-C',`sh -c 'printf "%s" "$DATABASE_URL"'`],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}
+ try {database=execFileSync('fly',['ssh','console','-a','apiosk-gateway-v2','-q','-C',`sh -c 'printf "%s" "$EXECUTOR_DATABASE_URL"'`],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}
  catch {throw Error('Could not read the authorized Gateway database configuration');}
 }
 const url=new URL(database);

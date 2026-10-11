@@ -8,7 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const directory=path.resolve(fileURLToPath(new URL('../.local/crunchbase/',import.meta.url)));
 const redirect='http://127.0.0.1:18743/callback';
-const clientId=process.env.CRUNCHBASE_CLIENT_ID || 'https://apiosk-gateway-v2.fly.dev/.well-known/crunchbase-client.json';
+const clientId=process.env.CRUNCHBASE_CLIENT_ID || 'https://app.apiosk.com/.well-known/crunchbase-client.json';
 const clientSecret=process.env.CRUNCHBASE_CLIENT_SECRET;
 const verifier=crypto.randomBytes(48).toString('base64url');
 const state=crypto.randomBytes(32).toString('base64url');
