@@ -1,0 +1,1933 @@
+{
+  "known_sources": [
+    {
+      "slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "block_reason": null,
+      "metadata": {
+        "description": "Official Crunchbase company, people and funding search, filter and profile data",
+        "category": "company",
+        "tags": [
+          "crunchbase",
+          "official-data",
+          "company",
+          "people",
+          "founders",
+          "executives",
+          "identifier",
+          "location",
+          "industry",
+          "name-search",
+          "funding",
+          "funding-rounds",
+          "investors",
+          "venture-capital",
+          "filter",
+          "search",
+          "financials",
+          "leadership",
+          "board-members",
+          "employees",
+          "profile",
+          "fetch",
+          "enrichment",
+          "schema",
+          "fields",
+          "filters",
+          "operators"
+        ],
+        "identity_documented": true
+      }
+    }
+  ],
+  "services": [
+    {
+      "id": "1cb00000-0000-4000-8000-000000000001",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000001",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_autocomplete",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "collection_ids": "organizations"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_autocomplete",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.entity_autocomplete_query",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_autocomplete_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "company.crunchbase_official_search_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.entity_autocomplete_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.entity_autocomplete_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 10
+          }
+        },
+        "fixed_params": {
+          "collection_ids": "organizations"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_official_search_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.crunchbase-official-search",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000002",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000001",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Find official people, founders and executives. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_autocomplete",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "collection_ids": "people"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_autocomplete",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.entity_autocomplete_query",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_autocomplete_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "person.crunchbase_search_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.entity_autocomplete_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.entity_autocomplete_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 10
+          }
+        },
+        "fixed_params": {
+          "collection_ids": "people"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "person.crunchbase_search_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "person.crunchbase-search",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000003",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000001",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Resolve Crunchbase location or industry identifiers. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_autocomplete",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_autocomplete",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.entity_autocomplete_query",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_autocomplete_collection_ids",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_autocomplete_limit",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "research.crunchbase_identifiers_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.entity_autocomplete_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.entity_autocomplete_collection_ids": {
+            "name": "collection_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_autocomplete_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 10
+          }
+        },
+        "fixed_params": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "research.crunchbase_identifiers_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "research.crunchbase-identifiers",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000004",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000002",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Filter companies by industry, geography and funding. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_search_query",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "collection_id": "organization.companies"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_search_query",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.search_query_predicates",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.search_query_query",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_order",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "company.crunchbase_filter_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.search_query_predicates": {
+            "name": "predicates",
+            "in": "body"
+          },
+          "crunchbase.search_query_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.search_query_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.search_query_order": {
+            "name": "order",
+            "in": "body"
+          },
+          "crunchbase.search_query_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 20
+          },
+          "crunchbase.search_query_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "collection_id": "organization.companies"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_filter_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.crunchbase-filter",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000005",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000002",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Filter people and professional profiles. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_search_query",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "collection_id": "people"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_search_query",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.search_query_predicates",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.search_query_query",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_order",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "person.crunchbase_filter_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.search_query_predicates": {
+            "name": "predicates",
+            "in": "body"
+          },
+          "crunchbase.search_query_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.search_query_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.search_query_order": {
+            "name": "order",
+            "in": "body"
+          },
+          "crunchbase.search_query_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 20
+          },
+          "crunchbase.search_query_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "collection_id": "people"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "person.crunchbase_filter_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "person.crunchbase-filter",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000006",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000002",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Find funding rounds, amounts, stages and investors. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_search_query",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "collection_id": "funding_rounds"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_search_query",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.search_query_predicates",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.search_query_query",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_order",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.search_query_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "funding.crunchbase_search_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.search_query_predicates": {
+            "name": "predicates",
+            "in": "body"
+          },
+          "crunchbase.search_query_query": {
+            "name": "query",
+            "in": "body"
+          },
+          "crunchbase.search_query_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.search_query_order": {
+            "name": "order",
+            "in": "body"
+          },
+          "crunchbase.search_query_limit": {
+            "name": "limit",
+            "in": "body",
+            "default": 20
+          },
+          "crunchbase.search_query_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "collection_id": "funding_rounds"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "funding.crunchbase_search_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "funding.crunchbase-search",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000007",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Fetch official company, leadership and funding data. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_get",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "entity_def_id": "organization"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_get",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "company.crunchbase_entity_id",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_get_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_card_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_related_entity_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "company.crunchbase_profile_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "company.crunchbase_entity_id": {
+            "name": "entity_id",
+            "in": "body"
+          },
+          "crunchbase.entity_get_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_card_ids": {
+            "name": "card_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_related_entity_limit": {
+            "name": "related_entity_limit",
+            "in": "body",
+            "default": 100
+          },
+          "crunchbase.entity_get_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "entity_def_id": "organization"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_profile_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "company.crunchbase-profile",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000008",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Fetch official professional profile and company relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_get",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "entity_def_id": "person"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_get",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "person",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "person.crunchbase_entity_id",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_get_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_card_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_related_entity_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "person.crunchbase_profile_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "person.crunchbase_entity_id": {
+            "name": "entity_id",
+            "in": "body"
+          },
+          "crunchbase.entity_get_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_card_ids": {
+            "name": "card_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_related_entity_limit": {
+            "name": "related_entity_limit",
+            "in": "body",
+            "default": 100
+          },
+          "crunchbase.entity_get_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "entity_def_id": "person"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "person.crunchbase_profile_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "person.crunchbase-profile",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000009",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Fetch official funding round, amount and investor relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_entity_get",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {
+        "entity_def_id": "funding_round"
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_entity_get",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "funding_round",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "funding.crunchbase_entity_id",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "crunchbase.entity_get_field_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_card_ids",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_related_entity_limit",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "crunchbase.entity_get_after_id",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "funding.crunchbase_profile_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "funding.crunchbase_entity_id": {
+            "name": "entity_id",
+            "in": "body"
+          },
+          "crunchbase.entity_get_field_ids": {
+            "name": "field_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_card_ids": {
+            "name": "card_ids",
+            "in": "body"
+          },
+          "crunchbase.entity_get_related_entity_limit": {
+            "name": "related_entity_limit",
+            "in": "body",
+            "default": 100
+          },
+          "crunchbase.entity_get_after_id": {
+            "name": "after_id",
+            "in": "body"
+          }
+        },
+        "fixed_params": {
+          "entity_def_id": "funding_round"
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "funding.crunchbase_profile_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "funding.crunchbase-profile",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    },
+    {
+      "id": "1cb00000-0000-4000-8000-000000000010",
+      "endpoint_id": "2cb00000-0000-4000-8000-000000000004",
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "name": "Crunchbase",
+      "description": "Read Crunchbase fields, collections and filter operators. Read the official Crunchbase schema before building filters: collections, company/person/funding fields, valid operators, enum values and relationship cards. Use returned paths verbatim. This returns schema documentation, not company records.",
+      "source_url": "https://data.crunchbase.com/docs/tool-reference",
+      "method": "POST",
+      "path": "/mcp/cb_reference",
+      "listing_type": "api",
+      "list_atomic": 0,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "source": "Crunchbase",
+        "transport": "official_mcp",
+        "tool": "cb_reference",
+        "data": {
+          "fixture": true,
+          "properties": {
+            "identifier": {
+              "entity_def_id": "organization",
+              "permalink": "example"
+            }
+          },
+          "cards": {
+            "employees": [
+              {
+                "title": "CEO"
+              }
+            ],
+            "raised_funding_rounds": [
+              {
+                "money_raised": 1000000
+              }
+            ]
+          }
+        },
+        "retrieved_at": "2026-10-11T00:00:00Z"
+      },
+      "contract": {
+        "requires": [
+          {
+            "fact_type": "crunchbase.reference_path",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "produces": [
+          {
+            "fact_type": "research.crunchbase_reference_result",
+            "subject_role": "subject",
+            "cardinality": "one"
+          }
+        ],
+        "input_map": {
+          "crunchbase.reference_path": {
+            "name": "path",
+            "in": "body",
+            "default": "index"
+          }
+        },
+        "fixed_params": {},
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "research.crunchbase_reference_result": {
+              "path": "$"
+            }
+          }
+        },
+        "cardinality": "one",
+        "max_fan_out": 1,
+        "capability_slug": "research.crunchbase-reference",
+        "version": 1,
+        "effect": "read",
+        "price_model": "per_call"
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "crunchbase.entity_autocomplete_query",
+      "name": "Crunchbase query",
+      "description": "Literal name, not the entire task",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Literal name, not the entire task"
+      }
+    },
+    {
+      "slug": "crunchbase.entity_autocomplete_limit",
+      "name": "Crunchbase limit",
+      "description": "Crunchbase limit",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 25,
+        "default": 10
+      }
+    },
+    {
+      "slug": "company.crunchbase_official_search_result",
+      "name": "Find official company identities result",
+      "description": "Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "person.crunchbase_search_result",
+      "name": "Find official people, founders and executives result",
+      "description": "Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "crunchbase.entity_autocomplete_collection_ids",
+      "name": "Crunchbase collection ids",
+      "description": "Comma-separated collections, for example organizations, people, locations or categories.",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 300,
+        "description": "Comma-separated collections, for example organizations, people, locations or categories."
+      }
+    },
+    {
+      "slug": "research.crunchbase_identifiers_result",
+      "name": "Resolve Crunchbase location or industry identifiers result",
+      "description": "Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_predicates",
+      "name": "Crunchbase predicates",
+      "description": "Crunchbase predicates",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "field_id",
+            "operator_id",
+            "values"
+          ],
+          "properties": {
+            "field_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Exact field from cb_reference"
+            },
+            "operator_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Operator supported by the field from cb_reference"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_query",
+      "name": "Crunchbase query",
+      "description": "Recursive predicate/sub_query items from cb_reference; mutually exclusive with predicates.",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "description": "Recursive predicate/sub_query items from cb_reference; mutually exclusive with predicates."
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_field_ids",
+      "name": "Crunchbase field ids",
+      "description": "Explicit output columns, including identifier and requested company, people or funding data.",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Field or card identifier"
+        },
+        "description": "Explicit output columns, including identifier and requested company, people or funding data."
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_order",
+      "name": "Crunchbase order",
+      "description": "Crunchbase order",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "field_id",
+            "sort"
+          ],
+          "properties": {
+            "field_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Sortable field"
+            },
+            "sort": {
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "nulls": {
+              "enum": [
+                "first",
+                "last"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_limit",
+      "name": "Crunchbase limit",
+      "description": "Crunchbase limit",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 20
+      }
+    },
+    {
+      "slug": "crunchbase.search_query_after_id",
+      "name": "Crunchbase after id",
+      "description": "UUID of the last returned entity. Use only for an explicitly requested next page.",
+      "value_schema": {
+        "type": "string",
+        "description": "UUID of the last returned entity. Use only for an explicitly requested next page."
+      }
+    },
+    {
+      "slug": "company.crunchbase_filter_result",
+      "name": "Filter companies by industry, geography and funding result",
+      "description": "Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "person.crunchbase_filter_result",
+      "name": "Filter people and professional profiles result",
+      "description": "Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "funding.crunchbase_search_result",
+      "name": "Find funding rounds, amounts, stages and investors result",
+      "description": "Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "company.crunchbase_entity_id",
+      "name": "Crunchbase entity id",
+      "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      }
+    },
+    {
+      "slug": "crunchbase.entity_get_field_ids",
+      "name": "Crunchbase field ids",
+      "description": "Omit to fetch all readable fields. [] skips top-level fields.",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Field or card identifier"
+        },
+        "description": "Omit to fetch all readable fields. [] skips top-level fields."
+      }
+    },
+    {
+      "slug": "crunchbase.entity_get_card_ids",
+      "name": "Crunchbase card ids",
+      "description": "Omit to include all readable relationship cards; names must come from cb_reference.",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Field or card identifier"
+        },
+        "description": "Omit to include all readable relationship cards; names must come from cb_reference."
+      }
+    },
+    {
+      "slug": "crunchbase.entity_get_related_entity_limit",
+      "name": "Crunchbase related entity limit",
+      "description": "Crunchbase related_entity_limit",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 100
+      }
+    },
+    {
+      "slug": "crunchbase.entity_get_after_id",
+      "name": "Crunchbase after id",
+      "description": "UUID of the last returned entity. Use only for an explicitly requested next page.",
+      "value_schema": {
+        "type": "string",
+        "description": "UUID of the last returned entity. Use only for an explicitly requested next page."
+      }
+    },
+    {
+      "slug": "company.crunchbase_profile_result",
+      "name": "Fetch official company, leadership and funding data result",
+      "description": "Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "person.crunchbase_entity_id",
+      "name": "Crunchbase entity id",
+      "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      }
+    },
+    {
+      "slug": "person.crunchbase_profile_result",
+      "name": "Fetch official professional profile and company relationships result",
+      "description": "Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "funding.crunchbase_entity_id",
+      "name": "Crunchbase entity id",
+      "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+        "pattern": "^[A-Za-z0-9_-]+$"
+      }
+    },
+    {
+      "slug": "funding.crunchbase_profile_result",
+      "name": "Fetch official funding round, amount and investor relationships result",
+      "description": "Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "slug": "crunchbase.reference_path",
+      "name": "Crunchbase path",
+      "description": "index, entities, or an exact reference path returned by a previous response.",
+      "value_schema": {
+        "type": "string",
+        "maxLength": 300,
+        "default": "index",
+        "description": "index, entities, or an exact reference path returned by a previous response."
+      }
+    },
+    {
+      "slug": "research.crunchbase_reference_result",
+      "name": "Read Crunchbase fields, collections and filter operators result",
+      "description": "Read the official Crunchbase schema before building filters: collections, company/person/funding fields, valid operators, enum values and relationship cards. Use returned paths verbatim. This returns schema documentation, not company records.",
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "source",
+          "transport",
+          "tool",
+          "data",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "Crunchbase"
+            ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "official_mcp"
+            ]
+          },
+          "tool": {
+            "enum": [
+              "cb_entity_autocomplete",
+              "cb_search_query",
+              "cb_entity_get",
+              "cb_reference"
+            ]
+          },
+          "data": {
+            "type": [
+              "object",
+              "array"
+            ]
+          },
+          "retrieved_at": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "company.crunchbase-official-search",
+      "name": "Find official company identities",
+      "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile."
+    },
+    {
+      "slug": "person.crunchbase-search",
+      "name": "Find official people, founders and executives",
+      "description": "Find official people, founders and executives. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile."
+    },
+    {
+      "slug": "research.crunchbase-identifiers",
+      "name": "Resolve Crunchbase location or industry identifiers",
+      "description": "Resolve Crunchbase location or industry identifiers. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile."
+    },
+    {
+      "slug": "company.crunchbase-filter",
+      "name": "Filter companies by industry, geography and funding",
+      "description": "Filter companies by industry, geography and funding. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only."
+    },
+    {
+      "slug": "person.crunchbase-filter",
+      "name": "Filter people and professional profiles",
+      "description": "Filter people and professional profiles. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only."
+    },
+    {
+      "slug": "funding.crunchbase-search",
+      "name": "Find funding rounds, amounts, stages and investors",
+      "description": "Find funding rounds, amounts, stages and investors. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. One page only."
+    },
+    {
+      "slug": "company.crunchbase-profile",
+      "name": "Fetch official company, leadership and funding data",
+      "description": "Fetch official company, leadership and funding data. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+    },
+    {
+      "slug": "person.crunchbase-profile",
+      "name": "Fetch official professional profile and company relationships",
+      "description": "Fetch official professional profile and company relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+    },
+    {
+      "slug": "funding.crunchbase-profile",
+      "name": "Fetch official funding round, amount and investor relationships",
+      "description": "Fetch official funding round, amount and investor relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned fields and relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+    },
+    {
+      "slug": "research.crunchbase-reference",
+      "name": "Read Crunchbase fields, collections and filter operators",
+      "description": "Read Crunchbase fields, collections and filter operators. Read the official Crunchbase schema before building filters: collections, company/person/funding fields, valid operators, enum values and relationship cards. Use returned paths verbatim. This returns schema documentation, not company records."
+    }
+  ]
+}

@@ -15,6 +15,55 @@ fn catalog() -> Catalog {
     assert_eq!(c.services.len(), 2);
     c
 }
+
+#[test]
+fn official_mcp_capabilities_bind_the_right_entity_and_keep_filters() {
+    let c = Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
+    assert!(c.rejected.is_empty(), "{:?}", c.rejected);
+    assert_eq!(c.services.len(), 10);
+    for question in ["Find founders and board members of Starbucks", "Find companies by industry and location", "Find seed funding rounds and their investors"] {
+        let index = c.operation_index_for(question).to_string();
+        for slug in ["company.crunchbase-profile", "person.crunchbase-search", "funding.crunchbase-search", "company.crunchbase-filter"] {
+            assert!(index.contains(slug), "{slug} is missing from the planner index");
+        }
+        assert!(!index.contains("jina.ai"));
+    }
+    assert!(c.services.iter().all(|s| s.api_slug == "apimarket-magicapi-crunchbase-bbcca0a6"));
+    for s in &c.services {
+        let entity = Uuid::new_v4();
+        let mut task = Task::default();
+        for required in &s.contract.requires {
+            if required.optional { continue; }
+            let value = match required.fact_type.as_str() {
+                "crunchbase.entity_autocomplete_query" => json!("Starbucks"),
+                "crunchbase.entity_autocomplete_collection_ids" => json!("locations"),
+                "crunchbase.search_query_predicates" => json!([{"field_id":"announced_on","operator_id":"gte","values":["2026-06-01"]}]),
+                _ => json!("example-profile"),
+            };
+            task.facts.push(Fact { entity_ref:entity,semantic_type:required.fact_type.clone(),value,
+                provenance:json!({"kind":"user_input"}),observed_at:chrono::Utc::now(),
+                expires_at:chrono::Utc::now()+chrono::Duration::hours(1),verification:"user_asserted".into() });
+        }
+        let intent = Intent { subjects:vec![Subject { entity_ref:Some(entity),label:"Crunchbase".into(),values:BTreeMap::new() }],
+            goals:vec![Goal { capability:s.contract.capability_slug.clone(),subject:0,constraints:BTreeMap::from([("source".into(),json!(s.api_slug))]) }],
+            answer_operations:vec![],unresolved_references:vec![] };
+        let Resolution::Plan(plan) = resolve(&c,&task,&intent) else { panic!("{} did not resolve",s.contract.capability_slug) };
+        assert_eq!(plan.steps.len(),1);
+        let inputs = s.inputs(&task,entity,&c.vocabulary).unwrap();
+        match s.contract.capability_slug.as_str() {
+            "person.crunchbase-search" => assert_eq!(inputs["collection_ids"],"people"),
+            "company.crunchbase-official-search" => assert_eq!(inputs["collection_ids"],"organizations"),
+            "person.crunchbase-profile" => assert_eq!(inputs["entity_def_id"],"person"),
+            "funding.crunchbase-profile" => assert_eq!(inputs["entity_def_id"],"funding_round"),
+            "funding.crunchbase-search" => { assert_eq!(inputs["collection_id"],"funding_rounds"); assert_eq!(inputs["predicates"][0]["values"][0],"2026-06-01"); },
+            _ => (),
+        }
+        let output=s.contract.extract(s.sample_payload.as_ref().unwrap(),&c.vocabulary).unwrap();
+        assert!(output.rejected.is_empty(),"{:?}",output.rejected);
+        assert_eq!(output.subjects.len(),1);
+        assert!(s.contract.extract(&json!({"error":"oauth_required"}),&c.vocabulary).unwrap().subjects.is_empty());
+    }
+}
 #[test]
 fn verified_operations_resolve_bind_and_reject_provider_errors() {
     let c = catalog();

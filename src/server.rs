@@ -51,6 +51,17 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .max_age(Duration::from_secs(600));
     let compat = state.executor_compat.clone();
     let mut app = Router::new()
+        .route("/.well-known/crunchbase-client.json", get(|| async {
+            Json(json!({
+                "client_id":"https://apiosk-gateway-v2.fly.dev/.well-known/crunchbase-client.json",
+                "client_name":"Apiosk Crunchbase",
+                "client_uri":"https://apiosk.com",
+                "redirect_uris":["http://127.0.0.1:18743/callback"],
+                "grant_types":["authorization_code","refresh_token"],
+                "response_types":["code"],
+                "token_endpoint_auth_method":"none"
+            }))
+        }))
         .route(
             "/health",
             get({
