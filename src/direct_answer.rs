@@ -4,6 +4,7 @@ use crate::parser::{validate_analysis, Intent};
 use serde_json::{json, Value};
 
 mod kvk_profile;
+mod crunchbase_profile;
 
 /// Reviewed answers normally require every source step to have succeeded.
 /// The only exception is a verified KVK profile saved by the old contract,
@@ -144,6 +145,9 @@ pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value
 /// continued requests. When supplied, it must not be replaced by a narrower
 /// interpretation of the current sentence.
 pub(crate) fn reviewed_compose_with_intake(question: &str, intent: &Intent, sources: &[Value], intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<Option<Value>> {
+    if let Some(answer) = crunchbase_profile::compose(question, intent, sources, intake)? {
+        return Ok(Some(answer));
+    }
     let profile = match intake {
         Some(intake) => kvk_profile::compose_intake(question, intake, intent, sources)?,
         None => kvk_profile::compose(question, intent, sources)?,

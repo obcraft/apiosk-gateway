@@ -17,6 +17,9 @@ const SEARCH: &str = "company_intel.input.search";
 /// on the normal extraction path instead of disappearing into this shortcut.
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     let text = crate::capability_intake::literal_sentence(question).trim_end_matches(['.', '?', '!']).trim();
+    let named_source = [" through tenderned", " via tenderned"].into_iter()
+        .find(|suffix| text.to_lowercase().ends_with(suffix));
+    let text = named_source.map_or(text, |suffix| text[..text.len()-suffix.len()].trim_end());
     let lower = text.to_lowercase();
     let (language, prefix) = [
         ("en", "find public tenders for "),
@@ -54,6 +57,9 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     if crate::ask_v2::search::named_countries(&compact).len() != 1 {
         return None;
     }
+    if named_source.is_some() && crate::ask_v2::search::named_countries(&compact) != BTreeSet::from(["NL"]) {
+        return None;
+    }
     Some(ParsedRequest {
         language: language.into(),
         subjects: vec![Subject { id: "s1".into(), label: topic.into(), kind: "topic".into(),
@@ -62,7 +68,7 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
             slug: "procurement.public.notices".into(), name: "Public procurement notices".into(),
             description: "Find public procurement notices matching the supplied topic in the supplied country. Preserve publication types, dates, source links and bounded search coverage.".into(),
             domain: "procurement".into(), inputs: vec!["topic".into(), "country".into()],
-            outputs: vec!["publication_page".into()], subject_id: Some("s1".into()), source_hint: None,
+            outputs: vec!["publication_page".into()], subject_id: Some("s1".into()), source_hint: named_source.map(|_|"tenderned".into()),
             confidence: 1.0, missing: vec![],
         }],
         deliverable: Deliverable { format: "chat".into(), operations: vec![] },
@@ -524,6 +530,8 @@ mod tests {
                 true,
             ),
             ("Find public tenders for solar panels in Belgium.", false),
+            ("Find public tenders for cleaning services in the Netherlands through TenderNed.", true),
+            ("Zoek openbare aanbestedingen voor schoonmaak in Nederland via TenderNed.", true),
         ] {
             let parsed_request = parse(question, "fixture").unwrap();
             let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
@@ -559,6 +567,8 @@ mod tests {
             "Find public tenders for IT services in the Netherlands.",
             "Find public tenders for solar panels in the Netherlands.",
             "Find public tenders for cleaning services in the Netherlands.",
+            "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+            "Zoek openbare aanbestedingen voor schoonmaak in Nederland via TenderNed.",
             "Zoek openbare aanbestedingen voor laadpalen in Nederland.",
         ] {
             let intake = parser

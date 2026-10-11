@@ -31,7 +31,7 @@ pub(super) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
         for field in fields.split(" and ").flat_map(|field| field.split(", ")) {
             let output = match field.trim().trim_start_matches("its ") {
                 "short description" => "short_description",
-                "description" => "description",
+                "description" | "company description" => "description",
                 "profile link" | "profile url" => "profile_url",
                 "employer rating" | "employer ratings" => "employer_rating",
                 "customer rating" | "customer ratings" => "customer_rating",
@@ -72,6 +72,9 @@ mod tests {
     use super::*;
     #[test]
     fn literal_sources_fields_and_independent_scopes_survive() {
+        let example = parse("Search Crunchbase for Starbucks and show its company description and profile link.", "fixture").unwrap();
+        assert_eq!(example.capabilities[0].outputs, ["description", "profile_url"]);
+        assert_eq!(example.capabilities[0].source_hint.as_deref(), Some("crunchbase"));
         let question = "Search Crunchbase for Starbucks and show its short description and profile link. Search Glassdoor for Starbucks and show its employer rating and review count. Search Yelp for Starbucks in Seattle and show the customer ratings and review counts of the locations returned.";
         let p = crate::capability_intake::literal_request(question, "fixture").unwrap();
         assert_eq!(p.capabilities.len(), 3);

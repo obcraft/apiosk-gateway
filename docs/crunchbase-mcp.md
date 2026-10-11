@@ -145,3 +145,19 @@ unavailable and cannot become company data. A free Starbucks Reader probe on
 
 Official documentation: https://data.crunchbase.com/docs/tool-reference and
 https://data.crunchbase.com/docs/connecting-ai-tools .
+
+## Saved profile rendering
+
+Plain, single-company official profile requests now render the returned profile,
+founders, employees, board/advisers, funding rounds and investors directly from
+validated saved fields. The answer remains bound to the approved endpoint,
+entity, exact permalink/UUID and unchanged request scope. Dates retain precision;
+amounts retain currencies; missing fields remain unknown. Returned roster pages
+with `has_more_entities` are explicitly incomplete. Extra analysis requirements
+continue through normal synthesis. Retrying a failed profile analysis uses the
+same saved result and never dispatches another Crunchbase call.
+
+This addresses the recorded 2026-10-11 failure: source data was ready about ten
+seconds after approval, followed by a thirty-second analysis timeout and a
+second response rejected for numeric/link prose. The rendering regression uses
+that saved public response, including its real roster truncation flags.

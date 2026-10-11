@@ -4,6 +4,20 @@ use super::*;
 
 pub(crate) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
     let text = literal_sentence(request).trim_end_matches(['.', '?', '!']).trim();
+    // A named company plus its literal registration is the same profile
+    // request as a bare KVK number, not a request for every company dataset.
+    for prefix in ["show the registered company details for ", "find the registered details for "] {
+        if text.get(..prefix.len()).is_some_and(|start| start.eq_ignore_ascii_case(prefix)) {
+            let body = text.get(prefix.len()..)?.strip_suffix(')')?;
+            let (name, number) = body.rsplit_once(" (KVK ")?;
+            let name = crate::company_request::literal_name(name)?;
+            if number.len() != 8 || !number.bytes().all(|b|b.is_ascii_digit()) { return None }
+            let mut parsed = parse(&format!("Look up KVK number {number}"), model)?;
+            parsed.subjects[0].label = name;
+            parsed.meta.text_sha256 = hex::encode(Sha256::digest(request.as_bytes()));
+            return Some(parsed);
+        }
+    }
     let words: Vec<_> = text.split_whitespace().collect();
     let number = |word: &str| word.len() == 8 && word.bytes().all(|b| b.is_ascii_digit());
     let (identifier, phrase) = if number(words.first()?) {
@@ -99,6 +113,27 @@ pub(crate) fn plain_profile<'a>(question: &str, intake: &'a Intake) -> Option<&'
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn named_profile_example_binds_the_literal_registration_without_a_model() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
+        for (name,number) in [("Mollie B.V.","30204462"),("Example B.V.","00123456")] {
+            let question = format!("Show the registered company details for {name} (KVK {number}).");
+            let intake=parser.ask_intake(&question,&Default::default(),&catalog,None).await.unwrap();
+            assert_eq!(intake.parsed_request.subjects[0].label,name);
+            assert_eq!(intake.parsed_request.language,"en");
+            let reply=parser.chat_from_capabilities(&question,None,&Default::default(),&catalog,&intake).await.unwrap();
+            let mut intent=reply.intent.unwrap();
+            let mut task=Task::default(); task.capability_intake=Some(intake);
+            crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+            let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("named profile must be priced")};
+            assert_eq!(plan.steps.len(),1);
+            assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap(),json!({"kvkNummer":number}));
+            assert!(parse(&format!("{question} Include turnover."),"fixture").is_none());
+        }
+        assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed),0);
+    }
 
     fn semantic_intake(question: &str, literals: &str, number: &str, label: &str, catalog: &Catalog) -> Intake {
         // A normalized model-shaped request, not the literal sentence parser.
