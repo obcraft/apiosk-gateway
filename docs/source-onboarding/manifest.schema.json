@@ -1,0 +1,837 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Apiosk source bundle v1 (registration, not activation)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "apiosk.source-bundle.v1"
+    },
+    "bundle_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f-]{36}$"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "documentation_urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "openapi_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "live_test": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "enum": [
+                "not_run",
+                "failed",
+                "passed"
+              ]
+            },
+            "tested_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "response_sha256": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "notes"
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "generated_at",
+        "documentation_urls",
+        "live_test"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slug": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "long_description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "docs_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "github_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "example_usage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authentication_info": {
+          "type": [
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "listing_metadata": {
+          "type": [
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "static_headers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "enum": [
+                  "Accept",
+                  "Content-Type",
+                  "Accept-Language"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          }
+        }
+      },
+      "required": [
+        "owner_id",
+        "slug",
+        "name",
+        "origin_url",
+        "description",
+        "category",
+        "docs_url",
+        "authentication_info",
+        "listing_metadata",
+        "static_headers"
+      ]
+    },
+    "credential_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "vault_name": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]+$"
+          },
+          "endpoint_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "in": {
+            "enum": [
+              "header",
+              "query"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "allowed_origin": {
+            "type": "string"
+          },
+          "runtime_binding": {
+            "enum": [
+              "missing",
+              "provider_specific_review_required"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_name",
+          "endpoint_key",
+          "in",
+          "name",
+          "prefix",
+          "allowed_origin",
+          "runtime_binding",
+          "notes"
+        ]
+      }
+    },
+    "subject_kinds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "description"
+        ]
+      }
+    },
+    "fact_types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "jurisdiction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value_schema": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "freshness_seconds": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "match_hints": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "subject_kind",
+          "value_schema"
+        ]
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "input_contract": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "output_contract": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description",
+          "category",
+          "input_contract",
+          "output_contract"
+        ]
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "query_params": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "request_body": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "response_body": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "request_example": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "response_example": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "headers": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "documentation_markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external_docs_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "openapi_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "authentication_notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin_override": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cache_ttl_seconds": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "search_terms": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "use_cases": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "sectors": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "input_entities": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "output_entities": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "endpoint_category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "task_summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata_source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata_model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata_confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "metadata_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_documented": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key",
+          "method",
+          "path",
+          "price",
+          "description",
+          "query_params",
+          "tags",
+          "endpoint_category",
+          "task_summary",
+          "metadata_source"
+        ]
+      },
+      "minItems": 1
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "capability_slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "requires": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "produces": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "input_map": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "fixed_params": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "output_map": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "cardinality": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "identifies": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_fan_out": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "preconditions": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "pagination": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "effect": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "price_model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "freshness_seconds": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "adapter_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sample_payload": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endpoint_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint_key",
+          "capability_slug",
+          "version",
+          "requires",
+          "produces",
+          "input_map",
+          "output_map",
+          "cardinality"
+        ]
+      }
+    },
+    "offers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "capability_slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "input_map": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "fixed_params": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "output_map": {
+            "type": [
+              "object",
+              "array",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "endpoint_key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint_key",
+          "capability_slug",
+          "source",
+          "confidence",
+          "input_map"
+        ]
+      }
+    }
+  },
+  "required": [
+    "format",
+    "bundle_id",
+    "source",
+    "provenance",
+    "credential_requirements",
+    "subject_kinds",
+    "fact_types",
+    "capabilities",
+    "endpoints",
+    "contracts",
+    "offers"
+  ]
+}

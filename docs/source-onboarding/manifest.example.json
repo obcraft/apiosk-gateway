@@ -1,0 +1,349 @@
+{
+  "format": "apiosk.source-bundle.v1",
+  "bundle_id": "5f49228a-51f8-49eb-b3d6-a9b15508a4fa",
+  "provenance": {
+    "model": "REPLACE_WITH_MODEL_ID",
+    "generated_at": "2026-10-11T00:00:00Z",
+    "documentation_urls": [
+      "https://api.example.com/docs"
+    ],
+    "openapi_sha256": null,
+    "reviewer": null,
+    "live_test": {
+      "status": "not_run",
+      "tested_at": null,
+      "response_sha256": null,
+      "notes": "Fictional example. Replace with redacted real evidence; never invent successful probes."
+    }
+  },
+  "source": {
+    "owner_id": "00000000-0000-0000-0000-000000000000",
+    "slug": "example-company-api",
+    "name": "Example Company API",
+    "origin_url": "https://api.example.com",
+    "description": "Retrieve a company profile by the provider's company ID.",
+    "long_description": "Example only. Provider IDs are not official company registration identifiers. Coverage and licensing must be checked.",
+    "category": "business",
+    "docs_url": "https://api.example.com/docs",
+    "website_url": "https://example.com",
+    "github_url": null,
+    "example_usage": "Retrieve the company profile for provider ID demo-123.",
+    "authentication_info": {
+      "type": "api_key",
+      "in": "header",
+      "name": "X-Api-Key",
+      "caller": "Apiosk handles upstream authentication; buyers approve the quoted total.",
+      "upstream": {
+        "note": "Credential stored separately; generic Vault resolution is not implemented by this SQL."
+      }
+    },
+    "static_headers": [
+      {
+        "name": "Accept",
+        "value": "application/json"
+      }
+    ],
+    "listing_metadata": {
+      "tags": [
+        "company",
+        "company-profile"
+      ],
+      "sectors": [
+        "Company data"
+      ],
+      "logo": {
+        "url": "https://example.com/logo.png"
+      },
+      "coverage_notice": "Example only. One provider record per call; no official-register verification.",
+      "license": {
+        "name": "REVIEW_REQUIRED",
+        "url": "https://example.com/terms"
+      },
+      "usage_notice": {
+        "text": "Example attribution; replace with reviewed provider terms.",
+        "url": "https://example.com/terms",
+        "label": "Provider terms"
+      }
+    }
+  },
+  "credential_requirements": [
+    {
+      "vault_name": "APIOSK_EXAMPLE_COMPANY_KEY",
+      "endpoint_key": null,
+      "in": "header",
+      "name": "X-Api-Key",
+      "prefix": "",
+      "allowed_origin": "https://api.example.com",
+      "runtime_binding": "missing",
+      "notes": "The current generic proxy only reads literal auth_headers/auth_query. Implement a private Vault resolver before activation."
+    }
+  ],
+  "subject_kinds": [
+    {
+      "slug": "company",
+      "description": "Company or legal entity"
+    }
+  ],
+  "fact_types": [
+    {
+      "slug": "company.onboarding_demo_id",
+      "name": "Example provider company ID",
+      "description": "An ID issued by this example provider; never an inferred KVK number.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "company.onboarding_demo_profile",
+      "name": "Example provider company profile",
+      "description": "A company profile returned by the example provider.",
+      "subject_kind": "company",
+      "jurisdiction": null,
+      "value_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "freshness_seconds": 3600,
+      "match_hints": {}
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "company.onboarding-demo-profile",
+      "name": "Retrieve company profile by provider ID",
+      "description": "Retrieve one profile using an existing example-provider ID. Does not verify official registration or financial status.",
+      "category": "business",
+      "input_contract": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "key": "company-profile",
+      "method": "GET",
+      "path": "/v1/companies/{id}",
+      "price": 0.05,
+      "description": "Retrieve one company profile using the provider's ID.",
+      "query_params": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Provider company ID",
+            "x-parameter-location": "path"
+          }
+        }
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "object",
+        "required": [
+          "company"
+        ],
+        "properties": {
+          "company": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "request_example": {
+        "id": "demo-123"
+      },
+      "response_example": {
+        "company": {
+          "id": "demo-123",
+          "name": "Fictional Example BV",
+          "country": "NL"
+        }
+      },
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json; protocol documentation only"
+        }
+      },
+      "documentation_markdown": "Fictional template. Replace this with reviewed provider documentation.",
+      "external_docs_url": "https://api.example.com/docs/company-profile",
+      "openapi_url": "https://api.example.com/openapi.json",
+      "authentication_notes": "X-Api-Key injected by a server credential binding; not a buyer parameter.",
+      "origin_override": null,
+      "cache_ttl_seconds": 3600,
+      "tags": [
+        "company",
+        "company-profile"
+      ],
+      "search_terms": [
+        "company profile",
+        "bedrijfsprofiel"
+      ],
+      "use_cases": [
+        "Read a provider company profile"
+      ],
+      "sectors": [
+        "Company data"
+      ],
+      "input_entities": [
+        "provider company ID"
+      ],
+      "output_entities": [
+        "company profile"
+      ],
+      "endpoint_category": "business",
+      "action_type": "lookup",
+      "task_summary": "Retrieve a company profile by provider ID.",
+      "metadata_source": "inferred",
+      "metadata_model": "REPLACE_WITH_MODEL_ID",
+      "metadata_confidence": 0,
+      "metadata_at": "2026-10-11T00:00:00Z",
+      "contract_documented": false
+    }
+  ],
+  "contracts": [
+    {
+      "endpoint_key": "company-profile",
+      "capability_slug": "company.onboarding-demo-profile",
+      "version": 1,
+      "requires": [
+        {
+          "fact_type": "company.onboarding_demo_id",
+          "subject_role": "subject",
+          "optional": false
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "company.onboarding_demo_profile",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {
+        "company.onboarding_demo_id": {
+          "in": "path",
+          "name": "id"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$.company",
+        "produces": {
+          "company.onboarding_demo_profile": {
+            "fields": {
+              "id": {
+                "path": "$.id"
+              },
+              "name": {
+                "path": "$.name"
+              },
+              "country": {
+                "path": "$.country"
+              }
+            }
+          }
+        }
+      },
+      "cardinality": "one",
+      "identifies": null,
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 3600,
+      "adapter_version": "v1",
+      "sample_payload": {
+        "company": {
+          "id": "demo-123",
+          "name": "Fictional Example BV",
+          "country": "NL"
+        }
+      },
+      "notes": "Synthetic example only; not proof of live response, normalization, price or coverage."
+    }
+  ],
+  "offers": [
+    {
+      "endpoint_key": "company-profile",
+      "capability_slug": "company.onboarding-demo-profile",
+      "source": "inferred",
+      "confidence": 0,
+      "input_map": {
+        "id": {
+          "in": "path",
+          "name": "id"
+        }
+      },
+      "fixed_params": {},
+      "output_map": null,
+      "notes": "Optional legacy discovery metadata; does not activate a contract."
+    }
+  ]
+}

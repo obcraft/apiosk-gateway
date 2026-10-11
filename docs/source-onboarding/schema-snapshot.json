@@ -1,0 +1,2771 @@
+{
+  "checked_at": "2026-10-11",
+  "project_ref": "jgjoiyqdyypouskftzeq",
+  "scope": "Read-only inventory of existing production tables, not proposed tables. The importer writes only import_tables. Auxiliary tables were inspected to establish their purpose.",
+  "import_tables": [
+    "providers.apis",
+    "providers.api_endpoints",
+    "catalog.fact_subject_kinds",
+    "catalog.fact_types",
+    "catalog.capabilities",
+    "catalog.capability_execution_contracts",
+    "catalog.capability_offers"
+  ],
+  "inspected_but_not_written": [
+    "catalog.param_resolvers",
+    "providers.provider_api_keys",
+    "providers.source_providers",
+    "providers.endpoint_pricing_rules"
+  ],
+  "columns": [
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "category",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "input_contract",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "output_contract",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capabilities",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "capability_slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "endpoint_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "version",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'draft'::text",
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "requires",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "produces",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'[]'::jsonb",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "input_map",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "fixed_params",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "output_map",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "cardinality",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'one'::text",
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "preconditions",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 12
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "freshness_seconds",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "max_fan_out",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "1",
+      "ordinal_position": 14
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "pagination",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 15
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "effect",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'read'::text",
+      "ordinal_position": 16
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "price_model",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'per_call'::text",
+      "ordinal_position": 17
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "adapter_version",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'v1'::text",
+      "ordinal_position": 18
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "sample_payload",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "validated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "validated_note",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 21
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 23
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 24
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "column_name": "identifies",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 25
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "capability_slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "endpoint_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "api_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "source",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "confidence",
+      "data_type": "numeric",
+      "udt_schema": "pg_catalog",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "1.00",
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "input_map",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "fixed_params",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "notes",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "capability_offers",
+      "column_name": "output_map",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_subject_kinds",
+      "column_name": "slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_subject_kinds",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_subject_kinds",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "subject_kind",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "jurisdiction",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "value_schema",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "freshness_seconds",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "match_hints",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'draft'::text",
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "fact_types",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "target_endpoint_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "target_capability",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "target_param",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "resolver_endpoint_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "resolver_input_param",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "resolver_input_hint",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "extraction_path",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "alternatives_path",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "match_fields",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "target_shape",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "label",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text",
+      "ordinal_position": 13
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 14
+    },
+    {
+      "table_schema": "catalog",
+      "table_name": "param_resolvers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 15
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "api_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "method",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "path",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "payment_required",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "price",
+      "data_type": "numeric",
+      "udt_schema": "pg_catalog",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "network_token_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "request_body",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "response_body",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "request_example",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "response_example",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "headers",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "query_params",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "active",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 16
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "documentation_markdown",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "external_docs_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 18
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "openapi_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "authentication_notes",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 20
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "origin_override",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 21
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "auth_override",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "cache_ttl_seconds",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 23
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 24
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "search_terms",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 25
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "use_cases",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 26
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "sectors",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 27
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "input_entities",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 28
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "output_entities",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 29
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "endpoint_category",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 30
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "action_type",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 31
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "task_summary",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 32
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "metadata_source",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 33
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "metadata_model",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 34
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "metadata_confidence",
+      "data_type": "real",
+      "udt_schema": "pg_catalog",
+      "udt_name": "float4",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 35
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "metadata_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 36
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "search_doc",
+      "data_type": "tsvector",
+      "udt_schema": "pg_catalog",
+      "udt_name": "tsvector",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 37
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "api_endpoints",
+      "column_name": "contract_documented",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 38
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "slug",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "origin_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "wallet_address",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'active'::text",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "source",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": "'manual'::text",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "commission_rate",
+      "data_type": "numeric",
+      "udt_schema": "pg_catalog",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": "0.2174",
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "commission_tier_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 12
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "category",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 13
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "docs_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 14
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "is_verified",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "ordinal_position": 15
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "verified_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 16
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "verified_by",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 17
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "endpoint_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 18
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "owner_wallet",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "is_community",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "false",
+      "ordinal_position": 20
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "active",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "YES",
+      "column_default": "true",
+      "ordinal_position": 21
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "listing_type",
+      "data_type": "USER-DEFINED",
+      "udt_schema": "public",
+      "udt_name": "listing_type",
+      "is_nullable": "NO",
+      "column_default": "'api'::listing_type",
+      "ordinal_position": 22
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "is_platform_owned",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 23
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "listing_metadata",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "NO",
+      "column_default": "'{}'::jsonb",
+      "ordinal_position": 24
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "long_description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 25
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "example_usage",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 26
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "authentication_info",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 27
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "mollie_organization_id",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 28
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "hmac_signing_algorithm",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 29
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "hmac_signing_header",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 30
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "hmac_signing_secret_enc",
+      "data_type": "bytea",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bytea",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 31
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "hmac_signing_payload_format",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 32
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "submitted_for_review_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 33
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "approved_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 34
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "reviewed_by",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 35
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "payout_network",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 36
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "is_external",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "false",
+      "ordinal_position": 37
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "external_x402",
+      "data_type": "jsonb",
+      "udt_schema": "pg_catalog",
+      "udt_name": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 38
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "external_discovery_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 39
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "website_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 40
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "github_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 41
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "integration_mode",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'gateway'::text",
+      "ordinal_position": 42
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "suspended_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 43
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "requires_payout_wallet",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 44
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "discoverable",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 45
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "apis",
+      "column_name": "settlement_mode",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'provider_payout'::text",
+      "ordinal_position": 46
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "endpoint_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "parameter_name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "operator",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "comparison_value",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "price",
+      "data_type": "numeric",
+      "udt_schema": "pg_catalog",
+      "udt_name": "numeric",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "priority",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "active",
+      "data_type": "boolean",
+      "udt_schema": "pg_catalog",
+      "udt_name": "bool",
+      "is_nullable": "NO",
+      "column_default": "true",
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()",
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "label",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "secret_hash",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "secret_prefix",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "last_used_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "provider_api_keys",
+      "column_name": "revoked_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "source_id",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "provider_key",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "sample_host",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 3
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 4
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "logo_url",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 5
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "endpoint_count",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 6
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "unpriced_endpoints",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 7
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "price_usd_min",
+      "data_type": "double precision",
+      "udt_schema": "pg_catalog",
+      "udt_name": "float8",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 8
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "price_usd_max",
+      "data_type": "double precision",
+      "udt_schema": "pg_catalog",
+      "udt_name": "float8",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 9
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "networks",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 10
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "methods",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 11
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "categories",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 12
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 13
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "top_terms",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 14
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "sample_description",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 15
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "with_input_schema",
+      "data_type": "integer",
+      "udt_schema": "pg_catalog",
+      "udt_name": "int4",
+      "is_nullable": "NO",
+      "column_default": "0",
+      "ordinal_position": 16
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "first_seen_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 17
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "last_seen_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 18
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_name",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 19
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_tags",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 20
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_categories",
+      "data_type": "ARRAY",
+      "udt_schema": "pg_catalog",
+      "udt_name": "_text",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]",
+      "ordinal_position": 21
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_note",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 22
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_schema": "pg_catalog",
+      "udt_name": "text",
+      "is_nullable": "NO",
+      "column_default": "'neutral'::text",
+      "ordinal_position": 23
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 24
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "curated_by",
+      "data_type": "uuid",
+      "udt_schema": "pg_catalog",
+      "udt_name": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 25
+    },
+    {
+      "table_schema": "providers",
+      "table_name": "source_providers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_schema": "pg_catalog",
+      "udt_name": "timestamptz",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "ordinal_position": 26
+    }
+  ],
+  "constraints": [
+    {
+      "schema": "catalog",
+      "table_name": "capabilities",
+      "conname": "capabilities_pkey",
+      "definition": "PRIMARY KEY (slug)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capabilities",
+      "conname": "capabilities_slug_check",
+      "definition": "CHECK ((slug ~ '^[a-z0-9_]+(\\.[a-z0-9_-]+)+$'::text))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capabilities",
+      "conname": "capabilities_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'draft'::text, 'retired'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contract_capability_slug_endpoint_id_v_key",
+      "definition": "UNIQUE (capability_slug, endpoint_id, version)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_capability_slug_fkey",
+      "definition": "FOREIGN KEY (capability_slug) REFERENCES catalog.capabilities(slug) ON DELETE CASCADE"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_cardinality_check",
+      "definition": "CHECK ((cardinality = ANY (ARRAY['one'::text, 'many'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_effect_check",
+      "definition": "CHECK ((effect = ANY (ARRAY['read'::text, 'write'::text, 'payment'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_endpoint_id_fkey",
+      "definition": "FOREIGN KEY (endpoint_id) REFERENCES providers.api_endpoints(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_freshness_seconds_check",
+      "definition": "CHECK (((freshness_seconds IS NULL) OR (freshness_seconds > 0)))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_identifies_fkey",
+      "definition": "FOREIGN KEY (identifies) REFERENCES catalog.fact_types(slug) ON DELETE SET NULL"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_max_fan_out_check",
+      "definition": "CHECK ((max_fan_out >= 1))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_price_model_check",
+      "definition": "CHECK ((price_model = ANY (ARRAY['per_call'::text, 'per_page'::text, 'per_unit'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'validated'::text, 'active'::text, 'retired'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_validated_has_sample",
+      "definition": "CHECK (((status = 'draft'::text) OR ((sample_payload IS NOT NULL) AND (validated_at IS NOT NULL))))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_execution_contracts",
+      "conname": "capability_execution_contracts_version_check",
+      "definition": "CHECK ((version > 0))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_api_id_fkey",
+      "definition": "FOREIGN KEY (api_id) REFERENCES providers.apis(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_capability_slug_fkey",
+      "definition": "FOREIGN KEY (capability_slug) REFERENCES catalog.capabilities(slug) ON DELETE CASCADE"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_confidence_check",
+      "definition": "CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_endpoint_id_fkey",
+      "definition": "FOREIGN KEY (endpoint_id) REFERENCES providers.api_endpoints(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_pkey",
+      "definition": "PRIMARY KEY (capability_slug, endpoint_id)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "capability_offers",
+      "conname": "capability_offers_source_check",
+      "definition": "CHECK ((source = ANY (ARRAY['declared'::text, 'curated'::text, 'inferred'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_subject_kinds",
+      "conname": "fact_subject_kinds_pkey",
+      "definition": "PRIMARY KEY (slug)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_subject_kinds",
+      "conname": "fact_subject_kinds_slug_check",
+      "definition": "CHECK ((slug ~ '^[a-z][a-z0-9_]*$'::text))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_freshness_seconds_check",
+      "definition": "CHECK (((freshness_seconds IS NULL) OR (freshness_seconds > 0)))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_jurisdiction_check",
+      "definition": "CHECK (((jurisdiction IS NULL) OR (jurisdiction ~ '^[A-Z]{2}$'::text)))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_pkey",
+      "definition": "PRIMARY KEY (slug)"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_slug_check",
+      "definition": "CHECK ((slug ~ '^[a-z][a-z0-9_]*(\\.[a-z0-9_-]+)+$'::text))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'validated'::text, 'active'::text, 'retired'::text])))"
+    },
+    {
+      "schema": "catalog",
+      "table_name": "fact_types",
+      "conname": "fact_types_subject_kind_fkey",
+      "definition": "FOREIGN KEY (subject_kind) REFERENCES catalog.fact_subject_kinds(slug) ON DELETE RESTRICT"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "conname": "api_endpoints_api_id_fkey",
+      "definition": "FOREIGN KEY (api_id) REFERENCES providers.apis(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "conname": "api_endpoints_api_id_method_path_key",
+      "definition": "UNIQUE (api_id, method, path)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "conname": "api_endpoints_network_token_id_fkey",
+      "definition": "FOREIGN KEY (network_token_id) REFERENCES wallets.network_tokens(id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "conname": "api_endpoints_paid_has_price",
+      "definition": "CHECK (((NOT payment_required) OR (price > (0)::numeric))) NOT VALID"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "conname": "api_endpoints_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_commission_tier_id_fkey",
+      "definition": "FOREIGN KEY (commission_tier_id) REFERENCES billing.commission_tiers(id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_hmac_signing_algorithm_check",
+      "definition": "CHECK (((hmac_signing_algorithm IS NULL) OR (hmac_signing_algorithm = 'sha256'::text)))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_hmac_signing_payload_format_check",
+      "definition": "CHECK (((hmac_signing_payload_format IS NULL) OR (hmac_signing_payload_format = 'method_path_body_sha256'::text)))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_integration_mode_check",
+      "definition": "CHECK ((integration_mode = ANY (ARRAY['gateway'::text, 'sdk'::text, 'federated'::text])))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_payout_network_check",
+      "definition": "CHECK (((payout_network IS NULL) OR (payout_network = ANY (ARRAY['base'::text, 'polygon'::text, 'arbitrum'::text]))))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_settlement_mode_check",
+      "definition": "CHECK ((settlement_mode = ANY (ARRAY['provider_payout'::text, 'apiosk_revenue'::text, 'invoice'::text, 'free'::text])))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_slug_key",
+      "definition": "UNIQUE (slug)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'pending'::text])))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "conname": "apis_verified_by_fkey",
+      "definition": "FOREIGN KEY (verified_by) REFERENCES auth.users(id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_endpoint_id_fkey",
+      "definition": "FOREIGN KEY (endpoint_id) REFERENCES providers.api_endpoints(id) ON DELETE CASCADE"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_operator_check",
+      "definition": "CHECK ((operator = ANY (ARRAY['equals'::text, 'not_equals'::text, 'contains'::text, 'not_contains'::text, 'starts_with'::text, 'ends_with'::text, 'exists'::text, 'not_exists'::text])))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_parameter_name_check",
+      "definition": "CHECK ((btrim(parameter_name) <> ''::text))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_price_check",
+      "definition": "CHECK ((price >= (0)::numeric))"
+    },
+    {
+      "schema": "providers",
+      "table_name": "endpoint_pricing_rules",
+      "conname": "endpoint_pricing_rules_priority_check",
+      "definition": "CHECK ((priority >= 0))"
+    }
+  ],
+  "triggers": [
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "tgname": "aaa_default_endpoint_network_token",
+      "definition": "CREATE TRIGGER aaa_default_endpoint_network_token BEFORE INSERT ON providers.api_endpoints FOR EACH ROW EXECUTE FUNCTION default_endpoint_network_token_from_api()",
+      "function": "default_endpoint_network_token_from_api()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "tgname": "api_endpoints_bump_integration_config",
+      "definition": "CREATE TRIGGER api_endpoints_bump_integration_config AFTER INSERT OR DELETE OR UPDATE ON providers.api_endpoints FOR EACH ROW EXECUTE FUNCTION bump_integration_config_version()",
+      "function": "bump_integration_config_version()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "tgname": "backoffice_changed",
+      "definition": "CREATE TRIGGER backoffice_changed AFTER INSERT OR DELETE OR UPDATE ON providers.api_endpoints FOR EACH STATEMENT EXECUTE FUNCTION backoffice_private.changed()",
+      "function": "backoffice_private.changed()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "tgname": "trg_api_endpoints_search_doc",
+      "definition": "CREATE TRIGGER trg_api_endpoints_search_doc BEFORE INSERT OR UPDATE OF task_summary, description, tags, search_terms, use_cases, input_entities, output_entities, sectors, path ON providers.api_endpoints FOR EACH ROW EXECUTE FUNCTION apiosk_endpoint_search_doc()",
+      "function": "apiosk_endpoint_search_doc()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "api_endpoints",
+      "tgname": "trg_enforce_base_mainnet_endpoint_network_token",
+      "definition": "CREATE TRIGGER trg_enforce_base_mainnet_endpoint_network_token BEFORE INSERT OR UPDATE OF payment_required, network_token_id ON providers.api_endpoints FOR EACH ROW EXECUTE FUNCTION enforce_base_mainnet_endpoint_network_token()",
+      "function": "enforce_base_mainnet_endpoint_network_token()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "apis_bump_integration_config",
+      "definition": "CREATE TRIGGER apis_bump_integration_config AFTER UPDATE OF wallet_address, status, slug, integration_mode ON providers.apis FOR EACH ROW EXECUTE FUNCTION bump_integration_config_version()",
+      "function": "bump_integration_config_version()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "backoffice_changed",
+      "definition": "CREATE TRIGGER backoffice_changed AFTER INSERT OR DELETE OR UPDATE ON providers.apis FOR EACH STATEMENT EXECUTE FUNCTION backoffice_private.changed()",
+      "function": "backoffice_private.changed()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_auto_verify_owner",
+      "definition": "CREATE TRIGGER trg_apis_auto_verify_owner BEFORE INSERT ON providers.apis FOR EACH ROW EXECUTE FUNCTION apiosk_auto_verify_owner_apis()",
+      "function": "apiosk_auto_verify_owner_apis()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_normalize_category",
+      "definition": "CREATE TRIGGER trg_apis_normalize_category BEFORE INSERT OR UPDATE OF category ON providers.apis FOR EACH ROW EXECUTE FUNCTION apiosk_normalize_api_category()",
+      "function": "apiosk_normalize_api_category()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_published_dispatch",
+      "definition": "CREATE TRIGGER trg_apis_published_dispatch AFTER INSERT OR UPDATE OF status ON providers.apis FOR EACH ROW EXECUTE FUNCTION notify_api_published()",
+      "function": "notify_api_published()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_require_payout_wallet",
+      "definition": "CREATE TRIGGER trg_apis_require_payout_wallet BEFORE INSERT OR UPDATE ON providers.apis FOR EACH ROW EXECUTE FUNCTION require_payout_wallet_to_publish()",
+      "function": "require_payout_wallet_to_publish()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_review_email",
+      "definition": "CREATE TRIGGER trg_apis_review_email AFTER INSERT OR UPDATE OF status ON providers.apis FOR EACH ROW EXECUTE FUNCTION enqueue_api_review_email()",
+      "function": "enqueue_api_review_email()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_review_gate",
+      "definition": "CREATE TRIGGER trg_apis_review_gate BEFORE INSERT OR UPDATE ON providers.apis FOR EACH ROW EXECUTE FUNCTION apiosk_apis_review_gate()",
+      "function": "apiosk_apis_review_gate()"
+    },
+    {
+      "schema": "providers",
+      "table_name": "apis",
+      "tgname": "trg_apis_sync_active",
+      "definition": "CREATE TRIGGER trg_apis_sync_active BEFORE INSERT OR UPDATE ON providers.apis FOR EACH ROW EXECUTE FUNCTION apiosk_sync_apis_active_with_status()",
+      "function": "apiosk_sync_apis_active_with_status()"
+    }
+  ],
+  "trigger_functions": [
+    {
+      "signature": "apiosk_apis_review_gate()",
+      "definition": "CREATE OR REPLACE FUNCTION public.apiosk_apis_review_gate()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions'\nAS $function$\ndeclare\n  v_status_changed boolean;\n  v_approved_api_id text;\nbegin\n  v_status_changed := tg_op = 'INSERT';\n  if tg_op = 'UPDATE' then\n    v_status_changed := old.status is distinct from new.status;\n  end if;\n\n  -- The approval RPC sets this transaction-local value for exactly one API.\n  -- All ordinary portal, MCP, service-role and admin writes see NULL/empty.\n  v_approved_api_id := nullif(\n    current_setting('apiosk.api_review_approved_id', true),\n    ''\n  );\n\n  if new.status = 'active'\n     and v_status_changed\n     and v_approved_api_id is distinct from new.id::text\n  then\n    new.status := 'pending';\n  end if;\n\n  -- A fresh submission or resubmission starts a new review clock and cannot\n  -- retain the identity of an earlier reviewer.\n  if new.status = 'pending'\n     and v_status_changed\n  then\n    new.submitted_for_review_at := now();\n    new.reviewed_by := null;\n  end if;\n\n  -- This branch is reachable for a publish transition only through the\n  -- API-specific approval capability above.\n  if new.status = 'active' and new.approved_at is null then\n    new.approved_at := now();\n  end if;\n\n  return new;\nend\n$function$\n"
+    },
+    {
+      "signature": "apiosk_auto_verify_owner_apis()",
+      "definition": "CREATE OR REPLACE FUNCTION public.apiosk_auto_verify_owner_apis()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions', 'extensions'\nAS $function$\nBEGIN\n  -- The synthetic community owner publishes via wallet signature and keeps the\n  -- manual verification gate. Every other owner is a portal/dashboard provider\n  -- who passed Monerium KYB before they could reach the \"create API\" screen.\n  IF NEW.owner_id IS DISTINCT FROM '00000000-0000-0000-0000-000000000001'::uuid THEN\n    NEW.is_verified := true;\n    IF NEW.verified_at IS NULL THEN\n      NEW.verified_at := now();\n    END IF;\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n"
+    },
+    {
+      "signature": "apiosk_normalize_api_category()",
+      "definition": "CREATE OR REPLACE FUNCTION public.apiosk_normalize_api_category()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions', 'extensions'\nAS $function$\nBEGIN\n  IF NEW.category IS NULL THEN\n    RETURN NEW;\n  END IF;\n  -- Bijective with the reverse map in provider-portal/src/lib/apis-db.ts\n  -- (DB token -> portal label) so the round-trip is lossless: only the\n  -- multi-word labels need explicit remaps; every other label lowercases to its\n  -- token ('Data'->'data', 'Finance'->'finance', 'Media'->'media',\n  -- 'Other'->'other'). Already-lowercase values (community/MCP) pass through.\n  NEW.category := CASE lower(btrim(NEW.category))\n    WHEN 'ai & ml'         THEN 'compute'\n    WHEN 'geo & maps'      THEN 'location'\n    WHEN 'developer tools' THEN 'tools'\n    ELSE lower(btrim(NEW.category))\n  END;\n  RETURN NEW;\nEND;\n$function$\n"
+    },
+    {
+      "signature": "apiosk_sync_apis_active_with_status()",
+      "definition": "CREATE OR REPLACE FUNCTION public.apiosk_sync_apis_active_with_status()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions', 'extensions'\nAS $function$\nBEGIN\n  -- status is the source of truth (CHECK status in ('active','inactive')).\n  NEW.active := (NEW.status = 'active');\n  RETURN NEW;\nEND;\n$function$\n"
+    },
+    {
+      "signature": "default_endpoint_network_token_from_api()",
+      "definition": "CREATE OR REPLACE FUNCTION public.default_endpoint_network_token_from_api()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions', 'extensions'\nAS $function$\ndeclare\n  v_network text;\n  v_token_id uuid;\nbegin\n  if new.payment_required is distinct from true or new.network_token_id is not null then\n    return new;\n  end if;\n\n  select payout_network into v_network from apis where id = new.api_id;\n  if v_network is null or v_network = 'base' then\n    return new; -- gateway default already IS base USDC\n  end if;\n\n  select nt.id into v_token_id\n  from network_tokens nt\n  join networks n on n.id = nt.network_id\n  join tokens t on t.id = nt.token_id\n  where n.name = v_network\n    and n.is_testnet = false and n.is_active = true\n    and t.symbol = 'USDC' and nt.is_active = true\n  limit 1;\n\n  if v_token_id is not null then\n    new.network_token_id := v_token_id;\n  end if;\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "signature": "enforce_base_mainnet_endpoint_network_token()",
+      "definition": "CREATE OR REPLACE FUNCTION public.enforce_base_mainnet_endpoint_network_token()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions', 'extensions'\nAS $function$\nbegin\n  if new.payment_required is distinct from true then\n    new.network_token_id := null;\n    return new;\n  end if;\n\n  if new.network_token_id is null then\n    return new;\n  end if;\n\n  if not exists (\n    select 1\n    from network_tokens nt\n    join networks n on n.id = nt.network_id\n    join tokens t on t.id = nt.token_id\n    where nt.id = new.network_token_id\n      and nt.is_active = true\n      and n.is_active = true\n      and n.name in ('base', 'polygon', 'arbitrum')\n      and n.is_testnet = false\n      and t.symbol = 'USDC'\n  ) then\n    raise exception 'api_endpoints.network_token_id must reference an active mainnet USDC token on base/polygon/arbitrum'\n      using errcode = '23514';\n  end if;\n\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "signature": "enqueue_api_review_email()",
+      "definition": "CREATE OR REPLACE FUNCTION public.enqueue_api_review_email()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions'\nAS $function$\ndeclare\n  v_event text;\n  v_id uuid;\n  v_token uuid;\nbegin\n  if new.status = 'pending' and tg_op = 'INSERT' then\n    v_event := 'pending';\n  elsif tg_op = 'UPDATE'\n        and new.status = 'pending'\n        and old.status is distinct from 'pending' then\n    v_event := 'pending';\n  elsif tg_op = 'UPDATE'\n        and old.status = 'pending'\n        and new.status = 'active'\n        and new.reviewed_by is not null then\n    v_event := 'approved';\n  elsif tg_op = 'UPDATE'\n        and old.status = 'pending'\n        and new.status = 'inactive'\n        and new.reviewed_by is not null then\n    v_event := 'rejected';\n  else\n    return new;\n  end if;\n\n  insert into operations.api_review_email_outbox(event, api_id, owner_id, api_name, api_slug)\n  values (v_event, new.id, new.owner_id, coalesce(new.name, new.slug), new.slug)\n  returning id, delivery_token into v_id, v_token;\n\n  perform public.dispatch_api_review_email(v_id, v_token);\n  return new;\nexception when others then\n  -- Notifications must never break the API lifecycle transaction.\n  raise warning 'Could not enqueue API review email for %: %', new.id, sqlerrm;\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "signature": "notify_api_published()",
+      "definition": "CREATE OR REPLACE FUNCTION public.notify_api_published()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  v_pat text;\nbegin\n  -- Only rows becoming publicly active. status='active' is what the public\n  -- catalog + gateway routing key off (admin_review_api sets it on approve).\n  if new.status is distinct from 'active' then\n    return new;\n  end if;\n  if tg_op = 'UPDATE' and old.status = 'active' then\n    return new; -- already active; not a publish transition\n  end if;\n  -- Gateway/Bazaar list standalone APIs only — never Connect merchandise.\n  if new.listing_type is distinct from 'api' then\n    return new;\n  end if;\n\n  begin\n    select decrypted_secret into v_pat\n      from vault.decrypted_secrets\n     where name = 'github_dispatch_pat'\n     limit 1;\n  exception when others then\n    v_pat := null; -- vault unreadable — treat as unconfigured\n  end;\n\n  if v_pat is null or length(trim(v_pat)) = 0 then\n    raise notice 'api-published dispatch skipped for %: no github_dispatch_pat in vault (daily cron will pick it up)', new.slug;\n    return new;\n  end if;\n\n  -- Async queue insert; the pg_net worker performs the HTTP call after commit.\n  perform net.http_post(\n    url     := 'https://api.github.com/repos/obcraft/apiosk-1-rust-gatway/dispatches',\n    body    := jsonb_build_object(\n                 'event_type', 'api-published',\n                 'client_payload', jsonb_build_object(\n                   'slug', new.slug,\n                   'api_id', new.id,\n                   'published_at', now()\n                 )\n               ),\n    headers := jsonb_build_object(\n                 'Authorization', 'Bearer ' || v_pat,\n                 'Accept', 'application/vnd.github+json',\n                 'X-GitHub-Api-Version', '2022-11-28',\n                 'Content-Type', 'application/json',\n                 'User-Agent', 'apiosk-publish-trigger'\n               ),\n    timeout_milliseconds := 5000\n  );\n\n  raise notice 'api-published dispatch queued for % (%)', new.slug, new.id;\n  return new;\nexception when others then\n  -- Discovery plumbing must never break a publish/approval.\n  raise warning 'api-published dispatch failed for %: %', new.slug, sqlerrm;\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "signature": "require_payout_wallet_to_publish()",
+      "definition": "CREATE OR REPLACE FUNCTION public.require_payout_wallet_to_publish()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'gateway_v2', 'kyb', 'providers', 'catalog', 'actions', 'billing', 'agents', 'wallets', 'research', 'integrations', 'observability', 'support', 'content', 'operations', 'identity', 'extensions'\nAS $function$\ndeclare\n  addr text := lower(btrim(coalesce(new.wallet_address, '')));\n  entering boolean := tg_op = 'INSERT'\n                      or old.status is distinct from new.status\n                      or old.wallet_address is distinct from new.wallet_address\n                      or old.settlement_mode is distinct from new.settlement_mode;\nbegin\n  if new.status not in ('pending', 'active') or not entering then\n    return new;\n  end if;\n\n  -- Only external provider settlement requires a payout wallet.\n  if new.settlement_mode = 'provider_payout' then\n    if addr = ''\n       or addr = '0x0000000000000000000000000000000000000000'\n       or addr !~ '^0x[0-9a-f]{40}$'\n    then\n      raise exception 'A payout wallet is required for provider_payout listings'\n        using errcode = '23514';\n    end if;\n  end if;\n\n  return new;\nend;\n$function$\n"
+    }
+  ],
+  "inventory": [
+    {
+      "inventory": {
+        "counts": {
+          "all_sources": 709,
+          "visible_sources": 267,
+          "planner_unblocked_visible": 266
+        },
+        "categories": [
+          "ai",
+          "business",
+          "communications",
+          "compute",
+          "crypto",
+          "data",
+          "demo",
+          "finance",
+          "geospatial",
+          "government",
+          "ip-intelligence",
+          "legal",
+          "location",
+          "maps",
+          "media",
+          "mobility",
+          "news",
+          "other",
+          "search",
+          "security",
+          "tools",
+          "weather",
+          "web-extraction"
+        ],
+        "listing_types": [
+          "api",
+          "skill",
+          "product",
+          "dataset",
+          "service",
+          "connector",
+          "federated"
+        ],
+        "subject_kinds": [
+          "address",
+          "area",
+          "building",
+          "company",
+          "company_intel",
+          "company_registry",
+          "crypto",
+          "crypto_onchain",
+          "dataset",
+          "finance_markets",
+          "funding",
+          "fx",
+          "geo",
+          "geo_environment",
+          "identity",
+          "ip",
+          "legal_compliance",
+          "media_sports",
+          "news",
+          "person",
+          "property",
+          "research",
+          "risk_security",
+          "source_document",
+          "source_input",
+          "vehicle",
+          "web",
+          "web_tools"
+        ]
+      }
+    }
+  ],
+  "active_contract_registration_counts": {
+    "sources": 93,
+    "endpoints": 476,
+    "contracts": 567,
+    "note": "SQL registration filters, not a live execution or runtime acceptance test."
+  }
+}
