@@ -2061,6 +2061,10 @@ mod tests {
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog,&task,&intent) else {panic!("profile must compile")};
         assert_eq!(plan.steps.len(),1); assert_eq!(plan.cap_atomic,54_347);
+        task.capability_intake = Some(intake.clone());
+        assert!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan).is_empty(), "a resolver plan must also cover all six requested outputs before quoting");
+        task.capability_intake.as_mut().unwrap().parsed_request.capabilities[0].outputs.push("customer_ratings".into());
+        assert_eq!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan),["Company profile: customer_ratings"]);
         assert_eq!(calls.load(Ordering::Relaxed),1);
         server.abort();
     }

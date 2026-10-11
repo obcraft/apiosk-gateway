@@ -567,7 +567,14 @@ impl Request {
         };
         let generic = (index.documents.len() / GENERIC_SHARE).max(GENERIC_MIN_DOCUMENTS);
         let weight = |word: &String| {
-            if index.frequency.get(word).copied().unwrap_or(0) >= generic {
+            // A named provider's reviewed operation keeps its semantic key
+            // even when "profile" is common across the whole directory.
+            // Scope gates above still reject the wrong asset/record type.
+            if hinted && !candidate.contract.is_empty() && self.key.contains(word)
+                && (candidate.contract.contains(word)
+                    || (candidate.namespace.contains(&self.domain) && candidate.topic_scope.contains(word))) {
+                1.0
+            } else if index.frequency.get(word).copied().unwrap_or(0) >= generic {
                 0.5
             } else {
                 1.0

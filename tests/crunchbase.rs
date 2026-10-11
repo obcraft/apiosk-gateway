@@ -22,7 +22,8 @@ fn official_live_company_people_and_funding_are_preserved() {
     let records:Vec<Value>=serde_json::from_str(include_str!("../legacy-executor/tests/fixtures/crunchbase-mcp-live.json")).unwrap();
     for record in &records {
         let envelope=json!({"source":"Crunchbase","transport":"official_mcp","tool":record["name"],"data":record["data"],"retrieved_at":record["at"]});
-        for service in c.services.iter().filter(|s| s.path==format!("/mcp/{}",record["name"].as_str().unwrap())) {
+        for service in c.services.iter().filter(|s| s.path==format!("/mcp/{}",record["name"].as_str().unwrap())
+            && (record["name"]!="cb_entity_get" || s.fixed_params["entity_def_id"]==record["arguments"]["entity_def_id"])) {
             let output=service.contract.extract(&envelope,&c.vocabulary).unwrap();
             assert!(output.rejected.is_empty());assert_eq!(output.subjects.len(),1);
         }
@@ -114,10 +115,12 @@ fn ask_discovers_one_company_profile_for_its_available_relationships() {
     let c = Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
     for (slug, name, outputs) in [
         ("company.profile", "Company profile", vec!["company_profile", "description", "website"]),
+        ("company.profile", "Company profile", vec!["profile"]),
         ("company.founders", "Company founders", vec!["founders"]),
         ("company.employees", "Company employees", vec!["employees"]),
         ("company.board_members", "Company board members", vec!["board_members"]),
         ("company.funding_rounds", "Company funding rounds", vec!["funding_rounds"]),
+        ("company.funding", "Company funding rounds", vec!["funding_rounds", "investors"]),
         ("company.investors", "Company investors", vec!["investors"]),
     ] {
         let parsed = apiosk_gateway_v2::capability_intake::normalize(&json!({

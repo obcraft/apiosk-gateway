@@ -1069,17 +1069,27 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
             listings.sort_by(|a, b| b.score.total_cmp(&a.score)
                 .then(a.item.0.slug.cmp(&b.item.0.slug))
                 .then(a.item.1.endpoint_id.cmp(&b.item.1.endpoint_id)));
-            let mut seen_endpoints = BTreeSet::new();
+            let mut seen_operations = BTreeSet::new();
+            let mut endpoint_slots = BTreeMap::<uuid::Uuid, usize>::new();
             let mut apiosk: Vec<_> = endpoints
                 .iter()
-                .filter(|ranked| seen_endpoints.insert(ranked.item.endpoint_id))
-                .take(3)
+                // MCP dispatchers expose several typed operations through
+                // one HTTP endpoint. Keep three endpoint alternatives and
+                // up to three matching typed operations for each, so one
+                // dispatcher cannot crowd other sources out of the shortlist.
+                .filter(|ranked| {
+                    if !seen_operations.insert((ranked.item.endpoint_id, ranked.item.contract.capability_slug.as_str())) { return false; }
+                    if !endpoint_slots.contains_key(&ranked.item.endpoint_id) && endpoint_slots.len() >= 3 { return false; }
+                    let count = endpoint_slots.entry(ranked.item.endpoint_id).or_default();
+                    *count += 1; *count <= 3
+                })
                 .map(|ranked| endpoint(ranked.item))
                 .collect();
+            let mut seen_endpoints: BTreeSet<_> = apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
             // Missing automation support must not erase registered matching
             // endpoints or displace executable choices. Keep both shortlists.
             apiosk.extend(listings.iter()
-                .filter(|ranked| seen_endpoints.insert(ranked.item.1.endpoint_id))
+                .filter(|ranked| seen_endpoints.insert(ranked.item.1.endpoint_id.to_string()))
                 .take(3).map(|ranked| listing(ranked.item.0, ranked.item.1)));
             let mut seen_sources: BTreeSet<_> = apiosk
                 .iter()

@@ -72,6 +72,16 @@ Automatic profile contracts expose only that identifier; advanced field/card
 selectors remain available in the endpoint schema. The real production model
 and a production-catalog snapshot compiled the complete Starbucks profile
 question after this correction, stopping before approval and paid execution.
+The reviewed output schemas describe the actual labelled `properties` and
+`cards` arrays, including pagination flags. Coverage aliases are specific to
+company, person and funding profiles; an identity search does not cover a
+relationship roster. Headcount remains the provider's range, not an exact count.
+Regression checks include both one combined requirement and the real model's
+five separate requirements, through input binding, shared-goal coverage,
+resolution and the final output-coverage gate. A large-directory fixture keeps
+common words such as "profile" discoverable for the explicitly named source.
+The shortlist retains distinct typed MCP operations sharing an endpoint, while
+keeping room for three different endpoint alternatives.
 
 ## Execution and result boundaries
 

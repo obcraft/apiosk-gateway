@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {PGlite} from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
-import {tools,capabilities,source,pricing} from './crunchbase-mcp-catalog.mjs';
+import {tools,capabilities,source,pricing,capabilityOutputSchema} from './crunchbase-mcp-catalog.mjs';
 import {formatSourcePrice,formatQuoteCeiling} from '../../app/src/lib/ui/source-price.ts';
 const originalPricing={...pricing,listAtomic:47_259,buyerAtomic:54_348};
+const coverageFile=(await fs.readdir(new URL('../supabase/migrations/',import.meta.url))).find(name=>name.endsWith('_declare_crunchbase_profile_output_coverage.sql'));
+const coverageSql=await fs.readFile(new URL('../supabase/migrations/'+coverageFile,import.meta.url),'utf8');
+assert.equal(coverageSql,await fs.readFile(new URL('../../app/supabase/migrations/'+coverageFile,import.meta.url),'utf8'));
 const refinementFile='20261011154810_refine_crunchbase_profile_discovery_and_price.sql';
 const refinementSql=await fs.readFile(new URL('../supabase/migrations/'+refinementFile,import.meta.url),'utf8');
 assert.equal(refinementSql,await fs.readFile(new URL('../../app/supabase/migrations/'+refinementFile,import.meta.url),'utf8'));
@@ -89,5 +92,16 @@ try{
   assert.deepEqual(Object.keys(c.input_map),[c.requires[0].fact_type]);
  }
  assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,pricing);
+ await db.exec(coverageSql);await db.exec(coverageSql);
+ const arraysFile=(await fs.readdir(new URL('../supabase/migrations/',import.meta.url))).find(name=>name.endsWith('_refine_crunchbase_profile_array_contracts.sql'));
+ const arraysSql=await fs.readFile(new URL('../supabase/migrations/'+arraysFile,import.meta.url),'utf8');
+ assert.equal(arraysSql,await fs.readFile(new URL('../../app/supabase/migrations/'+arraysFile,import.meta.url),'utf8'));
+ await db.exec(arraysSql);await db.exec(arraysSql);
+ for(const c of capabilities.filter(c=>c.tool==='cb_entity_get')){
+  const actual=(await db.query('SELECT value_schema FROM catalog.fact_types WHERE slug=$1',[c.slug.replaceAll('-','_')+'_result'])).rows[0].value_schema;
+  assert.deepEqual(actual,capabilityOutputSchema(c));
+  const contract=(await db.query('SELECT output_contract FROM catalog.capabilities WHERE slug=$1',[c.slug])).rows[0].output_contract;
+  assert.deepEqual(contract,actual);
+ }
  console.log('PASS: registration, pricing, account refinement and guarded activation; four tools, ten real-sample contracts, unchanged API.market price, no Jina surcharge.');
 }finally{await db.close();}

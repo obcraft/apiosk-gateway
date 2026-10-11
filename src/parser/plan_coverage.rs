@@ -639,6 +639,49 @@ mod tests {
     };
 
     #[test]
+    fn official_crunchbase_profiles_declare_only_their_reviewed_public_scope() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/official-mcp.json")).unwrap());
+        for (slug, outputs, unavailable) in [
+            ("company.crunchbase-profile", vec!["profile", "company_profile", "description", "website", "headcount", "founders", "employees", "board_members", "funding_rounds", "investors"], vec!["customer_ratings", "private_notes", "current_jobs"]),
+            ("person.crunchbase-profile", vec!["profile", "person_profile", "description", "current_jobs", "board_roles", "founded_organizations", "investments"], vec!["employees", "funding_rounds", "private_notes"]),
+            ("funding.crunchbase-profile", vec!["profile", "funding_profile", "money_raised", "announced_on", "investment_type", "funded_company", "investors"], vec!["employees", "board_members", "private_notes"]),
+        ] {
+            let service = catalog.services.iter().find(|s| s.contract.capability_slug == slug).unwrap();
+            for output in outputs { assert!(output_covered(output,service,&catalog,false), "{slug}: {output}"); }
+            for output in unavailable { assert!(!output_covered(output,service,&catalog,false), "{slug}: {output}"); }
+        }
+        let search = catalog.services.iter().find(|s| s.contract.capability_slug == "company.crunchbase-official-search").unwrap();
+        assert!(!output_covered("board_members",search,&catalog,false), "identity search is not a relationship profile");
+    }
+
+    #[test]
+    fn split_crunchbase_requirements_share_one_profile_in_a_large_directory() {
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/official-mcp.json")).unwrap();
+        // Common directory terms must not hide the explicitly named source.
+        for n in 0..50 {
+            let mut other = snapshot.known_sources[0].clone();
+            other.slug = format!("unrelated-{n}"); other.name = format!("Unrelated {n}");
+            other.metadata.description = "Company profile, funding rounds and investors".into();
+            snapshot.known_sources.push(other);
+        }
+        let catalog = Catalog::build(snapshot);
+        let parsed_request: ParsedRequest = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/profile-intake.json")).unwrap();
+        let matches = crate::ask_v2::search::search(&parsed_request,&catalog);
+        for found in &matches { assert!(found.operations.contains("company.crunchbase-profile"), "{}: {:?}",found.slug,found.operations); }
+        let intake = Intake { selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
+            parsed_request,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone() };
+        let mut intent = Intent { subjects:vec![Subject {label:"starbucks".into(),entity_ref:None,values:Default::default()}],
+            goals:vec![Goal {subject:0,capability:"company.crunchbase-profile".into(),constraints:Default::default()}],
+            answer_operations:vec![],unresolved_references:vec![] };
+        prepare(&mut intent,&intake,&catalog).unwrap();
+        let mut task = crate::state::Task {capability_intake:Some(intake),..Default::default()};
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog,&task,&intent) else {panic!("all requested profile data must resolve together")};
+        assert_eq!(plan.steps.len(),1);assert_eq!(plan.cap_atomic,54_347);
+        assert!(uncovered_outputs(&task,&catalog,&intent,&plan).is_empty());
+    }
+
+    #[test]
     fn repeated_country_with_distinct_years_preserves_both_literals_for_the_normal_planner() {
         let question = "Get GDP for Germany in 2023 from Eurostat. Get GDP for Germany in 2024 from Eurostat.";
         let request = crate::compound_request::recognize(question, "fixture").unwrap();

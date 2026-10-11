@@ -51,3 +51,28 @@ export function capabilityDescription(capability) {
  return capability.name+'. '+detail;
 }
 export const outputSchema={type:'object',required:['source','transport','tool','data','retrieved_at'],properties:{source:{type:'string',enum:['Crunchbase']},transport:{type:'string',enum:['official_mcp']},tool:{enum:tools.map(t=>t.tool)},data:{type:['object','array']},retrieved_at:{type:'string'}}};
+
+// Actual MCP records contain labelled field/card arrays, not a flat REST
+// profile. These reviewed aliases describe only the public default selection.
+// Fields/cards remain optional: entitlement, empty data and pagination vary.
+const aliases=names=>({$comment:JSON.stringify({apiosk_output_aliases_v1:names})});
+const fieldRows={type:'array',items:{type:'object',properties:{field_id:{type:'string'},label:{type:'string'},value:{}}}};
+const profileScope={
+ organization:{fields:['name','description','website','headquarters','headcount','employee_count','funding_total'],cards:['founders','employees','board_members','advisors','funding_rounds','investors']},
+ person:{fields:['name','description','location'],cards:['current_jobs','board_roles','founded_organizations','investments']},
+ funding_round:{fields:['name','description','announced_on','investment_type','money_raised','funded_company'],cards:['funded_organization','investors','lead_investors']},
+};
+export function capabilityOutputSchema(capability){
+ if(capability.tool!=='cb_entity_get')return outputSchema;
+ const kind=capability.fixed.entity_def_id,scope=profileScope[kind];
+ return {...outputSchema,properties:{...outputSchema.properties,data:{type:'object',required:['properties','cards'],
+  ...aliases(['profile',`${capability.category}_profile`]),properties:{
+   request_id:{type:'string'},entity_def_id:{type:'string',enum:[kind]},
+   properties:{...fieldRows,...aliases(scope.fields)},
+   cards:{type:'array',...aliases(scope.cards),items:{type:'object',properties:{
+    card_id:{type:'string'},label:{type:'string'},entity_def_id:{type:'string'},
+    entities:{type:'array',items:{type:'object',properties:{properties:fieldRows}}},
+    has_more_entities:{type:'boolean'},
+   }}},
+  }}}};
+}

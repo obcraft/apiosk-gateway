@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "model": "qwen/qwen3-30b-a3b-instruct-2507",
+    "parsed_at": "2026-10-11T16:15:43.948590686+00:00",
+    "text_sha256": "3bea1279fa8d346e1d3d0f42ed713ee4189c91c66f515e8703a94f0c8e20ed9b"
+  },
+  "language": "en",
+  "subjects": [
+    {
+      "id": "s1",
+      "type": "company",
+      "label": "starbucks",
+      "identifiers": {
+        "url": "https://www.crunchbase.com/organization/starbucks"
+      }
+    }
+  ],
+  "deliverable": {
+    "format": "chat",
+    "operations": []
+  },
+  "capabilities": [
+    {
+      "name": "Company profile",
+      "slug": "company.profile",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "outputs": [
+        "profile"
+      ],
+      "confidence": 0.95,
+      "subject_id": "s1",
+      "description": "Retrieve the full profile of a company, including its basic information, leadership, funding, and organizational structure.",
+      "source_hint": "crunchbase"
+    },
+    {
+      "name": "Company founders",
+      "slug": "company.founders",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "outputs": [
+        "founders"
+      ],
+      "confidence": 0.95,
+      "subject_id": "s1",
+      "description": "Retrieve the list of individuals who founded the company.",
+      "source_hint": "crunchbase"
+    },
+    {
+      "name": "Company employees",
+      "slug": "company.employees",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "outputs": [
+        "employee_count"
+      ],
+      "confidence": 0.95,
+      "subject_id": "s1",
+      "description": "Retrieve the number of employees or employee-related data for the company.",
+      "source_hint": "crunchbase"
+    },
+    {
+      "name": "Company board members",
+      "slug": "company.board",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "outputs": [
+        "board_members"
+      ],
+      "confidence": 0.95,
+      "subject_id": "s1",
+      "description": "Retrieve the list of board members of the company.",
+      "source_hint": "crunchbase"
+    },
+    {
+      "name": "Company funding rounds",
+      "slug": "company.funding",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "outputs": [
+        "funding_rounds",
+        "investors"
+      ],
+      "confidence": 0.95,
+      "subject_id": "s1",
+      "description": "Retrieve the history of funding rounds and associated investors for the company.",
+      "source_hint": "crunchbase"
+    }
+  ]
+}

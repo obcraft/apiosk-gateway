@@ -64,24 +64,16 @@
         "tool": "cb_entity_autocomplete",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -158,24 +150,16 @@
         "tool": "cb_entity_autocomplete",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -250,24 +234,16 @@
         "tool": "cb_entity_autocomplete",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -351,24 +327,16 @@
         "tool": "cb_search_query",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -472,24 +440,16 @@
         "tool": "cb_search_query",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -593,24 +553,16 @@
         "tool": "cb_search_query",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -714,24 +666,16 @@
         "tool": "cb_entity_get",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -798,24 +742,16 @@
         "tool": "cb_entity_get",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "person",
-              "permalink": "example"
+          "entity_def_id": "person",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -882,24 +818,16 @@
         "tool": "cb_entity_get",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "funding_round",
-              "permalink": "example"
+          "entity_def_id": "funding_round",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -964,24 +892,16 @@
         "tool": "cb_reference",
         "data": {
           "fixture": true,
-          "properties": {
-            "identifier": {
-              "entity_def_id": "organization",
-              "permalink": "example"
+          "entity_def_id": "organization",
+          "properties": [
+            {
+              "field_id": "identifier",
+              "value": {
+                "permalink": "example"
+              }
             }
-          },
-          "cards": {
-            "employees": [
-              {
-                "title": "CEO"
-              }
-            ],
-            "raised_funding_rounds": [
-              {
-                "money_raised": 1000000
-              }
-            ]
-          }
+          ],
+          "cards": []
         },
         "retrieved_at": "2026-10-11T00:00:00Z"
       },
@@ -1587,10 +1507,83 @@
             ]
           },
           "data": {
-            "type": [
-              "object",
-              "array"
-            ]
+            "type": "object",
+            "required": [
+              "properties",
+              "cards"
+            ],
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\"]}",
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "entity_def_id": {
+                "type": "string",
+                "enum": [
+                  "organization"
+                ]
+              },
+              "properties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {}
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"name\",\"description\",\"website\",\"headquarters\",\"headcount\",\"employee_count\",\"funding_total\"]}"
+              },
+              "cards": {
+                "type": "array",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"founders\",\"employees\",\"board_members\",\"advisors\",\"funding_rounds\",\"investors\"]}",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "card_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "entity_def_id": {
+                      "type": "string"
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "properties": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field_id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "value": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "has_more_entities": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           },
           "retrieved_at": {
             "type": "string"
@@ -1645,10 +1638,83 @@
             ]
           },
           "data": {
-            "type": [
-              "object",
-              "array"
-            ]
+            "type": "object",
+            "required": [
+              "properties",
+              "cards"
+            ],
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"person_profile\"]}",
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "entity_def_id": {
+                "type": "string",
+                "enum": [
+                  "person"
+                ]
+              },
+              "properties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {}
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"name\",\"description\",\"location\"]}"
+              },
+              "cards": {
+                "type": "array",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"current_jobs\",\"board_roles\",\"founded_organizations\",\"investments\"]}",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "card_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "entity_def_id": {
+                      "type": "string"
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "properties": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field_id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "value": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "has_more_entities": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           },
           "retrieved_at": {
             "type": "string"
@@ -1703,10 +1769,83 @@
             ]
           },
           "data": {
-            "type": [
-              "object",
-              "array"
-            ]
+            "type": "object",
+            "required": [
+              "properties",
+              "cards"
+            ],
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"funding_profile\"]}",
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "entity_def_id": {
+                "type": "string",
+                "enum": [
+                  "funding_round"
+                ]
+              },
+              "properties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {}
+                  }
+                },
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"name\",\"description\",\"announced_on\",\"investment_type\",\"money_raised\",\"funded_company\"]}"
+              },
+              "cards": {
+                "type": "array",
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"funded_organization\",\"investors\",\"lead_investors\"]}",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "card_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "entity_def_id": {
+                      "type": "string"
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "properties": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field_id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "value": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "has_more_entities": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
           },
           "retrieved_at": {
             "type": "string"
