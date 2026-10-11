@@ -108,6 +108,8 @@ impl Engine {
             // the quote expires; it never dispatches another source request.
             anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
             Action::Poll { action_id: req.action_id, execution_id: req.action_id }
+        } else if self.compute_receipt(p,id,&task).await? == Some(req.action_id) {
+            Action::Compute { action_id:req.action_id }
         } else if self.executor.recoverable_receipts(p.owner, id).await?.contains(&req.action_id) {
             anyhow::ensure!(!self.worker_active(id).await?, "execution is still active");
             Action::Poll { action_id: req.action_id, execution_id: req.action_id }
@@ -254,7 +256,7 @@ impl Engine {
                         }
                     }
                 }
-                if task.workflow.is_none() && task.supplier_check.is_none()
+                if task.workflow.is_none() && task.supplier_check.is_none() && !task.saved_answer
                     // A failed manual refresh retains the prior answer. It is
                     // not a new request for clarification or another model call.
                     && !preserved_previous_analysis
@@ -313,6 +315,16 @@ impl Engine {
                         .push(serde_json::to_value(Action::RetryAnalysis {
                             action_id: Uuid::new_v4(),
                         })?);
+                }
+                if let Some(run) = &task.compute {
+                    if plan.compute.is_some() && run.quote_ref == plan.quote_ref && run.status == "pending" {
+                        task.actions = vec![serde_json::to_value(Action::Compute { action_id:run.action_id })?];
+                    }
+                }
+            }
+            Action::Compute { .. } => {
+                if !self.run_compute(p,bearer,id,revision,&mut task,req).await? {
+                    return self.view(p,id,req.request_id,Some(Status::RequiresApproval)).await;
                 }
             }
             Action::Upload { .. } => {
@@ -719,6 +731,10 @@ impl Engine {
 /// order they were saved. The offline replay (`crate::replay`) uses the same
 /// selection as a live answer.
 pub(crate) fn answer_sources(plan: &Plan, intent: &Intent, task: &Task, documents: &std::collections::BTreeMap<Uuid, Value>) -> Vec<Value> {
+    if task.saved_answer && plan.steps.is_empty() && plan.compute.is_none() && plan.cap_atomic == 0 {
+        return task.active_results.iter().filter(|id| task.result_refs.contains(id))
+            .filter_map(|id| documents.get(id).map(|document| json!({"result_ref":id,"document":document}))).collect();
+    }
     let mut sources = Vec::new();
     for result in &task.active_results {
         let document = &documents[result];

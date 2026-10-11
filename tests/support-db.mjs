@@ -110,6 +110,8 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // schema; scripts/test-bazaar-source-migration.mjs covers them together.
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
   // The API.market metadata import has its own full provider-identity fixture.
+  &&!/_((stage_company_reputation_sources)|(activate_company_reputation_sources)|(clarify_glassdoor_company_name_input)|(declare_company_reputation_response_fields)|(bind_company_reputation_typed_results))\.sql$/.test(name)
+  &&!name.endsWith('_allow_ask_analysis_compute.sql')
   &&!name.endsWith('_onboard_apimarket_business_sources.sql')
   &&!name.endsWith('_admin_apimarket_credentials.sql')
   &&!name.endsWith('_show_only_crunchbase_apimarket.sql')

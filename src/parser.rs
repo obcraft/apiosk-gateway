@@ -1,3 +1,5 @@
+pub mod compute_analysis;
+pub(crate) mod conversation_route;
 use crate::{
     answer_blocks::{Requirement, RequirementClaim},
     catalog::Catalog,
@@ -1234,7 +1236,7 @@ impl Parser {
             // A follow-up is parsed as the Ask page sends it: the previous
             // request is context only, and its values stay literal.
             let asked = match task.conversation.last() {
-                Some(turn) => format!("Previous request (context only): {}\n\nCurrent request: {question}", turn.question),
+                Some(_) => format!("Previous conversation (context only): {}\n\nCurrent request: {question}", task.parser_context()),
                 None => question.to_owned(),
             };
             let literals = capability_binding::literal_context(question, task, None);

@@ -15,6 +15,7 @@ use std::{
 };
 
 mod discovery_cache;
+mod named_source_fields;
 pub(crate) mod broad_information;
 pub(crate) mod company_lookup;
 #[cfg(test)]
@@ -329,7 +330,8 @@ pub(crate) fn literal_request(request: &str, model: &str) -> Option<ParsedReques
 }
 
 pub(crate) fn atomic_literal_request(request: &str, model: &str) -> Option<ParsedRequest> {
-    broad_information::parse(request, model)
+    named_source_fields::parse(request, model)
+        .or_else(|| broad_information::parse(request, model))
         .or_else(|| company_lookup::parse(request, model))
         .or_else(|| crate::tenderned::parse(request, model))
         .or_else(|| crate::company_request::parse(request, model))
@@ -446,6 +448,7 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
         capability.missing = missing_inputs(&capability, &normalized_subjects);
         if !normalized.iter().any(|c: &Capability| {
             c.slug == capability.slug && c.subject_id == capability.subject_id
+                && c.source_hint == capability.source_hint
         }) {
             normalized.push(capability);
         }

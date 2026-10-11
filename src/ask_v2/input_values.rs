@@ -61,7 +61,7 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         return Some(json!(query));
     }
     let named = field == format!("{kind}.name") || field == format!("{kind}.registered_name")
-        || (field == "company.name" && company)
+        || (matches!(field, "company.name" | "company.crunchbase_query") && company)
         || (matches!(field, "news.reuters_search_query" | "web.query" | "web.source_search_query") && (company || topic))
         || (matches!(field, "company_intel.input.search" | "subsidy.discovery.keyword" | "source.koop.q") && topic)
         || (matches!(field, "domain.name" | "domain.dns_name") && kind == "domain");

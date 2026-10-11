@@ -19,6 +19,6 @@ pub(crate) fn same_steps(catalog: &Catalog, plan: &Plan) -> Option<Plan> {
         return None;
     }
     let mut refreshed = plan.clone();
-    refreshed.cap_atomic = refreshed.steps.iter().map(|s| s.service.total_with(refreshed.fee_bps)).sum();
+    refreshed.cap_atomic = refreshed.steps.iter().map(|s| s.service.total_with(refreshed.fee_bps)).sum::<i64>() + refreshed.compute.as_ref().map_or(0, crate::compute::Quote::buyer_cap);
     Some(refreshed)
 }

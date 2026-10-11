@@ -26,6 +26,8 @@ impl Step {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compute: Option<crate::compute::Quote>,
     pub quote_ref: Uuid,
     pub steps: Vec<Step>,
     pub cap_atomic: i64,
@@ -44,7 +46,7 @@ impl Plan {
     /// Charge this plan's steps with the workflow markup and re-quote the cap.
     pub fn apply_markup(&mut self, markup_bps: i64) {
         self.fee_bps = catalog_core::fees::allowed_markup(markup_bps.into()) as i64;
-        self.cap_atomic = self.steps.iter().map(|s| s.service.total_with(self.fee_bps)).sum();
+        self.cap_atomic = self.steps.iter().map(|s| s.service.total_with(self.fee_bps)).sum::<i64>() + self.compute.as_ref().map_or(0, crate::compute::Quote::buyer_cap);
     }
     pub fn step_total(&self, step: &Step) -> i64 {
         step.service.total_with(self.fee_bps)
@@ -80,6 +82,7 @@ pub enum Action {
     /// through /v2/documents and the result is sent as the next question.
     Upload { action_id: Uuid, purpose: String },
     Analyze { action_id: Uuid },
+    Compute { action_id: Uuid },
     RetryAnalysis { action_id: Uuid },
     Cancel {
         action_id: Uuid,
@@ -95,6 +98,7 @@ impl Action {
             | Self::Poll { action_id, .. }
             | Self::Wait { action_id, .. }
             | Self::Upload { action_id, .. }
+            | Self::Compute { action_id }
             | Self::Analyze { action_id }
             | Self::RetryAnalysis { action_id }
             | Self::Cancel { action_id } => *action_id,
@@ -108,6 +112,7 @@ impl Action {
                 true,
                 json!({"type":"null"}),
             ),
+            Self::Compute { .. } => ("execute_quoted_step", "Run extended analysis".into(), true, json!({"type":"null"})),
             Self::Supply {
                 semantic_type,
                 schema,
@@ -325,7 +330,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     crate::browser_fallback::reserve(catalog, task, intent, &mut steps);
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);
-    Resolution::Plan(Plan {
+    Resolution::Plan(Plan { compute: None,
         quote_ref: Uuid::new_v4(),
         steps,
         cap_atomic,
@@ -536,7 +541,7 @@ mod presentation_tests {
     #[test]
     fn step_prices_use_the_quoted_markup_and_sum_to_the_approved_cap() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
-        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 0, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(3).map(|service| Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }).collect() };
+        let mut plan = Plan { compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 0, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(3).map(|service| Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }).collect() };
         for markup in [1500, 2000] {
             plan.apply_markup(markup);
             let details = describe_steps(&plan, &[]);
@@ -554,7 +559,7 @@ mod presentation_tests {
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
         let entity = Uuid::new_v4();
-        let mut plan = Plan { quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0, browser_fallback: None }).collect() };
+        let mut plan = Plan { compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0, browser_fallback: None }).collect() };
         let details = describe_steps(&plan, &[]);
         assert_eq!(details[1]["dependencies"][0]["step"], 1);
         assert_eq!(details[1]["dependencies"][0]["field"], "company.id");

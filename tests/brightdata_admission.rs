@@ -137,7 +137,7 @@ async fn approved_collection_waits_without_reservation_then_delivers_once() {
         goal_index: 0,
         browser_fallback: None,
     };
-    let plan = Plan {
+    let plan = Plan { compute: None,
         quote_ref: Uuid::new_v4(),
         steps: vec![step.clone()],
         cap_atomic: step.service.total(),

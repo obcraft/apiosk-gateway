@@ -228,7 +228,7 @@ async fn seed_completed(engine: &Engine, owner: Uuid) -> (Uuid, i64) {
         })
         .collect::<Vec<_>>();
     let cap = steps.iter().map(|step| step.service.total()).sum();
-    let plan = Plan {
+    let plan = Plan { compute: None,
         quote_ref: Uuid::new_v4(),
         cap_atomic: cap,
         expires_at: Utc::now() + ChronoDuration::minutes(10),

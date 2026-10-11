@@ -926,6 +926,71 @@ mod tests {
         assert!(passed, "live person-profile scope checks failed; inspect sanitized evidence");
     }
 
+    #[tokio::test]
+    async fn named_source_facts_form_complete_plan() {
+        // No model or provider is reachable: explicit literals and reviewed
+        // source contracts must suffice for this complete combined quote.
+        let client = Client::new(reqwest::Client::new(), String::new(), "fixture".into());
+        let exact = "Search Crunchbase for Starbucks and show its short description and profile link. Search Glassdoor for Starbucks and show its employer rating and review count. Search Yelp for Starbucks in Seattle and show the customer ratings and review counts of the locations returned.";
+        let mut rows = Vec::new();
+        for question in [exact,
+            "Search Yelp for Starbucks in Seattle and show customer ratings and number of reviews. Search Glassdoor for Starbucks and show employer rating and review count. Search Crunchbase for Starbucks and show short description and profile URL."] {
+            let value = client.interpret(question, &[]).await.unwrap();
+            let parsed: crate::capability_intake::ParsedRequest = serde_json::from_value(value["parsed_request"].clone()).unwrap();
+            let mut checks = serde_json::Map::new();
+            for source in ["crunchbase", "glassdoor", "yelp"] {
+                let cap = parsed.capabilities.iter().find(|cap| cap.source_hint.as_deref() == Some(source));
+                let subject = cap.and_then(|cap| parsed.subjects.iter().find(|s| Some(&s.id) == cap.subject_id.as_ref()));
+                checks.insert(format!("{source}_source_and_subject"), json!(cap.is_some() && subject.is_some_and(|s| s.label.contains("Starbucks"))));
+                let outputs = cap.map(|cap| cap.outputs.join(" ")).unwrap_or_default();
+                checks.insert(format!("{source}_fields"), json!(if source == "crunchbase" {
+                    outputs.contains("description") && (outputs.contains("url") || outputs.contains("link"))
+                } else { outputs.contains("rating") && outputs.contains("review_count") }));
+                if source == "yelp" {
+                    checks.insert("yelp_location".into(), json!(subject.is_some_and(|s| s.identifiers.get("location").is_some_and(|v| v == "Seattle"))));
+                }
+            }
+            checks.insert("exactly_three_retrievals".into(), json!(parsed.capabilities.len() == 3));
+            let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/company-reputation/catalog.json")).unwrap());
+            let matches = search::search(&parsed, &catalog);
+            let selected_capabilities = matches.iter().flat_map(|m| m.operations.iter().cloned()).collect();
+            let intake = crate::capability_intake::Intake { parsed_request: parsed.clone(), matches,
+                selected_capabilities, catalog_version: catalog.version.clone(), apiosk_sources_searched: 2 };
+            checks.insert("three_executable_source_matches".into(), json!(intake.matches.len() == 3
+                && intake.matches.iter().all(|m| !m.operations.is_empty())));
+            let mut plan_evidence = Value::Null;
+            if checks.values().all(|v| v == true) {
+                let parser = crate::parser::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), "fixture".into());
+                let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
+                let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
+                assert_eq!(parser.calls.load(std::sync::atomic::Ordering::Relaxed), 0);
+                if let Some(mut intent) = reply.intent {
+                    crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+                    if let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) {
+                        let inputs: Vec<_> = plan.steps.iter().map(|step| json!({"path":step.service.path,
+                            "inputs":step.service.inputs(&task,step.entity_ref,&catalog.vocabulary).unwrap()})).collect();
+                        let bound = |path, key, value| inputs.iter().any(|row| row["path"] == path && row["inputs"][key] == value);
+                        checks.insert("complete_plan_and_literal_inputs".into(), json!(plan.steps.len() == 3
+                            && plan.cap_atomic == 106_900
+                            && bound("/autocompletes", "query", "Starbucks")
+                            && bound("/realtime-glassdoor-data/company-search", "query", "Starbucks")
+                            && bound("/yelp-business-data/business-search", "query", "Starbucks")
+                            && bound("/yelp-business-data/business-search", "location", "Seattle")));
+                        plan_evidence = json!({"cap_atomic":plan.cap_atomic,"steps":inputs});
+                    } else { checks.insert("complete_plan_and_literal_inputs".into(), json!(false)); }
+                } else { checks.insert("complete_plan_and_literal_inputs".into(), json!(false)); }
+            }
+            let passed = checks.values().all(|v| v == true);
+            rows.push(json!({"question":question,"parsed_request":parsed,"matches":intake.matches,
+                "plan":plan_evidence,"attempts":value["attempts"],"checks":checks,"passed":passed}));
+        }
+        let passed = rows.iter().all(|row| row["passed"] == true);
+        if let Ok(path) = std::env::var("ASK_V2_LIVE_EVIDENCE") {
+            std::fs::write(path, serde_json::to_vec_pretty(&json!({"scope":"canonical literal intake, catalog search, input binding and complete price plan; no model, source requests or payments","rows":rows,"passed":passed})).unwrap()).unwrap();
+        }
+        assert!(passed, "named source/field preservation failed; inspect evidence");
+    }
+
     /// Exercise interpretation of supplied search criteria without prescribing
     /// a subject type, semantic capability slug or a domain-specific output list.
     #[tokio::test]

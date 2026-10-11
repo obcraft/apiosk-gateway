@@ -1216,7 +1216,7 @@ mod tests {
         let steps=["company.search","company.accounts","company.other-data"].into_iter().enumerate().map(|(index,cap)|Step{
             service:catalog.services.iter().find(|s|s.contract.capability_slug==cap).unwrap().clone(),entity_ref:entity,
             goal_index:if index==1 {0}else{1},browser_fallback:None}).collect();
-        let mut plan=Plan{quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:1,expires_at:chrono::Utc::now(),hash:"test".into(),fee_bps:1500,workflow_slug:None};
+        let mut plan=Plan{compute:None,quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:1,expires_at:chrono::Utc::now(),hash:"test".into(),fee_bps:1500,workflow_slug:None};
         assert_eq!(uncovered_outputs(&task,&catalog,&intent,&plan),vec!["Check 0: cadastral_parcel_ids"],"the reused lookup supplies area but a valid unrelated goal cannot supply parcels");
         plan.steps[0].entity_ref=uuid::Uuid::new_v4();
         assert_eq!(uncovered_outputs(&task,&catalog,&intent,&plan),vec!["Check 0: area","Check 0: cadastral_parcel_ids"],"another subject cannot satisfy the dependency");
@@ -1349,7 +1349,7 @@ mod tests {
                     let entity_ref=intent.subjects[intent.goals[goal_index].subject].entity_ref.unwrap();
                     steps.push(crate::resolver::Step{service,entity_ref,goal_index,browser_fallback:None});
                 }
-                let plan=crate::resolver::Plan{quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:0,expires_at:chrono::Utc::now(),hash:"offline audit".into(),fee_bps:1500,workflow_slug:None};
+                let plan=crate::resolver::Plan{compute:None,quote_ref:uuid::Uuid::new_v4(),steps,cap_atomic:0,expires_at:chrono::Utc::now(),hash:"offline audit".into(),fee_bps:1500,workflow_slug:None};
                 results.push(json!({"task_id":raw["task_id"],"has_intake":task.capability_intake.is_some(),"missing_output_contracts":uncovered_outputs(&task,&catalog,&intent,&plan)}));
             }
         }
@@ -1591,5 +1591,41 @@ mod tests {
             .constraints
             .insert("source".into(), json!("fixture"));
         assert!(prepare(&mut intent, &intake, &catalog()).is_err());
+    }
+
+    #[test]
+    fn company_reputation_fields_cover_ratings_but_not_reviews_or_full_profiles() {
+        let migration = include_str!("../../supabase/migrations/20261011090842_declare_company_reputation_response_fields.sql");
+        for (tag, present, absent) in [
+            ("crunchbase_output", vec!["description", "profile_url", "crunchbase_url"], vec!["founding_date", "headquarters", "rating"]),
+            ("glassdoor_output", vec!["rating", "average_rating", "review_count"], vec!["top_reviews", "customer_rating"]),
+            ("yelp_output", vec!["rating", "average_rating", "review_count"], vec!["top_reviews", "employer_rating"]),
+        ] {
+            let schema: Value = serde_json::from_str(migration.split(&format!("${tag}$")).nth(1).unwrap()).unwrap();
+            catalog_core::facts::schema::check_schema(&schema).unwrap();
+            for field in present { assert!(schema_covers(&schema, field, false), "{tag}: {field}"); }
+            for field in absent { assert!(!schema_covers(&schema, field, false), "{tag}: {field}"); }
+            if tag != "crunchbase_output" {
+                catalog_core::facts::schema::validate(&schema, &json!({"document":{"status":"OK","data":[]}})).unwrap();
+                assert!(catalog_core::facts::schema::validate(&schema, &json!({"document":{"status":"ERROR","data":[]}})).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn company_reputation_keeps_typed_coverage_after_registered_routes_are_added() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/company-reputation/catalog.json")).unwrap());
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        assert_eq!(catalog.services.len(), 3);
+        assert_eq!(catalog.services.iter().map(|service| service.total()).sum::<i64>(), 106_900);
+        for service in &catalog.services {
+            let outputs = if service.path == "/autocompletes" { vec!["short_description", "url"] } else { vec!["rating", "review_count"] };
+            for output in outputs { assert!(output_covered(output, service, &catalog, false), "{}: {output}", service.path); }
+            assert!(!output_covered("top_reviews", service, &catalog, false));
+            assert!(!output_covered("founding_date", service, &catalog, false));
+            let extracted = service.contract.extract(service.sample_payload.as_ref().unwrap(), &catalog.vocabulary).unwrap();
+            assert!(extracted.rejected.is_empty());
+            assert_eq!(extracted.subjects.len(), 1);
+        }
     }
 }

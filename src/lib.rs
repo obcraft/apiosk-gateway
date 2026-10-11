@@ -17,6 +17,7 @@ pub mod english;
 mod entity_resolution;
 mod evidence_selection;
 pub mod execution;
+pub mod compute;
 pub mod followups;
 pub mod input_binding;
 pub mod integrations;

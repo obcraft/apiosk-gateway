@@ -1,3 +1,4 @@
+mod compute;
 use crate::{
     auth::Principal,
     auto_approval::{Budget, Denial, Policy, Quote},
@@ -84,7 +85,7 @@ impl Executor {
     /// Read-only recovery of receipts whose source result has not been saved.
     /// A lost UI action must never turn an existing purchase into another call.
     pub async fn recoverable_receipts(&self, owner: Uuid, task: Uuid) -> anyhow::Result<Vec<Uuid>> {
-        Ok(sqlx::query_scalar("SELECT e.id FROM executions e JOIN tasks t ON t.id=e.task_id JOIN authorizations a ON a.id=e.authorization_id WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref::text=t.document #>> '{proposal,quote_ref}' AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))) ORDER BY e.created_at LIMIT 100")
+        Ok(sqlx::query_scalar("SELECT e.id FROM executions e JOIN tasks t ON t.id=e.task_id JOIN authorizations a ON a.id=e.authorization_id WHERE e.owner_id=$1 AND e.task_id=$2 AND a.quote_ref::text=t.document #>> '{proposal,quote_ref}' AND e.id::text IS DISTINCT FROM (t.document #>> '{compute,action_id}') AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))) ORDER BY e.created_at LIMIT 100")
             .bind(owner).bind(task).fetch_all(&self.store.pool).await?)
     }
 
@@ -308,7 +309,10 @@ impl Executor {
             "approval requires an authenticated person in the App"
         );
         self.store.check_spending(p).await?;
-        let (_, task, _) = self.store.load_scoped(&p, task_id).await?;
+        let mut tx = self.store.pool.begin().await?;
+        let document: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1 AND owner_id=$2 AND expires_at>now() FOR UPDATE")
+            .bind(task_id).bind(p.owner).fetch_one(&mut *tx).await?;
+        let task: Task = serde_json::from_value(document)?;
         anyhow::ensure!(task.workspace_id == p.workspace, "task belongs to another workspace");
         anyhow::ensure!(!task.cancelled, "task cancelled");
         let plan: Plan = serde_json::from_value(
@@ -325,7 +329,8 @@ impl Executor {
         );
         let proposed_id = Uuid::new_v4();
         let id:Uuid=sqlx::query_scalar("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(task_id,quote_ref) DO UPDATE SET quote_ref=EXCLUDED.quote_ref RETURNING id")
-            .bind(proposed_id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&self.store.pool).await?;
+            .bind(proposed_id).bind(task_id).bind(p.owner).bind(quote).bind(plan.hash).bind(plan.cap_atomic).bind(plan.expires_at).fetch_one(&mut *tx).await?;
+        tx.commit().await?;
         if id == proposed_id {
             tracing::info!(trace = telemetry::id(), task = %task_id, quote = %quote, milestone = "approved", "request milestone");
             telemetry::milestone(Milestone::Approved, task_id, Some(quote), MilestoneFields { cap_micro_usd: Some(plan.cap_atomic), ..Default::default() });
@@ -547,7 +552,7 @@ impl Executor {
     pub async fn poll(&self, p: &Principal, task: Uuid, id: Uuid) -> anyhow::Result<Option<Value>> {
         telemetry::poll();
         let row=sqlx::query("SELECT status,response FROM executions WHERE id=$1 AND owner_id=$2 AND task_id=$3").bind(id).bind(p.owner).bind(task).fetch_one(&self.store.pool).await?;
-        if row.get::<String, _>("status") == "succeeded" {
+        if matches!(row.get::<String, _>("status").as_str(), "succeeded" | "failed") {
             return Ok(row.get("response"));
         }
         // The existing ledger's UUID string idempotency identity is stable.

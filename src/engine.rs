@@ -1,3 +1,6 @@
+mod compute;
+mod conversation;
+pub use compute::UpgradeRequest;
 mod endpoint_selection;
 mod requote;
 mod execute;
@@ -75,6 +78,8 @@ fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
 /// Leave only the conversation: the reply asks the person for something
 /// before anything can be planned.
 fn clear_plan(task: &mut Task) {
+    task.saved_answer = false;
+    task.compute = None;
     task.intent = None;
     task.proposal = None;
     task.actions.clear();
@@ -257,6 +262,16 @@ impl Engine {
         if req.state.revision != revision {
             return self.view(p, id, req.request_id, Some(Status::StateConflict)).await;
         }
+        if let Some(mut plan) = task.proposal.clone().and_then(|p|serde_json::from_value::<Plan>(p).ok()).filter(|p|p.steps.is_empty() && p.compute.is_some()) {
+            anyhow::ensure!(!task.cancelled && plan.quote_ref == req.quote_ref && plan.expires_at <= Utc::now()
+                && task.compute.as_ref().is_some_and(|run|run.status == "pending"), "This analysis quote cannot be refreshed");
+            anyhow::ensure!(!self.store.requote_blocked(id,plan.quote_ref).await?, "Analysis payment is being checked");
+            plan.quote_ref=Uuid::new_v4();plan.expires_at=Utc::now()+chrono::Duration::minutes(15);
+            let run=task.compute.as_mut().unwrap();run.quote_ref=plan.quote_ref;run.action_id=Uuid::new_v4();
+            task.actions=vec![json!({"kind":"compute","action_id":run.action_id})];task.proposal=Some(serde_json::to_value(plan)?);
+            self.store.save(p.owner,id,revision,&task).await?;
+            return self.view(p,id,req.request_id,None).await;
+        }
         if task.cancelled || task.intent.is_none() || task.proposal.is_none() {
             return self.requote_refused(p, id, req.request_id, "requote_unavailable", "There is no active quote to refresh.").await;
         }
@@ -270,6 +285,7 @@ impl Engine {
         if self.store.requote_blocked(id, plan.quote_ref).await? {
             return self.requote_refused(p, id, req.request_id, "requote_unavailable", "An execution under this price is in progress, or was never confirmed. Recover the task before refreshing the price.").await;
         }
+        anyhow::ensure!(task.compute.as_ref().is_none_or(|run|run.status == "pending"), "Read the saved analysis and payment before requesting another quote");
         let catalog = self.catalog.get().await?;
         let mut intent: Intent = serde_json::from_value(task.intent.clone().unwrap())?;
         let previous_quote_ref = plan.quote_ref;
@@ -277,8 +293,9 @@ impl Engine {
             Some(mut refreshed) => {
                 refreshed.quote_ref = Uuid::new_v4();
                 refreshed.expires_at = Utc::now() + chrono::Duration::minutes(10);
-                refreshed.hash = digest(&refreshed.steps);
-                task.actions = if refreshed.steps.is_empty() { Vec::new() } else { vec![serde_json::to_value(Action::Run { action_id: Uuid::new_v4(), step: 0 })?] };
+                refreshed.hash = if refreshed.compute.is_some() { digest(&(&refreshed.steps,&refreshed.compute)) } else { digest(&refreshed.steps) };
+                if let Some(run) = &mut task.compute { run.quote_ref=refreshed.quote_ref;run.action_id=Uuid::new_v4(); }
+                task.actions = if refreshed.steps.is_empty() { task.compute.as_ref().map(|run|vec![json!({"kind":"compute","action_id":run.action_id})]).unwrap_or_default() } else { vec![serde_json::to_value(Action::Run { action_id: Uuid::new_v4(), step: 0 })?] };
                 task.proposal = Some(serde_json::to_value(&refreshed)?);
                 false
             }
@@ -289,6 +306,14 @@ impl Engine {
                 true
             }
         };
+        if changed && plan.compute.is_some() {
+            if let Some(mut refreshed) = task.proposal.clone().and_then(|v|serde_json::from_value::<Plan>(v).ok()) {
+                refreshed.compute=plan.compute.clone();refreshed.apply_markup(refreshed.fee_bps);
+                refreshed.hash=digest(&(&refreshed.steps,&refreshed.compute));
+                task.compute=Some(crate::compute::Run::new(refreshed.quote_ref,task.conversation.last().map(|t|t.question.clone()).unwrap_or_default(),refreshed.compute.as_ref().unwrap().model_id.clone()));
+                task.proposal=Some(serde_json::to_value(refreshed)?);
+            }
+        }
         self.store.save_intent(p.owner, id, revision, &task).await?;
         let mut response = self.view(p, id, req.request_id, None).await?;
         response.context_view["requote"] = json!({"previous_quote_ref": previous_quote_ref, "changed": changed});
@@ -371,12 +396,23 @@ impl Engine {
                 .view(p, id, req.request_id, Some(Status::StateConflict))
                 .await;
         }
-        let in_flight:bool=telemetry::timed_db("inflight_check", sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool)).await?;
+        let in_flight:bool=telemetry::timed_db("inflight_check", sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT coalesce((t.document->'settled_compute') ? e.id::text, false) AND NOT coalesce(e.id::text=t.document #>> '{compute,action_id}' AND t.document #>> '{compute,status}' IN ('completed','unavailable'),false) AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&self.store.pool)).await?;
         anyhow::ensure!(
             !in_flight,
             "existing execution must finish or reconcile before a new question"
         );
         self.prepare_conversation(p.owner, id, &mut task).await?;
+        // The live Ask interpreter distinguishes saved evidence from retrieval
+        // before capability search. A new topic retains the chat history only.
+        let new_topic = if req.state.is_some() && !task.conversation.is_empty()
+            && forced.is_none() && selection.is_none() && !has_displayed_search
+            && self.parser.ask_v2().is_some() {
+            anyhow::ensure!(!self.worker_active(id).await?, "Wait for the current answer to finish");
+            let (new_topic, response) = self.route_conversation(p,req,id,revision,&mut task).await?;
+            if let Some(response) = response { return Ok(response); }
+            if new_topic { task.workflow = None; task.capability_intake = None; }
+            new_topic
+        } else { false };
         let recovery = task.intake_recovery.take();
         let resuming = recovery.as_ref().is_some_and(|saved| saved.matches(req));
         if resuming && task.conversation.last().is_some_and(|turn| turn.question == req.question && turn.output.is_none()) {
@@ -404,7 +440,7 @@ impl Engine {
         }
         // A connected follow-up may continue what the last turn found; the
         // intake itself is rebuilt below, as for every non-App question.
-        let earlier_intake = if app_chat { None } else { task.capability_intake.clone() };
+        let earlier_intake = if app_chat || new_topic { None } else { task.capability_intake.clone() };
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract,
@@ -423,7 +459,7 @@ impl Engine {
                 task.capability_intake.take()
             } else {
                 task.capability_intake = None;
-                match self.parser.prepare_ask(&req.question, model_selection.as_ref(), &task, &catalog).await {
+                match self.parser.prepare_ask(&req.question, model_selection.as_ref(), &crate::parser::conversation_route::interpretation_context(&task,new_topic), &catalog).await {
                     Ok(intake) => Some(intake),
                     Err(error) => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Parsing, false, error).await,
                 }
@@ -501,19 +537,20 @@ impl Engine {
         // Both feed the same resolver, quote, authorization and execution path.
         let interpreted = forced.is_none();
         if interpreted {
+            let parsing_task = crate::parser::conversation_route::interpretation_context(&task,new_topic);
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
             let reply = if let Some(intake) = &task.capability_intake {
-                self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, intake).await
+                self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, intake).await
             } else if app_chat || self.parser.ask_v2().is_none() {
                 // Without an Ask v2 model (local fixtures) the full-catalog
                 // interpreter remains the only reader.
-                self.parser.chat_selected(&req.question, model_selection.as_ref(), &task, &catalog).await
+                self.parser.chat_selected(&req.question, model_selection.as_ref(), &parsing_task, &catalog).await
             } else {
                 // Connected agents plan from the Ask page's parse and source
                 // search, never from a model pass over the whole catalog.
-                match self.parser.ask_intake(&req.question, &task, &catalog, earlier_intake.as_ref()).await {
+                match self.parser.ask_intake(&req.question, &parsing_task, &catalog, earlier_intake.as_ref()).await {
                     Ok(intake) => {
-                        let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &task, &catalog, &intake).await;
+                        let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, &intake).await;
                         task.capability_intake = Some(intake);
                         reply
                     }
@@ -533,7 +570,7 @@ impl Engine {
             // requirement no source covers) is answered by the conversation
             // model; on any failure the planner's own reply stands. The status
             // and actions are the planner's either way.
-            if let Some(written) = self.parser.decline_reply(&req.question, &task, &catalog, &reply).await {
+            if let Some(written) = self.parser.decline_reply(&req.question, &parsing_task, &catalog, &reply).await {
                 reply.message = written;
             }
             chat_intent = reply.intent;
@@ -600,6 +637,8 @@ impl Engine {
             task.skipped_steps.clear();
         task.active_results.clear();
         task.analysis = None;
+        task.compute = None;
+        task.saved_answer = false;
         task.pending_candidates.clear();
         task.original_subject = None;
         task.cancelled = false;
@@ -805,7 +844,7 @@ impl Engine {
             )
         }) {
             Status::Running
-        } else if actions.iter().any(|a| matches!(a, Action::Run { .. })) {
+        } else if actions.iter().any(|a| matches!(a, Action::Run { .. } | Action::Compute { .. })) {
             Status::Ready
         } else if task
             .actions
@@ -933,6 +972,14 @@ impl Engine {
                 }
             }
         }
+        if !worker_active {
+            if let Some(receipt) = self.compute_receipt(p,id,&task).await? {
+                r.next_actions.retain(|a|a.action_id != receipt);
+                let mut action=Action::Compute{action_id:receipt}.public();
+                action.kind="poll".into();action.label="Read saved analysis receipt".into();action.requires_authorization=false;
+                r.next_actions.push(action);
+            }
+        }
         for result in task.result_refs.iter().rev().take(8) {
             r.next_actions.push(
                 Action::Read {
@@ -961,6 +1008,8 @@ impl Engine {
                 )
                 .await?,
         );
+        r.context_view["analysis_upgrade"] = self.compute_view(p, id, &task, billing_plan.as_ref(), &r.billing).await?;
+        if task.compute.as_ref().is_some_and(|run|run.status == "running" || run.status == "preparing") && actions.iter().any(|a|matches!(a,Action::Compute{..})) { r.status = Status::Running; }
         if let Some(policy) = auto_policy.as_ref() {
             let now = Utc::now();
             let authorized = r.billing.as_ref().is_some_and(|b| b["authorization_active"] == true);
@@ -992,7 +1041,7 @@ impl Engine {
             r.errors.push(error.clone());
         }
         if actions.is_empty() { r.errors.extend(task.failed_steps.values().map(crate::billing::display_step_error)); }
-        if let Some(value) = &task.proposal {
+        if let Some(value) = task.proposal.as_ref().filter(|_| !task.saved_answer) {
             let plan: Plan = serde_json::from_value(value.clone())?;
             let sources = self.catalog.sources().await.unwrap_or_default();
             let mut step_details = crate::resolver::describe_steps(&plan, &sources);
@@ -1007,8 +1056,11 @@ impl Engine {
                     else if current == Some(i) && actions.iter().any(|a|matches!(a, Action::Poll {..})) { "running" }
                     else if task.cancelled { "cancelled" } else if paused_plan { "paused" } else { "pending" });
             }
+            if let Some(model) = plan.compute.as_ref().and_then(crate::compute::Quote::model) {
+                step_details.push(json!({"kind":"compute","number":plan.steps.len()+1,"title":"Extended analysis","source":{"name":model.name,"directory_name":format!("x402engine · {}", model.name),"slug":"analysis-compute","url":"https://x402engine.app"},"dependencies":[],"max_total_atomic":model.buyer_cap().to_string(),"currency":"USD","status":task.compute.as_ref().map(|run|run.status.as_str()).unwrap_or("pending")}));
+            }
             r.proposal = Some(Proposal {
-                label: "Data request".into(),
+                label: if plan.steps.is_empty() && plan.compute.is_some() { "Extended analysis of saved results".into() } else { "Data request".into() },
                 step_details,
                 quote_ref: plan.quote_ref,
                 price_status: "capped".into(),
@@ -1122,6 +1174,7 @@ mod saved_analysis_retry_tests {
         assert!(saved_analysis_retry(&task, true));
         assert!(!saved_analysis_retry(&task, false));
         task.analysis = None;
+        task.compute = None;
         task.workflow = Some(serde_json::from_value(json!({"slug":"fixture","title":"Fixture","input":{},"limitations":[]})).unwrap());
         assert!(saved_analysis_retry(&task, false));
         task.cancelled = true;

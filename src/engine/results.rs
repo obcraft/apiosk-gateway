@@ -848,7 +848,7 @@ mod candidate_tests {
         task.facts.push(Fact { entity_ref: subject, semantic_type: "company.name".into(), value: json!(name),
             provenance: json!({"kind":"user"}), observed_at: Utc::now(), expires_at: Utc::now() + chrono::Duration::hours(1), verification: "user".into() });
         let step = |service| resolver::Step { service, entity_ref: subject, goal_index: 0, browser_fallback: None };
-        let plan = Plan { quote_ref: Uuid::new_v4(), steps: vec![step(search), step(dependent)], cap_atomic: 200_000,
+        let plan = Plan { compute: None, quote_ref: Uuid::new_v4(), steps: vec![step(search), step(dependent)], cap_atomic: 200_000,
             expires_at: Utc::now() + chrono::Duration::minutes(10), hash: "fixture".into(), fee_bps: 1500, workflow_slug: None };
         task.proposal = Some(serde_json::to_value(&plan).unwrap());
         (task, plan.steps[0].clone())

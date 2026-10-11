@@ -118,6 +118,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/evidence.zip", get(research_evidence))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .route("/v2/tasks/:id/requote", post(requote))
+        .route("/v2/tasks/:id/analysis-upgrade", post(analysis_upgrade))
         // The public API: every credential, one execution and billing path.
         .route("/v2/sources/:source_id", get(crate::public_api::source))
         .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
@@ -526,7 +527,18 @@ async fn discover(
     };
     match state.engine.discover(&p, req).await {
         // A connection's automatic-approval rule may continue the new plan.
-        Ok(r) => Json(state.engine.continue_automatically(&p, token(&headers).unwrap_or_default(), r).await).into_response(),
+        Ok(r) => {
+            if r.context_view["analyzing"] == true {
+                if let Some(saved) = &r.state {
+                    // start_worker independently requires either the exact
+                    // paid authorization or a zero-cost saved-only analysis.
+                    if let Err(error) = state.engine.start_worker(p.clone(),token(&headers).unwrap_or_default().to_owned(),saved.state_ref).await {
+                        tracing::warn!(error=%error,"saved conversation answer will resume on recovery");
+                    }
+                }
+            }
+            Json(state.engine.continue_automatically(&p, token(&headers).unwrap_or_default(), r).await).into_response()
+        },
         Err(e) => {
             tracing::error!(error=%e,"discover persistence failure");
             failure(
@@ -915,5 +927,15 @@ mod tests {
         let response = app.oneshot(axum::http::Request::get("/v1/legacy-probe").body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(forwarded.load(SeqCst), 1);
+    }
+}
+
+async fn analysis_upgrade(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Json(req): Json<crate::engine::UpgradeRequest>) -> HttpResponse {
+    let p = match app_person(&state,&headers).await { Ok(p)=>p,Err(r)=>return r };
+    if req.state.state_ref != id || req.request_id.is_nil() { return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its analysis."); }
+    let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly."); };
+    match state.engine.analysis_upgrade(&p,req).await {
+        Ok(view)=>Json(view).into_response(),
+        Err(_)=>failure(StatusCode::CONFLICT,"analysis_upgrade_unavailable","Reload the saved task before changing its analysis. Nothing new was purchased."),
     }
 }

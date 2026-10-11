@@ -86,7 +86,7 @@ impl Engine {
             goal_index: 0,
         browser_fallback: None,
         }];
-        let plan = Plan {
+        let plan = Plan { compute: None,
             quote_ref: Uuid::new_v4(),
             cap_atomic: steps[0].service.total(),
             hash: digest(&steps),
@@ -97,6 +97,7 @@ impl Engine {
         };
         self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
         task.workflow = None;
+        task.saved_answer = false;
         task.intake_recovery = None;
         task.supplier_check = None;
         task.active_results.clear();

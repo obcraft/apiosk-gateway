@@ -109,7 +109,7 @@ async fn gateway_waits_without_reservation_then_delivers_to_ten_buyers() {
         goal_index: 0,
         browser_fallback: None,
     };
-    let plan = Plan {
+    let plan = Plan { compute: None,
         quote_ref: Uuid::new_v4(),
         steps: vec![step.clone()],
         cap_atomic: step.service.total(),

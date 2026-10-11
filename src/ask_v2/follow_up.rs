@@ -618,7 +618,7 @@ mod tests {
             answer_operations: vec![],
             unresolved_references: vec![],
         };
-        let plan = Plan {
+        let plan = Plan { compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![step.clone()],
             cap_atomic: service.total(),

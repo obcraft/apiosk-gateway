@@ -116,7 +116,7 @@ mod tests {
         }).unwrap().clone();
         let subject = Uuid::new_v4();
         let task = Task { original_subject: Some(subject), ..Task::default() };
-        let plan = Plan {
+        let plan = Plan { compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![resolver::Step {service, entity_ref: subject, goal_index: 0, browser_fallback: None}],
             cap_atomic: 100, expires_at: Utc::now() + chrono::Duration::minutes(10), hash: "fixture".into(),

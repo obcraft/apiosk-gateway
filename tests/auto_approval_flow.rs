@@ -67,7 +67,7 @@ async fn a_standing_rule_approves_within_its_limits_and_nothing_else() {
         let pool = pool.clone();
         async move {
             let id = Uuid::new_v4();
-            let plan = Plan {
+            let plan = Plan { compute: None,
                 quote_ref: Uuid::new_v4(), steps: vec![], cap_atomic: cap,
                 expires_at: chrono::Utc::now() + chrono::Duration::minutes(10),
                 hash: format!("plan-{id}"), fee_bps: 1500, workflow_slug: None,

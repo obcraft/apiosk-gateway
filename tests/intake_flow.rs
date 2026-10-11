@@ -95,6 +95,9 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 /// conversation. The label is the last word, copied literally.
 async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> Json<Value> {
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+    if input.get("saved_outputs").is_some() {
+        return Json(json!({"choices":[{"message":{"content":"{\"kind\":\"continue_request\"}"}}]}));
+    }
     if input["known_slugs"].is_array() {
         model.stages.lock().unwrap().push("parse");
         if let Some(failure) = model.failure("parse") { return failure; }

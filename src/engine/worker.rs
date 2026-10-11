@@ -45,7 +45,10 @@ impl Engine {
         };
         let authorized: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE task_id=$1 AND owner_id=$2 AND quote_ref=$3 AND plan_hash=$4 AND revoked_at IS NULL AND expires_at>now())")
             .bind(id).bind(p.owner).bind(plan.quote_ref).bind(&plan.hash).fetch_one(&self.store.pool).await?;
-        if !authorized { return Ok(()); }
+        let saved_only = task.saved_answer && plan.steps.is_empty() && plan.compute.is_none()
+            && plan.cap_atomic == 0 && task.pending_dispatches.is_empty()
+            && task.actions.iter().all(|a| matches!(a["kind"].as_str(), Some("analyze" | "read" | "retry_analysis")));
+        if !authorized && !saved_only { return Ok(()); }
         let had_candidates = task.pending_candidates.len();
         selection::pending_choice(&mut task, &plan);
         let mut repaired = task.pending_candidates.len() != had_candidates;
@@ -65,7 +68,7 @@ impl Engine {
             || !task.actions.iter().any(|a| {
                 matches!(
                     a["kind"].as_str(),
-                    Some("run" | "poll" | "wait" | "analyze")
+                    Some("run" | "poll" | "wait" | "analyze" | "compute")
                 )
             })
         {
@@ -159,6 +162,7 @@ impl Engine {
                             | Action::Poll { .. }
                             | Action::Wait { .. }
                             | Action::Analyze { .. }
+                            | Action::Compute { .. }
                     )
                 });
             let Some(action) = action else {
@@ -177,7 +181,7 @@ impl Engine {
             if let Some(wait) = cooldown.take() {
                 wait.finish(Outcome::Ok);
             }
-            let polling = matches!(action, Action::Poll { .. });
+            let polling = matches!(action, Action::Poll { .. } | Action::Compute { .. });
             let req = ExecuteRequest {
                 request_id: Uuid::new_v4(),
                 action_id: action.id(),

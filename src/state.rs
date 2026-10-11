@@ -210,6 +210,14 @@ impl IntakeRecovery {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Task {
+    /// Paid analysis stores a verified answer on the task rather than a new
+    /// source document. Retain its settled receipt when another turn starts.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub settled_compute: Vec<Uuid>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub saved_answer: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compute: Option<crate::compute::Run>,
     /// A selected Bazaar purchase uses the existing balance ledger and treasury
     /// executor, without pretending an external URL is a reviewed catalog API.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -286,8 +294,13 @@ impl Task {
         })
     }
     pub fn archive_output(&mut self, proposal: Option<Value>) {
+        if let Some(run) = self.compute.as_ref().filter(|run| matches!(run.status.as_str(), "completed" | "unavailable")) {
+            if !self.settled_compute.contains(&run.action_id) { self.settled_compute.push(run.action_id); }
+        }
         let result_ref = self.active_result_ref();
-        if proposal.is_none() && result_ref.is_none() { return; }
+        // A saved-only follow-up reuses existing result IDs and has no public
+        // quote. Its new answer still belongs to this turn in the transcript.
+        if proposal.is_none() && result_ref.is_none() && self.active_results.is_empty() { return; }
         if result_ref.is_some() { self.last_archived_result_ref = result_ref; }
         // Older /discover tasks can have a result without conversational text.
         if self.conversation.is_empty() { self.record_turn("", None); }

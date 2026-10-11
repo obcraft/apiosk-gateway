@@ -58,6 +58,21 @@ fn source_hint_recovers_only_a_source_literally_named_in_the_question() {
 }
 
 #[test]
+fn separate_named_sources_survive_same_slug_and_subject_deduplication() {
+    let mut input = raw();
+    let first = &mut input["capabilities"][0];
+    first["slug"] = json!("company.ratings");
+    first["source_hint"] = json!("glassdoor");
+    first["outputs"] = json!(["rating", "review_count"]);
+    let mut second = first.clone();
+    second["source_hint"] = json!("yelp");
+    input["capabilities"].as_array_mut().unwrap().extend([second.clone(), second]);
+    let parsed = normalize(&input.to_string(), "Show Coolblue ratings and review counts from Glassdoor and Yelp", "fixture").unwrap();
+    assert_eq!(parsed.capabilities.len(), 2);
+    assert_eq!(parsed.capabilities.iter().filter_map(|cap| cap.source_hint.as_deref()).collect::<Vec<_>>(), ["glassdoor", "yelp"]);
+}
+
+#[test]
 fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
     let mut input = raw();
     input["subjects"][0]["identifiers"] = json!({});

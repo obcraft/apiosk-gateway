@@ -236,7 +236,7 @@ impl Store {
             .bind(owner)
             .fetch_one(&mut *tx)
             .await?;
-        let pending:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&mut *tx).await?;
+        let pending:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT coalesce((t.document->'settled_compute') ? e.id::text, false) AND NOT coalesce(e.id::text=t.document #>> '{compute,action_id}' AND t.document #>> '{compute,status}' IN ('completed','unavailable'),false) AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text))))").bind(id).fetch_one(&mut *tx).await?;
         anyhow::ensure!(
             !pending,
             "existing execution needs recovery before a new intent"
@@ -254,7 +254,7 @@ impl Store {
     pub async fn requote_blocked(&self, task: Uuid, quote_ref: Uuid) -> anyhow::Result<bool> {
         let _db = crate::telemetry::db("requests.requote_blocked");
         Ok(sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text)))) \
+            "SELECT EXISTS(SELECT 1 FROM executions e JOIN tasks t ON t.id=e.task_id WHERE e.task_id=$1 AND (e.status IN ('dispatching','unresolved') OR (e.status='succeeded' AND NOT coalesce((t.document->'settled_compute') ? e.id::text, false) AND NOT coalesce(e.id::text=t.document #>> '{compute,action_id}' AND t.document #>> '{compute,status}' IN ('completed','unavailable'),false) AND NOT EXISTS(SELECT 1 FROM results r WHERE r.execution_id=e.id AND (t.document->'result_refs') ? r.id::text)))) \
              OR EXISTS(SELECT 1 FROM executions e JOIN authorizations a ON a.id=e.authorization_id WHERE a.task_id=$1 AND a.quote_ref=$2)",
         )
         .bind(task)

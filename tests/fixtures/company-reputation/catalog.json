@@ -1,0 +1,864 @@
+{
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "endpoints": [
+          {
+            "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+            "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+            "method": "POST",
+            "path": "/autocompletes",
+            "registration": {
+              "list_atomic": 86956,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "description": "Company name or prefix to find in Crunchbase",
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api"
+          }
+        ]
+      },
+      "name": "Crunchbase",
+      "slug": "apimarket-magicapi-crunchbase-bbcca0a6"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "endpoints": [
+          {
+            "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "method": "GET",
+            "path": "/realtime-glassdoor-data/company-search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "The Glassdoor domain to use. Provider default when omitted: \"www.glassdoor.com\".",
+                    "enum": [
+                      "www.glassdoor.com",
+                      "www.glassdoor.co.uk",
+                      "www.glassdoor.com.ar",
+                      "www.glassdoor.com.au",
+                      "www.glassdoor.be",
+                      "www.glassdoor.be",
+                      "www.glassdoor.com.br",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.de",
+                      "www.glassdoor.es",
+                      "www.glassdoor.fr",
+                      "www.glassdoor.com.hk",
+                      "www.glassdoor.co.in",
+                      "www.glassdoor.ie",
+                      "www.glassdoor.it",
+                      "www.glassdoor.com.mx",
+                      "www.glassdoor.nl",
+                      "www.glassdoor.co.nz",
+                      "www.glassdoor.at",
+                      "de.glassdoor.ch",
+                      "www.glassdoor.sg",
+                      "fr.glassdoor.ch"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of results to return. Provider default when omitted: 10.",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "number",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Company name or Glassdoor company ID to search. Use the supplied company name when no ID is given.",
+                    "examples": [
+                      "goo"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Search Yelp businesses by name and location, returning customer ratings, review counts, business details and listing links. These ratings describe individual business locations, not employer satisfaction.",
+            "endpoint_id": "eddb418e-721e-589b-9ea2-1083dee98afd",
+            "method": "GET",
+            "path": "/yelp-business-data/business-search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "location": {
+                    "description": "Search location.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "price_range": {
+                    "description": "Find business with specific price ranges, specified as a comma delimited list of the following values: $, $$, $$$, $$$$.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "sort_by": {
+                    "description": "Return the results in a specific sort order. Provider default when omitted: \"RECOMMENDED\".",
+                    "enum": [
+                      "RECOMMENDED",
+                      "HIGHEST_RATED",
+                      "REVIEW_COUNT"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "start": {
+                    "description": "Number of results to skip. Mainly used for pagination. Provider default when omitted: 0.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "yelp_domain": {
+                    "description": "The yelp domain to use for the search. Provider default when omitted: \"yelp.com\".",
+                    "enum": [
+                      "yelp.com",
+                      "yelp.com.au",
+                      "yelp.co.nz",
+                      "ms.yelp.my",
+                      "yelp.cz",
+                      "yelp.dk",
+                      "yelp.de",
+                      "yelp.at",
+                      "de.yelp.ch",
+                      "en.yelp.be",
+                      "yelp.ca",
+                      "en.yelp.com.hk",
+                      "en.yelp.my",
+                      "en.yelp.com.ph",
+                      "yelp.ie",
+                      "yelp.com.sg",
+                      "en.yelp.ch",
+                      "yelp.co.uk",
+                      "yelp.com.ar",
+                      "yelp.cl",
+                      "yelp.es",
+                      "yelp.com.mx",
+                      "fil.yelp.com.ph",
+                      "yelp.fr",
+                      "fr.yelp.ca",
+                      "fr.yelp.ch",
+                      "fr.yelp.be",
+                      "yelp.no",
+                      "yelp.pl",
+                      "yelp.pot",
+                      "yelp.com.br",
+                      "fi.yelp.fi",
+                      "sv.yelp.fi",
+                      "yelp.se",
+                      "yelp.com.tr",
+                      "yelp.co.jp",
+                      "zh.yelp.com.hk",
+                      "yelp.com.tw"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "location"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          }
+        ]
+      },
+      "name": "OpenWeb Ninja",
+      "slug": "openwebninja"
+    }
+  ],
+  "services": [
+    {
+      "api_slug": "openwebninja",
+      "contract": {
+        "capability_slug": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "source_input.e22c6c82933545999a55d64ac65128077.domain": {
+            "in": "query",
+            "name": "domain"
+          },
+          "source_input.e22c6c82933545999a55d64ac65128077.limit": {
+            "in": "query",
+            "name": "limit"
+          },
+          "source_input.e22c6c82933545999a55d64ac65128077.query": {
+            "in": "query",
+            "name": "query"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.glassdoor_search_results": {
+              "adapter": "document.response",
+              "key": "document"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 2
+      },
+      "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+      "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "077bec6e-1593-469b-8afc-293cb30b7f6b",
+      "jurisdiction": null,
+      "list_atomic": 3000,
+      "listing_type": "federated",
+      "method": "GET",
+      "name": "OpenWeb Ninja",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/realtime-glassdoor-data/company-search",
+      "preconditions": {},
+      "sample_payload": {
+        "data": [
+          {
+            "best_places_to_work_awards": [
+              {
+                "rank": 96,
+                "time_period": "2018"
+              },
+              {
+                "rank": 34,
+                "time_period": "2012"
+              },
+              {
+                "rank": 50,
+                "time_period": "2013"
+              }
+            ],
+            "business_outlook_rating": 0.41,
+            "career_opportunities_rating": 3.3,
+            "ceo": " Brian Niccol",
+            "ceo_rating": 0.32,
+            "company_description": "For over 50 years, we've aspired to be a different kind of coffee company. All these years later, we still believe in our hearts that we're not in the coffee business serving people \u2013 we're in the people business, serving coffee.\n\nWe believe that success is best when shared. Our employees are called partners because, through our annual Bean Stock grant, we each have ownership in the future success of our business. Our promise to partners is to help bridge to a better future by providing industry-leading benefits and growth opportunities to help support partners along their journey at Starbucks",
+            "company_id": 2202,
+            "company_link": "https://www.glassdoor.com/Overview/Working-at-Starbucks-EI_IE2202.11,20.htm",
+            "company_size": "10000+ Employees",
+            "company_size_category": "GIANT",
+            "company_type": "Company - Public",
+            "compensation_and_benefits_rating": 3.6,
+            "competitors": [
+              {
+                "id": 432,
+                "name": "McDonald's"
+              }
+            ],
+            "culture_and_values_rating": 3.3,
+            "diversity_and_inclusion_rating": 3.9,
+            "faq_link": "https://www.glassdoor.com/FAQ/Starbucks-Questions-E2202.htm",
+            "headquarters_location": "Seattle, WA",
+            "industry": "Restaurants & Cafes",
+            "job_count": 22342,
+            "jobs_link": "https://www.glassdoor.com/Jobs/Starbucks-Jobs-E2202.htm",
+            "logo": "https://media.glassdoor.com/sql/2202/starbucks-squarelogo.png",
+            "name": "Starbucks",
+            "office_locations": [
+              {
+                "city": "Chicago, IL",
+                "country": "United States"
+              },
+              {
+                "city": "Burbank, CA",
+                "country": "United States"
+              },
+              {
+                "city": "San Francisco, CA",
+                "country": "United States"
+              }
+            ],
+            "rating": 3.5,
+            "recommend_to_friend_rating": 0.56,
+            "revenue": "$10+ billion (USD)",
+            "review_count": 92195,
+            "reviews_link": "https://www.glassdoor.com/Reviews/Starbucks-Reviews-E2202.htm",
+            "salary_count": 130313,
+            "senior_management_rating": 2.9,
+            "stock": "SBUX",
+            "website": "https://careers.starbucks.com/",
+            "work_life_balance_rating": 3.2,
+            "year_founded": 1971
+          }
+        ],
+        "parameters": {
+          "domain": "www.glassdoor.com",
+          "limit": 1,
+          "query": "Starbucks"
+        },
+        "request_id": "53519f16-638f-4339-81fd-5bf865dc3e50",
+        "status": "OK"
+      },
+      "source_url": "https://x402.openwebninja.com/llms.txt",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "contract": {
+        "capability_slug": "company.crunchbase-search",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "company.crunchbase_query": {
+            "in": "body",
+            "name": "query"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_search_results": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.crunchbase_query",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+      "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "ad8b8fe7-6fad-5c80-ad60-e0e6c8a478a5",
+      "jurisdiction": null,
+      "list_atomic": 86956,
+      "listing_type": "api",
+      "method": "POST",
+      "name": "Crunchbase",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/autocompletes",
+      "preconditions": {},
+      "sample_payload": {
+        "count": 1962,
+        "entities": [
+          {
+            "facet_ids": [
+              "aberdeen",
+              "ai_insight",
+              "apptopia",
+              "bombora",
+              "builtwith",
+              "company",
+              "contact",
+              "investor",
+              "ipqwery",
+              "key_event",
+              "rank",
+              "semrush",
+              "siftery"
+            ],
+            "identifier": {
+              "entity_def_id": "organization",
+              "image_id": "jjykwqqhsscreywea4gb",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/jjykwqqhsscreywea4gb",
+              "permalink": "openai",
+              "url": "https://crunchbase.com/organization/openai",
+              "uuid": "cf2c678c-b81a-80c3-10d1-9c5e76448e51",
+              "value": "OpenAI"
+            },
+            "short_description": "OpenAI develops artificial intelligence models and deploys machine learning software tools, including ChatGPT."
+          },
+          {
+            "facet_ids": [
+              "ai_insight",
+              "builtwith",
+              "company",
+              "ipqwery",
+              "rank",
+              "semrush"
+            ],
+            "identifier": {
+              "entity_def_id": "organization",
+              "image_id": "zrafm9hariyl22gfnzkq",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/zrafm9hariyl22gfnzkq",
+              "permalink": "openai-3ef1",
+              "url": "https://crunchbase.com/organization/openai-3ef1",
+              "uuid": "30658435-66e6-4d4a-bcce-5ac474713ef1",
+              "value": "OpenAi"
+            },
+            "short_description": "OpenAi provides solutions for artificial intelligence and social media management."
+          }
+        ]
+      },
+      "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "openwebninja",
+      "contract": {
+        "capability_slug": "operation.openwebninja.get-yelp-business-data-business-search-eddb418e",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "source_input.eeddb418e721e589b9ea21083dee98afd.location": {
+            "in": "query",
+            "name": "location"
+          },
+          "source_input.eeddb418e721e589b9ea21083dee98afd.price-range": {
+            "in": "query",
+            "name": "price_range"
+          },
+          "source_input.eeddb418e721e589b9ea21083dee98afd.query": {
+            "in": "query",
+            "name": "query"
+          },
+          "source_input.eeddb418e721e589b9ea21083dee98afd.sort-by": {
+            "in": "query",
+            "name": "sort_by"
+          },
+          "source_input.eeddb418e721e589b9ea21083dee98afd.start": {
+            "in": "query",
+            "name": "start"
+          },
+          "source_input.eeddb418e721e589b9ea21083dee98afd.yelp-domain": {
+            "in": "query",
+            "name": "yelp_domain"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "location.yelp_search_results": {
+              "adapter": "document.response",
+              "key": "document"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.query",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.start",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.sort-by",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.location",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.price-range",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.eeddb418e721e589b9ea21083dee98afd.yelp-domain",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 2
+      },
+      "description": "Search Yelp businesses by name and location, returning customer ratings, review counts, business details and listing links. These ratings describe individual business locations, not employer satisfaction.",
+      "endpoint_id": "eddb418e-721e-589b-9ea2-1083dee98afd",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "b030b0eb-d618-448d-8583-849063e0d620",
+      "jurisdiction": null,
+      "list_atomic": 3000,
+      "listing_type": "federated",
+      "method": "GET",
+      "name": "OpenWeb Ninja",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/yelp-business-data/business-search",
+      "preconditions": {},
+      "sample_payload": {
+        "data": [],
+        "request_id": "cefb37fa-9408-4d47-b509-75f86af5e130",
+        "status": "OK"
+      },
+      "source_url": "https://x402.openwebninja.com/llms.txt",
+      "unverified": false,
+      "usage_notice": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.crunchbase_query",
+      "value_schema": {
+        "description": "Company name or prefix to find in Crunchbase",
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.crunchbase_search_results",
+      "value_schema": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "items": {
+              "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\"]}",
+              "properties": {
+                "identifier": {
+                  "properties": {
+                    "permalink": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\",\"crunchbase_url\",\"link\"]}",
+                      "type": "string"
+                    },
+                    "uuid": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "short_description": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"description\",\"company_description\"]}",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "identifier"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "entities"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+      "value_schema": {
+        "description": "The Glassdoor domain to use. Provider default when omitted: \"www.glassdoor.com\".",
+        "enum": [
+          "www.glassdoor.com",
+          "www.glassdoor.co.uk",
+          "www.glassdoor.com.ar",
+          "www.glassdoor.com.au",
+          "www.glassdoor.be",
+          "www.glassdoor.be",
+          "www.glassdoor.com.br",
+          "www.glassdoor.ca",
+          "www.glassdoor.ca",
+          "www.glassdoor.de",
+          "www.glassdoor.es",
+          "www.glassdoor.fr",
+          "www.glassdoor.com.hk",
+          "www.glassdoor.co.in",
+          "www.glassdoor.ie",
+          "www.glassdoor.it",
+          "www.glassdoor.com.mx",
+          "www.glassdoor.nl",
+          "www.glassdoor.co.nz",
+          "www.glassdoor.at",
+          "de.glassdoor.ch",
+          "www.glassdoor.sg",
+          "fr.glassdoor.ch"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+      "value_schema": {
+        "description": "Maximum number of results to return. Provider default when omitted: 10.",
+        "maximum": 100,
+        "minimum": 1,
+        "type": "number"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.query",
+      "value_schema": {
+        "description": "Company name or Glassdoor company ID to search. Use the supplied company name when no ID is given.",
+        "title": "Company name or Glassdoor ID",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.location",
+      "value_schema": {
+        "description": "Search location.",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.price-range",
+      "value_schema": {
+        "description": "Find business with specific price ranges, specified as a comma delimited list of the following values: $, $$, $$$, $$$$.",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.query",
+      "value_schema": {
+        "description": "Search query / keyword",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.sort-by",
+      "value_schema": {
+        "description": "Return the results in a specific sort order. Provider default when omitted: \"RECOMMENDED\".",
+        "enum": [
+          "RECOMMENDED",
+          "HIGHEST_RATED",
+          "REVIEW_COUNT"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.start",
+      "value_schema": {
+        "description": "Number of results to skip. Mainly used for pagination. Provider default when omitted: 0.",
+        "type": "integer"
+      }
+    },
+    {
+      "slug": "source_input.eeddb418e721e589b9ea21083dee98afd.yelp-domain",
+      "value_schema": {
+        "description": "The yelp domain to use for the search. Provider default when omitted: \"yelp.com\".",
+        "enum": [
+          "yelp.com",
+          "yelp.com.au",
+          "yelp.co.nz",
+          "ms.yelp.my",
+          "yelp.cz",
+          "yelp.dk",
+          "yelp.de",
+          "yelp.at",
+          "de.yelp.ch",
+          "en.yelp.be",
+          "yelp.ca",
+          "en.yelp.com.hk",
+          "en.yelp.my",
+          "en.yelp.com.ph",
+          "yelp.ie",
+          "yelp.com.sg",
+          "en.yelp.ch",
+          "yelp.co.uk",
+          "yelp.com.ar",
+          "yelp.cl",
+          "yelp.es",
+          "yelp.com.mx",
+          "fil.yelp.com.ph",
+          "yelp.fr",
+          "fr.yelp.ca",
+          "fr.yelp.ch",
+          "fr.yelp.be",
+          "yelp.no",
+          "yelp.pl",
+          "yelp.pot",
+          "yelp.com.br",
+          "fi.yelp.fi",
+          "sv.yelp.fi",
+          "yelp.se",
+          "yelp.com.tr",
+          "yelp.co.jp",
+          "zh.yelp.com.hk",
+          "yelp.com.tw"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.glassdoor_search_results",
+      "value_schema": {
+        "properties": {
+          "document": {
+            "properties": {
+              "data": {
+                "items": {
+                  "properties": {
+                    "company_description": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"description\"]}",
+                      "type": "string"
+                    },
+                    "company_id": {
+                      "type": "integer"
+                    },
+                    "company_link": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\"]}",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "rating": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"average_rating\",\"employer_rating\"]}",
+                      "type": "number"
+                    },
+                    "review_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "status": {
+                "enum": [
+                  "OK"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "data"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "location.yelp_search_results",
+      "value_schema": {
+        "properties": {
+          "document": {
+            "properties": {
+              "data": {
+                "items": {
+                  "properties": {
+                    "alias": {
+                      "type": "string"
+                    },
+                    "business_page_link": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\"]}",
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "rating": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"average_rating\",\"customer_rating\"]}",
+                      "type": "number"
+                    },
+                    "review_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "status": {
+                "enum": [
+                  "OK"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "data"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}

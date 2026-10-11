@@ -88,6 +88,7 @@ impl Recipe {
         completed: &[CompletedStep],
         vocabulary: &Vocabulary,
     ) -> anyhow::Result<Self> {
+        ensure!(plan.compute.is_none(), "Extended analysis requires a fresh explicit approval and cannot be added to a recurring order.");
         let primary: Vec<_> = plan
             .steps
             .iter()
@@ -715,7 +716,7 @@ mod tests {
             "output_map":{"base":"$","produces":{"company.detail":{"path":"$.detail"}}}
         }))
         .unwrap();
-        let plan = Plan {
+        let plan = Plan { compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![search.clone(), detail.clone()]
                 .into_iter()
