@@ -156,9 +156,9 @@ impl Intent {
         Ok(())
     }
 
-    /// Copy an exact question span back into model strings that only changed
-    /// separators. No words may be added, dropped, reordered or inferred; the
-    /// original literal and the catalog schema are still validated afterwards.
+    /// Restore literal text and extract documented Crunchbase identifiers from
+    /// a supplied profile URL. No names become guessed permalinks; resulting
+    /// values must remain exact question spans and pass their input schema.
     fn restore_question_literals(&mut self, question: &str) {
         for subject in &mut self.subjects {
             if subject.entity_ref.is_none() {
@@ -166,7 +166,11 @@ impl Intent {
                     subject.label = original.to_owned();
                 }
             }
-            for value in subject.values.values_mut() {
+            for (kind, value) in &mut subject.values {
+                if let Some(id) = value.as_str().filter(|text| question.contains(*text))
+                    .and_then(|text| crate::ask_v2::input_values::crunchbase_profile_id(kind, text)) {
+                    *value = id;
+                }
                 if let Some(original) = value.as_str().and_then(|text| question_literal(question, text)) {
                     *value = json!(original);
                 }
@@ -2036,6 +2040,29 @@ mod tests {
             assert_eq!(question_literal(question, invented), None, "{invented}");
         }
         assert_eq!(question_literal("Bedrag 10,00", "10.00"), Some("10,00"), "restores the source, never the model's altered punctuation");
+    }
+
+    #[tokio::test]
+    async fn crunchbase_profile_url_binds_without_a_paid_identity_lookup() {
+        let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/crunchbase/official-mcp.json")).unwrap());
+        let parsed = crate::capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","type":"company","label":"starbucks","identifiers":{"url":"https://www.crunchbase.com/organization/starbucks"}}],"capabilities":[{"slug":"company.profile","name":"Company profile","description":"Retrieve the company profile and its available relationships.","domain":"company","inputs":["company_url"],"outputs":["profile","founders","employees","board_members","funding_rounds","investors"],"subject_id":"s1","source_hint":"crunchbase","confidence":1.0}],"deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
+        let matches = crate::ask_v2::search::search(&parsed, &catalog);
+        let intake = crate::capability_intake::Intake { selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(),
+            parsed_request:parsed, matches, apiosk_sources_searched:1, catalog_version:catalog.version.clone() };
+        let raw = json!({"message":"I will check the price first.","discover":true,"decline_reason":"none","intent":{
+            "subjects":[{"subject_ref":"s1","values":{"company.crunchbase_entity_id":{"ref":"s1.identifiers.url"}}}],
+            "goals":[{"capability":"company.crunchbase-profile","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}}).to_string();
+        let (parser, calls, server) = model_fixture(vec![(200,json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]}))]).await;
+        let mut task = Task::default();
+        let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
+        let mut intent = reply.intent.unwrap();
+        assert_eq!(intent.subjects[0].values["company.crunchbase_entity_id"], "starbucks");
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog,&task,&intent) else {panic!("profile must compile")};
+        assert_eq!(plan.steps.len(),1); assert_eq!(plan.cap_atomic,54_347);
+        assert_eq!(calls.load(Ordering::Relaxed),1);
+        server.abort();
     }
 
     #[tokio::test]

@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {PGlite} from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
 import {tools,capabilities,source,pricing} from './crunchbase-mcp-catalog.mjs';
+import {formatSourcePrice,formatQuoteCeiling} from '../../app/src/lib/ui/source-price.ts';
+const originalPricing={...pricing,listAtomic:47_259,buyerAtomic:54_348};
+const refinementFile='20261011154810_refine_crunchbase_profile_discovery_and_price.sql';
+const refinementSql=await fs.readFile(new URL('../supabase/migrations/'+refinementFile,import.meta.url),'utf8');
+assert.equal(refinementSql,await fs.readFile(new URL('../../app/supabase/migrations/'+refinementFile,import.meta.url),'utf8'));
+const profileInputsFile='20261011155719_constrain_crunchbase_profile_planning_inputs.sql';
+const profileInputsSql=await fs.readFile(new URL('../supabase/migrations/'+profileInputsFile,import.meta.url),'utf8');
+assert.equal(profileInputsSql,await fs.readFile(new URL('../../app/supabase/migrations/'+profileInputsFile,import.meta.url),'utf8'));
 const file='20261011133137_register_crunchbase_official_mcp.sql';
 const sql=await fs.readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');
 assert.equal(sql,await fs.readFile(new URL('../../app/supabase/migrations/'+file,import.meta.url),'utf8'));
@@ -45,11 +53,11 @@ try{
  assert.equal(priced.length,4);
  for(const e of priced){
   const list=Math.round(Number(e.price)*1_000_000);
-  assert.equal(list,pricing.listAtomic);
-  assert.equal(list+Math.ceil(list*pricing.buyerMarkupBps/10_000),pricing.buyerAtomic);
+  assert.equal(list,originalPricing.listAtomic);
+  assert.equal(list+Math.ceil(list*pricing.buyerMarkupBps/10_000),originalPricing.buyerAtomic);
   assert.equal(e.payment_required,true);assert.equal(e.active,false);
  }
- assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,pricing);
+ assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,originalPricing);
  assert.ok((await db.query('SELECT status FROM catalog.capability_execution_contracts')).rows.every(c=>c.status==='draft'));
  assert.equal(Number((await db.query("SELECT price FROM providers.api_endpoints WHERE path='/autocompletes'")).rows[0].price),0.086956);
  await db.exec(`UPDATE providers.apis SET listing_metadata=jsonb_set(listing_metadata,'{official_mcp,status}','"verified"')`);
@@ -65,6 +73,21 @@ try{
  assert.equal(active.length,10);assert.ok(active.every(c=>c.status==='active'&&c.sample_payload.data.request_id&&c.validated_note.includes('Buyer charge 0')));
  assert.equal(active.find(c=>c.capability_slug==='company.crunchbase-filter').fixed_params.collection_id,'organizations');
  assert.equal((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.status,'active');
+ await db.exec(refinementSql);await db.exec(refinementSql);
+ for(const e of (await db.query("SELECT price FROM providers.api_endpoints WHERE path LIKE '/mcp/%'")).rows){
+  const list=Math.round(Number(e.price)*1_000_000);
+  const total=list+Math.ceil(list*pricing.buyerMarkupBps/10_000);
+  assert.equal(total,pricing.buyerAtomic);
+  assert.equal(formatSourcePrice(`${total/1_000_000} USDC`,'EUR',pricing.displayRate),'€0.05');
+  assert.equal(formatQuoteCeiling(String(total),'EUR',pricing.displayRate),'€0.05');
+ }
+ const profile=(await db.query("SELECT description FROM catalog.capabilities WHERE slug='company.crunchbase-profile'")).rows[0];
+ assert.ok(profile.description.startsWith('Fetch company profile, founders, employees, board members, funding rounds and investors.'));
+ await db.exec(profileInputsSql);await db.exec(profileInputsSql);
+ for(const c of (await db.query("SELECT requires,input_map FROM catalog.capability_execution_contracts WHERE capability_slug IN ('company.crunchbase-profile','person.crunchbase-profile','funding.crunchbase-profile')")).rows){
+  assert.equal(c.requires.length,1);assert.equal(c.requires[0].optional,false);
+  assert.deepEqual(Object.keys(c.input_map),[c.requires[0].fact_type]);
+ }
  assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,pricing);
  console.log('PASS: registration, pricing, account refinement and guarded activation; four tools, ten real-sample contracts, unchanged API.market price, no Jina surcharge.');
 }finally{await db.close();}

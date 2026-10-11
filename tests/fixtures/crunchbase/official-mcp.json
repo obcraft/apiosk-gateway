@@ -51,7 +51,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "collection_ids": "organizations"
       },
@@ -145,7 +145,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "collection_ids": "people"
       },
@@ -239,7 +239,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {},
       "preconditions": {},
       "pagination": {},
@@ -338,7 +338,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "collection_id": "organizations"
       },
@@ -459,7 +459,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "collection_id": "people"
       },
@@ -580,7 +580,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "collection_id": "funding_rounds"
       },
@@ -696,12 +696,12 @@
       "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
       "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
       "name": "Crunchbase",
-      "description": "Fetch official company, leadership and funding data. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is needed for those cards.",
       "source_url": "https://data.crunchbase.com/docs/tool-reference",
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "entity_def_id": "organization"
       },
@@ -741,26 +741,6 @@
             "fact_type": "company.crunchbase_entity_id",
             "subject_role": "subject",
             "optional": false
-          },
-          {
-            "fact_type": "crunchbase.entity_get_field_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_card_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_related_entity_limit",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_after_id",
-            "subject_role": "subject",
-            "optional": true
           }
         ],
         "produces": [
@@ -773,23 +753,6 @@
         "input_map": {
           "company.crunchbase_entity_id": {
             "name": "entity_id",
-            "in": "body"
-          },
-          "crunchbase.entity_get_field_ids": {
-            "name": "field_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_card_ids": {
-            "name": "card_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_related_entity_limit": {
-            "name": "related_entity_limit",
-            "in": "body",
-            "default": 100
-          },
-          "crunchbase.entity_get_after_id": {
-            "name": "after_id",
             "in": "body"
           }
         },
@@ -817,12 +780,12 @@
       "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
       "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
       "name": "Crunchbase",
-      "description": "Fetch official professional profile and company relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "description": "Fetch official professional profile and company relationships. Retrieve one identified professional person, biography, current jobs, board roles, founded organizations and investments. Requires a person profile identifier, not a company identifier.",
       "source_url": "https://data.crunchbase.com/docs/tool-reference",
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "entity_def_id": "person"
       },
@@ -862,26 +825,6 @@
             "fact_type": "person.crunchbase_entity_id",
             "subject_role": "subject",
             "optional": false
-          },
-          {
-            "fact_type": "crunchbase.entity_get_field_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_card_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_related_entity_limit",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_after_id",
-            "subject_role": "subject",
-            "optional": true
           }
         ],
         "produces": [
@@ -894,23 +837,6 @@
         "input_map": {
           "person.crunchbase_entity_id": {
             "name": "entity_id",
-            "in": "body"
-          },
-          "crunchbase.entity_get_field_ids": {
-            "name": "field_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_card_ids": {
-            "name": "card_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_related_entity_limit": {
-            "name": "related_entity_limit",
-            "in": "body",
-            "default": 100
-          },
-          "crunchbase.entity_get_after_id": {
-            "name": "after_id",
             "in": "body"
           }
         },
@@ -938,12 +864,12 @@
       "endpoint_id": "2cb00000-0000-4000-8000-000000000003",
       "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
       "name": "Crunchbase",
-      "description": "Fetch official funding round, amount and investor relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+      "description": "Fetch official funding round, amount and investor relationships. Retrieve one identified funding round, announcement date, investment stage, money raised, funded company and lead investors. Requires a funding-round identifier, not a company identifier.",
       "source_url": "https://data.crunchbase.com/docs/tool-reference",
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {
         "entity_def_id": "funding_round"
       },
@@ -983,26 +909,6 @@
             "fact_type": "funding.crunchbase_entity_id",
             "subject_role": "subject",
             "optional": false
-          },
-          {
-            "fact_type": "crunchbase.entity_get_field_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_card_ids",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_related_entity_limit",
-            "subject_role": "subject",
-            "optional": true
-          },
-          {
-            "fact_type": "crunchbase.entity_get_after_id",
-            "subject_role": "subject",
-            "optional": true
           }
         ],
         "produces": [
@@ -1015,23 +921,6 @@
         "input_map": {
           "funding.crunchbase_entity_id": {
             "name": "entity_id",
-            "in": "body"
-          },
-          "crunchbase.entity_get_field_ids": {
-            "name": "field_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_card_ids": {
-            "name": "card_ids",
-            "in": "body"
-          },
-          "crunchbase.entity_get_related_entity_limit": {
-            "name": "related_entity_limit",
-            "in": "body",
-            "default": 100
-          },
-          "crunchbase.entity_get_after_id": {
-            "name": "after_id",
             "in": "body"
           }
         },
@@ -1064,7 +953,7 @@
       "method": "POST",
       "path": "/mcp/cb_reference",
       "listing_type": "api",
-      "list_atomic": 47259,
+      "list_atomic": 47258,
       "fixed_params": {},
       "preconditions": {},
       "pagination": {},
@@ -1664,225 +1553,8 @@
       }
     },
     {
-      "slug": "crunchbase.entity_get_field_ids",
-      "name": "Crunchbase field ids",
-      "description": "Omit to fetch all readable fields. [] skips top-level fields.",
-      "value_schema": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Field or card identifier",
-          "enum": [
-            "acquirer_identifier",
-            "acquisition_announced_on",
-            "acquisition_identifier",
-            "acquisition_price",
-            "aliases",
-            "bombora_last_updated",
-            "categories",
-            "category_groups",
-            "closed_on",
-            "contact_job_departments",
-            "delisted_on",
-            "diversity_spotlights",
-            "entity_def_id",
-            "equity_funding_total",
-            "exited_on",
-            "facet_ids",
-            "founded_on",
-            "founder_identifiers",
-            "funding_stage",
-            "funding_total",
-            "funds_total",
-            "growth_insight_confidence",
-            "growth_insight_description",
-            "growth_insight_direction",
-            "growth_insight_indicator",
-            "growth_score",
-            "growth_score_delta_d90",
-            "heat_score",
-            "heat_score_delta_d90",
-            "hubs",
-            "identifier",
-            "insight_similar_orgs",
-            "investor_identifiers",
-            "investor_insight_description",
-            "investor_stage",
-            "investor_type",
-            "ipo_amount_raised",
-            "ipo_share_price",
-            "ipo_status",
-            "ipo_valuation",
-            "last_equity_funding_total",
-            "last_funding_at",
-            "last_funding_total",
-            "last_funding_type",
-            "last_growth_insight",
-            "last_investment_fr_money_raised",
-            "last_investor_insight",
-            "last_news_insight",
-            "last_research_insight",
-            "location_identifiers",
-            "news_insight_description",
-            "num_contact_emails",
-            "num_contact_phones",
-            "num_contacts",
-            "num_diversity_spotlight_investments",
-            "num_employees_enum",
-            "num_exits",
-            "num_exits_ipo",
-            "num_investments_funding_rounds",
-            "num_relationships",
-            "rank",
-            "rank_org",
-            "rank_org_company",
-            "rank_org_school",
-            "rank_principal",
-            "rank_principal_investor",
-            "research_insight_description",
-            "short_description",
-            "status",
-            "stock_exchange_symbol",
-            "website_url",
-            "went_public_on",
-            "attended_schools",
-            "current_organizations",
-            "num_partner_investments",
-            "primary_job_title",
-            "primary_organization",
-            "rank_person",
-            "announced_on",
-            "funded_organization_diversity_spotlights",
-            "funded_organization_funding_total",
-            "funded_organization_identifier",
-            "funded_organization_location_groups",
-            "investment_type",
-            "lead_investor_identifiers",
-            "money_raised",
-            "pre_money_valuation",
-            "rank_funding_round",
-            "sentiment",
-            "target_money_raised",
-            "title"
-          ]
-        },
-        "description": "Omit to fetch all readable fields. [] skips top-level fields."
-      }
-    },
-    {
-      "slug": "crunchbase.entity_get_card_ids",
-      "name": "Crunchbase card ids",
-      "description": "Omit for public founders, employees, board/advisors, funding and investor cards. Explicit cards must come from the reviewed public reference.",
-      "value_schema": {
-        "type": "array",
-        "items": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Field or card identifier",
-          "enum": [
-            "acquisition_prediction",
-            "acquisitions_list",
-            "alumni_image_list",
-            "apptopia_app_overview_list_free",
-            "apptopia_app_overview_list_public",
-            "apptopia_app_rating_list",
-            "apptopia_sdk_list",
-            "awards",
-            "bankruptcies",
-            "bombora_surge_list",
-            "builtwith_tech_used_list",
-            "categories_featured_order_field",
-            "contacts_summary",
-            "current_advisors_image_list",
-            "current_advisors_preview",
-            "current_employees_image_list",
-            "current_employees_preview",
-            "current_valuation",
-            "diversity_spotlight_investments_list",
-            "diversity_spotlights_external_lookup",
-            "earnings_change_news_events",
-            "employees_display_lookup",
-            "event_appearances_list",
-            "exits_image_list",
-            "founders_lookup",
-            "funding_prediction",
-            "funding_rounds_list",
-            "funds_list",
-            "growth_knowledge",
-            "growth_prediction",
-            "headquarters_address_lookup",
-            "investment_thesis",
-            "investments_in_funds_list",
-            "investments_list",
-            "investors_list",
-            "ipo_lookup",
-            "ipo_prediction",
-            "key_employee_change_list",
-            "layoff_list",
-            "legal_proceedings",
-            "news_list",
-            "news_preview_list",
-            "offices",
-            "org_similarity_list",
-            "org_similarity_org_list",
-            "overview_funding_rounds_list",
-            "overview_key_people",
-            "partnership_announcements",
-            "portfolio_list",
-            "product",
-            "product_launches",
-            "profit_margin_news_events",
-            "recommended_search",
-            "revenue_change_news_events",
-            "semrush_location_list",
-            "siftery_product_list",
-            "static_growth_knowledge",
-            "technology_bombora_surge_list",
-            "technology_builtwith_tech_used_list",
-            "technology_siftery_product_list",
-            "current_board_and_advisory_roles_image_list",
-            "current_jobs_image_list",
-            "education_image_list",
-            "founded_organizations_lookup",
-            "hubs_list",
-            "jobs_lookup",
-            "partner_investments_list",
-            "past_board_and_advisory_roles_list",
-            "past_jobs_list",
-            "investments_lookup",
-            "lead_investors_image_list",
-            "organization_lookup"
-          ]
-        },
-        "description": "Omit for public founders, employees, board/advisors, funding and investor cards. Explicit cards must come from the reviewed public reference."
-      }
-    },
-    {
-      "slug": "crunchbase.entity_get_related_entity_limit",
-      "name": "Crunchbase related entity limit",
-      "description": "Crunchbase related_entity_limit",
-      "value_schema": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 100,
-        "default": 100
-      }
-    },
-    {
-      "slug": "crunchbase.entity_get_after_id",
-      "name": "Crunchbase after id",
-      "description": "UUID of the last returned entity. Use only for an explicitly requested next page.",
-      "value_schema": {
-        "type": "string",
-        "description": "UUID of the last returned entity. Use only for an explicitly requested next page."
-      }
-    },
-    {
       "slug": "company.crunchbase_profile_result",
-      "name": "Fetch official company, leadership and funding data result",
+      "name": "Fetch company profile, founders, employees, board members, funding rounds and investors result",
       "description": "Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
       "value_schema": {
         "type": "object",
@@ -2133,18 +1805,18 @@
     },
     {
       "slug": "company.crunchbase-profile",
-      "name": "Fetch official company, leadership and funding data",
-      "description": "Fetch official company, leadership and funding data. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+      "name": "Fetch company profile, founders, employees, board members, funding rounds and investors",
+      "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is needed for those cards."
     },
     {
       "slug": "person.crunchbase-profile",
       "name": "Fetch official professional profile and company relationships",
-      "description": "Fetch official professional profile and company relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+      "description": "Fetch official professional profile and company relationships. Retrieve one identified professional person, biography, current jobs, board roles, founded organizations and investments. Requires a person profile identifier, not a company identifier."
     },
     {
       "slug": "funding.crunchbase-profile",
       "name": "Fetch official funding round, amount and investor relationships",
-      "description": "Fetch official funding round, amount and investor relationships. Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination."
+      "description": "Fetch official funding round, amount and investor relationships. Retrieve one identified funding round, announcement date, investment stage, money raised, funded company and lead investors. Requires a funding-round identifier, not a company identifier."
     },
     {
       "slug": "research.crunchbase-reference",

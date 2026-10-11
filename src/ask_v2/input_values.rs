@@ -3,11 +3,33 @@
 use crate::capability_intake::Subject;
 use serde_json::{json, Value};
 
+/// A supplied public profile URL contains the exact provider identifier. Strip
+/// only the documented entity path; never infer a permalink from a name.
+pub(crate) fn crunchbase_profile_id(field: &str, value: &str) -> Option<Value> {
+    let entity = match field {
+        "company.crunchbase_entity_id" => "organization",
+        "person.crunchbase_entity_id" => "person",
+        "funding.crunchbase_entity_id" => "funding_round",
+        _ => return None,
+    };
+    let url = reqwest::Url::parse(value).ok()?;
+    if url.scheme() != "https" || !matches!(url.host_str(), Some("crunchbase.com" | "www.crunchbase.com"))
+        || !url.username().is_empty() || url.password().is_some() || url.port().is_some()
+        || url.query().is_some() || url.fragment().is_some() { return None; }
+    let path: Vec<_> = url.path().trim_matches('/').split('/').collect();
+    if path.len() != 2 || path[0] != entity || path[1].is_empty() || path[1].len() > 200
+        || !path[1].bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_')) { return None; }
+    Some(json!(path[1]))
+}
+
 pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
     let exact: Vec<_> = subject.identifiers.iter()
         .filter(|(key, _)| field == *key || field.ends_with(&format!(".{key}"))).collect();
     if exact.len() == 1 { return Some(json!(exact[0].1)); }
     let identifier = |keys: &[&str]| keys.iter().find_map(|key| subject.identifiers.get(*key));
+    if let Some(value) = identifier(&["url", "profile_url", "crunchbase_url"])
+        .and_then(|url| crunchbase_profile_id(field, url))
+        .or_else(|| crunchbase_profile_id(field, &subject.label)) { return Some(value); }
     let value = match field {
         "company_registry.kvknummer" => identifier(&["kvk_number", "kvknummer"]),
         "company.registration.gb.companies_house" => identifier(&["companies_house_number", "company_number", "crn"]),
@@ -86,6 +108,19 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn crunchbase_profile_links_keep_the_exact_entity_and_public_host() {
+        for (field, path) in [("company.crunchbase_entity_id", "organization"),
+            ("person.crunchbase_entity_id", "person"), ("funding.crunchbase_entity_id", "funding_round")] {
+            assert_eq!(crunchbase_profile_id(field, &format!("https://www.crunchbase.com/{path}/exact-profile_123")), Some(json!("exact-profile_123")));
+        }
+        for url in ["Starbucks", "https://crunchbase.com.evil.test/organization/starbucks",
+            "https://crunchbase.com/person/starbucks", "https://crunchbase.com/organization/starbucks/people",
+            "https://user@crunchbase.com/organization/starbucks", "https://crunchbase.com/organization/starbucks?next=evil",
+            "https://crunchbase.com/organization/star%62ucks", "http://crunchbase.com/organization/starbucks"] {
+            assert_eq!(crunchbase_profile_id("company.crunchbase_entity_id", url), None, "{url}");
+        }
+    }
     #[test]
     fn documented_names_respect_company_and_person_types() {
         for (kind, description, expected) in [

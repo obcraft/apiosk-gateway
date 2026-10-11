@@ -43,7 +43,7 @@ fn activated_database_catalog_is_indexed_and_priced() {
     let services:Vec<_>=c.services.iter().filter(|s| s.path.starts_with("/mcp/")).collect();
     assert_eq!(services.len(),10);
     for service in &services {
-        assert_eq!(service.list_atomic,47_259);assert_eq!(service.total(),54_348);
+        assert_eq!(service.list_atomic,47_258);assert_eq!(service.total(),54_347);
         assert_eq!(service.source_url.as_deref(),Some("https://data.crunchbase.com/docs/tool-reference"));
         assert!(service.contract.extract(service.sample_payload.as_ref().unwrap(),&c.vocabulary).unwrap().rejected.is_empty());
     }
@@ -90,9 +90,9 @@ fn official_mcp_capabilities_bind_the_right_entity_and_keep_filters() {
         assert_eq!(plan.steps.len(),1);
         // The same tariff applies to every official MCP action. Reference
         // lookup is a paid trigger too; internal Jina enrichment adds no step.
-        assert_eq!(s.list_atomic, 47_259);
-        assert_eq!(s.total(), 54_348);
-        assert_eq!(plan.cap_atomic, 54_348);
+        assert_eq!(s.list_atomic, 47_258);
+        assert_eq!(s.total(), 54_347);
+        assert_eq!(plan.cap_atomic, 54_347);
         let inputs = s.inputs(&task,entity,&c.vocabulary).unwrap();
         match s.contract.capability_slug.as_str() {
             "person.crunchbase-search" => assert_eq!(inputs["collection_ids"],"people"),
@@ -106,6 +106,27 @@ fn official_mcp_capabilities_bind_the_right_entity_and_keep_filters() {
         assert!(output.rejected.is_empty(),"{:?}",output.rejected);
         assert_eq!(output.subjects.len(),1);
         assert!(s.contract.extract(&json!({"error":"oauth_required"}),&c.vocabulary).unwrap().subjects.is_empty());
+    }
+}
+
+#[test]
+fn ask_discovers_one_company_profile_for_its_available_relationships() {
+    let c = Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
+    for (slug, name, outputs) in [
+        ("company.profile", "Company profile", vec!["company_profile", "description", "website"]),
+        ("company.founders", "Company founders", vec!["founders"]),
+        ("company.employees", "Company employees", vec!["employees"]),
+        ("company.board_members", "Company board members", vec!["board_members"]),
+        ("company.funding_rounds", "Company funding rounds", vec!["funding_rounds"]),
+        ("company.investors", "Company investors", vec!["investors"]),
+    ] {
+        let parsed = apiosk_gateway_v2::capability_intake::normalize(&json!({
+            "language":"en", "subjects":[{"id":"s1","label":"Starbucks","type":"company","identifiers":{"url":"https://www.crunchbase.com/organization/starbucks"}}],
+            "capabilities":[{"slug":slug,"name":name,"description":format!("Retrieve available {name} from Crunchbase."),"domain":"company","inputs":["company_name"],"outputs":outputs,"subject_id":"s1","source_hint":"Crunchbase","confidence":1.0}],
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), "Use Crunchbase for the Starbucks company profile, founders, employees, board members, funding rounds and investors.", "fixture").unwrap();
+        let found = apiosk_gateway_v2::ask_v2::search::search(&parsed, &c);
+        assert!(found[0].operations.contains("company.crunchbase-profile"), "{slug}: {:?}", found[0].operations);
     }
 }
 #[test]

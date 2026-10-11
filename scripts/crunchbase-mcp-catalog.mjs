@@ -8,7 +8,7 @@ export const docs='https://data.crunchbase.com/docs/tool-reference';
 // Buyer tariff approved 2026-10-11: EUR 0.05 per tools/call including the 15%
 // fee, calibrated to billing.fx_rates EUR/USD=0.92 (2026-08-21). Settlement
 // remains USDC; future display-rate changes also change the EUR equivalent.
-export const pricing={listAtomic:47_259,buyerAtomic:54_348,buyerMarkupBps:1500,
+export const pricing={listAtomic:47_258,buyerAtomic:54_347,buyerMarkupBps:1500,
  displayCurrency:'EUR',displayAmount:0.05,displayRate:0.92,rateAsOf:'2026-08-21',
  approvedOn:'2026-10-11',unit:'tools/call',internalEnrichmentIncluded:true};
 const str=(description,maxLength=200)=>({type:'string',minLength:1,maxLength,description});
@@ -37,9 +37,17 @@ export const capabilities=[
  ['company.crunchbase-filter','Filter companies by industry, geography and funding','cb_search_query',{collection_id:'organizations'},['predicates'],'company'],
  ['person.crunchbase-filter','Filter people and professional profiles','cb_search_query',{collection_id:'people'},['predicates'],'person'],
  ['funding.crunchbase-search','Find funding rounds, amounts, stages and investors','cb_search_query',{collection_id:'funding_rounds'},['predicates'],'funding'],
- ['company.crunchbase-profile','Fetch official company, leadership and funding data','cb_entity_get',{entity_def_id:'organization'},['entity_id'],'company'],
+ ['company.crunchbase-profile','Fetch company profile, founders, employees, board members, funding rounds and investors','cb_entity_get',{entity_def_id:'organization'},['entity_id'],'company'],
  ['person.crunchbase-profile','Fetch official professional profile and company relationships','cb_entity_get',{entity_def_id:'person'},['entity_id'],'person'],
  ['funding.crunchbase-profile','Fetch official funding round, amount and investor relationships','cb_entity_get',{entity_def_id:'funding_round'},['entity_id'],'funding'],
  ['research.crunchbase-reference','Read Crunchbase fields, collections and filter operators','cb_reference',{},[],'research'],
 ].map(([slug,name,tool,fixed,required,category])=>({slug,name,tool,fixed,required,category}));
+export function capabilityDescription(capability) {
+ const detail={
+  'company.crunchbase-profile':'Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is needed for those cards.',
+  'person.crunchbase-profile':'Retrieve one identified professional person, biography, current jobs, board roles, founded organizations and investments. Requires a person profile identifier, not a company identifier.',
+  'funding.crunchbase-profile':'Retrieve one identified funding round, announcement date, investment stage, money raised, funded company and lead investors. Requires a funding-round identifier, not a company identifier.',
+ }[capability.slug] ?? tools.find(t=>t.tool===capability.tool).description;
+ return capability.name+'. '+detail;
+}
 export const outputSchema={type:'object',required:['source','transport','tool','data','retrieved_at'],properties:{source:{type:'string',enum:['Crunchbase']},transport:{type:'string',enum:['official_mcp']},tool:{enum:tools.map(t=>t.tool)},data:{type:['object','array']},retrieved_at:{type:'string'}}};

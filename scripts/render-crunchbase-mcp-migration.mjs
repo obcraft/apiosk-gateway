@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {source,origin,docs,tools,capabilities,outputSchema,pricing} from './crunchbase-mcp-catalog.mjs';
+import {source,origin,docs,tools,capabilities,outputSchema,pricing,capabilityDescription} from './crunchbase-mcp-catalog.mjs';
 const q=v=>`'${String(v).replaceAll("'","''")}'`;
 const j=v=>`${q(JSON.stringify(v))}::jsonb`;
 const arr=v=>`ARRAY[${v.map(q).join(',')}]::text[]`;
@@ -37,6 +37,9 @@ for(const c of capabilities){
  const fixed={...c.fixed};
  for(const [key,schema]of Object.entries(properties)){
   if(key in fixed)continue;
+  // Natural-language profile retrieval uses the reviewed public defaults.
+  // Field/card selectors remain in the endpoint API, not model-written plans.
+  if(c.tool==='cb_entity_get' && key!=='entity_id')continue;
   const slug=factName(c,key);
   facts.set(slug,{name:`Crunchbase ${key.replaceAll('_',' ')}`,description:schema.description||`Crunchbase ${key}`,schema:factSchema(schema),kind:key==='entity_id'?c.category:'research'});
   requires.push({fact_type:slug,subject_role:'subject',optional:!required.includes(key)});
@@ -46,7 +49,7 @@ for(const c of capabilities){
  facts.set(result,{name:c.name+' result',description:t.description,schema:outputSchema,kind:c.category});
  c.contract={requires,produces:[{fact_type:result,subject_role:'subject',cardinality:'one'}],input_map:inputMap,fixed_params:fixed,output_map:{base:'$',produces:{[result]:{path:'$'}}},cardinality:'one',max_fan_out:1};
  sql.push(`INSERT INTO catalog.capabilities(slug,name,description,category,input_contract,output_contract,status)
- VALUES(${q(c.slug)},${q(c.name)},${q(c.name+'. '+t.description)},${q(c.category)},${j(t.schema)},${j(outputSchema)},'draft') ON CONFLICT(slug) DO NOTHING;`);
+ VALUES(${q(c.slug)},${q(c.name)},${q(capabilityDescription(c))},${q(c.category)},${j(t.schema)},${j(outputSchema)},'draft') ON CONFLICT(slug) DO NOTHING;`);
 }
 for(const [slug,f]of facts){
  sql.push(`INSERT INTO catalog.fact_types(slug,name,description,subject_kind,value_schema,status,freshness_seconds)
@@ -65,12 +68,12 @@ const file=new URL('../supabase/migrations/20261011133137_register_crunchbase_of
 if(!process.argv.includes('--fixture-only'))await fs.writeFile(file,sql.join('\n\n')+'\n');
 // Local fixture uses synthetic responses explicitly; it is never activation evidence.
 const base=JSON.parse(await fs.readFile(new URL('../tests/fixtures/crunchbase/catalog.json',import.meta.url)));
-const fixture={known_sources:[{...base.known_sources[0],metadata:{description:'Official Crunchbase company, people and funding search, filter and profile data',category:'company',tags:[...new Set(tools.flatMap(t=>t.tags))],identity_documented:true}}],services:[],vocabulary:[...facts].map(([slug,f])=>({slug,name:f.name,description:f.description,value_schema:f.schema})),capabilities:capabilities.map(c=>({slug:c.slug,name:c.name,description:c.name+'. '+tools.find(t=>t.tool===c.tool).description}))};
+const fixture={known_sources:[{...base.known_sources[0],metadata:{description:'Official Crunchbase company, people and funding search, filter and profile data',category:'company',tags:[...new Set(tools.flatMap(t=>t.tags))],identity_documented:true}}],services:[],vocabulary:[...facts].map(([slug,f])=>({slug,name:f.name,description:f.description,value_schema:f.schema})),capabilities:capabilities.map(c=>({slug:c.slug,name:c.name,description:capabilityDescription(c)}))};
 let n=0;
 for(const c of capabilities){
  const t=tools.find(t=>t.tool===c.tool),i=tools.indexOf(t)+1;
  const payload={source:'Crunchbase',transport:'official_mcp',tool:c.tool,data:{fixture:true,properties:{identifier:{entity_def_id:c.fixed.entity_def_id||'organization',permalink:'example'}},cards:{employees:[{title:'CEO'}],raised_funding_rounds:[{money_raised:1000000}]}},retrieved_at:'2026-10-11T00:00:00Z'};
- fixture.services.push({id:`1cb00000-0000-4000-8000-${String(++n).padStart(12,'0')}`,endpoint_id:`2cb00000-0000-4000-8000-${String(i).padStart(12,'0')}`,api_slug:source,name:'Crunchbase',description:c.name+'. '+t.description,source_url:docs,method:'POST',path:'/mcp/'+c.tool,listing_type:'api',list_atomic:pricing.listAtomic,fixed_params:c.contract.fixed_params,preconditions:{},pagination:{},freshness_seconds:3600,sample_payload:payload,contract:{...c.contract,capability_slug:c.slug,version:1,effect:'read',price_model:'per_call'}});
+ fixture.services.push({id:`1cb00000-0000-4000-8000-${String(++n).padStart(12,'0')}`,endpoint_id:`2cb00000-0000-4000-8000-${String(i).padStart(12,'0')}`,api_slug:source,name:'Crunchbase',description:capabilityDescription(c),source_url:docs,method:'POST',path:'/mcp/'+c.tool,listing_type:'api',list_atomic:pricing.listAtomic,fixed_params:c.contract.fixed_params,preconditions:{},pagination:{},freshness_seconds:3600,sample_payload:payload,contract:{...c.contract,capability_slug:c.slug,version:1,effect:'read',price_model:'per_call'}});
 }
 await fs.writeFile(new URL('../tests/fixtures/crunchbase/official-mcp.json',import.meta.url),JSON.stringify(fixture,null,2)+'\n');
 console.log(`${tools.length} documented endpoints, ${capabilities.length} draft capabilities; no activation or prices inferred.`);

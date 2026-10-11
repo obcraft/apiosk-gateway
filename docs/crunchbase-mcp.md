@@ -22,11 +22,12 @@ fee**, at the configured display rate on 2026-10-11. This also applies to
 requests are separate triggers and must appear in the approved total. Internal
 Jina enrichment is included, with no extra charged step.
 
-The catalog stores `0.047259` USDC before the standard 15% fee. Integer fee
-rounding gives a buyer total of `0.054348` USDC, displayed as EUR 0.05 at the
+The catalog stores `0.047258` USDC before the standard 15% fee. Integer fee
+rounding gives a buyer total of `0.054347` USDC, displayed as EUR 0.05 at the
 configured EUR/USD rate `0.92` (rate date 2026-08-21). Settlement remains in USDC:
 this is not an exchange-rate lock, and a future display-rate update changes the
-EUR equivalent. The separate pricing migration preserves all activation gates.
+EUR equivalent. The tariff regression uses the App's actual source-price and
+quote-ceiling formatters, so neither can round this tariff up to EUR 0.051.
 
 ## Account connection and activation
 
@@ -57,8 +58,20 @@ and `cb_reference` supplied the real account schemas. The account exposed a
 Nine real public responses cover name search, public-field filtering, reference,
 and company/person/funding profiles. The real Rust adapter also passed a free
 Vault-to-Crunchbase reference request. No buyer balance was charged; these checks
-do not claim a paid Ask execution. The activation migration must run only after
-the reviewed adapter deployment. Existing API.market routes retain their prices.
+do not claim a paid Ask execution. The reviewed adapter and four endpoints were
+activated in production. The runtime role has column-level read access to the
+endpoint origin and documentation URL for correct official-source attribution.
+Existing API.market routes retain their prices.
+
+The company-profile capability explicitly indexes founders, employees, board
+members, funding rounds and investors as outputs of one profile call. Ask binds
+an explicitly supplied Crunchbase organization/person/funding-round profile URL
+to its exact permalink, with a matching public host and entity path. It never
+guesses a permalink from a company name or buys a redundant identity lookup.
+Automatic profile contracts expose only that identifier; advanced field/card
+selectors remain available in the endpoint schema. The real production model
+and a production-catalog snapshot compiled the complete Starbucks profile
+question after this correction, stopping before approval and paid execution.
 
 ## Execution and result boundaries
 
