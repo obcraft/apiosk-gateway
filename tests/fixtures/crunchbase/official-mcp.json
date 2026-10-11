@@ -1518,9 +1518,13 @@
                 "type": "string"
               },
               "entity_def_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "enum": [
-                  "organization"
+                  "organization",
+                  null
                 ]
               },
               "properties": {
@@ -1532,7 +1536,10 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "value": {}
                   }
@@ -1549,13 +1556,22 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entity_def_id": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entities": {
-                      "type": "array",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
                       "items": {
                         "type": "object",
                         "properties": {
@@ -1568,7 +1584,10 @@
                                   "type": "string"
                                 },
                                 "label": {
-                                  "type": "string"
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
                                 },
                                 "value": {}
                               }
@@ -1649,9 +1668,13 @@
                 "type": "string"
               },
               "entity_def_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "enum": [
-                  "person"
+                  "person",
+                  null
                 ]
               },
               "properties": {
@@ -1663,7 +1686,10 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "value": {}
                   }
@@ -1680,13 +1706,22 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entity_def_id": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entities": {
-                      "type": "array",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
                       "items": {
                         "type": "object",
                         "properties": {
@@ -1699,7 +1734,10 @@
                                   "type": "string"
                                 },
                                 "label": {
-                                  "type": "string"
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
                                 },
                                 "value": {}
                               }
@@ -1780,9 +1818,13 @@
                 "type": "string"
               },
               "entity_def_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "enum": [
-                  "funding_round"
+                  "funding_round",
+                  null
                 ]
               },
               "properties": {
@@ -1794,7 +1836,10 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "value": {}
                   }
@@ -1811,13 +1856,22 @@
                       "type": "string"
                     },
                     "label": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entity_def_id": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     },
                     "entities": {
-                      "type": "array",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
                       "items": {
                         "type": "object",
                         "properties": {
@@ -1830,7 +1884,10 @@
                                   "type": "string"
                                 },
                                 "label": {
-                                  "type": "string"
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
                                 },
                                 "value": {}
                               }

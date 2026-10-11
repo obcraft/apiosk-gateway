@@ -56,7 +56,7 @@ export const outputSchema={type:'object',required:['source','transport','tool','
 // profile. These reviewed aliases describe only the public default selection.
 // Fields/cards remain optional: entitlement, empty data and pagination vary.
 const aliases=names=>({$comment:JSON.stringify({apiosk_output_aliases_v1:names})});
-const fieldRows={type:'array',items:{type:'object',properties:{field_id:{type:'string'},label:{type:'string'},value:{}}}};
+const fieldRows={type:'array',items:{type:'object',properties:{field_id:{type:'string'},label:{type:['string','null']},value:{}}}};
 const profileScope={
  organization:{fields:['name','description','website','headquarters','headcount','employee_count','funding_total'],cards:['founders','employees','board_members','advisors','funding_rounds','investors']},
  person:{fields:['name','description','location'],cards:['current_jobs','board_roles','founded_organizations','investments']},
@@ -67,11 +67,11 @@ export function capabilityOutputSchema(capability){
  const kind=capability.fixed.entity_def_id,scope=profileScope[kind];
  return {...outputSchema,properties:{...outputSchema.properties,data:{type:'object',required:['properties','cards'],
   ...aliases(['profile',`${capability.category}_profile`]),properties:{
-   request_id:{type:'string'},entity_def_id:{type:'string',enum:[kind]},
+   request_id:{type:'string'},entity_def_id:{type:['string','null'],enum:[kind,null]},
    properties:{...fieldRows,...aliases(scope.fields)},
    cards:{type:'array',...aliases(scope.cards),items:{type:'object',properties:{
-    card_id:{type:'string'},label:{type:'string'},entity_def_id:{type:'string'},
-    entities:{type:'array',items:{type:'object',properties:{properties:fieldRows}}},
+    card_id:{type:'string'},label:{type:['string','null']},entity_def_id:{type:['string','null']},
+    entities:{type:['array','null'],items:{type:'object',properties:{properties:fieldRows}}},
     has_more_entities:{type:'boolean'},
    }}},
   }}}};

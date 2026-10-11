@@ -97,6 +97,10 @@ try{
  const arraysSql=await fs.readFile(new URL('../supabase/migrations/'+arraysFile,import.meta.url),'utf8');
  assert.equal(arraysSql,await fs.readFile(new URL('../../app/supabase/migrations/'+arraysFile,import.meta.url),'utf8'));
  await db.exec(arraysSql);await db.exec(arraysSql);
+ const nullableFile=(await fs.readdir(new URL('../supabase/migrations/',import.meta.url))).find(name=>name.endsWith('_accept_documented_crunchbase_nullable_fields.sql'));
+ const nullableSql=await fs.readFile(new URL('../supabase/migrations/'+nullableFile,import.meta.url),'utf8');
+ assert.equal(nullableSql,await fs.readFile(new URL('../../app/supabase/migrations/'+nullableFile,import.meta.url),'utf8'));
+ await db.exec(nullableSql);await db.exec(nullableSql);
  for(const c of capabilities.filter(c=>c.tool==='cb_entity_get')){
   const actual=(await db.query('SELECT value_schema FROM catalog.fact_types WHERE slug=$1',[c.slug.replaceAll('-','_')+'_result'])).rows[0].value_schema;
   assert.deepEqual(actual,capabilityOutputSchema(c));

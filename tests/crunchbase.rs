@@ -26,6 +26,16 @@ fn official_live_company_people_and_funding_are_preserved() {
             && (record["name"]!="cb_entity_get" || s.fixed_params["entity_def_id"]==record["arguments"]["entity_def_id"])) {
             let output=service.contract.extract(&envelope,&c.vocabulary).unwrap();
             assert!(output.rejected.is_empty());assert_eq!(output.subjects.len(),1);
+            if record["name"]=="cb_entity_get" {
+                // The authenticated tools/list output schema explicitly
+                // permits null labels and nullable relationship entities.
+                let mut nullable=envelope.clone();
+                nullable["data"]["properties"][0]["label"]=Value::Null;
+                nullable["data"]["cards"][0]["label"]=Value::Null;
+                nullable["data"]["cards"][0]["entity_def_id"]=Value::Null;
+                nullable["data"]["cards"][0]["entities"]=Value::Null;
+                assert!(service.contract.extract(&nullable,&c.vocabulary).unwrap().rejected.is_empty());
+            }
         }
     }
     let company=records.iter().find(|r| r["name"]=="cb_entity_get"&&r["arguments"]["entity_def_id"]=="organization").unwrap();
