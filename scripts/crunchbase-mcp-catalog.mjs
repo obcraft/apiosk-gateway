@@ -3,6 +3,12 @@
 export const source='apimarket-magicapi-crunchbase-bbcca0a6';
 export const origin='https://mcp.crunchbase.com';
 export const docs='https://data.crunchbase.com/docs/tool-reference';
+// Buyer tariff approved 2026-10-11: EUR 0.05 per tools/call including the 15%
+// fee, calibrated to billing.fx_rates EUR/USD=0.92 (2026-08-21). Settlement
+// remains USDC; future display-rate changes also change the EUR equivalent.
+export const pricing={listAtomic:47_259,buyerAtomic:54_348,buyerMarkupBps:1500,
+ displayCurrency:'EUR',displayAmount:0.05,displayRate:0.92,rateAsOf:'2026-08-21',
+ approvedOn:'2026-10-11',unit:'tools/call',internalEnrichmentIncluded:true};
 const str=(description,maxLength=200)=>({type:'string',minLength:1,maxLength,description});
 const array=(description)=>({type:'array',items:str('Field or card identifier'),maxItems:100,description});
 const count=(max,def)=>({type:'integer',minimum:1,maximum:max,default:def});

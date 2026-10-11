@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {PGlite} from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
-import {tools,capabilities,source} from './crunchbase-mcp-catalog.mjs';
+import {tools,capabilities,source,pricing} from './crunchbase-mcp-catalog.mjs';
 const file='20261011133137_register_crunchbase_official_mcp.sql';
 const sql=await fs.readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');
 assert.equal(sql,await fs.readFile(new URL('../../app/supabase/migrations/'+file,import.meta.url),'utf8'));
+const priceFile='20261011142816_price_crunchbase_mcp_tools.sql';
+const priceSql=await fs.readFile(new URL('../supabase/migrations/'+priceFile,import.meta.url),'utf8');
+assert.equal(priceSql,await fs.readFile(new URL('../../app/supabase/migrations/'+priceFile,import.meta.url),'utf8'));
 const db=new PGlite();
 try{
  await db.exec(`CREATE SCHEMA providers; CREATE SCHEMA catalog;
@@ -29,8 +32,20 @@ try{
  const old=(await db.query("SELECT active,price FROM providers.api_endpoints WHERE path='/autocompletes'")).rows[0];assert.equal(old.active,true);assert.equal(Number(old.price),0.086956);
  assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.credential,{configured:true});
  assert.deepEqual(contracts.map(c=>c.capability_slug).sort(),capabilities.map(c=>c.slug).sort());
+ await db.exec(priceSql);await db.exec(priceSql);await db.exec(sql);
+ const priced=(await db.query("SELECT price,payment_required,active FROM providers.api_endpoints WHERE path LIKE '/mcp/%'")).rows;
+ assert.equal(priced.length,4);
+ for(const e of priced){
+  const list=Math.round(Number(e.price)*1_000_000);
+  assert.equal(list,pricing.listAtomic);
+  assert.equal(list+Math.ceil(list*pricing.buyerMarkupBps/10_000),pricing.buyerAtomic);
+  assert.equal(e.payment_required,true);assert.equal(e.active,false);
+ }
+ assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.pricing,pricing);
+ assert.ok((await db.query('SELECT status FROM catalog.capability_execution_contracts')).rows.every(c=>c.status==='draft'));
+ assert.equal(Number((await db.query("SELECT price FROM providers.api_endpoints WHERE path='/autocompletes'")).rows[0].price),0.086956);
  await db.exec(`UPDATE providers.apis SET listing_metadata=jsonb_set(listing_metadata,'{official_mcp,status}','"verified"')`);
- await db.exec(sql);
+ await db.exec(priceSql);await db.exec(sql);
  assert.equal((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.status,'verified');
- console.log('PASS: same source, four inactive MCP endpoints, ten typed draft capabilities, preserved API.market route/price, no Jina source, repeatable SQL.');
+ console.log('PASS: same source, four equally priced inactive MCP endpoints, ten typed draft capabilities, preserved API.market route/price, no Jina surcharge, repeatable SQL.');
 }finally{await db.close();}

@@ -14,6 +14,20 @@ filtered searches, filter-value resolution and reference lookup. Tags, categorie
 input schemas, result facts and source attribution are recorded in the catalog.
 Existing API.market operations and their prices remain unchanged.
 
+## Buyer tariff
+
+Each of these four MCP tools costs **EUR 0.05 per trigger, including the Apiosk
+fee**, at the configured display rate on 2026-10-11. This also applies to
+`cb_reference`; additional searches, profile fetches and explicit next-page
+requests are separate triggers and must appear in the approved total. Internal
+Jina enrichment is included, with no extra charged step.
+
+The catalog stores `0.047259` USDC before the standard 15% fee. Integer fee
+rounding gives a buyer total of `0.054348` USDC, displayed as EUR 0.05 at the
+configured EUR/USD rate `0.92` (rate date 2026-08-21). Settlement remains in USDC:
+this is not an exchange-rate lock, and a future display-rate update changes the
+EUR equivalent. The separate pricing migration preserves all activation gates.
+
 ## Account connection and activation
 
 The official MCP server is `https://mcp.crunchbase.com`. The API.market key cannot
@@ -38,7 +52,7 @@ activate public catalog entries. Compare discovered schemas with
 `scripts/crunchbase-mcp-catalog.mjs` before live acceptance.
 
 Activation still requires successful OAuth, confirmed account access and provider
-usage limits, an explicit buyer tariff, and real responses for each activated
+usage limits, and real responses for each activated
 capability. Do not mark fixtures as live evidence. Crunchbase documents separate
 arrangements for backend/programmatic use; verify that the connected account
 supports the intended service use. Until then endpoints are inactive and contracts,

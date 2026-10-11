@@ -49,6 +49,11 @@ fn official_mcp_capabilities_bind_the_right_entity_and_keep_filters() {
             answer_operations:vec![],unresolved_references:vec![] };
         let Resolution::Plan(plan) = resolve(&c,&task,&intent) else { panic!("{} did not resolve",s.contract.capability_slug) };
         assert_eq!(plan.steps.len(),1);
+        // The same tariff applies to every official MCP action. Reference
+        // lookup is a paid trigger too; internal Jina enrichment adds no step.
+        assert_eq!(s.list_atomic, 47_259);
+        assert_eq!(s.total(), 54_348);
+        assert_eq!(plan.cap_atomic, 54_348);
         let inputs = s.inputs(&task,entity,&c.vocabulary).unwrap();
         match s.contract.capability_slug.as_str() {
             "person.crunchbase-search" => assert_eq!(inputs["collection_ids"],"people"),

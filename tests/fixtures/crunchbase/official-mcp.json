@@ -51,7 +51,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "collection_ids": "organizations"
       },
@@ -145,7 +145,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "collection_ids": "people"
       },
@@ -239,7 +239,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_autocomplete",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {},
       "preconditions": {},
       "pagination": {},
@@ -338,7 +338,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "collection_id": "organization.companies"
       },
@@ -468,7 +468,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "collection_id": "people"
       },
@@ -598,7 +598,7 @@
       "method": "POST",
       "path": "/mcp/cb_search_query",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "collection_id": "funding_rounds"
       },
@@ -728,7 +728,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "entity_def_id": "organization"
       },
@@ -849,7 +849,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "entity_def_id": "person"
       },
@@ -970,7 +970,7 @@
       "method": "POST",
       "path": "/mcp/cb_entity_get",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {
         "entity_def_id": "funding_round"
       },
@@ -1091,7 +1091,7 @@
       "method": "POST",
       "path": "/mcp/cb_reference",
       "listing_type": "api",
-      "list_atomic": 0,
+      "list_atomic": 47259,
       "fixed_params": {},
       "preconditions": {},
       "pagination": {},

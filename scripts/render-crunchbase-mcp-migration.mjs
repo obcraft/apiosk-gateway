@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {source,origin,docs,tools,capabilities,outputSchema} from './crunchbase-mcp-catalog.mjs';
+import {source,origin,docs,tools,capabilities,outputSchema,pricing} from './crunchbase-mcp-catalog.mjs';
 const q=v=>`'${String(v).replaceAll("'","''")}'`;
 const j=v=>`${q(JSON.stringify(v))}::jsonb`;
 const arr=v=>`ARRAY[${v.map(q).join(',')}]::text[]`;
@@ -70,7 +70,7 @@ let n=0;
 for(const c of capabilities){
  const t=tools.find(t=>t.tool===c.tool),i=tools.indexOf(t)+1;
  const payload={source:'Crunchbase',transport:'official_mcp',tool:c.tool,data:{fixture:true,properties:{identifier:{entity_def_id:c.fixed.entity_def_id||'organization',permalink:'example'}},cards:{employees:[{title:'CEO'}],raised_funding_rounds:[{money_raised:1000000}]}},retrieved_at:'2026-10-11T00:00:00Z'};
- fixture.services.push({id:`1cb00000-0000-4000-8000-${String(++n).padStart(12,'0')}`,endpoint_id:`2cb00000-0000-4000-8000-${String(i).padStart(12,'0')}`,api_slug:source,name:'Crunchbase',description:c.name+'. '+t.description,source_url:docs,method:'POST',path:'/mcp/'+c.tool,listing_type:'api',list_atomic:0,fixed_params:c.contract.fixed_params,preconditions:{},pagination:{},freshness_seconds:3600,sample_payload:payload,contract:{...c.contract,capability_slug:c.slug,version:1,effect:'read',price_model:'per_call'}});
+ fixture.services.push({id:`1cb00000-0000-4000-8000-${String(++n).padStart(12,'0')}`,endpoint_id:`2cb00000-0000-4000-8000-${String(i).padStart(12,'0')}`,api_slug:source,name:'Crunchbase',description:c.name+'. '+t.description,source_url:docs,method:'POST',path:'/mcp/'+c.tool,listing_type:'api',list_atomic:pricing.listAtomic,fixed_params:c.contract.fixed_params,preconditions:{},pagination:{},freshness_seconds:3600,sample_payload:payload,contract:{...c.contract,capability_slug:c.slug,version:1,effect:'read',price_model:'per_call'}});
 }
 await fs.writeFile(new URL('../tests/fixtures/crunchbase/official-mcp.json',import.meta.url),JSON.stringify(fixture,null,2)+'\n');
 console.log(`${tools.length} documented endpoints, ${capabilities.length} draft capabilities; no activation or prices inferred.`);
