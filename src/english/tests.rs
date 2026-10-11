@@ -384,16 +384,21 @@ fn without_translation_the_catalog_is_left_as_it_is() {
 }
 
 fn parsed(language: &str, name: &str, description: &str, outputs: &[&str]) -> ParsedRequest {
-    normalize(
+    let mut parsed = normalize(
         &json!({"language":language,"subjects":[{"id":"s1","label":"Nederland","type":"country","identifiers":{}}],
             "capabilities":[{"slug":"research.statistics.unemployment","name":name,"description":description,"domain":"research",
-                "inputs":["land"],"outputs":outputs,"subject_id":"s1","source_hint":null,"confidence":0.9}],
+                "inputs":[],"outputs":outputs,"subject_id":"s1","source_hint":null,"confidence":0.9}],
             "deliverable":{"format":"chat","operations":[]}})
         .to_string(),
         "Werkloosheid in Nederland",
         "fixture",
     )
-    .unwrap()
+    .unwrap();
+    // Translation must also handle historical saved intakes with untranslated
+    // input concepts. Current model admission requires grounded English keys;
+    // restore this explicit translation fixture after validating its shape.
+    parsed.capabilities[0].inputs = vec!["land".into()];
+    parsed
 }
 
 #[tokio::test]
@@ -505,15 +510,18 @@ async fn only_bazaar_listings_in_another_language_are_translated() {
 
 #[test]
 fn search_finds_a_foreign_listing_through_its_english_rendering_and_falls_back_without_it() {
-    let request = normalize(
+    let mut request = normalize(
         &json!({"language":"en","subjects":[],"capabilities":[{"slug":"research.statistics.unemployment","name":"Unemployment rate",
-            "description":"Retrieves the unemployment rate of a country over time.","domain":"research","inputs":["country"],
+            "description":"Retrieves the unemployment rate of a country over time.","domain":"research","inputs":[],
             "outputs":["unemployment_rate","period"],"subject_id":null,"source_hint":null,"confidence":0.9}],
             "deliverable":{"format":"chat","operations":[]}}).to_string(),
         "Unemployment rate",
         "fixture",
     )
     .unwrap();
+    // This ranking-only fixture represents historical source discovery before
+    // a country was supplied; it is not a valid new execution request.
+    request.capabilities[0].inputs = vec!["country".into()];
     let offered = |catalog: &Catalog| -> Vec<String> {
         crate::ask_v2::search::search(&request, catalog)[0]
             .apiosk

@@ -322,12 +322,20 @@ impl Request {
             let scope = words(text);
             scope.contains("profile") && !scope.contains("url") && !scope.contains("link")
         };
-        let person_profile = (profile_record(&capability.slug) || capability.outputs.iter().any(|output| profile_record(output)))
-            && (person_subject || ["person", "people", "professional"].iter().any(|word| valuation_words.contains(*word)));
-        let company_profile = !person_profile && (company_subject || capability.domain == "company")
-            && (profile_record(&capability.slug) || capability.outputs.iter().any(|output| profile_record(output)))
-            && !individual_profile_identity(&words(&capability.slug))
-            && !capability.outputs.iter().any(|output| individual_profile_identity(&words(output)));
+        let requested_profile = profile_record(&capability.slug)
+            || capability.outputs.iter().any(|output| profile_record(output));
+        let individual_record = individual_profile_identity(&words(&capability.slug))
+            || (!profile_record(&capability.slug) && capability.outputs.iter()
+                .any(|output| individual_profile_identity(&words(output))));
+        let company_record = (company_subject || capability.domain == "company") && !individual_record;
+        // The primary record and subject take precedence over related fields.
+        // A company profile can include people and employee profiles without
+        // becoming a person lookup. Explicit individual-profile operations and
+        // person subjects still keep their stricter person scope.
+        let person_profile = requested_profile && (person_subject
+            || (!company_record && ["person", "people", "professional"].iter()
+                .any(|word| valuation_words.contains(*word))));
+        let company_profile = requested_profile && company_record && !person_profile;
         let corporate_valuation = (primary_facets & VALUATION != 0 || enterprise_multiple)
             && (company_subject || capability.domain == "company" || enterprise_multiple);
         let equity_quote = primary_facets & STOCK_MARKET != 0
@@ -727,6 +735,48 @@ mod tests {
         assert!(request.passes(&wanted, &candidate, &small, false));
         assert!(request.passes(&wanted, &candidate, &crowded_index(), false),
             "a generic profile request must retain its reviewed registry match without naming a provider");
+    }
+
+    #[test]
+    fn company_profile_related_people_do_not_change_the_requested_record_type() {
+        // Saved model wording from the live full-profile request: its related
+        // people field used to incorrectly classify this as a person profile.
+        let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
+        let parsed = crate::capability_intake::normalize(&json!({
+            "language":"en",
+            "subjects":[{"id":"s1","label":"starbucks","type":"company",
+                "identifiers":{"url":"https://www.crunchbase.com/organization/starbucks"}}],
+            "capabilities":[{"slug":"company.profile","name":"Company profile",
+                "description":"Retrieve the full company profile, including requested people, funding, and investor information.",
+                "domain":"company","inputs":["url"],
+                "outputs":["profile","founders","employees","board_members","funding_rounds","investors"],
+                "subject_id":"s1","source_hint":"crunchbase","confidence":0.99}],
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), question, "saved-model-fixture").unwrap();
+        let snapshot = serde_json::from_str(include_str!("../../../tests/fixtures/crunchbase/official-mcp.json")).unwrap();
+        let catalog = crate::catalog::Catalog::build(snapshot);
+        let found = super::super::search(&parsed, &catalog);
+        assert!(found[0].operations.contains("company.crunchbase-profile"), "{:?}", found[0].apiosk);
+        assert!(!found[0].operations.contains("person.crunchbase-profile"));
+
+        // Scope derives from the record identity, without a named company or
+        // provider condition. More related-person prose and fields retain it.
+        let mut generic = parsed.clone();
+        generic.subjects[0].label = "Example B.V.".into();
+        generic.capabilities[0].source_hint = None;
+        generic.capabilities[0].outputs.push("employee_profiles".into());
+        for description in [
+            "A company profile including people and their professional roles.",
+            "A company profile with personal biographies of founders and company officers.",
+        ] {
+            generic.capabilities[0].description = description.into();
+            let capability = &generic.capabilities[0];
+            let request = Request::new(capability, &generic);
+            let wanted = super::super::wanted(capability, &generic);
+            assert!(request.passes(&wanted, &operation("company.registry-profile", "Retrieve a company's official registered profile."), &crowded_index(), false));
+            assert!(!request.profile_scope_matches(&operation("person.profile", "Retrieve one person's professional profile.")));
+            assert!(!request.profile_scope_matches(&operation("company.employee-profile", "Retrieve one company employee profile.")));
+        }
     }
 
     #[test]

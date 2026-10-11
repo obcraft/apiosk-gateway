@@ -1124,7 +1124,7 @@ mod tests {
         let parsed = crate::capability_intake::normalize(
             &json!({"language":"en","subjects":[{"id":"s1","label":label,"type":kind,"identifiers":{}}],
                 "capabilities":[{"slug":"location.building","name":"Building information","description":"Retrieve building information.",
-                    "domain":"location","inputs":["address"],"outputs":["construction_year"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+                    "domain":"location","inputs":[kind],"outputs":["construction_year"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
                 "deliverable":{"format":"chat","operations":[]}})
             .to_string(),
             label,

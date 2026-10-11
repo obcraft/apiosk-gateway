@@ -714,7 +714,7 @@ mod tests {
     fn literal_normalization_keeps_requested_factual_fields_and_does_not_infer_a_country_from_language() {
         for (question, label, kind, inputs, outputs, source) in [
             ("Geef voor Dam 1 Amsterdam de BAG-objectgegevens, bouwjaar, oppervlakte en gekoppelde kadastrale percelen via PDOK. Toon bronverwijzingen en ontbrekende velden.", "Dam 1 Amsterdam", "address", vec!["address"], vec!["construction_year","area","cadastral_parcel_ids","source_references","missing_fields"], "pdok"),
-            ("Zoek Reuters-nieuws over ASML. Geef de gevonden titels, publicatiedatums en oorspronkelijke bronlinks en vermeld de zoekdekking.", "ASML", "company", vec!["keywords"], vec!["titles","publication_dates","original_links","search_coverage"], "reuters"),
+            ("Zoek Reuters-nieuws over ASML. Geef de gevonden titels, publicatiedatums en oorspronkelijke bronlinks en vermeld de zoekdekking.", "ASML", "company", vec!["company_name"], vec!["titles","publication_dates","original_links","search_coverage"], "reuters"),
         ] {
             let raw = json!({"language":"nl","subjects":[{"id":"s1","label":label,"type":kind,"identifiers":{}}],
                 "capabilities":[scope_capability("research.data", &inputs, &outputs, Some("s1"), Some(source))],
@@ -725,12 +725,15 @@ mod tests {
             assert!(parsed.subjects[0].identifiers.is_empty(), "request language must not inject country identifiers");
             assert!(parsed.deliverable.operations.is_empty(), "factual outputs must not become answer operations");
         }
-        let raw = json!({"language":"nl","subjects":[],
+        let mut raw = json!({"language":"nl","subjects":[],
             "capabilities":[scope_capability("research.salary.benchmarks", &["country","sector"], &["salary_range"], None, None)],
             "deliverable":{"format":"chat","operations":[]}});
+        assert!(crate::capability_intake::normalize(&raw.to_string(), "Geef salarisbenchmarks.", "fixture").is_err(), "guessed provider requirements need model correction");
+        raw["capabilities"][0]["inputs"] = json!([]);
         let parsed = crate::capability_intake::normalize(&raw.to_string(), "Geef salarisbenchmarks.", "fixture").unwrap();
         assert!(parsed.subjects.is_empty());
-        assert_eq!(parsed.capabilities[0].missing, vec!["country", "sector"]);
+        assert!(parsed.capabilities[0].missing.is_empty());
+        assert_eq!(parsed.capabilities[0].outputs, vec!["salary_range"]);
     }
 
     #[tokio::test]

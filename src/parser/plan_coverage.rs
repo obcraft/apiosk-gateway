@@ -5,6 +5,8 @@ use super::{explicit_request::request_match, Intent};
 use crate::{capability_intake::Intake, catalog::Catalog};
 use anyhow::ensure;
 use serde_json::{json, Value};
+#[cfg(test)]
+mod yelp_location_metadata_tests;
 use std::collections::BTreeSet;
 
 pub(super) fn prepare(
@@ -105,8 +107,9 @@ pub(super) fn prepare(
         let cap = &parsed.capabilities[capability_index];
         if selected.len() == 1 {
             let goal = selected[0];
-            // Sharing a purchase between separate requirements still requires
-            // proof of each requested field from that one contract.
+            // Sharing a purchase requires the same declared-field proof as
+            // quoting those fields in one requirement. Optional row fields
+            // remain supported data, even when a particular row lacks them.
             if owners.iter().filter(|owners| owners.contains(&goal)).count() > 1 {
                 ensure!(!services[goal].is_empty() && services[goal].iter().all(|service| outputs_cover(cap, service, catalog)),
                     "every parsed subject needs its requested retrieval");
@@ -862,7 +865,7 @@ fn outputs_cover(
     service: &crate::catalog::Service,
     catalog: &Catalog,
 ) -> bool {
-    !cap.outputs.is_empty() && cap.outputs.iter().all(|output|output_metadata(output) || output_covered(output,service,catalog,true))
+    !cap.outputs.is_empty() && cap.outputs.iter().all(|output|output_metadata(output) || output_covered(output,service,catalog,false))
 }
 
 fn output_metadata(output:&str)->bool {
@@ -878,8 +881,8 @@ fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,
                 matches!(url.scheme(),"http"|"https") && url.host_str().is_some() && url.username().is_empty() && url.password().is_none()));
     }
     // Exact normalized concept suffixes and declared schema fields are
-    // evidence. Descriptions and opaque records are not. Sharing a goal uses
-    // the stronger required-only proof; quoting allows declared optional data.
+    // evidence. Descriptions and opaque records are not. Quotes and shared
+    // goals both allow declared optional data without promising its presence.
     let parts = |value: &str| {
         value
             .to_lowercase()
@@ -903,7 +906,7 @@ fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,
 }
 
 /// Schema properties support retrieving a field even if an individual row
-/// lacks it. Required-only proof is used when collapsing several checks.
+/// lacks it. A caller may separately ask for guaranteed required-field proof.
 /// An opaque object or prose description is not field evidence.
 fn schema_covers(schema:&Value,output:&str,required_only:bool)->bool {
     // A reviewed aggregate alias names this documented record, never every
@@ -1782,6 +1785,67 @@ mod tests {
     }
 
     #[test]
+    fn combined_and_split_optional_fields_share_the_same_complete_purchase() {
+        for link_output in ["url", "profile_link"] {
+            for split in [false, true] {
+                let (_,mut intake,catalog)=combined_reputation_fixture("Fictional Coffee Co","Ghent");
+                let question="Search Crunchbase for Fictional Coffee Co and show its company description and profile link.";
+                use sha2::Digest;
+                intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+                intake.parsed_request.subjects.truncate(1);
+                intake.parsed_request.capabilities.truncate(1);
+                intake.parsed_request.deliverable.operations.clear();
+                let first=&mut intake.parsed_request.capabilities[0];
+                first.slug="company.description".into();
+                first.name="Company description".into();
+                first.description="The company's description.".into();
+                first.outputs=vec!["description".into()];
+                if split {
+                    let mut link=first.clone();
+                    link.slug="company.profileLink".into();
+                    link.name="Company profile link".into();
+                    link.description="The company's profile link.".into();
+                    link.outputs=vec![link_output.into()];
+                    intake.parsed_request.capabilities.push(link);
+                } else {
+                    first.outputs.push(link_output.into());
+                }
+                intake.matches=crate::ask_v2::search::search(&intake.parsed_request,&catalog);
+                intake.selected_capabilities=intake.matches.iter().flat_map(|matched|matched.operations.clone()).collect();
+                let mut intent=single_retrieval_reply(&intake,&catalog,&question,&question,&Default::default())
+                    .expect("AI field grouping cannot change support for the same declared optional fields").intent.unwrap();
+                assert_eq!(intent.goals.len(),1,"all fields use one purchase");
+                let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};
+                task.record_turn(&question,None);
+                crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+                let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("complete priced plan")};
+                assert_eq!(plan.steps.len(),1);
+                assert_eq!(plan.steps[0].service.contract.capability_slug,"company.crunchbase-search");
+                assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap()["query"],"Fictional Coffee Co");
+                assert_eq!(plan.cap_atomic,100_000);
+                assert!(uncovered_outputs(&task,&catalog,&intent,&plan).is_empty());
+                assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+
+                let mut unsupported=intake.clone();
+                unsupported.parsed_request.capabilities.last_mut().unwrap().outputs.push("annual_revenue".into());
+                assert!(single_retrieval_reply(&unsupported,&catalog,&question,&question,&Default::default()).is_none(),
+                    "a missing output cannot disappear from split or combined requirements");
+
+                if link_output=="profile_link" {
+                    let mut website_only=catalog.clone();
+                    let fields=website_only.vocabulary.get_mut("company.crunchbase_search_results").unwrap().value_schema
+                        ["properties"]["entities"]["items"]["properties"]["identifier"]["properties"].as_object_mut().unwrap();
+                    fields.remove("url");
+                    fields.insert("website_url".into(),json!({"type":"string"}));
+                    assert!(single_retrieval_reply(&intake,&website_only,&question,&question,&Default::default()).is_none(),
+                        "a website URL cannot replace the requested profile link");
+                    assert!(uncovered_outputs(&task,&website_only,&intent,&plan).iter().any(|missing|missing.contains("profile_link")));
+                }
+            }
+        }
+    }
+
+    #[test]
     fn source_link_requires_safe_saved_provenance_not_an_article_field() {
         let (_,_,catalog)=saved_vies();let mut service=catalog.services[0].clone();
         service.source_url=Some("https://example.test/official-source".into());service.usage_notice=None;
@@ -2109,7 +2173,7 @@ mod tests {
         for output in ["shareholder_names","officer_residence_addresses","director_names"] {
             assert!(!schema_covers(&officer,output,false),"{output}: grammatical normalization does not infer other concepts");
         }
-        assert!(!schema_covers(&officer,"officer_names",true),"optional fields still cannot justify shared-goal collapse");
+        assert!(!schema_covers(&officer,"officer_names",true),"optional fields do not promise a value on every row");
     }
 
     #[test]

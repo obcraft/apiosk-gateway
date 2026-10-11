@@ -118,6 +118,7 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!/_((stage_company_reputation_sources)|(activate_company_reputation_sources)|(clarify_glassdoor_company_name_input)|(declare_company_reputation_response_fields)|(bind_company_reputation_typed_results))\.sql$/.test(name)
   &&!name.endsWith('_allow_ask_analysis_compute.sql')
   &&!name.endsWith('_expand_ask_analysis_model_prices.sql')
+  &&!name.endsWith('_declare_yelp_location_record_scope.sql')
   &&!name.endsWith('_onboard_apimarket_business_sources.sql')
   &&!name.endsWith('_admin_apimarket_credentials.sql')
   &&!name.endsWith('_show_only_crunchbase_apimarket.sql')

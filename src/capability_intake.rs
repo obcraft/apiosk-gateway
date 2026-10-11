@@ -470,6 +470,12 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
             missing: Vec::new(),
         };
         capability.missing = missing_inputs(&capability, &normalized_subjects);
+        if !answer_instruction(&capability) {
+            let ungrounded: Vec<_> = capability.missing.iter().filter(|input| !identifier_input(input)).collect();
+            ensure!(ungrounded.is_empty(),
+                "input concepts require supplied identifiers or the literal subject: {}. Correct the input concepts and identifier keys while preserving all requested criteria and outputs; do not invent missing provider parameters",
+                ungrounded.into_iter().cloned().collect::<Vec<_>>().join(", "));
+        }
         if !normalized.iter().any(|c: &Capability| {
             c.slug == capability.slug && c.subject_id == capability.subject_id
                 && c.source_hint == capability.source_hint
@@ -589,19 +595,32 @@ mod model_normalization_regressions {
     }
 }
 
-/// Port of WebGPU/src/parse/schema.ts::missingInputs. This describes what the
-/// user supplied, not whether an execution dependency can obtain that input.
+fn identifier_input(input: &str) -> bool {
+    ["_number", "_id", "_code"].iter().any(|suffix| input.ends_with(suffix))
+        || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn"].contains(&input)
+}
+
+fn supplied_input(input: &str, capability: &Capability, subject: &Subject) -> bool {
+    if subject.identifiers.get(input).is_some_and(|value| !value.is_empty()) { return true; }
+    if identifier_input(input) { return false; }
+    let kind = subject.kind.as_str();
+    if input == kind || input == format!("{kind}_name") { return true; }
+    let company = matches!(kind, "company" | "organization" | "organisation" | "business");
+    if company && matches!(input, "name" | "company_name" | "organization_name" | "organisation_name" | "business_name") { return true; }
+    if matches!(kind, "person" | "individual") && matches!(input, "name" | "person_name") { return true; }
+    if matches!(kind, "topic" | "query" | "keyword") && matches!(input, "topic" | "query" | "keyword" | "search_term") { return true; }
+    if matches!(kind, "address" | "location" | "place" | "property" | "building") && matches!(input, "address" | "location") { return true; }
+    if input == "url" && reqwest::Url::parse(&subject.label).is_ok_and(|url| matches!(url.scheme(), "http" | "https") && url.host_str().is_some()) { return true; }
+    matches!(input, "source" | "source_hint" | "provider") && capability.source_hint.is_some()
+}
+
+/// Describe only supplied criteria, scoped to the capability's actual subject.
+/// Missing identifiers remain visible for supported execution dependencies;
+/// other absent concepts are invalid model extraction and get one correction.
 fn missing_inputs(capability: &Capability, subjects: &[Subject]) -> Vec<String> {
-    capability.inputs.iter().filter(|input| {
-        let identifier = ["_number", "_id", "_code"].iter().any(|suffix| input.ends_with(suffix))
-            || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn"].contains(&input.as_str());
-        if identifier {
-            !subjects.iter().filter(|subject| capability.subject_id.as_ref().is_none_or(|id| id == &subject.id))
-                .any(|subject| subject.identifiers.get(*input).is_some_and(|value| !value.is_empty()))
-        } else {
-            subjects.is_empty()
-        }
-    }).cloned().collect()
+    capability.inputs.iter().filter(|input| !subjects.iter()
+        .filter(|subject| capability.subject_id.as_ref() == Some(&subject.id))
+        .any(|subject| supplied_input(input, capability, subject))).cloned().collect()
 }
 
 /// Same generic query fields as WebGPU. The external query is also scrubbed

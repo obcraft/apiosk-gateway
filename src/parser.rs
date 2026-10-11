@@ -2035,7 +2035,7 @@ mod tests {
     async fn crunchbase_profile_url_binds_without_a_paid_identity_lookup() {
         let question = "Use Crunchbase to retrieve the full company profile for https://www.crunchbase.com/organization/starbucks, including available founders, employees, board members, funding rounds and investors.";
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/crunchbase/official-mcp.json")).unwrap());
-        let parsed = crate::capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","type":"company","label":"starbucks","identifiers":{"url":"https://www.crunchbase.com/organization/starbucks"}}],"capabilities":[{"slug":"company.profile","name":"Company profile","description":"Retrieve the company profile and its available relationships.","domain":"company","inputs":["company_url"],"outputs":["profile","founders","employees","board_members","funding_rounds","investors"],"subject_id":"s1","source_hint":"crunchbase","confidence":1.0}],"deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
+        let parsed = crate::capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","type":"company","label":"starbucks","identifiers":{"url":"https://www.crunchbase.com/organization/starbucks"}}],"capabilities":[{"slug":"company.profile","name":"Company profile","description":"Retrieve the company profile and its available relationships.","domain":"company","inputs":["url"],"outputs":["profile","founders","employees","board_members","funding_rounds","investors"],"subject_id":"s1","source_hint":"crunchbase","confidence":1.0}],"deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
         let matches = crate::ask_v2::search::search(&parsed, &catalog);
         let intake = crate::capability_intake::Intake { selected_capabilities: matches.iter().flat_map(|m| m.operations.iter().cloned()).collect(),
             parsed_request:parsed, matches, apiosk_sources_searched:1, catalog_version:catalog.version.clone() };
@@ -2054,7 +2054,7 @@ mod tests {
         assert!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan).is_empty(), "a resolver plan must also cover all six requested outputs before quoting");
         task.capability_intake.as_mut().unwrap().parsed_request.capabilities[0].outputs.push("customer_ratings".into());
         assert_eq!(plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan),["Company profile: customer_ratings"]);
-        assert_eq!(calls.load(Ordering::Relaxed),1, "the planner binds the parsed profile URL without a source purchase");
+        assert_eq!(calls.load(Ordering::Relaxed),0, "the compiler binds the parsed profile URL without a second model call or source purchase");
         server.abort();
     }
 

@@ -545,11 +545,16 @@ impl Ask<'_> {
                 .join(" "),
             self.hint.unwrap_or("")
         );
-        crate::capability_intake::normalize(&json!({"language":self.language,"subjects":subjects,
+        let mut parsed = crate::capability_intake::normalize(&json!({"language":self.language,"subjects":subjects,
             "capabilities":[{"slug":self.slug,"name":self.name,"description":self.description,"domain":self.slug.split('.').next().unwrap(),
-                "inputs":self.inputs,"outputs":self.outputs,"subject_id":if label.is_empty() {json!(null)} else {json!("s1")},
+                "inputs":[],"outputs":self.outputs,"subject_id":if label.is_empty() {json!(null)} else {json!("s1")},
                 "source_hint":self.hint,"confidence":0.9}],
-            "deliverable":{"format":"chat","operations":[]}}).to_string(), &request, "fixture").unwrap()
+            "deliverable":{"format":"chat","operations":[]}}).to_string(), &request, "fixture").unwrap();
+        // Ranking remains robust to already-saved historical intakes, including
+        // untranslated and ungrounded concepts that current admission rejects.
+        // Test those exact search inputs without weakening intake validation.
+        parsed.capabilities[0].inputs = self.inputs.iter().map(|input| input.to_string()).collect();
+        parsed
     }
 }
 

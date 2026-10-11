@@ -73,7 +73,7 @@ fn separate_named_sources_survive_same_slug_and_subject_deduplication() {
 }
 
 #[test]
-fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
+fn missing_inputs_preserve_identifier_dependencies_without_borrowing_other_subjects() {
     let mut input = raw();
     input["subjects"][0]["identifiers"] = json!({});
     input["capabilities"][0]["inputs"] = json!(["company_name", "kvk_number", "postcode"]);
@@ -83,8 +83,7 @@ fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
     input["subjects"] = json!([]);
     assert!(normalize(&input.to_string(), QUESTION, "fixture").is_err(), "a removed subject cannot leave a dangling reference");
     input["capabilities"][0]["subject_id"] = Value::Null;
-    let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
-    assert_eq!(parsed.capabilities[0].missing, ["company_name", "kvk_number", "postcode"]);
+    assert!(normalize(&input.to_string(), QUESTION, "fixture").is_err(), "a subjectless name is not supplied");
     input["subjects"] = json!([
         {"id":"original","label":"Coolblue","type":"company","identifiers":{}},
         {"id":"second","label":"KVK","type":"company","identifiers":{"kvk_number":"12345678"}}
@@ -92,7 +91,75 @@ fn missing_inputs_follow_webgpu_subject_and_identifier_rules() {
     input["capabilities"][0]["subject_id"] = json!("original");
     assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["kvk_number", "postcode"], "another subject's identifier cannot satisfy this one");
     input["capabilities"][0]["subject_id"] = Value::Null;
-    assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["postcode"]);
+    assert!(normalize(&input.to_string(), QUESTION, "fixture").is_err(), "a null link cannot borrow another subject's name");
+    input["capabilities"][0]["inputs"] = json!(["kvk_number", "postcode"]);
+    assert_eq!(normalize(&input.to_string(), QUESTION, "fixture").unwrap().capabilities[0].missing, ["kvk_number", "postcode"]);
+}
+
+#[test]
+fn supplied_input_concepts_are_grounded_to_their_own_subject() {
+    let question = "Find records for catering in Nederland and transport in Belgium.";
+    let mut input = json!({"language":"en","subjects":[
+        {"id":"a","label":"catering","type":"topic","identifiers":{"sector":"catering","country":"Nederland"}},
+        {"id":"b","label":"transport","type":"topic","identifiers":{"service":"transport","country":"Belgium"}}
+    ],"capabilities":[{"slug":"research.records","name":"Matching records","description":"Find matching records.","domain":"research","inputs":["sector","country","topic"],"outputs":["records"],"subject_id":"a","source_hint":null,"confidence":1}],
+        "deliverable":{"format":"chat","operations":[]}});
+    let parsed = normalize(&input.to_string(),question,"fixture").unwrap();
+    assert!(parsed.capabilities[0].missing.is_empty());
+    for missing in ["record_type", "service", "period"] {
+        input["capabilities"][0]["inputs"] = json!(["sector","country",missing]);
+        let error = normalize(&input.to_string(),question,"fixture").unwrap_err().to_string();
+        assert!(error.contains("input concepts require supplied identifiers or the literal subject") && error.contains(missing),"{error}");
+    }
+    input["capabilities"][0]["inputs"] = json!(["sector","country","record_type"]);
+    input["subjects"][0]["identifiers"]["record_type"] = json!("records");
+    assert!(normalize(&input.to_string(),question,"fixture").unwrap().capabilities[0].missing.is_empty(), "explicit literal type criteria remain valid");
+    input["subjects"][0]["identifiers"]["record_type"] = json!("invented");
+    assert!(normalize(&input.to_string(),question,"fixture").is_err(), "filtered invented values cannot ground an input");
+
+    let mut company = raw();
+    company["capabilities"][0]["inputs"] = json!(["company_name"]);
+    assert!(normalize(&company.to_string(),QUESTION,"fixture").unwrap().capabilities[0].missing.is_empty());
+    company["capabilities"][0]["inputs"] = json!(["topic"]);
+    assert!(normalize(&company.to_string(),QUESTION,"fixture").is_err(), "a company label does not imply an unspecified topic");
+}
+
+#[tokio::test]
+async fn ungrounded_inputs_get_one_transported_model_correction_and_keep_the_supplied_scope() {
+    let question = "Find records for catering in Nederland.";
+    let invalid = json!({"language":"en","subjects":[{"id":"s1","label":"catering","type":"topic","identifiers":{"sector":"catering","country":"Nederland"}}],
+        "capabilities":[{"slug":"research.records","name":"Matching records","description":"Find matching records.","domain":"research","inputs":["sector","country","record_type"],"outputs":["records"],"subject_id":"s1","source_hint":null,"confidence":1}],
+        "deliverable":{"format":"chat","operations":[]}});
+    for corrected in [true, false] {
+        let mut second = invalid.clone();
+        if corrected {second["capabilities"][0]["inputs"] = json!(["sector","country"]);}
+        let queue = Arc::new(Mutex::new(VecDeque::from([invalid.clone(),second])));
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let capture = calls.clone();
+        let app = Router::new().route("/",post(move |Json(body):Json<Value>| {
+            capture.lock().unwrap().push(body);
+            let next = queue.lock().unwrap().pop_front().expect("at most two model calls");
+            async move {
+                let event = json!({"choices":[{"delta":{"content":next.to_string()}}]});
+                ([(axum::http::header::CONTENT_TYPE,"text/event-stream")],format!("data: {event}\n\ndata: [DONE]\n\n"))
+            }
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = format!("http://{}/",listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {axum::serve(listener,app).await.unwrap()});
+        let client = crate::ask_v2::Client::new(reqwest::Client::new(),"fixture".into(),"fixture".into()).with_local_endpoint(endpoint).unwrap();
+        let result = client.interpret(question,&[]).await;
+        let calls = calls.lock().unwrap();
+        assert_eq!(calls.len(),2);
+        assert!(calls[1]["messages"][0]["content"].as_str().unwrap().contains("input concepts require supplied identifiers or the literal subject: record_type"));
+        if corrected {
+            let parsed = &result.unwrap()["parsed_request"];
+            assert_eq!(parsed["subjects"][0]["identifiers"],invalid["subjects"][0]["identifiers"]);
+            assert_eq!(parsed["capabilities"][0]["outputs"],invalid["capabilities"][0]["outputs"]);
+            assert_eq!(parsed["capabilities"][0]["inputs"],json!(["sector","country"]));
+        } else {assert!(result.is_err(), "a repeated invalid extraction is never accepted");}
+        server.abort();
+    }
 }
 
 #[test]
@@ -599,7 +666,7 @@ async fn a_dependency_goal_cannot_silently_replace_the_requested_retrieval() {
 #[test]
 fn a_shared_search_verb_does_not_match_unrelated_data() {
     let mut input = raw();
-    input["capabilities"][0] = json!({"slug":"procurement.notices","name":"Public procurement notices","description":"Search public procurement notices by topic and jurisdiction.","domain":"procurement","inputs":["topic","jurisdiction"],"outputs":["procurement_notices"],"subject_id":null,"source_hint":null,"confidence":1});
+    input["capabilities"][0] = json!({"slug":"procurement.notices","name":"Public procurement notices","description":"Search public procurement notices by topic and jurisdiction.","domain":"procurement","inputs":[],"outputs":["procurement_notices"],"subject_id":null,"source_hint":null,"confidence":1});
     let parsed = normalize(&input.to_string(), QUESTION, "fixture").unwrap();
     let search = search_input(&parsed, &Task::default(), &catalog());
     assert!(search["operations"].as_object().unwrap().is_empty());
