@@ -67,6 +67,22 @@ pub(super) fn parse(request: &str, model: &str) -> Option<ParsedRequest> {
         meta: Meta { model: model.into(), parsed_at: chrono::Utc::now().to_rfc3339(), text_sha256: hex::encode(Sha256::digest(request.as_bytes())) } })
 }
 
+
+/// A complete literal source-and-fields request can be planned from its
+/// discovered contracts without asking a model to restate the same scope.
+/// Any edited subject, field or answer operation keeps the normal planner.
+pub(crate) fn matches_intake(question: &str, intake: &super::Intake) -> bool {
+    let Some(expected) = parse(question, "literal-source-fields") else { return false; };
+    let actual = &intake.parsed_request;
+    // Name-only contracts must not silently drop an explicit location filter.
+    !actual.subjects.iter().any(|subject| subject.identifiers.contains_key("location"))
+        && actual.meta.text_sha256 == expected.meta.text_sha256
+        && actual.language == expected.language
+        && serde_json::to_value(&actual.subjects).ok() == serde_json::to_value(&expected.subjects).ok()
+        && serde_json::to_value(&actual.capabilities).ok() == serde_json::to_value(&expected.capabilities).ok()
+        && serde_json::to_value(&actual.deliverable).ok() == serde_json::to_value(&expected.deliverable).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

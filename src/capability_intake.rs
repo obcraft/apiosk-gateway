@@ -15,7 +15,7 @@ use std::{
 };
 
 mod discovery_cache;
-mod named_source_fields;
+pub(crate) mod named_source_fields;
 pub(crate) mod broad_information;
 pub(crate) mod company_lookup;
 #[cfg(test)]

@@ -50,6 +50,7 @@ aparte gateway-v1-deployment nodig.
 Vanuit deze directory, met Rust/Cargo en Node geïnstalleerd en de App/MCP-dependencies aanwezig:
 
 ```sh
+node scripts/test-homepage-starters.mjs
 cargo test --workspace --offline
 cargo clippy --workspace --all-targets --offline -- -D warnings
 node scripts/check-source-reuse.mjs
@@ -58,6 +59,8 @@ node scripts/sync-migration.mjs --check
 node scripts/test-integration.mjs
 cargo build --release --offline
 ```
+
+De homepagecontrole vergelijkt alle zes gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test de echte intake, bronselectie, invoerbinding en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Er zijn geen modelaanroepen, bronaankopen of betalingen. De lokale releaserunner `scripts/test-release-gate.mjs` voert deze controle eerst uit.
 
 De integratierunner start en stopt zelf een tijdelijke PGlite-database op loopbackpoort 54330. Providers, model en gebruikersidentiteiten in die test zijn expliciete fixtures. De test gebruikt echte SQLx-queries, migraties, rollen, HTTP-authenticatie en de echte MCP-adapter. Hij doet geen externe betalingen. `PGTEST_PORT` kan de lokale testpoort aanpassen.
 

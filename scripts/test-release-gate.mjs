@@ -2,9 +2,14 @@
 // workspace isolation, expired quote, missing source and long data through
 // the real router, worker and payment journal. One scenario at a time: the
 // PGlite socket serves one connection.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 const cwd=new URL('../',import.meta.url);
+// Published questions must still match and produce real price plans before
+// starting the durable-flow scenarios or any local database.
+const starters=spawnSync(process.execPath,['scripts/test-homepage-starters.mjs'],{cwd,stdio:'inherit'});
+if(starters.error) throw starters.error;
+if(starters.status!==0) process.exit(starters.status ?? 1);
 const port=process.env.PGTEST_PORT || '54350';
 const db=spawn(process.execPath,['tests/support-db.mjs'],{cwd,env:{...process.env,PGTEST_PORT:port},stdio:['ignore','pipe','inherit']});
 const closed=once(db,'exit');

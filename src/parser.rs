@@ -1334,6 +1334,10 @@ impl Parser {
             if let Some(tender) = crate::tenderned::executable_intake(question, intake) {
                 if let Some(reply) = plan_coverage::single_retrieval_reply(&tender, catalog, question, question, task) { return Ok(reply); }
             }
+            if crate::capability_intake::named_source_fields::matches_intake(question, intake) {
+                let literals = capability_binding::literal_context(question, task, None);
+                if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
+            }
             if let Some(reply) = plan_coverage::broad_information_reply(intake, catalog, question, task) { return Ok(reply); }
         }
         let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));

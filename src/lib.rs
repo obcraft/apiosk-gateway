@@ -69,3 +69,6 @@ pub mod recurring;
 
 #[cfg(test)]
 mod additional_examples_tests;
+
+#[cfg(test)]
+mod homepage_starter_tests;
