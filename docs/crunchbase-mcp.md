@@ -32,7 +32,7 @@ and `CRUNCHBASE_CLIENT_SECRET` for a pre-registered client with the same callbac
 
 `node scripts/discover-crunchbase-mcp.mjs` performs initialize and tools/list only.
 It saves the four real tool schemas under ignored `output/crunchbase-mcp/` and
-fails if any reviewed tool is missing. It does not execute company searches or
+fails if any reviewed tool is missing. After discovery, `node scripts/install-crunchbase-oauth.mjs` stores the approved account in Vault and removes the local token file. It refuses to replace an existing account. These scripts do not execute company searches or
 activate public catalog entries. Compare discovered schemas with
 `scripts/crunchbase-mcp-catalog.mjs` before live acceptance.
 
@@ -73,8 +73,8 @@ unavailable and cannot become company data. A free Starbucks Reader probe on
   idempotence, draft activation gates, source/contract/schema parity, no duplicate
   source, and preservation of existing API.market prices and credentials.
 - `node scripts/render-crunchbase-mcp-migration.mjs` regenerates the draft migration
-  and explicitly synthetic planner fixture; `node scripts/sync-migration.mjs`
-  keeps the App migration copy aligned.
+  and explicitly synthetic planner fixture. Copy only this migration to the App
+  migration directory; do not introduce unrelated historical migrations.
 
 Official documentation: https://data.crunchbase.com/docs/tool-reference and
 https://data.crunchbase.com/docs/connecting-ai-tools .

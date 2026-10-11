@@ -29,5 +29,8 @@ try{
  const old=(await db.query("SELECT active,price FROM providers.api_endpoints WHERE path='/autocompletes'")).rows[0];assert.equal(old.active,true);assert.equal(Number(old.price),0.086956);
  assert.deepEqual((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.credential,{configured:true});
  assert.deepEqual(contracts.map(c=>c.capability_slug).sort(),capabilities.map(c=>c.slug).sort());
+ await db.exec(`UPDATE providers.apis SET listing_metadata=jsonb_set(listing_metadata,'{official_mcp,status}','"verified"')`);
+ await db.exec(sql);
+ assert.equal((await db.query('SELECT listing_metadata FROM providers.apis')).rows[0].listing_metadata.official_mcp.status,'verified');
  console.log('PASS: same source, four inactive MCP endpoints, ten typed draft capabilities, preserved API.market route/price, no Jina source, repeatable SQL.');
 }finally{await db.close();}

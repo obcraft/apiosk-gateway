@@ -40,7 +40,7 @@ try{
  const selected=reviewed.map(r=>tools.find(t=>t.name===r.tool));
  if(selected.some(t=>!t))throw Error('A reviewed read tool is missing from this account');
  const record={at:new Date().toISOString(),server:'https://mcp.crunchbase.com',protocol,tools:selected,
-  other_tool_names:tools.filter(t=>!reviewed.some(r=>r.tool===t.name)).map(t=>t.name),activation:false};
+  other_tools:tools.filter(t=>!reviewed.some(r=>r.tool===t.name)),activation:false};
  await fs.mkdir(new URL('../output/crunchbase-mcp/',import.meta.url),{recursive:true});
  await fs.writeFile(new URL('../output/crunchbase-mcp/tool-discovery.json',import.meta.url),JSON.stringify(record,null,2)+'\n',{mode:0o600});
  console.log(JSON.stringify({read_tools:selected.map(t=>t.name),metadata_saved:true,data_calls:0,activated:false}));
