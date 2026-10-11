@@ -1,0 +1,189 @@
+{
+  "slug": "company.uk_registry_record",
+  "source": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/resources/companyprofile?v=latest",
+  "before": {
+    "properties": {
+      "company_name": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"legal_name\"]}",
+        "type": "string"
+      },
+      "company_number": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_number\"]}",
+        "type": "string"
+      },
+      "company_status": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_status\"]}",
+        "type": "string"
+      },
+      "date_of_cessation": {
+        "type": "string"
+      },
+      "date_of_creation": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"incorporation_date\"]}",
+        "type": "string"
+      },
+      "jurisdiction": {
+        "type": "string"
+      },
+      "previous_company_names": {
+        "items": {
+          "properties": {
+            "ceased_on": {
+              "type": "string"
+            },
+            "effective_from": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "registered_office_address": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registered_address\"]}",
+        "properties": {
+          "address_line_1": {
+            "type": "string"
+          },
+          "address_line_2": {
+            "type": "string"
+          },
+          "care_of": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "po_box": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "premises": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "sic_codes": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"industry_codes\"]}",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"company_type\",\"legal_form\"]}",
+        "type": "string"
+      }
+    },
+    "required": [
+      "company_name",
+      "company_number"
+    ],
+    "type": "object"
+  },
+  "after": {
+    "properties": {
+      "company_name": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"legal_name\"]}",
+        "type": "string"
+      },
+      "company_number": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_number\"]}",
+        "type": "string"
+      },
+      "company_status": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_status\"]}",
+        "type": "string"
+      },
+      "date_of_cessation": {
+        "type": "string"
+      },
+      "date_of_creation": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"incorporation_date\"]}",
+        "type": "string"
+      },
+      "jurisdiction": {
+        "type": "string"
+      },
+      "previous_company_names": {
+        "items": {
+          "properties": {
+            "ceased_on": {
+              "type": "string"
+            },
+            "effective_from": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "registered_office_address": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"registered_address\"]}",
+        "properties": {
+          "address_line_1": {
+            "type": "string"
+          },
+          "address_line_2": {
+            "type": "string"
+          },
+          "care_of": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "po_box": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "premises": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "sic_codes": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"industry_codes\"]}",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"company_type\",\"legal_form\"]}",
+        "type": "string"
+      }
+    },
+    "required": [
+      "company_name",
+      "company_number"
+    ],
+    "type": "object",
+    "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registry_profile\",\"registered_details\"]}"
+  }
+}

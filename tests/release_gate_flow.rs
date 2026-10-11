@@ -106,6 +106,36 @@ async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<V
         fake.analysis_input.fetch_max(body["messages"][1]["content"].as_str().unwrap().len() as u64, SeqCst);
         let question = input["answer_operations"][0].as_str().unwrap_or_default();
         let sources = input["sources"].as_array().unwrap();
+        if sources.iter().any(|source| source["records"].is_array()) {
+            // Multi-provider synthesis receives request-local evidence IDs,
+            // not raw documents. Exercise that real contract in this fixture.
+            let observations: Vec<_> = sources.iter().flat_map(|source| {
+                source["records"].as_array().into_iter().flatten().flat_map(|record| {
+                    record["fields"].as_array().into_iter().flatten().filter_map(|field| {
+                        let text = match field["field"].as_str()? {
+                            "accounts" => "The registry reports accounts for {{a}}.",
+                            "reviews" => "The employer source reports {{a}}.",
+                            _ => return None,
+                        };
+                        Some(json!({"text":text,"evidence":[{"fact_id":field["id"]}]}))
+                    })
+                })
+            }).collect();
+            assert_eq!(observations.len(), 2, "both selected providers must supply actual indexed evidence");
+            let requirement_status: Vec<_> = input["requested_parts"].as_array().into_iter().flatten().map(|part| {
+                let answered_by: Vec<_> = observations.iter().enumerate().filter(|(_, observation)| {
+                    match part["criterion"].as_str().unwrap() {
+                        "company.accounts" => observation["text"].as_str().unwrap().contains("accounts"),
+                        "company.fixture-reviews" => observation["text"].as_str().unwrap().contains("employer"),
+                        "Requested answer format: chat" => true,
+                        other => panic!("unexpected fixture requirement: {other}"),
+                    }
+                }).map(|(index, _)| format!("o{}",index+1)).collect();
+                assert!(!answered_by.is_empty(),"every actual requested part must have matching evidence");
+                json!({"requirement_id":part["id"],"status":"answered","answered_by":answered_by})
+            }).collect();
+            return Json(json!({"choices":[{"message":{"content":json!({"observations":observations,"limitations":[],"requirement_status":requirement_status}).to_string()}}]}));
+        }
         // A ledger line named in the question, wherever the evidence selection kept it.
         let named = sources.iter().find_map(|source| {
             let rows: Vec<(String, &Value)> = match &source["document"]["data"]["rows"] {
@@ -124,6 +154,10 @@ async fn model(State(fake): State<Arc<Fake>>, Json(body): Json<Value>) -> Json<V
                 "evidence":[{"result_ref":source["result_ref"],"pointer":"/data/accounts"}]}],"limitations":[]}),
             (None, None) => json!({"observations":[],"limitations":["No saved source reports accounts."]}),
         };
+        let mut answer=answer;
+        for source in sources.iter().filter(|source|source["document"]["data"]["reviews"].is_string()) {
+            answer["observations"].as_array_mut().unwrap().push(json!({"text":"The employer source reports {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":"/data/reviews"}]}));
+        }
         return Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}));
     }
     fake.chat.fetch_add(1, SeqCst);
@@ -162,6 +196,8 @@ async fn provider(State(fake): State<Arc<Fake>>, headers: HeaderMap, Json(body):
     let company = body["inputs"]["company.id"].as_str().unwrap_or_default().to_owned();
     let (result, charged, cost, fee) = if let Some(name) = body["inputs"]["company.name"].as_str() {
         (json!({"companies":[{"id":name.to_lowercase()}]}), 23, 20, 3)
+    } else if body["inputs"]["name"].is_string() {
+        (json!({"reviews":"Recorded employer reviews"}), 58, 50, 8)
     } else if company == "long" {
         let rows: Vec<_> = (0..5000).map(|row| json!({"row":row,"period":"2025","line":format!("Balance sheet line {row:04}"),"value_eur":row * 1000})).collect();
         (json!({"accounts":"2025","rows":rows}), 115, 100, 15)
@@ -220,7 +256,9 @@ struct Gate {
 }
 
 impl Gate {
-    async fn start() -> Self {
+    async fn start() -> Self {Self::start_configured(false).await}
+
+    async fn start_configured(source_selection:bool) -> Self {
         std::env::set_var("WORKSPACE_CONTEXT_ENABLED", "true");
         let pool = PgPoolOptions::new()
             .after_connect(|conn, _| Box::pin(async move {
@@ -266,7 +304,10 @@ impl Gate {
         let engine = Arc::new(Engine {
             store: store.clone(),
             catalog: CatalogCache::new(pool.clone()),
-            parser: Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap(),
+            parser: {
+                let parser=Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into()).with_local_bazaar(format!("{base}/bazaar")).unwrap();
+                if source_selection {parser.with_ask_v2(apiosk_gateway_v2::ask_v2::Client::new(http.clone(),"fixture".into(),"fixture".into()))} else {parser}
+            },
             signer: Signer::new(vec![6; 32]).unwrap(),
             executor: Executor { store, http: http.clone(), supabase_url: base.clone(), enabled: true },
             app_url: "http://localhost:5173".into(),
@@ -679,4 +720,90 @@ async fn gate_long_data() {
     assert_eq!(gate.fake.provider.load(SeqCst), 2, "reading parts buys nothing");
     assert_eq!(gate::assert_all(&gate.pool, task, &proposal, &ended).await, 2, "every cited pointer resolves in the original");
     println!("gate_long_data: 5000 rows saved and paged; analysis {} from a {}-byte selection", analysis["status"], gate.fake.analysis_input.load(SeqCst));
+}
+
+/// A displayed signed search owns all selectable requirements. Repricing uses
+/// the same durable task, produces a single new quote and never purchases.
+#[tokio::test(flavor="multi_thread",worker_threads=4)]
+#[ignore="requires isolated support-db; source calls and model responses are local fixtures"]
+async fn gate_selected_sources_reprices_atomically_without_purchase() {
+    let gate=Gate::start_configured(true).await;
+    let api=Uuid::new_v4();let endpoint=Uuid::new_v4();let contract=Uuid::new_v4();
+    sqlx::query("INSERT INTO public.fact_types(slug,status,value_schema) VALUES('company.fixture_reviews','active','{\"type\":\"string\"}') ON CONFLICT DO NOTHING").execute(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO public.capabilities(slug,status,description) VALUES('company.fixture-reviews','active','Company employer reviews') ON CONFLICT DO NOTHING").execute(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO public.apis(id,slug,name,listing_type,status,active,is_verified,discoverable,description,category) VALUES($1,'fixture-reviews','Company review source','api','active',true,true,true,'Company employer review information','company')")
+        .bind(api).execute(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO public.api_endpoints(id,api_id,method,path,price,active,description,tags,endpoint_category,metadata_source) VALUES($1,$2,'GET','/company.reviews',0.00005,true,'Read company employer reviews',ARRAY['company','reviews'],'company','curated')")
+        .bind(endpoint).bind(api).execute(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) VALUES($1,$2,'company.fixture-reviews',1,'active',$3,$4,$5,'one',1,'{}','{}','{}',3600,$6,now(),'read','per_call')")
+        .bind(contract).bind(endpoint).bind(json!([{"fact_type":"company.name","subject_role":"subject","optional":false}]))
+        .bind(json!({"company.name":{"name":"name"}})).bind(json!({"base":"$","produces":{"company.fixture_reviews":{"path":"$.reviews"}}}))
+        .bind(json!({"reviews":"Recorded employer reviews"})).execute(&gate.pool).await.unwrap();
+    let person=Person::new();let other=Person::new();let workspace=Uuid::new_v4();
+    sqlx::query("INSERT INTO public.gate_workspace_access(actor,workspace,active) VALUES($1,$2,true)").bind(person.owner).bind(workspace).execute(&gate.pool).await.unwrap();
+    let person=person.in_workspace(Some(workspace));
+    let question="Show company accounts for SourceChoice";
+    let parsed=apiosk_gateway_v2::capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","type":"company","label":"SourceChoice","identifiers":{"company_name":"SourceChoice"}}],
+        "capabilities":[{"slug":"company.financial.statements","name":"Company accounts","description":"Retrieve company accounts","domain":"company","inputs":["company_name"],"outputs":["accounts"],"subject_id":"s1","source_hint":null,"confidence":1}],"deliverable":{"format":"chat","operations":[]}}).to_string(),question,"recorded-model-fixture").unwrap();
+    let (status,search)=gate.send(&person,"/v2/ask-v2/search",Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
+    assert_eq!(status,StatusCode::OK,"{search}");
+    let (status,initial)=gate.send(&person,"/v2/ask-v2/research",Some(json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,"search_id":search["search_id"]}))).await;
+    assert_eq!(status,StatusCode::OK,"{initial}");assert_eq!(initial["status"],"ready","{initial}");
+    let task=task_of(&initial);let path=format!("/v2/tasks/{task}/source-selection");
+    assert_eq!(initial["context_view"]["source_selection"]["can_choose"],true);
+    let options=initial["context_view"]["source_selection"]["options"].as_array().unwrap();
+    let choices:Vec<_>=["company.accounts","company.fixture-reviews"].into_iter().map(|cap| {
+        let option=options.iter().find(|option|option["source"]["capability"]==cap).unwrap_or_else(||panic!("missing {cap}: {options:?}"));
+        json!({"endpoint_id":option["source"]["endpoint_id"],"capability":cap,"subject_id":option["subject_id"],"input":option["input_values"]})
+    }).collect();
+    let selection=json!({"version":1,"mode":"include","sources":choices});
+    let request=json!({"request_id":Uuid::new_v4(),"state":initial["state"],"selection":selection});
+    let (status,combined)=gate.send(&person,&path,Some(request.clone())).await;
+    assert_eq!(status,StatusCode::OK,"{combined}");assert_eq!(combined["status"],"ready","{combined}");
+    assert_eq!(task_of(&combined),task);assert_eq!(combined["proposal"]["steps"].as_array().unwrap().len(),3,"two roots plus required name lookup");
+    assert_ne!(combined["proposal"]["quote_ref"],initial["proposal"]["quote_ref"]);
+    assert_eq!(combined["state"]["revision"].as_i64(),initial["state"]["revision"].as_i64().map(|r|r+1));
+    assert!(combined["proposal"]["max_total_atomic"].as_str().unwrap().parse::<i64>().unwrap()>138);
+    let replay=gate.send(&person,&path,Some(request)).await.1;assert_eq!(replay,combined,"same request replays exact durable quote");
+    let reread=gate.view(&person,task).await.1;assert_eq!(reread["context_view"]["source_selection"]["selection"],selection);
+    assert_eq!(reread["proposal"]["quote_ref"],combined["proposal"]["quote_ref"]);
+    assert_eq!(gate.fake.provider.load(SeqCst),0);assert!(gate.executions(task).await.is_empty());assert_eq!(gate.ledger(task).await,0);
+    let approvals:i64=sqlx::query_scalar("SELECT count(*) FROM authorizations WHERE task_id=$1").bind(task).fetch_one(&gate.pool).await.unwrap();assert_eq!(approvals,0);
+    let stale=gate.send(&person,&path,Some(json!({"request_id":Uuid::new_v4(),"state":initial["state"],"selection":selection}))).await.1;
+    assert_eq!(stale["status"],"state_conflict");assert_eq!(stale["proposal"]["quote_ref"],combined["proposal"]["quote_ref"]);
+    assert_ne!(gate.authorize(&person,task,&initial["proposal"]).await.0,StatusCode::OK,"old quote cannot authorize changed sources");
+    for wrong in [person.in_workspace(None),other] {
+        let response=gate.send(&wrong,&path,Some(json!({"request_id":Uuid::new_v4(),"state":combined["state"],"selection":selection}))).await.1;
+        assert_ne!(response["status"],"ready","foreign owner/workspace cannot reprice");
+    }
+    // Simulate an already approved quote without running the fixture provider.
+    let plan_hash:String=sqlx::query_scalar("SELECT document #>> '{proposal,hash}' FROM tasks WHERE id=$1").bind(task).fetch_one(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,now()+interval '10 minutes')")
+        .bind(Uuid::new_v4()).bind(task).bind(person.owner).bind(combined["proposal"]["quote_ref"].as_str().unwrap().parse::<Uuid>().unwrap())
+        .bind(plan_hash).bind(combined["proposal"]["max_total_atomic"].as_str().unwrap().parse::<i64>().unwrap()).execute(&gate.pool).await.unwrap();
+    let rejected=gate.send(&person,&path,Some(json!({"request_id":Uuid::new_v4(),"state":combined["state"],"selection":{"version":1,"mode":"include","sources":[]}}))).await.1;
+    assert_ne!(rejected["status"],"ready");
+    let after=gate.view(&person,task).await.1;assert_eq!(after["proposal"]["quote_ref"],combined["proposal"]["quote_ref"]);
+    assert_eq!(after["context_view"]["source_selection"]["can_choose"],false);
+    assert_eq!(gate.fake.provider.load(SeqCst),0);assert!(gate.executions(task).await.is_empty());
+    // An active dispatch lease independently blocks changing a quote, even
+    // before an authorization has been observed by this request.
+    sqlx::query("DELETE FROM authorizations WHERE task_id=$1").bind(task).execute(&gate.pool).await.unwrap();
+    sqlx::query("INSERT INTO execution_leases(task_id,worker_id,expires_at) VALUES($1,$2,now()+interval '1 minute')")
+        .bind(task).bind(Uuid::new_v4()).execute(&gate.pool).await.unwrap();
+    let leased=gate.send(&person,&path,Some(json!({"request_id":Uuid::new_v4(),"state":combined["state"],"selection":{"version":1,"mode":"include","sources":[]}}))).await.1;
+    assert_ne!(leased["status"],"ready");
+    let quote:String=sqlx::query_scalar("SELECT document #>> '{proposal,quote_ref}' FROM tasks WHERE id=$1").bind(task).fetch_one(&gate.pool).await.unwrap();
+    assert_eq!(quote,combined["proposal"]["quote_ref"].as_str().unwrap());
+    assert_eq!(gate.fake.provider.load(SeqCst),0);assert!(gate.executions(task).await.is_empty());
+    sqlx::query("DELETE FROM execution_leases WHERE task_id=$1").bind(task).execute(&gate.pool).await.unwrap();
+    // One real fixture approval now authorizes the complete aggregate, including
+    // the required lookup. This is the first point at which sources may run.
+    assert_eq!(gate.authorize(&person,task,&combined["proposal"]).await.0,StatusCode::OK);
+    let finished=gate.settled(&person,task).await;
+    assert_eq!(finished["status"],"succeeded","{finished}");
+    let caps:Vec<i64>=sqlx::query_scalar("SELECT cap_atomic FROM authorizations WHERE task_id=$1").bind(task).fetch_all(&gate.pool).await.unwrap();
+    assert_eq!(caps,vec![combined["proposal"]["max_total_atomic"].as_str().unwrap().parse::<i64>().unwrap()]);
+    assert_eq!(gate.fake.provider.load(SeqCst),3,"one approved chain runs both roots and one typed dependency");
+    assert_eq!(gate.ledger(task).await,3);
 }

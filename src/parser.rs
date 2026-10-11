@@ -371,7 +371,7 @@ fn requirement_rejection(reason: &str) -> bool {
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
-    let shape = if surface == "chat" {
+    let shape = if matches!(surface, "chat" | "capability-plan") {
         "Return the chat envelope with message, discover and intent. If discover=false, intent MUST be null. If discover=true, place the corrected intent inside intent. Use exact apiosk_operations from source_matches when supplied; parsed_request slugs describe meaning and are not executable operations. When bindings are supplied, subjects contain only subject_ref and values: choose subject_ref from bindings.subjects, and each value is {\"ref\": an exact bindings.values key} or {\"literal\": exact user text or number}. Never emit label or entity_ref in that format."
     } else {
         "Return only the Intent object with subjects, goals, answer_operations and unresolved_references."
@@ -417,9 +417,9 @@ pub struct WorkflowChatReply {
     pub ready: bool,
 }
 
-/// Apiosk's OpenRouter model for intent, planning, single-provider analysis
-/// and the Ask parse. Conversation and multi-provider synthesis have their
-/// own explicit stage constants below.
+/// Apiosk's default OpenRouter model for legacy intent/planning and
+/// single-provider analysis. Capability planning and synthesis have their
+/// own explicit stage constants below; Ask intake is routed independently.
 pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// Qwen3 235B A22B Instruct 2507, via OpenRouter: the written reply to a
 /// message that is not yet a clear data question (small talk, an unclear
@@ -427,6 +427,10 @@ pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// This constant only controls conversational text, never planning or
 /// synthesis. Multi-provider synthesis has its own stage constant below.
 pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
+/// Map extracted requirements onto reviewed source contracts when their
+/// literal inputs cannot be compiled directly. This does not change intake,
+/// ordinary chat, or the optional paid analysis route.
+pub const CAPABILITY_PLAN_MODEL: &str = "openai/gpt-6.1-sol";
 /// Combining distinct saved providers uses the stronger synthesis stage.
 /// This is separate from conversation replies and never changes planning.
 pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
@@ -434,7 +438,7 @@ pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
 fn completion_budget(surface: &str) -> (u64, u64) {
     match surface {
         "capability-intake" | "capability-search" => (10, 20),
-        "chat" => (20, 30),
+        "chat" | "capability-plan" => (20, 30),
         "clarification" => (6, 12),
         // A complete joined answer can exceed thirty seconds. Let one attempt
         // use the existing stage budget instead of restarting it halfway.
@@ -526,7 +530,7 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
     let optional = json!({"anyOf":[intent,{"type":"null"}]});
     match surface {
         "intent" => Some(intent),
-        "chat" => Some(json!({"type":"object","additionalProperties":false,"required":["message","discover","intent"],
+        "chat" | "capability-plan" => Some(json!({"type":"object","additionalProperties":false,"required":["message","discover","intent"],
             "properties":{"message":text,"discover":{"type":"boolean"},"intent":optional}})),
         "planning" => Some(json!({"type":"object","additionalProperties":false,"required":["message","intent"],
             "properties":{"message":text,"intent":optional}})),
@@ -1167,7 +1171,7 @@ impl Parser {
     fn routed_payload(&self, surface: &str, payload: &Value) -> Value {
         let mut payload = payload.clone();
         let analysis = matches!(surface, "analysis" | "multi-source-analysis");
-        payload["model"] = json!(if surface == "multi-source-analysis" { MULTISOURCE_ANALYSIS_MODEL } else if analysis { &self.analysis_model } else { &self.model });
+        payload["model"] = json!(if surface == "capability-plan" { CAPABILITY_PLAN_MODEL } else if surface == "multi-source-analysis" { MULTISOURCE_ANALYSIS_MODEL } else if analysis { &self.analysis_model } else { &self.model });
         if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma") || model == MODEL || model == CHAT_MODEL) {
             // Neither Qwen3 Instruct 2507 nor Gemma 3 providers support a
             // reasoning parameter; with require_parameters it would match no
@@ -1185,8 +1189,15 @@ impl Parser {
                 }
             }
         }
-        if surface == "multi-source-analysis" {
+        if matches!(surface, "multi-source-analysis" | "capability-plan") {
             payload.as_object_mut().unwrap().remove("temperature");
+        }
+        if surface == "capability-plan" && payload["response_format"]["type"] == "json_schema" {
+            // Intent has schema-validated dynamic input/policy maps. OpenAI's
+            // strict subset requires all map keys to be fixed and required;
+            // retain the schema guidance and enforce the complete contract in
+            // Bindings, Intent::validate and prequote input/output coverage.
+            payload["response_format"]["json_schema"]["strict"] = json!(false);
         }
         if url::Url::parse(&self.url).is_ok_and(|url| url.host_str() == Some("openrouter.ai")) {
             let sort = if analysis { &self.analysis_provider_sort } else { &self.intent_provider_sort };
@@ -1317,11 +1328,11 @@ impl Parser {
 
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
-        if selection.is_none() {
+        if selection.is_none_or(|selection|selection.view["mode"]=="include") {
             // The AI extraction owns the request. Plan any fully covered
             // retrieval from live contracts, irrespective of its wording,
             // company name, provider or membership of the example list.
-            let literals = capability_binding::literal_context(question, task, None);
+            let literals = capability_binding::literal_context(question, task, selection);
             if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
             if let Some(reply) = plan_coverage::multiple_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
         }
@@ -1377,7 +1388,8 @@ impl Parser {
         // An explicit data request declined without a genuine reason gets one
         // repair; declined again, it is planned from the source search.
         let declined = std::sync::atomic::AtomicBool::new(false);
-        let result = self.completion("chat", &payload, |raw| {
+        let surface = if intake.is_some() { "capability-plan" } else { "chat" };
+        let result = self.completion(surface, &payload, |raw| {
             let mut reply: ChatReply = match &bindings {
                 Some(bindings) => bindings.decode_reply(raw)?,
                 None => serde_json::from_str(raw)?,
@@ -1386,7 +1398,7 @@ impl Parser {
             if let Some(intake) = intake.filter(|intake| !reply.discover && explicit_request::data_request(intake)) {
                 if !explicit_request::genuine_decline(reply.decline_reason.as_deref(), &reply.message) {
                     anyhow::ensure!(declined.swap(true, Ordering::Relaxed), explicit_request::DECLINED);
-                    tracing::warn!(surface = "chat", "planner declined an explicit request twice; planning from the source search");
+                    tracing::warn!(surface, "planner declined an explicit request twice; planning from the source search");
                     reply = explicit_request::planned_reply(intake, catalog).ok_or_else(|| anyhow::anyhow!(explicit_request::DECLINED))?;
                 }
             }
@@ -1576,9 +1588,9 @@ impl Parser {
                                                     messages.push(json!({"role":"user","content":format!("The JSON failed validation: {}. Return one complete corrected object following the original schema. Do not invent identifiers, capabilities or operations.",error)}));
                                                 }
                                             }
-                                            if surface == "intent" || surface == "chat" {
+                                            if matches!(surface, "intent" | "chat" | "capability-plan") {
                                                 let reason = intent_validation_reason(&error);
-                                                if surface == "chat" && requirement_rejection(reason) {
+                                                if matches!(surface, "chat" | "capability-plan") && requirement_rejection(reason) {
                                                     rejected_requirement = Some(reason);
                                                 }
                                                 tracing::warn!(surface, attempt, reason, "intent validation failed");
@@ -1789,11 +1801,100 @@ pub async fn bounded_json_sized(mut response: reqwest::Response, limit: usize) -
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    #[ignore = "local capture of saved planning payload; no external network or credentials"]
+    async fn capture_saved_capability_planning_payload_locally() {
+        let saved: Value=serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE").unwrap()).unwrap()).unwrap();
+        let question=saved["question"].as_str().unwrap();
+        let parsed:crate::capability_intake::ParsedRequest=serde_json::from_value(saved["parsed"].clone()).unwrap();
+        let catalog=Catalog::build(serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE_CATALOG").unwrap()).unwrap()).unwrap());
+        let matches=crate::ask_v2::search::search(&parsed,&catalog);
+        let selected_capabilities=matches.iter().flat_map(|matched|matched.operations.iter().cloned()).collect();
+        let intake=crate::capability_intake::Intake {parsed_request:parsed,matches,selected_capabilities,
+            catalog_version:catalog.version.clone(),apiosk_sources_searched:crate::capability_intake::source_count(&catalog)};
+        let (parser,_,server,requests)=model_fixture_with_requests(vec![(400,json!({"error":"local capture only"}))]).await;
+        assert!(parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)),Some(&intake)).await.is_err());
+        let requests=requests.lock().unwrap();assert_eq!(requests.len(),1);
+        std::fs::write(std::env::var("ASK_SAVED_INTAKE_CAPTURE").unwrap(),serde_json::to_vec_pretty(&requests[0]).unwrap()).unwrap();
+        server.abort();
+    }
+
+    #[tokio::test]
+    #[ignore = "uses saved AI intake, live planning model and read-only catalog; no source calls or writes"]
+    async fn live_saved_capability_intake_forms_a_complete_quote() {
+        dotenvy::dotenv().ok();
+        let _ = tracing_subscriber::fmt().with_env_filter("info,sqlx=error").try_init();
+        let saved: Value = serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE").expect("saved intake path required")).unwrap()).unwrap();
+        let question = saved["question"].as_str().unwrap();
+        let parsed: crate::capability_intake::ParsedRequest = serde_json::from_value(saved["parsed"].clone()).unwrap();
+        let catalog = if let Ok(path)=std::env::var("ASK_SAVED_INTAKE_CATALOG") {
+            std::sync::Arc::new(Catalog::build(serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()))
+        } else {
+            let pool=sqlx::postgres::PgPoolOptions::new().max_connections(1).connect(&std::env::var("DATABASE_URL").unwrap()).await.unwrap();
+            let catalog=crate::catalog::CatalogCache::new(pool.clone()).get().await.unwrap();
+            pool.close().await;catalog
+        };
+        let matches = crate::ask_v2::search::search(&parsed, &catalog);
+        let selected_capabilities = matches.iter().flat_map(|matched|matched.operations.iter().cloned()).collect();
+        let intake = crate::capability_intake::Intake { parsed_request: parsed, matches, selected_capabilities,
+            catalog_version:catalog.version.clone(),apiosk_sources_searched:crate::capability_intake::source_count(&catalog) };
+        let saved_reply=std::env::var("ASK_SAVED_MODEL_REPLY").ok();
+        let key = if saved_reply.is_some() { "local-replay".into() } else {
+            std::env::var("OPENROUTER_API_KEY").ok().filter(|key|!key.is_empty()).unwrap_or_else(||std::env::var("INTENT_API_KEY").unwrap())
+        };
+        let http = reqwest::Client::new();
+        let parser = Parser::new(http.clone(),"https://openrouter.ai/api/v1/chat/completions".into(),key,MODEL.into());
+        let task=Task::default();
+        let literals=capability_binding::literal_context(question,&task,None);
+        assert!(plan_coverage::single_retrieval_reply(&intake,&catalog,question,&literals,&task).is_none(),"this replay must require the planning model");
+        let unreachable=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
+        let store=crate::store::Store {pool:unreachable.clone()};
+        let mut engine=crate::engine::Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(unreachable),parser,
+            signer:crate::state::Signer::new(vec![8;32]).unwrap(),app_url:"http://localhost".into(),
+            executor:crate::execution::Executor {store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false}};
+        let started=std::time::Instant::now();
+        // Record the exact validated model intent even if the quote resolver
+        // refuses it. Replay that same semantic reply locally through guest
+        // planning so this diagnostic never pays for a second model answer.
+        let reply=if let Some(path)=&saved_reply {
+            let saved:Value=serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            ChatReply {message:"Review the complete source price.".into(),discover:true,
+                intent:Some(serde_json::from_value(saved["decoded_intent"].clone()).unwrap()),decline_reason:Some("none".into())}
+        } else { engine.parser.chat_from_capabilities(question,None,&task,&catalog,&intake).await.unwrap() };
+        let decoded_intent=serde_json::to_value(&reply.intent).unwrap();
+        let mut bound_intent=decoded_intent.clone();
+        if let Some(subjects)=bound_intent.get_mut("subjects").and_then(Value::as_array_mut) {
+            for subject in subjects {
+                let parsed=intake.parsed_request.subjects.iter().find(|parsed|subject["label"]==parsed.label).unwrap();
+                let values=subject["values"].as_object().unwrap().iter().map(|(key,value)|(key.clone(),json!({"literal":value}))).collect::<serde_json::Map<_,_>>();
+                *subject=json!({"subject_ref":parsed.id,"values":values});
+            }
+        }
+        let body=json!({"message":reply.message,"discover":reply.discover,"intent":bound_intent,"decline_reason":reply.decline_reason});
+        let envelope=json!({"choices":[{"finish_reason":"stop","message":{"content":body.to_string()}}]});
+        let (replay_parser,calls,server)=model_fixture(vec![(200,envelope)]).await;
+        engine.parser=replay_parser;
+        let quote=engine.guest_plan(question,intake,&catalog).await.unwrap();
+        assert_eq!(calls.load(Ordering::Relaxed),1);server.abort();
+        use base64::Engine as _;
+        let preview=quote["preview_token"].as_str().and_then(|token|token.split_once('.'))
+            .and_then(|(payload,_)|base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).ok())
+            .and_then(|bytes|serde_json::from_slice::<Value>(&bytes).ok()).unwrap_or(Value::Null);
+        let evidence=json!({"question":question,"parsed":saved["parsed"],"model":CAPABILITY_PLAN_MODEL,
+            "replayed_saved_model_response":saved_reply.is_some(),
+            "status":quote["status"],"message":quote["message"],"sources":quote["sources"],"total_atomic":quote["total_atomic"],
+            "decoded_intent":decoded_intent,"intent":preview["task"]["intent"],"facts":preview["task"]["facts"],"elapsed_ms":started.elapsed().as_millis()});
+        std::fs::write(std::env::var("ASK_SAVED_INTAKE_EVIDENCE").expect("evidence output required"),serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        assert_eq!(quote["status"],"ready","{evidence}");
+        println!("saved intake reached a complete quote with {CAPABILITY_PLAN_MODEL} in {}ms",started.elapsed().as_millis());
+    }
+
     #[test]
     fn completion_budget_preserves_other_stages_and_bounds_longer_synthesis() {
         assert_eq!(completion_budget("multi-source-analysis"), (60, 65));
         assert_eq!(completion_budget("analysis"), (30, 65));
         assert_eq!(completion_budget("chat"), (20, 30));
+        assert_eq!(completion_budget("capability-plan"), (20, 30));
         assert_eq!(completion_budget("capability-intake"), (10, 20));
         assert_eq!(completion_budget("capability-search"), (10, 20));
         assert_eq!(completion_budget("clarification"), (6, 12));
@@ -2127,7 +2228,7 @@ mod tests {
         for (url, routed) in [("https://openrouter.ai/api/v1/chat/completions", true), ("https://example.com/completions", false)] {
             let parser = Parser::new(reqwest::Client::new(), url.into(), "fixture".into(), "fast-intent".into())
                 .with_routing(Some("analysis-model".into()), Some("latency".into()), Some("throughput".into())).unwrap();
-            for (surface, model, sort) in [("chat", "fast-intent", "latency"), ("intent", "fast-intent", "latency"), ("analysis", "analysis-model", "throughput"), ("multi-source-analysis", MULTISOURCE_ANALYSIS_MODEL, "throughput")] {
+            for (surface, model, sort) in [("chat", "fast-intent", "latency"), ("intent", "fast-intent", "latency"), ("capability-plan", CAPABILITY_PLAN_MODEL, "latency"), ("analysis", "analysis-model", "throughput"), ("multi-source-analysis", MULTISOURCE_ANALYSIS_MODEL, "throughput")] {
                 let value = parser.routed_payload(surface, &payload);
                 assert_eq!(value["model"], model);
                 assert_eq!(value["provider"]["require_parameters"], true);
@@ -2138,6 +2239,23 @@ mod tests {
         assert!(Parser::new(reqwest::Client::new(), "".into(), "".into(), "fixture".into())
             .with_routing(None, Some("typo".into()), None).is_err());
     }
+    #[test]
+    fn capability_planning_uses_stronger_model_without_altering_other_stage_parameters() {
+        let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), MODEL.into());
+        let payload = json!({"temperature":0,"reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
+            "response_format":{"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,"schema":{"type":"object"}}}});
+        let routed = parser.routed_payload("capability-plan", &payload);
+        assert_eq!(routed["model"], CAPABILITY_PLAN_MODEL);
+        assert!(routed.get("temperature").is_none());
+        assert_eq!(routed["reasoning"], payload["reasoning"]);
+        assert_eq!(routed["response_format"]["json_schema"]["schema"], payload["response_format"]["json_schema"]["schema"]);
+        assert_eq!(routed["response_format"]["json_schema"]["strict"], false);
+        assert_eq!(routed["provider"], payload["provider"]);
+        assert_eq!(parser.routed_payload("chat", &payload)["model"], MODEL);
+        assert_eq!(parser.routed_payload("analysis", &payload)["model"], MODEL);
+        assert!(intent_repair_message("capability-plan", "non_literal_input").contains("message, discover and intent"));
+    }
+
     #[test]
     fn gemma_3_uses_supported_parameters_and_keeps_output_validation() {
         let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-3-12b-it".into());
@@ -2542,9 +2660,9 @@ mod tests {
     #[tokio::test]
     async fn semantic_rejections_are_distinct_from_service_and_malformed_response_failures() {
         let envelope = json!({"choices":[{"finish_reason":"stop","message":{"content":"{}"}}]});
-        for rejection in ["duplicate retrieval goal", "every parsed subject needs its requested retrieval", "input belongs to a different parsed subject", "parser invented a value"] {
+        for (surface, rejection) in ["chat", "capability-plan"].into_iter().flat_map(|surface| ["duplicate retrieval goal", "every parsed subject needs its requested retrieval", "input belongs to a different parsed subject", "parser invented a value"].map(|reason|(surface,reason))) {
             let (parser, calls, server) = model_fixture(vec![(200,envelope.clone()),(200,envelope.clone())]).await;
-            let error = parser.completion::<()>("chat", &json!({}), |_| anyhow::bail!(rejection)).await.unwrap_err();
+            let error = parser.completion::<()>(surface, &json!({}), |_| anyhow::bail!(rejection)).await.unwrap_err();
             assert!(error.is::<RequirementRejection>(), "{rejection}: {error}");
             assert_eq!(calls.load(Ordering::Relaxed),2);
             server.abort();

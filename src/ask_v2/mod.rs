@@ -2,9 +2,11 @@
 //! public API. This client never plans or executes a data-source request.
 
 pub mod search;
+pub(crate) mod source_options;
 pub mod external;
 pub mod purchase;
 pub(crate) mod input_values;
+pub(crate) mod source_selection;
 pub(crate) mod follow_up;
 #[cfg(test)]
 pub(crate) mod test_catalog;

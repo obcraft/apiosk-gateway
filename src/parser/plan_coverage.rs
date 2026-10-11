@@ -7,6 +7,8 @@ use anyhow::ensure;
 use serde_json::{json, Value};
 #[cfg(test)]
 mod yelp_location_metadata_tests;
+#[cfg(test)]
+mod uk_registry_profile_metadata_tests;
 use std::collections::BTreeSet;
 
 pub(super) fn prepare(
@@ -860,7 +862,7 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
     profession.map(|_| rejected_reply(intake))
 }
 
-fn outputs_cover(
+pub(crate) fn outputs_cover(
     cap: &crate::capability_intake::Capability,
     service: &crate::catalog::Service,
     catalog: &Catalog,

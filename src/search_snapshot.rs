@@ -5,6 +5,7 @@ use anyhow::{ensure, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use crate::ask_v2::source_options::SourceOption;
 
 const MAX_BYTES: usize = 128 * 1024;
 const MAX_TOKEN_BYTES: usize = (MAX_BYTES * 4).div_ceil(3) + 65;
@@ -19,6 +20,8 @@ pub(crate) struct Snapshot {
     expires: i64,
     catalog_version: String,
     matches: Vec<Match>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    source_options: Vec<SourceOption>,
     sources_searched: usize,
 }
 impl Snapshot {
@@ -31,6 +34,7 @@ impl Snapshot {
             // They are signed too, but can only contribute discovery metadata.
             catalog_version: response["catalog_version"].as_str().ok_or_else(|| anyhow::anyhow!("search catalog missing"))?.to_owned(),
             matches: serde_json::from_value(response["matches"].clone())?,
+            source_options: serde_json::from_value(response.get("source_options").cloned().unwrap_or_else(|| serde_json::json!([])))?,
             sources_searched: response["apiosk_sources_searched"].as_u64().unwrap_or(0) as usize,
         };
         snapshot.seal(signer)
@@ -57,10 +61,12 @@ impl Snapshot {
     pub(crate) fn current(&self, catalog_version: &str) -> bool {
         self.expires > chrono::Utc::now().timestamp() && self.catalog_version == catalog_version
     }
+    pub(crate) fn source_options(&self) -> &[SourceOption] { &self.source_options }
     pub(crate) fn with_discovery(mut self, discovery: Self) -> Result<Self> {
         ensure!(self.owner == discovery.owner && self.workspace == discovery.workspace
             && self.parsed_digest == discovery.parsed_digest, "discovery belongs to another request");
         ensure!(!self.catalog_version.is_empty() && discovery.catalog_version.is_empty()
+            && discovery.source_options.is_empty()
             && discovery.matches.iter().all(|found| found.operations.is_empty() && found.apiosk.is_empty()
                 && found.coinbase.iter().all(|candidate| candidate.origin == "coinbase"
                     && matches!(candidate.availability.as_str(), "discovery_only" | "supported")
@@ -157,6 +163,31 @@ mod tests {
         let mut other = read(&token);
         other.owner = Uuid::new_v4();
         assert!(read(&local).with_discovery(other).is_err());
+    }
+    #[test]
+    fn optional_sources_are_signed_to_the_same_owner_and_parsed_request() {
+        let (signer, person, parsed, mut response) = fixture();
+        response["source_options"] = serde_json::json!([{
+            "source":{"origin":"apiosk","name":"Reviewed source","description":"Published company record",
+                "source_slug":"reviewed-source","capability":"company.registry","endpoint_id":Uuid::new_v4().to_string(),
+                "url":"https://source.example/","method":"GET","price":"0.050000 USD","network":null,
+                "calls_30d":null,"availability":"supported"},
+            "subject_id":"s1","requirement":parsed.capabilities[0],"reason":"Matches your question"
+        }]);
+        let token = Snapshot::issue(&signer,&person,&parsed,&response).unwrap();
+        let snapshot = Snapshot::open(&signer,&person,&parsed,&token).unwrap();
+        assert_eq!(snapshot.source_options().len(),1);
+        assert_eq!(snapshot.source_options()[0].source.source_slug.as_deref(),Some("reviewed-source"));
+        let mut changed=parsed.clone(); changed.capabilities[0].outputs.push("extra_field".into());
+        assert!(Snapshot::open(&signer,&person,&changed,&token).is_err());
+
+        let (_,_,_,mut external) = fixture();
+        external["catalog_version"] = serde_json::json!("");
+        external["matches"][0]["operations"] = serde_json::json!([]);
+        external["source_options"] = response["source_options"].clone();
+        let external = Snapshot::issue(&signer,&person,&parsed,&external).unwrap();
+        assert!(snapshot.with_discovery(Snapshot::open(&signer,&person,&parsed,&external).unwrap()).is_err(),
+            "external discovery cannot add executable optional sources");
     }
     #[test]
     fn unsigned_changed_and_oversized_snapshots_are_refused() {

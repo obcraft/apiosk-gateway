@@ -1,0 +1,3562 @@
+{
+  "services": [
+    {
+      "api_slug": "openwebninja",
+      "contract": {
+        "capability_slug": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "cardinality": "one",
+        "input_map": {
+          "source_input.e22c6c82933545999a55d64ac65128077.domain": {
+            "in": "query",
+            "name": "domain"
+          },
+          "source_input.e22c6c82933545999a55d64ac65128077.limit": {
+            "in": "query",
+            "name": "limit"
+          },
+          "source_input.e22c6c82933545999a55d64ac65128077.query": {
+            "in": "query",
+            "name": "query"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.glassdoor_search_results": {
+              "adapter": "document.response",
+              "key": "document"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 2
+      },
+      "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+      "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "077bec6e-1593-469b-8afc-293cb30b7f6b",
+      "jurisdiction": null,
+      "list_atomic": 3000,
+      "listing_type": "federated",
+      "method": "GET",
+      "name": "OpenWeb Ninja",
+      "pagination": {},
+      "path": "/realtime-glassdoor-data/company-search",
+      "preconditions": {},
+      "sample_payload": {
+        "data": [
+          {
+            "best_places_to_work_awards": [
+              {
+                "rank": 96,
+                "time_period": "2018"
+              },
+              {
+                "rank": 34,
+                "time_period": "2012"
+              },
+              {
+                "rank": 50,
+                "time_period": "2013"
+              }
+            ],
+            "business_outlook_rating": 0.41,
+            "career_opportunities_rating": 3.3,
+            "ceo": " Brian Niccol",
+            "ceo_rating": 0.32,
+            "company_description": "For over 50 years, we've aspired to be a different kind of coffee company. All these years later, we still believe in our hearts that we're not in the coffee business serving people \u2013 we're in the people business, serving coffee.\n\nWe believe that success is best when shared. Our employees are called partners because, through our annual Bean Stock grant, we each have ownership in the future success of our business. Our promise to partners is to help bridge to a better future by providing industry-leading benefits and growth opportunities to help support partners along their journey at Starbucks",
+            "company_id": 2202,
+            "company_link": "https://www.glassdoor.com/Overview/Working-at-Starbucks-EI_IE2202.11,20.htm",
+            "company_size": "10000+ Employees",
+            "company_size_category": "GIANT",
+            "company_type": "Company - Public",
+            "compensation_and_benefits_rating": 3.6,
+            "competitors": [
+              {
+                "id": 432,
+                "name": "McDonald's"
+              }
+            ],
+            "culture_and_values_rating": 3.3,
+            "diversity_and_inclusion_rating": 3.9,
+            "faq_link": "https://www.glassdoor.com/FAQ/Starbucks-Questions-E2202.htm",
+            "headquarters_location": "Seattle, WA",
+            "industry": "Restaurants & Cafes",
+            "job_count": 22342,
+            "jobs_link": "https://www.glassdoor.com/Jobs/Starbucks-Jobs-E2202.htm",
+            "logo": "https://media.glassdoor.com/sql/2202/starbucks-squarelogo.png",
+            "name": "Starbucks",
+            "office_locations": [
+              {
+                "city": "Chicago, IL",
+                "country": "United States"
+              },
+              {
+                "city": "Burbank, CA",
+                "country": "United States"
+              },
+              {
+                "city": "San Francisco, CA",
+                "country": "United States"
+              }
+            ],
+            "rating": 3.5,
+            "recommend_to_friend_rating": 0.56,
+            "revenue": "$10+ billion (USD)",
+            "review_count": 92195,
+            "reviews_link": "https://www.glassdoor.com/Reviews/Starbucks-Reviews-E2202.htm",
+            "salary_count": 130313,
+            "senior_management_rating": 2.9,
+            "stock": "SBUX",
+            "website": "https://careers.starbucks.com/",
+            "work_life_balance_rating": 3.2,
+            "year_founded": 1971
+          }
+        ],
+        "parameters": {
+          "domain": "www.glassdoor.com",
+          "limit": 1,
+          "query": "Starbucks"
+        },
+        "request_id": "53519f16-638f-4339-81fd-5bf865dc3e50",
+        "status": "OK"
+      },
+      "source_url": "https://x402.openwebninja.com/llms.txt"
+    },
+    {
+      "api_slug": "companies-house",
+      "contract": {
+        "capability_slug": "company.uk-registry-search",
+        "cardinality": "many",
+        "identifies": "company.registration.gb.companies_house",
+        "input_map": {
+          "company.name": {
+            "in": "query",
+            "name": "q"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.title"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Find UK companies by name and resolve Companies House numbers.",
+      "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+      "fixed_params": {
+        "items_per_page": 10
+      },
+      "freshness_seconds": 3600,
+      "id": "9d88c9ff-537b-5b3e-b7a5-c3684b884808",
+      "jurisdiction": "GB",
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Companies House",
+      "pagination": {},
+      "path": "/search/companies",
+      "preconditions": {},
+      "sample_payload": {
+        "items": [
+          {
+            "company_number": "00445790",
+            "company_status": "active",
+            "description": "00445790 - Incorporated on 27 November 1947",
+            "kind": "searchresults#company",
+            "links": {
+              "self": "/company/00445790"
+            },
+            "title": "TESCO PLC"
+          },
+          {
+            "company_number": "09384423",
+            "company_status": "active",
+            "description": "09384423 - Incorporated on 12 January 2015",
+            "kind": "searchresults#company",
+            "links": {
+              "self": "/company/09384423"
+            },
+            "title": "KFORD TYRES (GORNAL) LTD"
+          }
+        ],
+        "items_per_page": 2,
+        "kind": "search#companies",
+        "page_number": 1,
+        "start_index": 0,
+        "total_results": 356
+      },
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+    },
+    {
+      "api_slug": "companies-house",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company.registration.gb.companies_house",
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "in": "path",
+            "name": "company_number"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.company_name"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            },
+            "company.uk_registry_record": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "ea445fe2-10d8-5892-bba5-8158cd6b3368",
+      "jurisdiction": "GB",
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Companies House",
+      "pagination": {},
+      "path": "/company",
+      "preconditions": {},
+      "sample_payload": {
+        "accounts": {
+          "accounting_reference_date": {
+            "day": "26",
+            "month": "02"
+          },
+          "last_accounts": {
+            "made_up_to": "2026-02-28",
+            "period_end_on": "2026-02-28",
+            "period_start_on": "2025-02-27",
+            "type": "group"
+          },
+          "next_accounts": {
+            "due_on": "2027-08-26",
+            "overdue": false,
+            "period_end_on": "2027-02-26",
+            "period_start_on": "2026-03-01"
+          },
+          "next_due": "2027-08-26",
+          "next_made_up_to": "2027-02-26",
+          "overdue": false
+        },
+        "can_file": true,
+        "company_name": "TESCO PLC",
+        "company_number": "00445790",
+        "company_status": "active",
+        "confirmation_statement": {
+          "last_made_up_to": "2026-06-18",
+          "next_due": "2027-07-02",
+          "next_made_up_to": "2027-06-18",
+          "overdue": false
+        },
+        "date_of_creation": "1947-11-27",
+        "etag": "b0711fe6fc8e9936a50a1e14e40ef9367f46bbf6",
+        "has_been_liquidated": false,
+        "has_charges": false,
+        "has_insolvency_history": false,
+        "has_super_secure_pscs": false,
+        "jurisdiction": "england-wales",
+        "last_full_members_list_date": "2013-06-07",
+        "links": {
+          "charges": "/company/00445790/charges",
+          "exemptions": "/company/00445790/exemptions",
+          "filing_history": "/company/00445790/filing-history",
+          "officers": "/company/00445790/officers",
+          "self": "/company/00445790"
+        },
+        "previous_company_names": [
+          {
+            "ceased_on": "1983-08-25",
+            "effective_from": "1981-12-14",
+            "name": "TESCO STORES (HOLDINGS) PUBLIC LIMITED COMPANY"
+          },
+          {
+            "ceased_on": "1981-12-14",
+            "effective_from": "1947-11-27",
+            "name": "TESCO STORES (HOLDINGS) LIMITED"
+          }
+        ],
+        "registered_office_address": {
+          "address_line_1": "Tesco House, Shire Park",
+          "address_line_2": "Kestrel Way",
+          "country": "United Kingdom",
+          "locality": "Welwyn Garden City",
+          "postal_code": "AL7 1GA"
+        },
+        "registered_office_is_in_dispute": false,
+        "sic_codes": [
+          "47110"
+        ],
+        "type": "plc",
+        "undeliverable_registered_office_address": false
+      },
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+    },
+    {
+      "api_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+      "contract": {
+        "capability_slug": "company.crunchbase-search",
+        "cardinality": "one",
+        "input_map": {
+          "company.crunchbase_query": {
+            "in": "body",
+            "name": "query"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.crunchbase_search_results": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.crunchbase_query",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+      "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "ad8b8fe7-6fad-5c80-ad60-e0e6c8a478a5",
+      "jurisdiction": null,
+      "list_atomic": 86956,
+      "listing_type": "api",
+      "method": "POST",
+      "name": "Crunchbase",
+      "pagination": {},
+      "path": "/autocompletes",
+      "preconditions": {},
+      "sample_payload": {
+        "count": 1962,
+        "entities": [
+          {
+            "facet_ids": [
+              "aberdeen",
+              "ai_insight",
+              "apptopia",
+              "bombora",
+              "builtwith",
+              "company",
+              "contact",
+              "investor",
+              "ipqwery",
+              "key_event",
+              "rank",
+              "semrush",
+              "siftery"
+            ],
+            "identifier": {
+              "entity_def_id": "organization",
+              "image_id": "jjykwqqhsscreywea4gb",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/jjykwqqhsscreywea4gb",
+              "permalink": "openai",
+              "url": "https://crunchbase.com/organization/openai",
+              "uuid": "cf2c678c-b81a-80c3-10d1-9c5e76448e51",
+              "value": "OpenAI"
+            },
+            "short_description": "OpenAI develops artificial intelligence models and deploys machine learning software tools, including ChatGPT."
+          },
+          {
+            "facet_ids": [
+              "ai_insight",
+              "builtwith",
+              "company",
+              "ipqwery",
+              "rank",
+              "semrush"
+            ],
+            "identifier": {
+              "entity_def_id": "organization",
+              "image_id": "zrafm9hariyl22gfnzkq",
+              "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/zrafm9hariyl22gfnzkq",
+              "permalink": "openai-3ef1",
+              "url": "https://crunchbase.com/organization/openai-3ef1",
+              "uuid": "30658435-66e6-4d4a-bcce-5ac474713ef1",
+              "value": "OpenAi"
+            },
+            "short_description": "OpenAi provides solutions for artificial intelligence and social media management."
+          }
+        ]
+      },
+      "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api"
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.crunchbase_query",
+      "value_schema": {
+        "description": "Company name or prefix to find in Crunchbase",
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.crunchbase_search_results",
+      "value_schema": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entities": {
+            "items": {
+              "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\"]}",
+              "properties": {
+                "identifier": {
+                  "properties": {
+                    "permalink": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\",\"crunchbase_url\",\"link\"]}",
+                      "type": "string"
+                    },
+                    "uuid": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "short_description": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"description\",\"company_description\"]}",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "identifier"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "entities"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.glassdoor_search_results",
+      "value_schema": {
+        "properties": {
+          "document": {
+            "properties": {
+              "data": {
+                "items": {
+                  "properties": {
+                    "company_description": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"description\"]}",
+                      "type": "string"
+                    },
+                    "company_id": {
+                      "type": "integer"
+                    },
+                    "company_link": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\"]}",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "rating": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"average_rating\",\"employer_rating\"]}",
+                      "type": "number"
+                    },
+                    "review_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "status": {
+                "enum": [
+                  "OK"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "data"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.registration.gb.companies_house",
+      "value_schema": {
+        "pattern": "^[A-Z0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.uk_registry_record",
+      "value_schema": {
+        "properties": {
+          "company_name": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"legal_name\"]}",
+            "type": "string"
+          },
+          "company_number": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_number\"]}",
+            "type": "string"
+          },
+          "company_status": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_status\"]}",
+            "type": "string"
+          },
+          "date_of_cessation": {
+            "type": "string"
+          },
+          "date_of_creation": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"incorporation_date\"]}",
+            "type": "string"
+          },
+          "jurisdiction": {
+            "type": "string"
+          },
+          "previous_company_names": {
+            "items": {
+              "properties": {
+                "ceased_on": {
+                  "type": "string"
+                },
+                "effective_from": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "registered_office_address": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registered_address\"]}",
+            "properties": {
+              "address_line_1": {
+                "type": "string"
+              },
+              "address_line_2": {
+                "type": "string"
+              },
+              "care_of": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "locality": {
+                "type": "string"
+              },
+              "po_box": {
+                "type": "string"
+              },
+              "postal_code": {
+                "type": "string"
+              },
+              "premises": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "sic_codes": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"industry_codes\"]}",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"company_type\",\"legal_form\"]}",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_name",
+          "company_number"
+        ],
+        "type": "object",
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registry_profile\",\"registered_details\"]}"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+      "value_schema": {
+        "description": "The Glassdoor domain to use. Provider default when omitted: \"www.glassdoor.com\".",
+        "enum": [
+          "www.glassdoor.com",
+          "www.glassdoor.co.uk",
+          "www.glassdoor.com.ar",
+          "www.glassdoor.com.au",
+          "www.glassdoor.be",
+          "www.glassdoor.be",
+          "www.glassdoor.com.br",
+          "www.glassdoor.ca",
+          "www.glassdoor.ca",
+          "www.glassdoor.de",
+          "www.glassdoor.es",
+          "www.glassdoor.fr",
+          "www.glassdoor.com.hk",
+          "www.glassdoor.co.in",
+          "www.glassdoor.ie",
+          "www.glassdoor.it",
+          "www.glassdoor.com.mx",
+          "www.glassdoor.nl",
+          "www.glassdoor.co.nz",
+          "www.glassdoor.at",
+          "de.glassdoor.ch",
+          "www.glassdoor.sg",
+          "fr.glassdoor.ch"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+      "value_schema": {
+        "description": "Maximum number of results to return. Provider default when omitted: 10.",
+        "maximum": 100,
+        "minimum": 1,
+        "type": "number"
+      }
+    },
+    {
+      "slug": "source_input.e22c6c82933545999a55d64ac65128077.query",
+      "value_schema": {
+        "description": "Company name or Glassdoor company ID to search. Use the supplied company name when no ID is given.",
+        "title": "Company name or Glassdoor ID",
+        "type": "string"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.crunchbase-browse": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+          "company.crunchbase-filter": "Filter companies by industry, geography and funding. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Res",
+          "company.crunchbase-official-search": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+          "company.crunchbase-profile": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, fundi",
+          "company.crunchbase-search": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+          "funding.crunchbase-profile": "Fetch official funding round, amount and investor relationships. Retrieve one identified funding round, announcement date, investment stage, money raised, funded company and lead investors. Requires a funding-round identifier, not a company",
+          "funding.crunchbase-search": "Find funding rounds, amounts, stages and investors. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Reso",
+          "person.crunchbase-filter": "Filter people and professional profiles. Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve locatio",
+          "person.crunchbase-profile": "Fetch official professional profile and company relationships. Retrieve one identified professional person, biography, current jobs, board roles, founded organizations and investments. Requires a person profile identifier, not a company ide",
+          "person.crunchbase-search": "Find official people, founders and executives. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+          "research.crunchbase-identifiers": "Resolve Crunchbase location or industry identifiers. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+          "research.crunchbase-reference": "Read Crunchbase fields, collections and filter operators. Read the official Crunchbase schema before building filters: collections, company/person/funding fields, valid operators, enum values and relationship cards. Use returned paths verba"
+        },
+        "categorized": 6,
+        "category": "business",
+        "coverage_notice": "Official Crunchbase company, people and funding name search, public-field filters and profiles are available through four OAuth-backed MCP tools. Search returns at most 15 rows per approved call. Profile results include public company fields, founders, employees, board/advisors, funding rounds and investors where supplied; has_more_entities marks incomplete cards. Existing API.market name lookup and organization browsing remain available. Jina enriches the same Crunchbase result internally when the public page is readable. Private CRM, saved-list filters and recursive relationship queries are unsupported.",
+        "described": 6,
+        "description": "Crunchbase API gives developers access to extensive business data, empowering apps with profiles, insights, and trends for informed decision-making and growth.\n",
+        "documented_inputs": 6,
+        "endpoint_count": 6,
+        "endpoints": [
+          {
+            "description": "Filter official Crunchbase companies, people and funding rounds by industry, geography, date, funding amount or stage. Use cb_reference for valid fields, operators and collection IDs. Resolve location/category names to returned identifiers before filtering. Money is integer USD and dates are ISO dates. Preserve all user filters; never silently drop a filter. Simple public-field predicates only; private CRM/saved-list and recursive relationship filters are unsupported. One page of at most 15 results.",
+            "endpoint_id": "5bc36cf6-0dfc-4bd2-a491-87710eba41c6",
+            "method": "POST",
+            "path": "/mcp/cb_search_query",
+            "registration": {
+              "list_atomic": 47258,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "after_id": {
+                    "description": "UUID of the last returned entity. Use only for an explicitly requested next page.",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "collection_id": {
+                    "description": "Reviewed public entity collection only.",
+                    "enum": [
+                      "organizations",
+                      "organization.companies",
+                      "people",
+                      "funding_rounds"
+                    ],
+                    "type": "string"
+                  },
+                  "field_ids": {
+                    "description": "Requested public output fields; defaults to all reviewed public fields.",
+                    "items": {
+                      "description": "Field or card identifier",
+                      "enum": [
+                        "acquirer_identifier",
+                        "acquisition_announced_on",
+                        "acquisition_identifier",
+                        "acquisition_price",
+                        "aliases",
+                        "bombora_last_updated",
+                        "categories",
+                        "category_groups",
+                        "closed_on",
+                        "contact_job_departments",
+                        "delisted_on",
+                        "diversity_spotlights",
+                        "entity_def_id",
+                        "equity_funding_total",
+                        "exited_on",
+                        "facet_ids",
+                        "founded_on",
+                        "founder_identifiers",
+                        "funding_stage",
+                        "funding_total",
+                        "funds_total",
+                        "growth_insight_confidence",
+                        "growth_insight_description",
+                        "growth_insight_direction",
+                        "growth_insight_indicator",
+                        "growth_score",
+                        "growth_score_delta_d90",
+                        "heat_score",
+                        "heat_score_delta_d90",
+                        "hubs",
+                        "identifier",
+                        "insight_similar_orgs",
+                        "investor_identifiers",
+                        "investor_insight_description",
+                        "investor_stage",
+                        "investor_type",
+                        "ipo_amount_raised",
+                        "ipo_share_price",
+                        "ipo_status",
+                        "ipo_valuation",
+                        "last_equity_funding_total",
+                        "last_funding_at",
+                        "last_funding_total",
+                        "last_funding_type",
+                        "last_growth_insight",
+                        "last_investment_fr_money_raised",
+                        "last_investor_insight",
+                        "last_news_insight",
+                        "last_research_insight",
+                        "location_identifiers",
+                        "news_insight_description",
+                        "num_contact_emails",
+                        "num_contact_phones",
+                        "num_contacts",
+                        "num_diversity_spotlight_investments",
+                        "num_employees_enum",
+                        "num_exits",
+                        "num_exits_ipo",
+                        "num_investments_funding_rounds",
+                        "num_relationships",
+                        "rank",
+                        "rank_org",
+                        "rank_org_company",
+                        "rank_org_school",
+                        "rank_principal",
+                        "rank_principal_investor",
+                        "research_insight_description",
+                        "short_description",
+                        "status",
+                        "stock_exchange_symbol",
+                        "website_url",
+                        "went_public_on",
+                        "attended_schools",
+                        "current_organizations",
+                        "num_partner_investments",
+                        "primary_job_title",
+                        "primary_organization",
+                        "rank_person",
+                        "announced_on",
+                        "funded_organization_diversity_spotlights",
+                        "funded_organization_funding_total",
+                        "funded_organization_identifier",
+                        "funded_organization_location_groups",
+                        "investment_type",
+                        "lead_investor_identifiers",
+                        "money_raised",
+                        "pre_money_valuation",
+                        "rank_funding_round",
+                        "sentiment",
+                        "target_money_raised",
+                        "title"
+                      ],
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "limit": {
+                    "default": 15,
+                    "maximum": 15,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "order": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "field_id": {
+                          "description": "Sortable field",
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "nulls": {
+                          "enum": [
+                            "first",
+                            "last"
+                          ]
+                        },
+                        "sort": {
+                          "enum": [
+                            "asc",
+                            "desc"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "field_id",
+                        "sort"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 5,
+                    "type": "array"
+                  },
+                  "predicates": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "field_id": {
+                          "description": "Exact field from cb_reference",
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "operator_id": {
+                          "description": "Operator supported by the field from cb_reference",
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "values": {
+                          "items": {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          },
+                          "maxItems": 100,
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "field_id",
+                        "operator_id",
+                        "values"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 25,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "collection_id"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://data.crunchbase.com/docs/tool-reference"
+          },
+          {
+            "description": "Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+            "endpoint_id": "6558d1c2-efdb-493a-939b-1aba3e88e520",
+            "method": "POST",
+            "path": "/mcp/cb_entity_autocomplete",
+            "registration": {
+              "list_atomic": 47258,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "collection_ids": {
+                    "description": "Comma-separated public collections only: organizations, people, funding_rounds, locations, categories, category_groups.",
+                    "maxLength": 300,
+                    "pattern": "^(organizations|people|funding_rounds|locations|categories|category_groups)(,(organizations|people|funding_rounds|locations|categories|category_groups))*$",
+                    "type": "string"
+                  },
+                  "limit": {
+                    "default": 10,
+                    "maximum": 25,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "query": {
+                    "description": "Literal name, not the entire task",
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://data.crunchbase.com/docs/tool-reference"
+          },
+          {
+            "description": "Read the official Crunchbase schema before building filters: collections, company/person/funding fields, valid operators, enum values and relationship cards. Use returned paths verbatim. This returns schema documentation, not company records.",
+            "endpoint_id": "8640eb8a-9394-47f7-9107-09165cca0da2",
+            "method": "POST",
+            "path": "/mcp/cb_reference",
+            "registration": {
+              "list_atomic": 47258,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "default": "index",
+                    "description": "index, entities, or an exact reference path returned by a previous response.",
+                    "maxLength": 300,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://data.crunchbase.com/docs/tool-reference"
+          },
+          {
+            "description": "Browse Crunchbase companies. Returns company identifiers, short descriptions, locations and rank. Advanced provider filters are not offered because the live check did not honor them.",
+            "endpoint_id": "8a94e2ef-50c4-5816-9d52-3ec606413d1c",
+            "method": "POST",
+            "path": "/searches/organizations",
+            "registration": {
+              "list_atomic": 86956,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "field_ids": {
+                    "default": [
+                      "identifier",
+                      "location_identifiers",
+                      "short_description",
+                      "rank_org"
+                    ],
+                    "enum": [
+                      [
+                        "identifier",
+                        "location_identifiers",
+                        "short_description",
+                        "rank_org"
+                      ]
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "limit": {
+                    "default": 10,
+                    "description": "Maximum companies to return",
+                    "maximum": 50,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "query": {
+                    "default": [],
+                    "items": {
+                      "type": "object"
+                    },
+                    "maxItems": 0,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "field_ids",
+                  "query"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api"
+          },
+          {
+            "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+            "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+            "method": "POST",
+            "path": "/autocompletes",
+            "registration": {
+              "list_atomic": 86956,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "description": "Company name or prefix to find in Crunchbase",
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api"
+          },
+          {
+            "description": "Fetch an identified official Crunchbase company, person or funding-round profile. Retain all returned public fields and supported relationship cards: description, headquarters, website, headcount, founders, employees, board members, funding rounds, amounts and investors when the account provides them. Missing fields are unavailable, never inferred. Public Crunchbase page content may supplement the same result internally. No extra source or page charge. No automatic pagination.",
+            "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "method": "POST",
+            "path": "/mcp/cb_entity_get",
+            "registration": {
+              "list_atomic": 47258,
+              "listing_type": "api",
+              "query_params": null,
+              "request_body": {
+                "additionalProperties": false,
+                "properties": {
+                  "after_id": {
+                    "description": "UUID of the last returned entity. Use only for an explicitly requested next page.",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "card_ids": {
+                    "description": "Omit for public founders, employees, board/advisors, funding and investor cards. Explicit cards must come from the reviewed public reference.",
+                    "items": {
+                      "description": "Field or card identifier",
+                      "enum": [
+                        "acquisition_prediction",
+                        "acquisitions_list",
+                        "alumni_image_list",
+                        "apptopia_app_overview_list_free",
+                        "apptopia_app_overview_list_public",
+                        "apptopia_app_rating_list",
+                        "apptopia_sdk_list",
+                        "awards",
+                        "bankruptcies",
+                        "bombora_surge_list",
+                        "builtwith_tech_used_list",
+                        "categories_featured_order_field",
+                        "contacts_summary",
+                        "current_advisors_image_list",
+                        "current_advisors_preview",
+                        "current_employees_image_list",
+                        "current_employees_preview",
+                        "current_valuation",
+                        "diversity_spotlight_investments_list",
+                        "diversity_spotlights_external_lookup",
+                        "earnings_change_news_events",
+                        "employees_display_lookup",
+                        "event_appearances_list",
+                        "exits_image_list",
+                        "founders_lookup",
+                        "funding_prediction",
+                        "funding_rounds_list",
+                        "funds_list",
+                        "growth_knowledge",
+                        "growth_prediction",
+                        "headquarters_address_lookup",
+                        "investment_thesis",
+                        "investments_in_funds_list",
+                        "investments_list",
+                        "investors_list",
+                        "ipo_lookup",
+                        "ipo_prediction",
+                        "key_employee_change_list",
+                        "layoff_list",
+                        "legal_proceedings",
+                        "news_list",
+                        "news_preview_list",
+                        "offices",
+                        "org_similarity_list",
+                        "org_similarity_org_list",
+                        "overview_funding_rounds_list",
+                        "overview_key_people",
+                        "partnership_announcements",
+                        "portfolio_list",
+                        "product",
+                        "product_launches",
+                        "profit_margin_news_events",
+                        "recommended_search",
+                        "revenue_change_news_events",
+                        "semrush_location_list",
+                        "siftery_product_list",
+                        "static_growth_knowledge",
+                        "technology_bombora_surge_list",
+                        "technology_builtwith_tech_used_list",
+                        "technology_siftery_product_list",
+                        "current_board_and_advisory_roles_image_list",
+                        "current_jobs_image_list",
+                        "education_image_list",
+                        "founded_organizations_lookup",
+                        "hubs_list",
+                        "jobs_lookup",
+                        "partner_investments_list",
+                        "past_board_and_advisory_roles_list",
+                        "past_jobs_list",
+                        "investments_lookup",
+                        "lead_investors_image_list",
+                        "organization_lookup"
+                      ],
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "entity_def_id": {
+                    "default": "organization",
+                    "enum": [
+                      "organization",
+                      "person",
+                      "funding_round"
+                    ],
+                    "type": "string"
+                  },
+                  "entity_id": {
+                    "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9_-]+$",
+                    "type": "string"
+                  },
+                  "field_ids": {
+                    "description": "Omit to fetch all readable fields. [] skips top-level fields.",
+                    "items": {
+                      "description": "Field or card identifier",
+                      "enum": [
+                        "acquirer_identifier",
+                        "acquisition_announced_on",
+                        "acquisition_identifier",
+                        "acquisition_price",
+                        "aliases",
+                        "bombora_last_updated",
+                        "categories",
+                        "category_groups",
+                        "closed_on",
+                        "contact_job_departments",
+                        "delisted_on",
+                        "diversity_spotlights",
+                        "entity_def_id",
+                        "equity_funding_total",
+                        "exited_on",
+                        "facet_ids",
+                        "founded_on",
+                        "founder_identifiers",
+                        "funding_stage",
+                        "funding_total",
+                        "funds_total",
+                        "growth_insight_confidence",
+                        "growth_insight_description",
+                        "growth_insight_direction",
+                        "growth_insight_indicator",
+                        "growth_score",
+                        "growth_score_delta_d90",
+                        "heat_score",
+                        "heat_score_delta_d90",
+                        "hubs",
+                        "identifier",
+                        "insight_similar_orgs",
+                        "investor_identifiers",
+                        "investor_insight_description",
+                        "investor_stage",
+                        "investor_type",
+                        "ipo_amount_raised",
+                        "ipo_share_price",
+                        "ipo_status",
+                        "ipo_valuation",
+                        "last_equity_funding_total",
+                        "last_funding_at",
+                        "last_funding_total",
+                        "last_funding_type",
+                        "last_growth_insight",
+                        "last_investment_fr_money_raised",
+                        "last_investor_insight",
+                        "last_news_insight",
+                        "last_research_insight",
+                        "location_identifiers",
+                        "news_insight_description",
+                        "num_contact_emails",
+                        "num_contact_phones",
+                        "num_contacts",
+                        "num_diversity_spotlight_investments",
+                        "num_employees_enum",
+                        "num_exits",
+                        "num_exits_ipo",
+                        "num_investments_funding_rounds",
+                        "num_relationships",
+                        "rank",
+                        "rank_org",
+                        "rank_org_company",
+                        "rank_org_school",
+                        "rank_principal",
+                        "rank_principal_investor",
+                        "research_insight_description",
+                        "short_description",
+                        "status",
+                        "stock_exchange_symbol",
+                        "website_url",
+                        "went_public_on",
+                        "attended_schools",
+                        "current_organizations",
+                        "num_partner_investments",
+                        "primary_job_title",
+                        "primary_organization",
+                        "rank_person",
+                        "announced_on",
+                        "funded_organization_diversity_spotlights",
+                        "funded_organization_funding_total",
+                        "funded_organization_identifier",
+                        "funded_organization_location_groups",
+                        "investment_type",
+                        "lead_investor_identifiers",
+                        "money_raised",
+                        "pre_money_valuation",
+                        "rank_funding_round",
+                        "sentiment",
+                        "target_money_raised",
+                        "title"
+                      ],
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "related_entity_limit": {
+                    "default": 100,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "entity_id"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://data.crunchbase.com/docs/tool-reference"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "api-market",
+        "recent_failures": 0,
+        "recent_successes": 4,
+        "recent_unresolved": 0,
+        "tagged": 6,
+        "tags": [
+          "board-members",
+          "business",
+          "company",
+          "crunchbase",
+          "employees",
+          "enrichment",
+          "executives",
+          "fetch",
+          "fields",
+          "filter",
+          "filters",
+          "financials",
+          "founders",
+          "funding",
+          "funding-rounds",
+          "identifier",
+          "industry",
+          "investors",
+          "leadership",
+          "location",
+          "name-search",
+          "official-data",
+          "operators",
+          "people",
+          "profile",
+          "schema",
+          "search",
+          "venture-capital"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Crunchbase",
+      "slug": "apimarket-magicapi-crunchbase-bbcca0a6"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.filing-history": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+          "company.officers": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company.significant-control": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+          "company.uk-registry-search": "Find UK companies by name and resolve Companies House numbers.",
+          "operation.companies-house.get-advanced-search-companies-3629cd16": "Screen the whole UK register with filters rather than looking one company up. Combine a name fragment with SIC codes (what the company does), company status (active, dissolved, liquidation, administration), company type and subtype, a locat",
+          "operation.companies-house.get-alphabetical-search-companies-33a5f5f7": "Walk the UK company register in alphabetical order from a given name. Unlike the relevance-ranked name search, this returns the companies that sit around the search term in the register's own alphabetical index, and pages forwards and backw",
+          "operation.companies-house.get-disqualified-officers-corporate-9b160607": "The full disqualification record of one banned CORPORATE officer \u2014 a company or other body corporate that has itself been disqualified from acting as a director \u2014 by officer id from the disqualified-officer search. Returns the same structur",
+          "operation.companies-house.get-disqualified-officers-natural-eeb77a29": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepte",
+          "operation.companies-house.get-dissolved-search-companies-2f1b39bb": "Search only the companies that have been dissolved. The main company search covers dissolved companies too, but this index is dedicated to them and, uniquely, can search on a company's PREVIOUS names \u2014 set search_type to previous-name-disso",
+          "operation.companies-house.get-officers-f01533f9": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held",
+          "operation.companies-house.get-persons-with-significant-control-86d4c314": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (o",
+          "operation.companies-house.get-search-93864601": "Search the whole Companies House register in one call \u2014 companies, officers and disqualified officers together \u2014 and get back a single ranked result set with each hit labelled by which index it came from. The call to make when you have a na",
+          "operation.companies-house.get-search-disqualified-officers-32ca794c": "Search the UK register of disqualified directors by name. Returns people who have been banned by a court or by undertaking from acting as a company director, with the officer id needed to read the full order. This is the adverse-media-free,",
+          "operation.companies-house.get-search-officers-8e049519": "Find a company officer by name across the whole UK register. Search directors, company secretaries and LLP members by full or partial name and get back each matching officer with their officer id, their date of birth to month precision, the"
+        },
+        "categorized": 15,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 15,
+        "description": "The official register of every company incorporated in the United Kingdom, from Companies House. Search the register by company name, officer name or disqualified officer; resolve a company number; and pull the full public record for any UK company \u2014 registered office address, company status and type, incorporation and dissolution dates, SIC codes, accounts and confirmation-statement due dates, its officers (directors, secretaries, LLP members), its persons with significant control and beneficial owners, its complete filing history, its registered charges and mortgages, its insolvency history,",
+        "documented_inputs": 15,
+        "endpoint_count": 15,
+        "endpoints": [
+          {
+            "description": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+            "endpoint_id": "0b3e1b4e-b857-53fc-85de-f5f456bedb21",
+            "method": "GET",
+            "path": "/company/{company_number}/filing-history",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full public record of one UK company from the official Companies House register, by company number. On its own it returns the company profile: registered name and any previous names, company number, status (active, dissolved, liquidation, administration), company type, date of incorporation and of dissolution, registered office address and whether it is in dispute, SIC codes for what the company does, accounts and confirmation-statement made-up and due dates, and flags for whether the company has charges, insolvency history or persons with significant control. Add a sub_resource to reach the same company's other records without a second lookup: officers (current and resigned directors, secretaries and LLP members, with dates of birth to month precision, nationality, occupation and appo",
+            "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+            "method": "GET",
+            "path": "/company",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "category": {
+                    "description": "filing-history only. One or more comma-separated categories to filter by, inclusive \u2014 e.g. accounts, capital, incorporation, officers, mortgage, resolution.",
+                    "type": "string"
+                  },
+                  "company_number": {
+                    "description": "The UK company registration number, eight characters, zero-padded \u2014 e.g. 00445790 for Tesco PLC. Scottish companies are prefixed SC, Northern Irish NI, limited partnerships LP, and overseas companies FC. Get one from /search/companies if you only have a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "description": "List sub-resources only (officers, filing-history, charges, persons-with-significant-control). How many items to return on this page.",
+                    "type": "integer"
+                  },
+                  "order_by": {
+                    "description": "officers only. The field to order the officer list by.",
+                    "enum": [
+                      "appointed_on",
+                      "resigned_on",
+                      "surname"
+                    ],
+                    "type": "string"
+                  },
+                  "register_type": {
+                    "description": "officers only, and only when register_view is true. Which officer type the register view returns.",
+                    "enum": [
+                      "directors",
+                      "secretaries",
+                      "llp_members"
+                    ],
+                    "type": "string"
+                  },
+                  "register_view": {
+                    "description": "officers only. Set true to show register-specific information; when the register is held at Companies House only active officers are returned. Defaults to false.",
+                    "enum": [
+                      "true",
+                      "false"
+                    ],
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "List sub-resources only. The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Which record of this company to return. Omit for the company profile itself.",
+                    "enum": [
+                      "registered-office-address",
+                      "officers",
+                      "registers",
+                      "charges",
+                      "filing-history",
+                      "insolvency",
+                      "exemptions",
+                      "uk-establishments",
+                      "persons-with-significant-control",
+                      "persons-with-significant-control-statements",
+                      "appointments"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "sub_resource_detail": {
+                    "description": "Only for persons-with-significant-control: which kind of PSC notification to fetch, immediately before the notification id.",
+                    "enum": [
+                      "individual",
+                      "corporate-entity",
+                      "legal-person",
+                      "super-secure",
+                      "individual-beneficial-owner",
+                      "corporate-entity-beneficial-owner",
+                      "legal-person-beneficial-owner",
+                      "super-secure-beneficial-owner"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "sub_resource_id": {
+                    "description": "The id of one item within the sub_resource: a charge id, a filing-history transaction id, a PSC statement id, an appointment id, or a PSC notification id. Every one of these ids comes out of the corresponding list call \u2014 none can be constructed.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search only the companies that have been dissolved. The main company search covers dissolved companies too, but this index is dedicated to them and, uniquely, can search on a company's PREVIOUS names \u2014 set search_type to previous-name-dissolved to find a company under a name it traded under before it was renamed and then dissolved, which the live-register search cannot do. search_type also accepts alphabetical (walk the dissolved index in name order, paging with search_above and search_below) and best-match (relevance-ranked, paging with start_index). Each hit carries the company number, the date of cessation and the previous names, so a dissolved entity can be traced back to the record that closed.",
+            "endpoint_id": "2f1b39bb-1088-417e-975a-e02ba91b50c8",
+            "method": "GET",
+            "path": "/dissolved-search/companies",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "q": {
+                    "description": "The dissolved company's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "search_above": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names above it. Alphabetical search only.",
+                    "type": "string"
+                  },
+                  "search_below": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names below it. Alphabetical search only.",
+                    "type": "string"
+                  },
+                  "search_type": {
+                    "description": "Which index to search. alphabetical walks the dissolved name index; best-match ranks by relevance; previous-name-dissolved searches names the company traded under before it was dissolved.",
+                    "enum": [
+                      "alphabetical",
+                      "best-match",
+                      "previous-name-dissolved"
+                    ],
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 100.",
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "description": "The offset into the result set. Applies to the best-match and previous-name-dissolved search types.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q",
+                  "search_type"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search the UK register of disqualified directors by name. Returns people who have been banned by a court or by undertaking from acting as a company director, with the officer id needed to read the full order. This is the adverse-media-free, statutory version of a directorship check: a hit here means a UK court or the Insolvency Service has formally disqualified this person. Take the officer id from a hit to /disqualified-officers/natural or /disqualified-officers/corporate for the disqualification period, the reasons, the case reference and the company the conduct related to. A clean search is evidence of absence only within this register \u2014 it says nothing about disqualifications in other jurisdictions.",
+            "endpoint_id": "32ca794c-5c8f-41e5-808c-3b7c09659cf0",
+            "method": "GET",
+            "path": "/search/disqualified-officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The disqualified officer's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Walk the UK company register in alphabetical order from a given name. Unlike the relevance-ranked name search, this returns the companies that sit around the search term in the register's own alphabetical index, and pages forwards and backwards from a position rather than by offset \u2014 pass the ordered_alpha_key_with_id of a result to search_above or search_below to continue in either direction. Use it to enumerate names in a range, to check what is registered immediately either side of a proposed company name, or to walk a slice of the register deterministically without relevance ranking reordering the results underneath you.",
+            "endpoint_id": "33a5f5f7-6880-4da3-8ae9-d0ae92ef8f4a",
+            "method": "GET",
+            "path": "/alphabetical-search/companies",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "q": {
+                    "description": "The company name to position the alphabetical window at.",
+                    "type": "string"
+                  },
+                  "search_above": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names above it in the index.",
+                    "type": "string"
+                  },
+                  "search_below": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names below it in the index.",
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 100.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Screen the whole UK register with filters rather than looking one company up. Combine a name fragment with SIC codes (what the company does), company status (active, dissolved, liquidation, administration), company type and subtype, a location, and windows on the incorporation date or the dissolution date \u2014 then page through up to 5000 results at a time. This is how you build a list: every active UK company in a given industry incorporated since a date, every company dissolved in a window, every company of a given legal form in a place. company_name_excludes drops the false positives a name fragment drags in. The result items are the same company records the name search returns, so each carries a company number that goes straight into /company.",
+            "endpoint_id": "3629cd16-87d0-4fb6-8fd7-2840ff591419",
+            "method": "GET",
+            "path": "/advanced-search/companies",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_name_excludes": {
+                    "description": "Drop companies whose name includes this text. Use it to strip the false positives a broad name fragment brings in.",
+                    "type": "string"
+                  },
+                  "company_name_includes": {
+                    "description": "The company name must include this text. Required here \u2014 an advanced search with no filter at all returns the head of the entire register.",
+                    "type": "string"
+                  },
+                  "company_status": {
+                    "description": "Restrict to companies in these statuses. Repeatable / comma-separated, e.g. active, dissolved, liquidation, administration, receivership, voluntary-arrangement.",
+                    "type": "string"
+                  },
+                  "company_subtype": {
+                    "description": "Restrict to a company subtype, e.g. community-interest-company.",
+                    "type": "string"
+                  },
+                  "company_type": {
+                    "description": "Restrict to these legal forms. Repeatable / comma-separated, e.g. ltd, plc, llp, private-limited-guarant-nsc, oversea-company.",
+                    "type": "string"
+                  },
+                  "dissolved_from": {
+                    "description": "Only companies dissolved on or after this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "dissolved_to": {
+                    "description": "Only companies dissolved on or before this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "incorporated_from": {
+                    "description": "Only companies incorporated on or after this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "incorporated_to": {
+                    "description": "Only companies incorporated on or before this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "location": {
+                    "description": "Restrict to companies whose registered office is in this location \u2014 a town, city or region.",
+                    "type": "string"
+                  },
+                  "sic_codes": {
+                    "description": "Restrict to companies carrying these SIC codes \u2014 the UK Standard Industrial Classification of what the company does, e.g. 62012 for business and domestic software development. Repeatable / comma-separated.",
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 5000.",
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_name_includes"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+            "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+            "method": "GET",
+            "path": "/company/{company_number}/persons-with-significant-control",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Find a UK company by name and get its company number. The standard way in to everything else here: search the Companies House register by full or partial company name, and each hit comes back with the company number, its status (active, dissolved, liquidation), its type, its date of incorporation, its registered address snippet and the link to its full profile. Matching is relevance-ranked, not exact, so a trading name or a fragment works; filter on status yourself if you only want companies still trading. Feed the company_number from a hit straight into /company.",
+            "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+            "method": "GET",
+            "path": "/search/companies",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The company name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (ownership of shares in the 25-50%, 50-75% or 75-100% band, voting rights, the right to appoint or remove directors, significant influence), and when it ceased. Use it to establish WHEN control changed rather than only who holds it now, which is the question that matters for beneficial-ownership history and for dating a change of control. The psc_id is only ever obtained from a company's persons-with-significant-control list; it cannot be derived from a name.",
+            "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b",
+            "method": "GET",
+            "path": "/persons-with-significant-control",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of notifications to return per page.",
+                    "type": "integer"
+                  },
+                  "psc_id": {
+                    "description": "The person-with-significant-control id, an opaque token taken from a company's /company/{n}/persons-with-significant-control list. It cannot be constructed.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Must be the literal notifications \u2014 the trailing segment of the upstream path /persons-with-significant-control/{psc_id}/notifications. Declared separately because each bound path value is percent-encoded as its own segment.",
+                    "enum": [
+                      "notifications"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "psc_id",
+                  "sub_resource"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Find a company officer by name across the whole UK register. Search directors, company secretaries and LLP members by full or partial name and get back each matching officer with their officer id, their date of birth to month precision, their address snippet, how many appointments they currently hold and how many they have resigned from. The officer id from a hit is the input to /officers, which returns that person's entire appointment history \u2014 so this is the first half of \"which UK companies is this person involved in\". Note that Companies House does not deduplicate people: the same individual can appear under several officer ids if their name or address was recorded differently on different appointments.",
+            "endpoint_id": "8e049519-fab3-436d-83e0-ebecb4d65cb7",
+            "method": "GET",
+            "path": "/search/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The officer's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search the whole Companies House register in one call \u2014 companies, officers and disqualified officers together \u2014 and get back a single ranked result set with each hit labelled by which index it came from. The call to make when you have a name and do not yet know whether it belongs to a company or to a person: a search for a founder's name returns both the companies whose name contains it and the officer records for the person. Each hit carries a title, a description, an address snippet and the self link to the full record, so a second call can go straight to /company or /officers with the identifier the hit supplies.",
+            "endpoint_id": "93864601-3488-4b2e-bfb5-e27a0e018b0a",
+            "method": "GET",
+            "path": "/search",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The term being searched for \u2014 a company name, a person's name, or a fragment of either.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full disqualification record of one banned CORPORATE officer \u2014 a company or other body corporate that has itself been disqualified from acting as a director \u2014 by officer id from the disqualified-officer search. Returns the same structure as the natural-person record: the dates the disqualification runs from and to, whether it was a court order or an undertaking, the Act and section relied on, the case identifier, the reasons, the companies the conduct related to, and any permissions to act. Corporate disqualifications are rarer than individual ones and are held in a separate index, which is why this is a different call from /disqualified-officers/natural \u2014 use the kind on the search hit to pick between them.",
+            "endpoint_id": "9b160607-5741-4747-baa1-ad0c7b84f51b",
+            "method": "GET",
+            "path": "/disqualified-officers/corporate",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "officer_id": {
+                    "description": "The disqualified corporate officer id, taken from a /search/disqualified-officers hit's self link. It cannot be constructed from a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepted by undertaking, the section of the Company Directors Disqualification Act relied on, the case identifier, the reasons given, the company the conduct related to, and any permissions to act granted by a court despite the ban. This is the evidence behind a hit, not just the hit \u2014 what a compliance file needs to record why a person is disqualified and until when. For a disqualified corporate body use /disqualified-officers/corporate instead.",
+            "endpoint_id": "eeb77a29-c240-4033-86de-2ca2d0f89a64",
+            "method": "GET",
+            "path": "/disqualified-officers/natural",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "officer_id": {
+                    "description": "The disqualified officer id, taken from a /search/disqualified-officers hit's self link. It cannot be constructed from a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held (director, secretary, LLP member), when they were appointed and when they resigned, their nationality, occupation and country of residence, and their date of birth to month precision. This is the director-network primitive: it turns one name into the full set of UK companies that person is connected to, which is what conflict-of-interest checks, related-party analysis and shell-company mapping are built on. Companies House does not merge people, so one human being may hold several officer ids where their name or address was recorded differently \u2014 cross-",
+            "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f",
+            "method": "GET",
+            "path": "/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of appointments to return per page.",
+                    "type": "integer"
+                  },
+                  "officer_id": {
+                    "description": "The Companies House officer id, an opaque token that comes from /search/officers or from a company's officer list. It cannot be constructed from a person's name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Must be the literal appointments \u2014 it is the trailing segment of the upstream path /officers/{officer_id}/appointments. It is a separate parameter because each bound path value is percent-encoded as its own segment, so a slash cannot be carried inside officer_id.",
+                    "enum": [
+                      "appointments"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id",
+                  "sub_resource"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+            "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+            "method": "GET",
+            "path": "/company/{company_number}/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 31,
+        "recent_unresolved": 0,
+        "tagged": 15,
+        "tags": [
+          "administration",
+          "advanced search",
+          "alphabetical search",
+          "aml",
+          "annual accounts",
+          "appointments",
+          "banned director",
+          "beneficial owner",
+          "beneficial ownership",
+          "business register",
+          "cdda",
+          "charges",
+          "companies house",
+          "companieshouse",
+          "company history",
+          "company lookup",
+          "company name",
+          "company name availability",
+          "company number",
+          "company officers",
+          "company profile",
+          "company register",
+          "company registration number",
+          "company registry",
+          "company screening",
+          "company search",
+          "company secretary",
+          "company status",
+          "company verification",
+          "compliance evidence",
+          "compliance screening",
+          "confirmation statement"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Companies House",
+      "slug": "companies-house"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+          "operation.openwebninja.get-yelp-business-data-business-search-eddb418e": "Search Yelp businesses by name and location, returning customer ratings, review counts, business details and listing links. These ratings describe individual business locations, not employer satisfaction."
+        },
+        "categorized": 22,
+        "category": "data",
+        "coverage_notice": "Curated business, company-profile, contact-enrichment and topic-search operations only. Provider responses are returned with source attribution; no live paid response has been verified during this import.",
+        "described": 22,
+        "description": "Business discovery, company profiles and contact enrichment: local businesses, website contacts, emails and social profiles, with web, news-topic and forum search.",
+        "documented_inputs": 22,
+        "endpoint_count": 22,
+        "endpoints": [
+          {
+            "description": "Real-Time News Data API Documentation: Search. Search news articles by query with an option to limit the results to a specific time range. Documented response fields: title, link, snippet, photo_url, thumbnail_url, published_datetime_utc, authors, source_url, source_name, source_logo_url, source_favicon_url, source_publication_id, related_topics, topic_id, topic_name.",
+            "endpoint_id": "07b2fae2-5ca3-59f6-b598-c604483cb5a6",
+            "method": "GET",
+            "path": "/realtime-news-data/search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "country": {
+                    "description": "Country code. See all available country codes. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "The language to use for the results, specified as a 2-letter language code - see ISO 639-1 alpha-2. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of news articles to return. Provider default when omitted: 10.",
+                    "maximum": 500,
+                    "minimum": 1,
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query for which to get news.",
+                    "examples": [
+                      "Elon Musk"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "source": {
+                    "description": "Domain of the source from which to return news articles.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "time_published": {
+                    "description": "Find news articles published in a specific time range. Provider default when omitted: \"anytime\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Email Search API Documentation: Search Emails. Search the web for emails using a query and email domain and get up to 5,000 email addresses.",
+            "endpoint_id": "13197307-c0c1-56bd-9eaf-7f4a315e5972",
+            "method": "GET",
+            "path": "/email-search/search-emails",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "email_domain": {
+                    "description": "Email domain - typically a company domain (e.g. `wsgr.com`) or an email provider domain (e.g. `gmail.com`).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of emails to return.\n  \n  **Allowed values:** `1-5000` Provider default when omitted: 5000.",
+                    "type": "number",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query.  \n\n  **Examples:**  \n  `Steve Smith San Francisco CA USA`  \n  `Facebook CEO`  \n  `Jack blogger New York`  \n  `Car dealer California USA`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "email_domain"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Autocomplete. Returns place/address, business and query predictions for text-based geographic queries. Documented response fields: type, google_id, place_id, description, main_text, main_text_highlights, offset, length, secondary_text, secondary_text_highlights, latitude, longitude, country.",
+            "endpoint_id": "140c66c0-955d-5d5f-a32c-d355daa12328",
+            "method": "GET",
+            "path": "/local-business-data/autocomplete",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "coordinates": {
+                    "description": "Geographic coordinates of the location from which the query is applied - recommended to use so that results are biased towards this location.  \n  Defaults to some central location in the region (see the region parameter).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.  \n  For a list of supported language codes see *https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query",
+                    "examples": [
+                      "new y"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Return results based to a particular region.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Social Links Search API Documentation: Search Social Links. Get social profile links by search query or keywords. The following social networks are supported: Facebook, TikTok, Instagram, Snapchat, Twitter, Youtube, LinkedIn, GitHub and Pinterest. Documented response fields: facebook, instagram, twitter, linkedin, tiktok, snapchat, github, youtube, pinterest.",
+            "endpoint_id": "1b61fcf1-a35a-5285-b537-d1708249d3de",
+            "method": "GET",
+            "path": "/social-links-search/search-social-links",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "query": {
+                    "description": "Social links search query.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "social_networks": {
+                    "description": "Find social links for the specified social networks, specified as a comma delimited list of the following values: facebook, tiktok, instagram, snapchat, twitter, youtube, linkedin, github, pinterest. Provider default when omitted: \"facebook,tiktok,instagram,snapchat,twitter,youtube,linkedin,github\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "method": "GET",
+            "path": "/realtime-glassdoor-data/company-search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "The Glassdoor domain to use. Provider default when omitted: \"www.glassdoor.com\".",
+                    "enum": [
+                      "www.glassdoor.com",
+                      "www.glassdoor.co.uk",
+                      "www.glassdoor.com.ar",
+                      "www.glassdoor.com.au",
+                      "www.glassdoor.be",
+                      "www.glassdoor.be",
+                      "www.glassdoor.com.br",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.de",
+                      "www.glassdoor.es",
+                      "www.glassdoor.fr",
+                      "www.glassdoor.com.hk",
+                      "www.glassdoor.co.in",
+                      "www.glassdoor.ie",
+                      "www.glassdoor.it",
+                      "www.glassdoor.com.mx",
+                      "www.glassdoor.nl",
+                      "www.glassdoor.co.nz",
+                      "www.glassdoor.at",
+                      "de.glassdoor.ch",
+                      "www.glassdoor.sg",
+                      "fr.glassdoor.ch"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of results to return. Provider default when omitted: 10.",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "number",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Company name or Glassdoor company ID to search. Use the supplied company name when no ID is given.",
+                    "examples": [
+                      "goo"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Real-Time Glassdoor Data API Documentation: Company Overview. Get company (employer) overview/details from Glassdoor (e.g. https://www.glassdoor.com/Overview/Working-at-Apple-EI_IE1138.11,16.htm). Documented response fields: website, company_id, name, company_link, rating, review_count, salary_count, job_count, headquarters_location, logo, company_size, company_size_category, company_description, industry, company_type, revenue, business_outlook_rating, career_opportunities_rating, ceo, ceo_rating, compensation_and_benefits_rating, culture_and_values_rating, diversity_and_inclusion_rating, recommend_to_friend_rating, senior_management_rating, work_life_balance_rating, stock, year_founded, reviews_link, jobs_link, faq_link.",
+            "endpoint_id": "23ba4c8c-4615-51d4-b1c1-8f3b3d75f073",
+            "method": "GET",
+            "path": "/realtime-glassdoor-data/company-overview",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "company_id": {
+                    "description": "Glassdoor company ID",
+                    "examples": [
+                      "1138"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "domain": {
+                    "description": "The Glassdoor domain to use. Provider default when omitted: \"www.glassdoor.com\".",
+                    "enum": [
+                      "www.glassdoor.com",
+                      "www.glassdoor.co.uk",
+                      "www.glassdoor.com.ar",
+                      "www.glassdoor.com.au",
+                      "www.glassdoor.be",
+                      "www.glassdoor.be",
+                      "www.glassdoor.com.br",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.ca",
+                      "www.glassdoor.de",
+                      "www.glassdoor.es",
+                      "www.glassdoor.fr",
+                      "www.glassdoor.com.hk",
+                      "www.glassdoor.co.in",
+                      "www.glassdoor.ie",
+                      "www.glassdoor.it",
+                      "www.glassdoor.com.mx",
+                      "www.glassdoor.nl",
+                      "www.glassdoor.co.nz",
+                      "www.glassdoor.at",
+                      "de.glassdoor.ch",
+                      "www.glassdoor.sg",
+                      "fr.glassdoor.ch"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "company_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Search Nearby. Search businesses near by specific geographic coordinates. To see it in action, right click on a specific point in the map on Google Maps and select \"Search nearby\", enter a query and search. Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "5ad65344-fe92-56f0-849e-fb0916a40f5c",
+            "method": "GET",
+            "path": "/local-business-data/search-nearby",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "extract_emails_and_contacts": {
+                    "description": "Extract emails, contacts and social profiles for each business in the response.  \n  In case true, businesses will be enriched with a emails_and_contacts field with emails, phones, Facebook, LinkedIn, Instagram and other social profiles.  \n  \n  **Note:** in case true, the endpoint will scrape emails and contacts from the business website (in case non-empty).  \n    For each such business, the API will charge an additional credit. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results. For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lat": {
+                    "description": "Latitude of the geographic coordinates to search near by. Provider default when omitted: 37.359428.",
+                    "examples": [
+                      "37.359428"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of businesses to return.  \n\n  **Allowed values:** `1-500` Provider default when omitted: 20.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lng": {
+                    "description": "Longitude of the geographic coordinates to search near by. Provider default when omitted: -121.925337.",
+                    "examples": [
+                      "-121.925337"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword  \n\n  **Examples:**  \n  `Bars and pubs`  \n  `Plumbers`",
+                    "examples": [
+                      "plumbers"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "subtypes": {
+                    "description": "Find businesses with specific subtypes, specified as a comma separated list of types (business categories).  \n  For the complete list of types, see *https://daltonluka.com/blog/google-my-business-categories*.  \n  \n  **Examples:**  \n  `Plumber,Carpenter,Electrician`  \n  `Night club,Dance club,Bar,Pub`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "lat",
+                  "lng"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Business Details Plus. Get full business details PLUS additional AI-powered enrichments \u2014 currently includes `keywords_mentioned_in_reviews`, an array of the keywords most frequently surfaced in the business' Google Maps reviews together with how many reviews mention each. All `/business-details` request parameters and response fields are supported. **Cost: 2 credits per business.** Supports batc Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, ow",
+            "endpoint_id": "6809b012-e1cb-5d62-9adb-747254ee35a3",
+            "method": "GET",
+            "path": "/local-business-data/business-details-plus",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "business_id": {
+                    "description": "Unique Business Id. Accepts `google_id` / `business_id` or `place_id`.\n\n  **Examples:**\n  `0x880fd393d427a591:0x8cba02d713a995ed`\n  `ChIJkaUn1JPTD4gR7ZWpE9cCuow`\n\n  In addition, batching of up to 20 Business Ids is supported in a single request using a comma separated list *(e.g. business_id=id1,id2)*.",
+                    "examples": [
+                      "0x880fd393d427a591:0x8cba02d713a995ed"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "coordinates": {
+                    "description": "Geographic coordinates of the location from which the query is applied - recommended to use so that results are biased towards this location.\n  Defaults to some central location in the region (see the region parameter).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_emails_and_contacts": {
+                    "description": "Whether to extract emails, contacts and social profiles for the business.\n  In case true, businesses will be enriched with an emails_and_contacts field, potentially containing emails, phones, Facebook, LinkedIn, Instagram and other social profiles. Provider default when omitted: true.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_share_link": {
+                    "description": "Whether to extract place's share link for the business.\n  In case true, businesses will be enriched with a share_link field containing a shortened Google URL for sharing. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).\n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.\n  For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.\n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "business_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Trustpilot Company and Reviews Data API Documentation: Company Search. Search for companies / businesses on Trustpilot. Supports pagination and rating and review count filters. Documented response fields: total_companies, companies.",
+            "endpoint_id": "6a2a3c4f-1f0f-5582-b2b5-dc605f234b73",
+            "method": "GET",
+            "path": "/trustpilot-company-and-reviews/company-search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "locale": {
+                    "description": "Locale code to use. Corresponds to the country selector on the Trustpilot website footer. Provider default when omitted: \"en-US\".",
+                    "enum": [
+                      "da-DK",
+                      "de-AT",
+                      "de-CH",
+                      "de-DE",
+                      "en-AU",
+                      "en-CA",
+                      "en-GB",
+                      "en-IE",
+                      "en-NZ",
+                      "en-US",
+                      "es-ES",
+                      "fi-FI",
+                      "fr-BE",
+                      "nl-BE",
+                      "fr-FR",
+                      "it-IT",
+                      "ja-JP",
+                      "nb-NO",
+                      "nl-NL",
+                      "pl-PL",
+                      "pt-BR",
+                      "pt-PT",
+                      "sv-SE"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "min_rating": {
+                    "description": "Only return companies with at least the specified rating. Provider default when omitted: \"any\".",
+                    "enum": [
+                      "any",
+                      "3",
+                      "4",
+                      "4.5"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "min_review_count": {
+                    "description": "Only return companies with at least the specified number of reviews.",
+                    "enum": [
+                      "any",
+                      "25",
+                      "50",
+                      "100",
+                      "250",
+                      "500"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "page": {
+                    "description": "The page to return (each page includes up to 10 results). Provider default when omitted: 1.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Search In Area. Search businesses in a specific geographic area defined by a center coordinate point and zoom level. To see it in action, make a query on Google Maps, wait for the results to show, move the map or change the zoom and click \"Search this area\" at the top. Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "7027ffcc-9d05-5049-ba98-05ff1b16a611",
+            "method": "GET",
+            "path": "/local-business-data/search-in-area",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "extract_emails_and_contacts": {
+                    "description": "Extract emails, contacts and social profiles for each business in the response.  \n  In case true, businesses will be enriched with a emails_and_contacts field with emails, phones, Facebook, LinkedIn, Instagram and other social profiles.\n  \n  **Note:** in case `true`, the endpoint will scrape emails and contacts from the business website (in case non-empty).  \n  For each such business, the API will charge an additional credit. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.  \n  For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lat": {
+                    "description": "Latitude of the center coordinate point of the area to search in. Provider default when omitted: 37.359428.",
+                    "examples": [
+                      "37.359428"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of businesses to return.  \n\n  **Allowed values:** `1-500` Provider default when omitted: 20.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lng": {
+                    "description": "Longitude of the center coordinate point of the area to search in. Provider default when omitted: -121.925337.",
+                    "examples": [
+                      "-121.925337"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "examples": [
+                      "pizza"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "subtypes": {
+                    "description": "Find businesses with specific subtypes, specified as a comma separated list of types (business categories).  \n  For the complete list of types, see *https://daltonluka.com/blog/google-my-business-categories*.  \n  \n  **Examples:**  \n  `Plumber,Carpenter,Electrician`  \n  `Night club,Dance club,Bar,Pub`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "zoom": {
+                    "description": "Zoom level on which to make the search (the search area / viewport is determined by lat, lng and zoom on a 1000x1000 screen)",
+                    "examples": [
+                      "13"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "lat",
+                  "lng",
+                  "zoom"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Yelp Business Data API Documentation: Business Details. Fetch a single or multiple business details from Yelp. Documented response fields: website, id, alias, name, address, country, phone, menu_url, business_page_link, yelp_menu, price_range, rating, review_count, photo, owner_name, owner_photo_url, owner_biography.",
+            "endpoint_id": "93972aba-ca53-56fa-82b5-49d220a93ffb",
+            "method": "GET",
+            "path": "/yelp-business-data/business-details",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "business_id": {
+                    "description": "Yelp business id or alias to fetch details for.  \n  In addition, batching of up to 20 Business Ids or aliases is supported in a single request using a comma separated list (e.g. business_id=id1,id2).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "yelp_domain": {
+                    "description": "The yelp domain to use for the search. Provider default when omitted: \"yelp.com\".",
+                    "enum": [
+                      "yelp.com",
+                      "yelp.com.au",
+                      "yelp.co.nz",
+                      "ms.yelp.my",
+                      "yelp.cz",
+                      "yelp.dk",
+                      "yelp.de",
+                      "yelp.at",
+                      "de.yelp.ch",
+                      "en.yelp.be",
+                      "yelp.ca",
+                      "en.yelp.com.hk",
+                      "en.yelp.my",
+                      "en.yelp.com.ph",
+                      "yelp.ie",
+                      "yelp.com.sg",
+                      "en.yelp.ch",
+                      "yelp.co.uk",
+                      "yelp.com.ar",
+                      "yelp.cl",
+                      "yelp.es",
+                      "yelp.com.mx",
+                      "fil.yelp.com.ph",
+                      "yelp.fr",
+                      "fr.yelp.ca",
+                      "fr.yelp.ch",
+                      "fr.yelp.be",
+                      "yelp.no",
+                      "yelp.pl",
+                      "yelp.pot",
+                      "yelp.com.br",
+                      "fi.yelp.fi",
+                      "sv.yelp.fi",
+                      "yelp.se",
+                      "yelp.com.tr",
+                      "yelp.co.jp",
+                      "zh.yelp.com.hk",
+                      "yelp.com.tw"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "business_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Real-Time News Data API Documentation: Topic Headlines. Get the latest news headlines for a topic (World, Sports, Technology, etc) or publication (e.g. CNN, BBC, etc). Documented response fields: title, link, snippet, photo_url, thumbnail_url, published_datetime_utc, authors, source_url, source_name, source_logo_url, source_favicon_url, source_publication_id, related_topics, topic_id, topic_name, sub_articles.",
+            "endpoint_id": "98195933-2604-56d5-a115-2ad21e1732f2",
+            "method": "GET",
+            "path": "/realtime-news-data/topic-headlines",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "country": {
+                    "description": "Country code. See all available country codes. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "The language to use for the results, specified as a 2-letter language code - see ISO 639-1 alpha-2. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of news articles to return. Provider default when omitted: 500.",
+                    "maximum": 500,
+                    "minimum": 1,
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "topic": {
+                    "description": "Topic or publication for which to get news headlines.  \n  In addition, topic / publication IDs are also accepted and can be taken from a News topic URL as it appears after the topics/ or publications/ path part (e.g. Football Topic - /topics/CAAqJQgKIh9DQkFTRVFvSUwyMHZNREoyZURRU0JXVnVMVWRDS0FBUAE).",
+                    "enum": [
+                      "WORLD",
+                      "NATIONAL",
+                      "BUSINESS",
+                      "TECHNOLOGY",
+                      "ENTERTAINMENT",
+                      "SPORTS",
+                      "SCIENCE",
+                      "HEALTH"
+                    ],
+                    "examples": [
+                      "WORLD"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "topic"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Area Search (Radius). Search businesses within a circular area defined by a center coordinate point (lat, lng) and a radius in meters. Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "98610480-b6c7-582d-b955-16e8faf4d35a",
+            "method": "GET",
+            "path": "/local-business-data/area-search-by-radius",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "extract_emails_and_contacts": {
+                    "description": "Extract emails, contacts and social profiles for each business in the response.  \n  In case true, businesses will be enriched with a emails_and_contacts field with emails, phones, Facebook, LinkedIn, Instagram and other social profiles.\n  \n  **Note:** in case `true`, the endpoint will scrape emails and contacts from the business website (in case non-empty).  \n  For each such business, the API will charge an additional credit. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.  \n  For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lat": {
+                    "description": "Latitude of the center coordinate point of the area to search in. Provider default when omitted: 37.359428.",
+                    "examples": [
+                      "37.359428"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of businesses to return.  \n\n  **Allowed values:** `1-500` Provider default when omitted: 20.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lng": {
+                    "description": "Longitude of the center coordinate point of the area to search in. Provider default when omitted: -121.925337.",
+                    "examples": [
+                      "-121.925337"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "examples": [
+                      "pizza"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "radius": {
+                    "description": "The radius (in meters) of the circular search area around the center coordinate point (lat, lng). Allowed values: 1-50000.",
+                    "examples": [
+                      "5000"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "subtypes": {
+                    "description": "Find businesses with specific subtypes, specified as a comma separated list of types (business categories).  \n  For the complete list of types, see *https://daltonluka.com/blog/google-my-business-categories*.  \n  \n  **Examples:**  \n  `Plumber,Carpenter,Electrician`  \n  `Night club,Dance club,Bar,Pub`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "lat",
+                  "lng",
+                  "radius"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Website Contacts Scraper: Scrape Contacts from Website. Scrape emails, phone numbers, and social profile links from a website root domain. Supports batching of up to 20 domains in a single request. Note that by default, the emails returned by the endpoint are not restricted to match the website domain (after the \"@\"), to restrict emails to the website domain, set the match_email_domain parameter to true (or 1). The e Documented response fields: domain, emails, phone_numbers, facebook, instagram, twitter, linkedin, query, value, sources, tiktok, snapchat, github, youtube, pinterest.",
+            "endpoint_id": "a11d4a02-83ff-53cd-8fde-9bdcac9cb979",
+            "method": "GET",
+            "path": "/website-contacts-scraper/scrape-contacts",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "external_matching": {
+                    "description": "Try to match any web source, in addition to website and social platforms. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "match_email_domain": {
+                    "description": "Only return emails in the same domain like the one supplied with the query parameter. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Domain from which to scrape emails and contacts (e.g. wsgr.com).  \n  Accepts any valid url and uses its root domain as a starting point for the extraction.  \n  Support batching of up to 20 domains in a single request, separated by comma (e.g. wsgr.com,other.com).  \n  Please note that each domain in the request will consume a request credit from the quota.",
+                    "examples": [
+                      "wsgr.com"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Real-Time Forums Search API Documentation: Search Forums. Search in Discussions and Forums across the web. This endpoint returns the results returned when using the Forums tab on Google Search. Documented response fields: position, rank, title, snippet, url, source.",
+            "endpoint_id": "c4c0dfcf-a817-529b-a422-71ad5b53f1d6",
+            "method": "GET",
+            "path": "/realtime-forums-search/search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "country": {
+                    "description": "The country / region for which to make the query (Google's gl parameter). Allowed values: 2-letter country code, see ISO 3166-1 alpha-2. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "The language to use for the search (Google's hl parameter). Allowed values: 2-letter country code, see ISO 639-1 alpha-2. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "start": {
+                    "description": "Number of results to skip (for pagination). Provider default when omitted: 0.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "time": {
+                    "description": "Return results published in a specific time range. Provider default when omitted: \"any\".",
+                    "enum": [
+                      "any",
+                      "hour",
+                      "day",
+                      "week",
+                      "month",
+                      "year"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Search. Search local businesses on Google Maps with an option to pull emails and social profile links from their website (see the `extract_emails_and_contacts` parameter below). Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "c6bb9760-d079-59f8-818f-7117f0eb2f14",
+            "method": "GET",
+            "path": "/local-business-data/search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "business_status": {
+                    "description": "Find businesses with specific status, specified as a comma separated list of the following values:  \n  `OPEN, CLOSED_TEMPORARILY, CLOSED`  \n  \n  **Examples:**  \n  `OPEN`  \n  `CLOSED_TEMPORARILY,CLOSED`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_emails_and_contacts": {
+                    "description": "Extract emails, contacts and social profiles for each business in the response.  \n  In case true, businesses will be enriched with a emails_and_contacts field with emails, phones, Facebook, LinkedIn, Instagram and other social profiles.  \n  \n  **Note:** in case `true`, the endpoint will scrape emails and contacts from the business website (in case non-empty).  \n    For each such business, the API will charge an additional credit. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results. For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lat": {
+                    "description": "Latitude of the coordinates point from which the query is applied - recommended to use so that results are biased towards this location.  \n  Defaults to some central location in the region (see the region parameter). Provider default when omitted: 37.359428.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of businesses to return.  \n\n  **Allowed values:** `1-500` Provider default when omitted: 20.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "lng": {
+                    "description": "Longitude of the coordinates point from which the query is applied - recommended to use so that results are biased towards this location.  \n  Defaults to some central location in the region (see the region parameter). Provider default when omitted: -121.925337.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword  \n\n  **Examples:**  \n  `Plumbers near New-York, USA`  \n  `Bars in 94102, USA`",
+                    "examples": [
+                      "Hotels in San Francisco, USA"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "subtypes": {
+                    "description": "Find businesses with specific subtypes, specified as a comma separated list of types (business categories).  \n  For the complete list of types, see *https://daltonluka.com/blog/google-my-business-categories*.  \n  \n  **Examples:**  \n  `Plumber,Carpenter,Electrician`  \n  `Night club,Dance club,Bar,Pub`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "verified": {
+                    "description": "Only return verified businesses",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "zoom": {
+                    "description": "Zoom level on which to make the search (the viewport is determined by lat, lng and zoom). Provider default when omitted: 13.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Trustpilot Company and Reviews Data API Documentation: Company Details. Get the full details of a specific company by company domain. Documented response fields: domain, email, website, company, company_id, name, review_count, trust_score, rating, phone, logo, address, city, country, about_company, is_closed, is_temporarily_closed, is_claimed, is_verified, is_verified_by_google, is_verified_payment_method, is_verified_user, is_paid, is_asking_for_reviews, average_days_to_reply, negative_review_count, negative_review_count_with_reply, reply_to_negative_review_percent, rating_distribution, 1, 2, 3, 4, 5, review_language_distribution.",
+            "endpoint_id": "cfdbcc7f-d9f6-558c-9e02-785900ff75cd",
+            "method": "GET",
+            "path": "/trustpilot-company-and-reviews/company-details",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "company_domain": {
+                    "description": "The domain of the company for which to get details.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "locale": {
+                    "description": "Locale code to use. Corresponds to the country selector on the Trustpilot website footer. Provider default when omitted: \"en-US\".",
+                    "enum": [
+                      "da-DK",
+                      "de-AT",
+                      "de-CH",
+                      "de-DE",
+                      "en-AU",
+                      "en-CA",
+                      "en-GB",
+                      "en-IE",
+                      "en-NZ",
+                      "en-US",
+                      "es-ES",
+                      "fi-FI",
+                      "fr-BE",
+                      "nl-BE",
+                      "fr-FR",
+                      "it-IT",
+                      "ja-JP",
+                      "nb-NO",
+                      "nl-NL",
+                      "pl-PL",
+                      "pt-BR",
+                      "pt-PT",
+                      "sv-SE"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "company_domain"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Business Details. Get full business details including emails and social contacts. Supports batching of up to 20 Business Ids. Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "d098b361-b616-5921-bbfe-e18b245db364",
+            "method": "GET",
+            "path": "/local-business-data/business-details",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "business_id": {
+                    "description": "Unique Business Id. Accepts `google_id` / `business_id` or `place_id`.  \n\n  **Examples:**  \n  `0x880fd393d427a591:0x8cba02d713a995ed`  \n  `ChIJkaUn1JPTD4gR7ZWpE9cCuow`  \n  \n  In addition, batching of up to 20 Business Ids is supported in a single request using a comma separated list *(e.g. business_id=id1,id2)*.",
+                    "examples": [
+                      "0x880fd393d427a591:0x8cba02d713a995ed"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "coordinates": {
+                    "description": "Geographic coordinates of the location from which the query is applied - recommended to use so that results are biased towards this location.  \n  Defaults to some central location in the region (see the region parameter).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_emails_and_contacts": {
+                    "description": "Whether to extract emails, contacts and social profiles for the business.  \n  In case true, businesses will be enriched with a emails_and_contacts field, potentially containing emails, phones, Facebook, LinkedIn, Instagram and other social profiles. Provider default when omitted: true.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_share_link": {
+                    "description": "Whether to extract place's share link for the business.  \n  In case true, businesses will be enriched with a share_link field containing a shortened Google URL for sharing *(e.g. https://goo.gl/maps/oxndE8SVaNU5CV6p6)*. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.   \n  For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"eu\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country. \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "business_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Real-Time Web Search API Documentation: Search. Get real-time organic search results from across the web, AI Overviews, total count, and more. Support the Google Search parameters (gl, hl, tbs, etc) and city level geo targeting. Supports all Google Advanced Search operators such (e.g. inurl:, site:, intitle:, etc). Documented response fields: domain, total_organic_results, organic_results, title, url, snippet, source, displayed_link, date, answers_count, top_answer, rich_snippet, price, rating, rating_max, reviews, availability, delivery, position, rank, has_ai_overviews, ai_overviews, text_parts, type, text, ordered, list, reference_links, link.",
+            "endpoint_id": "e662419d-0dd9-5a65-aaab-15a7bd8094bb",
+            "method": "GET",
+            "path": "/realtime-web-search/search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "device": {
+                    "description": "The device to simulate for the search. Mobile and tablet return Google's mobile SERP layout, whose rankings and features can differ from desktop. Allowed values: desktop (default), mobile, tablet. Provider default when omitted: \"desktop\".",
+                    "enum": [
+                      "desktop",
+                      "mobile",
+                      "tablet"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "extra_speed": {
+                    "description": "Speed up the endpoint by up to 4x of the original speed on a best effort basis (false by default).  \n  Please note that each call with extra_speed=true will consume 2 requests from the quota . Experimental feature.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fetch_ai_overviews": {
+                    "description": "Whether to return AI Overviews if available (false by default).  \n  In case true or 1, AI Overviews will be pulled as well and in case available, the request will consume two request credits from the quota.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "gl": {
+                    "description": "The country / region for which to make the query. Allowed values: 2-letter country code, see ISO 3166-1 alpha-2. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "hl": {
+                    "description": "The language to use for the search (Google's hl parameter). Allowed values: 2-letter country code, see ISO 639-1 alpha-2. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "location": {
+                    "description": "Where you want the search to originate from.  \n  It is recommended to specify location at the city level in order to simulate a real user\u2019s search (e.g. London, England, United Kingdom).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "lr": {
+                    "description": "Only return search results in a specific language.  \n  It uses lang_{two-letter language code} to specify languages and | as a delimiter (e.g. lang_fr|lang_de will only search French and German pages).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "nfpr": {
+                    "description": "Exclude results of auto-corrected query when the original query is misspelled with nfpr=1 and include them with nfpr=0 (default).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "num": {
+                    "description": "Maximum number of results to return. Please note that a request credit will be consumed from the quota for each results page (10 results). Provider default when omitted: 10.",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "q": {
+                    "description": "Search query.  \n  Supports all Google Advanced Search operators (site:, inurl:, intitle:, etc).",
+                    "examples": [
+                      "how to build a website"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "return_organic_result_video_thumbnail": {
+                    "description": "Whether to return the base64 encoded image source for organic video results (false by default).  \n  In case true or 1, an additional video_thumbnail field will be returned for organic video results containing the base64 encoded image.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "start": {
+                    "description": "Number of results to skip (for pagination). Provider default when omitted: 0.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "tbs": {
+                    "description": "This parameter defines advanced search parameters that aren't available using regular query parameters (to be searched).",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "uule": {
+                    "description": "Google's own encoded location string (e.g. w+CAIQICIgU2VhdHRsZSxXYXNoaW5ndG9uLFVuaXRlZCBTdGF0ZXM=), passed to Google as is. Use it instead of location when you already generate uule values. Cannot be combined with location.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Search Yelp businesses by name and location, returning customer ratings, review counts, business details and listing links. These ratings describe individual business locations, not employer satisfaction.",
+            "endpoint_id": "eddb418e-721e-589b-9ea2-1083dee98afd",
+            "method": "GET",
+            "path": "/yelp-business-data/business-search",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "location": {
+                    "description": "Search location.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "price_range": {
+                    "description": "Find business with specific price ranges, specified as a comma delimited list of the following values: $, $$, $$$, $$$$.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "sort_by": {
+                    "description": "Return the results in a specific sort order. Provider default when omitted: \"RECOMMENDED\".",
+                    "enum": [
+                      "RECOMMENDED",
+                      "HIGHEST_RATED",
+                      "REVIEW_COUNT"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "start": {
+                    "description": "Number of results to skip. Mainly used for pagination. Provider default when omitted: 0.",
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "yelp_domain": {
+                    "description": "The yelp domain to use for the search. Provider default when omitted: \"yelp.com\".",
+                    "enum": [
+                      "yelp.com",
+                      "yelp.com.au",
+                      "yelp.co.nz",
+                      "ms.yelp.my",
+                      "yelp.cz",
+                      "yelp.dk",
+                      "yelp.de",
+                      "yelp.at",
+                      "de.yelp.ch",
+                      "en.yelp.be",
+                      "yelp.ca",
+                      "en.yelp.com.hk",
+                      "en.yelp.my",
+                      "en.yelp.com.ph",
+                      "yelp.ie",
+                      "yelp.com.sg",
+                      "en.yelp.ch",
+                      "yelp.co.uk",
+                      "yelp.com.ar",
+                      "yelp.cl",
+                      "yelp.es",
+                      "yelp.com.mx",
+                      "fil.yelp.com.ph",
+                      "yelp.fr",
+                      "fr.yelp.ca",
+                      "fr.yelp.ch",
+                      "fr.yelp.be",
+                      "yelp.no",
+                      "yelp.pl",
+                      "yelp.pot",
+                      "yelp.com.br",
+                      "fi.yelp.fi",
+                      "sv.yelp.fi",
+                      "yelp.se",
+                      "yelp.com.tr",
+                      "yelp.co.jp",
+                      "zh.yelp.com.hk",
+                      "yelp.com.tw"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "location"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Real-Time Web Search API Documentation: Light Search. Lightning fast endpoint for getting organic search results from across the web in real-time. Supports all Google Advanced Search operators such (e.g. inurl:, site:, intitle:, etc). Documented response fields: domain, title, snippet, url, position.",
+            "endpoint_id": "f4d8ca64-21d4-52cc-b9c0-b2c8116801b5",
+            "method": "GET",
+            "path": "/realtime-web-search/search-light",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "limit": {
+                    "description": "Maximum number of results to return. Provider default when omitted: 10.",
+                    "maximum": 300,
+                    "minimum": 1,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "q": {
+                    "description": "Search query.  \n  Supports all Google Advanced Search operators (site:, inurl:, intitle:, etc).",
+                    "examples": [
+                      "how to build a website"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          },
+          {
+            "description": "Local Business Data: Area Search (Bounding Box). Search businesses within a rectangular area defined by its bottom-left (south-west) and top-right (north-east) corner coordinates. Documented response fields: phone_number, website, emails, phone_numbers, facebook, instagram, linkedin, twitter, keywords_mentioned_in_reviews, business_id, google_id, place_id, google_mid, name, latitude, longitude, full_address, review_count, rating, timezone, opening_status, working_hours, opening_date, tld, verified, place_link, cid, reviews_link, owner_id, owner_link, owner_name, booking_link, reservations_link, business_status, type.",
+            "endpoint_id": "f625be09-1d47-598c-82ef-51a505797743",
+            "method": "GET",
+            "path": "/local-business-data/area-search-by-bounding-box",
+            "registration": {
+              "list_atomic": 3000,
+              "listing_type": "federated",
+              "query_params": {
+                "properties": {
+                  "bottom_left": {
+                    "description": "The bottom-left (south-west) corner of the bounding box to search in, as a \"lat,lng\" string.",
+                    "examples": [
+                      "40.606540,-74.013580"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "extract_emails_and_contacts": {
+                    "description": "Extract emails, contacts and social profiles for each business in the response.  \n  In case true, businesses will be enriched with a emails_and_contacts field with emails, phones, Facebook, LinkedIn, Instagram and other social profiles.\n  \n  **Note:** in case `true`, the endpoint will scrape emails and contacts from the business website (in case non-empty).  \n  For each such business, the API will charge an additional credit. Provider default when omitted: false.",
+                    "type": "boolean",
+                    "x-parameter-location": "query"
+                  },
+                  "fields": {
+                    "description": "A comma separated list of business fields to include in the response (field projection).  \n  By default all fields are returned.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "language": {
+                    "description": "Set the language of the results.  \n  For a list of supported language codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes*. Provider default when omitted: \"en\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "limit": {
+                    "description": "Maximum number of businesses to return.  \n\n  **Allowed values:** `1-500` Provider default when omitted: 20.",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Search query / keyword",
+                    "examples": [
+                      "pizza"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "region": {
+                    "description": "Query Google Maps from a particular region or country.  \n  For a list of supported region/country codes see *https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes (Alpha-2 code)*. Provider default when omitted: \"us\".",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "subtypes": {
+                    "description": "Find businesses with specific subtypes, specified as a comma separated list of types (business categories).  \n  For the complete list of types, see *https://daltonluka.com/blog/google-my-business-categories*.  \n  \n  **Examples:**  \n  `Plumber,Carpenter,Electrician`  \n  `Night club,Dance club,Bar,Pub`",
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "top_right": {
+                    "description": "The top-right (north-east) corner of the bounding box to search in, as a \"lat,lng\" string.",
+                    "examples": [
+                      "40.812151,-73.910522"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "required": [
+                  "query",
+                  "bottom_left",
+                  "top_right"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://x402.openwebninja.com/llms.txt"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": null,
+        "recent_failures": 0,
+        "recent_successes": 2,
+        "recent_unresolved": 0,
+        "tagged": 22,
+        "tags": [
+          "email-search",
+          "local-business-data",
+          "openwebninja",
+          "public-web-data",
+          "realtime-forums-search",
+          "realtime-glassdoor-data",
+          "realtime-news-data",
+          "realtime-web-search",
+          "social-links-search",
+          "trustpilot-company-and-reviews",
+          "website-contacts-scraper",
+          "x402",
+          "yelp-business-data"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "OpenWeb Ninja",
+      "slug": "openwebninja"
+    }
+  ]
+}

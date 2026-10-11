@@ -203,10 +203,16 @@ fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Ca
             let selected = |id: &Value| id.as_str().and_then(|id| id.parse::<Uuid>().ok()) == Some(service.endpoint_id);
             v.as_array().map_or_else(|| selected(v), |ids| ids.iter().any(selected))
         }
-        "jurisdiction" => v
-            .as_str()
-            .zip(service.jurisdiction.as_deref())
-            .is_some_and(|(a, b)| a.eq_ignore_ascii_case(b)),
+        "jurisdiction" => {
+            // Some reviewed national contracts express their country in the
+            // operation/input vocabulary. Use the same endpoint-owned scope
+            // evidence as prequote input coverage, never provider geography.
+            let jurisdiction=service.jurisdiction.clone()
+                .or_else(||crate::ask_v2::search::fixed_endpoint_country(service,None));
+            v.as_str().zip(jurisdiction.as_deref()).is_some_and(|(a,b)| a.eq_ignore_ascii_case(b)
+                || crate::ask_v2::search::exact_country(a).zip(crate::ask_v2::search::exact_country(b))
+                    .is_some_and(|(left,right)|left==right))
+        },
         // This reviewed preset retrieves the complete annual construction series.
         // Keep the requested years/sector in the intent for source-backed analysis.
         "period" if construction_series(service) => annual_period(v),
@@ -519,6 +525,29 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
+    #[test]
+    fn jurisdiction_policy_accepts_country_synonyms_without_broadening_scope() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let mut service = catalog.services[0].clone();
+        for (jurisdiction, allowed, denied) in [
+            ("NL", vec!["NL", "Netherlands", "the Netherlands", "Dutch"], vec!["France", "British", "North Holland", "Netherlands except Amsterdam", "Netherlands and France"]),
+            ("GB", vec!["GB", "British", "United Kingdom"], vec!["France", "Netherlands", "England", "Scotland", "United Kingdom overseas territories"]),
+        ] {
+            service.jurisdiction=Some(jurisdiction.into());
+            for value in allowed { assert!(allows(&service, &BTreeMap::from([("jurisdiction".into(), json!(value))]), &catalog), "{value}"); }
+            for value in denied { assert!(!allows(&service, &BTreeMap::from([("jurisdiction".into(), json!(value))]), &catalog), "{value}"); }
+        }
+        service.jurisdiction=None;
+        assert!(!allows(&service,&BTreeMap::from([("jurisdiction".into(),json!("Netherlands"))]),&catalog));
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/tenderned-browse.json")).unwrap());
+        let mut national=catalog.services.iter().find(|service|service.contract.capability_slug=="procurement.nl-public-contracts").unwrap().clone();
+        national.jurisdiction=None;
+        assert!(allows(&national,&BTreeMap::from([("jurisdiction".into(),json!("Netherlands"))]),&catalog));
+        assert!(!allows(&national,&BTreeMap::from([("jurisdiction".into(),json!("France"))]),&catalog));
+        national.contract.capability_slug="procurement.public-contracts".into();
+        assert!(!allows(&national,&BTreeMap::from([("jurisdiction".into(),json!("Netherlands"))]),&catalog),"provider identity alone cannot prove jurisdiction");
+    }
+
     #[test]
     fn pulse_parent_selection_only_allows_services_owned_by_pulse() {
         let mut catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());

@@ -1,0 +1,1029 @@
+{
+  "services": [
+    {
+      "api_slug": "companies-house",
+      "contract": {
+        "capability_slug": "company.uk-registry-search",
+        "cardinality": "many",
+        "identifies": "company.registration.gb.companies_house",
+        "input_map": {
+          "company.name": {
+            "in": "query",
+            "name": "q"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.items[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.title"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Find UK companies by name and resolve Companies House numbers.",
+      "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+      "fixed_params": {
+        "items_per_page": 10
+      },
+      "freshness_seconds": 3600,
+      "id": "9d88c9ff-537b-5b3e-b7a5-c3684b884808",
+      "jurisdiction": "GB",
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Companies House",
+      "pagination": {},
+      "path": "/search/companies",
+      "preconditions": {},
+      "sample_payload": {
+        "items": [
+          {
+            "company_number": "00445790",
+            "company_status": "active",
+            "description": "00445790 - Incorporated on 27 November 1947",
+            "kind": "searchresults#company",
+            "links": {
+              "self": "/company/00445790"
+            },
+            "title": "TESCO PLC"
+          },
+          {
+            "company_number": "09384423",
+            "company_status": "active",
+            "description": "09384423 - Incorporated on 12 January 2015",
+            "kind": "searchresults#company",
+            "links": {
+              "self": "/company/09384423"
+            },
+            "title": "KFORD TYRES (GORNAL) LTD"
+          }
+        ],
+        "items_per_page": 2,
+        "kind": "search#companies",
+        "page_number": 1,
+        "start_index": 0,
+        "total_results": 356
+      },
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+    },
+    {
+      "api_slug": "companies-house",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company.registration.gb.companies_house",
+        "input_map": {
+          "company.registration.gb.companies_house": {
+            "in": "path",
+            "name": "company_number"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.company_name"
+            },
+            "company.registration.gb.companies_house": {
+              "path": "$.company_number"
+            },
+            "company.uk_registry_record": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.registration.gb.companies_house",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+      "fixed_params": {},
+      "freshness_seconds": 3600,
+      "id": "ea445fe2-10d8-5892-bba5-8158cd6b3368",
+      "jurisdiction": "GB",
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Companies House",
+      "pagination": {},
+      "path": "/company",
+      "preconditions": {},
+      "sample_payload": {
+        "accounts": {
+          "accounting_reference_date": {
+            "day": "26",
+            "month": "02"
+          },
+          "last_accounts": {
+            "made_up_to": "2026-02-28",
+            "period_end_on": "2026-02-28",
+            "period_start_on": "2025-02-27",
+            "type": "group"
+          },
+          "next_accounts": {
+            "due_on": "2027-08-26",
+            "overdue": false,
+            "period_end_on": "2027-02-26",
+            "period_start_on": "2026-03-01"
+          },
+          "next_due": "2027-08-26",
+          "next_made_up_to": "2027-02-26",
+          "overdue": false
+        },
+        "can_file": true,
+        "company_name": "TESCO PLC",
+        "company_number": "00445790",
+        "company_status": "active",
+        "confirmation_statement": {
+          "last_made_up_to": "2026-06-18",
+          "next_due": "2027-07-02",
+          "next_made_up_to": "2027-06-18",
+          "overdue": false
+        },
+        "date_of_creation": "1947-11-27",
+        "etag": "b0711fe6fc8e9936a50a1e14e40ef9367f46bbf6",
+        "has_been_liquidated": false,
+        "has_charges": false,
+        "has_insolvency_history": false,
+        "has_super_secure_pscs": false,
+        "jurisdiction": "england-wales",
+        "last_full_members_list_date": "2013-06-07",
+        "links": {
+          "charges": "/company/00445790/charges",
+          "exemptions": "/company/00445790/exemptions",
+          "filing_history": "/company/00445790/filing-history",
+          "officers": "/company/00445790/officers",
+          "self": "/company/00445790"
+        },
+        "previous_company_names": [
+          {
+            "ceased_on": "1983-08-25",
+            "effective_from": "1981-12-14",
+            "name": "TESCO STORES (HOLDINGS) PUBLIC LIMITED COMPANY"
+          },
+          {
+            "ceased_on": "1981-12-14",
+            "effective_from": "1947-11-27",
+            "name": "TESCO STORES (HOLDINGS) LIMITED"
+          }
+        ],
+        "registered_office_address": {
+          "address_line_1": "Tesco House, Shire Park",
+          "address_line_2": "Kestrel Way",
+          "country": "United Kingdom",
+          "locality": "Welwyn Garden City",
+          "postal_code": "AL7 1GA"
+        },
+        "registered_office_is_in_dispute": false,
+        "sic_codes": [
+          "47110"
+        ],
+        "type": "plc",
+        "undeliverable_registered_office_address": false
+      },
+      "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.registration.gb.companies_house",
+      "value_schema": {
+        "pattern": "^[A-Z0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.uk_registry_record",
+      "value_schema": {
+        "properties": {
+          "company_name": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"legal_name\"]}",
+            "type": "string"
+          },
+          "company_number": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_number\"]}",
+            "type": "string"
+          },
+          "company_status": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registration_status\"]}",
+            "type": "string"
+          },
+          "date_of_cessation": {
+            "type": "string"
+          },
+          "date_of_creation": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"incorporation_date\"]}",
+            "type": "string"
+          },
+          "jurisdiction": {
+            "type": "string"
+          },
+          "previous_company_names": {
+            "items": {
+              "properties": {
+                "ceased_on": {
+                  "type": "string"
+                },
+                "effective_from": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "registered_office_address": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"registered_address\"]}",
+            "properties": {
+              "address_line_1": {
+                "type": "string"
+              },
+              "address_line_2": {
+                "type": "string"
+              },
+              "care_of": {
+                "type": "string"
+              },
+              "country": {
+                "type": "string"
+              },
+              "locality": {
+                "type": "string"
+              },
+              "po_box": {
+                "type": "string"
+              },
+              "postal_code": {
+                "type": "string"
+              },
+              "premises": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "sic_codes": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"industry_codes\"]}",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"company_type\",\"legal_form\"]}",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_name",
+          "company_number"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.filing-history": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+          "company.officers": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company.significant-control": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+          "company.uk-registry-search": "Find UK companies by name and resolve Companies House numbers.",
+          "operation.companies-house.get-advanced-search-companies-3629cd16": "Screen the whole UK register with filters rather than looking one company up. Combine a name fragment with SIC codes (what the company does), company status (active, dissolved, liquidation, administration), company type and subtype, a locat",
+          "operation.companies-house.get-alphabetical-search-companies-33a5f5f7": "Walk the UK company register in alphabetical order from a given name. Unlike the relevance-ranked name search, this returns the companies that sit around the search term in the register's own alphabetical index, and pages forwards and backw",
+          "operation.companies-house.get-disqualified-officers-corporate-9b160607": "The full disqualification record of one banned CORPORATE officer \u2014 a company or other body corporate that has itself been disqualified from acting as a director \u2014 by officer id from the disqualified-officer search. Returns the same structur",
+          "operation.companies-house.get-disqualified-officers-natural-eeb77a29": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepte",
+          "operation.companies-house.get-dissolved-search-companies-2f1b39bb": "Search only the companies that have been dissolved. The main company search covers dissolved companies too, but this index is dedicated to them and, uniquely, can search on a company's PREVIOUS names \u2014 set search_type to previous-name-disso",
+          "operation.companies-house.get-officers-f01533f9": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held",
+          "operation.companies-house.get-persons-with-significant-control-86d4c314": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (o",
+          "operation.companies-house.get-search-93864601": "Search the whole Companies House register in one call \u2014 companies, officers and disqualified officers together \u2014 and get back a single ranked result set with each hit labelled by which index it came from. The call to make when you have a na",
+          "operation.companies-house.get-search-disqualified-officers-32ca794c": "Search the UK register of disqualified directors by name. Returns people who have been banned by a court or by undertaking from acting as a company director, with the officer id needed to read the full order. This is the adverse-media-free,",
+          "operation.companies-house.get-search-officers-8e049519": "Find a company officer by name across the whole UK register. Search directors, company secretaries and LLP members by full or partial name and get back each matching officer with their officer id, their date of birth to month precision, the"
+        },
+        "categorized": 15,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 15,
+        "description": "The official register of every company incorporated in the United Kingdom, from Companies House. Search the register by company name, officer name or disqualified officer; resolve a company number; and pull the full public record for any UK company \u2014 registered office address, company status and type, incorporation and dissolution dates, SIC codes, accounts and confirmation-statement due dates, its officers (directors, secretaries, LLP members), its persons with significant control and beneficial owners, its complete filing history, its registered charges and mortgages, its insolvency history,",
+        "documented_inputs": 15,
+        "endpoint_count": 15,
+        "endpoints": [
+          {
+            "description": "Retrieve UK Companies House filing-history for one company; preserves pagination and total counts.",
+            "endpoint_id": "0b3e1b4e-b857-53fc-85de-f5f456bedb21",
+            "method": "GET",
+            "path": "/company/{company_number}/filing-history",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full public record of one UK company from the official Companies House register, by company number. On its own it returns the company profile: registered name and any previous names, company number, status (active, dissolved, liquidation, administration), company type, date of incorporation and of dissolution, registered office address and whether it is in dispute, SIC codes for what the company does, accounts and confirmation-statement made-up and due dates, and flags for whether the company has charges, insolvency history or persons with significant control. Add a sub_resource to reach the same company's other records without a second lookup: officers (current and resigned directors, secretaries and LLP members, with dates of birth to month precision, nationality, occupation and appo",
+            "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+            "method": "GET",
+            "path": "/company",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "category": {
+                    "description": "filing-history only. One or more comma-separated categories to filter by, inclusive \u2014 e.g. accounts, capital, incorporation, officers, mortgage, resolution.",
+                    "type": "string"
+                  },
+                  "company_number": {
+                    "description": "The UK company registration number, eight characters, zero-padded \u2014 e.g. 00445790 for Tesco PLC. Scottish companies are prefixed SC, Northern Irish NI, limited partnerships LP, and overseas companies FC. Get one from /search/companies if you only have a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "description": "List sub-resources only (officers, filing-history, charges, persons-with-significant-control). How many items to return on this page.",
+                    "type": "integer"
+                  },
+                  "order_by": {
+                    "description": "officers only. The field to order the officer list by.",
+                    "enum": [
+                      "appointed_on",
+                      "resigned_on",
+                      "surname"
+                    ],
+                    "type": "string"
+                  },
+                  "register_type": {
+                    "description": "officers only, and only when register_view is true. Which officer type the register view returns.",
+                    "enum": [
+                      "directors",
+                      "secretaries",
+                      "llp_members"
+                    ],
+                    "type": "string"
+                  },
+                  "register_view": {
+                    "description": "officers only. Set true to show register-specific information; when the register is held at Companies House only active officers are returned. Defaults to false.",
+                    "enum": [
+                      "true",
+                      "false"
+                    ],
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "List sub-resources only. The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Which record of this company to return. Omit for the company profile itself.",
+                    "enum": [
+                      "registered-office-address",
+                      "officers",
+                      "registers",
+                      "charges",
+                      "filing-history",
+                      "insolvency",
+                      "exemptions",
+                      "uk-establishments",
+                      "persons-with-significant-control",
+                      "persons-with-significant-control-statements",
+                      "appointments"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "sub_resource_detail": {
+                    "description": "Only for persons-with-significant-control: which kind of PSC notification to fetch, immediately before the notification id.",
+                    "enum": [
+                      "individual",
+                      "corporate-entity",
+                      "legal-person",
+                      "super-secure",
+                      "individual-beneficial-owner",
+                      "corporate-entity-beneficial-owner",
+                      "legal-person-beneficial-owner",
+                      "super-secure-beneficial-owner"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "sub_resource_id": {
+                    "description": "The id of one item within the sub_resource: a charge id, a filing-history transaction id, a PSC statement id, an appointment id, or a PSC notification id. Every one of these ids comes out of the corresponding list call \u2014 none can be constructed.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search only the companies that have been dissolved. The main company search covers dissolved companies too, but this index is dedicated to them and, uniquely, can search on a company's PREVIOUS names \u2014 set search_type to previous-name-dissolved to find a company under a name it traded under before it was renamed and then dissolved, which the live-register search cannot do. search_type also accepts alphabetical (walk the dissolved index in name order, paging with search_above and search_below) and best-match (relevance-ranked, paging with start_index). Each hit carries the company number, the date of cessation and the previous names, so a dissolved entity can be traced back to the record that closed.",
+            "endpoint_id": "2f1b39bb-1088-417e-975a-e02ba91b50c8",
+            "method": "GET",
+            "path": "/dissolved-search/companies",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "q": {
+                    "description": "The dissolved company's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "search_above": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names above it. Alphabetical search only.",
+                    "type": "string"
+                  },
+                  "search_below": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names below it. Alphabetical search only.",
+                    "type": "string"
+                  },
+                  "search_type": {
+                    "description": "Which index to search. alphabetical walks the dissolved name index; best-match ranks by relevance; previous-name-dissolved searches names the company traded under before it was dissolved.",
+                    "enum": [
+                      "alphabetical",
+                      "best-match",
+                      "previous-name-dissolved"
+                    ],
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 100.",
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "description": "The offset into the result set. Applies to the best-match and previous-name-dissolved search types.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q",
+                  "search_type"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search the UK register of disqualified directors by name. Returns people who have been banned by a court or by undertaking from acting as a company director, with the officer id needed to read the full order. This is the adverse-media-free, statutory version of a directorship check: a hit here means a UK court or the Insolvency Service has formally disqualified this person. Take the officer id from a hit to /disqualified-officers/natural or /disqualified-officers/corporate for the disqualification period, the reasons, the case reference and the company the conduct related to. A clean search is evidence of absence only within this register \u2014 it says nothing about disqualifications in other jurisdictions.",
+            "endpoint_id": "32ca794c-5c8f-41e5-808c-3b7c09659cf0",
+            "method": "GET",
+            "path": "/search/disqualified-officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The disqualified officer's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Walk the UK company register in alphabetical order from a given name. Unlike the relevance-ranked name search, this returns the companies that sit around the search term in the register's own alphabetical index, and pages forwards and backwards from a position rather than by offset \u2014 pass the ordered_alpha_key_with_id of a result to search_above or search_below to continue in either direction. Use it to enumerate names in a range, to check what is registered immediately either side of a proposed company name, or to walk a slice of the register deterministically without relevance ranking reordering the results underneath you.",
+            "endpoint_id": "33a5f5f7-6880-4da3-8ae9-d0ae92ef8f4a",
+            "method": "GET",
+            "path": "/alphabetical-search/companies",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "q": {
+                    "description": "The company name to position the alphabetical window at.",
+                    "type": "string"
+                  },
+                  "search_above": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names above it in the index.",
+                    "type": "string"
+                  },
+                  "search_below": {
+                    "description": "The ordered_alpha_key_with_id of a result, to page to names below it in the index.",
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 100.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Screen the whole UK register with filters rather than looking one company up. Combine a name fragment with SIC codes (what the company does), company status (active, dissolved, liquidation, administration), company type and subtype, a location, and windows on the incorporation date or the dissolution date \u2014 then page through up to 5000 results at a time. This is how you build a list: every active UK company in a given industry incorporated since a date, every company dissolved in a window, every company of a given legal form in a place. company_name_excludes drops the false positives a name fragment drags in. The result items are the same company records the name search returns, so each carries a company number that goes straight into /company.",
+            "endpoint_id": "3629cd16-87d0-4fb6-8fd7-2840ff591419",
+            "method": "GET",
+            "path": "/advanced-search/companies",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_name_excludes": {
+                    "description": "Drop companies whose name includes this text. Use it to strip the false positives a broad name fragment brings in.",
+                    "type": "string"
+                  },
+                  "company_name_includes": {
+                    "description": "The company name must include this text. Required here \u2014 an advanced search with no filter at all returns the head of the entire register.",
+                    "type": "string"
+                  },
+                  "company_status": {
+                    "description": "Restrict to companies in these statuses. Repeatable / comma-separated, e.g. active, dissolved, liquidation, administration, receivership, voluntary-arrangement.",
+                    "type": "string"
+                  },
+                  "company_subtype": {
+                    "description": "Restrict to a company subtype, e.g. community-interest-company.",
+                    "type": "string"
+                  },
+                  "company_type": {
+                    "description": "Restrict to these legal forms. Repeatable / comma-separated, e.g. ltd, plc, llp, private-limited-guarant-nsc, oversea-company.",
+                    "type": "string"
+                  },
+                  "dissolved_from": {
+                    "description": "Only companies dissolved on or after this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "dissolved_to": {
+                    "description": "Only companies dissolved on or before this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "incorporated_from": {
+                    "description": "Only companies incorporated on or after this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "incorporated_to": {
+                    "description": "Only companies incorporated on or before this date, ISO yyyy-mm-dd.",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "location": {
+                    "description": "Restrict to companies whose registered office is in this location \u2014 a town, city or region.",
+                    "type": "string"
+                  },
+                  "sic_codes": {
+                    "description": "Restrict to companies carrying these SIC codes \u2014 the UK Standard Industrial Classification of what the company does, e.g. 62012 for business and domestic software development. Repeatable / comma-separated.",
+                    "type": "string"
+                  },
+                  "size": {
+                    "description": "How many results to return, 1 to 5000.",
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_name_includes"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+            "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+            "method": "GET",
+            "path": "/company/{company_number}/persons-with-significant-control",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Find a UK company by name and get its company number. The standard way in to everything else here: search the Companies House register by full or partial company name, and each hit comes back with the company number, its status (active, dissolved, liquidation), its type, its date of incorporation, its registered address snippet and the link to its full profile. Matching is relevance-ranked, not exact, so a trading name or a fragment works; filter on status yourself if you only want companies still trading. Feed the company_number from a hit straight into /company.",
+            "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+            "method": "GET",
+            "path": "/search/companies",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The company name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The notification history of one person with significant control, by PSC id. A company's PSC list gives who controls it today; this returns the sequence of notifications filed about a single PSC \u2014 when the control was notified, its nature (ownership of shares in the 25-50%, 50-75% or 75-100% band, voting rights, the right to appoint or remove directors, significant influence), and when it ceased. Use it to establish WHEN control changed rather than only who holds it now, which is the question that matters for beneficial-ownership history and for dating a change of control. The psc_id is only ever obtained from a company's persons-with-significant-control list; it cannot be derived from a name.",
+            "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b",
+            "method": "GET",
+            "path": "/persons-with-significant-control",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of notifications to return per page.",
+                    "type": "integer"
+                  },
+                  "psc_id": {
+                    "description": "The person-with-significant-control id, an opaque token taken from a company's /company/{n}/persons-with-significant-control list. It cannot be constructed.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Must be the literal notifications \u2014 the trailing segment of the upstream path /persons-with-significant-control/{psc_id}/notifications. Declared separately because each bound path value is percent-encoded as its own segment.",
+                    "enum": [
+                      "notifications"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "psc_id",
+                  "sub_resource"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Find a company officer by name across the whole UK register. Search directors, company secretaries and LLP members by full or partial name and get back each matching officer with their officer id, their date of birth to month precision, their address snippet, how many appointments they currently hold and how many they have resigned from. The officer id from a hit is the input to /officers, which returns that person's entire appointment history \u2014 so this is the first half of \"which UK companies is this person involved in\". Note that Companies House does not deduplicate people: the same individual can appear under several officer ids if their name or address was recorded differently on different appointments.",
+            "endpoint_id": "8e049519-fab3-436d-83e0-ebecb4d65cb7",
+            "method": "GET",
+            "path": "/search/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The officer's name, or part of it, to search for.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Search the whole Companies House register in one call \u2014 companies, officers and disqualified officers together \u2014 and get back a single ranked result set with each hit labelled by which index it came from. The call to make when you have a name and do not yet know whether it belongs to a company or to a person: a search for a founder's name returns both the companies whose name contains it and the officer records for the person. Each hit carries a title, a description, an address snippet and the self link to the full record, so a second call can go straight to /company or /officers with the identifier the hit supplies.",
+            "endpoint_id": "93864601-3488-4b2e-bfb5-e27a0e018b0a",
+            "method": "GET",
+            "path": "/search",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of search results to return per page.",
+                    "type": "integer"
+                  },
+                  "q": {
+                    "description": "The term being searched for \u2014 a company name, a person's name, or a fragment of either.",
+                    "type": "string"
+                  },
+                  "start_index": {
+                    "description": "The index of the first result item to return, for paging.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "q"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full disqualification record of one banned CORPORATE officer \u2014 a company or other body corporate that has itself been disqualified from acting as a director \u2014 by officer id from the disqualified-officer search. Returns the same structure as the natural-person record: the dates the disqualification runs from and to, whether it was a court order or an undertaking, the Act and section relied on, the case identifier, the reasons, the companies the conduct related to, and any permissions to act. Corporate disqualifications are rarer than individual ones and are held in a separate index, which is why this is a different call from /disqualified-officers/natural \u2014 use the kind on the search hit to pick between them.",
+            "endpoint_id": "9b160607-5741-4747-baa1-ad0c7b84f51b",
+            "method": "GET",
+            "path": "/disqualified-officers/corporate",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "officer_id": {
+                    "description": "The disqualified corporate officer id, taken from a /search/disqualified-officers hit's self link. It cannot be constructed from a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "The full disqualification record of one banned individual, by officer id from the disqualified-officer search. Returns each disqualification against the person: the dates it runs from and to, whether it was imposed by court order or accepted by undertaking, the section of the Company Directors Disqualification Act relied on, the case identifier, the reasons given, the company the conduct related to, and any permissions to act granted by a court despite the ban. This is the evidence behind a hit, not just the hit \u2014 what a compliance file needs to record why a person is disqualified and until when. For a disqualified corporate body use /disqualified-officers/corporate instead.",
+            "endpoint_id": "eeb77a29-c240-4033-86de-2ca2d0f89a64",
+            "method": "GET",
+            "path": "/disqualified-officers/natural",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "officer_id": {
+                    "description": "The disqualified officer id, taken from a /search/disqualified-officers hit's self link. It cannot be constructed from a name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Every UK company one person has ever been an officer of. Give an officer id \u2014 from /search/officers, or from any company's officer list \u2014 and get that individual's complete appointment history: each company by name and number, the role held (director, secretary, LLP member), when they were appointed and when they resigned, their nationality, occupation and country of residence, and their date of birth to month precision. This is the director-network primitive: it turns one name into the full set of UK companies that person is connected to, which is what conflict-of-interest checks, related-party analysis and shell-company mapping are built on. Companies House does not merge people, so one human being may hold several officer ids where their name or address was recorded differently \u2014 cross-",
+            "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f",
+            "method": "GET",
+            "path": "/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "items_per_page": {
+                    "description": "The number of appointments to return per page.",
+                    "type": "integer"
+                  },
+                  "officer_id": {
+                    "description": "The Companies House officer id, an opaque token that comes from /search/officers or from a company's officer list. It cannot be constructed from a person's name.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "start_index": {
+                    "description": "The offset into the whole result set that this page starts at.",
+                    "type": "integer"
+                  },
+                  "sub_resource": {
+                    "description": "Must be the literal appointments \u2014 it is the trailing segment of the upstream path /officers/{officer_id}/appointments. It is a separate parameter because each bound path value is percent-encoded as its own segment, so a slash cannot be carried inside officer_id.",
+                    "enum": [
+                      "appointments"
+                    ],
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "officer_id",
+                  "sub_resource"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          },
+          {
+            "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+            "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+            "method": "GET",
+            "path": "/company/{company_number}/officers",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "company_number": {
+                    "pattern": "^[A-Z0-9]{8}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "items_per_page": {
+                    "type": "integer"
+                  },
+                  "start_index": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "company_number"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developer-specs.company-information.service.gov.uk/companies-house-public-data-api/reference"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 31,
+        "recent_unresolved": 0,
+        "tagged": 15,
+        "tags": [
+          "administration",
+          "advanced search",
+          "alphabetical search",
+          "aml",
+          "annual accounts",
+          "appointments",
+          "banned director",
+          "beneficial owner",
+          "beneficial ownership",
+          "business register",
+          "cdda",
+          "charges",
+          "companies house",
+          "companieshouse",
+          "company history",
+          "company lookup",
+          "company name",
+          "company name availability",
+          "company number",
+          "company officers",
+          "company profile",
+          "company register",
+          "company registration number",
+          "company registry",
+          "company screening",
+          "company search",
+          "company secretary",
+          "company status",
+          "company verification",
+          "compliance evidence",
+          "compliance screening",
+          "confirmation statement"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Companies House",
+      "slug": "companies-house"
+    }
+  ]
+}

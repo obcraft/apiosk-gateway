@@ -546,6 +546,20 @@ fn country_word(word: &str) -> Option<&'static str> {
     })
 }
 
+/// Exact country scope for policy comparison. Unlike discovery's broader
+/// geographic signal, this never extracts a country from a qualified phrase
+/// or expands a constituent region/island to its containing jurisdiction.
+pub(crate) fn exact_country(text: &str) -> Option<String> {
+    let folded = crate::english::fold(text.trim());
+    if !folded.chars().all(|ch| ch.is_alphabetic() || ch.is_whitespace() || ch == '-') { return None; }
+    let name = folded.strip_prefix("the ").unwrap_or(&folded);
+    let compact: String = name.chars().filter(|ch| !ch.is_whitespace() && *ch != '-').collect();
+    if matches!(compact.as_str(), "holland" | "england" | "scotland" | "wales" | "angleterre" | "inglaterra" | "inghilterra"
+        | "britain" | "greatbritain" | "grootbrittannie" | "grossbritannien") { return None; }
+    if let Some(Coverage::Country(country)) = code(&compact) { return Some(country); }
+    country_word(&compact).map(str::to_owned)
+}
+
 /// Cities, folded and with two words written together ("denhaag",
 /// "newyork"), and their country. Unlisted places give no signal, as before.
 const CITIES: &[(&str, &str)] = &[
@@ -920,6 +934,18 @@ pub(super) fn source(source: &KnownSource) -> Coverage {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn exact_country_scope_never_expands_qualified_or_regional_places() {
+        for (text, expected) in [("Netherlands", "NL"), ("the Netherlands", "NL"), ("Dutch", "NL"), ("nl", "NL"),
+            ("British", "GB"), ("United Kingdom", "GB"), ("GB", "GB"), ("France", "FR"), ("Pays-Bas", "NL")] {
+            assert_eq!(super::exact_country(text).as_deref(), Some(expected), "{text}");
+        }
+        for text in ["Netherlands and France", "NL/FR", "North Holland", "Netherlands except Amsterdam", "England", "Scotland",
+            "Great Britain", "Holland", "EU", "Dutch-speaking Belgium", "United Kingdom overseas territories"] {
+            assert!(super::exact_country(text).is_none(), "{text}");
+        }
+    }
+
     #[test]
     fn literal_dutch_country_adjectives_keep_their_named_jurisdiction() {
         assert_eq!(super::country_word("nederlandse"),Some("NL"));

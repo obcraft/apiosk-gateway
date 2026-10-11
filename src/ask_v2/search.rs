@@ -15,7 +15,7 @@ use std::{
 #[cfg(test)]
 mod calibration;
 mod country;
-pub(crate) use country::named_countries;
+pub(crate) use country::{exact_country, named_countries};
 mod relevance;
 
 /// A fixed endpoint scope can preserve an explicit country without a country

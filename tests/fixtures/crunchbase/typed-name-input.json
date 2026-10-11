@@ -1,0 +1,16 @@
+{
+  "slug": "crunchbase.entity_autocomplete_query",
+  "before": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 200,
+    "description": "Literal name, not the entire task"
+  },
+  "after": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 200,
+    "description": "Literal name, not the entire task",
+    "$comment": "{\"apiosk_input_aliases_v1\":[\"company_name\",\"business_name\",\"organization_name\",\"organisation_name\",\"person_name\",\"individual_name\"]}"
+  }
+}

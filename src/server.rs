@@ -130,6 +130,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:id/authorize", post(authorize))
         .route("/v2/tasks/:id/requote", post(requote))
         .route("/v2/tasks/:id/analysis-upgrade", post(analysis_upgrade))
+        .route("/v2/tasks/:id/source-selection", post(source_selection))
         // The public API: every credential, one execution and billing path.
         .route("/v2/sources/:source_id", get(crate::public_api::source))
         .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
@@ -948,5 +949,15 @@ async fn analysis_upgrade(State(state): State<ServerState>, headers: HeaderMap, 
     match state.engine.analysis_upgrade(&p,req).await {
         Ok(view)=>Json(view).into_response(),
         Err(_)=>failure(StatusCode::CONFLICT,"analysis_upgrade_unavailable","Reload the saved task before changing its analysis. Nothing new was purchased."),
+    }
+}
+
+async fn source_selection(State(state):State<ServerState>,headers:HeaderMap,Path(id):Path<Uuid>,Json(req):Json<crate::engine::SourceSelectionRequest>)->HttpResponse {
+    let p=match app_person(&state,&headers).await {Ok(p)=>p,Err(response)=>return response};
+    if req.state.state_ref!=id || req.request_id.is_nil() {return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its sources.");}
+    let Ok(_permit)=state.permits.try_acquire() else {return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly.");};
+    match state.engine.select_sources(&p,req).await {
+        Ok(response)=>Json(response).into_response(),
+        Err(_)=>failure(StatusCode::CONFLICT,"source_selection_unavailable","Reload this unapproved plan before changing its sources. Nothing was purchased."),
     }
 }

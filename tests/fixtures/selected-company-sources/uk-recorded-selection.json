@@ -1,0 +1,71 @@
+{
+  "question": "Show the registered company details for Monzo in the United Kingdom.",
+  "parsed": {
+    "capabilities": [
+      {
+        "confidence": 0.98,
+        "description": "Registered company details.",
+        "domain": "company",
+        "inputs": [
+          "company_name",
+          "country"
+        ],
+        "missing": [],
+        "name": "Company profile",
+        "outputs": [
+          "profile"
+        ],
+        "slug": "company.profile",
+        "source_hint": null,
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "en",
+    "meta": {
+      "model": "openai/gpt-6-luna",
+      "parsed_at": "2026-10-11T21:13:56.495346+00:00",
+      "text_sha256": "ac2b3f60351ef48383cf70a28b5e467da3bbb5dc441081856dcdff7ff77b4b21"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "company_name": "Monzo",
+          "country": "United Kingdom"
+        },
+        "label": "Monzo",
+        "type": "company"
+      }
+    ]
+  },
+  "selected": [
+    {
+      "capability": "company.registry-profile",
+      "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+      "input": {
+        "company.name": "Monzo"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "capability": "company.crunchbase-search",
+      "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+      "input": {
+        "company.crunchbase_query": "Monzo"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+      "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+      "input": {
+        "source_input.e22c6c82933545999a55d64ac65128077.query": "Monzo"
+      },
+      "subject_id": "s1"
+    }
+  ]
+}

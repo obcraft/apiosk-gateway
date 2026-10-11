@@ -1,0 +1,107 @@
+{
+  "slug": "company.glassdoor_search_results",
+  "before": {
+    "properties": {
+      "document": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "company_description": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"description\"]}",
+                  "type": "string"
+                },
+                "company_id": {
+                  "type": "integer"
+                },
+                "company_link": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\"]}",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rating": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"average_rating\",\"employer_rating\"]}",
+                  "type": "number"
+                },
+                "review_count": {
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "OK"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "data"
+        ],
+        "type": "object"
+      }
+    },
+    "required": [
+      "document"
+    ],
+    "type": "object"
+  },
+  "after": {
+    "properties": {
+      "document": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "company_description": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"description\"]}",
+                  "type": "string"
+                },
+                "company_id": {
+                  "type": "integer"
+                },
+                "company_link": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"profile_url\"]}",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rating": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"average_rating\",\"employer_rating\",\"employee_rating\"]}",
+                  "type": "number"
+                },
+                "review_count": {
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "OK"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "data"
+        ],
+        "type": "object"
+      }
+    },
+    "required": [
+      "document"
+    ],
+    "type": "object"
+  }
+}

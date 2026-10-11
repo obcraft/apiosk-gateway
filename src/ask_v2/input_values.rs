@@ -35,9 +35,10 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
     // identity; a flattened namespace must not become a fuzzy suffix match.
     let canonical_field = field.to_lowercase().split(|ch: char| !ch.is_alphanumeric())
         .filter(|part| !part.is_empty()).collect::<Vec<_>>().join("_");
-    let exact: Vec<_> = subject.identifiers.iter()
-        .filter(|(key, _)| field == *key || canonical_field == **key || field.ends_with(&format!(".{key}"))).collect();
-    if exact.len() == 1 { return Some(json!(exact[0].1)); }
+    let exact: std::collections::BTreeSet<_> = subject.identifiers.iter()
+        .filter(|(key, _)| field == *key || canonical_field == **key || field.ends_with(&format!(".{key}")))
+        .map(|(_, value)| value).collect();
+    if exact.len() == 1 { return Some(json!(exact.first().unwrap())); }
     if exact.len() > 1 { return None; }
     let identifier = |keys: &[&str]| keys.iter().find_map(|key| subject.identifiers.get(*key));
     if field == "fx.ecb.quote" {
@@ -128,6 +129,22 @@ pub(crate) fn reviewed_input_alias(schema:&Value,key:&str)->bool {
     reviewed_input_aliases(schema).is_some_and(|aliases|aliases.contains(key))
 }
 
+fn name_family(value: &str) -> Option<&'static str> {
+    match value {
+        "company_name" | "business_name" | "organization_name" | "organisation_name" => Some("company"),
+        "person_name" | "individual_name" => Some("person"),
+        _ => None,
+    }
+}
+
+fn subject_family(subject: &Subject) -> Option<&'static str> {
+    match subject.kind.as_str() {
+        "company" | "organization" | "organisation" | "business" => Some("company"),
+        "person" | "individual" => Some("person"),
+        _ => None,
+    }
+}
+
 /// Generated operation fields have opaque ids. A documented company/entity
 /// name input may still accept the exact typed subject; a bare field named
 /// `name` alone is not enough to establish that meaning.
@@ -139,8 +156,12 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
             if metadata.contains_key("apiosk_input_aliases_v1") {
                 let aliases=reviewed_input_aliases(schema)?;
                 let mut values = std::collections::BTreeSet::new();
-                for name in aliases {
-                    if let Some(value) = subject.identifiers.get(&name).filter(|value| !value.trim().is_empty()) {
+                for name in &aliases {
+                    // A shared name input may serve several typed operations.
+                    // A company's contact name is not its company-search key,
+                    // and a person's employer is not their person-search key.
+                    if name_family(name).zip(subject_family(subject)).is_some_and(|(alias, subject)| alias != subject) { continue; }
+                    if let Some(value) = subject.identifiers.get(name).filter(|value| !value.trim().is_empty()) {
                         values.insert(value);
                     }
                 }
@@ -148,6 +169,10 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
                 // one arbitrarily or silently combine provider parameters.
                 if values.len() > 1 { return None; }
                 if let Some(value) = values.first() { return Some(json!(value)); }
+                if !subject.label.trim().is_empty() && aliases.iter().any(|name|
+                    name_family(name).zip(subject_family(subject)).is_some_and(|(alias, subject)| alias == subject)) {
+                    return Some(json!(subject.label));
+                }
             }
         }
     }
@@ -165,6 +190,30 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn shared_name_aliases_keep_the_subject_type_and_literal_label() {
+        let fixture: Value = serde_json::from_str(include_str!("../../tests/fixtures/crunchbase/typed-name-input.json")).unwrap();
+        let schema = &fixture["after"];
+        let subject = |kind: &str, label: &str, identifiers: Value| Subject {
+            id: "s1".into(), kind: kind.into(), label: label.into(), identifiers: serde_json::from_value(identifiers).unwrap(),
+        };
+        for (kind, label, identifiers) in [
+            ("company", "Example Robotics", json!({})),
+            ("company", "Example Robotics", json!({"company_name":"Example Robotics","person_name":"Ada Example"})),
+            ("person", "Ada Example", json!({})),
+            ("person", "Ada Example", json!({"company_name":"Example Robotics","person_name":"Ada Example"})),
+        ] {
+            assert_eq!(documented_literal("shared.provider_name_query", schema, &subject(kind, label, identifiers)), Some(json!(label)));
+        }
+        for (kind, identifiers) in [("company", json!({"person_name":"Ada Example"})),
+            ("person", json!({"company_name":"Example Robotics"}))] {
+            assert_eq!(documented_literal("shared.provider_name_query", schema, &subject(kind, "", identifiers)), None);
+        }
+        assert_eq!(documented_literal("shared.provider_name_query", schema, &subject("topic", "robotics startups", json!({}))), None);
+        assert_eq!(documented_literal("shared.provider_name_query", schema, &subject("company", "Example Robotics",
+            json!({"company_name":"Example Robotics","business_name":"Different Robotics"}))), None);
+        assert_eq!(documented_literal("shared.provider_name_query", &fixture["before"], &subject("company", "Example Robotics", json!({}))), None);
+    }
     #[test]
     fn reviewed_input_aliases_bind_only_declared_literal_criteria() {
         let schema = json!({"type":"string","$comment":"{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\"]}"});
@@ -198,6 +247,9 @@ mod tests {
         };
         assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx_ecb_quote":"USD"}))), Some(json!("USD")));
         assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx.ecb.quote":"USD"}))), Some(json!("USD")));
+        assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx.ecb.quote":"USD","fx_ecb_quote":"USD"}))), Some(json!("USD")));
+        assert_eq!(literal("company.name", &subject(json!({"company.name":"Example B.V.","company_name":"Example B.V."}))), Some(json!("Example B.V.")));
+        assert_eq!(literal("company.name", &subject(json!({"company.name":"Other B.V.","company_name":"Example B.V."}))), None);
         assert_eq!(literal("fx.ecb.quote", &subject(json!({"other_ecb_quote":"USD"}))), None);
         assert_eq!(literal("fx.ecb.quote", &subject(json!({"ecb_quote":"USD"}))), None);
         assert_eq!(literal("fx.ecb.quote", &subject(json!({"fx_ecb_quote":"USD","quote":"GBP"}))), None);

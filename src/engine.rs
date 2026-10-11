@@ -2,6 +2,8 @@ mod compute;
 mod conversation;
 pub use compute::UpgradeRequest;
 mod endpoint_selection;
+mod source_selection;
+pub use source_selection::SourceSelectionRequest;
 mod requote;
 mod execute;
 pub(crate) use execute::{analysis_operations, answer_sources};
@@ -210,12 +212,17 @@ impl Engine {
     /// checked before this call; its contracts and ordinary approval still own
     /// every executable step and price.
     pub(crate) async fn discover_searched(&self, p: &Principal, req: DiscoverRequest, intake: crate::capability_intake::Intake, catalog: std::sync::Arc<Catalog>, search_id: &str) -> anyhow::Result<Response> {
+        self.discover_searched_configured(p,req,intake,catalog,search_id,None).await
+    }
+    pub(crate) async fn discover_searched_configured(&self, p:&Principal, req:DiscoverRequest, intake:crate::capability_intake::Intake,
+        catalog:std::sync::Arc<Catalog>, search_id:&str, context:Option<crate::ask_v2::source_selection::Context>)->anyhow::Result<Response> {
         anyhow::ensure!(p.is_person() && req.state.is_none() && intake.catalog_version == catalog.version, "Research requires a current App search");
-        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("ask-research", &req, &intake.parsed_request, search_id)), "discover").await? {
+        let original=context.as_ref().map(|context|&context.original_intake.parsed_request).unwrap_or(&intake.parsed_request);
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("ask-research", &req, original, search_id)), "discover").await? {
             return Ok(response);
         }
         telemetry::set_segment(telemetry::Segment::Question);
-        let result = self.intake_question(p, &req, true, None, Some((&intake, catalog))).await;
+        let result = self.intake_question(p, &req, true, None, Some((&intake, catalog,context.as_ref()))).await;
         telemetry::question(&result);
         Ok(self.complete(p, req.request_id, result).await)
     }
@@ -349,7 +356,7 @@ impl Engine {
         req: &DiscoverRequest,
         app_chat: bool,
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
-        displayed_search: Option<(&crate::capability_intake::Intake, std::sync::Arc<Catalog>)>,
+        displayed_search: Option<(&crate::capability_intake::Intake, std::sync::Arc<Catalog>,Option<&crate::ask_v2::source_selection::Context>)>,
     ) -> anyhow::Result<Response> {
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.
@@ -359,7 +366,7 @@ impl Engine {
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
         anyhow::ensure!(limits::question_ok(&req.question), "invalid question length");
-        let catalog = match &displayed_search { Some((_, catalog)) => catalog.clone(), None => self.catalog.get().await? };
+        let catalog = match &displayed_search { Some((_, catalog,_)) => catalog.clone(), None => self.catalog.get().await? };
         // A selection is checked before any task exists: a refusal creates nothing.
         let selection = req.context_delta.selection.as_ref()
             .map(|selection| endpoint_selection::accept(selection, app_chat, req.context_delta.workflow_slug.is_some(), &catalog))
@@ -447,12 +454,14 @@ impl Engine {
         // and a workflow page's recipe is its plan: a code-built intent is
         // never interpreted, so it is not parsed either (a parse outage must
         // not stop a workflow that needs no model before its quote).
-        task.capability_intake = if let Some((intake, _)) = displayed_search {
+        task.source_selection=displayed_search.as_ref().and_then(|(_,_,context)|*context).cloned();
+        task.capability_intake = if let Some((intake, _,_)) = displayed_search {
             // A later English rendering or a different server must not replace
             // the candidate set the person actually reviewed.
             Some(intake.clone())
         } else if app_chat && forced.is_none() {
-            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
+            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog))
+                .or_else(||task.source_selection.as_ref().map(|context|context.model_selection()));
             let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
                 .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version));
             if reusable {
@@ -538,8 +547,10 @@ impl Engine {
         let interpreted = forced.is_none();
         if interpreted {
             let parsing_task = crate::parser::conversation_route::interpretation_context(&task,new_topic);
-            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog));
-            let reply = if let Some(intake) = &task.capability_intake {
+            let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog))
+                .or_else(||task.source_selection.as_ref().map(|context|context.model_selection()));
+            let compiled=task.source_selection.as_ref().map(|context|context.compile(&catalog)).transpose()?.flatten();
+            let reply = if let Some(reply)=compiled {Ok(reply)} else if let Some(intake) = &task.capability_intake {
                 self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, intake).await
             } else if app_chat || self.parser.ask_v2().is_none() {
                 // Without an Ask v2 model (local fixtures) the full-catalog
@@ -687,7 +698,15 @@ impl Engine {
         task.proposal = None;
         match resolver::resolve(catalog, task, intent) {
             Resolution::Plan(mut plan) => {
-                let missing_inputs=crate::parser::plan_coverage::uncovered_inputs(task,catalog,intent,&plan);
+                if let Some(context)=&task.source_selection {
+                    if let Err(error)=context.verify_plan(task,catalog,intent,&plan) {
+                        let message=error.to_string();
+                        if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
+                        task.actions.push(json!({"kind":"planning_clarification","message":message}));
+                        return Ok(Status::NeedsInput);
+                    }
+                }
+                let missing_inputs=match &task.source_selection {Some(context)=>context.uncovered_inputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_inputs(task,catalog,intent,&plan)};
                 if !missing_inputs.is_empty() {
                     let fields=missing_inputs.join("; ").replace('_'," ");
                     let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
@@ -699,7 +718,7 @@ impl Engine {
                     task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_input_bindings":missing_inputs}));
                     return Ok(Status::NeedsInput);
                 }
-                let missing=crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan);
+                let missing=match &task.source_selection {Some(context)=>context.uncovered_outputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan)};
                 if !missing.is_empty() {
                     let fields=missing.join("; ").replace('_'," ");
                     let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
@@ -1020,6 +1039,12 @@ impl Engine {
                 )
                 .await?,
         );
+        if task.source_selection.is_some() {
+            let previously_approved:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3)")
+                .bind(p.owner).bind(id).bind(billing_plan.as_ref().map(|plan|plan.quote_ref)).fetch_one(&self.store.pool).await?;
+            r.context_view["source_selection"]["can_choose"]=json!(p.is_person() && connection.is_none()
+                && source_selection::eligible(&task) && !previously_approved && !worker_active);
+        }
         r.context_view["analysis_upgrade"] = self.compute_view(p, id, &task, billing_plan.as_ref(), &r.billing).await?;
         if task.compute.as_ref().is_some_and(|run|run.status == "running" || run.status == "preparing") && actions.iter().any(|a|matches!(a,Action::Compute{..})) { r.status = Status::Running; }
         if let Some(policy) = auto_policy.as_ref() {

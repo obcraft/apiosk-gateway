@@ -227,6 +227,8 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capability_intake: Option<crate::capability_intake::Intake>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_selection: Option<crate::ask_v2::source_selection::Context>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<Uuid>,
     #[serde(default)]
     pub pending_dispatches: Vec<PendingDispatch>,
@@ -342,6 +344,7 @@ impl Task {
         object.remove("analysis");
         object.remove("result_refs");
         object.remove("capability_intake");
+        object.remove("source_selection");
         object.remove("intake_recovery");
         if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
             for turn in turns {
@@ -360,7 +363,7 @@ impl Task {
         context
     }
     pub fn context_view(&self) -> Value {
-        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,"capability_intake":self.capability_intake,"intake_recovery":self.intake_recovery.as_ref().map(IntakeRecovery::view),
+        serde_json::json!({"conversation":self.conversation,"entities":self.entities,"focus":self.focus,"capability_intake":self.capability_intake,"source_selection":self.source_selection.as_ref().map(|selection|selection.view()),"intake_recovery":self.intake_recovery.as_ref().map(IntakeRecovery::view),
             "known_facts":self.facts.iter().filter(|f| f.expires_at > Utc::now() && matches!(f.semantic_type.as_str(), "company.registration.nl.kvk" | "company_registry.kvknummer" | "company.kvknummer" | "company.name")).collect::<Vec<_>>(),
             "analysis":self.analysis,"result_refs":self.result_refs.iter().rev().take(8).collect::<Vec<_>>()})
     }

@@ -1,0 +1,92 @@
+[
+  {
+    "question": "Show the registered company details for Monzo in the United Kingdom.",
+    "parsed_request": {
+      "capabilities": [
+        {
+          "confidence": 0.95,
+          "description": "Registered company details for the specified company.",
+          "domain": "company",
+          "inputs": [
+            "company_name",
+            "country"
+          ],
+          "missing": [],
+          "name": "Company profile",
+          "outputs": [
+            "profile"
+          ],
+          "slug": "company.profile",
+          "source_hint": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-6-luna",
+        "parsed_at": "2026-10-11T20:59:49.897126+00:00",
+        "text_sha256": "ac2b3f60351ef48383cf70a28b5e467da3bbb5dc441081856dcdff7ff77b4b21"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Monzo",
+            "country": "United Kingdom"
+          },
+          "label": "Monzo",
+          "type": "company"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Tell me about Monzo, the British company.",
+    "parsed_request": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Provide a profile of the requested company.",
+          "domain": "company",
+          "inputs": [
+            "company_name",
+            "country"
+          ],
+          "missing": [],
+          "name": "Company profile",
+          "outputs": [
+            "profile"
+          ],
+          "slug": "company.profile",
+          "source_hint": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-6-luna",
+        "parsed_at": "2026-10-11T20:59:57.797804+00:00",
+        "text_sha256": "9aaca67de998b11bcf8a4fe9f59d0926053f300d7e451cfe90ed09dc8102c837"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Monzo",
+            "country": "British"
+          },
+          "label": "Monzo",
+          "type": "company"
+        }
+      ]
+    }
+  }
+]
