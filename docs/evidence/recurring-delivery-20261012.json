@@ -27,6 +27,22 @@
     "slack": "connected",
     "gmail": "connected"
   },
+  "live_verification": {
+    "app_commit": "fb1555658fa5bf5591598b429d91d34418f4ff7e",
+    "netlify_deploy": "6accf833c030997a9306ff5b",
+    "netlify_state": "ready",
+    "gateway_feature_commit": "315d284",
+    "gateway_deployed_commit": "4c9b82f",
+    "gateway_release": "ready; Fly machine health, smoke and DNS checks passed",
+    "release_surface_checks": "passed: backend ready, task endpoint 401, app HTTP 200, MCP card and app-only approval",
+    "slack_destinations": "owned connected account lists joined channels successfully",
+    "slack_quote": "two runs at EUR 0.092 per run; EUR 0.184 total; selected channel and EUR 2.01 after reservation displayed",
+    "gmail_quote": "same two-run total with the verified account email",
+    "destination_change": "invalidates the prior quote and requires a new price review",
+    "draft_ledger": "both live test orders remain draft with approved_at null and reserved_micro_usd zero",
+    "existing_recipe_limitation": "an older company search needing a source choice could not recur; a concise eligibility explanation replaces the generic failure",
+    "additional_recurring_tests": "27 gateway tests passed after the error-copy change; 25 app recurring tests passed after clarifying approval wording"
+  },
   "boundaries": [
     "No real paid recurring job created",
     "No message sent to a real Slack conversation",
