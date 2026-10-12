@@ -483,7 +483,7 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
         .await
         .unwrap();
     assert!(reply.discover);
-    let intent = reply.intent.unwrap();
+    let mut intent = reply.intent.unwrap();
     assert_eq!(intent.subjects[0].label, intake.parsed_request.subjects[0].label);
     assert_eq!(intent.subjects[0].values["company.name"], intake.parsed_request.subjects[0].label);
     assert_eq!(
@@ -494,10 +494,12 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
         mock.inputs.lock().unwrap()[2]["parsed_request"]["meta"]["text_sha256"],
         intake.parsed_request.meta.text_sha256
     );
-    assert!(mock.inputs.lock().unwrap()[2]["catalog"]["capabilities"]
-        .as_array()
-        .unwrap()
-        .contains(&json!("company.search"))); // dependency retained
+    assert_eq!(mock.inputs.lock().unwrap()[2]["catalog"]["capabilities"], json!(["company.accounts"]));
+    assert!(mock.inputs.lock().unwrap()[2]["catalog"]["input_types"].as_array().unwrap().contains(&json!("company.name")));
+    let mut planning_task = task.clone();
+    crate::engine::bind_subjects(&mut planning_task, &c, &mut intent).unwrap();
+    let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&c, &planning_task, &intent) else { panic!("name still resolves through its lookup dependency"); };
+    assert!(plan.steps.iter().any(|step| step.service.contract.capability_slug == "company.search"));
     server.abort();
 }
 

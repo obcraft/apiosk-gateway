@@ -568,12 +568,43 @@ fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::co
     goals["maxItems"] = json!(goal_limit.clamp(1,MAX_GOALS));
     goals["items"]["properties"]["capability"]["enum"] = json!(selected);
     goals["items"]["properties"]["subject"]["maximum"] = json!(7);
+    // Every input uses the same literal/reference rule. Share its definition
+    // instead of repeating the complete reference enum for every fact type.
+    let properties = schema.pointer_mut("/properties/intent/anyOf/0/properties/subjects/items/properties/values/properties")
+        .and_then(Value::as_object_mut).expect("bound input properties");
+    let value_rule = properties.values().next().cloned();
+    if let Some(value_rule) = value_rule {
+        for rule in properties.values_mut() {
+            debug_assert_eq!(*rule, value_rule);
+            *rule = json!({"$ref":"#/$defs/bound_input"});
+        }
+        schema["$defs"] = json!({"bound_input":value_rule});
+    }
     schema
 }
 
 /// Discovery has already scanned the directory. Keep the selected contracts,
 /// dependencies and unavailable-source reasons without resending every source.
-fn capability_planning_view(mut view: Value) -> Value {
+fn capability_planning_view(mut view: Value, selected: &std::collections::BTreeSet<String>) -> Value {
+    // Only matched operations can become goals. Dependency resolution belongs
+    // to the compiler; keep its input vocabulary so names can still resolve
+    // identifiers, without sending every transitive producer as another choice.
+    for key in ["capabilities", "workflow_presets", "service_inputs"] {
+        if let Some(rows) = view[key].as_array_mut() {
+            rows.retain(|row| (if key == "capabilities" { row.as_str() } else { row["capability"].as_str() })
+                .is_some_and(|capability| selected.contains(capability)));
+        }
+    }
+    if let Some(sources) = view["sources"].as_array_mut() {
+        for source in sources {
+            if let Some(capabilities) = source["capabilities"].as_array_mut() {
+                capabilities.retain(|capability| capability.as_str().is_some_and(|capability| selected.contains(capability)));
+            }
+            if let Some(descriptions) = source["capability_descriptions"].as_object_mut() {
+                descriptions.retain(|capability, _| selected.contains(capability));
+            }
+        }
+    }
     if let Some(sources) = view["sources"].as_array_mut() {
         sources.retain(|source| source["available"] == false
             || source["capabilities"].as_array().is_some_and(|caps| !caps.is_empty()));
@@ -598,6 +629,7 @@ fn capability_planning_view(mut view: Value) -> Value {
     view
 }
 
+#[cfg(test)]
 fn chat_input(question: &str, task: &Task, catalog: &Catalog) -> Value {
     json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":catalog.parser_view(),
         "source_groups":crate::eu_capabilities::catalog_view(catalog)})
@@ -1342,15 +1374,15 @@ impl Parser {
             if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
             if let Some(reply) = plan_coverage::multiple_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
         }
-        let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities));
+        let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities), &intake.selected_capabilities);
         self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
     }
 
     async fn chat_with_view(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, view: Value, intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<ChatReply> {
         // The chat route has no interpretation cache: every question is read anew.
         crate::telemetry::set_parser_cache(Cache::Miss);
-        let mut input=chat_input(question, task, catalog);
-        input["catalog"]=view;
+        let mut input=json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":view});
+        if intake.is_none() { input["source_groups"] = crate::eu_capabilities::catalog_view(catalog); }
         let bindings = intake.map(|i| Bindings::new(&i.parsed_request, question, task, selection));
         if let Some(bindings) = &bindings { input["bindings"] = bindings.view(); }
         if let Some(intake) = intake {
@@ -1613,7 +1645,7 @@ impl Parser {
                                                 if matches!(surface, "chat" | "capability-plan") && requirement_rejection(reason) {
                                                     rejected_requirement = Some(reason);
                                                 }
-                                                tracing::warn!(surface, attempt, reason, "intent validation failed");
+                                                tracing::warn!(trace = crate::telemetry::id(), surface, attempt, reason, "intent validation failed");
                                                 if let Some(messages) = attempt_payload["messages"].as_array_mut() {
                                                     messages.push(json!({"role":"assistant","content":raw}));
                                                     messages.push(json!({"role":"user","content":intent_repair_message(surface, reason)}));
@@ -1836,7 +1868,7 @@ mod tests {
         let intake=crate::capability_intake::Intake {parsed_request:parsed,matches,selected_capabilities,
             catalog_version:catalog.version.clone(),apiosk_sources_searched:crate::capability_intake::source_count(&catalog)};
         let (parser,_,server,requests)=model_fixture_with_requests(vec![(400,json!({"error":"local capture only"}))]).await;
-        assert!(parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)),Some(&intake)).await.is_err());
+        assert!(parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities), &intake.selected_capabilities),Some(&intake)).await.is_err());
         let requests=requests.lock().unwrap();assert_eq!(requests.len(),1);
         std::fs::write(std::env::var("ASK_SAVED_INTAKE_CAPTURE").unwrap(),serde_json::to_vec_pretty(&requests[0]).unwrap()).unwrap();
         server.abort();
@@ -2197,7 +2229,7 @@ mod tests {
         let response = json!({"choices":[{"finish_reason":"stop","message":{"content":raw}}]});
         let (parser, calls, server) = model_fixture(vec![(200,response.clone()),(200,response)]).await;
         let mut task = Task::default();
-        let reply = parser.chat_with_view(question, None, &task, &catalog, capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)), Some(&intake)).await.unwrap();
+        let reply = parser.chat_with_view(question, None, &task, &catalog, capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities), &intake.selected_capabilities), Some(&intake)).await.unwrap();
         assert!(reply.discover);
         let mut intent = reply.intent.expect("one matched profile covers every field requirement");
         assert_eq!(intent.goals.len(), 1);
@@ -2337,7 +2369,7 @@ mod tests {
         for capability in ["company.registry-profile", "company.sanctions-screen"] {
             let selected = [capability.to_owned()].into_iter().collect();
             let original = catalog.selected_parser_view(&selected);
-            let view = capability_planning_view(original.clone());
+            let view = capability_planning_view(original.clone(), &selected);
             let schema = capability_reply_schema(&view, &Bindings::default(), &selected, true,1);
             println!("{capability}: planning catalog {} -> {} bytes; constrained schema {} bytes, input types {}", original.to_string().len(), view.to_string().len(), schema.to_string().len(), view["input_types"].as_array().unwrap().len());
             for (key, value) in view.as_object().unwrap() { println!("  {key}: {} bytes", value.to_string().len()); }
@@ -2367,7 +2399,7 @@ mod tests {
     fn capability_plan_schema_rejects_guessed_input_names_and_keeps_dependencies() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
         let selected = ["company.accounts".to_owned()].into_iter().collect();
-        let view = capability_planning_view(catalog.selected_parser_view(&selected));
+        let view = capability_planning_view(catalog.selected_parser_view(&selected), &selected);
         let schema = capability_reply_schema(&view, &Bindings::default(), &selected, true,1);
         let intent = &schema["properties"]["intent"]["anyOf"][0];
         let values = &intent["properties"]["subjects"]["items"]["properties"]["values"];
@@ -2375,11 +2407,16 @@ mod tests {
         assert!(values["properties"].get("company.name").is_some());
         assert!(values["properties"].get("company_name").is_none());
         assert!(values["properties"].get("company.kvk_number").is_none());
-        let literal = &values["properties"]["company.name"]["anyOf"][1];
+        assert_eq!(values["properties"]["company.name"], json!({"$ref":"#/$defs/bound_input"}));
+        let literal = &schema["$defs"]["bound_input"]["anyOf"][1];
         catalog_core::facts::schema::validate(literal, &json!({"literal":"Coolblue"})).unwrap();
         assert_eq!(intent["properties"]["goals"]["items"]["properties"]["capability"]["enum"], json!(["company.accounts"]));
         assert_eq!(intent["properties"]["goals"]["maxItems"],json!(1),"candidate alternatives cannot become extra requested goals");
-        assert!(view["capabilities"].as_array().unwrap().contains(&json!("company.search")), "dependency still supplies the name input");
+        assert_eq!(view["capabilities"], json!(["company.accounts"]), "only matched operations are planning choices");
+        let original = catalog.selected_parser_view(&selected);
+        assert_eq!(view["input_definitions"], original["input_definitions"], "every dependency input definition is retained");
+        assert_eq!(view["input_types"], original["input_types"]);
+        assert!(view["service_inputs"].as_array().unwrap().iter().all(|row| row["capability"] == "company.accounts"));
         let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), "google/gemma-3-12b-it".into());
         let payload = json!({"response_format":{"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,"schema":schema}}});
         assert_eq!(parser.routed_payload("chat", &payload)["response_format"], payload["response_format"], "routing must retain per-request vocabulary constraints");
@@ -2397,7 +2434,7 @@ mod tests {
             {"slug":"unrelated","available":true,"capabilities":[]},
             {"slug":"blocked","name":"Blocked source","available":false,"capabilities":[],"reason":"No active execution contract",
                 "readiness":{"status":"blocked","restrictions":["Blocked source: No active execution contract","A separate restriction"],"coverage_notices":["Limited coverage"]}}
-        ]}));
+        ]}), &["company.accounts".to_owned()].into_iter().collect());
         assert_eq!(view["sources"].as_array().unwrap().len(), 2);
         assert_eq!(view["sources"][0]["readiness"]["restrictions"], json!(["latest filing only"]));
         assert!(view["sources"][0].get("tags").is_none());
@@ -2405,6 +2442,38 @@ mod tests {
         assert_eq!(view["sources"][1]["reason"], "No active execution contract");
         assert_eq!(view["sources"][1]["readiness"]["restrictions"], json!(["A separate restriction"]));
         assert_eq!(view["sources"][1]["readiness"]["coverage_notices"], json!(["Limited coverage"]));
+    }
+
+    #[test]
+    fn compact_capability_schema_preserves_literal_reference_and_input_validation() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let selected = ["company.accounts".to_owned()].into_iter().collect();
+        let view = capability_planning_view(catalog.selected_parser_view(&selected), &selected);
+        let parsed = crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"Coolblue","type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.accounts","name":"Accounts","description":"Company accounts","domain":"company",
+                "inputs":["company_name"],"outputs":["accounts"],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(),"Accounts for Coolblue","fixture").unwrap();
+        let bindings = Bindings::new(&parsed, "Accounts for Coolblue", &Task::default(), None);
+        let schema = capability_reply_schema(&view, &bindings, &selected, true, 1);
+        let mut reply = json!({"message":"Price first","discover":true,"decline_reason":"none","output_bindings":[],
+            "intent":{"subjects":[{"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}}],
+                "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}});
+        jsonschema::validate(&schema, &reply).unwrap();
+        for (value, valid) in [(json!({"ref":"s1.label"}),true),(json!({"literal":"Coolblue"}),true),
+            (json!({"ref":"invented"}),false),(json!({"literal":{"query":"Coolblue"}}),false),(json!({"ref":"s1.label","extra":true}),false)] {
+            reply["intent"]["subjects"][0]["values"]["company.name"] = value;
+            assert_eq!(jsonschema::validate(&schema, &reply).is_ok(), valid);
+        }
+        reply["intent"]["subjects"][0]["values"] = json!({"invented_input":{"literal":"Coolblue"}});
+        assert!(jsonschema::validate(&schema, &reply).is_err());
+        let compact = schema.to_string().len();
+        let mut expanded = schema.clone();
+        let rule = expanded.as_object_mut().unwrap().remove("$defs").unwrap()["bound_input"].clone();
+        for value in expanded.pointer_mut("/properties/intent/anyOf/0/properties/subjects/items/properties/values/properties").unwrap().as_object_mut().unwrap().values_mut() {
+            *value = rule.clone();
+        }
+        assert!(compact < expanded.to_string().len());
     }
 
     #[test]
@@ -2618,7 +2687,7 @@ mod tests {
             let mut request=intake.clone();
             if unsupported {request.parsed_request.capabilities[0].outputs.push("vat_registration_date".into());}
             let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope.clone())]).await;
-            let reply=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&request.selected_capabilities)),Some(&request)).await.unwrap();
+            let reply=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&request.selected_capabilities), &request.selected_capabilities),Some(&request)).await.unwrap();
             assert_eq!(calls.load(Ordering::Relaxed),2,"bounded correction remains two calls");
             if unsupported {
                 assert!(!reply.discover && reply.intent.is_none(),"recovery cannot remove an unsupported output");
@@ -2632,7 +2701,7 @@ mod tests {
             server.abort();
         }
         let (parser,calls,server)=model_fixture(vec![(503,json!({"error":"unavailable"})),(503,json!({"error":"unavailable"}))]).await;
-        let error=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities)),Some(&intake)).await.unwrap_err();
+        let error=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities), &intake.selected_capabilities),Some(&intake)).await.unwrap_err();
         assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)));
         assert_eq!(calls.load(Ordering::Relaxed),2,"existing bounded upstream retry is preserved without semantic fallback");
         server.abort();
