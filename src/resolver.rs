@@ -195,7 +195,7 @@ fn matches_source(service: &Service, source: &str, catalog: &Catalog) -> bool {
         || (catalog.known_sources.iter().any(|s|
             s.slug == service.api_slug && s.metadata.provider_slug.as_deref() == Some(source)))
 }
-fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
+pub(crate) fn allows(service: &Service, constraints: &BTreeMap<String, Value>, catalog: &Catalog) -> bool {
     constraints.iter().all(|(k, v)| match k.as_str() {
         "source" => v.as_str().is_some_and(|source| matches_source(service, source, catalog)),
         // Endpoints the person selected in the App: one id or a list.

@@ -30,6 +30,7 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
+    run_intent: Mutex<Option<Value>>,
     bazaar_resources: Mutex<Vec<Value>>,
     ask_v2_requests: Mutex<Vec<Value>>,
     /// Requests to the conversation-reply model (OpenRouter in production).
@@ -51,8 +52,11 @@ fn ask_v2_capabilities() -> Value {
 async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> ([(axum::http::header::HeaderName, &'static str); 1], String) {
     assert_eq!(headers.get("authorization").unwrap(), "Bearer ask-v2-fixture-key");
     let is_intent = body["model"] == apiosk_gateway_v2::ask_v2::intent::MODEL;
+    let synthesis = body["messages"][0]["content"].as_str().is_some_and(|s|s.starts_with("Organize a concise answer"));
+    let context:Value=serde_json::from_str(body["messages"][1]["content"].as_str().unwrap_or("{}")).unwrap_or(Value::Null);
     model.ask_v2_requests.lock().unwrap().push(body);
-    let output = if is_intent { json!({"language":"nl","subjects":[{"id":"s1","type":"company","label":"Coolblue","identifiers":{}}],"capabilities":[],"requests":[{"id":"r1","capability_slug":"company.financial-statements","subject_ids":["s1"],"kind":"lookup","goal":"Company accounts","required_fields":["annual_accounts"],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}) } else { ask_v2_capabilities() };
+    let custom=model.run_intent.lock().unwrap().clone();
+    let output = if synthesis {json!({"evidence_ids":context["facts"].as_array().unwrap().iter().map(|f|f["id"].clone()).collect::<Vec<_>>()})} else if let Some(output)=custom {output} else if is_intent { json!({"language":"nl","subjects":[{"id":"s1","type":"company","label":"Coolblue","identifiers":{}}],"capabilities":[],"requests":[{"id":"r1","capability_slug":"company.financial-statements","subject_ids":["s1"],"kind":"lookup","goal":"Company accounts","required_fields":["annual_accounts"],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}) } else { ask_v2_capabilities() };
     let event = json!({"choices":[{"delta":{"content":output.to_string()}}]});
     ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
 }
@@ -158,6 +162,10 @@ struct Person {
     bearer: String,
 }
 impl Person {
+    fn ask_owner() -> Self {
+        let owner = Uuid::parse_str("bf085fe8-41c4-4699-978f-e75e89518bf7").unwrap();
+        Self { owner, bearer: format!("intake-{owner}") }
+    }
     fn new() -> Self {
         let owner = Uuid::new_v4();
         Self { owner, bearer: format!("intake-{owner}") }
@@ -183,6 +191,8 @@ struct FakeEdge {
     pool: PgPool,
     calls: Mutex<Vec<Value>>,
     outcome: Mutex<EdgeOutcome>,
+    active: std::sync::atomic::AtomicUsize,
+    peak: std::sync::atomic::AtomicUsize,
 }
 
 /// The existing balance executor is replaced only inside this fixture. This
@@ -199,10 +209,15 @@ async fn fake_edge(State(edge): State<Arc<FakeEdge>>, headers: HeaderMap, Json(r
         EdgeOutcome::Refused => return (StatusCode::PAYMENT_REQUIRED, Json(json!({"ok":false,"error":"insufficient_funds","stage":"checking_balance"}))),
         EdgeOutcome::Success { result, record_run, mismatched_receipt } => (result, record_run, mismatched_receipt),
     };
-    let selected = sqlx::query("SELECT kind,resource_url,provider_price_micro_usd,charged_micro_usd FROM public.user_selected_apis WHERE id=$1 AND user_id=$2")
+    let selected = sqlx::query("SELECT kind,capability,resource_url,provider_price_micro_usd,charged_micro_usd FROM public.user_selected_apis WHERE id=$1 AND user_id=$2")
         .bind(selection).bind(owner).fetch_one(&edge.pool).await.unwrap();
-    assert_eq!(selected.get::<String,_>("kind"), "external");
-    assert_eq!(selected.get::<String,_>("resource_url"), "https://fixture.example/data");
+    let result=if selected.get::<String,_>("kind")=="reviewed" {
+        use std::sync::atomic::Ordering::SeqCst;
+        let active=edge.active.fetch_add(1,SeqCst)+1;edge.peak.fetch_max(active,SeqCst);
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        edge.active.fetch_sub(1,SeqCst);
+        match selected.get::<Option<String>,_>("capability").as_deref(){Some("company.search")=>json!({"companies":[{"id":"123"}]}),_=>json!({"accounts":"2025"})}
+    }else{assert_eq!(selected.get::<String,_>("resource_url"), "https://fixture.example/data");result};
     let provider: i64 = selected.get("provider_price_micro_usd");
     let total = provider + (provider * 1500 + 9999) / 10000;
     assert_eq!(selected.get::<i64,_>("charged_micro_usd"), total);
@@ -234,7 +249,7 @@ impl Intake {
             .await
             .unwrap();
         let model = Arc::new(Model::default());
-        let edge = Arc::new(FakeEdge { pool:pool.clone(), calls:Mutex::new(vec![]), outcome:Mutex::new(EdgeOutcome::Success {result:json!({"rows":[{"id":"fixture-record"}]}), record_run:true, mismatched_receipt:false}) });
+        let edge = Arc::new(FakeEdge { pool:pool.clone(), calls:Mutex::new(vec![]), active:0.into(),peak:0.into(), outcome:Mutex::new(EdgeOutcome::Success {result:json!({"rows":[{"id":"fixture-record"}]}), record_run:true, mismatched_receipt:false}) });
         let mock = Router::new()
             .route("/chat", post(interpret))
             .route("/ask-v2-model", post(ask_v2_model))
@@ -675,14 +690,23 @@ async fn ask_intent_authenticates_and_only_extracts_without_creating_tasks() {
     let (status, _) = intake.send(ORGANISATION_KEY, path, Some(body.clone())).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
-    let person = Person::new();
+    let person = Person::ask_owner();
     let (status, response) = intake.send(&person.bearer, path, Some(json!({"question":"Jaarrekening van Coolblue","model":"unapproved/model"}))).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(codes(&response), ["invalid_model"]);
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
     let (status, response) = intake.send(&person.bearer, path, Some(body)).await;
     assert_eq!(status, StatusCode::OK, "{response}");
-    assert_eq!(response["schema_version"], 1);
+    assert_eq!(response["schema_version"], 2);
+    assert!(response["intent"]["field_catalog_version"].is_string());
+    assert!(response["intent"]["field_definitions"].is_array());
+    // The fixture taxonomy knows this capability, but no admitted endpoint
+    // documents its proposed annual_accounts field. Do not promote that label
+    // to coverage evidence or silently lose the requirement.
+    assert_eq!(response["intent"]["requests"][0]["required_fields"], json!([]));
+    assert_eq!(response["intent"]["requests"][0]["unresolved_fields"]["required"],
+        json!([{"field":"annual_accounts","reason":"undocumented"}]));
+    assert_eq!(response["intent"]["requests"][0]["field_resolution"], "unresolved");
     assert_eq!(response["intent"]["subjects"][0]["label"], "Coolblue");
     assert_eq!(response["intent"]["requests"][0]["capability_slug"], "company.financial-statements");
     assert_eq!(response["intent"]["capabilities"][0]["origin"], "database");
@@ -1548,4 +1572,66 @@ async fn edited_workflow_starter_recovers_only_its_original_workflow() {
         assert_eq!(stored["input"], json!({"location":"Amsterdam","topic":"software"}));
         assert_no_purchase(&intake, &person, task).await;
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "isolated local test database"]
+async fn ask_run_one_quote_approval_background_evidence_and_reload() {
+    let intake=Intake::start().await;let person=Person::ask_owner();
+    sqlx::query("INSERT INTO public.capabilities(slug,status,description) VALUES ('company.accounts','active','Retrieve company accounts') ON CONFLICT (slug) DO NOTHING").execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO public.user_balances(user_id,balance_micro_usd) VALUES($1,1000000) ON CONFLICT(user_id) DO UPDATE SET balance_micro_usd=1000000").bind(person.owner).execute(&intake.pool).await.unwrap();
+    *intake.model.run_intent.lock().unwrap()=Some(json!({"language":"en","subjects":[{"id":"s1","type":"company","label":"Coolblue","identifiers":{}}],"capabilities":[],"requests":[{"id":"r1","capability_slug":"company.accounts","subject_ids":["s1"],"kind":"lookup","goal":"Retrieve accounts","required_fields":["accounts"],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}));
+    let denied=Person::new();
+    let denied_result=intake.send(&denied.bearer,"/v2/ask-v2/runs",Some(json!({"question":"Company data","request_id":Uuid::new_v4()}))).await;
+    assert_eq!(denied_result.0,StatusCode::NOT_FOUND);
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty(),"private access denied before model spend");
+    let body=json!({"question":"Retrieve Coolblue accounts","request_id":Uuid::new_v4()});
+    let (status,initial)=intake.send(&person.bearer,"/v2/ask-v2/runs",Some(body.clone())).await;assert_eq!(status,StatusCode::OK,"{initial}");let id=initial["run_id"].as_str().unwrap();let path=format!("/v2/ask-v2/runs/{id}");
+    let mut saved=initial.clone();
+    for _ in 0..150 {let(_,v)=intake.send(&person.bearer,&path,None).await;saved=v;if saved["stage"]=="awaiting_approval" || saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(50)).await;}
+    assert_eq!(saved["stage"],"awaiting_approval","{saved}");assert_eq!(saved["plan"]["sources"].as_array().unwrap().len(),2);assert!(intake.edge.calls.lock().unwrap().is_empty());
+    let(_,replayed)=intake.send(&person.bearer,"/v2/ask-v2/runs",Some(body)).await;assert_eq!(replayed["run_id"],id);assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),1);
+    let other=Person::new();assert_eq!(intake.send(&other.bearer,&path,None).await.0,StatusCode::NOT_FOUND);
+    let old_quote=saved["plan"]["quote"].clone();
+    assert_eq!(intake.send(&person.bearer,&format!("{path}/replan"),Some(json!({"plan_revision":1}))).await.0,StatusCode::OK);
+    for _ in 0..100 {saved=intake.send(&person.bearer,&path,None).await.1;if saved["stage"]=="awaiting_approval" || saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(50)).await;}
+    assert_eq!(saved["plan_revision"],2,"{saved}");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),1,"requoting does not repurchase extraction");
+    assert_eq!(intake.send(&person.bearer,&format!("{path}/approve"),Some(json!({"plan_revision":1,"quote_ref":old_quote["quote_ref"],"max_total_atomic":old_quote["total_atomic"]}))).await.0,StatusCode::CONFLICT);
+    let approval=json!({"plan_revision":2,"quote_ref":saved["plan"]["quote"]["quote_ref"],"max_total_atomic":saved["plan"]["quote"]["total_atomic"]});
+    let mut bad=approval.clone();bad["max_total_atomic"]=json!("0");assert_eq!(intake.send(&person.bearer,&format!("{path}/approve"),Some(bad)).await.0,StatusCode::CONFLICT);
+    let(status,response)=intake.send(&person.bearer,&format!("{path}/approve"),Some(approval)).await;assert_eq!(status,StatusCode::OK,"{response}");
+    // No browser polling drives provider work; the server keeps going alone.
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    for _ in 0..100 {let(_,v)=intake.send(&person.bearer,&path,None).await;saved=v;if saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(100)).await;}
+    assert_eq!(saved["stage"],"completed","{saved}");assert_eq!(intake.edge.calls.lock().unwrap().len(),2);assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),2);
+    assert!(saved["sources"].as_array().unwrap().iter().all(|s|s["status"]=="succeeded"),"validated dependencies also succeed: {saved}");
+    assert_eq!(saved["evidence"][0]["value"],"2025");assert_eq!(saved["evidence"][0]["response_pointer"],"/data/accounts");assert_eq!(saved["answer"]["status"],"verified");
+    for _ in 0..3 {assert_eq!(intake.send(&person.bearer,&path,None).await.1["answer"],saved["answer"]);}
+    assert_eq!(intake.edge.calls.lock().unwrap().len(),2);assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),2);
+    let(_,events)=intake.send(&person.bearer,&format!("{path}/events?after=0"),None).await;for (i,event) in events["events"].as_array().unwrap().iter().enumerate(){assert_eq!(event["sequence"],i+1);}
+    // Two independent requests actually overlap under the same single approval.
+    intake.edge.peak.store(0,std::sync::atomic::Ordering::SeqCst);
+    let mut proposal=intake.model.run_intent.lock().unwrap().clone().unwrap();
+    proposal["subjects"]=json!([{"id":"s1","type":"company","label":"Coolblue","identifiers":{"id":"123"}},{"id":"s2","type":"company","label":"Mollie","identifiers":{"id":"456"}}]);
+    proposal["requests"][0]["subject_ids"]=json!(["s1","s2"]);
+    *intake.model.run_intent.lock().unwrap()=Some(proposal);
+    let(status,new)=intake.send(&person.bearer,"/v2/ask-v2/runs",Some(json!({"request_id":Uuid::new_v4(),"question":"Retrieve Coolblue 123 and Mollie 456 accounts"}))).await;assert_eq!(status,StatusCode::OK,"{new}");
+    let path=format!("/v2/ask-v2/runs/{}",new["run_id"].as_str().unwrap());
+    for _ in 0..100 {saved=intake.send(&person.bearer,&path,None).await.1;if saved["stage"]=="awaiting_approval" || saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(50)).await;}
+    assert_eq!(saved["stage"],"awaiting_approval","{saved}");assert_eq!(saved["plan"]["sources"].as_array().unwrap().len(),2);
+    let approval=json!({"plan_revision":1,"quote_ref":saved["plan"]["quote"]["quote_ref"],"max_total_atomic":saved["plan"]["quote"]["total_atomic"]});
+    assert_eq!(intake.send(&person.bearer,&format!("{path}/approve"),Some(approval)).await.0,StatusCode::OK);
+    for _ in 0..100 {saved=intake.send(&person.bearer,&path,None).await.1;if saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(50)).await;}
+    assert_eq!(saved["stage"],"completed","{saved}");assert_eq!(intake.edge.peak.load(std::sync::atomic::Ordering::SeqCst),2);
+
+    let calls=intake.edge.calls.lock().unwrap().len();
+    let(_,new)=intake.send(&person.bearer,"/v2/ask-v2/runs",Some(json!({"request_id":Uuid::new_v4(),"question":"Retrieve Coolblue 123 and Mollie 456 accounts then cancel"}))).await;
+    let path=format!("/v2/ask-v2/runs/{}",new["run_id"].as_str().unwrap());
+    for _ in 0..100 {saved=intake.send(&person.bearer,&path,None).await.1;if saved["stage"]=="awaiting_approval" || saved["terminal"]==true{break}tokio::time::sleep(Duration::from_millis(50)).await;}
+    assert_eq!(saved["stage"],"awaiting_approval","{saved}");
+    assert_eq!(intake.send(&person.bearer,&format!("{path}/cancel"),Some(json!({}))).await.0,StatusCode::OK);
+    assert_eq!(intake.send(&person.bearer,&path,None).await.1["stage"],"cancelled");
+    assert_eq!(intake.edge.calls.lock().unwrap().len(),calls,"cancelled quote never dispatches");
+
 }

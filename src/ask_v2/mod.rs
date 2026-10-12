@@ -4,12 +4,20 @@
 pub mod search;
 pub mod intent;
 pub mod intent_catalog;
+pub mod intent_fields;
 pub(crate) mod source_options;
 pub mod external;
 pub mod purchase;
 pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
+// Ask V2 runs (contracts/ask-v2-run.md). Phase 2 modules are registered here
+// once so their owners never edit this file concurrently.
+pub mod run_contract;
+pub mod planner;
+pub mod evidence;
+pub mod synthesis;
+pub mod run;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 

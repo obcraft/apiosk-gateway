@@ -12,16 +12,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// The only intake model. Ask V2 extracts and synthesizes with it; there is no
+/// per-request choice.
 pub const MODEL: &str = "openai/gpt-oss-120b";
-pub const MODELS: &[&str] = &[
-    MODEL, "openai/gpt-6-luna", "mistralai/ministral-3b-2512",
-    "mistralai/ministral-8b-2512", "mistralai/ministral-14b-2512",
-    "mistralai/mistral-small-3.2-24b-instruct",
-];
 const PROMPT: &str = include_str!("../../contracts/ask-intent-prompt.txt");
 const TIMEOUT: Duration = Duration::from_secs(15);
-
-pub fn supported_model(model: &str) -> bool { MODELS.contains(&model) }
 
 // Closed key/value entries work across strict-output providers. Only the model
 // transport uses arrays; the public intent retains dictionaries.
@@ -346,11 +341,6 @@ impl Client {
         question: &str,
         definitions: &[Definition],
     ) -> Result<(Value, Vec<Definition>)> {
-        self.extract_intent_with_model(question, definitions, MODEL).await
-    }
-
-    pub async fn extract_intent_with_model(&self, question: &str, definitions: &[Definition], model: &str) -> Result<(Value, Vec<Definition>)> {
-        ensure!(supported_model(model), "intent_invalid_model");
         ensure!(
             !question.trim().is_empty() && question.encode_utf16().count() <= 16_000,
             "intent_invalid_question"
@@ -371,19 +361,15 @@ impl Client {
             let mut input_tokens = Some(0u64);
             let mut output_tokens = Some(0u64);
             for attempt in 1..=2 {
-                let mut body = json!({"model":model,"messages":messages,"stream":true,"stream_options":{"include_usage":true},"max_tokens":4096,
+                let body = json!({"model":MODEL,"messages":messages,"stream":true,"stream_options":{"include_usage":true},"max_tokens":4096,
+                    "temperature":0,"reasoning":{"effort":"low","exclude":true},
                     "provider":{"require_parameters":true,"sort":"latency"},"response_format":{"type":"json_schema","json_schema":{"name":"ask_intent","strict":true,"schema":strict_schema(&schema,&schema)}}});
-                if model == "openai/gpt-6-luna" { body["reasoning"] = json!({"effort":"none","exclude":true}); }
-                else {
-                    body["temperature"] = json!(0);
-                    if model == MODEL { body["reasoning"] = json!({"effort":"low","exclude":true}); }
-                }
                 let (raw,usage) = self.send_object_with_usage(body, false).await?;
                 cost_usd = cost_usd.zip(usage.as_ref().and_then(|u|u.cost)).map(|(sum,next)|sum+next).filter(|cost|cost.is_finite() && *cost >= 0.0);
                 input_tokens = input_tokens.zip(usage.as_ref().and_then(|u|u.prompt_tokens)).and_then(|(sum,next)|sum.checked_add(next));
                 output_tokens = output_tokens.zip(usage.as_ref().and_then(|u|u.completion_tokens)).and_then(|(sum,next)|sum.checked_add(next));
                 match validate(&raw, question, definitions) {
-                    Ok((intent,drafts)) => return Ok((json!({"schema_version":1,"intent":intent,"model":model,
+                    Ok((intent,drafts)) => return Ok((json!({"schema_version":1,"intent":intent,"model":MODEL,
                         "timing":{"parse_ms":started.elapsed().as_millis() as u64},"attempts":attempt,
                         "usage":{"cost_usd":cost_usd,"input_tokens":input_tokens,"output_tokens":output_tokens}}),drafts)),
                     Err(error) if attempt == 1 => {
@@ -504,23 +490,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn selected_models_use_strict_schema_and_report_provider_cost() {
-        for model in MODELS {
-            let (client,captured,server) = model_fixture(vec![(200,fixture())]).await;
-            let (result,_) = client.extract_intent_with_model(QUESTION,&[definition()],model).await.unwrap();
-            server.abort();
-            assert_eq!(result["model"], *model);
-            assert_eq!(result["usage"]["cost_usd"], 0.000012);
-            assert_eq!(result["usage"]["input_tokens"], 100);
-            let captured = captured.lock().unwrap();
-            assert_eq!(captured[0]["model"], *model);
-            assert_eq!(captured[0]["response_format"]["json_schema"]["strict"], true);
-            if *model == "openai/gpt-6-luna" {
-                assert_eq!(captured[0]["reasoning"]["effort"], "none");
-                assert!(captured[0].get("temperature").is_none());
-            } else if model.starts_with("mistralai/") { assert!(captured[0].get("reasoning").is_none()); }
-        }
-        assert!(!supported_model("arbitrary/provider"));
+    async fn uses_strict_schema_low_reasoning_and_reports_provider_cost() {
+        let (client,captured,server) = model_fixture(vec![(200,fixture())]).await;
+        let (result,_) = client.extract_intent(QUESTION,&[definition()]).await.unwrap();
+        server.abort();
+        assert_eq!(result["model"], MODEL);
+        assert_eq!(result["usage"]["cost_usd"], 0.000012);
+        assert_eq!(result["usage"]["input_tokens"], 100);
+        let captured = captured.lock().unwrap();
+        assert_eq!(captured[0]["model"], MODEL);
+        assert_eq!(captured[0]["response_format"]["json_schema"]["strict"], true);
+        assert_eq!(captured[0]["reasoning"], json!({"effort":"low","exclude":true}));
+        assert_eq!(captured[0]["temperature"], 0);
     }
 
     #[test]

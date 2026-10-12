@@ -967,14 +967,20 @@ fn qualified_link_equivalent(name:&str,requested:&str)->bool {
 // A reviewed, property-local annotation in an existing JSON Schema keyword.
 // It does not change value validation or extraction in either executor.
 fn property_alias(property:&Value,output:&str)->bool {
-    let Some(comment)=property.get("$comment").and_then(Value::as_str).filter(|text|text.len()<=2048) else{return false};
-    let Ok(Value::Object(object))=serde_json::from_str::<Value>(comment) else{return false};
-    if object.len()!=1 {return false;}
-    let Some(aliases)=object.get("apiosk_output_aliases_v1").and_then(Value::as_array).filter(|values|!values.is_empty()&&values.len()<=32) else{return false};
+    let aliases = output_aliases(property);
+    aliases.contains(output) || aliases.iter().any(|name|qualified_link_equivalent(name,output))
+}
+
+/// Reviewed aliases shared with the standalone intent field registry.
+pub(crate) fn output_aliases(property:&Value)->BTreeSet<String> {
+    let Some(comment)=property.get("$comment").and_then(Value::as_str).filter(|text|text.len()<=2048) else{return BTreeSet::new()};
+    let Ok(Value::Object(object))=serde_json::from_str::<Value>(comment) else{return BTreeSet::new()};
+    if object.len()!=1 {return BTreeSet::new();}
+    let Some(aliases)=object.get("apiosk_output_aliases_v1").and_then(Value::as_array).filter(|values|!values.is_empty()&&values.len()<=32) else{return BTreeSet::new()};
     let mut unique=BTreeSet::new();
     if !aliases.iter().all(|alias|alias.as_str().is_some_and(|name|!name.is_empty()&&name.len()<=100
-        && name.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_') && unique.insert(name))) {return false;}
-    unique.contains(output) || unique.iter().any(|name|qualified_link_equivalent(name,output))
+        && name.bytes().all(|b|b.is_ascii_lowercase()||b.is_ascii_digit()||b==b'_') && unique.insert(name.to_owned()))) {return BTreeSet::new();}
+    unique
 }
 
 fn dependency_steps(plan:&crate::resolver::Plan,task:&crate::state::Task,catalog:&Catalog,root:usize,source:Option<&str>,included:&mut BTreeSet<usize>) {

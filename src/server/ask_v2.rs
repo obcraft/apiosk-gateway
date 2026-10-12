@@ -281,13 +281,15 @@ pub(super) struct IntentRequest { question: String, model: Option<String> }
 
 /// Extract intent against the capability taxonomy, without planning or execution.
 pub(super) async fn intent(State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<IntentRequest>) -> Response {
-    let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
+    let person = match super::ask_runs::private_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
     if request.question.trim().is_empty() || request.question.encode_utf16().count() > 16_000 {
         return failure(StatusCode::BAD_REQUEST, "invalid_question", "Enter a question of up to 16,000 characters.");
     }
-    let model = request.model.as_deref().unwrap_or(crate::ask_v2::intent::MODEL);
-    if !crate::ask_v2::intent::supported_model(model) {
-        return failure(StatusCode::BAD_REQUEST, "invalid_model", "Choose one of the available models.");
+    // One intake model. `model` is still accepted so an App build that sends its
+    // old default keeps working, but naming any other model is refused rather
+    // than silently answered by a different one.
+    if request.model.as_deref().is_some_and(|model| model != crate::ask_v2::intent::MODEL) {
+        return failure(StatusCode::BAD_REQUEST, "invalid_model", "This model is not available.");
     }
     let Some(client) = state.engine.parser.ask_v2() else {
         return failure(StatusCode::SERVICE_UNAVAILABLE, "intent_not_configured", "The conversion model is not configured.");
@@ -305,8 +307,21 @@ pub(super) async fn intent(State(state): State<ServerState>, headers: HeaderMap,
             return failure(StatusCode::SERVICE_UNAVAILABLE, "capability_catalog_unavailable", "Could not load capabilities. Try again.");
         }
     };
-    match client.extract_intent_with_model(request.question.trim(), &definitions, model).await {
+    // Pin the admitted field vocabulary before paying for interpretation. A
+    // failed catalog read must not return apparently standardized free text.
+    let field_catalog = match state.engine.catalog.get().await {
+        Ok(catalog) => catalog,
+        Err(error) => {
+            tracing::warn!(error=%error, "Ask field catalog unavailable");
+            return failure(StatusCode::SERVICE_UNAVAILABLE, "field_catalog_unavailable", "Could not load field definitions. Try again.");
+        }
+    };
+    match client.extract_intent(request.question.trim(), &definitions).await {
         Ok((mut output, drafts)) => {
+            if let Err(error) = crate::ask_v2::intent_fields::ground_response(&mut output, &field_catalog) {
+                tracing::warn!(error=%error, "Ask field grounding failed");
+                return failure(StatusCode::SERVICE_UNAVAILABLE, "field_grounding_unavailable", "Could not validate requested fields. Try again.");
+            }
             match crate::ask_v2::intent_catalog::save_drafts(&drafts).await {
                 Ok(saved) => {
                     for capability in output["intent"]["capabilities"].as_array_mut().into_iter().flatten() {

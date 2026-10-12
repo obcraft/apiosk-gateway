@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Internal model extraction proposal only. The public intent endpoint grounds field names against admitted output schemas and returns schema_version 2; see ask-intent-fields.md. Proposed field names are not source coverage evidence.",
   "type": "object",
   "additionalProperties": false,
   "required": ["language", "subjects", "capabilities", "requests", "output"],
