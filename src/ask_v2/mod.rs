@@ -252,12 +252,12 @@ impl Client {
                 prompt.push_str(" Every subject needs a nonempty singular type and a label copied as one contiguous phrase from the original request. Never translate or concatenate separated words into a label. For coordinated country/sector comparisons, use each literal country adjective as its label and keep the shared literal sector in identifiers; preserve both cohorts and their requested data.");
             }
         }
-        self.generate_object(&prompt, question, 4096).await
+        self.generate_object(&prompt, question, 4096, correction.is_some()).await
     }
 
     /// Shared bounded JSON transport. Each interpretation stage validates its
     /// own output; this transport never chooses or executes an endpoint.
-    async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize) -> Result<String> {
+    async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize, use_reasoning: bool) -> Result<String> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
         // All models return JSON objects; normalization validates every field.
         let mut body = json!({
@@ -268,7 +268,11 @@ impl Client {
             "response_format": {"type": "json_object"}
         });
         if self.model == DEFAULT_MODEL {
-            body["reasoning"] = json!({"effort":"low","exclude":true});
+            // Extraction produces the same validated intent; the deterministic
+            // planner does the source selection. Spend reasoning only on the
+            // existing correction attempt when validation rejects that intent.
+            // Endpoint follow-ups retain their existing low effort as well.
+            body["reasoning"] = json!({"effort":if use_reasoning { "low" } else { "none" },"exclude":true});
         } else {
             body["temperature"] = json!(0);
             if self.model.starts_with("qwen/") {
@@ -399,6 +403,13 @@ impl Sse {
             .and_then(Value::as_str)
         {
             self.text.push_str(content);
+        }
+        // The final choice already terminates content. Some providers delay
+        // usage/[DONE] events; those must not hold a completed interpretation.
+        match chunk.pointer("/choices/0/finish_reason").and_then(Value::as_str) {
+            Some("stop") => self.done = true,
+            Some("length" | "content_filter") => return Err(anyhow!("ask_v2_model_incomplete_response")),
+            _ => {}
         }
         Ok(())
     }
@@ -1203,12 +1214,13 @@ mod tests {
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"max_tokens":4096,
                 "provider":{"require_parameters":true,"sort":"latency"},
-                "reasoning":{"effort":"low","exclude":true},
+                "reasoning":{"effort":"none","exclude":true},
                 "response_format":{"type":"json_object"}
             })
         );
         assert_eq!(captured[1]["messages"][0]["content"], format!("{}Known slugs: company.profile\nPrevious output failed validation: subjects must be an array.\nParse the user's request again. Return only one complete JSON object with every required field.", PROMPT.trim_end().strip_suffix("Known slugs: none").unwrap()));
         assert_eq!(captured[1]["messages"].as_array().unwrap().len(), 2);
+        assert_eq!(captured[1]["reasoning"]["effort"], "low");
         assert_eq!(
             captured[1]["messages"][1]["content"],
             "Geef \"KVK\" details\né"
@@ -1231,6 +1243,33 @@ mod tests {
         assert_eq!(first.model, DEFAULT_MODEL);
         assert!(serde_json::to_value(first).unwrap()["timing"]["parse_ms"].is_u64());
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn completed_choice_does_not_wait_for_usage_or_stream_close() {
+        let app = Router::new().route("/", post(|| async {
+            let payload = format!("{}data: {{\"choices\":[{{\"delta\":{{}},\"finish_reason\":\"stop\"}}]}}\n\n", delta("{\"language\":\"nl\"}"));
+            let body = futures_util::stream::iter([Ok::<Bytes, Infallible>(Bytes::from(payload))])
+                .chain(futures_util::stream::pending::<Result<Bytes, Infallible>>());
+            Response::builder().header("content-type", "text/event-stream")
+                .body(Body::from_stream(body)).unwrap()
+        }));
+        let (endpoint, server) = server(app).await;
+        let client = client().with_local_endpoint(endpoint).unwrap();
+        let output = tokio::time::timeout(Duration::from_secs(1), client.parse("Hoi!", &[], None))
+            .await.expect("completed JSON must not wait for the open stream").unwrap();
+        assert_eq!(output.text, "{\"language\":\"nl\"}");
+        server.abort();
+    }
+
+    #[test]
+    fn incomplete_finish_reason_rejects_even_valid_partial_json() {
+        for reason in ["length", "content_filter"] {
+            let mut parsed = Sse::default();
+            parsed.push(delta("{}").as_bytes()).unwrap();
+            let final_event = format!("data: {{\"choices\":[{{\"delta\":{{}},\"finish_reason\":\"{reason}\"}}]}}\n\n");
+            assert_eq!(parsed.push(final_event.as_bytes()).unwrap_err().to_string(), "ask_v2_model_incomplete_response");
+        }
     }
 
     #[tokio::test]

@@ -819,9 +819,29 @@ impl Engine {
             .iter()
             .filter_map(|v| serde_json::from_value(v.clone()).ok())
             .collect();
-        let receipts = if task.proposal.is_some() {
-            self.executor.recoverable_receipts(p.owner, id).await?
-        } else { Vec::new() };
+        let billing_plan = task.proposal.clone().map(serde_json::from_value::<Plan>).transpose()?;
+        // All reads remain live and owner-scoped, after task access validation.
+        // They do not depend on each other: avoid serial database round trips
+        // while constructing the same authoritative response.
+        let (receipts, money_display, worker_active, budget, auto_policy, billing) = tokio::join!(
+            async {
+                if task.proposal.is_some() { self.executor.recoverable_receipts(p.owner, id).await }
+                else { Ok(Vec::new()) }
+            },
+            self.store.money_display(p.owner),
+            self.worker_active(id),
+            self.executor.connection_budget(p),
+            self.executor.auto_policy(p),
+            self.store.billing(p.owner, id, billing_plan.as_ref().map(|v| v.quote_ref), billing_plan.as_ref().map_or(0, |v| v.cap_atomic)),
+        );
+        let receipts = receipts?;
+        let worker_active = worker_active?;
+        let billing = billing?;
+        let budget = budget.unwrap_or(None);
+        let auto_policy = auto_policy.unwrap_or_else(|error| {
+            tracing::warn!(task = %id, error = %error, "automatic approval rule unavailable");
+            None
+        });
         if !receipts.is_empty() {
             actions.retain(|action| !matches!(action, Action::Run { .. } | Action::Analyze { .. }));
             for execution_id in receipts {
@@ -893,7 +913,7 @@ impl Engine {
         let mut r = Response::new(request, forced.unwrap_or(inferred));
         r.intent_ref = task.focus.goal_refs.first().copied();
         r.context_view = task.context_view();
-        r.context_view["money_display"] = self.store.money_display(p.owner).await;
+        r.context_view["money_display"] = money_display;
         r.context_view["navigation"] = account_navigation(&self.app_url, p.workspace);
         // Read each referenced source document once for this response. Reuse
         // that snapshot for current results, history, pagination and PDF hashes.
@@ -948,7 +968,6 @@ impl Engine {
         r.context_view["single_call_mode"] = json!(single);
         r.context_view["research_paused"] = json!(paused_plan);
         r.context_view["execution_enabled"] = json!(self.executor.enabled);
-        let worker_active = self.worker_active(id).await?;
         r.context_view["execution_mode"] = json!("server");
         r.context_view["worker_active"] = json!(worker_active);
         let events_expires = (Utc::now() + chrono::Duration::minutes(30)).timestamp();
@@ -970,11 +989,6 @@ impl Engine {
         // A connection with a spending mandate approves in the chat card. Its
         // automatic-approval rule, when it has one, is reported separately in
         // `auto_approval` (below), so a card that predates it keeps working.
-        let budget = self.executor.connection_budget(p).await.unwrap_or(None);
-        let auto_policy = self.executor.auto_policy(p).await.unwrap_or_else(|error| {
-            tracing::warn!(task = %id, error = %error, "automatic approval rule unavailable");
-            None
-        });
         r.context_view["approval_mode"] = json!(if budget.is_some() { "chatbot" } else { "app" });
         r.context_view["execution_owner"] = json!(if connection.is_some() {
             "connected_agent"
@@ -1027,21 +1041,7 @@ impl Engine {
             r.next_actions
                 .push(Action::Cancel { action_id: id }.public());
         }
-        let billing_plan = task
-            .proposal
-            .clone()
-            .map(serde_json::from_value::<Plan>)
-            .transpose()?;
-        r.billing = Some(
-            self.store
-                .billing(
-                    p.owner,
-                    id,
-                    billing_plan.as_ref().map(|v| v.quote_ref),
-                    billing_plan.as_ref().map_or(0, |v| v.cap_atomic),
-                )
-                .await?,
-        );
+        r.billing = Some(billing);
         if task.source_selection.is_some() {
             let previously_approved:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3)")
                 .bind(p.owner).bind(id).bind(billing_plan.as_ref().map(|plan|plan.quote_ref)).fetch_one(&self.store.pool).await?;

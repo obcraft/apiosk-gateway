@@ -247,7 +247,7 @@ impl Client {
         );
         let raw = tokio::time::timeout(
             self.deadline,
-            self.generate_object(PROMPT, &input.to_string(), 2048),
+            self.generate_object(PROMPT, &input.to_string(), 2048, true),
         )
         .await
         .map_err(|_| {
