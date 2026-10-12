@@ -34,7 +34,7 @@
   },
   "architecture": {
     "parse": "One canonical AI interpretation, with existing malformed-output correction bound.",
-    "search": "Deterministic catalog matching.",
+    "search": "Deterministic catalog matching against canonical parsed concepts and cached source metadata; no foreground request or listing translation model.",
     "planning": "Contract-only compilation, source-field mapping, literal binding, complementary endpoints, shared dependencies, complete coverage and one total. No planning model or AI repair.",
     "answer": "Uses saved source results after normal approval and execution."
   },
@@ -69,7 +69,7 @@
   ],
   "tests": {
     "command": "cargo test --offline --all-targets",
-    "passed": 1121,
+    "passed": 1122,
     "failed": 0,
     "ignored": 112
   },
@@ -118,5 +118,120 @@
       }
     ],
     "finding": "Live parse variants exposed a missing query-to-keyword input binding and contract_status output alias. The actual failing query parse was reproduced locally and became ready after fixing the binding, with zero planning-model calls."
+  },
+  "final_production_verification": {
+    "runtime_commit": "1482d18",
+    "image_digest": "sha256:42d1852e413c3ca2fb6ebd016f19da115cc80b001baafb3b109b5870423cbf04",
+    "health": {
+      "version": "1482d18",
+      "payment_executor": "ready"
+    },
+    "release_checks": {
+      "gateway": "ready; task reads require authentication",
+      "mcp": "seven tools; ui://apiosk/gateway-v2-card-v58.html; app-only approval",
+      "approval_cors": "App-only"
+    },
+    "cases": [
+      {
+        "case": "tender-1",
+        "trace": "a23b05d0-7475-4522-a456-546ac7b83370",
+        "elapsed_ms": 5228,
+        "status": "ready",
+        "total_atomic": "54348"
+      },
+      {
+        "case": "tender-2",
+        "trace": "11d9b392-d03a-49ea-8538-4bbc54d3b152",
+        "elapsed_ms": 3760,
+        "status": "ready",
+        "total_atomic": "54348"
+      },
+      {
+        "case": "tender-3",
+        "trace": "0ed75794-a68d-404e-901b-7788d2f60c52",
+        "elapsed_ms": 11141,
+        "status": "ready",
+        "total_atomic": "54348"
+      },
+      {
+        "case": "glassdoor",
+        "trace": "08eea1dc-309d-4a31-b198-33336035309a",
+        "elapsed_ms": 5599,
+        "status": "ready",
+        "total_atomic": "6900"
+      },
+      {
+        "case": "company",
+        "trace": "a353300e-4c36-4d07-bcb8-131c02f3a5e7",
+        "elapsed_ms": 3023,
+        "status": "ready",
+        "total_atomic": "97826"
+      }
+    ],
+    "telemetry": {
+      "tender-1": {
+        "trace": "a23b05d0-7475-4522-a456-546ac7b83370",
+        "planning_model_spans": 0,
+        "planning_ms": 35,
+        "ready": true,
+        "request_ms": 5130,
+        "route": "/v2/ask-v2/guest/preview",
+        "db_ms": 0
+      },
+      "tender-2": {
+        "trace": "11d9b392-d03a-49ea-8538-4bbc54d3b152",
+        "planning_model_spans": 0,
+        "planning_ms": 26,
+        "ready": true,
+        "request_ms": 3671,
+        "route": "/v2/ask-v2/guest/preview",
+        "db_ms": 0
+      },
+      "tender-3": {
+        "trace": "0ed75794-a68d-404e-901b-7788d2f60c52",
+        "planning_model_spans": 0,
+        "planning_ms": 25,
+        "ready": true,
+        "request_ms": 11045,
+        "route": "/v2/ask-v2/guest/preview",
+        "db_ms": 0
+      },
+      "glassdoor": {
+        "trace": "08eea1dc-309d-4a31-b198-33336035309a",
+        "planning_model_spans": 0,
+        "planning_ms": 18,
+        "ready": true,
+        "request_ms": 5426,
+        "route": "/v2/ask-v2/guest/preview",
+        "db_ms": 0
+      },
+      "company": {
+        "trace": "a353300e-4c36-4d07-bcb8-131c02f3a5e7",
+        "planning_model_spans": 0,
+        "planning_ms": 6,
+        "ready": true,
+        "request_ms": 2941,
+        "route": "/v2/ask-v2/guest/preview",
+        "db_ms": 0
+      },
+      "browser-tender": {
+        "trace": "2e756e3e-893e-46e8-a5c1-96a52d7e6669",
+        "planning_model_spans": 0,
+        "planning_ms": 38,
+        "ready": true,
+        "request_ms": 3095,
+        "route": "/v2/ask-v2/research",
+        "db_ms": 2490
+      }
+    },
+    "browser": {
+      "elapsed_ms": 14700,
+      "ready": true,
+      "url": "https://app.apiosk.com/?task=d754122b-51fb-4a53-897b-bc3fa1b11bbe",
+      "total_eur": "0.050001",
+      "approved": false,
+      "method": "Create plan click to approval-control presence, verified by the visible quote card. Includes browser tool overhead."
+    },
+    "result": "All five previews and the browser request reached a complete unapproved plan. Deterministic compilation was 6-38ms, without planning model spans. End-to-end parsing remains variable; an 8-10 second maximum is not established."
   }
 }
