@@ -1,0 +1,161 @@
+{
+  "id": "glassdoor",
+  "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+  "model_output": {
+    "capabilities": [
+      {
+        "confidence": 0.98,
+        "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+        "domain": "company",
+        "inputs": [
+          "company_name"
+        ],
+        "name": "Employer ratings",
+        "outputs": [
+          "overall_rating",
+          "review_count",
+          "pay_rating",
+          "work_life_balance_rating",
+          "career_opportunities_rating",
+          "management_rating",
+          "strongest_category",
+          "weakest_category",
+          "profile_url"
+        ],
+        "slug": "company.employerRatings",
+        "source_hint": "glassdoor",
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 0.98,
+        "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+        "domain": "company",
+        "inputs": [
+          "company_name"
+        ],
+        "name": "Employer ratings",
+        "outputs": [
+          "overall_rating",
+          "review_count",
+          "pay_rating",
+          "work_life_balance_rating",
+          "career_opportunities_rating",
+          "management_rating",
+          "strongest_category",
+          "weakest_category",
+          "profile_url"
+        ],
+        "slug": "company.employerRatings",
+        "source_hint": "glassdoor",
+        "subject_id": "s2"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": [
+        "compare"
+      ]
+    },
+    "language": "en",
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "company_name": "Starbucks"
+        },
+        "label": "Starbucks",
+        "type": "company"
+      },
+      {
+        "id": "s2",
+        "identifiers": {
+          "company_name": "McDonalds"
+        },
+        "label": "McDonalds",
+        "type": "company"
+      }
+    ]
+  },
+  "planner_reply": {
+    "decline_reason": "none",
+    "discover": true,
+    "intent": {
+      "answer_operations": [
+        "Select the matching Glassdoor employer profiles for Starbucks and McDonalds, distinguishing company-wide employers from individual branch locations.",
+        "Compare the returned overall employer ratings and review counts side by side.",
+        "Compare available category ratings for pay, work-life balance, career opportunities and management; explicitly note any requested category not returned.",
+        "Explain each employer's strongest and weakest returned scores, including ties, without inferring unavailable scores or unsupported reasons.",
+        "Include both matching Glassdoor profile links."
+      ],
+      "goals": [
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 1
+        }
+      ],
+      "subjects": [
+        {
+          "subject_ref": "s1",
+          "values": {
+            "company.name": {
+              "ref": "s1.label"
+            },
+            "source_input.e22c6c82933545999a55d64ac65128077.query": {
+              "ref": "s1.label"
+            }
+          }
+        },
+        {
+          "subject_ref": "s2",
+          "values": {
+            "company.name": {
+              "ref": "s2.label"
+            },
+            "source_input.e22c6c82933545999a55d64ac65128077.query": {
+              "ref": "s2.label"
+            }
+          }
+        }
+      ],
+      "unresolved_references": []
+    },
+    "message": "I’ll check the Glassdoor employer profiles for Starbucks and McDonalds and show you the total price first. The comparison will include overall ratings, review counts, available category scores, strongest and weakest scores, and both profile links."
+  },
+  "cap_atomic": 6900,
+  "steps": [
+    {
+      "source": "openwebninja",
+      "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+      "method": "GET",
+      "path": "/realtime-glassdoor-data/company-search",
+      "inputs": {
+        "query": "Starbucks"
+      },
+      "subject": "Starbucks",
+      "dependencies": []
+    },
+    {
+      "source": "openwebninja",
+      "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+      "method": "GET",
+      "path": "/realtime-glassdoor-data/company-search",
+      "inputs": {
+        "query": "McDonalds"
+      },
+      "subject": "McDonalds",
+      "dependencies": []
+    }
+  ]
+}

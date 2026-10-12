@@ -1,0 +1,1212 @@
+[
+  {
+    "cap_atomic": 6900,
+    "id": "80955fe8f473",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.97,
+          "description": "Employer ratings, review counts, workplace categories, highest- and lowest-scoring categories, and profile link.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Employer profile",
+          "outputs": [
+            "overall_employer_rating",
+            "review_count",
+            "salary_and_benefits",
+            "work_life_balance",
+            "career_opportunities",
+            "highest_scoring_category",
+            "lowest_scoring_category",
+            "profile_url"
+          ],
+          "slug": "company.employer.profile",
+          "source_hint": "glassdoor",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.97,
+          "description": "Employer ratings, review counts, workplace categories, highest- and lowest-scoring categories, and profile link.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Employer profile",
+          "outputs": [
+            "overall_employer_rating",
+            "review_count",
+            "salary_and_benefits",
+            "work_life_balance",
+            "career_opportunities",
+            "highest_scoring_category",
+            "lowest_scoring_category",
+            "profile_url"
+          ],
+          "slug": "company.employer.profile",
+          "source_hint": "glassdoor",
+          "subject_id": "s2"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "compare"
+        ]
+      },
+      "language": "nl",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Costco"
+          },
+          "label": "Costco",
+          "type": "company"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "company_name": "Walmart"
+          },
+          "label": "Walmart",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Selecteer voor elke werkgever het passende Glassdoor-bedrijfsprofiel uit de zoekresultaten; vermeld eventuele onzekerheid over de match.",
+          "Vergelijk Costco en Walmart in een tabel op algemene werkgeversscore, aantal reviews, salaris en voordelen, balans tussen werk en privé en carrièrekansen, en geef beide Glassdoor-profiellinks.",
+          "Bepaal per werkgever de hoogste en laagste score onder alle teruggegeven, onderling vergelijkbare categoriebeoordelingen. Noem de categorieën en scores, inclusief gedeelde hoogste of laagste plaatsen.",
+          "Gebruik alleen daadwerkelijk teruggegeven waarden. Vermeld ontbrekende scores en maak duidelijk dat hoogste en laagste categorieën zijn bepaald binnen de beschikbare categorieën.",
+          "Employer profile / overall_employer_rating: De algemene Glassdoor-beoordeling van het geselecteerde werkgeversprofiel. Deze score wordt gebruikt wanneer de bron hem teruggeeft. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / salary_and_benefits: De categoriebeoordeling voor beloning en voordelen beantwoordt de vraag naar salaris en voordelen; dit zijn geen salarisbedragen. Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / work_life_balance: De categoriebeoordeling voor de balans tussen werk en privé. Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / career_opportunities: De categoriebeoordeling voor carrièrekansen. Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / highest_scoring_category: Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de hoogste score en alle bijbehorende categorieën. De hoogste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / lowest_scoring_category: Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de laagste score en alle bijbehorende categorieën. De laagste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer profile / profile_url: De bedrijfslink is de Glassdoor-profiellink van de geselecteerde werkgever. De link wordt vermeld wanneer de bron hem teruggeeft. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "constraints": {
+              "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+              "source": "openwebninja"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "constraints": {
+              "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+              "source": "openwebninja"
+            },
+            "subject": 1
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              },
+              "source_input.e22c6c82933545999a55d64ac65128077.query": {
+                "ref": "s1.label"
+              }
+            }
+          },
+          {
+            "subject_ref": "s2",
+            "values": {
+              "company.name": {
+                "ref": "s2.label"
+              },
+              "source_input.e22c6c82933545999a55d64ac65128077.query": {
+                "ref": "s2.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "Ik zal de Glassdoor-gegevens van Costco en Walmart vergelijken en eerst de totaalprijs tonen. Per werkgever bepaal ik de hoogste en laagste beschikbare categoriescore en geef ik de profiellink; ontbrekende scores blijven als ontbrekend vermeld.",
+      "output_bindings": [
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "De algemene Glassdoor-beoordeling van het geselecteerde werkgeversprofiel.",
+          "limitation": "Deze score wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "overall_employer_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fcf8a14335aef5b6e"
+          ],
+          "interpretation": "De categoriebeoordeling voor beloning en voordelen beantwoordt de vraag naar salaris en voordelen; dit zijn geen salarisbedragen.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "salary_and_benefits",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fb6d53e8b5ddf1e98"
+          ],
+          "interpretation": "De categoriebeoordeling voor de balans tussen werk en privé.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "work_life_balance",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f5a1a83884454bb80"
+          ],
+          "interpretation": "De categoriebeoordeling voor carrièrekansen.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "career_opportunities",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f254db64d053a472b",
+            "f5a1a83884454bb80",
+            "f7101cc166e01af1c",
+            "fb6d53e8b5ddf1e98",
+            "fcf8a14335aef5b6e",
+            "ffebaf38d54211f85"
+          ],
+          "interpretation": "Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de hoogste score en alle bijbehorende categorieën.",
+          "limitation": "De hoogste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+          "output": "highest_scoring_category",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f254db64d053a472b",
+            "f5a1a83884454bb80",
+            "f7101cc166e01af1c",
+            "fb6d53e8b5ddf1e98",
+            "fcf8a14335aef5b6e",
+            "ffebaf38d54211f85"
+          ],
+          "interpretation": "Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de laagste score en alle bijbehorende categorieën.",
+          "limitation": "De laagste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+          "output": "lowest_scoring_category",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fb998d13e1ba50dc9"
+          ],
+          "interpretation": "De bedrijfslink is de Glassdoor-profiellink van de geselecteerde werkgever.",
+          "limitation": "De link wordt vermeld wanneer de bron hem teruggeeft.",
+          "output": "profile_url",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "De algemene Glassdoor-beoordeling van het geselecteerde werkgeversprofiel.",
+          "limitation": "Deze score wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "overall_employer_rating",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fcf8a14335aef5b6e"
+          ],
+          "interpretation": "De categoriebeoordeling voor beloning en voordelen beantwoordt de vraag naar salaris en voordelen; dit zijn geen salarisbedragen.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "salary_and_benefits",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb6d53e8b5ddf1e98"
+          ],
+          "interpretation": "De categoriebeoordeling voor de balans tussen werk en privé.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "work_life_balance",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f5a1a83884454bb80"
+          ],
+          "interpretation": "De categoriebeoordeling voor carrièrekansen.",
+          "limitation": "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+          "output": "career_opportunities",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f254db64d053a472b",
+            "f5a1a83884454bb80",
+            "f7101cc166e01af1c",
+            "fb6d53e8b5ddf1e98",
+            "fcf8a14335aef5b6e",
+            "ffebaf38d54211f85"
+          ],
+          "interpretation": "Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de hoogste score en alle bijbehorende categorieën.",
+          "limitation": "De hoogste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+          "output": "highest_scoring_category",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f254db64d053a472b",
+            "f5a1a83884454bb80",
+            "f7101cc166e01af1c",
+            "fb6d53e8b5ddf1e98",
+            "fcf8a14335aef5b6e",
+            "ffebaf38d54211f85"
+          ],
+          "interpretation": "Vergelijk de teruggegeven scores voor cultuur en waarden, carrièrekansen, hoger management, werk-privébalans, beloning en voordelen, en diversiteit en inclusie; rapporteer de laagste score en alle bijbehorende categorieën.",
+          "limitation": "De laagste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+          "output": "lowest_scoring_category",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb998d13e1ba50dc9"
+          ],
+          "interpretation": "De bedrijfslink is de Glassdoor-profiellink van de geselecteerde werkgever.",
+          "limitation": "De link wordt vermeld wanneer de bron hem teruggeeft.",
+          "output": "profile_url",
+          "requirement": 1
+        }
+      ]
+    },
+    "question": "Vergelijk Costco en Walmart via Glassdoor op de algemene werkgeversscore, aantal reviews, salaris en voordelen, balans tussen werk en privé en carrièrekansen. Welke categorie scoort per werkgever het hoogst en het laagst? Geef de profiellinks.",
+    "steps": [
+      {
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "dependencies": [],
+        "inputs": {
+          "query": "Costco"
+        },
+        "method": "GET",
+        "path": "/realtime-glassdoor-data/company-search",
+        "source": "openwebninja",
+        "subject": "Costco"
+      },
+      {
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "dependencies": [],
+        "inputs": {
+          "query": "Walmart"
+        },
+        "method": "GET",
+        "path": "/realtime-glassdoor-data/company-search",
+        "source": "openwebninja",
+        "subject": "Walmart"
+      }
+    ]
+  },
+  {
+    "cap_atomic": 217392,
+    "id": "a9efbcbb0ad9",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Registered company details sourced from the specified provider.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Company profile",
+          "outputs": [
+            "profile"
+          ],
+          "slug": "company.profile",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Current and former directors, with appointment dates, sourced from the specified provider.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Company directors",
+          "outputs": [
+            "current_directors",
+            "former_directors",
+            "appointment_dates"
+          ],
+          "slug": "company.directors",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Significant controllers sourced from the specified provider.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Significant controllers",
+          "outputs": [
+            "significant_controllers"
+          ],
+          "slug": "company.controllers",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "WISE PLC"
+          },
+          "label": "WISE PLC",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Summarize WISE PLC’s registered details from Companies House.",
+          "Filter officers by director roles and distinguish current from former directors using recorded resignation dates; include appointment dates and resignation dates when returned.",
+          "Identify significant controllers and their recorded nature of control when returned, distinguishing ceased entries where indicated. Notification dates must not be described as appointment dates.",
+          "Preserve missing values and disclose pagination or coverage limits rather than claiming completeness.",
+          "Company directors / current_directors: Select director-role appointments without a recorded resignation date and report the officer names as current directors. Classification follows the returned register entries; coverage may be limited by pagination. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company directors / former_directors: Select director-role appointments with a recorded resignation date and report those names and dates as former directors. Resignation dates will be used when returned; missing values will not be invented. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company directors / appointment_dates: Report appointed-on dates for director appointments; where only appointed-before is returned, label it as an upper-bound date rather than an exact appointment date. Exact appointment dates may not be available for every entry. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Significant controllers / significant_controllers: Identify named persons with significant control and their nature of control, using cessation indicators to distinguish ceased entries when returned. Controller details will be reported only when returned; an empty response does not establish that no controller exists. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "company.registry-profile",
+            "constraints": {
+              "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+              "source": "companies-house"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "company.officers",
+            "constraints": {
+              "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+              "source": "companies-house"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "company.significant-control",
+            "constraints": {
+              "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+              "source": "companies-house"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check Companies House for WISE PLC’s registered details, directors and significant controllers, and show the total price first. I’ll include available appointment dates and separate current from former directors using the recorded roles and resignation dates.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f7a4a097ea612d729",
+            "f4b4ed0b8ccaf221a",
+            "f9b4da0cb35c769a3"
+          ],
+          "interpretation": "Select director-role appointments without a recorded resignation date and report the officer names as current directors.",
+          "limitation": "Classification follows the returned register entries; coverage may be limited by pagination.",
+          "output": "current_directors",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f7a4a097ea612d729",
+            "f4b4ed0b8ccaf221a",
+            "f9b4da0cb35c769a3"
+          ],
+          "interpretation": "Select director-role appointments with a recorded resignation date and report those names and dates as former directors.",
+          "limitation": "Resignation dates will be used when returned; missing values will not be invented.",
+          "output": "former_directors",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb19b748cab16961c",
+            "f46e3dd907df43688"
+          ],
+          "interpretation": "Report appointed-on dates for director appointments; where only appointed-before is returned, label it as an upper-bound date rather than an exact appointment date.",
+          "limitation": "Exact appointment dates may not be available for every entry.",
+          "output": "appointment_dates",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f65199bbc56af0638",
+            "ff11ff3308893c004",
+            "fedd87be047a7b9f4",
+            "f0acc9cdaa8333b37"
+          ],
+          "interpretation": "Identify named persons with significant control and their nature of control, using cessation indicators to distinguish ceased entries when returned.",
+          "limitation": "Controller details will be reported only when returned; an empty response does not establish that no controller exists.",
+          "output": "significant_controllers",
+          "requirement": 2
+        }
+      ]
+    },
+    "question": "Use Companies House to find the registered details, current directors and significant controllers of WISE PLC. Include appointment dates and distinguish former directors.",
+    "steps": [
+      {
+        "capability": "company.uk-registry-search",
+        "dependencies": [],
+        "inputs": {
+          "items_per_page": 10,
+          "q": "WISE PLC"
+        },
+        "method": "GET",
+        "path": "/search/companies",
+        "source": "companies-house",
+        "subject": "WISE PLC"
+      },
+      {
+        "capability": "company.registry-profile",
+        "dependencies": [
+          {
+            "field": "company.registration.gb.companies_house",
+            "step": 1
+          }
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/company",
+        "source": "companies-house",
+        "subject": "WISE PLC"
+      },
+      {
+        "capability": "company.officers",
+        "dependencies": [
+          {
+            "field": "company.registration.gb.companies_house",
+            "step": 2
+          }
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/company/{company_number}/officers",
+        "source": "companies-house",
+        "subject": "WISE PLC"
+      },
+      {
+        "capability": "company.significant-control",
+        "dependencies": [
+          {
+            "field": "company.registration.gb.companies_house",
+            "step": 2
+          }
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/company/{company_number}/persons-with-significant-control",
+        "source": "companies-house",
+        "subject": "WISE PLC"
+      }
+    ]
+  },
+  {
+    "cap_atomic": 54348,
+    "id": "52f831fadafb",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Find tenders matching the specified country and sector, including the requested publication and award details.",
+          "domain": "procurement",
+          "inputs": [
+            "country",
+            "sector"
+          ],
+          "name": "Aanbestedingsgegevens",
+          "outputs": [
+            "contracting_authority",
+            "description",
+            "publication_type",
+            "closing_date",
+            "url",
+            "award_status"
+          ],
+          "slug": "procurement.tenders.search",
+          "source_hint": "tenderned",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "nl",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "country": "Nederland",
+            "sector": "wegenonderhoud"
+          },
+          "label": "Nederlandse aanbestedingen voor wegenonderhoud",
+          "type": "tender"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Presenteer de teruggegeven Nederlandse publicaties over wegenonderhoud met opdrachtgever, omschrijving, publicatietype, beschikbare sluitingsdatum en links.",
+          "Markeer expliciete gunningspublicaties op basis van publicatietype en publicatiecode. Onderscheid aankondigingen, gunningen, correcties en annuleringen. Een verstreken sluitingsdatum of ontbrekende gunningspublicatie bewijst niet dat een opdracht gegund of nog open is.",
+          "Vermeld dat de bron één pagina van maximaal 20 publicaties levert en geen volledig overzicht garandeert. Gebruik velden wanneer teruggegeven en vermeld ontbrekende gegevens als niet beschikbaar.",
+          "Aanbestedingsgegevens / contracting_authority: De opdrachtgevernaam geeft de opdrachtgever van de publicatie weer. Wordt gebruikt wanneer teruggegeven. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Aanbestedingsgegevens / description: De opdrachtbeschrijving geeft de omschrijving van de aanbesteding weer. Wordt gebruikt wanneer teruggegeven. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Aanbestedingsgegevens / publication_type: Omschrijving en code van het publicatietype onderscheiden de soorten publicaties. Wordt gebruikt wanneer teruggegeven. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Aanbestedingsgegevens / closing_date: Toon de teruggegeven sluitingsdatum indien beschikbaar. Een ontbrekende sluitingsdatum blijft niet beschikbaar. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Aanbestedingsgegevens / url: De publicatielink verwijst naar de betreffende publicatie. Wordt gebruikt wanneer teruggegeven. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Aanbestedingsgegevens / award_status: Herken expliciete gunningspublicaties aan het teruggegeven publicatietype en de publicatiecode; markeer vroegtijdige beëindiging afzonderlijk. Alleen expliciete gunningsinformatie ondersteunt de markering als gegund. Andere publicaties bewijzen niet dat de opdracht nog openstaat. De velden worden gebruikt wanneer teruggegeven. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "procurement.nl-public-contracts",
+            "constraints": {
+              "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+              "source": "tenderned"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company_intel.input.search": {
+                "ref": "s1.identifiers.sector"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "Ik controleer TenderNed op aanbestedingen voor wegenonderhoud en toon eerst de prijs. Het overzicht bevat maximaal 20 publicaties met beschikbare gegevens en links. Ik markeer expliciete gunningspublicaties; ontbrekende gunningsinformatie bewijst niet dat een opdracht nog openstaat.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f3586cb839e944f04"
+          ],
+          "interpretation": "De opdrachtgevernaam geeft de opdrachtgever van de publicatie weer.",
+          "limitation": "Wordt gebruikt wanneer teruggegeven.",
+          "output": "contracting_authority",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f5fe924199fc68267"
+          ],
+          "interpretation": "De opdrachtbeschrijving geeft de omschrijving van de aanbesteding weer.",
+          "limitation": "Wordt gebruikt wanneer teruggegeven.",
+          "output": "description",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc7938c0403a43914",
+            "f2caaa1984e1417aa"
+          ],
+          "interpretation": "Omschrijving en code van het publicatietype onderscheiden de soorten publicaties.",
+          "limitation": "Wordt gebruikt wanneer teruggegeven.",
+          "output": "publication_type",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f37c65508fed9a5a5"
+          ],
+          "interpretation": "Toon de teruggegeven sluitingsdatum indien beschikbaar.",
+          "limitation": "Een ontbrekende sluitingsdatum blijft niet beschikbaar.",
+          "output": "closing_date",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fd51273486d7a53b6"
+          ],
+          "interpretation": "De publicatielink verwijst naar de betreffende publicatie.",
+          "limitation": "Wordt gebruikt wanneer teruggegeven.",
+          "output": "url",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc7938c0403a43914",
+            "f2caaa1984e1417aa",
+            "f1d2a760d9adb1ad6",
+            "f398cf53551619b58",
+            "fca14c5fb987aee92"
+          ],
+          "interpretation": "Herken expliciete gunningspublicaties aan het teruggegeven publicatietype en de publicatiecode; markeer vroegtijdige beëindiging afzonderlijk.",
+          "limitation": "Alleen expliciete gunningsinformatie ondersteunt de markering als gegund. Andere publicaties bewijzen niet dat de opdracht nog openstaat. De velden worden gebruikt wanneer teruggegeven.",
+          "output": "award_status",
+          "requirement": 0
+        }
+      ]
+    },
+    "question": "Zoek via TenderNed Nederlandse aanbestedingen voor wegenonderhoud. Geef de opdrachtgever, omschrijving, publicatietype en beschikbare sluitingsdatum met links. Maak duidelijk welke al zijn gegund.",
+    "steps": [
+      {
+        "capability": "procurement.nl-public-contracts",
+        "dependencies": [],
+        "inputs": {
+          "page": 0,
+          "search": "wegenonderhoud",
+          "size": 20,
+          "sort": "publicatieDatum,desc"
+        },
+        "method": "GET",
+        "path": "/v2/publicaties",
+        "source": "tenderned",
+        "subject": "Nederlandse aanbestedingen voor wegenonderhoud"
+      }
+    ]
+  },
+  {
+    "cap_atomic": 118696,
+    "id": "aa5ad97be668",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.97,
+          "description": "Retrieve the building year, registered floor area, building use, and source link from official Dutch address and building records.",
+          "domain": "location",
+          "inputs": [
+            "address",
+            "city"
+          ],
+          "name": "Building details",
+          "outputs": [
+            "year_built",
+            "registered_floor_area",
+            "building_use",
+            "url"
+          ],
+          "slug": "location.building.profile",
+          "source_hint": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Dam 1",
+            "city": "Amsterdam"
+          },
+          "label": "Dam 1, Amsterdam",
+          "type": "building"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Show the construction year of the building explicitly linked to Dam 1, Amsterdam, alongside the addressable unit’s registered floor area in square metres and registered use.",
+          "Include the returned official source links. Distinguish unit-level floor area and use from building-level construction year; do not present the unit area as the entire building’s area.",
+          "Use optional fields only when returned and mark missing values as unavailable. Preserve ambiguity if the address or linked building cannot be resolved uniquely.",
+          "Building details / registered_floor_area: The BAG unit’s oppervlakte gives its registered floor area in square metres. This is the registered addressable unit’s area, not necessarily the total area of the building; it will be reported when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Building details / building_use: The BAG unit’s gebruiksdoel gives the registered use associated with this address. Registered use does not necessarily describe actual current use; it will be reported when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Building details / url: Use returned official record references and the explicitly linked building URL as source links for the unit and building facts. Source links will be included when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "building.bag-unit",
+            "constraints": {
+              "endpoint_id": "892e7b28-5202-4ca8-acf7-b201f4701a1a",
+              "source": "pdok"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "building.bag-building",
+            "constraints": {
+              "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+              "source": "pdok"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "geo.input.q": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check official Dutch BAG records for Dam 1, Amsterdam and show the total price first. The results will include the construction year, registered floor area, registered use and source link, where available.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f2bfd77fed9cf2e31"
+          ],
+          "interpretation": "The BAG unit’s oppervlakte gives its registered floor area in square metres.",
+          "limitation": "This is the registered addressable unit’s area, not necessarily the total area of the building; it will be reported when returned.",
+          "output": "registered_floor_area",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff9710670f836979d"
+          ],
+          "interpretation": "The BAG unit’s gebruiksdoel gives the registered use associated with this address.",
+          "limitation": "Registered use does not necessarily describe actual current use; it will be reported when returned.",
+          "output": "building_use",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff62f37557229a45a",
+            "f256408d1f3d72c4c",
+            "fc03b5c420efd12fd"
+          ],
+          "interpretation": "Use returned official record references and the explicitly linked building URL as source links for the unit and building facts.",
+          "limitation": "Source links will be included when returned.",
+          "output": "url",
+          "requirement": 0
+        }
+      ]
+    },
+    "question": "Show the building year, registered floor area and building use for Dam 1, Amsterdam using official Dutch address and building records. Include the source link.",
+    "steps": [
+      {
+        "capability": "location.property-search",
+        "dependencies": [],
+        "inputs": {
+          "fq": "type:adres AND straatnaam:\"Dam\" AND huisnummer:1 AND woonplaatsnaam:\"Amsterdam\" AND -huisletter:[* TO *] AND -huisnummertoevoeging:[* TO *]",
+          "q": "*:*",
+          "rows": 5
+        },
+        "method": "GET",
+        "path": "/bzk/locatieserver/search/v3_1/free",
+        "source": "pdok",
+        "subject": "Dam 1, Amsterdam"
+      },
+      {
+        "capability": "building.bag-unit",
+        "dependencies": [
+          {
+            "field": "location.bag_object_id",
+            "step": 1
+          }
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/apiosk/bag-unit",
+        "source": "pdok",
+        "subject": "Dam 1, Amsterdam"
+      },
+      {
+        "capability": "building.bag-building",
+        "dependencies": [
+          {
+            "field": "location.single_building_href",
+            "step": 2
+          }
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/apiosk/building",
+        "source": "pdok",
+        "subject": "Dam 1, Amsterdam"
+      }
+    ]
+  },
+  {
+    "cap_atomic": 293478,
+    "id": "15367cd373c1",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Domain registration date information from RDAP.",
+          "domain": "research",
+          "inputs": [
+            "domain"
+          ],
+          "name": "Domain registration dates",
+          "outputs": [
+            "registration_dates",
+            "source_links"
+          ],
+          "slug": "research.domainRegistration",
+          "source_hint": "rdap",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Nameserver and mail server information from DNS.",
+          "domain": "research",
+          "inputs": [
+            "domain"
+          ],
+          "name": "DNS records",
+          "outputs": [
+            "nameservers",
+            "mail_servers",
+            "source_links"
+          ],
+          "slug": "research.dns",
+          "source_hint": "dns",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "domain": "apiosk.com"
+          },
+          "label": "apiosk.com",
+          "type": "domain"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Show the registration, last-changed and expiration dates when returned, marking missing dates unavailable.",
+          "Show nameservers from DNS NS records and mail servers from DNS MX records.",
+          "Include source links for the RDAP and DNS results.",
+          "Domain registration dates / registration_dates: Use the returned RDAP registration, last-changed and expiration timestamps to report domain registration dates. Dates will be shown when returned; dates not published by the registry remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Domain registration dates / source_links: Link to the exact upstream RDAP request URL.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "DNS records / nameservers: Report nameserver targets from returned DNS records identified as NS records.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "DNS records / mail_servers: Report mail-server targets and priorities from returned DNS records identified as MX records.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "DNS records / source_links: Link to the exact upstream DNS NS and MX request URLs.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "domain.registration",
+            "constraints": {
+              "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+              "source": "domain-intelligence"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "domain.dns-ns",
+            "constraints": {
+              "endpoint_id": "97fba4fc-8a76-453a-a6e5-2c92fe3005b7",
+              "source": "domain-intelligence"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "domain.dns-mx",
+            "constraints": {
+              "endpoint_id": "e9dc9e0b-6799-49e6-938a-84ac234f090b",
+              "source": "domain-intelligence"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "domain.dns_name": {
+                "ref": "s1.label"
+              },
+              "domain.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check apiosk.com’s RDAP registration dates and DNS nameservers and mail servers, with source links. I’ll show the total price before retrieval; any dates not published by the registry will be marked unavailable.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f0918883599eba5f1",
+            "f50641480f2b2c9b7",
+            "fbbb814844bc30b1b"
+          ],
+          "interpretation": "Use the returned RDAP registration, last-changed and expiration timestamps to report domain registration dates.",
+          "limitation": "Dates will be shown when returned; dates not published by the registry remain unavailable.",
+          "output": "registration_dates",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fb7ac597807249691"
+          ],
+          "interpretation": "Link to the exact upstream RDAP request URL.",
+          "limitation": null,
+          "output": "source_links",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f2e32bd985d162a04",
+            "ffa338763f297bf4a"
+          ],
+          "interpretation": "Report nameserver targets from returned DNS records identified as NS records.",
+          "limitation": null,
+          "output": "nameservers",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fd005d8913596dfe1",
+            "fae678ec0daf30c47"
+          ],
+          "interpretation": "Report mail-server targets and priorities from returned DNS records identified as MX records.",
+          "limitation": null,
+          "output": "mail_servers",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f36e7454ed796c06b",
+            "f8ef90d3d143ecad0"
+          ],
+          "interpretation": "Link to the exact upstream DNS NS and MX request URLs.",
+          "limitation": null,
+          "output": "source_links",
+          "requirement": 1
+        }
+      ]
+    },
+    "question": "Look up apiosk.com through RDAP and DNS. Show its domain registration dates, nameservers and mail servers with source links.",
+    "steps": [
+      {
+        "capability": "domain.registration",
+        "dependencies": [],
+        "inputs": {
+          "domain": "apiosk.com"
+        },
+        "method": "GET",
+        "path": "/domain/{domain}",
+        "source": "domain-intelligence",
+        "subject": "apiosk.com"
+      },
+      {
+        "capability": "domain.dns-ns",
+        "dependencies": [],
+        "inputs": {
+          "domain": "apiosk.com"
+        },
+        "method": "GET",
+        "path": "/dns/{domain}/NS",
+        "source": "domain-intelligence",
+        "subject": "apiosk.com"
+      },
+      {
+        "capability": "domain.dns-mx",
+        "dependencies": [],
+        "inputs": {
+          "domain": "apiosk.com"
+        },
+        "method": "GET",
+        "path": "/dns/{domain}/MX",
+        "source": "domain-intelligence",
+        "subject": "apiosk.com"
+      }
+    ]
+  },
+  {
+    "cap_atomic": 155326,
+    "id": "6d8edc87af90",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Validate a VAT number and provide the validation date.",
+          "domain": "compliance",
+          "inputs": [
+            "vat_number"
+          ],
+          "name": "VAT number validation",
+          "outputs": [
+            "validity",
+            "validation_date"
+          ],
+          "slug": "compliance.vat.validation",
+          "source_hint": "vies",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Provide the latest ECB reference exchange rate and its observation date.",
+          "domain": "finance",
+          "inputs": [
+            "base_currency",
+            "quote_currency"
+          ],
+          "name": "Reference exchange rate",
+          "outputs": [
+            "exchange_rate",
+            "observation_date"
+          ],
+          "slug": "finance.exchangeRate.reference",
+          "source_hint": "frankfurter",
+          "subject_id": "s2"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "vat_number": "NL002033354B01"
+          },
+          "label": "NL002033354B01",
+          "type": "company"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "base_currency": "EUR",
+            "quote_currency": "GBP"
+          },
+          "label": "EUR/GBP",
+          "type": "currency_pair"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Requested answer format: chat"
+        ],
+        "goals": [
+          {
+            "capability": "vat.eu.validate",
+            "constraints": {
+              "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+              "source": "vies"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "fx.ecb-reference-rate",
+            "constraints": {
+              "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67",
+              "source": "frankfurter"
+            },
+            "subject": 1
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              },
+              "vat.eu.country_code": {
+                "literal": "NL"
+              },
+              "vat.eu.number": {
+                "literal": "002033354B01"
+              }
+            }
+          },
+          {
+            "subject_ref": "s2",
+            "values": {
+              "fx.ecb.quote": {
+                "ref": "s2.identifiers.quote_currency"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I will check the matched sources and show the total price before anything is bought.",
+      "output_bindings": []
+    },
+    "question": "Validate EU VAT number NL002033354B01 through VIES and get the latest ECB EUR/GBP reference rate through Frankfurter. Include the validation date and exchange-rate observation date.",
+    "steps": [
+      {
+        "capability": "vat.eu.validate",
+        "dependencies": [],
+        "inputs": {
+          "cc": "NL",
+          "nr": "002033354B01"
+        },
+        "method": "GET",
+        "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+        "source": "vies",
+        "subject": "NL002033354B01"
+      },
+      {
+        "capability": "fx.ecb-reference-rate",
+        "dependencies": [],
+        "inputs": {
+          "quote": "GBP"
+        },
+        "method": "GET",
+        "path": "/v2/providers/ecb/rate/EUR/{quote}",
+        "source": "frankfurter",
+        "subject": "EUR/GBP"
+      }
+    ]
+  }
+]

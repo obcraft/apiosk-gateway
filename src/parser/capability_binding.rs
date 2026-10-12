@@ -140,7 +140,7 @@ impl Bindings {
                 })
             })
             .transpose()?;
-        Ok(ChatReply {
+        Ok(ChatReply { output_bindings: reply.output_bindings,
             message: reply.message,
             discover: reply.discover,
             intent,
@@ -152,6 +152,8 @@ impl Bindings {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Reply {
+    #[serde(default)]
+    output_bindings: Vec<super::source_grounding::Binding>,
     message: String,
     discover: bool,
     intent: Option<BoundIntent>,

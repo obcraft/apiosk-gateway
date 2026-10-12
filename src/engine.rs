@@ -20,6 +20,7 @@ mod auto;
 mod direct;
 mod intake_recovery;
 mod name_lookup;
+mod planning_message;
 pub(crate) mod guest_preview;
 use crate::{
     auth::Principal,
@@ -80,6 +81,7 @@ fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
 /// Leave only the conversation: the reply asks the person for something
 /// before anything can be planned.
 fn clear_plan(task: &mut Task) {
+    task.output_grounding = None;
     task.saved_answer = false;
     task.compute = None;
     task.intent = None;
@@ -570,12 +572,12 @@ impl Engine {
             };
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
-                (Err(_), Some(fallback)) => crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None },
+                (Err(_), Some(fallback)) => crate::parser::ChatReply { output_bindings: vec![], message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None },
                 (Err(error), None) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
                 (Err(error), None) => return Err(error),
             };
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
-                reply = crate::parser::ChatReply { message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None };
+                reply = crate::parser::ChatReply { output_bindings: vec![], message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None };
             }
             // A genuinely declined question (small talk, an unclear request, a
             // requirement no source covers) is answered by the conversation
@@ -584,6 +586,8 @@ impl Engine {
             if let Some(written) = self.parser.decline_reply(&req.question, &parsing_task, &catalog, &reply).await {
                 reply.message = written;
             }
+            task.output_grounding = task.capability_intake.as_ref().and_then(|intake|
+                crate::parser::source_grounding::Grounding::new(intake, &catalog, reply.output_bindings));
             chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             // The written reply belongs to the App conversation, and drives its
@@ -708,24 +712,16 @@ impl Engine {
                 }
                 let missing_inputs=match &task.source_selection {Some(context)=>context.uncovered_inputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_inputs(task,catalog,intent,&plan)};
                 if !missing_inputs.is_empty() {
-                    let fields=missing_inputs.join("; ").replace('_'," ");
-                    let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
-                        format!("Het plan behoudt deze opgegeven gegevens of filters nog niet aantoonbaar: {fields}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. Verduidelijk de gewenste selectie of probeer de planning opnieuw.")
-                    } else {
-                        format!("The plan does not yet confirm that these supplied inputs or filters are preserved: {fields}. No quote was created and nothing was executed. Clarify the requested selection or try planning again.")
-                    };
+                    let message=planning_message::coverage(&missing_inputs, true,
+                        task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl"));
                     if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
                     task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_input_bindings":missing_inputs}));
                     return Ok(Status::NeedsInput);
                 }
                 let missing=match &task.source_selection {Some(context)=>context.uncovered_outputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan)};
                 if !missing.is_empty() {
-                    let fields=missing.join("; ").replace('_'," ");
-                    let message=if task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl") {
-                        format!("De geselecteerde bronnen dekken deze gevraagde gegevens nog niet aantoonbaar: {fields}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. Verduidelijk de gewenste gegevens of beperk de vraag tot bevestigde velden.")
-                    } else {
-                        format!("The selected sources do not confirm coverage for these requested details: {fields}. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields.")
-                    };
+                    let message=planning_message::coverage(&missing, false,
+                        task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl"));
                     if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
                     task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_output_contracts":missing}));
                     return Ok(Status::NeedsInput);
@@ -963,6 +959,13 @@ impl Engine {
         if task.intent.as_ref().is_some_and(|intent| intent["goals"].as_array().is_some_and(|goals|
             goals.iter().any(|g| g["capability"] == crate::uk_supplier::screening_cap(0)))) {
             r.context_view["coverage_notices"] = crate::uk_supplier::limitations();
+        }
+        if let Some(grounding) = &task.output_grounding {
+            let mut notices = r.context_view["coverage_notices"].as_array().cloned().unwrap_or_default();
+            for notice in grounding.notices().into_iter().map(Value::String) {
+                if !notices.contains(&notice) { notices.push(notice); }
+            }
+            if !notices.is_empty() { r.context_view["coverage_notices"] = json!(notices); }
         }
         // A connection with a spending mandate approves in the chat card. Its
         // automatic-approval rule, when it has one, is reported separately in

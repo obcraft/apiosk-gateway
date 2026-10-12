@@ -1,0 +1,366 @@
+{
+  "checked_at": "2026-10-12",
+  "environment": "local updated gateway, configured production models and read-only production catalog",
+  "source_execution": false,
+  "task_writes": false,
+  "approval_tokens_recorded": false,
+  "results": [
+    {
+      "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
+      "status": "ready",
+      "total_atomic": "206522",
+      "sources": [
+        {
+          "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+          "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+          "name": "KVK Business Register",
+          "price_atomic": "21739",
+          "source_slug": "kvk-dutch-business-register"
+        },
+        {
+          "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+          "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+          "name": "KVK Business Register",
+          "price_atomic": "76087",
+          "source_slug": "kvk-dutch-business-register"
+        },
+        {
+          "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+          "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+          "name": "OpenSanctions",
+          "price_atomic": "108696",
+          "source_slug": "opensanctions"
+        }
+      ],
+      "message": "I’ll check KVK and OpenSanctions for Coolblue B.V. and show the total price first. I’ll include source links and keep potential matches separate; screening scores and provider match flags alone do not confirm identity.",
+      "coverage_notices": [
+        "Some registration details may not be returned; missing values will remain unavailable.",
+        "Candidates and match flags are screening signals, not confirmed identity or a definitive sanctions verdict.",
+        "Identity confirmation depends on sufficient corroborating identifiers being returned; scores and match flags alone cannot confirm it.",
+        "Candidate record links do not themselves verify identity or provide every underlying source document."
+      ],
+      "elapsed_ms": 31047
+    },
+    {
+      "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+      "status": "ready",
+      "total_atomic": "54348",
+      "sources": [
+        {
+          "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "name": "TenderNed",
+          "price_atomic": "54348",
+          "source_slug": "tenderned"
+        }
+      ],
+      "message": "I’ll check TenderNed and show the price first, then shortlist relevant cleaning-service notices and distinguish opportunities from award notices. The search covers one page of up to 20 notices; deadlines and other details will be included where returned.",
+      "coverage_notices": [
+        "Scope is limited to the title and description returned, not full procurement documents.",
+        "Missing deadlines remain unavailable.",
+        "An opportunity notice does not by itself establish that bidding is still open; unclear or missing status information will be flagged."
+      ],
+      "elapsed_ms": 20799
+    },
+    {
+      "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+      "status": "ready",
+      "total_atomic": "54347",
+      "sources": [
+        {
+          "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+          "name": "Crunchbase",
+          "price_atomic": "54347",
+          "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6"
+        }
+      ],
+      "message": "I’ll check the specified Crunchbase profile and show the price first. I’ll summarize the available people, funding rounds, investors and dates, distinguishing equity from debt where the returned funding labels support it and noting missing or incomplete information.",
+      "coverage_notices": [
+        "Employee profiles do not necessarily identify every leader; leadership roles will be reported only when returned.",
+        "Dates will be included only where returned; missing dates will remain unavailable.",
+        "Missing or ambiguous funding labels cannot establish whether a round is equity or debt."
+      ],
+      "elapsed_ms": 31205
+    },
+    {
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "status": "ready",
+      "total_atomic": "6900",
+      "sources": [
+        {
+          "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+          "name": "OpenWeb Ninja",
+          "price_atomic": "3450",
+          "source_slug": "openwebninja"
+        },
+        {
+          "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+          "name": "OpenWeb Ninja",
+          "price_atomic": "3450",
+          "source_slug": "openwebninja"
+        }
+      ],
+      "message": "I’ll check the available Glassdoor data for both companies and show the total price first. I’ll compare returned ratings and review counts, highlight each company’s strongest and weakest categories, and include profile links. Pay reflects compensation and benefits; management reflects senior management.",
+      "coverage_notices": [
+        "Used when returned; missing ratings remain unavailable.",
+        "This covers compensation and benefits, not pay alone, and is used when returned.",
+        "This measures senior management, not individual branch managers, and is used when returned.",
+        "Included when returned.",
+        "Rankings use only returned requested category ratings.",
+        "Used when returned."
+      ],
+      "elapsed_ms": 32652
+    },
+    {
+      "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
+      "status": "ready",
+      "total_atomic": "217392",
+      "sources": [
+        {
+          "description": "Find UK companies by name and resolve Companies House numbers.",
+          "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+          "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+          "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+          "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        }
+      ],
+      "message": "I’ll check Companies House for MONZO BANK LIMITED’s profile, directors and significant-control records, and show the price first. I’ll distinguish active from resigned appointments; PSC dates will be labelled as notification dates, not director appointment dates.",
+      "coverage_notices": [
+        "Dates not returned will remain unavailable; an appointed-before date is a bound, not an exact appointment date.",
+        "PSC notification dates are not director appointment dates or necessarily the date control began."
+      ],
+      "elapsed_ms": 21781
+    },
+    {
+      "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
+      "status": "ready",
+      "total_atomic": "54348",
+      "sources": [
+        {
+          "description": "Direct RDW technical profile by plate, excluding fuel/emissions",
+          "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+          "name": "RDW Vehicle Technical Data",
+          "price_atomic": "54348",
+          "source_slug": "rdw"
+        }
+      ],
+      "message": "I’ll check the official RDW record for RZ874R and show the price first. I’ll explain any buyer-relevant warning signs and mark missing fields as unavailable; the model will use RDW’s registered trade name.",
+      "coverage_notices": [
+        "RDW’s trade name may not specify the exact trim; used only when returned.",
+        "Used when returned; this can differ from the first registration in the Netherlands.",
+        "Used only when returned; a missing indicator is unavailable, not a negative export status."
+      ],
+      "elapsed_ms": 20042
+    },
+    {
+      "question": "Vergelijk Costco en Walmart via Glassdoor op de algemene werkgeversscore, aantal reviews, salaris en voordelen, balans tussen werk en privé en carrièrekansen. Welke categorie scoort per werkgever het hoogst en het laagst? Geef de profiellinks.",
+      "status": "ready",
+      "total_atomic": "6900",
+      "sources": [
+        {
+          "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+          "name": "OpenWeb Ninja",
+          "price_atomic": "3450",
+          "source_slug": "openwebninja"
+        },
+        {
+          "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+          "name": "OpenWeb Ninja",
+          "price_atomic": "3450",
+          "source_slug": "openwebninja"
+        }
+      ],
+      "message": "Ik zal de Glassdoor-gegevens van Costco en Walmart vergelijken en eerst de totaalprijs tonen. Per werkgever bepaal ik de hoogste en laagste beschikbare categoriescore en geef ik de profiellink; ontbrekende scores blijven als ontbrekend vermeld.",
+      "coverage_notices": [
+        "Deze score wordt gebruikt wanneer de bron hem teruggeeft.",
+        "Deze categoriescore wordt gebruikt wanneer de bron hem teruggeeft.",
+        "De hoogste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+        "De laagste categorie geldt alleen voor de daadwerkelijk teruggegeven, vergelijkbare categoriescores.",
+        "De link wordt vermeld wanneer de bron hem teruggeeft."
+      ],
+      "elapsed_ms": 40232
+    },
+    {
+      "question": "Use Companies House to find the registered details, current directors and significant controllers of WISE PLC. Include appointment dates and distinguish former directors.",
+      "status": "ready",
+      "total_atomic": "217392",
+      "sources": [
+        {
+          "description": "Find UK companies by name and resolve Companies House numbers.",
+          "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+          "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve UK Companies House officers for one company; preserves pagination and total counts.",
+          "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        },
+        {
+          "description": "Retrieve UK Companies House persons-with-significant-control for one company; preserves pagination and total counts.",
+          "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+          "name": "Companies House",
+          "price_atomic": "54348",
+          "source_slug": "companies-house"
+        }
+      ],
+      "message": "I’ll check Companies House for WISE PLC’s registered details, directors and significant controllers, and show the total price first. I’ll include available appointment dates and separate current from former directors using the recorded roles and resignation dates.",
+      "coverage_notices": [
+        "Classification follows the returned register entries; coverage may be limited by pagination.",
+        "Resignation dates will be used when returned; missing values will not be invented.",
+        "Exact appointment dates may not be available for every entry.",
+        "Controller details will be reported only when returned; an empty response does not establish that no controller exists."
+      ],
+      "elapsed_ms": 20108
+    },
+    {
+      "question": "Zoek via TenderNed Nederlandse aanbestedingen voor wegenonderhoud. Geef de opdrachtgever, omschrijving, publicatietype en beschikbare sluitingsdatum met links. Maak duidelijk welke al zijn gegund.",
+      "status": "ready",
+      "total_atomic": "54348",
+      "sources": [
+        {
+          "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "name": "TenderNed",
+          "price_atomic": "54348",
+          "source_slug": "tenderned"
+        }
+      ],
+      "message": "Ik controleer TenderNed op aanbestedingen voor wegenonderhoud en toon eerst de prijs. Het overzicht bevat maximaal 20 publicaties met beschikbare gegevens en links. Ik markeer expliciete gunningspublicaties; ontbrekende gunningsinformatie bewijst niet dat een opdracht nog openstaat.",
+      "coverage_notices": [
+        "Wordt gebruikt wanneer teruggegeven.",
+        "Een ontbrekende sluitingsdatum blijft niet beschikbaar.",
+        "Alleen expliciete gunningsinformatie ondersteunt de markering als gegund. Andere publicaties bewijzen niet dat de opdracht nog openstaat. De velden worden gebruikt wanneer teruggegeven."
+      ],
+      "elapsed_ms": 30241
+    },
+    {
+      "question": "Show the building year, registered floor area and building use for Dam 1, Amsterdam using official Dutch address and building records. Include the source link.",
+      "status": "ready",
+      "total_atomic": "118696",
+      "sources": [
+        {
+          "description": "Resolve a Dutch address to BAG identity and a bounded RD map extent. Ambiguous addresses require selection before dependent calls.",
+          "endpoint_id": "e1dc0681-d7e3-48d7-8f1a-eafca2eab00b",
+          "name": "PDOK Maps & Addresses",
+          "price_atomic": "10000",
+          "source_slug": "pdok"
+        },
+        {
+          "description": "Retrieve the exact BAG verblijfsobject and its explicit building links.",
+          "endpoint_id": "892e7b28-5202-4ca8-acf7-b201f4701a1a",
+          "name": "PDOK Maps & Addresses",
+          "price_atomic": "54348",
+          "source_slug": "pdok"
+        },
+        {
+          "description": "Follow the single building explicitly linked by BAG; return construction year, building ID and status.",
+          "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+          "name": "PDOK Maps & Addresses",
+          "price_atomic": "54348",
+          "source_slug": "pdok"
+        }
+      ],
+      "message": "I’ll check official Dutch BAG records for Dam 1, Amsterdam and show the total price first. The results will include the construction year, registered floor area, registered use and source link, where available.",
+      "coverage_notices": [
+        "This is the registered addressable unit’s area, not necessarily the total area of the building; it will be reported when returned.",
+        "Registered use does not necessarily describe actual current use; it will be reported when returned.",
+        "Source links will be included when returned."
+      ],
+      "elapsed_ms": 24428
+    },
+    {
+      "question": "Look up apiosk.com through RDAP and DNS. Show its domain registration dates, nameservers and mail servers with source links.",
+      "status": "ready",
+      "total_atomic": "293478",
+      "sources": [
+        {
+          "description": "Domain registration date (RDAP); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+          "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+          "name": "Domain Intelligence (RDAP & DNS)",
+          "price_atomic": "97826",
+          "source_slug": "domain-intelligence"
+        },
+        {
+          "description": "Retrieve NS DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+          "endpoint_id": "97fba4fc-8a76-453a-a6e5-2c92fe3005b7",
+          "name": "Domain Intelligence (RDAP & DNS)",
+          "price_atomic": "97826",
+          "source_slug": "domain-intelligence"
+        },
+        {
+          "description": "Retrieve MX DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+          "endpoint_id": "e9dc9e0b-6799-49e6-938a-84ac234f090b",
+          "name": "Domain Intelligence (RDAP & DNS)",
+          "price_atomic": "97826",
+          "source_slug": "domain-intelligence"
+        }
+      ],
+      "message": "I’ll check apiosk.com’s RDAP registration dates and DNS nameservers and mail servers, with source links. I’ll show the total price before retrieval; any dates not published by the registry will be marked unavailable.",
+      "coverage_notices": [
+        "Dates will be shown when returned; dates not published by the registry remain unavailable."
+      ],
+      "elapsed_ms": 15874
+    },
+    {
+      "question": "Validate EU VAT number NL002033354B01 through VIES and get the latest ECB EUR/GBP reference rate through Frankfurter. Include the validation date and exchange-rate observation date.",
+      "status": "ready",
+      "total_atomic": "155326",
+      "sources": [
+        {
+          "description": "Validate a VAT number using VIES; Validate EU and XI VAT numbers and inspect VIES service availability. Names and addresses depend on national availability.",
+          "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+          "name": "VIES EU VAT Validation",
+          "price_atomic": "97826",
+          "source_slug": "vies"
+        },
+        {
+          "description": "Latest daily ECB euro foreign-exchange reference rate for one target currency, via Frankfurter. EUR base; includes observation date. ECB data is free at ecb.europa.eu; Apiosk charges for retrieval. Not intraday, historical rates, Euribor or trading quotes.",
+          "endpoint_id": "6ff3c2cf-19dc-4555-9051-e1c80c6c6e67",
+          "name": "Frankfurter",
+          "price_atomic": "57500",
+          "source_slug": "frankfurter"
+        }
+      ],
+      "message": "I will check the matched sources and show the total price before anything is bought.",
+      "coverage_notices": [],
+      "elapsed_ms": 7290
+    }
+  ]
+}

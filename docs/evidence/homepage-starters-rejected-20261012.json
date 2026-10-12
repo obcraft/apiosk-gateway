@@ -1,0 +1,162 @@
+{
+  "checked_at": "2026-10-12T12:13:11.152Z",
+  "endpoint": "https://apiosk-gateway-v2.fly.dev/v2/ask-v2/guest/preview",
+  "results": [
+    {
+      "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "KVK Business Register",
+          "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e"
+        },
+        {
+          "name": "KVK Business Register",
+          "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a"
+        },
+        {
+          "name": "OpenSanctions",
+          "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f"
+        },
+        {
+          "name": "OpenSanctions",
+          "endpoint_id": "3c473989-d492-4d6f-93d2-cd713ec34324"
+        },
+        {
+          "name": "OpenSanctions",
+          "endpoint_id": "a20ff748-d3d5-4550-b413-c939929ba07e"
+        }
+      ],
+      "message": "The selected sources do not confirm coverage for these requested details: Company profile: source links; Sanctions matches: potential matches; Sanctions matches: confirmed identity matches; Sanctions matches: source links. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields."
+    },
+    {
+      "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "TenderNed",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e"
+        },
+        {
+          "name": "TenderNed",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e"
+        },
+        {
+          "name": "TenderNed",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e"
+        },
+        {
+          "name": "TenderNed",
+          "endpoint_id": "956fcdfd-c78d-44ab-ba96-c59270abbf43"
+        },
+        {
+          "name": "TenderNed",
+          "endpoint_id": "8e7a1970-955d-44e8-a036-bcc87dce6c1f"
+        }
+      ],
+      "message": "The selected sources do not confirm coverage for these requested details: Procurement notices: buyer; Procurement notices: scope; Procurement notices: publication type; Procurement notices: deadline; Procurement notices: notice category. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields."
+    },
+    {
+      "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "6558d1c2-efdb-493a-939b-1aba3e88e520"
+        },
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "5bc36cf6-0dfc-4bd2-a491-87710eba41c6"
+        },
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4"
+        },
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "5bc36cf6-0dfc-4bd2-a491-87710eba41c6"
+        },
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4"
+        }
+      ],
+      "message": "The plan does not yet confirm that these supplied inputs or filters are preserved: Starbucks: supplied identifiers and filters. No quote was created and nothing was executed. Clarify the requested selection or try planning again."
+    },
+    {
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "OpenWeb Ninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        },
+        {
+          "name": "OpenWeb Ninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        }
+      ],
+      "message": "The selected sources do not confirm coverage for these requested details: Employer ratings and reviews: overall employer rating; Employer ratings and reviews: pay rating; Employer ratings and reviews: work life balance rating; Employer ratings and reviews: career opportunities rating; Employer ratings and reviews: management rating; Employer ratings and reviews: overall employer rating; Employer ratings and reviews: pay rating; Employer ratings and reviews: work life balance rating; Employer ratings and reviews: career opportunities rating; Employer ratings and reviews: management rating. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields."
+    },
+    {
+      "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "Companies House",
+          "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "8e049519-fab3-436d-83e0-ebecb4d65cb7"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "f01533f9-7d4d-4b66-9154-1a949df3435f"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "86d4c314-fa35-4093-8eb7-62fc5d08298b"
+        }
+      ],
+      "message": "The selected sources do not confirm coverage for these requested details: Company directors: directors; Company directors: appointment status. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields."
+    },
+    {
+      "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "RDW Vehicle Technical Data",
+          "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77"
+        }
+      ],
+      "message": "The selected sources do not confirm coverage for these requested details: Vehicle registration: model; Vehicle registration: first registration date; Vehicle registration: export indicator. No quote was created and nothing was executed. Clarify the required data or limit the request to confirmed fields."
+    }
+  ]
+}

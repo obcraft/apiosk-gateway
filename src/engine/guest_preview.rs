@@ -87,6 +87,7 @@ impl Engine {
     pub(crate) async fn guest_plan(&self, question: &str, intake: crate::capability_intake::Intake, catalog: &Catalog) -> anyhow::Result<Value> {
         let mut task = Task { capability_intake:Some(intake.clone()), ..Task::default() };
         let reply = self.parser.chat_from_capabilities(question, None, &task, catalog, &intake).await?;
+        task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake, catalog, reply.output_bindings);
         task.record_turn(question, Some(reply.message.clone()));
         let status = if reply.discover {
             if let Some(mut intent) = reply.intent {
@@ -148,7 +149,8 @@ fn guest_view(signer: &Signer, question: &str, task: &Task, status: Status) -> a
         .or_else(|| task.conversation.last().and_then(|turn| turn.reply.clone())).unwrap_or_default();
     Ok(json!({"question":question,"status":if ready { "ready" } else if status == Status::Unsupported { "unsupported" } else { "needs_input" },
         "sources":sources,"total_atomic":preview.as_ref().map(|preview| preview.total_atomic.to_string()),"currency":"USDC",
-        "preview_token":token,"expires_at":preview.as_ref().map(|preview| preview.expires_at),"message":message}))
+        "preview_token":token,"expires_at":preview.as_ref().map(|preview| preview.expires_at),"message":message,
+        "coverage_notices":task.output_grounding.as_ref().map(|grounding|grounding.notices()).unwrap_or_default()}))
 }
 
 #[cfg(test)]

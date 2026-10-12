@@ -1,0 +1,63 @@
+{
+  "capabilities": [
+    {
+      "confidence": 0.95,
+      "description": "Retrieve available founders, leaders, and board members from the company profile.",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "name": "Company people",
+      "outputs": [
+        "founders",
+        "leaders",
+        "board_members"
+      ],
+      "slug": "company.people",
+      "source_hint": "crunchbase",
+      "subject_id": "s1"
+    },
+    {
+      "confidence": 0.95,
+      "description": "Retrieve available funding rounds and investors from the company profile, including returned dates and distinguishing equity funding from debt.",
+      "domain": "company",
+      "inputs": [
+        "url"
+      ],
+      "missing": [],
+      "name": "Company funding",
+      "outputs": [
+        "funding_rounds",
+        "investors",
+        "dates",
+        "funding_type"
+      ],
+      "slug": "company.funding",
+      "source_hint": "crunchbase",
+      "subject_id": "s1"
+    }
+  ],
+  "deliverable": {
+    "format": "chat",
+    "operations": [
+      "summarize"
+    ]
+  },
+  "language": "en",
+  "meta": {
+    "model": "openai/gpt-6-luna",
+    "parsed_at": "2026-10-12T13:34:40.005513+00:00",
+    "text_sha256": "47181d54b69d0230470f6a48080fe52f60a616ec25eeeaebec996ffed9259c1e"
+  },
+  "subjects": [
+    {
+      "id": "s1",
+      "identifiers": {
+        "url": "https://www.crunchbase.com/organization/starbucks"
+      },
+      "label": "https://www.crunchbase.com/organization/starbucks",
+      "type": "company"
+    }
+  ]
+}

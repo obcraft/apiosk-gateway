@@ -2,6 +2,17 @@
 //! ephemeral quotes only: source execution and task persistence are disabled.
 use serde_json::{json, Value};
 
+pub(crate) fn record_validation_failure(raw:&str,error:&anyhow::Error) {
+    use std::io::Write;
+    let Ok(path)=std::env::var("ASK_PLANNING_DIAGNOSTICS") else {return};
+    let mut row=json!({"reply":serde_json::from_str::<Value>(raw).ok(),"error":error.to_string()});
+    if let Some(coverage)=error.downcast_ref::<crate::parser::source_grounding::CoverageError>() {
+        row["missing_outputs"]=json!(coverage.outputs);row["missing_inputs"]=json!(coverage.inputs);
+    }
+    let mut file=std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
+    writeln!(file,"{row}").unwrap();
+}
+
 async fn live_context() -> (crate::engine::Engine, std::sync::Arc<crate::catalog::Catalog>) {
     dotenvy::dotenv().ok();
     let pool = sqlx::postgres::PgPoolOptions::new().max_connections(1)
@@ -21,6 +32,20 @@ async fn live_context() -> (crate::engine::Engine, std::sync::Arc<crate::catalog
         signer: crate::state::Signer::new(vec![8;32]).unwrap(), app_url: "http://localhost".into(),
         executor: crate::execution::Executor { store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false },
     }, catalog)
+}
+
+#[tokio::test]
+#[ignore = "reads selected production catalog contracts into a local replay fixture; no source or model calls"]
+async fn record_live_planning_catalog() {
+    let (_,catalog)=live_context().await;
+    let capabilities:Vec<String>=serde_json::from_str(&std::env::var("ASK_PLANNING_CATALOG_CAPABILITIES").expect("explicit capability list required")).unwrap();
+    let services:Vec<_>=catalog.services.iter().filter(|service|capabilities.contains(&service.contract.capability_slug)).cloned().collect();
+    assert!(capabilities.iter().all(|cap|services.iter().any(|service|&service.contract.capability_slug==cap)));
+    let fields:std::collections::BTreeSet<_>=services.iter().flat_map(|service|service.contract.requires.iter().map(|required|&required.fact_type)
+        .chain(service.contract.output_map.produces.keys())).collect();
+    let snapshot=crate::catalog::Snapshot {vocabulary:catalog.vocabulary.iter().filter(|(key,_)|fields.contains(key)).map(|(_,fact)|fact.clone()).collect(),
+        known_sources:catalog.known_sources.iter().filter(|source|services.iter().any(|service|service.api_slug==source.slug)).cloned().collect(),services};
+    std::fs::write(std::env::var("ASK_PLANNING_CATALOG_FIXTURE").expect("local fixture path required"),serde_json::to_vec_pretty(&snapshot).unwrap()).unwrap();
 }
 
 #[tokio::test]
@@ -93,6 +118,7 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
         executor: crate::execution::Executor { store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false },
     };
     let mut reports = Vec::<Value>::new();
+    let mut fixtures = Vec::<Value>::new();
     for question in questions {
         let started = std::time::Instant::now();
         let intake = engine.parser.ask_intake(&question, &crate::state::Task::default(), &catalog, None).await;
@@ -110,9 +136,13 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
                             .and_then(|(payload,_)| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).ok())
                             .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
                             .map(|preview| preview["task"].clone()).unwrap_or(Value::Null);
+                        if quote["status"] == "ready" && std::env::var("ASK_PLANNING_FIXTURES").is_ok() {
+                            fixtures.push(planning_fixture(&question,&parsed,&quote,&task,&catalog));
+                            std::fs::write(std::env::var("ASK_PLANNING_FIXTURES").unwrap(),serde_json::to_vec_pretty(&fixtures).unwrap()).unwrap();
+                        }
                         json!({"question":question,"parsed":parsed,"matches":matches,"source_options":source_options,"status":quote["status"],
                             "sources":quote["sources"],"total_atomic":quote["total_atomic"],"message":quote["message"],
-                            "intent":task["intent"],"facts":task["facts"]})
+                            "intent":task["intent"],"facts":task["facts"],"output_grounding":task["output_grounding"],"coverage_notices":quote["coverage_notices"]})
                     },
                     Err(error) => json!({"question":question,"parsed":parsed,"matches":matches,"error":error.to_string()}),
                 }
@@ -127,4 +157,40 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
             serde_json::to_vec_pretty(&reports).unwrap()).unwrap();
     }
     assert!(reports.iter().all(|row| row["status"] == "ready"), "Inspect saved evidence for incomplete plans");
+}
+
+// Opt-in fixture recording replays actual model interpretation and bindings,
+// then runs discovery, resolution and coverage again; it never mocks a plan.
+fn planning_fixture(question:&str, parsed:&Value, quote:&Value, task:&Value, catalog:&crate::catalog::Catalog)->Value {
+    let mut output=parsed.clone(); output.as_object_mut().unwrap().remove("meta");
+    for cap in output["capabilities"].as_array_mut().unwrap() {cap.as_object_mut().unwrap().remove("missing");}
+    let original:crate::parser::Intent=serde_json::from_value(task["intent"].clone()).unwrap();
+    let mut intent=task["intent"].clone();
+    intent["subjects"]=json!(original.subjects.iter().map(|subject| {
+        let parsed_subject=parsed["subjects"].as_array().unwrap().iter().find(|s|s["label"]==subject.label).unwrap();
+        let reference=parsed_subject["id"].as_str().unwrap();
+        let values=subject.values.iter().map(|(key,value)| {
+            let reference=if value==&parsed_subject["label"] {Some(format!("{reference}.label"))} else {
+                parsed_subject["identifiers"].as_object().into_iter().flatten().find(|(_,input)|*input==value).map(|(key,_)|format!("{reference}.identifiers.{key}"))
+            };
+            (key.clone(),reference.map(|reference|json!({"ref":reference})).unwrap_or_else(||json!({"literal":value})))
+        }).collect::<serde_json::Map<_,_>>();
+        json!({"subject_ref":reference,"values":values})
+    }).collect::<Vec<_>>());
+    let mut proposal=task["proposal"].clone();
+    for step in proposal["steps"].as_array_mut().unwrap() {
+        let service=catalog.services.iter().find(|service|step["service"]["id"]==service.id.to_string()).unwrap();
+        step["service"]=json!(service);
+    }
+    let plan:crate::resolver::Plan=serde_json::from_value(proposal).unwrap();
+    let task:crate::state::Task=serde_json::from_value(task.clone()).unwrap();
+    let shown=crate::resolver::describe_steps(&plan,&[]);
+    let steps=plan.steps.iter().enumerate().map(|(i,step)|json!({"source":step.service.api_slug,"capability":step.service.contract.capability_slug,
+        "subject":original.subjects.iter().find(|subject|subject.entity_ref==Some(step.entity_ref)).unwrap().label,
+        "method":step.service.method,"path":step.service.path,"inputs":step.service.inputs(&task,step.entity_ref,&catalog.vocabulary).ok(),
+        "dependencies":shown[i]["dependencies"].as_array().unwrap().iter().map(|d|json!({"step":d["step"],"field":d["field"]})).collect::<Vec<_>>()})).collect::<Vec<_>>();
+    json!({"id":crate::state::digest(&question)[..12],"question":question,"model_output":output,
+        "planner_reply":{"message":quote["message"],"discover":true,"decline_reason":"none","intent":intent,
+            "output_bindings":task.output_grounding.map(|grounding|grounding.bindings).unwrap_or_default()},
+        "cap_atomic":plan.cap_atomic,"steps":steps})
 }

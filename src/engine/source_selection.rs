@@ -59,6 +59,7 @@ impl Engine {
             task.conversation.last_mut().unwrap().reply = Some(reply.message);
             return Ok((Status::NeedsInput, task));
         }
+        task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake, catalog, reply.output_bindings);
         let mut intent = reply
             .intent
             .ok_or_else(|| anyhow::anyhow!("no selected-source intent"))?;
@@ -199,6 +200,7 @@ impl Engine {
             });
         }
         task.focus.entity_refs.clear();
+        task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake, &catalog, reply.output_bindings.clone());
         task.capability_intake = Some(intake);
         task.source_selection = Some(context);
         task.intake_recovery = None;

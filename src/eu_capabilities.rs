@@ -120,7 +120,7 @@ pub fn browse_reply(
     };
     let primary = names("primary_sources");
     let extra = names("supplementary_sources");
-    Some(crate::parser::ChatReply {
+    Some(crate::parser::ChatReply { output_bindings: vec![],
         message: format!(
             "{} — Primary sources: {}.{} This is a source overview; no data call has been run.",
             definition.slug,

@@ -16,6 +16,12 @@ pub(super) fn prepare(
     intake: &Intake,
     catalog: &Catalog,
 ) -> anyhow::Result<()> {
+    prepare_grounded(intent, intake, catalog, &[])
+}
+
+pub(super) fn prepare_grounded(
+    intent: &mut Intent, intake: &Intake, catalog: &Catalog, bindings: &[super::source_grounding::Binding],
+) -> anyhow::Result<()> {
     let parsed = &intake.parsed_request;
     let retrievals: Vec<_> = parsed
         .capabilities
@@ -113,7 +119,9 @@ pub(super) fn prepare(
             // quoting those fields in one requirement. Optional row fields
             // remain supported data, even when a particular row lacks them.
             if owners.iter().filter(|owners| owners.contains(&goal)).count() > 1 {
-                ensure!(!services[goal].is_empty() && services[goal].iter().all(|service| outputs_cover(cap, service, catalog)),
+                ensure!(!cap.outputs.is_empty() && !services[goal].is_empty() && services[goal].iter().all(|service| cap.outputs.iter().all(|output|
+                    output_metadata(output) || output_covered(output,service,catalog,false)
+                        || super::source_grounding::covered(bindings,capability_index,output,&[service],catalog))),
                     "every parsed subject needs its requested retrieval");
             }
             useful.insert(goal);
@@ -122,8 +130,16 @@ pub(super) fn prepare(
             ensure!(!outputs.is_empty(), "every parsed subject needs its requested retrieval");
             for output in outputs {
                 let proving: Vec<_> = selected.iter().copied().filter(|goal| !services[*goal].is_empty()
-                    && services[*goal].iter().all(|service| output_covered(output, service, catalog, false))).collect();
-                ensure!(!proving.is_empty(), "every parsed subject needs its requested retrieval");
+                    && services[*goal].iter().all(|service| output_covered(output, service, catalog, false)
+                        || super::source_grounding::covered(bindings,capability_index,output,&[service],catalog))).collect();
+                if proving.is_empty() {
+                    let union: Vec<_> = selected.iter().flat_map(|goal| services[*goal].iter().copied()).collect();
+                    ensure!(super::source_grounding::covered(bindings,capability_index,output,&union,catalog), "every parsed subject needs its requested retrieval");
+                    for goal in selected {
+                        let without: Vec<_> = selected.iter().filter(|other| *other != goal).flat_map(|other|services[*other].iter().copied()).collect();
+                        if !super::source_grounding::covered(bindings,capability_index,output,&without,catalog) { useful.insert(*goal); }
+                    }
+                }
                 // An extra purchase must add requested scope, rather than
                 // repeat the same data through another matched alternative.
                 if proving.len() == 1 { useful.insert(proving[0]); }
@@ -244,6 +260,7 @@ pub(super) fn uncovered_reply(intake: &Intake) -> Option<super::ChatReply> {
     // This is a catalog fact, not a model draft to rewrite into broader claims
     // about a provider's existence. It never quotes a reduced request.
     Some(super::ChatReply {
+        output_bindings: vec![],
         message,
         discover: false,
         intent: None,
@@ -282,11 +299,11 @@ pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
     let message = if let Some(message) = discovery_message(&intake.parsed_request.language, &names, &intake.matches.iter().collect::<Vec<_>>()) {
         message
     } else if intake.parsed_request.language == "nl" {
-        format!("Ik kon nog geen uitvoerbaar plan maken dat deze onderdelen en de opgegeven gegevens correct behoudt: {names}. Er is geen prijsvoorstel gemaakt en niets uitgevoerd. De volledige vraag blijft bewaard; verduidelijk de gewenste gegevens of probeer de planning opnieuw.")
+        "Ik kon nog geen volledig plan maken. Probeer opnieuw. Er is niets uitgevoerd of afgeschreven.".into()
     } else {
-        format!("I could not yet build an executable plan that correctly preserves these requirements and the supplied inputs: {names}. No price proposal was made and nothing was executed. The complete question is kept; clarify the required data or try planning again.")
+        "I couldn’t build a complete plan yet. Try again. Nothing was run or charged.".into()
     };
-    super::ChatReply {message, discover:false, intent:None, decline_reason:None}
+    super::ChatReply {output_bindings: vec![], message, discover:false, intent:None, decline_reason:None}
 }
 
 /// Recover one concrete retrieval from the already displayed, ranked choices.
@@ -334,7 +351,7 @@ pub(super) fn single_retrieval_reply(intake:&Intake,catalog:&Catalog,question:&s
         if !retrieval_inputs_preserved(intake,catalog,&preview_task,&preview_intent,&plan,question) {continue;}
         let message=if intake.parsed_request.language=="nl" {"Ik controleer de gevonden bron en toon de totale prijs voordat er iets wordt gekocht."}
             else {"I will check the matched source and show the total price before anything is bought."};
-        return Some(super::ChatReply {message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())});
+        return Some(super::ChatReply { output_bindings: vec![],message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())});
     }
     None
 }
@@ -394,7 +411,7 @@ pub(super) fn multiple_retrieval_reply(intake:&Intake,catalog:&Catalog,question:
         || !uncovered_inputs(&preview_task,catalog,&preview_intent,&plan).is_empty() {return None;}
     let message=if parsed.language=="nl" {"Ik controleer de gevonden bronnen en toon de totale prijs voordat er iets wordt gekocht."}
         else {"I will check the matched sources and show the total price before anything is bought."};
-    Some(super::ChatReply {message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())})
+    Some(super::ChatReply { output_bindings: vec![],message:message.into(),discover:true,intent:Some(intent),decline_reason:Some("none".into())})
 }
 
 /// Output coverage alone cannot prove a filtered retrieval. Every supplied
@@ -511,6 +528,9 @@ fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::
             identifiers.insert(normal(key));continue;
         }
         if name_alias(key) && value==&subject.label && label_used {
+            identifiers.insert(normal(key));continue;
+        }
+        if bound.iter().any(|(field,_,bound_value)|crate::ask_v2::input_values::address_component_preserved(field,subject,key,value,bound_value)) {
             identifiers.insert(normal(key));continue;
         }
         let identity_name=name_alias(key) && !matches!(normal(key).as_str(),"query"|"topic"|"keyword");
@@ -744,7 +764,7 @@ pub(super) fn compound_reply(intake: &Intake, catalog: &Catalog, question: &str,
         Some(intent)
     };
     Some(match attempt() {
-        Some(intent) => super::ChatReply { message: if intake.parsed_request.language == "nl" {
+        Some(intent) => super::ChatReply { output_bindings: vec![], message: if intake.parsed_request.language == "nl" {
             "Ik combineer de gevraagde brongegevens in één antwoord. Bekijk eerst de totale prijs."
         } else { "I will combine the requested source data in one answer. Review the total price first." }.into(),
             discover: true, intent: Some(intent), decline_reason: Some("none".into()) },
@@ -784,9 +804,9 @@ pub(super) fn cbs_comparison_reply(intake: &Intake, catalog: &Catalog, question:
         Ok(intent)
     };
     Some(match attempt() {
-        Ok(intent) => super::ChatReply { message: if canonical.language == "nl" {"Ik vergelijk de absolute aantallen per sector voor de meest recente beschikbare maand, met de CBS-publicatiestatus en het landelijke totaal apart. Bekijk eerst de totale prijs."} else {"I will compare absolute counts by sector for the latest available month, preserving the CBS publication status and keeping the national total separate. Review the total price first."}.into(),
+        Ok(intent) => super::ChatReply { output_bindings: vec![], message: if canonical.language == "nl" {"Ik vergelijk de absolute aantallen per sector voor de meest recente beschikbare maand, met de CBS-publicatiestatus en het landelijke totaal apart. Bekijk eerst de totale prijs."} else {"I will compare absolute counts by sector for the latest available month, preserving the CBS publication status and keeping the national total separate. Review the total price first."}.into(),
             discover:true, intent:Some(intent), decline_reason:Some("none".into()) },
-        Err(_) => super::ChatReply { message: if canonical.language == "nl" {"De benodigde CBS-bronnen dekken deze vergelijking nog niet volledig. Er wordt geen onvolledig vergelijkingsplan geprijsd."} else {"The required CBS sources do not yet cover this comparison completely. An incomplete comparison will not be priced."}.into(),
+        Err(_) => super::ChatReply { output_bindings: vec![], message: if canonical.language == "nl" {"De benodigde CBS-bronnen dekken deze vergelijking nog niet volledig. Er wordt geen onvolledig vergelijkingsplan geprijsd."} else {"The required CBS sources do not yet cover this comparison completely. An incomplete comparison will not be priced."}.into(),
             discover:false, intent:None, decline_reason:Some("unsupported".into()) },
     })
 }
@@ -856,7 +876,7 @@ pub(super) fn broad_information_reply(intake: &Intake, catalog: &Catalog, questi
             } else if canonical.subjects[0].kind == "company" { "I will retrieve the registered details and available annual financial figures, preserving their reported year and scope. Review the total price first." }
                 else if canonical.language == "nl" {"Ik zoek de beschikbare gegevens bij dit adres en toon eerst de totale prijs."}
                 else {"I will retrieve the available records for this address and show the total price first."};
-            return Some(super::ChatReply { message: message.into(), discover: true, intent: Some(intent), decline_reason: Some("none".into()) });
+            return Some(super::ChatReply { output_bindings: vec![], message: message.into(), discover: true, intent: Some(intent), decline_reason: Some("none".into()) });
         }
     }
     profession.map(|_| rejected_reply(intake))
@@ -875,8 +895,8 @@ fn output_metadata(output:&str)->bool {
         | "missing_fields" | "search_coverage" | "coverage_description")
 }
 
-fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,required_only:bool)->bool {
-    if output=="source_link" {
+pub(super) fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,required_only:bool)->bool {
+    if matches!(output,"source_link"|"source_links") {
         let source=service.result_source();
         return [source.get("url"),source.get("usage_notice").and_then(|notice|notice.get("url"))].into_iter().flatten()
             .filter_map(Value::as_str).any(|link|reqwest::Url::parse(link).is_ok_and(|url|
@@ -970,6 +990,7 @@ fn dependency_steps(plan:&crate::resolver::Plan,task:&crate::state::Task,catalog
 /// cannot establish coverage. Presentation instructions never add facts.
 pub(crate) fn uncovered_outputs(task:&crate::state::Task,catalog:&Catalog,intent:&Intent,plan:&crate::resolver::Plan)->Vec<String> {
     let Some(intake)=task.capability_intake.as_ref() else {return vec![]};
+    let bindings = task.output_grounding.as_ref().map(|grounding|grounding.bindings_for(intake,catalog)).unwrap_or(&[]);
     let mut missing=Vec::new();
     for (index,cap) in intake.parsed_request.capabilities.iter().enumerate().filter(|(_,cap)|!answer_instruction(cap)) {
         let found=request_match(intake,index);
@@ -993,7 +1014,8 @@ pub(crate) fn uncovered_outputs(task:&crate::state::Task,catalog:&Catalog,intent
             }
         }
         for output in cap.outputs.iter().filter(|output|!output_metadata(output)) {
-            let proven=contributing.iter().any(|index|output_covered(output,&plan.steps[*index].service,catalog,false));
+            let proven=contributing.iter().any(|index|output_covered(output,&plan.steps[*index].service,catalog,false))
+                || super::source_grounding::covered(bindings,index,output,&contributing.iter().map(|index|&plan.steps[*index].service).collect::<Vec<_>>(),catalog);
             if !proven {missing.push(format!("{}: {}",cap.name,output));}
         }
     }

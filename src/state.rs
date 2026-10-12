@@ -227,6 +227,8 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capability_intake: Option<crate::capability_intake::Intake>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_grounding: Option<crate::parser::source_grounding::Grounding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_selection: Option<crate::ask_v2::source_selection::Context>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<Uuid>,

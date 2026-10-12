@@ -86,7 +86,7 @@ pub(super) fn planned_reply(intake: &Intake, catalog: &Catalog) -> Option<ChatRe
     }
     let answer_operations = if parsed.deliverable.operations.is_empty() { vec![] }
         else { vec!["Answer the request from the retrieved source data.".to_owned()] };
-    Some(ChatReply { message: PLANNED_MESSAGE.into(), discover: true, decline_reason: Some("none".into()),
+    Some(ChatReply { output_bindings: vec![], message: PLANNED_MESSAGE.into(), discover: true, decline_reason: Some("none".into()),
         intent: Some(Intent { subjects, goals, answer_operations, unresolved_references: vec![] }) })
 }
 

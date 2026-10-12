@@ -1,0 +1,2373 @@
+{
+  "services": [
+    {
+      "description": "Domain registration date (RDAP); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+      "source_url": "https://about.rdap.org/",
+      "id": "28fb774a-2b50-4b58-ade8-404c947b21f7",
+      "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/domain/{domain}",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.registration",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.registration.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "Authoritative registry RDAP record for one domain"
+        },
+        "data": {
+          "domain": "mollie.nl",
+          "expires_at": null,
+          "last_changed_at": "2021-03-22T15:18:26Z",
+          "nameservers": [
+            "ns-cloud-a4.googledomains.com",
+            "ns-cloud-a1.googledomains.com",
+            "ns-cloud-a2.googledomains.com",
+            "ns-cloud-a3.googledomains.com"
+          ],
+          "rdap_server": "rdap.sidn.nl",
+          "registered_at": "2000-05-23T14:06:31Z",
+          "registrar": "team.blue nl B.V.",
+          "statuses": [
+            "active"
+          ]
+        },
+        "notice": "Registry RDAP data at request time. Registrant identity is usually redacted; a registration date shows when the current registration started, not who controls the domain.",
+        "source_url": "https://rdap.sidn.nl/domain/mollie.nl"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve A DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "55470c71-6aa2-4c0a-a010-911b7ce284a0",
+      "endpoint_id": "68df9622-6965-4e82-a362-b3950e001759",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/A",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-a",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-a.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "A records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "A",
+          "records": [
+            {
+              "data": "34.128.165.251",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "A",
+              "type_code": 1
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=A"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Domain mail servers (DNS MX); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+      "source_url": "https://about.rdap.org/",
+      "id": "5aa13e05-fe09-45bb-9512-9a660d7c3e05",
+      "endpoint_id": "19174ffb-ae5a-4d99-b016-b32a3d9691ef",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.mail-dns",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.mail-dns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "MX records for one domain"
+        },
+        "data": {
+          "accepts_mail": true,
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "mx": [
+            "10 aspmx2.googlemail.com.",
+            "5 alt2.aspmx.l.google.com.",
+            "5 alt1.aspmx.l.google.com.",
+            "1 aspmx.l.google.com.",
+            "10 aspmx3.googlemail.com."
+          ]
+        },
+        "notice": "Public DNS MX lookup at request time (Google Public DNS). DNS shows mail routing, not ownership.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve AAAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "8008e241-c6af-4748-abde-b197eb4031f5",
+      "endpoint_id": "3b3868fd-4afb-4e19-b752-3e8cbafe297b",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/AAAA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-aaaa",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-aaaa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "AAAA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "AAAA",
+          "records": [],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=AAAA"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve CAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "a9e5446a-6e05-4d8f-8799-14c7afe0d9c7",
+      "endpoint_id": "5ffaefac-d67f-4b14-bc77-0b222a172795",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/CAA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-caa",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-caa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "CAA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "CAA",
+          "records": [
+            {
+              "data": "0 issuewild \";\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"digicert.com\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 iodef \"mailto:security@mollie.com\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"comodoca.com\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"globalsign.com\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"sectigo.com\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"pki.goog\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            },
+            {
+              "data": "0 issue \"letsencrypt.org\"",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "CAA",
+              "type_code": 257
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=CAA"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve SOA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "b0ab7b1f-05f1-418d-b84c-62e7fa7f8522",
+      "endpoint_id": "69582a1f-54e9-4807-977e-507bb1c90bed",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/SOA",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-soa",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-soa.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "SOA records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "SOA",
+          "records": [
+            {
+              "data": "ns-cloud-a1.googledomains.com. cloud-dns-hostmaster.google.com. 1 21600 3600 259200 300",
+              "name": "mollie.com",
+              "ttl": 21600,
+              "type": "SOA",
+              "type_code": 6
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=SOA"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve TXT DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "d9a9af57-943b-4a7a-90b4-8c67aec98a2a",
+      "endpoint_id": "a705c31a-3fcd-4306-8af2-087d8c6f1da7",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/TXT",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-txt",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-txt.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "TXT records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "TXT",
+          "records": [
+            {
+              "data": "apple-domain-verification=5ZrXdcuNFQKnXx0Ko_aSz9FbEVrYSj1W-9JYN85NRK4",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "count-okta-S8nBtWGG1pNtjuy5S2p29",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "maven-domain-verification=ylhicbatys",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "remote-domain-verification=20639883-6d0d-4bbd-a3be-31540b29d9b1",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "verification_token=dbUO92W1f1zZpYvYRsw2OAhZG",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "google-site-verification=YI1XhqSOrKf_Pbt1kn92EAUAnm4NEsa32ffRwCdetRE",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "dtm-domain-verification=lySFENUbIP7tqJYSnorjZ92r-rDb_DcligerGlYI_Pw",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "hubspot-domain-verification=ZmVkNDhkZDItNGMzNi00NjBlLWI3MTQtZTUwMDFlM2IyOTQ0",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "linear-domain-verification=8hsjgy6huzte",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "docusign=ed21ba74-b9ba-4227-ad85-cfb18cb1b336",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "facebook-domain-verification=stc7mgdejvo0n3wodfxlzjtbx9rejl",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "jamf-site-verification=yG3KrFNVoQ2dtqMnkks1cQ",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "apple-domain-verification=P6t7ibCD57Ks8ySP",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "CKO=cli_xxru34e4v4kezi7xxkdb4vn6ti",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "postman-domain-verification=0b80cc4be8aa9d58e6d285836415c11ffc7ce3ef02305a3631b2eb0021d6567176cb723034c258a62ab1cec667a30ce2614d55300955864cc53c3b5ec2dfae78",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "1password-site-verification=VICI5I5G3ZFNHNZUMTFUOE7DXQ",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "atlassian-domain-verification=YtEfelC1r3jpY1Fgm+X+JHik3soTZgNbU6ixW/1fZvGwisa38VNcp3cvW0WsYPPj",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "v=spf1 ip4:81.93.166.36/31 ip4:156.70.89.90 ip4:168.203.46.68 include:_spf.google.com include:mail.zendesk.com -all",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "globalsign-domain-verification=Z6VpqooFO95Z21kE24ScZqLH_1b3sgiiLYYJ6YaCLW",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "docker-verification=be34279c-85d7-4673-9750-c256e923396f",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "pinterest-site-verification=fe7b5c9a049f83497c3533f769c78c30",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "google-site-verification=I3p5mTUmo64TgrFkQkFAH0eFxntdrQlRN7Nqz9plxSE",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "h1-domain-verification=HrQEnFVtSHxi5y2MKaxGCRH5KjgqeCPmLppaZHbqpYWgu7Fa",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "anthropic-domain-verification-364c3n=BtBFobfBk8EW4A88hucsd2KQp",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            },
+            {
+              "data": "digicert-domain-verification=_zyleeisypsp0kaldv2ci3eei7w1i0z4",
+              "name": "mollie.com",
+              "ttl": 300,
+              "type": "TXT",
+              "type_code": 16
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=TXT"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve NS DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "ef90fe5d-40df-4ff6-881d-924d9d0d9004",
+      "endpoint_id": "97fba4fc-8a76-453a-a6e5-2c92fe3005b7",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/NS",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-ns",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-ns.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "NS records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "NS",
+          "records": [
+            {
+              "data": "ns-cloud-a2.googledomains.com.",
+              "name": "mollie.com",
+              "ttl": 15282,
+              "type": "NS",
+              "type_code": 2
+            },
+            {
+              "data": "ns-cloud-a1.googledomains.com.",
+              "name": "mollie.com",
+              "ttl": 15282,
+              "type": "NS",
+              "type_code": 2
+            },
+            {
+              "data": "ns-cloud-a3.googledomains.com.",
+              "name": "mollie.com",
+              "ttl": 15282,
+              "type": "NS",
+              "type_code": 2
+            },
+            {
+              "data": "ns-cloud-a4.googledomains.com.",
+              "name": "mollie.com",
+              "ttl": 15282,
+              "type": "NS",
+              "type_code": 2
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=NS"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve CNAME DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "fb13be17-9e5c-41cd-8171-553086cde6d5",
+      "endpoint_id": "202c9e1b-5ce7-456c-860f-e9777d9a8722",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/CNAME",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-cname",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-cname.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "CNAME records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "CNAME",
+          "records": [],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=CNAME"
+      },
+      "jurisdiction": null
+    },
+    {
+      "description": "Retrieve MX DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+      "source_url": "https://about.rdap.org/",
+      "id": "fd982564-a226-4fdb-9083-dc7e9e75c1b3",
+      "endpoint_id": "e9dc9e0b-6799-49e6-938a-84ac234f090b",
+      "api_slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "method": "GET",
+      "path": "/dns/{domain}/MX",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "contract": {
+        "capability_slug": "domain.dns-mx",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "domain.dns_name",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "domain.dns_name": {
+            "in": "path",
+            "name": "domain"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "domain.dns-mx.result": {
+              "path": "$"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 1,
+      "sample_payload": {
+        "coverage": {
+          "complete": true,
+          "scope": "MX records for the exact DNS name mollie.com, including returned CNAME aliases"
+        },
+        "data": {
+          "dnssec_validated": true,
+          "domain": "mollie.com",
+          "exists": true,
+          "record_type": "MX",
+          "records": [
+            {
+              "data": "10 aspmx2.googlemail.com.",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "MX",
+              "type_code": 15
+            },
+            {
+              "data": "5 alt1.aspmx.l.google.com.",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "MX",
+              "type_code": 15
+            },
+            {
+              "data": "10 aspmx3.googlemail.com.",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "MX",
+              "type_code": 15
+            },
+            {
+              "data": "1 aspmx.l.google.com.",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "MX",
+              "type_code": 15
+            },
+            {
+              "data": "5 alt2.aspmx.l.google.com.",
+              "name": "mollie.com",
+              "ttl": 60,
+              "type": "MX",
+              "type_code": 15
+            }
+          ],
+          "response_code": 0
+        },
+        "notice": "Public DNS lookup at request time (Google Public DNS). Records describe this exact name and record type, not every record in a DNS zone, company identity, domain ownership, or service availability. Empty records do not establish that a service is unavailable.",
+        "source_url": "https://dns.google/resolve?name=mollie.com&type=MX"
+      },
+      "jurisdiction": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "domain.dns-a.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "A"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"a_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "A",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-aaaa.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "AAAA"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"aaaa_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "AAAA",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-caa.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "CAA"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"caa_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "CAA",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-cname.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "CNAME"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"cname_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-mx.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "MX"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"mx_records\",\"dns_records\",\"mail_servers\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "MX",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-ns.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "NS"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"ns_records\",\"dns_records\",\"nameservers\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "NS",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-soa.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "SOA"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"soa_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "SOA",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns-txt.result",
+      "value_schema": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "record_type": {
+                "enum": [
+                  "TXT"
+                ],
+                "type": "string"
+              },
+              "records": {
+                "$comment": "{\"apiosk_output_aliases_v1\":[\"txt_records\",\"dns_records\"]}",
+                "items": {
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ttl": {
+                      "minimum": 0,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "TXT",
+                        "CNAME"
+                      ],
+                      "type": "string"
+                    },
+                    "type_code": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "type_code",
+                    "ttl",
+                    "data"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "response_code": {
+                "enum": [
+                  0,
+                  3
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "domain",
+              "record_type",
+              "response_code",
+              "exists",
+              "records",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.dns_name",
+      "value_schema": {
+        "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+        "maxLength": 253,
+        "minLength": 4,
+        "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "domain.mail-dns.result",
+      "value_schema": {
+        "description": "Domain mail servers (DNS MX)",
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "description": "Scope",
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "accepts_mail": {
+                "type": "boolean"
+              },
+              "dnssec_validated": {
+                "type": "boolean"
+              },
+              "domain": {
+                "description": "Domain",
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              },
+              "mx": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "domain",
+              "exists",
+              "accepts_mail",
+              "mx",
+              "dnssec_validated"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "description": "Source limitations",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Exact upstream request URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "domain.name",
+      "value_schema": {
+        "description": "Registrable domain name in lowercase, e.g. example.nl",
+        "maxLength": 253,
+        "minLength": 4,
+        "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "domain.registration.result",
+      "value_schema": {
+        "description": "Domain registration date (RDAP)",
+        "properties": {
+          "coverage": {
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "scope": {
+                "description": "Scope",
+                "type": "string"
+              }
+            },
+            "required": [
+              "complete",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "properties": {
+              "domain": {
+                "description": "Domain",
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_changed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "nameservers": {
+                "type": "array"
+              },
+              "rdap_server": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registered_at": {
+                "description": "RFC 3339 registration event",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "registrar": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "statuses": {
+                "type": "array"
+              }
+            },
+            "required": [
+              "domain",
+              "statuses",
+              "nameservers"
+            ],
+            "type": "object"
+          },
+          "notice": {
+            "description": "Source limitations",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "Exact upstream request URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "notice",
+          "coverage",
+          "source_url"
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "slug": "domain-intelligence",
+      "name": "Domain Intelligence (RDAP & DNS)",
+      "block_reason": null,
+      "metadata": {
+        "provider_slug": "apiosk-basics",
+        "description": "Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date.",
+        "category": "security",
+        "tags": [
+          "A",
+          "AAAA",
+          "CAA",
+          "CNAME",
+          "DNS",
+          "domain",
+          "domain age",
+          "domein",
+          "fraud",
+          "leveranciercontrole",
+          "MX",
+          "NS",
+          "RDAP",
+          "registratiedatum",
+          "SOA",
+          "supplier check",
+          "TXT",
+          "WHOIS"
+        ],
+        "capability_descriptions": {
+          "domain.dns-a": "Retrieve A DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service ",
+          "domain.dns-aaaa": "Retrieve AAAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or servi",
+          "domain.dns-caa": "Retrieve CAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or servic",
+          "domain.dns-cname": "Retrieve CNAME DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or serv",
+          "domain.dns-mx": "Retrieve MX DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service",
+          "domain.dns-ns": "Retrieve NS DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service",
+          "domain.dns-soa": "Retrieve SOA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or servic",
+          "domain.dns-txt": "Retrieve TXT DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or servic",
+          "domain.mail-dns": "Domain mail servers (DNS MX); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries o",
+          "domain.registration": "Domain registration date (RDAP); Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registrie"
+        },
+        "endpoints": [
+          {
+            "endpoint_id": "19174ffb-ae5a-4d99-b016-b32a3d9691ef",
+            "description": "Domain mail servers (DNS MX)",
+            "method": "GET",
+            "path": "/dns/{domain}",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Registrable domain name in lowercase, e.g. example.nl",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "202c9e1b-5ce7-456c-860f-e9777d9a8722",
+            "description": "Retrieve CNAME DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/CNAME",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "3b3868fd-4afb-4e19-b752-3e8cbafe297b",
+            "description": "Retrieve AAAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/AAAA",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "4cb4b37e-460f-412a-98c6-a814cbec57e8",
+            "description": "Domain registration date (RDAP)",
+            "method": "GET",
+            "path": "/domain/{domain}",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Registrable domain name in lowercase, e.g. example.nl",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([a-z0-9-]{1,63}\\.)+[a-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "5ffaefac-d67f-4b14-bc77-0b222a172795",
+            "description": "Retrieve CAA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/CAA",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "68df9622-6965-4e82-a362-b3950e001759",
+            "description": "Retrieve A DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/A",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "69582a1f-54e9-4807-977e-507bb1c90bed",
+            "description": "Retrieve SOA DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/SOA",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "97fba4fc-8a76-453a-a6e5-2c92fe3005b7",
+            "description": "Retrieve NS DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/NS",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "a705c31a-3fcd-4306-8af2-087d8c6f1da7",
+            "description": "Retrieve TXT DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/TXT",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "e9dc9e0b-6799-49e6-938a-84ac234f090b",
+            "description": "Retrieve MX DNS records for one exact supplied name, including returned CNAME aliases, TTL values, DNS response status, DNSSEC indicator and source URL. One upstream query per purchase; not a whole-zone inventory, ownership check or service availability test.",
+            "method": "GET",
+            "path": "/dns/{domain}/MX",
+            "source_url": "https://about.rdap.org/",
+            "registration": {
+              "list_atomic": 85066,
+              "query_params": {
+                "properties": {
+                  "domain": {
+                    "description": "Exact DNS query name, including subdomains and underscore labels. Never derive a domain from a company name.",
+                    "maxLength": 253,
+                    "minLength": 4,
+                    "pattern": "^([A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?\\.)+[A-Za-z]{2,63}$",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "domain"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          }
+        ],
+        "identity_documented": true,
+        "endpoint_count": 10,
+        "described": 10,
+        "tagged": 10,
+        "categorized": 10,
+        "documented_inputs": 10,
+        "inferred": 0,
+        "unknown_provenance": 0,
+        "recent_successes": 20,
+        "recent_failures": 0,
+        "recent_unresolved": 2,
+        "coverage_notice": "Registration date, registrar and status of a domain from the authoritative registry (RDAP), and whether the domain receives e-mail (DNS MX). Supports .nl, .com, .net, .org, .uk, .fr, .app and .dev; registries of .de, .eu and .be publish no registration date."
+      }
+    }
+  ]
+}

@@ -360,7 +360,7 @@ mod tests {
             // The planner keeps its own endpoint and model; it is never called here.
             Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), "fixture".into(), MODEL.into()).with_conversation_replies(client)
         };
-        let declined = |reason: Option<&str>, discover: bool| ChatReply {
+        let declined = |reason: Option<&str>, discover: bool| ChatReply { output_bindings: vec![],
             message: "Waar kan ik je mee helpen?".into(), discover, intent: None, decline_reason: reason.map(str::to_owned),
         };
         let mut task = Task::default();

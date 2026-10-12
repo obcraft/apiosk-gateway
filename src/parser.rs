@@ -26,6 +26,7 @@ mod analysis_period;
 mod analysis_schema;
 mod explicit_request;
 pub(crate) mod plan_coverage;
+pub(crate) mod source_grounding;
 mod constraint_policy;
 pub mod conversation_reply;
 
@@ -367,7 +368,7 @@ fn requirement_rejection(reason: &str) -> bool {
     matches!(reason, "duplicate_goal" | "redundant_goal" | "missing_subject_goal" | "requirement_goal_count"
         | "missing_capability_goal" | "unmatched_capabilities" | "undiscovered_operation"
         | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input"
-        | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input")
+        | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input" | "missing_source_coverage")
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
@@ -391,6 +392,8 @@ pub struct ModelSelection {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChatReply {
+    #[serde(default)]
+    pub output_bindings: Vec<source_grounding::Binding>,
     pub message: String,
     pub discover: bool,
     #[serde(default)]
@@ -438,7 +441,8 @@ pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
 fn completion_budget(surface: &str) -> (u64, u64) {
     match surface {
         "capability-intake" | "capability-search" => (10, 20),
-        "chat" | "capability-plan" => (20, 30),
+        "chat" => (20, 30),
+        "capability-plan" => (40, 65),
         "clarification" => (6, 12),
         // A complete joined answer can exceed thirty seconds. Let one attempt
         // use the existing stage budget instead of restarting it halfway.
@@ -542,6 +546,8 @@ fn intent_reply_schema(surface: &str) -> Option<Value> {
 /// request. A syntactically valid open map still allowed invented fact names.
 fn capability_reply_schema(view: &Value, bindings: &Bindings, selected: &std::collections::BTreeSet<String>, matches_complete: bool, goal_limit: usize) -> Value {
     let mut schema = intent_reply_schema("chat").unwrap();
+    schema["properties"]["output_bindings"] = source_grounding::schema();
+    schema["required"].as_array_mut().unwrap().push(json!("output_bindings"));
     // Why there is no plan: only a genuine reason keeps a clarification.
     schema["properties"]["decline_reason"] = json!({"type":"string","enum":explicit_request::DECLINE_REASONS});
     schema["required"].as_array_mut().unwrap().push(json!("decline_reason"));
@@ -1350,6 +1356,7 @@ impl Parser {
         if let Some(intake) = intake {
             input.as_object_mut().unwrap().remove("source_groups");
             input["parsed_request"] = json!(intake.parsed_request);
+            input["source_fields"] = source_grounding::view(intake, catalog);
             input["source_matches"] = json!(intake.parsed_request.capabilities.iter().enumerate().filter_map(|(index,cap)| explicit_request::request_match(intake,index).map(|m|
                 json!({"parsed_capability":cap.slug,"subject_ref":cap.subject_id,"apiosk_operations":m.operations,
                     "apiosk_results":m.apiosk,
@@ -1395,6 +1402,7 @@ impl Parser {
                 None => serde_json::from_str(raw)?,
             };
             reply.validate()?;
+            if let Some(intake) = intake { source_grounding::validate(&reply.output_bindings, intake, catalog)?; }
             if let Some(intake) = intake.filter(|intake| !reply.discover && explicit_request::data_request(intake)) {
                 if !explicit_request::genuine_decline(reply.decline_reason.as_deref(), &reply.message) {
                     anyhow::ensure!(declined.swap(true, Ordering::Relaxed), explicit_request::DECLINED);
@@ -1415,12 +1423,21 @@ impl Parser {
                 intent.bind_constraint_inputs(literals.as_deref().unwrap_or(question), catalog)?;
                 if let Some(intake) = intake {
                     capability_binding::bind_source_requirements(intent, intake, catalog);
-                    plan_coverage::prepare(intent, intake, catalog)?;
+                    plan_coverage::prepare_grounded(intent, intake, catalog, &reply.output_bindings)?;
+                    for instruction in source_grounding::answer_instructions(&reply.output_bindings, intake) {
+                        if !intent.answer_operations.contains(&instruction) { intent.answer_operations.push(instruction); }
+                    }
                     if intake.parsed_request.subjects.is_empty() {
                         capability_binding::bind_ecb_target_literal(intent, question, catalog);
                     }
                 }
                 intent.validate(literals.as_deref().unwrap_or(question), task, catalog)?;
+                // New schema replies get coverage feedback inside the repair
+                // loop. Legacy replies without the mapping field retain their
+                // final engine coverage check before any quote is created.
+                if let Some(intake) = intake.filter(|_| serde_json::from_str::<Value>(raw).ok().is_some_and(|reply|reply.get("output_bindings").is_some())) {
+                    source_grounding::verify_plan(intent, task, intake, catalog, &reply.output_bindings)?;
+                }
             }
             Ok(reply)
         })
@@ -1573,6 +1590,8 @@ impl Parser {
                                             return Err(ModelFailure::Unsupported.into());
                                         }
                                         Err(error) => {
+                                            #[cfg(test)]
+                                            if surface == "capability-plan" { crate::live_ask_planning_tests::record_validation_failure(raw,&error); }
                                             if surface == "capability-intake" || surface == "capability-search" {
                                                 let reason = match error.to_string().as_str() {
                                                     "missing capability matches" => "missing_matches",
@@ -1589,7 +1608,8 @@ impl Parser {
                                                 }
                                             }
                                             if matches!(surface, "intent" | "chat" | "capability-plan") {
-                                                let reason = intent_validation_reason(&error);
+                                                let coverage = error.downcast_ref::<source_grounding::CoverageError>();
+                                                let reason = if coverage.is_some() { "missing_source_coverage" } else { intent_validation_reason(&error) };
                                                 if matches!(surface, "chat" | "capability-plan") && requirement_rejection(reason) {
                                                     rejected_requirement = Some(reason);
                                                 }
@@ -1597,6 +1617,9 @@ impl Parser {
                                                 if let Some(messages) = attempt_payload["messages"].as_array_mut() {
                                                     messages.push(json!({"role":"assistant","content":raw}));
                                                     messages.push(json!({"role":"user","content":intent_repair_message(surface, reason)}));
+                                                    if let Some(coverage) = coverage {
+                                                        messages.push(json!({"role":"user","content":format!("The proposed source plan does not yet support outputs {} or preserve supplied inputs {}. Recheck source_fields and the exact input definitions. Correct source selection, literal bindings and output_bindings using only admitted evidence. Do not remove requirements to pass this check. If an essential item is genuinely unavailable, explain it briefly with discover=false and intent=null.",json!(coverage.outputs),json!(coverage.inputs))}));
+                                                    }
                                                 }
                                             }
                                             if surface == "planning" {
@@ -1858,7 +1881,7 @@ mod tests {
         // planning so this diagnostic never pays for a second model answer.
         let reply=if let Some(path)=&saved_reply {
             let saved:Value=serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-            ChatReply {message:"Review the complete source price.".into(),discover:true,
+            ChatReply { output_bindings: vec![],message:"Review the complete source price.".into(),discover:true,
                 intent:Some(serde_json::from_value(saved["decoded_intent"].clone()).unwrap()),decline_reason:Some("none".into())}
         } else { engine.parser.chat_from_capabilities(question,None,&task,&catalog,&intake).await.unwrap() };
         let decoded_intent=serde_json::to_value(&reply.intent).unwrap();
@@ -1894,7 +1917,7 @@ mod tests {
         assert_eq!(completion_budget("multi-source-analysis"), (60, 65));
         assert_eq!(completion_budget("analysis"), (30, 65));
         assert_eq!(completion_budget("chat"), (20, 30));
-        assert_eq!(completion_budget("capability-plan"), (20, 30));
+        assert_eq!(completion_budget("capability-plan"), (40, 65));
         assert_eq!(completion_budget("capability-intake"), (10, 20));
         assert_eq!(completion_budget("capability-search"), (10, 20));
         assert_eq!(completion_budget("clarification"), (6, 12));
@@ -2632,7 +2655,7 @@ mod tests {
         let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen uitvoerbaar plan"));
+        assert!(reply.message.contains("geen volledig plan"));
         assert!(!reply.message.contains("2023") && !reply.message.contains("5210"));
         assert_eq!(calls.load(Ordering::Relaxed),2,"no free-form planning review is called after refusal");
         server.abort();
@@ -2651,7 +2674,7 @@ mod tests {
         let (parser,calls,server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen uitvoerbaar plan"));
+        assert!(reply.message.contains("geen volledig plan"));
         assert!(!reply.message.contains("2023") && !reply.message.contains("32006L0029") && !reply.message.contains("geen geldige uitvoeringscontracten"));
         assert_eq!(calls.load(Ordering::Relaxed),2,"no extra planning review or source call");
         server.abort();
@@ -2757,7 +2780,7 @@ mod tests {
             json!({"message":"Yes","discover":true,"approved":true})
         )
         .is_err());
-        assert!(ChatReply {
+        assert!(ChatReply { output_bindings: vec![],
             message: " ".into(),
             discover: false,
             intent: None,
@@ -2765,7 +2788,7 @@ mod tests {
         }
         .validate()
         .is_err());
-        assert!(ChatReply {
+        assert!(ChatReply { output_bindings: vec![],
             message: "x".repeat(3001),
             discover: false,
             intent: None,

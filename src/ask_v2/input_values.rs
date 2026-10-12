@@ -110,6 +110,18 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
     named.then(|| json!(subject.label))
 }
 
+/// Address components repeated in a complete address label still reach the
+/// documented geocoding input. This does not treat arbitrary search text as an
+/// enforced filter, and whole token boundaries keep Dam 1 distinct from Dam 10.
+pub(crate) fn address_component_preserved(field:&str,subject:&Subject,key:&str,value:&str,bound:&Value)->bool {
+    if field!="geo.input.q" || !matches!(subject.kind.as_str(),"address"|"location"|"place"|"property"|"building")
+        || !matches!(key,"address"|"street_address"|"street"|"street_name"|"house_number"|"city"|"woonplaats"|"place"|"location"|"municipality"|"postal_code"|"postcode"|"zip_code")
+        || literal(field,subject).as_ref()!=Some(bound) {return false;}
+    let normalized=|text:&str|text.to_lowercase().split(|ch:char|!ch.is_alphanumeric()).filter(|part|!part.is_empty()).collect::<Vec<_>>().join(" ");
+    let value=normalized(value);
+    !value.is_empty() && bound.as_str().is_some_and(|query|format!(" {} ",normalized(query)).contains(&format!(" {value} ")))
+}
+
 /// Read only bounded, valid aliases explicitly reviewed in the input schema.
 fn reviewed_input_aliases(schema:&Value)->Option<std::collections::BTreeSet<String>> {
     let comment=schema.get("$comment").and_then(Value::as_str).filter(|value|value.len()<=2048)?;
@@ -300,6 +312,21 @@ mod tests {
             assert_eq!(literal("geo.input.q", &address(label, identifiers)), Some(json!(expected)));
         }
         assert_eq!(literal("geo.input.q", &address("Damrak 1", json!({"city":"Amsterdam","woonplaats":"Utrecht"}))), None);
+    }
+
+    #[test]
+    fn repeated_address_components_remain_proven_without_accepting_other_filters() {
+        let subject=Subject {id:"s1".into(),label:"Dam 1, Amsterdam".into(),kind:"building".into(),
+            identifiers:serde_json::from_value(json!({"street_address":"Dam 1","city":"Amsterdam"})).unwrap()};
+        let query=json!("Dam 1, Amsterdam");
+        for (key,value) in [("street_address","Dam 1"),("city","Amsterdam")] {
+            assert!(address_component_preserved("geo.input.q",&subject,key,value,&query));
+        }
+        for (field,key,value,bound) in [("web.query","city","Amsterdam",query.clone()),
+            ("geo.input.q","country","Amsterdam",query.clone()),("geo.input.q","street_address","Dam 10",query.clone()),
+            ("geo.input.q","city","Amsterdam",json!("Dam 1")),("geo.input.q","revenue","Dam 1",query)] {
+            assert!(!address_component_preserved(field,&subject,key,value,&bound));
+        }
     }
 
 }

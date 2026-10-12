@@ -1,19 +1,21 @@
 [
   {
+    "cap_atomic": 206522,
     "id": "supplier",
-    "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
     "model_output": {
       "capabilities": [
         {
-          "confidence": 0.99,
-          "description": "Look up the registered company profile, including its legal name, registration details, and activities.",
+          "confidence": 0.98,
+          "description": "Retrieve the registered company profile.",
           "domain": "company",
           "inputs": [
             "company_name"
           ],
           "name": "Company profile",
           "outputs": [
-            "profile",
+            "legal_name",
+            "registration_details",
+            "activities",
             "source_links"
           ],
           "slug": "company.profile",
@@ -21,8 +23,8 @@
           "subject_id": "s1"
         },
         {
-          "confidence": 0.99,
-          "description": "Check for potential company sanctions matches and distinguish possible matches from confirmed identity matches.",
+          "confidence": 0.98,
+          "description": "Check for potential sanctions matches and distinguish possible matches from confirmed identity matches.",
           "domain": "compliance",
           "inputs": [
             "company_name"
@@ -59,9 +61,17 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Show the KVK legal name, registration details and registered activities for Coolblue B.V., with source links.",
-          "Report potential company sanctions matches returned by OpenSanctions with available source links and supporting identity details.",
-          "Keep possible matches separate from evidence-supported confirmed identity matches. Do not treat a candidate match or name similarity as confirmation, and state when the returned evidence cannot establish identity."
+          "Show the returned KVK legal name, registration identifiers, registered address, legal form and registration date when available, and registered activities with SBI codes.",
+          "Present potential OpenSanctions company matches with names, registration numbers, countries, datasets, scores and provider match flags when returned.",
+          "Compare returned candidate registration numbers and other identifying details with the KVK record. Keep possible matches separate from identity matches supported by corroborating identifiers; never treat a score or provider match flag alone as confirmed identity or a definitive sanctions verdict.",
+          "Include source citations for KVK and OpenSanctions and candidate record links using returned OpenSanctions entity identifiers. Do not present API documentation links as original underlying sanctions evidence.",
+          "Preserve missing values as unavailable and distinguish official source facts from the comparison analysis.",
+          "Company profile / legal_name: Use the returned legal name and registered name from the KVK profile.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / registration_details: Show KVK number, RSIN, main establishment identifier and registered address, plus legal form and founding date when returned. Some registration details may not be returned; missing values will remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / activities: Describe registered activities using SBI codes, their descriptions and the main-activity indicator.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Sanctions matches / potential_matches: Identify and explain returned candidates using entity identifiers, captions, names, scores, provider match flags and dataset membership. Candidates and match flags are screening signals, not confirmed identity or a definitive sanctions verdict. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Sanctions matches / confirmed_identity_matches: Compare candidate registration numbers, names and countries with the retrieved KVK identity evidence, keeping corroborated identifier matches separate from possible matches. Identity confirmation depends on sufficient corroborating identifiers being returned; scores and match flags alone cannot confirm it. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Sanctions matches / source_links: Use returned entity identifiers to link to the corresponding OpenSanctions candidate records. Candidate record links do not themselves verify identity or provide every underlying source document. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -93,40 +103,116 @@
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check KVK for Coolblue B.V.’s registered profile and OpenSanctions for potential matches, and show the total price first. The report will include source links and keep possible matches separate from any evidence-supported identity matches."
+      "message": "I’ll check KVK and OpenSanctions for Coolblue B.V. and show the total price first. I’ll include source links and keep potential matches separate; screening scores and provider match flags alone do not confirm identity.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f20629d7ec1591cf4",
+            "f80fd432e9e36e3a0"
+          ],
+          "interpretation": "Use the returned legal name and registered name from the KVK profile.",
+          "limitation": null,
+          "output": "legal_name",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc8d3ada4ed1f68f9",
+            "f51c933095cc5c4e4",
+            "f8042925d6c163eb0",
+            "f5e4cc0bf53cf06aa",
+            "f6b95d2901145cd4b",
+            "f6b95a4fa795dbe14"
+          ],
+          "interpretation": "Show KVK number, RSIN, main establishment identifier and registered address, plus legal form and founding date when returned.",
+          "limitation": "Some registration details may not be returned; missing values will remain unavailable.",
+          "output": "registration_details",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc5b20427ac5aa5d4",
+            "f5ddb82701daf22f3",
+            "fdab681a0f26227be"
+          ],
+          "interpretation": "Describe registered activities using SBI codes, their descriptions and the main-activity indicator.",
+          "limitation": null,
+          "output": "activities",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f0e5003400fb82e0a",
+            "f392d6521b09c9f63",
+            "f95aa0752a809a2dd",
+            "f596f2e57402267a4",
+            "f1b888a39147278a7",
+            "fde1a51e30970328d"
+          ],
+          "interpretation": "Identify and explain returned candidates using entity identifiers, captions, names, scores, provider match flags and dataset membership.",
+          "limitation": "Candidates and match flags are screening signals, not confirmed identity or a definitive sanctions verdict.",
+          "output": "potential_matches",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f30009d7b538c81c6",
+            "f95aa0752a809a2dd",
+            "f7c22189546d34bf2",
+            "f596f2e57402267a4",
+            "f1b888a39147278a7"
+          ],
+          "interpretation": "Compare candidate registration numbers, names and countries with the retrieved KVK identity evidence, keeping corroborated identifier matches separate from possible matches.",
+          "limitation": "Identity confirmation depends on sufficient corroborating identifiers being returned; scores and match flags alone cannot confirm it.",
+          "output": "confirmed_identity_matches",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f0e5003400fb82e0a"
+          ],
+          "interpretation": "Use returned entity identifiers to link to the corresponding OpenSanctions candidate records.",
+          "limitation": "Candidate record links do not themselves verify identity or provide every underlying source document.",
+          "output": "source_links",
+          "requirement": 1
+        }
+      ]
     },
-    "cap_atomic": 206522,
+    "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
     "steps": [
       {
-        "source": "kvk-dutch-business-register",
         "capability": "company_registry.search",
-        "method": "GET",
-        "path": "/api/v2/zoeken",
+        "dependencies": [],
         "inputs": {
           "naam": "Coolblue B.V."
         },
-        "subject": "Coolblue B.V.",
-        "dependencies": []
+        "method": "GET",
+        "path": "/api/v2/zoeken",
+        "source": "kvk-dutch-business-register",
+        "subject": "Coolblue B.V."
       },
       {
-        "source": "kvk-dutch-business-register",
         "capability": "company.registry-profile",
-        "method": "GET",
-        "path": "/api/v1/basisprofielen",
-        "inputs": null,
-        "subject": "Coolblue B.V.",
         "dependencies": [
           {
-            "step": 1,
-            "field": "company_registry.kvknummer"
+            "field": "company_registry.kvknummer",
+            "step": 1
           }
-        ]
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/api/v1/basisprofielen",
+        "source": "kvk-dutch-business-register",
+        "subject": "Coolblue B.V."
       },
       {
-        "source": "opensanctions",
         "capability": "company.sanctions-screen",
-        "method": "POST",
-        "path": "/match",
+        "dependencies": [
+          {
+            "field": "company.name",
+            "step": 2
+          }
+        ],
         "inputs": {
           "dataset": "default",
           "limit": 10,
@@ -141,28 +227,25 @@
             }
           }
         },
-        "subject": "Coolblue B.V.",
-        "dependencies": [
-          {
-            "step": 2,
-            "field": "company.name"
-          }
-        ]
+        "method": "POST",
+        "path": "/match",
+        "source": "opensanctions",
+        "subject": "Coolblue B.V."
       }
     ]
   },
   {
+    "cap_atomic": 54348,
     "id": "tenderned",
-    "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
     "model_output": {
       "capabilities": [
         {
-          "confidence": 0.97,
-          "description": "Find relevant public procurement notices for the specified service and country, distinguishing contract opportunities from notices of already awarded contracts.",
+          "confidence": 0.98,
+          "description": "Find and shortlist relevant public procurement notices, distinguishing contract opportunities from notices of awarded contracts.",
           "domain": "procurement",
           "inputs": [
             "country",
-            "query"
+            "sector"
           ],
           "name": "Procurement notices",
           "outputs": [
@@ -171,7 +254,7 @@
             "publication_type",
             "deadline",
             "source_link",
-            "notice_type"
+            "notice_status"
           ],
           "slug": "procurement.notices",
           "source_hint": "tenderned",
@@ -190,7 +273,7 @@
           "id": "s1",
           "identifiers": {
             "country": "Dutch",
-            "query": "cleaning services"
+            "sector": "cleaning services"
           },
           "label": "Dutch public procurement notices",
           "type": "notice"
@@ -202,9 +285,17 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Shortlist relevant Dutch cleaning-services notices from the returned TenderNed results, explaining their relevance without claiming exhaustive coverage beyond the single page of up to 20 notices.",
-          "For each shortlisted notice, present the buyer, scope, publication type, available deadline and source link; mark missing details as unavailable.",
-          "Distinguish contract opportunities from notices of already awarded contracts, and identify corrections or cancellations separately. Do not assume an announcement is still open merely from its publication type."
+          "Shortlist returned Dutch cleaning-service notices based on their titles and scope descriptions, explaining their relevance.",
+          "Present the buyer, scope, publication type, available deadline and source link for each shortlisted notice.",
+          "Distinguish contract opportunity notices from notices of already awarded contracts using publication types and codes. Identify corrections, cancellations and other notice types separately; do not assume every announcement is currently open.",
+          "Use returned deadlines and publication status to qualify opportunity availability, leaving missing details unavailable.",
+          "Disclose that results cover one page of up to 20 notices sorted by publication date, not an exhaustive search.",
+          "Procurement notices / buyer: Use the contracting authority name as the buyer when returned.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Procurement notices / scope: Summarize the returned contract description and notice title, and assess relevance to cleaning services. Scope is limited to the title and description returned, not full procurement documents. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Procurement notices / publication_type: Report the returned publication type and publication-code description when available.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Procurement notices / deadline: Report the closing deadline when returned, distinguishing a market-consultation deadline from a tender deadline. Missing deadlines remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Procurement notices / source_link: Provide the returned notice link.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Procurement notices / notice_status: Classify opportunity versus award notices from returned publication types and codes; use publication status, closing date and early-termination flag when returned to qualify availability and distinguish other notice categories. An opportunity notice does not by itself establish that bidding is still open; unclear or missing status information will be flagged. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -221,41 +312,109 @@
             "subject_ref": "s1",
             "values": {
               "company_intel.input.search": {
-                "ref": "s1.identifiers.query"
+                "ref": "s1.identifiers.sector"
               }
             }
           }
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check TenderNed’s available search and show the price first. The shortlist will distinguish contract opportunities from award notices and include the requested details where available, based on one page of up to 20 results."
+      "message": "I’ll check TenderNed and show the price first, then shortlist relevant cleaning-service notices and distinguish opportunities from award notices. The search covers one page of up to 20 notices; deadlines and other details will be included where returned.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f3586cb839e944f04"
+          ],
+          "interpretation": "Use the contracting authority name as the buyer when returned.",
+          "limitation": null,
+          "output": "buyer",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f5fe924199fc68267",
+            "f6c3317db4d54580f"
+          ],
+          "interpretation": "Summarize the returned contract description and notice title, and assess relevance to cleaning services.",
+          "limitation": "Scope is limited to the title and description returned, not full procurement documents.",
+          "output": "scope",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc7938c0403a43914",
+            "f2caaa1984e1417aa",
+            "f1d2a760d9adb1ad6",
+            "f398cf53551619b58"
+          ],
+          "interpretation": "Report the returned publication type and publication-code description when available.",
+          "limitation": null,
+          "output": "publication_type",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f37c65508fed9a5a5",
+            "faea2acae238056a2"
+          ],
+          "interpretation": "Report the closing deadline when returned, distinguishing a market-consultation deadline from a tender deadline.",
+          "limitation": "Missing deadlines remain unavailable.",
+          "output": "deadline",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fd51273486d7a53b6"
+          ],
+          "interpretation": "Provide the returned notice link.",
+          "limitation": null,
+          "output": "source_link",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc7938c0403a43914",
+            "f2caaa1984e1417aa",
+            "f1d2a760d9adb1ad6",
+            "f398cf53551619b58",
+            "f4bd06a1e97f34e1f",
+            "ff9146a91c00eff1e",
+            "f37c65508fed9a5a5",
+            "fca14c5fb987aee92"
+          ],
+          "interpretation": "Classify opportunity versus award notices from returned publication types and codes; use publication status, closing date and early-termination flag when returned to qualify availability and distinguish other notice categories.",
+          "limitation": "An opportunity notice does not by itself establish that bidding is still open; unclear or missing status information will be flagged.",
+          "output": "notice_status",
+          "requirement": 0
+        }
+      ]
     },
-    "cap_atomic": 54348,
+    "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
     "steps": [
       {
-        "source": "tenderned",
         "capability": "procurement.nl-public-contracts",
-        "method": "GET",
-        "path": "/v2/publicaties",
+        "dependencies": [],
         "inputs": {
           "page": 0,
           "search": "schoonmaak",
           "size": 20,
           "sort": "publicatieDatum,desc"
         },
-        "subject": "Dutch public procurement notices",
-        "dependencies": []
+        "method": "GET",
+        "path": "/v2/publicaties",
+        "source": "tenderned",
+        "subject": "Dutch public procurement notices"
       }
     ]
   },
   {
+    "cap_atomic": 54347,
     "id": "crunchbase",
-    "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
     "model_output": {
       "capabilities": [
         {
-          "confidence": 0.98,
-          "description": "Retrieve the company profile from the specified provider, including available founders, leaders, board members, funding rounds, and investors. Include returned dates and distinguish equity funding from debt.",
+          "confidence": 0.95,
+          "description": "Retrieve the company profile and summarize the available founders, leaders, board members, funding rounds, and investors, including returned dates and whether funding is equity or debt.",
           "domain": "company",
           "inputs": [
             "url"
@@ -298,9 +457,14 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Summarize the available founders, leaders, board members, funding rounds and investors from the specified Starbucks Crunchbase profile.",
-          "Include the dates returned and distinguish equity funding from debt using the returned evidence; identify any funding whose type is unspecified.",
-          "Note missing information and any indications that returned relationship cards are incomplete."
+          "Summarize the available founders, leaders, board members, funding rounds and investors from the specified Crunchbase company profile.",
+          "Identify leaders only where returned employee profiles or role information support that description.",
+          "Include returned dates with their stated precision and context; do not substitute the retrieval timestamp for event dates.",
+          "Distinguish equity funding from debt using returned funding-type labels; mark ambiguous or missing classifications as unavailable.",
+          "Note incomplete relationship cards and missing values without treating missing amounts as zero.",
+          "Company profile / leaders: Use employee cards and their identified, labeled property values to summarize people whose returned roles indicate leadership. Employee profiles do not necessarily identify every leader; leadership roles will be reported only when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / dates: Read date-valued profile and relationship properties according to their returned field identifiers and preserve any returned date precision. Dates will be included only where returned; missing dates will remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / funding_type: Use identified funding-round properties and their returned labels and values to distinguish debt from equity when the classification is supported. Missing or ambiguous funding labels cannot establish whether a round is equity or debt. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -327,32 +491,72 @@
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check the specified Crunchbase profile and show the price first. I’ll summarize the available people, funding rounds and investors, include returned dates, and distinguish equity from debt where the data supports it."
+      "message": "I’ll check the specified Crunchbase profile and show the price first. I’ll summarize the available people, funding rounds, investors and dates, distinguishing equity from debt where the returned funding labels support it and noting missing or incomplete information.",
+      "output_bindings": [
+        {
+          "fields": [
+            "fc72936190edada24",
+            "fd8b8b888101b4547",
+            "f8c914641d7c648c6",
+            "faad990fd87a09066"
+          ],
+          "interpretation": "Use employee cards and their identified, labeled property values to summarize people whose returned roles indicate leadership.",
+          "limitation": "Employee profiles do not necessarily identify every leader; leadership roles will be reported only when returned.",
+          "output": "leaders",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fa79b9672cc8c21bc",
+            "fb76d65327fec35aa",
+            "fd8b8b888101b4547",
+            "faad990fd87a09066",
+            "fa0e435db19d3aa88",
+            "f98b6ce8f04e9c22c"
+          ],
+          "interpretation": "Read date-valued profile and relationship properties according to their returned field identifiers and preserve any returned date precision.",
+          "limitation": "Dates will be included only where returned; missing dates will remain unavailable.",
+          "output": "dates",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc72936190edada24",
+            "fd8b8b888101b4547",
+            "f8c914641d7c648c6",
+            "faad990fd87a09066"
+          ],
+          "interpretation": "Use identified funding-round properties and their returned labels and values to distinguish debt from equity when the classification is supported.",
+          "limitation": "Missing or ambiguous funding labels cannot establish whether a round is equity or debt.",
+          "output": "funding_type",
+          "requirement": 0
+        }
+      ]
     },
-    "cap_atomic": 54347,
+    "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
     "steps": [
       {
-        "source": "apimarket-magicapi-crunchbase-bbcca0a6",
         "capability": "company.crunchbase-profile",
-        "method": "POST",
-        "path": "/mcp/cb_entity_get",
+        "dependencies": [],
         "inputs": {
           "entity_def_id": "organization",
           "entity_id": "starbucks"
         },
-        "subject": "Starbucks",
-        "dependencies": []
+        "method": "POST",
+        "path": "/mcp/cb_entity_get",
+        "source": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "subject": "Starbucks"
       }
     ]
   },
   {
+    "cap_atomic": 6900,
     "id": "glassdoor",
-    "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
     "model_output": {
       "capabilities": [
         {
           "confidence": 0.98,
-          "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+          "description": "Employer ratings and review information.",
           "domain": "company",
           "inputs": [
             "company_name"
@@ -365,8 +569,6 @@
             "work_life_balance_rating",
             "career_opportunities_rating",
             "management_rating",
-            "strongest_category",
-            "weakest_category",
             "profile_url"
           ],
           "slug": "company.employerRatings",
@@ -375,7 +577,7 @@
         },
         {
           "confidence": 0.98,
-          "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+          "description": "Employer ratings and review information.",
           "domain": "company",
           "inputs": [
             "company_name"
@@ -388,8 +590,6 @@
             "work_life_balance_rating",
             "career_opportunities_rating",
             "management_rating",
-            "strongest_category",
-            "weakest_category",
             "profile_url"
           ],
           "slug": "company.employerRatings",
@@ -400,6 +600,7 @@
       "deliverable": {
         "format": "chat",
         "operations": [
+          "analyze",
           "compare"
         ]
       },
@@ -428,11 +629,16 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Select the matching Glassdoor employer profiles for Starbucks and McDonalds, distinguishing company-wide employers from individual branch locations.",
-          "Compare the returned overall employer ratings and review counts side by side.",
-          "Compare available category ratings for pay, work-life balance, career opportunities and management; explicitly note any requested category not returned.",
-          "Explain each employer's strongest and weakest returned scores, including ties, without inferring unavailable scores or unsupported reasons.",
-          "Include both matching Glassdoor profile links."
+          "Select the matching Starbucks and McDonalds employer profiles from returned candidates; disclose any uncertainty in matching.",
+          "Compare overall employer ratings, review counts, and available ratings for compensation and benefits, work-life balance, career opportunities, and senior management in a side-by-side table.",
+          "Identify each employer’s strongest and weakest scores among the requested categories actually returned, including ties. Explain relative strengths and weaknesses from the scores without inventing causes.",
+          "Include both Glassdoor employer profile links. Mark missing values as unavailable and explain that pay covers compensation and benefits, while management covers senior management.",
+          "Employer ratings / overall_rating: The returned employer rating supplies the overall Glassdoor rating. Used when returned; missing ratings remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer ratings / pay_rating: The compensation and benefits category supplies the requested pay comparison and contributes to strongest and weakest category rankings. This covers compensation and benefits, not pay alone, and is used when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer ratings / management_rating: The senior management category supplies the management comparison and contributes to strongest and weakest category rankings. This measures senior management, not individual branch managers, and is used when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer ratings / profile_url: The company link supplies the Glassdoor employer profile URL. Included when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer ratings / work_life_balance_rating: Compare this category with the returned compensation and benefits, career opportunities, and senior management ratings to determine the strongest and weakest requested categories. Rankings use only returned requested category ratings. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Employer ratings / career_opportunities_rating: Use the career opportunities score in the comparison and strongest and weakest category analysis. Used when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -478,42 +684,152 @@
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check the Glassdoor employer profiles for Starbucks and McDonalds and show you the total price first. The comparison will include overall ratings, review counts, available category scores, strongest and weakest scores, and both profile links."
+      "message": "I’ll check the available Glassdoor data for both companies and show the total price first. I’ll compare returned ratings and review counts, highlight each company’s strongest and weakest categories, and include profile links. Pay reflects compensation and benefits; management reflects senior management.",
+      "output_bindings": [
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "The returned employer rating supplies the overall Glassdoor rating.",
+          "limitation": "Used when returned; missing ratings remain unavailable.",
+          "output": "overall_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fcf8a14335aef5b6e"
+          ],
+          "interpretation": "The compensation and benefits category supplies the requested pay comparison and contributes to strongest and weakest category rankings.",
+          "limitation": "This covers compensation and benefits, not pay alone, and is used when returned.",
+          "output": "pay_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f7101cc166e01af1c"
+          ],
+          "interpretation": "The senior management category supplies the management comparison and contributes to strongest and weakest category rankings.",
+          "limitation": "This measures senior management, not individual branch managers, and is used when returned.",
+          "output": "management_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fb998d13e1ba50dc9"
+          ],
+          "interpretation": "The company link supplies the Glassdoor employer profile URL.",
+          "limitation": "Included when returned.",
+          "output": "profile_url",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "The returned employer rating supplies the overall Glassdoor rating.",
+          "limitation": "Used when returned; missing ratings remain unavailable.",
+          "output": "overall_rating",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fcf8a14335aef5b6e"
+          ],
+          "interpretation": "The compensation and benefits category supplies the requested pay comparison and contributes to strongest and weakest category rankings.",
+          "limitation": "This covers compensation and benefits, not pay alone, and is used when returned.",
+          "output": "pay_rating",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f7101cc166e01af1c"
+          ],
+          "interpretation": "The senior management category supplies the management comparison and contributes to strongest and weakest category rankings.",
+          "limitation": "This measures senior management, not individual branch managers, and is used when returned.",
+          "output": "management_rating",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb998d13e1ba50dc9"
+          ],
+          "interpretation": "The company link supplies the Glassdoor employer profile URL.",
+          "limitation": "Included when returned.",
+          "output": "profile_url",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb6d53e8b5ddf1e98"
+          ],
+          "interpretation": "Compare this category with the returned compensation and benefits, career opportunities, and senior management ratings to determine the strongest and weakest requested categories.",
+          "limitation": "Rankings use only returned requested category ratings.",
+          "output": "work_life_balance_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f5a1a83884454bb80"
+          ],
+          "interpretation": "Use the career opportunities score in the comparison and strongest and weakest category analysis.",
+          "limitation": "Used when returned.",
+          "output": "career_opportunities_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fb6d53e8b5ddf1e98"
+          ],
+          "interpretation": "Compare this category with the returned compensation and benefits, career opportunities, and senior management ratings to determine the strongest and weakest requested categories.",
+          "limitation": "Rankings use only returned requested category ratings.",
+          "output": "work_life_balance_rating",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f5a1a83884454bb80"
+          ],
+          "interpretation": "Use the career opportunities score in the comparison and strongest and weakest category analysis.",
+          "limitation": "Used when returned.",
+          "output": "career_opportunities_rating",
+          "requirement": 1
+        }
+      ]
     },
-    "cap_atomic": 6900,
+    "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
     "steps": [
       {
-        "source": "openwebninja",
         "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
-        "method": "GET",
-        "path": "/realtime-glassdoor-data/company-search",
+        "dependencies": [],
         "inputs": {
           "query": "Starbucks"
         },
-        "subject": "Starbucks",
-        "dependencies": []
-      },
-      {
-        "source": "openwebninja",
-        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
         "method": "GET",
         "path": "/realtime-glassdoor-data/company-search",
+        "source": "openwebninja",
+        "subject": "Starbucks"
+      },
+      {
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "dependencies": [],
         "inputs": {
           "query": "McDonalds"
         },
-        "subject": "McDonalds",
-        "dependencies": []
+        "method": "GET",
+        "path": "/realtime-glassdoor-data/company-search",
+        "source": "openwebninja",
+        "subject": "McDonalds"
       }
     ]
   },
   {
+    "cap_atomic": 217392,
     "id": "ownership",
-    "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
     "model_output": {
       "capabilities": [
         {
           "confidence": 0.99,
-          "description": "Retrieve the company profile from the explicitly requested provider.",
+          "description": "Retrieve the company profile from the specified provider.",
           "domain": "company",
           "inputs": [
             "company_name"
@@ -527,17 +843,17 @@
           "subject_id": "s1"
         },
         {
-          "confidence": 0.98,
-          "description": "Retrieve current and resigned director appointments from the explicitly requested provider, distinguishing appointment status and including appointment dates.",
+          "confidence": 0.99,
+          "description": "Retrieve current and resigned director appointments, including appointment dates and status, from the specified provider.",
           "domain": "company",
           "inputs": [
             "company_name"
           ],
-          "name": "Company directors",
+          "name": "Directors",
           "outputs": [
             "directors",
-            "appointment_status",
-            "appointment_dates"
+            "appointment_dates",
+            "appointment_status"
           ],
           "slug": "company.directors",
           "source_hint": "companies house",
@@ -545,7 +861,7 @@
         },
         {
           "confidence": 0.98,
-          "description": "Retrieve persons with significant control and their recorded nature of control from the explicitly requested provider.",
+          "description": "Retrieve persons with significant control, including recorded nature of control and relevant dates, from the specified provider.",
           "domain": "company",
           "inputs": [
             "company_name"
@@ -553,7 +869,8 @@
           "name": "Persons with significant control",
           "outputs": [
             "persons_with_significant_control",
-            "nature_of_control"
+            "nature_of_control",
+            "appointment_dates"
           ],
           "slug": "company.personsWithSignificantControl",
           "source_hint": "companies house",
@@ -583,10 +900,14 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Summarize the Companies House profile for MONZO BANK LIMITED.",
-          "Identify current directors and summarize who runs the company based on the returned director records; include appointment dates and distinguish active from resigned appointments, including resignation dates where recorded.",
-          "Summarize the recorded persons with significant control and their nature of control, distinguishing current from ceased control where recorded.",
-          "Preserve source pagination and total counts, and disclose any limitations in the returned coverage."
+          "Summarize the Companies House profile and explain who runs and controls MONZO BANK LIMITED using returned official records.",
+          "Filter officers by director role, present appointment dates, and distinguish active appointments from resigned appointments using recorded resignation dates.",
+          "Identify returned persons with significant control and explain their recorded nature of control, notification dates and cessation dates where available. Do not describe PSC notification dates as director appointment dates.",
+          "Preserve missing values and disclose pagination or incomplete returned coverage; do not imply the returned records are exhaustive unless supported.",
+          "Directors / directors: Select director roles from the company officer records and identify directors by name, separating resigned appointments using resignation dates.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Directors / appointment_dates: Use recorded appointment dates, or an appointed-before bound where returned, for the selected directors. Dates not returned will remain unavailable; an appointed-before date is a bound, not an exact appointment date. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Directors / appointment_status: For director-role records, distinguish resigned appointments by a recorded resignation date and active appointments by the absence of a resignation date under the register's appointment convention.  Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Persons with significant control / appointment_dates: Present PSC notification and cessation dates where returned as the relevant recorded control dates. PSC notification dates are not director appointment dates or necessarily the date control began. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -626,74 +947,117 @@
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check Companies House for MONZO BANK LIMITED’s profile, director appointments and persons with significant control, and show the total price first. The summary will distinguish active from resigned appointments and include appointment dates and the recorded nature of control."
+      "message": "I’ll check Companies House for MONZO BANK LIMITED’s profile, directors and significant-control records, and show the price first. I’ll distinguish active from resigned appointments; PSC dates will be labelled as notification dates, not director appointment dates.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f7a4a097ea612d729",
+            "f4b4ed0b8ccaf221a",
+            "f9b4da0cb35c769a3"
+          ],
+          "interpretation": "Select director roles from the company officer records and identify directors by name, separating resigned appointments using resignation dates.",
+          "limitation": null,
+          "output": "directors",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fb19b748cab16961c",
+            "f46e3dd907df43688"
+          ],
+          "interpretation": "Use recorded appointment dates, or an appointed-before bound where returned, for the selected directors.",
+          "limitation": "Dates not returned will remain unavailable; an appointed-before date is a bound, not an exact appointment date.",
+          "output": "appointment_dates",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f4b4ed0b8ccaf221a",
+            "f9b4da0cb35c769a3"
+          ],
+          "interpretation": "For director-role records, distinguish resigned appointments by a recorded resignation date and active appointments by the absence of a resignation date under the register's appointment convention.",
+          "limitation": null,
+          "output": "appointment_status",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "fd84fa022c1e2a0e4",
+            "f0acc9cdaa8333b37"
+          ],
+          "interpretation": "Present PSC notification and cessation dates where returned as the relevant recorded control dates.",
+          "limitation": "PSC notification dates are not director appointment dates or necessarily the date control began.",
+          "output": "appointment_dates",
+          "requirement": 2
+        }
+      ]
     },
-    "cap_atomic": 217392,
+    "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
     "steps": [
       {
-        "source": "companies-house",
         "capability": "company.uk-registry-search",
-        "method": "GET",
-        "path": "/search/companies",
+        "dependencies": [],
         "inputs": {
           "items_per_page": 10,
           "q": "MONZO BANK LIMITED"
         },
-        "subject": "MONZO BANK LIMITED",
-        "dependencies": []
+        "method": "GET",
+        "path": "/search/companies",
+        "source": "companies-house",
+        "subject": "MONZO BANK LIMITED"
       },
       {
-        "source": "companies-house",
         "capability": "company.registry-profile",
+        "dependencies": [
+          {
+            "field": "company.registration.gb.companies_house",
+            "step": 1
+          }
+        ],
+        "inputs": null,
         "method": "GET",
         "path": "/company",
-        "inputs": null,
-        "subject": "MONZO BANK LIMITED",
-        "dependencies": [
-          {
-            "step": 1,
-            "field": "company.registration.gb.companies_house"
-          }
-        ]
+        "source": "companies-house",
+        "subject": "MONZO BANK LIMITED"
       },
       {
-        "source": "companies-house",
         "capability": "company.officers",
+        "dependencies": [
+          {
+            "field": "company.registration.gb.companies_house",
+            "step": 2
+          }
+        ],
+        "inputs": null,
         "method": "GET",
         "path": "/company/{company_number}/officers",
-        "inputs": null,
-        "subject": "MONZO BANK LIMITED",
-        "dependencies": [
-          {
-            "step": 2,
-            "field": "company.registration.gb.companies_house"
-          }
-        ]
+        "source": "companies-house",
+        "subject": "MONZO BANK LIMITED"
       },
       {
-        "source": "companies-house",
         "capability": "company.significant-control",
-        "method": "GET",
-        "path": "/company/{company_number}/persons-with-significant-control",
-        "inputs": null,
-        "subject": "MONZO BANK LIMITED",
         "dependencies": [
           {
-            "step": 2,
-            "field": "company.registration.gb.companies_house"
+            "field": "company.registration.gb.companies_house",
+            "step": 2
           }
-        ]
+        ],
+        "inputs": null,
+        "method": "GET",
+        "path": "/company/{company_number}/persons-with-significant-control",
+        "source": "companies-house",
+        "subject": "MONZO BANK LIMITED"
       }
     ]
   },
   {
+    "cap_atomic": 54348,
     "id": "vehicle",
-    "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
     "model_output": {
       "capabilities": [
         {
-          "confidence": 0.99,
-          "description": "Retrieve the official vehicle registration and explain which returned fields need attention before buying, marking missing fields as unavailable.",
+          "confidence": 0.98,
+          "description": "Official vehicle registration details.",
           "domain": "vehicle",
           "inputs": [
             "license_plate",
@@ -707,9 +1071,7 @@
             "apk_expiry",
             "odometer_judgement",
             "export_indicator",
-            "recall_indicator",
-            "purchase_attention",
-            "unavailable_fields"
+            "recall_indicator"
           ],
           "slug": "vehicle.registration",
           "source_hint": "rdw",
@@ -740,9 +1102,12 @@
       "discover": true,
       "intent": {
         "answer_operations": [
-          "Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement, and registered export and recall indicators from the returned official RDW record.",
-          "Explain which returned fields need attention before buying, clearly distinguishing registered facts from purchase-related interpretation.",
-          "Mark missing requested fields as unavailable; do not infer absent indicators or treat missing values as reassurance."
+          "Show the make, registered model/trade name, first registration date, APK inspection expiry, recorded odometer judgement, and registered export and outstanding recall indicators.",
+          "Explain which returned values need attention before buying, distinguishing recorded register facts from analysis; do not treat the odometer judgement as proof of actual mileage or the recall indicator as a full recall history.",
+          "Mark missing fields as unavailable, never infer negative indicators from missing values.",
+          "Vehicle registration / model: Use the returned registered commercial/trade name as the model designation. RDW’s trade name may not specify the exact trim; used only when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Vehicle registration / first_registration_date: Use the date of first admission as the vehicle’s first registration date, not the current registration or first Dutch registration date. Used when returned; this can differ from the first registration in the Netherlands. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Vehicle registration / export_indicator: Report the returned RDW export indicator as the registered export status. Used only when returned; a missing indicator is unavailable, not a negative export status. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
         ],
         "goals": [
           {
@@ -766,20 +1131,50 @@
         ],
         "unresolved_references": []
       },
-      "message": "I’ll check the official RDW registration for RZ874R and show you the price first. I’ll highlight fields that need attention before buying and mark any missing fields as unavailable."
+      "message": "I’ll check the official RDW record for RZ874R and show the price first. I’ll explain any buyer-relevant warning signs and mark missing fields as unavailable; the model will use RDW’s registered trade name.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f82c0b898267eadf4"
+          ],
+          "interpretation": "Use the returned registered commercial/trade name as the model designation.",
+          "limitation": "RDW’s trade name may not specify the exact trim; used only when returned.",
+          "output": "model",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f89268271f21a4df8",
+            "f3a1a8bf110597223"
+          ],
+          "interpretation": "Use the date of first admission as the vehicle’s first registration date, not the current registration or first Dutch registration date.",
+          "limitation": "Used when returned; this can differ from the first registration in the Netherlands.",
+          "output": "first_registration_date",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f20c5b5f09e939d71"
+          ],
+          "interpretation": "Report the returned RDW export indicator as the registered export status.",
+          "limitation": "Used only when returned; a missing indicator is unavailable, not a negative export status.",
+          "output": "export_indicator",
+          "requirement": 0
+        }
+      ]
     },
-    "cap_atomic": 54348,
+    "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
     "steps": [
       {
-        "source": "rdw",
         "capability": "vehicle.technical-profile",
-        "method": "GET",
-        "path": "/resource/m9d7-ebf2.json",
+        "dependencies": [],
         "inputs": {
           "kenteken": "RZ874R"
         },
-        "subject": "Dutch plate RZ874R",
-        "dependencies": []
+        "method": "GET",
+        "path": "/resource/m9d7-ebf2.json",
+        "source": "rdw",
+        "subject": "Dutch plate RZ874R"
       }
     ]
   }

@@ -937,7 +937,7 @@ struct PublishedStarter {
     id: String,
     question: String,
     model_output: Value,
-    planner_reply: Value,
+    planner_reply: Option<Value>,
     cap_atomic: i64,
     steps: Vec<PublishedStep>,
 }
@@ -972,11 +972,27 @@ async fn published_homepage_questions_preserve_complete_priced_plans() {
     // model fixtures, and a question may need several subjects or dependencies.
     let cases: Vec<PublishedStarter> =
         serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
-    assert_eq!(cases.len(), 6);
-    let snapshot: Snapshot = serde_json::from_str(include_str!(
+    assert_recorded_plans(cases).await;
+}
+
+#[tokio::test]
+async fn unpublished_multilingual_questions_preserve_complete_priced_plans() {
+    let cases:Vec<PublishedStarter>=serde_json::from_str(include_str!("../tests/fixtures/general-planning.json")).unwrap();
+    assert_recorded_plans(cases).await;
+}
+
+async fn assert_recorded_plans(cases:Vec<PublishedStarter>) {
+    assert!(!cases.is_empty(), "publish verified examples without padding the list");
+    let mut snapshot: Snapshot = serde_json::from_str(include_str!(
         "../tests/fixtures/homepage-starters/catalog.json"
     ))
     .unwrap();
+    for raw in [include_str!("../tests/fixtures/general-planning-domain-catalog.json")] {
+        let additional:Snapshot=serde_json::from_str(raw).unwrap();
+        for service in additional.services {if !snapshot.services.iter().any(|existing|existing.id==service.id) {snapshot.services.push(service);}}
+        for fact in additional.vocabulary {if !snapshot.vocabulary.iter().any(|existing|existing.slug==fact.slug) {snapshot.vocabulary.push(fact);}}
+        snapshot.known_sources.extend(additional.known_sources);
+    }
     let catalog = Catalog::build(snapshot);
     assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
 
@@ -985,7 +1001,7 @@ async fn published_homepage_questions_preserve_complete_priced_plans() {
         let model = recorded_model_fixture(
             &case.question,
             case.model_output.clone(),
-            Some(case.planner_reply),
+            case.planner_reply,
         )
         .await;
         let mut task = Task::default();
@@ -1021,12 +1037,23 @@ async fn published_homepage_questions_preserve_complete_priced_plans() {
             "{id}: at most one declared fallback model response; no retry loop"
         );
         task.record_turn(&case.question, None);
+        task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake,&catalog,reply.output_bindings);
         task.capability_intake = Some(intake);
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let resolution = crate::resolver::resolve(&catalog, &task, &intent);
         let Resolution::Plan(plan) = resolution else {
             panic!("{id}: expected a complete plan, got {resolution:?}")
         };
+        // The resolver can price a route whose contracts do not cover the
+        // requested fields. Match the final Engine::plan refusal checks too.
+        assert_eq!(
+            crate::parser::plan_coverage::uncovered_inputs(&task, &catalog, &intent, &plan),
+            Vec::<String>::new(), "{id}: all supplied inputs must survive planning"
+        );
+        assert_eq!(
+            crate::parser::plan_coverage::uncovered_outputs(&task, &catalog, &intent, &plan),
+            Vec::<String>::new(), "{id}: every requested field needs confirmed source coverage"
+        );
         assert_eq!(
             plan.steps.len(),
             case.steps.len(),
@@ -1099,4 +1126,27 @@ async fn published_homepage_questions_preserve_complete_priced_plans() {
             "{id}: planning must never rewrite or reduce the interpreted request"
         );
     }
+}
+
+#[tokio::test]
+async fn unsupported_glassdoor_comparison_cannot_be_published_as_a_priced_example() {
+    let case: PublishedStarter = serde_json::from_str(include_str!(
+        "../tests/fixtures/unsupported-glassdoor-starter.json"
+    )).unwrap();
+    let catalog = Catalog::build(serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters/catalog.json"
+    )).unwrap());
+    let model = model_fixture(&case.question, case.model_output).await;
+    let intake = model.parser.ask_intake(&case.question, &Task::default(), &catalog, None).await.unwrap();
+    let (engine, _, server) = planner_engine_fixture(case.planner_reply.unwrap()).await;
+    let quote = engine.guest_plan(&case.question, intake, &catalog).await.unwrap();
+    assert_eq!(quote["status"], "needs_input");
+    assert!(quote["preview_token"].is_null());
+    assert!(quote["total_atomic"].is_null());
+    let message = quote["message"].as_str().unwrap();
+    assert!(message.starts_with("I couldn’t confirm source coverage for:"), "{message}");
+    assert_eq!(message.matches("overall rating").count(), 1, "{message}");
+    assert!(message.contains("Nothing was run or charged."));
+    assert!(message.chars().count() < 250, "{message}");
+    server.abort();
 }

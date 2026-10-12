@@ -51,6 +51,7 @@ Vanuit deze directory, met Rust/Cargo en Node geïnstalleerd en de App/MCP-depen
 
 ```sh
 node scripts/test-homepage-starters.mjs
+node scripts/test-homepage-starters.mjs --check-only --live --report /tmp/homepage-starters-live.json
 cargo test --workspace --offline
 cargo clippy --workspace --all-targets --offline -- -D warnings
 node scripts/check-source-reuse.mjs
@@ -60,7 +61,13 @@ node scripts/test-integration.mjs
 cargo build --release --offline
 ```
 
-De homepagecontrole vergelijkt alle zes gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test de echte intake, bronselectie, invoerbinding en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Modelinterpretatie gebruikt een lokale HTTP-fixture; er zijn geen externe modelaanroepen, bronaankopen of betalingen. De lokale releaserunner `scripts/test-release-gate.mjs` voert deze controle eerst uit.
+De homepagecontrole vergelijkt alle gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test intake, bronselectie, invoerbinding, dekking van alle gevraagde velden en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Zonder `--live` gebruikt modelinterpretatie een lokale HTTP-fixture.
+
+Voor publicatie is ook `--live` vereist: iedere exacte vraag moet via de productie-preview een volledig geprijsd plan opleveren. Herstel of verwijder vragen die niet slagen; vul de lijst niet aan om een vast aantal te halen. Rol bij wijzigingen aan beide repositories eerst de Gateway uit en controleer daarna de preview voordat de App wordt gepubliceerd. De releaserunner `scripts/test-release-gate.mjs` voert deze live controle eerst uit. De preview maakt geen taak aan, koopt geen brondata en wordt nooit goedgekeurd. Rapporten bewaren geen goedkeuringstokens.
+
+De algemene planner koppelt gevraagde begrippen aan exacte velden uit toegelaten uitvoercontracten en gevalideerde, geëxtraheerde bronvoorbeelden. De AI ziet velddefinities, geen voorbeeldwaarden als actueel antwoord. Iedere koppeling blijft gebonden aan aanvraag, catalogusversie, onderwerp en daadwerkelijk gekozen endpoint. Onvolledige modelplannen krijgen binnen de bestaande herstelronde feedback over ontbrekende uitvoer of verloren invoer. Beperkingen worden vóór goedkeuring getoond; de engine blijft de volledige dekking controleren vóór een prijsvoorstel.
+
+`docs/evidence/general-planning-20261012.json` bevat twaalf live modelcontroles met de lokaal aangepaste Gateway en de productiecatalogus: de zes oorspronkelijke homepagevragen plus zes nieuwe vragen in Nederlands en Engels. De bijbehorende modelantwoorden worden offline opnieuw door bronselectie, dekking en prijsberekening gehaald. Dit bewijst planning met de lokale wijziging, niet productie-uitrol of betaalde uitvoering.
 
 De integratierunner start en stopt zelf een tijdelijke PGlite-database op loopbackpoort 54330. Providers, model en gebruikersidentiteiten in die test zijn expliciete fixtures. De test gebruikt echte SQLx-queries, migraties, rollen, HTTP-authenticatie en de echte MCP-adapter. Hij doet geen externe betalingen. `PGTEST_PORT` kan de lokale testpoort aanpassen.
 

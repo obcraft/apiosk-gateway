@@ -164,6 +164,8 @@ pub(super) fn dns_record_types(text: &str) -> u16 {
     }
     if tokens.iter().any(|word| word.eq_ignore_ascii_case("dns"))
         && tokens.iter().any(|word| word.eq_ignore_ascii_case("mail")) { types |= 8; }
+    if tokens.windows(2).any(|pair|pair[0].eq_ignore_ascii_case("mail")
+        && matches!(pair[1].to_ascii_lowercase().as_str(),"server"|"servers")) { types |= 8; }
     types
 }
 
@@ -505,6 +507,13 @@ impl Request {
                 .any(|word| candidate.topic_scope.contains(word)))
             || (self.anchors.is_empty() && self.outputs.iter()
                 .filter(|word| candidate.topic_scope.contains(*word)).count() >= 2)
+            // A broad parsed name such as "company people" must not hide a
+            // company-profile operation whose own description explicitly
+            // names several requested relationship fields. Keep the domain,
+            // asset and specific-operation checks above; provider-wide prose
+            // and arbitrary generated routes cannot supply this evidence.
+            || (!candidate.contract.is_empty() && candidate.namespace.contains(&self.domain)
+                && self.outputs.iter().filter(|word|core(word) && candidate.topic_scope.contains(*word)).count() >= 2)
     }
 
     fn valuation_matches(&self, candidate: &Document) -> bool {
@@ -776,6 +785,18 @@ mod tests {
             assert!(request.passes(&wanted, &operation("company.registry-profile", "Retrieve a company's official registered profile."), &crowded_index(), false));
             assert!(!request.profile_scope_matches(&operation("person.profile", "Retrieve one person's professional profile.")));
             assert!(!request.profile_scope_matches(&operation("company.employee-profile", "Retrieve one company employee profile.")));
+        }
+    }
+
+    #[test]
+    fn split_company_people_and_funding_requirements_find_the_shared_profile() {
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
+        let mut parsed: crate::capability_intake::ParsedRequest = serde_json::from_str(include_str!("../../../tests/fixtures/crunchbase/people-funding-intake.json")).unwrap();
+        for name in ["Company people", "Company leadership", "Company relationships"] {
+            parsed.capabilities[0].name = name.into();
+            let matches = super::super::search(&parsed,&catalog);
+            assert!(matches.iter().all(|found|found.operations.contains("company.crunchbase-profile")),"{name}: {matches:?}");
+            assert!(!matches[0].operations.contains("person.crunchbase-profile"),"company relationships do not request individual profile retrievals");
         }
     }
 

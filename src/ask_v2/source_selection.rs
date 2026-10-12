@@ -368,7 +368,18 @@ impl Context {
                 ]),
             });
         }
-        Ok(Some(crate::parser::ChatReply {
+        // Exact selections still need semantic matching when the user's
+        // wording differs from the selected source fields. Let the bounded
+        // planner map those meanings before the final coverage check.
+        let mut draft=crate::state::Task {capability_intake:Some(intake),source_selection:Some(self.clone()),..Default::default()};
+        draft.record_turn(&self.question,None);
+        let mut checked=intent.clone();
+        crate::engine::bind_subjects(&mut draft,catalog,&mut checked)?;
+        if let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(catalog,&draft,&checked) {
+            if self.uncovered_inputs(&draft,catalog,&checked,&plan)?.is_empty()
+                && !self.uncovered_outputs(&draft,catalog,&checked,&plan)?.is_empty() { return Ok(None); }
+        }
+        Ok(Some(crate::parser::ChatReply { output_bindings: vec![],
             message:
                 "I will prepare the selected sources and show one total price before approval."
                     .into(),
