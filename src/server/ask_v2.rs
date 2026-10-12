@@ -427,6 +427,8 @@ pub(crate) enum Origin {
 pub(super) struct SearchRequest {
     parsed_request: ParsedRequest,
     origin: Origin,
+    /// Optional original question, used only to prove full local plan coverage.
+    question: Option<String>,
 }
 
 // This is untrusted client metadata, used only for bounded directory searches.
@@ -477,7 +479,7 @@ pub(super) async fn search(
         Ok(p) => p,
         Err(r) => return r,
     };
-    if !valid_parsed(&request.parsed_request) {
+    if !valid_parsed(&request.parsed_request) || request.question.as_ref().is_some_and(|q| q.encode_utf16().count() > 16_000) {
         return failure(
             StatusCode::BAD_REQUEST,
             "invalid_capabilities",
@@ -507,6 +509,13 @@ pub(super) async fn search(
     }
     match search_catalog(&state, &request.parsed_request, request.origin).await {
         Ok(mut value) => {
+            if matches!(request.origin, Origin::Apiosk) {
+                if let Some(question) = request.question.as_deref() {
+                    if let Ok(catalog) = state.engine.catalog.get().await {
+                        value["complete_plan_available"] = json!(complete_local_plan(&state.engine.parser, &catalog, question, &request.parsed_request, &value).await);
+                    }
+                }
+            }
             if person.is_person() {
                 match crate::search_snapshot::Snapshot::issue(&state.engine.signer, &person, &request.parsed_request, &value) {
                     Ok(token) => value[match request.origin { Origin::Apiosk => "search_id", Origin::Coinbase => "discovery_id" }] = json!(token),
@@ -517,6 +526,21 @@ pub(super) async fn search(
         },
         Err(response) => response,
     }
+}
+
+/// A directory match alone never releases the complete-plan UI. Compile and
+/// resolve every requested field and literal filter before it can proceed
+/// while optional external discovery is still running. No model or DB writes.
+async fn complete_local_plan(parser: &crate::parser::Parser, catalog: &crate::catalog::Catalog, question: &str, parsed: &ParsedRequest, search: &Value) -> bool {
+    let checked = ResearchRequest { request_id: Uuid::new_v4(), question: question.into(), parsed_request: parsed.clone(),
+        search_id: None, discovery_id: None, selection: None };
+    if checked.normalized().is_err() { return false; }
+    if search["catalog_version"].as_str() != Some(catalog.version.as_str()) { return false; }
+    let Ok(matches) = serde_json::from_value::<Vec<Match>>(search["matches"].clone()) else { return false; };
+    let intake = capability_intake::Intake { parsed_request: parsed.clone(), selected_capabilities: matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
+        matches, catalog_version: catalog.version.clone(), apiosk_sources_searched: capability_intake::source_count(&catalog) };
+    parser.chat_from_capabilities(question, None, &crate::state::Task::default(), catalog, &intake).await
+        .is_ok_and(|reply| reply.discover && reply.intent.is_some())
 }
 
 pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
@@ -947,6 +971,28 @@ mod tests {
         bind_inputs(&mut matches, &parsed);
         assert_eq!(matches[0]["apiosk"][0]["endpoint"]["input_values"], json!({"geo.input.q":"Damrak 1, Amsterdam"}));
         assert_eq!(matches[0]["apiosk"][0]["endpoint"]["missing_inputs"], json!([]));
+    }
+
+    #[tokio::test]
+    async fn early_planning_requires_complete_scope_and_literal_inputs() {
+        let fixture: Value = serde_json::from_str(include_str!("../../tests/fixtures/tender-service-category.json")).unwrap();
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
+        let parsed: ParsedRequest = serde_json::from_value(fixture["parsed"].clone()).unwrap();
+        let question = fixture["question"].as_str().unwrap();
+        let matches = crate::ask_v2::search::search(&parsed, &catalog);
+        let search = json!({"matches":matches,"catalog_version":catalog.version});
+        let parser = crate::parser::Parser::new(reqwest::Client::new(), "offline://no-model".into(), String::new(), "unused".into());
+        assert!(complete_local_plan(&parser, &catalog, question, &parsed, &search).await);
+        assert!(!complete_local_plan(&parser, &catalog, "Another question", &parsed, &search).await);
+        let mut missing = parsed.clone();
+        missing.capabilities[0].outputs.push("supplier_credit_rating".into());
+        assert!(!complete_local_plan(&parser, &catalog, question, &missing, &search).await);
+        let mut wrong_catalog = search.clone(); wrong_catalog["catalog_version"] = json!("expired");
+        assert!(!complete_local_plan(&parser, &catalog, question, &parsed, &wrong_catalog).await);
+        let mut filter = parsed.clone();
+        filter.subjects[0].identifiers.insert("buyer".into(), "contract opportunities".into());
+        filter.capabilities[0].inputs.push("buyer".into());
+        assert!(!complete_local_plan(&parser, &catalog, question, &filter, &search).await);
     }
 
     fn request() -> ParseRequest {

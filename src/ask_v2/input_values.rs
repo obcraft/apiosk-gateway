@@ -139,7 +139,17 @@ fn reviewed_input_aliases(schema:&Value)->Option<std::collections::BTreeSet<Stri
 }
 
 pub(crate) fn reviewed_input_alias(schema:&Value,key:&str)->bool {
-    reviewed_input_aliases(schema).is_some_and(|aliases|aliases.contains(key))
+    reviewed_input_aliases(schema).is_some_and(|aliases| aliases.iter().any(|alias| input_concept(alias) == input_concept(key)))
+}
+
+// Exact semantic synonyms, not suffix/fuzzy matches. The provider must still
+// explicitly declare this concept in its reviewed input schema.
+fn input_concept(key: &str) -> &str {
+    match key {
+        "service_category" | "service_type" => "service",
+        "search_term" | "search_phrase" => "keyword",
+        _ => key,
+    }
 }
 
 fn name_family(value: &str) -> Option<&'static str> {
@@ -174,7 +184,8 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
                     // A company's contact name is not its company-search key,
                     // and a person's employer is not their person-search key.
                     if name_family(name).zip(subject_family(subject)).is_some_and(|(alias, subject)| alias != subject) { continue; }
-                    if let Some(value) = subject.identifiers.get(name).filter(|value| !value.trim().is_empty()) {
+                    for value in subject.identifiers.iter().filter(|(key, value)|
+                        input_concept(key) == input_concept(name) && !value.trim().is_empty()).map(|(_, value)| value) {
                         values.insert(value);
                     }
                 }
@@ -234,6 +245,12 @@ mod tests {
             identifiers:serde_json::from_value(identifiers).unwrap()};
         assert_eq!(documented_literal("provider.input.search",&schema,&subject(json!({"service":"cleaning services","query":"Find all requested records."}))),Some(json!("cleaning services")));
         assert_eq!(documented_literal("provider.input.search",&schema,&subject(json!({"service":"cleaning services","keyword":"cleaning services"}))),Some(json!("cleaning services")));
+        for alias in ["service_category", "service_type", "search_term", "search_phrase"] {
+            assert!(reviewed_input_alias(&schema, alias));
+            assert_eq!(documented_literal("provider.input.search", &schema, &subject(json!({alias:"cleaning services"}))), Some(json!("cleaning services")));
+        }
+        assert!(!reviewed_input_alias(&schema, "cpv_code"));
+        assert_eq!(documented_literal("provider.input.search", &schema, &subject(json!({"service":"cleaning services","service_category":"security"}))), None);
         for identifiers in [json!({"query":"Find all requested records."}),json!({"service":"cleaning services","keyword":"other work"}),json!({"service":" "})] {
             assert_eq!(documented_literal("provider.input.search",&schema,&subject(identifiers)),None);
         }

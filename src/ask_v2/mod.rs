@@ -264,7 +264,7 @@ impl Client {
             "model": self.model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
             "stream": true, "max_tokens": max_tokens,
-            "provider": {"require_parameters": true},
+            "provider": {"require_parameters": true, "sort": "latency"},
             "response_format": {"type": "json_object"}
         });
         if self.model == DEFAULT_MODEL {
@@ -1202,7 +1202,7 @@ mod tests {
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"max_tokens":4096,
-                "provider":{"require_parameters":true},
+                "provider":{"require_parameters":true,"sort":"latency"},
                 "reasoning":{"effort":"low","exclude":true},
                 "response_format":{"type":"json_object"}
             })
@@ -1219,7 +1219,7 @@ mod tests {
                 "model":"qwen/qwen3-30b-a3b-instruct-2507",
                 "messages":captured[0]["messages"],
                 "stream":true,"temperature":0,"max_tokens":4096,
-                "provider":{"order":["alibaba"],"require_parameters":true},
+                "provider":{"order":["alibaba"],"require_parameters":true,"sort":"latency"},
                 "response_format":{"type":"json_object"}
             })
         );

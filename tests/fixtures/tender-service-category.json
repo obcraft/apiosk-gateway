@@ -1,0 +1,51 @@
+{
+  "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+  "parsed": {
+    "capabilities": [
+      {
+        "confidence": 0.98,
+        "description": "Find relevant public procurement notices, including contract opportunities and notices of already awarded contracts.",
+        "domain": "procurement",
+        "inputs": [
+          "country",
+          "service_category"
+        ],
+        "missing": [],
+        "name": "Procurement notices",
+        "outputs": [
+          "buyer",
+          "scope",
+          "publication_type",
+          "deadline",
+          "url"
+        ],
+        "slug": "procurement.tenders",
+        "source_hint": "tenderned",
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": [
+        "list"
+      ]
+    },
+    "language": "en",
+    "meta": {
+      "model": "openai/gpt-6-luna",
+      "parsed_at": "2026-10-12T16:56:20.275663517+00:00",
+      "text_sha256": "6e15804a3ccbac506a06563701b3f9e505b0fe3a0e154921f5216699fcd683fc"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "country": "Dutch",
+          "service_category": "cleaning services"
+        },
+        "label": "Dutch public procurement notices",
+        "type": "notice"
+      }
+    ]
+  }
+}
