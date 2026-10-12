@@ -1,0 +1,129 @@
+{
+  "checked_at": "2026-10-12T14:17:07.200Z",
+  "endpoint": "https://apiosk-gateway-v2.fly.dev/v2/ask-v2/guest/preview",
+  "results": [
+    {
+      "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "206522",
+      "sources": [
+        {
+          "name": "KVK Business Register",
+          "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297"
+        },
+        {
+          "name": "KVK Business Register",
+          "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e"
+        },
+        {
+          "name": "OpenSanctions",
+          "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f"
+        }
+      ],
+      "message": "I’ll check KVK and OpenSanctions and show the total price first. The report will include the registered profile and source links, keeping potential matches separate from identity-confirmed matches; screening scores or match flags alone do not confirm identity."
+    },
+    {
+      "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "54348",
+      "sources": [
+        {
+          "name": "TenderNed",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e"
+        }
+      ],
+      "message": "I’ll check TenderNed for cleaning-service notices and show the price first. I’ll shortlist relevant results from the returned page of up to 20 notices, distinguishing opportunities from award notices and showing deadlines where available."
+    },
+    {
+      "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+      "ready": false,
+      "http_status": 200,
+      "status": "needs_input",
+      "total_atomic": null,
+      "sources": [
+        {
+          "name": "Crunchbase",
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4"
+        }
+      ],
+      "message": "I couldn’t build a complete plan yet. Try again. Nothing was run or charged."
+    },
+    {
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "6900",
+      "sources": [
+        {
+          "name": "OpenWeb Ninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        },
+        {
+          "name": "OpenWeb Ninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        }
+      ],
+      "message": "I’ll check Glassdoor data for both employers and show the total price first. I’ll compare available scores and review counts, highlight each employer’s strongest and weakest categories, and include profile links. Pay reflects compensation and benefits; management reflects senior management."
+    },
+    {
+      "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "217392",
+      "sources": [
+        {
+          "name": "Companies House",
+          "endpoint_id": "654a1efa-3e5c-4af7-8d19-4116dd6e09ec"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5"
+        },
+        {
+          "name": "Companies House",
+          "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a"
+        }
+      ],
+      "message": "I’ll check Companies House for MONZO BANK LIMITED’s profile, directors and recorded significant controllers, and show the total price first. The summary will distinguish active from resigned director appointments and explain the recorded nature of control, where available."
+    },
+    {
+      "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "54348",
+      "sources": [
+        {
+          "name": "RDW Vehicle Technical Data",
+          "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77"
+        }
+      ],
+      "message": "I’ll check the official RDW source for RZ874R and show the price first. I’ll summarize the requested registration fields, flag items needing attention before buying, and mark missing values as unavailable."
+    }
+  ],
+  "gateway_commit": "92742a3",
+  "source_execution": false,
+  "published_examples": [
+    "supplier",
+    "tenderned",
+    "glassdoor",
+    "ownership",
+    "vehicle"
+  ],
+  "excluded_examples": [
+    {
+      "id": "crunchbase",
+      "reason": "Production planning returned needs_input. Retained as an unpublished regression case."
+    }
+  ]
+}

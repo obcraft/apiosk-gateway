@@ -1208,5 +1208,147 @@
         "subject": "EUR/GBP"
       }
     ]
+  },
+  {
+    "cap_atomic": 54347,
+    "id": "crunchbase",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.95,
+          "description": "Retrieve the company profile and summarize the available founders, leaders, board members, funding rounds, and investors, including returned dates and whether funding is equity or debt.",
+          "domain": "company",
+          "inputs": [
+            "url"
+          ],
+          "name": "Company profile",
+          "outputs": [
+            "founders",
+            "leaders",
+            "board_members",
+            "funding_rounds",
+            "investors",
+            "dates",
+            "funding_type"
+          ],
+          "slug": "company.profile",
+          "source_hint": "crunchbase",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "summarize"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "url": "https://www.crunchbase.com/organization/starbucks"
+          },
+          "label": "Starbucks",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Summarize the available founders, leaders, board members, funding rounds and investors from the specified Crunchbase company profile.",
+          "Identify leaders only where returned employee profiles or role information support that description.",
+          "Include returned dates with their stated precision and context; do not substitute the retrieval timestamp for event dates.",
+          "Distinguish equity funding from debt using returned funding-type labels; mark ambiguous or missing classifications as unavailable.",
+          "Note incomplete relationship cards and missing values without treating missing amounts as zero.",
+          "Company profile / leaders: Use employee cards and their identified, labeled property values to summarize people whose returned roles indicate leadership. Employee profiles do not necessarily identify every leader; leadership roles will be reported only when returned. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / dates: Read date-valued profile and relationship properties according to their returned field identifiers and preserve any returned date precision. Dates will be included only where returned; missing dates will remain unavailable. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable.",
+          "Company profile / funding_type: Use identified funding-round properties and their returned labels and values to distinguish debt from equity when the classification is supported. Missing or ambiguous funding labels cannot establish whether a round is equity or debt. Use only this request's returned source evidence; sample values are not current answers and absent fields remain unavailable."
+        ],
+        "goals": [
+          {
+            "capability": "company.crunchbase-profile",
+            "constraints": {
+              "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+              "source": "apimarket-magicapi-crunchbase-bbcca0a6"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.crunchbase_entity_id": {
+                "literal": "starbucks"
+              },
+              "company.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check the specified Crunchbase profile and show the price first. I’ll summarize the available people, funding rounds, investors and dates, distinguishing equity from debt where the returned funding labels support it and noting missing or incomplete information.",
+      "output_bindings": [
+        {
+          "fields": [
+            "fc72936190edada24",
+            "fd8b8b888101b4547",
+            "f8c914641d7c648c6",
+            "faad990fd87a09066"
+          ],
+          "interpretation": "Use employee cards and their identified, labeled property values to summarize people whose returned roles indicate leadership.",
+          "limitation": "Employee profiles do not necessarily identify every leader; leadership roles will be reported only when returned.",
+          "output": "leaders",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fa79b9672cc8c21bc",
+            "fb76d65327fec35aa",
+            "fd8b8b888101b4547",
+            "faad990fd87a09066",
+            "fa0e435db19d3aa88",
+            "f98b6ce8f04e9c22c"
+          ],
+          "interpretation": "Read date-valued profile and relationship properties according to their returned field identifiers and preserve any returned date precision.",
+          "limitation": "Dates will be included only where returned; missing dates will remain unavailable.",
+          "output": "dates",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc72936190edada24",
+            "fd8b8b888101b4547",
+            "f8c914641d7c648c6",
+            "faad990fd87a09066"
+          ],
+          "interpretation": "Use identified funding-round properties and their returned labels and values to distinguish debt from equity when the classification is supported.",
+          "limitation": "Missing or ambiguous funding labels cannot establish whether a round is equity or debt.",
+          "output": "funding_type",
+          "requirement": 0
+        }
+      ]
+    },
+    "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+    "steps": [
+      {
+        "capability": "company.crunchbase-profile",
+        "dependencies": [],
+        "inputs": {
+          "entity_def_id": "organization",
+          "entity_id": "starbucks"
+        },
+        "method": "POST",
+        "path": "/mcp/cb_entity_get",
+        "source": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "subject": "Starbucks"
+      }
+    ]
   }
 ]
