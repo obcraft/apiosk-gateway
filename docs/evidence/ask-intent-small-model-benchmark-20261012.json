@@ -1,0 +1,1314 @@
+{
+  "date": "2026-10-12",
+  "scope": "Preliminary benchmark: 8 hardcoded public prompts, 6 synthetic capability definitions, current Ask v2 prompt and Rust validator. No database data or saved user data was transmitted.",
+  "method": "One streamed request per case; no repair retry. Wall time to model JSON plus validation. 3B, 8B and Gemini ran as independent sequential streams concurrently; 14B ran separately. Same max_tokens 4096, temperature 0, JSON-object response, latency routing. Gemini low reasoning; nonreasoning Ministral omitted reasoning setting.",
+  "limitations": [
+    "Small single-run sample, not production or full-catalog performance.",
+    "Contract-valid does not mean semantically complete; smaller models also lost literal subjects, changed filters and misclassified optional fields.",
+    "Listed prices are current advertised token rates, not measured per-request billing."
+  ],
+  "summaries": [
+    {
+      "model": "mistralai/ministral-3b-2512",
+      "cases": 8,
+      "first_attempt_contract_valid": 4,
+      "median_ms": 902.5,
+      "min_ms": 665,
+      "max_ms": 1315,
+      "listed_usd_per_million_tokens": {
+        "input": 0.1,
+        "output": 0.1
+      },
+      "pricing_source": "https://openrouter.ai/mistralai/ministral-3b-2512"
+    },
+    {
+      "model": "mistralai/ministral-8b-2512",
+      "cases": 8,
+      "first_attempt_contract_valid": 4,
+      "median_ms": 1748,
+      "min_ms": 1210,
+      "max_ms": 8260,
+      "listed_usd_per_million_tokens": {
+        "input": 0.15,
+        "output": 0.15
+      },
+      "pricing_source": "https://openrouter.ai/mistralai/ministral-8b-2512"
+    },
+    {
+      "model": "google/gemini-3.8-flash",
+      "cases": 8,
+      "first_attempt_contract_valid": 8,
+      "median_ms": 1961,
+      "min_ms": 1576,
+      "max_ms": 2883,
+      "listed_usd_per_million_tokens": {
+        "input": 0.75,
+        "output": 3.75
+      },
+      "pricing_source": "https://openrouter.ai/google/gemini-3.8-flash"
+    },
+    {
+      "model": "mistralai/ministral-14b-2512",
+      "cases": 8,
+      "first_attempt_contract_valid": 6,
+      "median_ms": 3931.5,
+      "min_ms": 2778,
+      "max_ms": 7789,
+      "listed_usd_per_million_tokens": {
+        "input": 0.2,
+        "output": 0.2
+      },
+      "pricing_source": "https://openrouter.ai/mistralai/ministral-14b-2512"
+    }
+  ],
+  "runs": [
+    {
+      "elapsed_ms": 1315,
+      "error": "intent_invalid_subject",
+      "model": "mistralai/ministral-3b-2512",
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "raw": "{\"language\":\"en\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Starbucks\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"company\",\"label\":\"McDonald's\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.employer-ratings\",\"subject_ids\":[\"s1\",\"s2\"],\"kind\":\"lookup\",\"goal\":\"Retrieve overall employer ratings, employee review counts, and available category ratings for pay, work-life balance, career opportunities, and management from Glassdoor for Starbucks and McDonald's\",\"required_fields\":[\"overall_rating\",\"review_count\",\"pay_rating\",\"work_life_balance_rating\",\"career_opportunities_rating\",\"management_rating\",\"profile_link\"],\"optional_fields\":[],\"filters\":{},\"sources\":[\"Glassdoor\"]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Compare the overall employer ratings, review counts, and category ratings for each company\",\"Explain the strongest and weakest scores for Starbucks and McDonald's based on the retrieved data\",\"Include both company profile links\"]}}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 713,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-3b-2512",
+      "question": "Schrijf een gedicht over de maan",
+      "raw": "{\"language\":\"nl\",\"subjects\":[],\"capabilities\":[{\"slug\":\"conversation.generate-poetry\",\"name\":\"Poetry Generation\",\"description\":\"Generate creative poems or verses on a given topic or theme\",\"category\":\"conversation\"}],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.generate-poetry\",\"subject_ids\":[],\"kind\":\"generate\",\"goal\":\"Create a poem about the moon\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 746,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-3b-2512",
+      "question": "Schrijf een gedicht over de zee",
+      "raw": "{\"language\":\"nl\",\"subjects\":[],\"capabilities\":[{\"slug\":\"conversation.generate-poetry\",\"name\":\"Poëzie genereren\",\"description\":\"Creëert creatieve gedichten of verzen over een gegeven onderwerp\",\"category\":\"conversation\"}],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.generate-poetry\",\"subject_ids\":[],\"kind\":\"generate\",\"goal\":\"Schrijf een gedicht over de zee met een poëtische en visuele beschrijving van de zee en haar effecten op de mensheid en natuur\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 665,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "und",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Clarify the unclear input or message format",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-3b-2512",
+      "new_drafts": [],
+      "question": "🌀???",
+      "raw": "{\"language\":\"und\",\"subjects\":[],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Clarify the unclear input or message format\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 762,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the filed annual accounts, balance sheet, and income statement for Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-3b-2512",
+      "new_drafts": [],
+      "question": "Zoek de jaarrekening van Mollie",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Mollie\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.financial-statements\",\"subject_ids\":[\"s1\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the filed annual accounts, balance sheet, and income statement for Mollie\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1063,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Vraag hoe de assistent zich voelt",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-3b-2512",
+      "new_drafts": [],
+      "question": "Hoe gaat het ?",
+      "raw": "{\"language\":\"nl\",\"subjects\":[],\"capabilities\":[{\"slug\":\"conversation.answer\",\"name\":\"Conversatieantwoord\",\"description\":\"Reageert op groetingen en conversatiemeldingen\",\"category\":\"conversation\"}],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Vraag hoe de assistent zich voelt\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1085,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "weather",
+            "description": "Retrieve forecast temperature and precipitation for a place and date.",
+            "name": "weather forecast",
+            "origin": "database",
+            "slug": "weather.forecast",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Compare the temperature values between Paris and Rome and mention rainfall if available"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "weather.forecast",
+            "filters": {
+              "date": "morgen"
+            },
+            "goal": "Retrieve tomorrow's temperature forecasts for Paris and Rome from Open-Meteo, and include available rainfall data if provided",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "rainfall"
+            ],
+            "required_fields": [
+              "temperature"
+            ],
+            "sources": [
+              "Open-Meteo"
+            ],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Parijs",
+            "type": "place"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "Rome",
+            "type": "place"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-3b-2512",
+      "new_drafts": [],
+      "question": "Vergelijk de temperatuur in Parijs en Rome morgen; vermeld neerslag als die beschikbaar is. Gebruik Open-Meteo en geef bronlinks.",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"place\",\"label\":\"Parijs\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"place\",\"label\":\"Rome\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"weather.forecast\",\"subject_ids\":[\"s1\",\"s2\"],\"kind\":\"lookup\",\"goal\":\"Retrieve tomorrow's temperature forecasts for Paris and Rome from Open-Meteo, and include available rainfall data if provided\",\"required_fields\":[\"temperature\"],\"optional_fields\":[\"rainfall\"],\"filters\":{\"date\":\"morgen\"},\"sources\":[\"Open-Meteo\"]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Compare the temperature values between Paris and Rome and mention rainfall if available\"]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1043,
+      "error": "intent_invalid_subject",
+      "model": "mistralai/ministral-3b-2512",
+      "question": "Zoek de jaarrekening van Mollie en de eigenaar van example.com. Geef beide bronnen.",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Mollie\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"domain\",\"label\":\"example.com\",\"identifiers\":{\"url\":\"https://example.com\"}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.financial-statements\",\"subject_ids\":[\"s1\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the filed annual accounts (jaarrekening) for Mollie\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]},{\"id\":\"r2\",\"capability_slug\":\"domain.registry-profile\",\"subject_ids\":[\"s2\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the registered owner of the domain example.com from the registry source\",\"required_fields\":[\"owner\"],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 8260,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve employer overall ratings, employee review counts, pay, work-life balance, career and management category ratings and profile links.",
+            "name": "company employer-ratings",
+            "origin": "database",
+            "slug": "company.employer-ratings",
+            "status": "active"
+          }
+        ],
+        "language": "en",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Compare the overall employer ratings, review counts, and available category ratings for Starbucks and McDonalds",
+            "Identify the strongest and weakest scores for each company",
+            "Include both profile links in the explanation"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "company.employer-ratings",
+            "filters": {},
+            "goal": "Retrieve overall employer ratings, review counts, and available category ratings for pay, work-life balance, career opportunities, and management for Starbucks and McDonalds",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "pay_rating",
+              "work_life_balance_rating",
+              "career_opportunities_rating",
+              "management_rating"
+            ],
+            "required_fields": [
+              "overall_rating",
+              "review_count",
+              "profile_link"
+            ],
+            "sources": [
+              "Glassdoor"
+            ],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Starbucks",
+            "type": "company"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "McDonalds",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-8b-2512",
+      "new_drafts": [],
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "raw": "{\n\t\"language\": \"en\",\n\t\"subjects\": [\n\t\t{\n\t\t\t\"id\": \"s1\",\n\t\t\t\"type\": \"company\",\n\t\t\t\"label\": \"Starbucks\",\n\t\t\t\"identifiers\": {}\n\t\t},\n\t\t{\n\t\t\t\"id\": \"s2\",\n\t\t\t\"type\": \"company\",\n\t\t\t\"label\": \"McDonalds\",\n\t\t\t\"identifiers\": {}\n\t\t}\n\t],\n\t\"capabilities\": [],\n\t\"requests\": [\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"capability_slug\": \"company.employer-ratings\",\n\t\t\t\"subject_ids\": [\"s1\", \"s2\"],\n\t\t\t\"kind\": \"lookup\",\n\t\t\t\"goal\": \"Retrieve overall employer ratings, review counts, and available category ratings for pay, work-life balance, career opportunities, and management for Starbucks and McDonalds\",\n\t\t\t\"required_fields\": [\"overall_rating\", \"review_count\", \"profile_link\"],\n\t\t\t\"optional_fields\": [\"pay_rating\", \"work_life_balance_rating\", \"career_opportunities_rating\", \"management_rating\"],\n\t\t\t\"filters\": {},\n\t\t\t\"sources\": [\"Glassdoor\"]\n\t\t}\n\t],\n\t\"output\": {\n\t\t\"format\": \"chat\",\n\t\t\"operations\": [\n\t\t\t\"Compare the overall employer ratings, review counts, and available category ratings for Starbucks and McDonalds\",\n\t\t\t\"Identify the strongest and weakest scores for each company\",\n\t\t\t\"Include both profile links in the explanation\"\n\t\t]\n\t}\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1863,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-8b-2512",
+      "question": "Schrijf een gedicht over de maan",
+      "raw": "{\n\t\"language\": \"nl\",\n\t\"subjects\": [],\n\t\"capabilities\": [\n\t\t{\n\t\t\t\"slug\": \"conversation.generate-poetry\",\n\t\t\t\"name\": \"Poetry Generation\",\n\t\t\t\"description\": \"Create original poems or verses on a given topic in the user's language\",\n\t\t\t\"category\": \"conversation\"\n\t\t}\n\t],\n\t\"requests\": [\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"capability_slug\": \"conversation.generate-poetry\",\n\t\t\t\"subject_ids\": [],\n\t\t\t\"kind\": \"generate\",\n\t\t\t\"goal\": \"Generate an original poem about the moon in Dutch, capturing its beauty, mystery, and influence on Earth\",\n\t\t\t\"required_fields\": [],\n\t\t\t\"optional_fields\": [],\n\t\t\t\"filters\": {},\n\t\t\t\"sources\": []\n\t\t}\n\t],\n\t\"output\": {\n\t\t\"format\": \"chat\",\n\t\t\"operations\": []\n\t}\n}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 2673,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-8b-2512",
+      "question": "Schrijf een gedicht over de zee",
+      "raw": "{\n\t\"language\": \"nl\",\n\t\"subjects\": [],\n\t\"capabilities\": [\n\t\t{\n\t\t\t\"slug\": \"conversation.generate-poetry\",\n\t\t\t\"name\": \"Poetry Generation\",\n\t\t\t\"description\": \"Create original poems or verses on a given topic in the user's language\",\n\t\t\t\"category\": \"conversation\"\n\t\t}\n\t],\n\t\"requests\": [\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"capability_slug\": \"conversation.generate-poetry\",\n\t\t\t\"subject_ids\": [],\n\t\t\t\"kind\": \"generate\",\n\t\t\t\"goal\": \"Generate an original poem about the sea in Dutch, capturing its essence, moods, and imagery\",\n\t\t\t\"required_fields\": [],\n\t\t\t\"optional_fields\": [],\n\t\t\t\"filters\": {},\n\t\t\t\"sources\": []\n\t\t}\n\t],\n\t\"output\": {\n\t\t\"format\": \"chat\",\n\t\t\"operations\": []\n\t}\n}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 1342,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "und",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Clarify the unclear or ambiguous message to understand the user's intent",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-8b-2512",
+      "new_drafts": [],
+      "question": "🌀???",
+      "raw": "{\"language\":\"und\",\"subjects\":[],\"capabilities\":[{\"slug\":\"conversation.answer\",\"name\":\"Conversation\",\"description\":\"Respond to unclear or ambiguous messages requiring clarification\",\"category\":\"conversation\"}],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Clarify the unclear or ambiguous message to understand the user's intent\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1452,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the filed annual accounts, balance sheet and income statement for Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-8b-2512",
+      "new_drafts": [],
+      "question": "Zoek de jaarrekening van Mollie",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Mollie\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.financial-statements\",\"subject_ids\":[\"s1\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the filed annual accounts, balance sheet and income statement for Mollie\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1210,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Respond to the greeting and inquire about the user's well-being",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-8b-2512",
+      "new_drafts": [],
+      "question": "Hoe gaat het ?",
+      "raw": "{\"language\":\"nl\",\"subjects\":[],\"capabilities\":[{\"slug\":\"conversation.answer\",\"name\":\"Conversation\",\"description\":\"Respond to greetings and conversational messages\",\"category\":\"conversation\"}],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Respond to the greeting and inquire about the user's well-being\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1633,
+      "error": "intent_invalid_criteria",
+      "model": "mistralai/ministral-8b-2512",
+      "question": "Vergelijk de temperatuur in Parijs en Rome morgen; vermeld neerslag als die beschikbaar is. Gebruik Open-Meteo en geef bronlinks.",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"place\",\"label\":\"Parijs\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"place\",\"label\":\"Rome\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"weather.forecast\",\"subject_ids\":[\"s1\",\"s2\"],\"kind\":\"lookup\",\"goal\":\"Compare tomorrow’s temperature forecasts for Paris and Rome, including available precipitation data, using Open-Meteo and provide source links\",\"required_fields\":[\"temperature\"],\"optional_fields\":[\"precipitation\"],\"filters\":{\"date\":\"tomorrow\"},\"sources\":[\"Open-Meteo\"]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Compare the temperature forecasts and mention precipitation if available, including source links\"]}}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 3166,
+      "error": "intent_invalid_shape: missing field `category`",
+      "model": "mistralai/ministral-8b-2512",
+      "question": "Zoek de jaarrekening van Mollie en de eigenaar van example.com. Geef beide bronnen.",
+      "raw": "{\n\t\"language\": \"nl\",\n\t\"subjects\": [\n\t\t{\n\t\t\t\"id\": \"s1\",\n\t\t\t\"type\": \"company\",\n\t\t\t\"label\": \"Mollie\",\n\t\t\t\"identifiers\": {}\n\t\t},\n\t\t{\n\t\t\t\"id\": \"s2\",\n\t\t\t\"type\": \"domain\",\n\t\t\t\"label\": \"example.com\",\n\t\t\t\"identifiers\": {\n\t\t\t\t\"domain\": \"example.com\"\n\t\t\t}\n\t\t}\n\t],\n\t\"capabilities\": [\n\t\t{\n\t\t\t\"slug\": \"company.registry-profile\",\n\t\t\t\"name\": \"Registry Profile\",\n\t\t\t\"description\": \"Retrieve official company registration details, including ownership information.\"\n\t\t}\n\t],\n\t\"requests\": [\n\t\t{\n\t\t\t\"id\": \"r1\",\n\t\t\t\"capability_slug\": \"company.financial-statements\",\n\t\t\t\"subject_ids\": [\"s1\"],\n\t\t\t\"kind\": \"lookup\",\n\t\t\t\"goal\": \"Retrieve the filed annual accounts of Mollie\",\n\t\t\t\"required_fields\": [],\n\t\t\t\"optional_fields\": [],\n\t\t\t\"filters\": {},\n\t\t\t\"sources\": []\n\t\t},\n\t\t{\n\t\t\t\"id\": \"r2\",\n\t\t\t\"capability_slug\": \"company.registry-profile\",\n\t\t\t\"subject_ids\": [\"s2\"],\n\t\t\t\"kind\": \"lookup\",\n\t\t\t\"goal\": \"Retrieve the ownership details of the domain example.com\",\n\t\t\t\"required_fields\": [\"owner\"],\n\t\t\t\"optional_fields\": [],\n\t\t\t\"filters\": {},\n\t\t\t\"sources\": []\n\t\t}\n\t],\n\t\"output\": {\n\t\t\"format\": \"chat\",\n\t\t\"operations\": [\n\t\t\t\"Compare and present both the financial statements of Mollie and the ownership details of example.com as requested sources\"\n\t\t]\n\t}\n}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 2883,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve employer overall ratings, employee review counts, pay, work-life balance, career and management category ratings and profile links.",
+            "name": "company employer-ratings",
+            "origin": "database",
+            "slug": "company.employer-ratings",
+            "status": "active"
+          }
+        ],
+        "language": "en",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Compare the overall employer ratings, review counts, and category ratings",
+            "Explain the strongest and weakest scores for each company"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "company.employer-ratings",
+            "filters": {},
+            "goal": "Retrieve employer overall ratings, review counts, available category ratings for pay, work-life balance, career opportunities, and management, and profile links for Starbucks and McDonalds on Glassdoor",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "pay_rating",
+              "work_life_balance_rating",
+              "career_opportunities_rating",
+              "management_rating"
+            ],
+            "required_fields": [
+              "overall_ratings",
+              "review_counts",
+              "profile_links"
+            ],
+            "sources": [
+              "Glassdoor"
+            ],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Starbucks",
+            "type": "company"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "McDonalds",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "raw": "{\"language\":\"en\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Starbucks\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"company\",\"label\":\"McDonalds\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.employer-ratings\",\"subject_ids\":[\"s1\",\"s2\"],\"kind\":\"lookup\",\"goal\":\"Retrieve employer overall ratings, review counts, available category ratings for pay, work-life balance, career opportunities, and management, and profile links for Starbucks and McDonalds on Glassdoor\",\"required_fields\":[\"overall_ratings\",\"review_counts\",\"profile_links\"],\"optional_fields\":[\"pay_rating\",\"work_life_balance_rating\",\"career_opportunities_rating\",\"management_rating\"],\"filters\":{},\"sources\":[\"Glassdoor\"]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Compare the overall employer ratings, review counts, and category ratings\",\"Explain the strongest and weakest scores for each company\"]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 2052,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Generate creative poems or verses on a given topic.",
+            "name": "conversation generate-poetry",
+            "origin": "local",
+            "slug": "conversation.generate-poetry",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.generate-poetry",
+            "filters": {},
+            "goal": "Write a poem about the moon",
+            "id": "r1",
+            "kind": "action",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "de maan",
+            "type": "celestial_body"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Schrijf een gedicht over de maan",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"celestial_body\",\"label\":\"de maan\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.generate-poetry\",\"subject_ids\":[\"s1\"],\"kind\":\"action\",\"goal\":\"Write a poem about the moon\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1748,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Generate creative poems or verses on a given topic.",
+            "name": "conversation generate-poetry",
+            "origin": "local",
+            "slug": "conversation.generate-poetry",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.generate-poetry",
+            "filters": {},
+            "goal": "Write a poem about the sea",
+            "id": "r1",
+            "kind": "action",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "de zee",
+            "type": "concept"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Schrijf een gedicht over de zee",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"concept\",\"label\":\"de zee\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.generate-poetry\",\"subject_ids\":[\"s1\"],\"kind\":\"action\",\"goal\":\"Write a poem about the sea\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 2436,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "und",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Respond to unclear or confusing input consisting of symbols and question marks",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "🌀???",
+      "raw": "{\"language\":\"und\",\"subjects\":[],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Respond to unclear or confusing input consisting of symbols and question marks\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1817,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the filed annual accounts of Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Zoek de jaarrekening van Mollie",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Mollie\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.financial-statements\",\"subject_ids\":[\"s1\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the filed annual accounts of Mollie\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1576,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Ask how the assistant is doing",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Hoe gaat het ?",
+      "raw": "{\"language\":\"nl\",\"subjects\":[],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"conversation.answer\",\"subject_ids\":[],\"kind\":\"answer\",\"goal\":\"Ask how the assistant is doing\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 1870,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "weather",
+            "description": "Retrieve forecast temperature and precipitation for a place and date.",
+            "name": "weather forecast",
+            "origin": "database",
+            "slug": "weather.forecast",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Vergelijk de temperatuur in Parijs en Rome morgen"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "weather.forecast",
+            "filters": {
+              "date": "morgen"
+            },
+            "goal": "Retrieve tomorrow's temperature and available precipitation forecasts for Paris and Rome with source links",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "neerslag"
+            ],
+            "required_fields": [
+              "temperatuur",
+              "bronlinks"
+            ],
+            "sources": [
+              "Open-Meteo"
+            ],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Parijs",
+            "type": "place"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "Rome",
+            "type": "place"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Vergelijk de temperatuur in Parijs en Rome morgen; vermeld neerslag als die beschikbaar is. Gebruik Open-Meteo en geef bronlinks.",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"place\",\"label\":\"Parijs\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"place\",\"label\":\"Rome\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"weather.forecast\",\"subject_ids\":[\"s1\",\"s2\"],\"kind\":\"lookup\",\"goal\":\"Retrieve tomorrow's temperature and available precipitation forecasts for Paris and Rome with source links\",\"required_fields\":[\"temperatuur\",\"bronlinks\"],\"optional_fields\":[\"neerslag\"],\"filters\":{\"date\":\"morgen\"},\"sources\":[\"Open-Meteo\"]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Vergelijk de temperatuur in Parijs en Rome morgen\"]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 2522,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          },
+          {
+            "category": "domain",
+            "description": "Look up domain registration and registrant information.",
+            "name": "domain registration",
+            "origin": "database",
+            "slug": "domain.registration",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Provide both sources"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the annual accounts for Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          },
+          {
+            "capability_slug": "domain.registration",
+            "filters": {},
+            "goal": "Look up the owner of example.com",
+            "id": "r2",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [
+              "owner"
+            ],
+            "sources": [],
+            "subject_ids": [
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "example.com",
+            "type": "domain"
+          }
+        ]
+      },
+      "model": "google/gemini-3.8-flash",
+      "new_drafts": [],
+      "question": "Zoek de jaarrekening van Mollie en de eigenaar van example.com. Geef beide bronnen.",
+      "raw": "{\"language\":\"nl\",\"subjects\":[{\"id\":\"s1\",\"type\":\"company\",\"label\":\"Mollie\",\"identifiers\":{}},{\"id\":\"s2\",\"type\":\"domain\",\"label\":\"example.com\",\"identifiers\":{}}],\"capabilities\":[],\"requests\":[{\"id\":\"r1\",\"capability_slug\":\"company.financial-statements\",\"subject_ids\":[\"s1\"],\"kind\":\"lookup\",\"goal\":\"Retrieve the annual accounts for Mollie\",\"required_fields\":[],\"optional_fields\":[],\"filters\":{},\"sources\":[]},{\"id\":\"r2\",\"capability_slug\":\"domain.registration\",\"subject_ids\":[\"s2\"],\"kind\":\"lookup\",\"goal\":\"Look up the owner of example.com\",\"required_fields\":[\"owner\"],\"optional_fields\":[],\"filters\":{},\"sources\":[]}],\"output\":{\"format\":\"chat\",\"operations\":[\"Provide both sources\"]}}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 7789,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve employer overall ratings, employee review counts, pay, work-life balance, career and management category ratings and profile links.",
+            "name": "company employer-ratings",
+            "origin": "database",
+            "slug": "company.employer-ratings",
+            "status": "active"
+          }
+        ],
+        "language": "en",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Compare the overall employer ratings, review counts, and available category ratings (pay, work-life balance, career opportunities, management) for Starbucks and McDonalds",
+            "Explain the strongest and weakest scores for each company",
+            "Include both profile links in the response"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "company.employer-ratings",
+            "filters": {},
+            "goal": "Retrieve overall employer ratings, review counts, pay ratings, work-life balance ratings, career opportunity ratings, management ratings, and profile links for Starbucks and McDonalds on Glassdoor",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "pay_rating",
+              "work_life_balance_rating",
+              "career_opportunities_rating",
+              "management_rating"
+            ],
+            "required_fields": [
+              "overall_rating",
+              "review_count",
+              "profile_link"
+            ],
+            "sources": [],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Starbucks",
+            "type": "company"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "McDonalds",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [],
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "raw": "{\n  \"language\": \"en\",\n  \"subjects\": [\n    {\n      \"id\": \"s1\",\n      \"type\": \"company\",\n      \"label\": \"Starbucks\",\n      \"identifiers\": {}\n    },\n    {\n      \"id\": \"s2\",\n      \"type\": \"company\",\n      \"label\": \"McDonalds\",\n      \"identifiers\": {}\n    }\n  ],\n  \"capabilities\": [],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"company.employer-ratings\",\n      \"subject_ids\": [\"s1\", \"s2\"],\n      \"kind\": \"lookup\",\n      \"goal\": \"Retrieve overall employer ratings, review counts, pay ratings, work-life balance ratings, career opportunity ratings, management ratings, and profile links for Starbucks and McDonalds on Glassdoor\",\n      \"required_fields\": [\"overall_rating\", \"review_count\", \"profile_link\"],\n      \"optional_fields\": [\"pay_rating\", \"work_life_balance_rating\", \"career_opportunities_rating\", \"management_rating\"],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": [\n      \"Compare the overall employer ratings, review counts, and available category ratings (pay, work-life balance, career opportunities, management) for Starbucks and McDonalds\",\n      \"Explain the strongest and weakest scores for each company\",\n      \"Include both profile links in the response\"\n    ]\n  }\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 2915,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-14b-2512",
+      "question": "Schrijf een gedicht over de maan",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [],\n  \"capabilities\": [],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"conversation.generate-poetry\",\n      \"subject_ids\": [],\n      \"kind\": \"generate\",\n      \"goal\": \"Create an original poem about the moon\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 2778,
+      "error": "intent_invalid_shape: unknown variant `generate`, expected one of `lookup`, `search`, `action`, `answer`",
+      "model": "mistralai/ministral-14b-2512",
+      "question": "Schrijf een gedicht over de zee",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [],\n  \"capabilities\": [],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"conversation.generate-poetry\",\n      \"subject_ids\": [],\n      \"kind\": \"generate\",\n      \"goal\": \"Create an original poem about the sea\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": false
+    },
+    {
+      "elapsed_ms": 3999,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "und",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Clarify the meaning of the ambiguous input '🌀???'",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [],
+      "question": "🌀???",
+      "raw": "{\n  \"language\": \"und\",\n  \"subjects\": [],\n  \"capabilities\": [\n    {\n      \"slug\": \"conversation.answer\",\n      \"name\": \"Clarification Request\",\n      \"description\": \"Request clarification for unclear or ambiguous input\",\n      \"category\": \"conversation\"\n    }\n  ],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"conversation.answer\",\n      \"subject_ids\": [],\n      \"kind\": \"answer\",\n      \"goal\": \"Clarify the meaning of the ambiguous input '🌀???'\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 3864,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the filed annual accounts of Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [],
+      "question": "Zoek de jaarrekening van Mollie",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [\n    {\n      \"id\": \"s1\",\n      \"type\": \"company\",\n      \"label\": \"Mollie\",\n      \"identifiers\": {}\n    }\n  ],\n  \"capabilities\": [],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"company.financial-statements\",\n      \"subject_ids\": [\"s1\"],\n      \"kind\": \"lookup\",\n      \"goal\": \"Retrieve the filed annual accounts of Mollie\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 3738,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "conversation",
+            "description": "Handle conversation and clarification requests.",
+            "name": "conversation answer",
+            "origin": "local",
+            "slug": "conversation.answer",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "conversation.answer",
+            "filters": {},
+            "goal": "Ask how the assistant is doing",
+            "id": "r1",
+            "kind": "answer",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": []
+          }
+        ],
+        "subjects": []
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [],
+      "question": "Hoe gaat het ?",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [],\n  \"capabilities\": [\n    {\n      \"slug\": \"conversation.answer\",\n      \"name\": \"Conversation Answer\",\n      \"description\": \"Handle conversation and clarification requests.\",\n      \"category\": \"conversation\"\n    }\n  ],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"conversation.answer\",\n      \"subject_ids\": [],\n      \"kind\": \"answer\",\n      \"goal\": \"Ask how the assistant is doing\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 5796,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "weather",
+            "description": "Retrieve forecast temperature and precipitation for a place and date.",
+            "name": "weather forecast",
+            "origin": "database",
+            "slug": "weather.forecast",
+            "status": "active"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": [
+            "Compare the temperature forecasts for Paris and Rome and include available rainfall data",
+            "Provide source links for the retrieved data"
+          ]
+        },
+        "requests": [
+          {
+            "capability_slug": "weather.forecast",
+            "filters": {
+              "date": "morgen"
+            },
+            "goal": "Retrieve tomorrow's temperature forecast for Paris and Rome, including available rainfall data",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [
+              "rainfall"
+            ],
+            "required_fields": [
+              "temperature"
+            ],
+            "sources": [
+              "Open-Meteo"
+            ],
+            "subject_ids": [
+              "s1",
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Parijs",
+            "type": "place"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "Rome",
+            "type": "place"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [],
+      "question": "Vergelijk de temperatuur in Parijs en Rome morgen; vermeld neerslag als die beschikbaar is. Gebruik Open-Meteo en geef bronlinks.",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [\n    {\"id\": \"s1\", \"type\": \"place\", \"label\": \"Parijs\", \"identifiers\": {}},\n    {\"id\": \"s2\", \"type\": \"place\", \"label\": \"Rome\", \"identifiers\": {}}\n  ],\n  \"capabilities\": [],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"weather.forecast\",\n      \"subject_ids\": [\"s1\", \"s2\"],\n      \"kind\": \"lookup\",\n      \"goal\": \"Retrieve tomorrow's temperature forecast for Paris and Rome, including available rainfall data\",\n      \"required_fields\": [\"temperature\"],\n      \"optional_fields\": [\"rainfall\"],\n      \"filters\": {\"date\": \"morgen\"},\n      \"sources\": [\"Open-Meteo\"]\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": [\n      \"Compare the temperature forecasts for Paris and Rome and include available rainfall data\",\n      \"Provide source links for the retrieved data\"\n    ]\n  }\n}",
+      "valid": true
+    },
+    {
+      "elapsed_ms": 7014,
+      "intent": {
+        "capabilities": [
+          {
+            "category": "company",
+            "description": "Retrieve official filed annual accounts, balance sheet and income statement (jaarrekening).",
+            "name": "company financial-statements",
+            "origin": "database",
+            "slug": "company.financial-statements",
+            "status": "active"
+          },
+          {
+            "category": "company",
+            "description": "Retrieve official company registration details, including ownership information.",
+            "name": "Company Registry Profile",
+            "origin": "local",
+            "slug": "company.registry-profile",
+            "status": "draft"
+          }
+        ],
+        "language": "nl",
+        "output": {
+          "format": "chat",
+          "operations": []
+        },
+        "requests": [
+          {
+            "capability_slug": "company.financial-statements",
+            "filters": {},
+            "goal": "Retrieve the filed annual accounts of Mollie",
+            "id": "r1",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s1"
+            ]
+          },
+          {
+            "capability_slug": "company.registry-profile",
+            "filters": {},
+            "goal": "Retrieve the ownership details of the entity behind example.com",
+            "id": "r2",
+            "kind": "lookup",
+            "optional_fields": [],
+            "required_fields": [],
+            "sources": [],
+            "subject_ids": [
+              "s2"
+            ]
+          }
+        ],
+        "subjects": [
+          {
+            "id": "s1",
+            "identifiers": {},
+            "label": "Mollie",
+            "type": "company"
+          },
+          {
+            "id": "s2",
+            "identifiers": {},
+            "label": "example.com",
+            "type": "domain"
+          }
+        ]
+      },
+      "model": "mistralai/ministral-14b-2512",
+      "new_drafts": [
+        {
+          "category": "company",
+          "description": "Retrieve official company registration details, including ownership information.",
+          "input_contract": {},
+          "name": "Company Registry Profile",
+          "output_contract": {},
+          "slug": "company.registry-profile",
+          "status": "draft"
+        }
+      ],
+      "question": "Zoek de jaarrekening van Mollie en de eigenaar van example.com. Geef beide bronnen.",
+      "raw": "{\n  \"language\": \"nl\",\n  \"subjects\": [\n    {\n      \"id\": \"s1\",\n      \"type\": \"company\",\n      \"label\": \"Mollie\",\n      \"identifiers\": {}\n    },\n    {\n      \"id\": \"s2\",\n      \"type\": \"domain\",\n      \"label\": \"example.com\",\n      \"identifiers\": {}\n    }\n  ],\n  \"capabilities\": [\n    {\n      \"slug\": \"company.registry-profile\",\n      \"name\": \"Company Registry Profile\",\n      \"description\": \"Retrieve official company registration details, including ownership information.\",\n      \"category\": \"company\"\n    }\n  ],\n  \"requests\": [\n    {\n      \"id\": \"r1\",\n      \"capability_slug\": \"company.financial-statements\",\n      \"subject_ids\": [\"s1\"],\n      \"kind\": \"lookup\",\n      \"goal\": \"Retrieve the filed annual accounts of Mollie\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    },\n    {\n      \"id\": \"r2\",\n      \"capability_slug\": \"company.registry-profile\",\n      \"subject_ids\": [\"s2\"],\n      \"kind\": \"lookup\",\n      \"goal\": \"Retrieve the ownership details of the entity behind example.com\",\n      \"required_fields\": [],\n      \"optional_fields\": [],\n      \"filters\": {},\n      \"sources\": []\n    }\n  ],\n  \"output\": {\n    \"format\": \"chat\",\n    \"operations\": []\n  }\n}",
+      "valid": true
+    }
+  ]
+}

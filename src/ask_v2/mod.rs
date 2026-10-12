@@ -3,6 +3,7 @@
 
 pub mod search;
 pub mod intent;
+pub mod intent_catalog;
 pub(crate) mod source_options;
 pub mod external;
 pub mod purchase;
@@ -286,7 +287,12 @@ impl Client {
     /// Shared transport only. The isolated intake uses one provider request,
     /// without the legacy parser's delayed rate-limit retries.
     async fn send_object(&self, body: Value, retry_rate_limit: bool) -> Result<String> {
+        self.send_object_with_usage(body, retry_rate_limit).await.map(|reply| reply.0)
+    }
+
+    async fn send_object_with_usage(&self, body: Value, retry_rate_limit: bool) -> Result<(String, Option<ModelUsage>)> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
+        let wait_for_usage = body.pointer("/stream_options/include_usage").and_then(Value::as_bool) == Some(true);
         let body = body.to_string();
         let mut response = self
             .http
@@ -329,7 +335,7 @@ impl Client {
                 .is_none_or(|size| size <= MAX_STREAM_BYTES as u64),
             "ask_v2_model_response_too_large"
         );
-        let mut stream = Sse::default();
+        let mut stream = Sse { wait_for_usage, ..Sse::default() };
         while let Some(chunk) = response
             .chunk()
             .await
@@ -340,8 +346,16 @@ impl Client {
                 break;
             }
         }
-        stream.finish()
+        stream.finish_with_usage()
     }
+}
+
+#[derive(Debug, Default, Clone, serde::Deserialize, Serialize)]
+#[serde(default)]
+struct ModelUsage {
+    prompt_tokens: Option<u64>,
+    completion_tokens: Option<u64>,
+    cost: Option<f64>,
 }
 
 #[derive(Default)]
@@ -351,6 +365,9 @@ struct Sse {
     text: String,
     bytes: usize,
     done: bool,
+    wait_for_usage: bool,
+    content_done: bool,
+    usage: Option<ModelUsage>,
 }
 
 impl Sse {
@@ -406,6 +423,9 @@ impl Sse {
             chunk.get("error").is_none_or(Value::is_null),
             "ask_v2_model_stream_unavailable"
         );
+        if let Some(usage) = chunk.get("usage").filter(|value| value.is_object()) {
+            self.usage = serde_json::from_value(usage.clone()).ok();
+        }
         if let Some(content) = chunk
             .pointer("/choices/0/delta/content")
             .and_then(Value::as_str)
@@ -415,14 +435,19 @@ impl Sse {
         // The final choice already terminates content. Some providers delay
         // usage/[DONE] events; those must not hold a completed interpretation.
         match chunk.pointer("/choices/0/finish_reason").and_then(Value::as_str) {
-            Some("stop") => self.done = true,
+            Some("stop") => { self.content_done = true; self.done = !self.wait_for_usage; },
             Some("length" | "content_filter") => return Err(anyhow!("ask_v2_model_incomplete_response")),
             _ => {}
         }
+        if self.wait_for_usage && self.content_done && self.usage.is_some() { self.done = true; }
         Ok(())
     }
 
-    fn finish(mut self) -> Result<String> {
+    fn finish(self) -> Result<String> {
+        self.finish_with_usage().map(|reply| reply.0)
+    }
+
+    fn finish_with_usage(mut self) -> Result<(String, Option<ModelUsage>)> {
         if !self.done {
             let line = std::mem::take(&mut self.pending);
             if !line.is_empty() {
@@ -431,7 +456,7 @@ impl Sse {
             self.event()?;
         }
         ensure!(!self.text.trim().is_empty(), "ask_v2_model_empty_response");
-        Ok(self.text)
+        Ok((self.text, self.usage))
     }
 }
 
@@ -455,6 +480,18 @@ mod tests {
             "fixture-key".into(),
             DEFAULT_MODEL.into(),
         )
+    }
+
+    #[test]
+    fn cost_capture_waits_for_the_usage_event_after_content() {
+        let mut stream = Sse { wait_for_usage: true, ..Sse::default() };
+        stream.push(b"data: {\"choices\":[{\"delta\":{\"content\":\"{}\"},\"finish_reason\":\"stop\"}]}\n\n").unwrap();
+        assert!(!stream.done);
+        stream.push(b"data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":20,\"cost\":0.000012}}\n\n").unwrap();
+        assert!(stream.done);
+        let (text,usage) = stream.finish_with_usage().unwrap();
+        assert_eq!(text,"{}");
+        assert_eq!(usage.unwrap().cost,Some(0.000012));
     }
 
     async fn server(app: Router) -> (String, tokio::task::JoinHandle<()>) {

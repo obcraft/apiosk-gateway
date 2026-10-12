@@ -52,7 +52,7 @@ async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(
     assert_eq!(headers.get("authorization").unwrap(), "Bearer ask-v2-fixture-key");
     let is_intent = body["model"] == apiosk_gateway_v2::ask_v2::intent::MODEL;
     model.ask_v2_requests.lock().unwrap().push(body);
-    let output = if is_intent { json!({"language":"nl","subjects":[{"id":"s1","type":"company","label":"Coolblue","identifiers":{}}],"requests":[{"id":"r1","subject_ids":["s1"],"kind":"lookup","goal":"Company accounts","required_fields":["annual_accounts"],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}) } else { ask_v2_capabilities() };
+    let output = if is_intent { json!({"language":"nl","subjects":[{"id":"s1","type":"company","label":"Coolblue","identifiers":{}}],"capabilities":[],"requests":[{"id":"r1","capability_slug":"company.financial-statements","subject_ids":["s1"],"kind":"lookup","goal":"Company accounts","required_fields":["annual_accounts"],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}) } else { ask_v2_capabilities() };
     let event = json!({"choices":[{"delta":{"content":output.to_string()}}]});
     ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
 }
@@ -666,6 +666,8 @@ async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
 async fn ask_intent_authenticates_and_only_extracts_without_creating_tasks() {
     let intake = Intake::start().await;
+    sqlx::query("INSERT INTO public.capabilities(slug,status,description) VALUES ('company.financial-statements','active','Read company annual accounts') ON CONFLICT (slug) DO NOTHING")
+        .execute(&intake.pool).await.unwrap();
     let body = json!({"question":"Jaarrekening van Coolblue"});
     let path = "/v2/ask-v2/intent";
     let response = intake.http.post(format!("{}{path}",intake.gateway)).json(&body).send().await.unwrap();
@@ -674,10 +676,16 @@ async fn ask_intent_authenticates_and_only_extracts_without_creating_tasks() {
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
     let person = Person::new();
+    let (status, response) = intake.send(&person.bearer, path, Some(json!({"question":"Jaarrekening van Coolblue","model":"unapproved/model"}))).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(codes(&response), ["invalid_model"]);
+    assert!(intake.model.ask_v2_requests.lock().unwrap().is_empty());
     let (status, response) = intake.send(&person.bearer, path, Some(body)).await;
     assert_eq!(status, StatusCode::OK, "{response}");
     assert_eq!(response["schema_version"], 1);
     assert_eq!(response["intent"]["subjects"][0]["label"], "Coolblue");
+    assert_eq!(response["intent"]["requests"][0]["capability_slug"], "company.financial-statements");
+    assert_eq!(response["intent"]["capabilities"][0]["origin"], "database");
     assert_eq!(response["model"], apiosk_gateway_v2::ask_v2::intent::MODEL);
     assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1);
     assert_eq!(task_count(&intake, &person).await, 0);

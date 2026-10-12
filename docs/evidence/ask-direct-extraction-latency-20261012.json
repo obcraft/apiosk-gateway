@@ -1,0 +1,44 @@
+{
+  "gateway_commit": "058dfc2",
+  "app_commit_unchanged": "9dfb9c1",
+  "changes": [
+    "First canonical intent extraction uses the same gpt-6-luna model with reasoning effort none; invalid intent still gets one existing low-effort correction. Endpoint follow-ups remain low effort.",
+    "Stop reading model content at its explicit finish_reason=stop, without waiting for usage/[DONE]. Reject length/content_filter termination.",
+    "Fetch independent live owner-scoped view metadata concurrently after task authorization. No billing writes, payment approval or balance caching changed."
+  ],
+  "baseline_browser_question_to_enabled_approve_ms": {
+    "TenderNed": 10647,
+    "Glassdoor": 8789,
+    "Mollie": 5663
+  },
+  "validation": {
+    "focused_parser_tests_passed": 36,
+    "focused_parser_tests_ignored": 4,
+    "legacy_task_views_passed": 1,
+    "latency_flow_passed": 3,
+    "source_services_passed": 1,
+    "durable_flow_baseline_failure": "tests/durable_flow.rs:1112 Alias Example returned Failed instead of Ready, reproduced on fa66bfb",
+    "all_targets": {
+      "targets": 93,
+      "passed": 1125,
+      "failed": 0,
+      "ignored": 112
+    },
+    "public_api_flow_baseline_failure": "tests/public_api_flow.rs:575 expected completed but got partial after fixture analysis failure; reproduced on fa66bfb."
+  },
+  "model_metadata": {
+    "id": "openai/gpt-6-luna",
+    "mandatory_reasoning": false,
+    "supported_efforts": [
+      "max",
+      "xhigh",
+      "high",
+      "medium",
+      "low",
+      "none"
+    ],
+    "source": "https://openrouter.ai/api/v1/models"
+  },
+  "approvals": 0,
+  "source_purchases": 0
+}

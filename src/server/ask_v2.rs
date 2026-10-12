@@ -277,16 +277,20 @@ pub(super) struct ParseRequest {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct IntentRequest { question: String }
+pub(super) struct IntentRequest { question: String, model: Option<String> }
 
-/// The rebuilt Ask v2 starts here: one extraction, without catalog or planning.
+/// Extract intent against the capability taxonomy, without planning or execution.
 pub(super) async fn intent(State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<IntentRequest>) -> Response {
     let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
     if request.question.trim().is_empty() || request.question.encode_utf16().count() > 16_000 {
         return failure(StatusCode::BAD_REQUEST, "invalid_question", "Enter a question of up to 16,000 characters.");
     }
+    let model = request.model.as_deref().unwrap_or(crate::ask_v2::intent::MODEL);
+    if !crate::ask_v2::intent::supported_model(model) {
+        return failure(StatusCode::BAD_REQUEST, "invalid_model", "Choose one of the available models.");
+    }
     let Some(client) = state.engine.parser.ask_v2() else {
-        return failure(StatusCode::SERVICE_UNAVAILABLE, "intent_unavailable", "Couldn't convert this question. Try again.");
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "intent_not_configured", "The conversion model is not configured.");
     };
     let Ok(_permit) = state.permits.try_acquire() else {
         return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Busy right now. Try again shortly.");
@@ -294,8 +298,30 @@ pub(super) async fn intent(State(state): State<ServerState>, headers: HeaderMap,
     if !client.admit(&person.owner.to_string()) {
         return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before trying again.");
     }
-    match client.extract_intent(request.question.trim()).await {
-        Ok(output) => {
+    let definitions = match tokio::time::timeout(Duration::from_secs(2), crate::ask_v2::intent_catalog::load(&state.engine.store.pool)).await {
+        Ok(Ok(definitions)) => definitions,
+        error => {
+            tracing::warn!(error=?error, "Ask capability catalog unavailable");
+            return failure(StatusCode::SERVICE_UNAVAILABLE, "capability_catalog_unavailable", "Could not load capabilities. Try again.");
+        }
+    };
+    match client.extract_intent_with_model(request.question.trim(), &definitions, model).await {
+        Ok((mut output, drafts)) => {
+            match crate::ask_v2::intent_catalog::save_drafts(&drafts).await {
+                Ok(saved) => {
+                    for capability in output["intent"]["capabilities"].as_array_mut().into_iter().flatten() {
+                        if let Some(canonical) = saved.iter().find(|d| capability["slug"] == d.slug) {
+                            capability["name"] = json!(canonical.name);
+                            capability["description"] = json!(canonical.description);
+                            capability["category"] = json!(canonical.category);
+                        }
+                    }
+                }
+                Err(error) => {
+                    tracing::warn!(error=%error, "Ask capability storage failed");
+                    return failure(StatusCode::SERVICE_UNAVAILABLE, "capability_storage_unavailable", "Could not save the new capability. Try again.");
+                }
+            }
             tracing::info!(model=%output["model"], parse_ms=%output["timing"]["parse_ms"], "Ask intent extracted");
             Json(output).into_response()
         }

@@ -38,6 +38,8 @@ export function localConfiguration(workspace = root, inherited = process.env) {
     DATABASE_POOL_SIZE: gateway.DATABASE_POOL_SIZE || '2',
     RUST_LOG: gateway.RUST_LOG || 'apiosk_gateway_v2=info',
     V2_EXECUTION_ENABLED: '0', KVK_WORKERS_ENABLED: '0', RECURRING_ORDERS_ENABLED: '0',
+    WORKSPACE_CONTEXT_ENABLED: 'true',
+    ASK_INTENT_DRAFT_PATH: path.join(workspace, 'gateway/.local/ask-intent-capabilities.json'),
     ASK_V2_TRANSLATION: '0',
   });
   Object.assign(app, {
