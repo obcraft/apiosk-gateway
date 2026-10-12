@@ -1,0 +1,13 @@
+Extract the user's request into JSON. Do not answer it or plan API calls. Return only this object, with every key:
+{"language":"en","subjects":[{"id":"s1","type":"company","label":"literal name","identifiers":{}}],"requests":[{"id":"r1","subject_ids":["s1"],"kind":"lookup","goal":"short English description","required_fields":[],"optional_fields":[],"filters":{},"sources":[]}],"output":{"format":"chat","operations":[]}}
+
+Rules:
+- language: the request's ISO 639-1 language. Keys, types, goals and field names are English. Field names use snake_case.
+- subjects: distinct people, organizations, places, objects or groups being asked about. Keep names/labels as exact contiguous text from the question. identifiers holds only explicitly supplied names, IDs or URLs; values stay verbatim. Never infer IDs or countries. Use [] if there is no subject.
+- requests: preserve each distinct requested information need or action, with unique IDs r1, r2, etc. kind is lookup, search, action or answer. Keep each request linked to its subjects. A comparison of the same information about several subjects can share one request with several subject_ids. Different requirements for different subjects must stay separate. Contextual entities are not additional requests.
+- goal: concise requested meaning, including relationships and evidence requirements. No invented checklist, API names, endpoint parameters, prerequisites, or availability claims. A general profile request stays a profile request. Preserve conversation, writing and calculation as answer requests too.
+- required_fields: explicitly requested data fields. optional_fields: fields expressly qualified by "if available", "available", etc. Do not invent required fields for a broad request. Keep each field in only one list.
+- filters: only explicitly supplied selection criteria, e.g. location, sector, period, status, limit. Copy values verbatim from the question, including relative dates. Never convert them into provider-specific codes. Output fields are not filters.
+- sources: only explicitly named sources/providers to use for this request, copied verbatim. Otherwise []. Never choose sources yourself.
+- output.format: chat unless the user explicitly requests a file format such as pdf, xlsx, docx or json. output.operations: short English descriptions of requested comparison, ranking, explanation, formatting or other transformations of the retrieved data. These are not separate lookups.
+- Do not silently drop details, expand scope, guess missing values or manufacture missing-input requirements. Maximum 16 subjects and 16 requests; maximum 32 fields per list. Unknown details stay absent. No Markdown, commentary or execution plan.

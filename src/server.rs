@@ -99,6 +99,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/link-preview", post(link_preview::preview).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/chat", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
+        .route("/v2/ask-v2/intent", post(ask_v2::intent).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/news", post(news::search).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/ask-v2/guest/preview", post(ask_v2_guest::preview).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/guest/approve", post(ask_v2_guest::approve).layer(DefaultBodyLimit::max(256 * 1024)))

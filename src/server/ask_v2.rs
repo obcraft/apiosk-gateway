@@ -275,6 +275,37 @@ pub(super) struct ParseRequest {
     correction: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct IntentRequest { question: String }
+
+/// The rebuilt Ask v2 starts here: one extraction, without catalog or planning.
+pub(super) async fn intent(State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<IntentRequest>) -> Response {
+    let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
+    if request.question.trim().is_empty() || request.question.encode_utf16().count() > 16_000 {
+        return failure(StatusCode::BAD_REQUEST, "invalid_question", "Enter a question of up to 16,000 characters.");
+    }
+    let Some(client) = state.engine.parser.ask_v2() else {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "intent_unavailable", "Couldn't convert this question. Try again.");
+    };
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Busy right now. Try again shortly.");
+    };
+    if !client.admit(&person.owner.to_string()) {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before trying again.");
+    }
+    match client.extract_intent(request.question.trim()).await {
+        Ok(output) => {
+            tracing::info!(model=%output["model"], parse_ms=%output["timing"]["parse_ms"], "Ask intent extracted");
+            Json(output).into_response()
+        }
+        Err(error) => {
+            tracing::warn!(error=%error, "Ask intent extraction failed");
+            failure(StatusCode::SERVICE_UNAVAILABLE, "intent_unavailable", "Couldn't convert this question. Try again.")
+        }
+    }
+}
+
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
         && slug.len() <= 160

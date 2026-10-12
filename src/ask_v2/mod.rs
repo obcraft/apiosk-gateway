@@ -2,6 +2,7 @@
 //! public API. This client never plans or executes a data-source request.
 
 pub mod search;
+pub mod intent;
 pub(crate) mod source_options;
 pub mod external;
 pub mod purchase;
@@ -279,6 +280,13 @@ impl Client {
                 body["provider"]["order"] = json!(QWEN_PARSE_PROVIDERS);
             }
         }
+        self.send_object(body, true).await
+    }
+
+    /// Shared transport only. The isolated intake uses one provider request,
+    /// without the legacy parser's delayed rate-limit retries.
+    async fn send_object(&self, body: Value, retry_rate_limit: bool) -> Result<String> {
+        ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
         let body = body.to_string();
         let mut response = self
             .http
@@ -294,7 +302,7 @@ impl Client {
         // Match WebGPU's two bounded retries for a rejected free/provider pool.
         // The complete operation, including waits and the stream, stays within DEADLINE.
         for delay in [1500, 4000] {
-            if response.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
+            if !retry_rate_limit || response.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
                 break;
             }
             drop(response);
