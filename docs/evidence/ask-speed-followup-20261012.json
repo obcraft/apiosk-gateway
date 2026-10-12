@@ -1,0 +1,102 @@
+{
+  "gateway_commit": "eb80bcd",
+  "app_commit": "9dfb9c1",
+  "changes": [
+    "Release local plans only after deterministic full-scope and literal-input validation; external discovery remains required otherwise.",
+    "Hand the just-created response to the task view within the same owner/workspace; saved history still reloads from the gateway.",
+    "Prefer lowest-latency provider routing for the existing parser model and reasoning effort.",
+    "Recognize exact service_category/service_type and search_term/search_phrase synonyms only for reviewed input aliases."
+  ],
+  "baseline": {
+    "successful_browser_question_to_approve_ms": 14700,
+    "evidence": "ask-planning-latency-20261012.json",
+    "additional_check": {
+      "task": "fef5036b-db27-4f32-9c0e-9971c4a09486",
+      "status": "needs_input",
+      "parse_ms": 5116,
+      "apiosk_search_request_ms": 726,
+      "external_search_request_ms": 1842,
+      "research_request_ms": 1875,
+      "cause": "service_category was not bound to the documented service search input",
+      "local_replay_after_fix": "ready"
+    }
+  },
+  "validation": {
+    "app_focused": 221,
+    "route_tests": 17,
+    "app_full_passed": 3213,
+    "app_full_baseline_failures": 14,
+    "app_baseline_files": [
+      "tests/type-scale.test.ts",
+      "tests/components/ask/workflow-in-ask.test.tsx"
+    ],
+    "typescript": "passed",
+    "production_build": "passed",
+    "lint": "passed",
+    "gateway_all_targets_passed": 1123,
+    "gateway_all_targets_failed": 0,
+    "gateway_all_targets_ignored": 112
+  },
+  "routing_documentation": "https://openrouter.ai/docs/guides/routing/provider-selection",
+  "source_purchases": 0,
+  "approvals": 0,
+  "deployment": {
+    "gateway_image": "registry.fly.io/apiosk-gateway-v2:deployment-01M4RH8BM8BWXXQSSDHZTHVH2Q",
+    "gateway_digest": "sha256:3631999c5a7fc0e12df5f9b185622bb364af6151f1e3a7a4f89e1055f748184e",
+    "gateway_health_version": "eb80bcd",
+    "payment_executor": "ready",
+    "netlify_deploy": "6acd15dbe7c583629658f557",
+    "app_bundle": "index-NaaT23kA.js",
+    "production_checks": "verify-request-release.mjs passed"
+  },
+  "live_checks": [
+    {
+      "question": "TenderNed cleaning services",
+      "task": "9c6676a4-dfb4-4097-8876-ee90a5a65045",
+      "question_to_enabled_approve_ms": 10647,
+      "parser_ms": 6793,
+      "local_search_http_ms": 635,
+      "external_search_http_ms": 1934,
+      "compiler_ms": 27,
+      "research_http_ms": 2778,
+      "research_db_ms": 2190,
+      "research_trace": "0c2e65f3-3431-4c72-9531-9abed52b73ba",
+      "displayed_total_eur": "0.050001",
+      "source_count": 1
+    },
+    {
+      "question": "Glassdoor Starbucks and McDonalds comparison",
+      "task": "51f23e83-08c9-48c4-a4e6-4edf11d355aa",
+      "question_to_enabled_approve_ms": 8789,
+      "parser_ms": 4564,
+      "local_search_http_ms": 1519,
+      "external_search_http_ms": 3130,
+      "compiler_ms": 24,
+      "research_http_ms": 2156,
+      "research_db_ms": 1592,
+      "research_trace": "1a63427a-ef29-489d-8104-133cfa8b5fbf",
+      "displayed_total_eur": "0.006348",
+      "source_count": 1,
+      "quoted_calls": 2
+    },
+    {
+      "question": "Registered company details for Mollie B.V.",
+      "task": "5ce30bbf-40c1-49a8-a4bc-35286d642d33",
+      "question_to_enabled_approve_ms": 5663,
+      "parser_ms": 2481,
+      "local_search_http_ms": 594,
+      "external_search_http_ms": 1711,
+      "compiler_ms": 9,
+      "research_http_ms": 2234,
+      "research_db_ms": 1209,
+      "research_trace": "2c92387e-101f-466a-8ae8-85eaaf359af0",
+      "displayed_total_eur": "0.09",
+      "source_count": 1,
+      "quoted_calls": 2
+    }
+  ],
+  "measurement_scope": "Three separate normal browser submissions, each stopped at ready with an enabled approval button. Single observations, not a percentile/SLA or paid-result verification. Timings include UI automation overhead.",
+  "saved_task_reload": "TenderNed quote reopened with same total and enabled approval; no reparsing or source purchase.",
+  "handoff_verification": "No initial GET /v2/tasks/:id between research response and quote display; event stream remains active.",
+  "benchmark_not_run": "Automatic approval review rejected a separate credential-authenticated OpenRouter model benchmark. No alternate benchmark was run; parser model and reasoning effort are unchanged."
+}
