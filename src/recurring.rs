@@ -73,12 +73,15 @@ pub struct Delivery {
     pub destination: String,
     pub connected_account_id: String,
     pub recipient: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destination_label: Option<String>,
 }
 impl Delivery {
     pub fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.recipient == "self",
-            "Results can only be delivered to your own account."
+            self.recipient == "self"
+                || (self.toolkit == "slack" && self.recipient == "conversation"),
+            "Choose your own account or a Slack conversation."
         );
         anyhow::ensure!(
             matches!(self.toolkit.as_str(), "slack" | "gmail"),
@@ -92,9 +95,13 @@ impl Delivery {
         );
         if self.toolkit == "slack" {
             anyhow::ensure!(
-                self.destination.starts_with('D')
+                (if self.recipient == "self" {
+                    self.destination.starts_with('D')
+                } else {
+                    self.destination.starts_with(['C', 'G'])
+                }) && (2..=100).contains(&self.destination.len())
                     && self.destination.chars().all(|c| c.is_ascii_alphanumeric()),
-                "A private conversation with your own Slack account is required."
+                "Choose an available Slack conversation."
             );
         } else {
             anyhow::ensure!(
@@ -130,28 +137,39 @@ impl Delivery {
                 } else {
                     action.fixed_arguments["recipient_email"] == self.destination
                 },
-            "The approved self-delivery account changed."
+            "The approved delivery destination changed."
         );
         Ok(())
     }
 }
 
-/// The caller can select a connected integration, but cannot supply a recipient.
-/// The actual destination is derived from authenticated account ownership once
-/// and pinned in the reviewed workflow.
+/// Self delivery is derived from account ownership. An explicit conversation
+/// must be verified through that same owned account before it can be frozen.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeliveryRequest {
     pub toolkit: String,
     pub connected_account_id: String,
     pub recipient: String,
+    #[serde(default)]
+    pub destination: Option<String>,
 }
 
 impl DeliveryRequest {
     fn validate(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.recipient == "self" && matches!(self.toolkit.as_str(), "gmail" | "slack"),
-            "Choose a connected account to deliver results to yourself."
+            (self.recipient == "self"
+                && self.destination.is_none()
+                && matches!(self.toolkit.as_str(), "gmail" | "slack"))
+                || (self.recipient == "conversation"
+                    && self.toolkit == "slack"
+                    && self
+                        .destination
+                        .as_deref()
+                        .is_some_and(|id| (2..=100).contains(&id.len())
+                            && id.starts_with(['C', 'G'])
+                            && id.bytes().all(|b| b.is_ascii_alphanumeric()))),
+            "Choose a connected account and delivery destination."
         );
         Ok(())
     }
@@ -160,6 +178,8 @@ impl DeliveryRequest {
         self.recipient == delivery.recipient
             && self.toolkit == delivery.toolkit
             && self.connected_account_id == delivery.connected_account_id
+            && (self.recipient == "self"
+                || self.destination.as_deref() == Some(&delivery.destination))
     }
 }
 
@@ -170,6 +190,12 @@ async fn validate_self_delivery(
     action: &crate::integrations::FrozenAction,
 ) -> anyhow::Result<()> {
     delivery.validate_frozen(action)?;
+    if delivery.recipient == "conversation" {
+        crate::integrations::configured()
+            .ok_or_else(|| anyhow::anyhow!("Integrations unavailable."))?
+            .resolve_slack_destination(owner, &delivery.connected_account_id, &delivery.destination)
+            .await?;
+    }
     if delivery.toolkit == "gmail" {
         let current: Option<String> = sqlx::query_scalar("select billing.recurring_self_email($1)")
             .bind(owner)
@@ -307,7 +333,22 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
     }
     let composio = crate::integrations::configured()
         .ok_or_else(|| anyhow::anyhow!("Integrations are unavailable."))?;
-    let destination = if b.delivery.toolkit == "gmail" {
+    let conversation = if b.delivery.recipient == "conversation" {
+        Some(
+            composio
+                .resolve_slack_destination(
+                    p.owner,
+                    &b.delivery.connected_account_id,
+                    b.delivery.destination.as_deref().unwrap_or_default(),
+                )
+                .await?,
+        )
+    } else {
+        None
+    };
+    let destination = if let Some(conversation) = &conversation {
+        conversation["id"].as_str().unwrap().to_owned()
+    } else if b.delivery.toolkit == "gmail" {
         sqlx::query_scalar::<_, Option<String>>("select billing.recurring_self_email($1)")
             .bind(p.owner)
             .fetch_one(&engine.store.pool)
@@ -323,8 +364,12 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
     let delivery = Delivery {
         toolkit: b.delivery.toolkit,
         connected_account_id: b.delivery.connected_account_id,
-        recipient: "self".into(),
+        recipient: b.delivery.recipient,
         destination,
+        destination_label: conversation
+            .as_ref()
+            .and_then(|c| c["label"].as_str())
+            .map(str::to_owned),
     };
     delivery.validate()?;
     let frozen_delivery = composio
@@ -552,7 +597,21 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
 pub async fn read(engine: &Engine, p: &Principal, id: Uuid) -> anyhow::Result<Value> {
     require_owner(p.owner)?;
     engine.store.check_workspace(p).await?;
-    let row=sqlx::query("select o.*, (select balance_micro_usd::text from user_balances where account_id=coalesce(o.workspace_id,o.owner_id)) available from billing.recurring_orders o where id=$1 and owner_id=$2 and workspace_id is not distinct from $3")
+    // Aggregate the complete charge journal, independently of the 100-row run
+    // history page. Keep balances and totals in the same database snapshot.
+    let row=sqlx::query(r#"select o.*,
+      (select balance_micro_usd::text from user_balances where account_id=coalesce(o.workspace_id,o.owner_id)) available,
+      money.spent, money.pending, money.refunded
+      from billing.recurring_orders o
+      cross join lateral (
+        select coalesce(sum(case when b.status='charged' then b.charged_micro_usd else 0 end),0)::text spent,
+          coalesce(sum(case when b.status in ('charged','refunded') then 0 else c.allocated_micro_usd end),0)::text pending,
+          coalesce(sum(case when b.status='refunded' then c.allocated_micro_usd when b.status='charged' then greatest(0,c.allocated_micro_usd-b.charged_micro_usd) else 0 end),0)::text refunded
+        from billing.recurring_runs r join billing.recurring_calls c on c.run_id=r.id
+        left join balance_charges b on b.user_id=o.owner_id and b.idempotency_key=c.id::text
+        where r.order_id=o.id
+      ) money
+      where o.id=$1 and o.owner_id=$2 and o.workspace_id is not distinct from $3"#)
   .bind(id).bind(p.owner).bind(p.workspace).fetch_one(&engine.store.pool).await?;
     let runs:Vec<Value>=sqlx::query_scalar("select jsonb_build_object('id',r.id,'scheduled_at',r.scheduled_at,'state',r.state,'error',r.error,'has_result',r.result is not null and r.result<>'null'::jsonb,'delivery_state',coalesce(d.state,case when r.state='succeeded' and (select change_only from billing.recurring_orders where id=r.order_id) then 'unchanged' end),'spent_micro_usd',coalesce((select sum(b.charged_micro_usd) from billing.recurring_calls c join balance_charges b on b.user_id=$2 and b.idempotency_key=c.id::text and b.status='charged' where c.run_id=r.id),0)::text) from billing.recurring_runs r left join billing.recurring_deliveries d on d.run_id=r.id where r.order_id=$1 order by r.scheduled_at desc limit 100")
   .bind(id).bind(p.owner).fetch_all(&engine.store.pool).await?;
@@ -562,7 +621,7 @@ pub async fn read(engine: &Engine, p: &Principal, id: Uuid) -> anyhow::Result<Va
     let snapshots: Vec<Source> = serde_json::from_value(row.get("sources"))?;
     let date_inputs:Vec<Value>=snapshots.iter().flat_map(|source|dates::candidates(&source.selection["metadata"]["inputs"]).into_iter().map(|input|json!({"selection_id":source.selection["id"],"source_name":source.selection["name"],"pointer":input.pointer,"original":input.original,"date_only":input.date_only,"offset_seconds":source.date_rules.iter().find(|r|r.pointer==input.pointer).map(|r|r.offset_seconds)}))).collect();
     Ok(
-        json!({"id":id,"state":row.get::<String,_>("state"),"question":row.get::<String,_>("question"),"configuration":row.get::<Value,_>("configuration"),"delivery":row.get::<Value,_>("delivery"),"dates":dates,"run_count":if per_run {Value::Null}else{json!(dates.len())},"billing_mode":row.get::<String,_>("billing_mode"),"change_only":row.get::<bool,_>("change_only"),"workflow":workflow.as_ref().map(|w|json!({"version":w["version"],"fingerprint":w["fingerprint"],"execution_mode":"sequential","processing":w["processing"]})),"provider_per_run":row.get::<i64,_>("provider_per_run").to_string(),"total_per_run":row.get::<i64,_>("total_per_run").to_string(),"total":if per_run {"0".to_owned()}else{row.get::<i64,_>("approved_micro_usd").to_string()},"reserved":row.get::<i64,_>("reserved_micro_usd").to_string(),"released":row.get::<i64,_>("released_micro_usd").to_string(),"balance_available":row.get::<Option<String>,_>("available"),"expires_at":row.get::<DateTime<Utc>,_>("expires_at"),"sources":snapshots.iter().enumerate().map(|(ordinal,source)|json!({"ordinal":ordinal,"step_id":source.selection["id"],"api_slug":source.selection["api_slug"],"endpoint_id":source.selection["candidate_id"],"dependencies":workflow.as_ref().and_then(|w|w["recipe"]["steps"][ordinal]["bindings"].as_array()).map(|bindings|bindings.iter().map(|b|json!({"step":b["from_step"].as_u64().unwrap_or(0)+1,"field":b["fact_type"]})).collect::<Vec<_>>()).unwrap_or_default(),"name":source.selection["name"],"total_per_run":source.selection["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"usage_notice":source.service.as_ref().and_then(|service|service.usage_notice_view())})).collect::<Vec<_>>(),"date_inputs":date_inputs,"date_rules":row.get::<Value,_>("sources").as_array().map(|sources| sources.iter().flat_map(|source|source["date_rules"].as_array().into_iter().flatten().cloned()).collect::<Vec<_>>()).unwrap_or_default(),"runs":runs}),
+        json!({"id":id,"state":row.get::<String,_>("state"),"question":row.get::<String,_>("question"),"configuration":row.get::<Value,_>("configuration"),"delivery":row.get::<Value,_>("delivery"),"dates":dates,"run_count":if per_run {Value::Null}else{json!(dates.len())},"billing_mode":row.get::<String,_>("billing_mode"),"change_only":row.get::<bool,_>("change_only"),"workflow":workflow.as_ref().map(|w|json!({"version":w["version"],"fingerprint":w["fingerprint"],"execution_mode":"sequential","processing":w["processing"]})),"provider_per_run":row.get::<i64,_>("provider_per_run").to_string(),"total_per_run":row.get::<i64,_>("total_per_run").to_string(),"total":if per_run {"0".to_owned()}else{row.get::<i64,_>("approved_micro_usd").to_string()},"reserved":row.get::<i64,_>("reserved_micro_usd").to_string(),"released":row.get::<i64,_>("released_micro_usd").to_string(),"spent":row.get::<String,_>("spent"),"pending":row.get::<String,_>("pending"),"refunded":row.get::<String,_>("refunded"),"funded":row.get::<i64,_>("approved_micro_usd").to_string(),"balance_available":row.get::<Option<String>,_>("available"),"expires_at":row.get::<DateTime<Utc>,_>("expires_at"),"sources":snapshots.iter().enumerate().map(|(ordinal,source)|json!({"ordinal":ordinal,"step_id":source.selection["id"],"api_slug":source.selection["api_slug"],"endpoint_id":source.selection["candidate_id"],"dependencies":workflow.as_ref().and_then(|w|w["recipe"]["steps"][ordinal]["bindings"].as_array()).map(|bindings|bindings.iter().map(|b|json!({"step":b["from_step"].as_u64().unwrap_or(0)+1,"field":b["fact_type"]})).collect::<Vec<_>>()).unwrap_or_default(),"name":source.selection["name"],"total_per_run":source.selection["charged_micro_usd"].as_i64().unwrap_or(0).to_string(),"usage_notice":source.service.as_ref().and_then(|service|service.usage_notice_view())})).collect::<Vec<_>>(),"date_inputs":date_inputs,"date_rules":row.get::<Value,_>("sources").as_array().map(|sources| sources.iter().flat_map(|source|source["date_rules"].as_array().into_iter().flatten().cloned()).collect::<Vec<_>>()).unwrap_or_default(),"runs":runs}),
     )
 }
 
@@ -654,6 +713,8 @@ mod tests {
             "toolkit":"gmail","connected_account_id":"ca_self","recipient":"self",
             "destination":"someone-else@example.com"
         }))
+        .unwrap()
+        .validate()
         .is_err());
         let request: DeliveryRequest = serde_json::from_value(json!({
             "toolkit":"gmail","connected_account_id":"ca_self","recipient":"someone-else"
@@ -690,6 +751,7 @@ mod tests {
             destination: "a@b.com\nbcc:other".into(),
             connected_account_id: "ca_test".into(),
             recipient: "self".into(),
+            destination_label: None,
         }
         .validate()
         .is_err());

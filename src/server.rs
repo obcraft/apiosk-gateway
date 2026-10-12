@@ -150,6 +150,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/recurring-orders", get(recurring::list))
         .route("/v2/recurring-orders/access", get(recurring::access))
         .route("/v2/recurring-orders/quote", post(recurring::quote))
+        .route("/v2/recurring-orders/destinations", post(recurring::destinations))
         .route("/v2/recurring-orders/:id", get(recurring::read))
         .route("/v2/recurring-orders/:id/approve", post(recurring::approve))
         .route("/v2/recurring-orders/:id/runs/:run", get(recurring::run))

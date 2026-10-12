@@ -312,11 +312,15 @@ async fn seed_completed(engine: &Engine, owner: Uuid) -> (Uuid, i64) {
 }
 
 async fn quoted(engine: &Engine, owner: Uuid, task: Uuid, count: usize) -> (Uuid, i64) {
+    quoted_to(engine, owner, task, count, json!({"toolkit":"slack","recipient":"self","connected_account_id":"ca_selected"})).await
+}
+
+async fn quoted_to(engine: &Engine, owner: Uuid, task: Uuid, count: usize, delivery: Value) -> (Uuid, i64) {
     let id = Uuid::new_v4();
     let request:recurring::QuoteRequest=serde_json::from_value(json!({
         "request_id":id,"task_ids":[task],"question":"Repeat the same two approved sources in order",
         "schedule":{"start":(Utc::now()+ChronoDuration::days(1)).date_naive(),"time":"09:00:00","timezone":"UTC","frequency":"daily","count":count},
-        "delivery":{"toolkit":"slack","recipient":"self","connected_account_id":"ca_selected"},
+        "delivery":delivery,
         "billing_mode":"prepaid","change_only":false
     })).unwrap();
     let quote = recurring::quote(
@@ -435,6 +439,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
             Json(json!({"id":id,"user_id":composio_user_id(f.owner),"toolkit":{"slug":toolkit},"status":"ACTIVE"}))
         }))
         .route("/tools/:tool",get(|State(f):State<Fake>,Path(tool):Path<String>|async move {
+            if tool == "SLACK_RETRIEVE_CONVERSATION_INFORMATION" { return Json(json!({"slug":tool,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"channel":{"type":"string"}},"required":["channel"]}})); }
             if tool == "GMAIL_SEND_EMAIL" { return Json(json!({"slug":tool,"toolkit":{"slug":"gmail"},"version":"20261008_00","tags":["createHint"], "input_parameters":{"type":"object","properties":{"recipient_email":{"type":"string"},"subject":{"type":"string"},"body":{"type":"string"}},"required":["recipient_email","subject","body"],"additionalProperties":false}})); }
             if tool == "SLACK_TEST_AUTH" { return Json(json!({"slug":tool,"toolkit":{"slug":"slack"},"version":"20261008_00", "input_parameters":{"type":"object","properties":{}}})); }
             if tool == "SLACK_OPEN_DM" { return Json(json!({"slug":tool,"toolkit":{"slug":"slack"},"version":"20261008_00", "input_parameters":{"type":"object","properties":{"users":{"type":"string"},"return_im":{"type":"boolean"}},"required":["users"],"additionalProperties":false}})); }
@@ -445,9 +450,10 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
         .route("/tools/execute/:tool",post(|State(f):State<Fake>,Path(tool):Path<String>,Json(body):Json<Value>|async move {
             assert_eq!(body["version"],"20261008_00");
             assert_eq!(body["user_id"],composio_user_id(f.owner));
+            if tool == "SLACK_RETRIEVE_CONVERSATION_INFORMATION" { assert_eq!(body["arguments"]["channel"],"GTEAM"); return Json(json!({"successful":true,"data":{"ok":true,"channel":{"id":"GTEAM","name":"team-chat","is_mpim":true,"is_member":true}}})); }
             if tool == "SLACK_TEST_AUTH" { assert_eq!(body["arguments"],json!({})); return Json(json!({"successful":true,"data":{"ok":true,"user_id":"UFIXTURE"}})); }
             if tool == "SLACK_OPEN_DM" { assert_eq!(body["arguments"],json!({"users":"UFIXTURE","return_im":true})); return Json(json!({"successful":true,"data":{"ok":true,"channel":{"id":"DSELF","user":"UFIXTURE","is_im":true}}})); }
-            assert_eq!(tool,"SLACK_SEND_MESSAGE");assert_eq!(body["version"],"20261008_00");assert_eq!(body["connected_account_id"],"ca_selected");assert_eq!(body["arguments"]["channel"],"DSELF");
+            assert_eq!(tool,"SLACK_SEND_MESSAGE");assert_eq!(body["version"],"20261008_00");assert_eq!(body["connected_account_id"],"ca_selected");assert!(["DSELF","GTEAM"].contains(&body["arguments"]["channel"].as_str().unwrap()));
             f.deliveries.lock().unwrap().push(body);Json(json!({"successful":true,"data":{"sent":true}}))
         }))
         .route("/model",post(|State(f):State<Fake>|async move {f.model_calls.fetch_add(1,Ordering::SeqCst);Json(json!({"error":"No model is permitted in frozen replay"}))}))
@@ -1136,6 +1142,44 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
         personal, final_balance,
         "owner cancellation cannot redirect workspace funds"
     );
+    // A selected group goes through quote, approval, funding, execution and
+    // pinned delivery using only these fake local providers.
+    let (group_order, _) = quoted_to(&engine, owner, task, 1, json!({"toolkit":"slack","recipient":"conversation","destination":"GTEAM","connected_account_id":"ca_selected"})).await;
+    recurring::verify(&engine, &principal, group_order).await.unwrap();
+    sqlx::query("UPDATE billing.recurring_runs SET scheduled_at=now()-interval '1 second' WHERE order_id=$1").bind(group_order).execute(&pool).await.unwrap();
+    recurring::run_one_pass(&engine).await.unwrap();
+    let group_view = recurring::read(&engine, &principal, group_order).await.unwrap();
+    assert_eq!(group_view["state"],"completed");
+    assert_eq!(group_view["delivery"]["destination_label"],"team-chat");
+    assert_eq!(group_view["spent"],group_view["total"]);
+    sqlx::query("UPDATE billing.recurring_deliveries SET next_attempt_at=now()+interval '1 day' WHERE run_id IN (SELECT id FROM billing.recurring_runs WHERE order_id<>$1)").bind(group_order).execute(&pool).await.unwrap();
+    recurring::deliver_one_pass(&engine).await.unwrap();
+    assert_eq!(fake.deliveries.lock().unwrap().last().unwrap()["arguments"]["channel"],"GTEAM");
+
+    // Lifetime accounting must not be derived from the latest 100 run cards.
+    // Use journal fixtures for a long history, a refund, a pending call and a
+    // lower actual charge. The real reserve/settle/cancel flow is exercised above.
+    let before = recurring::read(&engine, &principal, order).await.unwrap();
+    let before_spent: i64 = before["spent"].as_str().unwrap().parse().unwrap();
+    let history_selection: Uuid = sqlx::query_scalar("SELECT c.selection_id FROM billing.recurring_calls c JOIN billing.recurring_runs r ON r.id=c.run_id WHERE r.order_id=$1 LIMIT 1").bind(order).fetch_one(&pool).await.unwrap();
+    for index in 0..104i64 {
+        let run: Uuid = sqlx::query_scalar("INSERT INTO billing.recurring_runs(order_id,scheduled_at,state,finished_at) VALUES($1,now()+interval '1000 days'+$2*interval '1 day','succeeded',now()) RETURNING id")
+            .bind(order).bind(index).fetch_one(&pool).await.unwrap();
+        let (status, allocated, actual) = match index { 101 => ("refunded",11i64,11i64), 102 => ("reserved",13,13), 103 => ("charged",17,5), _ => ("charged",7,7) };
+        let call = Uuid::new_v4();
+        let selection = Uuid::new_v4();
+        sqlx::query("INSERT INTO actions.user_selected_apis(id,user_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) SELECT $1,user_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata FROM actions.user_selected_apis WHERE id=$2")
+            .bind(selection).bind(history_selection).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO billing.recurring_calls(id,run_id,ordinal,selection_id,inputs,cap_micro_usd,allocated_micro_usd,state) VALUES($1,$2,0,$3,'{}',$4,$4,'succeeded')")
+            .bind(call).bind(run).bind(selection).bind(allocated).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO billing.balance_charges(user_id,idempotency_key,status,charged_micro_usd,provider_price_micro_usd,fee_micro_usd,metadata) VALUES($1,$2,$3,$4,0,$4,'{}')")
+            .bind(owner).bind(call.to_string()).bind(status).bind(actual).execute(&pool).await.unwrap();
+    }
+    let summary = recurring::read(&engine, &principal, order).await.unwrap();
+    assert_eq!(summary["runs"].as_array().unwrap().len(),100);
+    assert_eq!(summary["spent"],(before_spent + 101*7 + 5).to_string());
+    assert_eq!(summary["pending"],"13");
+    assert_eq!(summary["refunded"],"23");
     server.abort();
     pool.close().await;
 }

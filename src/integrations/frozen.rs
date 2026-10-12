@@ -232,7 +232,94 @@ impl FrozenAction {
     }
 }
 
+fn valid_slack_destination_id(id: &str) -> bool {
+    (2..=100).contains(&id.len())
+        && id.starts_with(['C', 'G'])
+        && id.bytes().all(|b| b.is_ascii_alphanumeric())
+}
+
+fn slack_destination(channel: &Value) -> Option<Value> {
+    let id = channel["id"]
+        .as_str()
+        .filter(|id| valid_slack_destination_id(id))?;
+    // Public channels can be listed without membership. Only offer existing
+    // conversations this account can participate in; never silently join one.
+    if channel["is_archived"] == true
+        || channel["is_member"] == false
+        || (channel["is_member"] != true && channel["is_mpim"] != true)
+    {
+        return None;
+    }
+    let kind = if channel["is_mpim"] == true {
+        "group"
+    } else if channel["is_private"] == true {
+        "private_channel"
+    } else {
+        "channel"
+    };
+    let label = channel["name"]
+        .as_str()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or(id);
+    Some(json!({"id":id,"label":clipped(label, 200),"kind":kind}))
+}
+
 impl Composio {
+    /// Read conversation metadata only; never join a channel or send a message.
+    pub async fn slack_destinations(
+        &self,
+        owner: Uuid,
+        account_id: &str,
+        cursor: Option<&str>,
+    ) -> Result<Value, ExecuteError> {
+        self.require_owned_account(owner, "slack", account_id)
+            .await?;
+        if cursor.is_some_and(|c| c.len() > 2048 || c.contains(['\r', '\n'])) {
+            return Err(ExecuteError::InvalidArguments);
+        }
+        let mut arguments = json!({"limit":200,"types":"public_channel,private_channel,mpim","exclude_archived":true});
+        if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
+            arguments["cursor"] = json!(cursor);
+        }
+        let data = self
+            .self_slack_tool(owner, account_id, "SLACK_LIST_ALL_CHANNELS", arguments)
+            .await?;
+        let channels = data["channels"]
+            .as_array()
+            .ok_or(ExecuteError::InvalidContract)?;
+        let destinations: Vec<_> = channels.iter().filter_map(slack_destination).collect();
+        Ok(
+            json!({"destinations":destinations,"next_cursor":data["response_metadata"]["next_cursor"].as_str().unwrap_or("")}),
+        )
+    }
+
+    pub async fn resolve_slack_destination(
+        &self,
+        owner: Uuid,
+        account_id: &str,
+        destination: &str,
+    ) -> Result<Value, ExecuteError> {
+        if !valid_slack_destination_id(destination) {
+            return Err(ExecuteError::InvalidArguments);
+        }
+        self.require_owned_account(owner, "slack", account_id)
+            .await?;
+        let data = self
+            .self_slack_tool(
+                owner,
+                account_id,
+                "SLACK_RETRIEVE_CONVERSATION_INFORMATION",
+                json!({"channel":destination}),
+            )
+            .await?;
+        let channel =
+            slack_destination(&data["channel"]).ok_or(ExecuteError::AccountUnavailable)?;
+        if channel["id"] != destination {
+            return Err(ExecuteError::InvalidContract);
+        }
+        Ok(channel)
+    }
+
     /// Resolve the selected person's own Slack DM once, before the delivery
     /// contract is frozen. Neither step sends a message or reads conversation
     /// content; provider user IDs never come from the client or an account alias.
@@ -485,6 +572,7 @@ mod tests {
         tool: Arc<Mutex<Value>>,
         identity: Arc<Mutex<Value>>,
         self_dm: Arc<Mutex<Value>>,
+        conversation: Arc<Mutex<Value>>,
         calls: Arc<Mutex<Vec<(String, Value)>>>,
         execution_status: Arc<Mutex<axum::http::StatusCode>>,
     }
@@ -510,6 +598,7 @@ mod tests {
             self_dm: Arc::new(Mutex::new(
                 json!({"ok":true,"channel":{"id":"D12345","user":"U12345","is_im":true}}),
             )),
+            conversation: Arc::new(Mutex::new(json!({"id":"GTEAM","name":"team-chat","is_mpim":true,"is_member":true}))),
             execution_status: Arc::new(Mutex::new(axum::http::StatusCode::OK)),
         };
         let app = Router::new()
@@ -520,6 +609,8 @@ mod tests {
             .route("/tools/:slug", get(|State(s): State<Provider>, Path(slug): Path<String>, uri: OriginalUri| async move {
                 s.calls.lock().unwrap().push((format!("GET {}", uri.0), Value::Null));
                 Json(match slug.as_str() {
+                    "SLACK_LIST_ALL_CHANNELS" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"limit":{"type":"integer"},"types":{"type":"string"},"exclude_archived":{"type":"boolean"},"cursor":{"type":"string"}},"additionalProperties":false}}),
+                    "SLACK_RETRIEVE_CONVERSATION_INFORMATION" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"channel":{"type":"string"}},"required":["channel"],"additionalProperties":false}}),
                     "SLACK_TEST_AUTH" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{}}}),
                     "SLACK_OPEN_DM" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"users":{"type":"string"},"return_im":{"type":"boolean"}},"required":["users"]}}),
                     _ => s.tool.lock().unwrap().clone(),
@@ -529,6 +620,8 @@ mod tests {
                 s.calls.lock().unwrap().push((format!("POST /tools/execute/{slug}"), body));
                 let status = *s.execution_status.lock().unwrap();
                 let data = match slug.as_str() {
+                    "SLACK_LIST_ALL_CHANNELS" => json!({"ok":true,"channels":[s.conversation.lock().unwrap().clone(),{"id":"CARCHIVED","is_member":true,"is_archived":true},{"id":"COTHER","is_member":false}],"response_metadata":{"next_cursor":"page-two"}}),
+                    "SLACK_RETRIEVE_CONVERSATION_INFORMATION" => json!({"ok":true,"channel":s.conversation.lock().unwrap().clone()}),
                     "SLACK_TEST_AUTH" => s.identity.lock().unwrap().clone(),
                     "SLACK_OPEN_DM" => s.self_dm.lock().unwrap().clone(),
                     _ => json!({"ts":"saved_message"}),
@@ -549,6 +642,34 @@ mod tests {
             ),
             state,
         )
+    }
+
+    #[tokio::test]
+    async fn destinations_are_owned_paginated_and_checked_without_sending() {
+        let (client, provider) = fake().await;
+        let page = client.slack_destinations(owner(), "ca_selected", Some("cursor-one")).await.unwrap();
+        assert_eq!(page["destinations"], json!([{"id":"GTEAM","label":"team-chat","kind":"group"}]));
+        assert_eq!(page["next_cursor"], "page-two");
+        let selected = client.resolve_slack_destination(owner(), "ca_selected", "GTEAM").await.unwrap();
+        assert_eq!(selected["id"], "GTEAM");
+        assert!(provider.calls.lock().unwrap().iter().any(|(path, body)| path.ends_with("SLACK_LIST_ALL_CHANNELS") && body["arguments"]["cursor"] == "cursor-one"));
+        assert!(!provider.calls.lock().unwrap().iter().any(|(path, _)| path.contains("SEND_MESSAGE") || path.contains("OPEN_DM")));
+        provider.conversation.lock().unwrap()["is_archived"] = json!(true);
+        assert!(client.resolve_slack_destination(owner(), "ca_selected", "GTEAM").await.is_err());
+        provider.account.lock().unwrap()["user_id"] = json!("another-owner");
+        let count = provider.calls.lock().unwrap().len();
+        assert!(client.slack_destinations(owner(), "ca_selected", None).await.is_err());
+        assert_eq!(provider.calls.lock().unwrap().len(), count + 1, "ownership checked before provider tools");
+    }
+
+    #[tokio::test]
+    async fn conversation_resolution_rejects_mismatches_and_nonmembers() {
+        let (client, provider) = fake().await;
+        assert!(client.resolve_slack_destination(owner(), "ca_selected", "CDIFFERENT").await.is_err());
+        assert!(client.resolve_slack_destination(owner(), "ca_selected", "#team-chat").await.is_err());
+        assert!(client.resolve_slack_destination(owner(), "ca_selected", "DUSER").await.is_err());
+        provider.conversation.lock().unwrap()["is_member"] = json!(false);
+        assert!(client.resolve_slack_destination(owner(), "ca_selected", "GTEAM").await.is_err());
     }
 
     #[tokio::test]

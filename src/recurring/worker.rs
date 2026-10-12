@@ -114,13 +114,19 @@ async fn execute(
         }
     };
     let delivery: Delivery = serde_json::from_value(o.get("delivery"))?;
-    validate_self_delivery(e, p.owner, &delivery, &workflow.delivery).await?;
     let count: i64 =
         sqlx::query_scalar("select count(*) from billing.recurring_calls where run_id=$1")
             .bind(run)
             .fetch_one(&e.store.pool)
             .await?;
     if count == 0 {
+        if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery)
+            .await
+            .is_err()
+        {
+            sqlx::query("update billing.recurring_orders set state='attention' where id=$1 and state='active'").bind(order).execute(&e.store.pool).await?;
+            return finish(e, run, "failed", Value::Null, Some("The delivery destination changed or is unavailable. Review a new plan; no purchase was made.")).await;
+        }
         if o.get::<String, _>("state") != "active" {
             return finish(
                 e,
@@ -457,7 +463,13 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
             .ok_or_else(|| anyhow::anyhow!("Missing frozen delivery."))?,
     )?;
     let delivery: Delivery = serde_json::from_value(row.get("delivery"))?;
-    validate_self_delivery(e, p.owner, &delivery, &workflow.delivery).await?;
+    if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery)
+        .await
+        .is_err()
+    {
+        sqlx::query("update billing.recurring_deliveries set state='failed',error='The delivery destination changed or is unavailable. Saved results remain available.' where id=$1 and state='sending'").bind(id).execute(&e.store.pool).await?;
+        return Ok(());
+    }
     let question: String = row.get("question");
     let result: Value = row.get("result");
     let url = format!(

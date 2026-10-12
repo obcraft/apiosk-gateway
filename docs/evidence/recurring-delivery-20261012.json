@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-12",
+  "scope": [
+    "Ask recurring setup",
+    "Slack channels and group chats",
+    "Gmail self delivery",
+    "lifetime financial totals and balance refresh"
+  ],
+  "checks": {
+    "gateway_all_targets": {
+      "passed": 1116,
+      "failed": 0,
+      "ignored": 112
+    },
+    "local_recurring_flow": "passed: real recurring migrations, mock providers; approval, funding, settlement, cancellation, restart recovery, selected group delivery, more than 100 runs, pending and refunded totals",
+    "focused_app_and_ledger_tests": 135,
+    "production_build": "passed",
+    "typescript": "passed",
+    "lint": "passed",
+    "full_app_suite": {
+      "passed": 3209,
+      "failed": 14,
+      "baseline_failures": "12 workflow-in-Ask fixtures lack matchMedia; 2 existing type-scale assertions. Same failures verified before this change."
+    }
+  },
+  "live_before_release": {
+    "slack": "connected",
+    "gmail": "connected"
+  },
+  "boundaries": [
+    "No real paid recurring job created",
+    "No message sent to a real Slack conversation",
+    "Private owner rollout preserved",
+    "Extended analysis and other delivery toolkits remain outside the existing frozen recurring-source workflow"
+  ]
+}

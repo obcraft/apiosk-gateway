@@ -105,6 +105,66 @@ pub(super) async fn quote(
     }
     reply(recurring::quote(&s.engine, &p, b).await)
 }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct Destinations {
+    connected_account_id: String,
+    cursor: Option<String>,
+}
+
+pub(super) async fn destinations(
+    State(s): State<ServerState>,
+    h: HeaderMap,
+    Json(b): Json<Destinations>,
+) -> Response {
+    let p = match person(&s, &h).await {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    if !recurring::enabled() {
+        return failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "recurring_unavailable",
+            "Recurring orders are not available yet.",
+        );
+    }
+    if let Err(error) = s.engine.store.check_workspace(&p).await {
+        return if matches!(
+            error.downcast_ref::<crate::store::StoreAccessError>(),
+            Some(crate::store::StoreAccessError::WorkspaceUnavailable)
+        ) {
+            failure(
+                StatusCode::FORBIDDEN,
+                "workspace_unavailable",
+                "This workspace is unavailable.",
+            )
+        } else {
+            failure(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "workspace_unavailable",
+                "Could not check workspace access. Try again.",
+            )
+        };
+    }
+    let Some(composio) = crate::integrations::configured() else {
+        return failure(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "integrations_unavailable",
+            "Delivery apps are temporarily unavailable. Try again.",
+        );
+    };
+    match composio
+        .slack_destinations(p.owner, &b.connected_account_id, b.cursor.as_deref())
+        .await
+    {
+        Ok(value) => Json(value).into_response(),
+        Err(error) => {
+            tracing::warn!(%error, "recurring destinations unavailable");
+            failure(StatusCode::CONFLICT, "destinations_unavailable", "Could not load Slack conversations. Check the connection and its channel permissions, then retry.")
+        }
+    }
+}
 pub(super) async fn read(
     State(s): State<ServerState>,
     h: HeaderMap,
