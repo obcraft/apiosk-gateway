@@ -72,17 +72,33 @@ async fn owner_control(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Pr
     principal.workspace = workspace;
     Ok(principal)
 }
+fn recurring_error_message(error: &anyhow::Error) -> &'static str {
+    match error.downcast_ref::<sqlx::Error>() {
+        Some(sqlx::Error::Database(db)) if db.constraint() == Some("recurring_active_mandate") => return "This order is already scheduled. Open Recurring orders to manage it.",
+        Some(sqlx::Error::Database(db)) if db.message() == "insufficient_balance" => return "Not enough available balance. Add funds or choose fewer runs.",
+        Some(sqlx::Error::Database(db)) if db.message() == "quote_expired" => return "This quote expired. Refresh the total price.",
+        _ => {}
+    }
+    match error.to_string().as_str() {
+        "A dynamic input has no unique source in this recipe; review the original dependency."
+        | "Several earlier sources could bind this input; an explicit source binding is required."
+        | "The dependency returned no unique subject. Review the order." => "This saved answer needs a source choice before it can repeat automatically. Ask again with the exact company or record identifier.",
+        "Extended analysis requires a fresh explicit approval and cannot be added to a recurring order." => "Extended analysis cannot repeat yet. Schedule the original source answer instead.",
+        "A source price changed. Run and review the order again."
+        | "The saved source contract changed."
+        | "A source is no longer available." => "A source or its price changed. Prepare a new answer before scheduling it.",
+        "Wait for the result to finish." | "Wait for all results to finish." => "Wait for the answer to finish, then try again.",
+        "Verify your account email before scheduling delivery." => "Verify your Apiosk email before scheduling Gmail delivery.",
+        _ => "Could not prepare this schedule. Check the delivery connection and try again.",
+    }
+}
+
 fn reply(result: anyhow::Result<Value>) -> Response {
     match result {
         Ok(v) => Json(v).into_response(),
         Err(e) => {
             tracing::warn!(error=%e,"recurring request refused");
-            let message = match e.downcast_ref::<sqlx::Error>() {
-                Some(sqlx::Error::Database(db)) if db.constraint()==Some("recurring_active_mandate") => "This order is already scheduled. Open Recurring orders to manage it.",
-                Some(sqlx::Error::Database(db)) if db.message()=="insufficient_balance" => "Your available balance is too low for this reservation. Add funds or shorten the period.",
-                Some(sqlx::Error::Database(db)) if db.message()=="quote_expired" => "This quote expired. Refresh the total price before approving.",
-                _ => "The recurring order could not be saved. Check the schedule, connected delivery app, source prices and available balance.",
-            };
+            let message = recurring_error_message(&e);
             failure(StatusCode::CONFLICT, "recurring_refused", message)
         }
     }

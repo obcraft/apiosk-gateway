@@ -69,14 +69,24 @@ switch to latest. Only declared message-content fields receive the new saved
 report. An unavailable approved account/contract stops delivery. Delivery is
 included in the displayed total; no extra delivery charge is introduced here.
 
-The quote request accepts delivery {toolkit, connected_account_id, recipient:
-"self"}; recipient addresses and Slack channels supplied by the caller are
-rejected. Gmail resolves the authenticated owner's verified email through the
-private billing.recurring_self_email function. Slack resolves the owned account's
-human identity and opens that identity's private self-DM through Composio. Bot
-identities and nonself conversations are refused. A retry of the same quote ID
-keeps the original reviewed destination. A changed or no-longer-verified Gmail
-address requires a new review before activation, execution or sending.
+Self delivery uses `{toolkit, connected_account_id, recipient: "self"}`.
+Gmail resolves the authenticated owner's verified email through the private
+`billing.recurring_self_email` function. Slack resolves the owned account's human
+identity and opens that identity's private self-DM through Composio.
+
+Slack also accepts `recipient: "conversation"` with a selected `destination` ID.
+The account-scoped, paginated `/v2/recurring-orders/destinations` endpoint returns
+joined channels and group chats using metadata only. It does not read messages,
+join channels, or send anything. The selected conversation is checked again at
+quote, approval, pre-purchase and delivery; archived or inaccessible conversations
+are refused. The reviewed conversation is pinned into the immutable contract.
+Changing the account or destination invalidates the displayed quote. A retry of
+the same quote ID keeps the reviewed destination. Connecting another app opens a
+new tab so the pending schedule remains in place.
+
+A changed or no-longer-verified Gmail address requires a new review. A destination
+failure before purchase finishes the occurrence and releases its unused funds;
+after source execution, it fails delivery while retaining the saved result.
 
 With **Only deliver when source results change**, the first successful result is
 sent and later equal results remain saved without a new delivery. Comparison
@@ -299,3 +309,10 @@ Monitor attention orders, unresolved calls/runs, uncertain deliveries, missed
 occurrences, stale leases, and reservation balances. Production enablement does
 not establish paid/live acceptance; a real funded schedule and delivery remain
 separate checks.
+
+Financial status comes from the complete charge journal, independently of the
+latest 100 run cards. The response separates `reserved`, `pending`, `spent`,
+`refunded`, and unused `released` amounts. The UI shows the finite total as run
+count × price per run, displays returned funds, and refreshes the global balance
+when the order's financial state changes. An unavailable refresh is labelled;
+missing lifetime totals are never replaced by the truncated run-card subtotal.
