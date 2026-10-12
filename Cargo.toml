@@ -45,6 +45,13 @@ scraper = "=0.24.0"
 unicode-normalization = "0.1"
 roxmltree = "=0.20.0"
 
+# Keep local builds and tests small; opt into debug symbols when debugging.
+[profile.dev]
+debug = 0
+incremental = false
+# Avoid malformed proc-macro dylibs from Rust's Mach-O debug stripping.
+strip = "none"
+
 [profile.release]
 strip = true
 lto = "thin"
