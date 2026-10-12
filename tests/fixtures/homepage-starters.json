@@ -1,74 +1,786 @@
 [
   {
-    "id": "kvk",
-    "question": "Show the registered company details for Mollie B.V. (KVK 30204462).",
-    "subject": "Mollie B.V.",
-    "source_hint": "kvk",
-    "outputs": ["profile"],
-    "provider": "kvk-dutch-business-register",
-    "operation": "company.registry-profile",
-    "method": "GET",
-    "path": "/api/v1/basisprofielen",
-    "inputs": {"kvkNummer": "30204462"}
+    "id": "supplier",
+    "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.99,
+          "description": "Look up the registered company profile, including its legal name, registration details, and activities.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Company profile",
+          "outputs": [
+            "profile",
+            "source_links"
+          ],
+          "slug": "company.profile",
+          "source_hint": "kvk",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.99,
+          "description": "Check for potential company sanctions matches and distinguish possible matches from confirmed identity matches.",
+          "domain": "compliance",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Sanctions matches",
+          "outputs": [
+            "potential_matches",
+            "confirmed_identity_matches",
+            "source_links"
+          ],
+          "slug": "compliance.sanctions.matches",
+          "source_hint": "opensanctions",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue B.V."
+          },
+          "label": "Coolblue B.V.",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Show the KVK legal name, registration details and registered activities for Coolblue B.V., with source links.",
+          "Report potential company sanctions matches returned by OpenSanctions with available source links and supporting identity details.",
+          "Keep possible matches separate from evidence-supported confirmed identity matches. Do not treat a candidate match or name similarity as confirmation, and state when the returned evidence cannot establish identity."
+        ],
+        "goals": [
+          {
+            "capability": "company.registry-profile",
+            "constraints": {
+              "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+              "source": "kvk-dutch-business-register"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "company.sanctions-screen",
+            "constraints": {
+              "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+              "source": "opensanctions"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check KVK for Coolblue B.V.’s registered profile and OpenSanctions for potential matches, and show the total price first. The report will include source links and keep possible matches separate from any evidence-supported identity matches."
+    },
+    "cap_atomic": 206522,
+    "steps": [
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company_registry.search",
+        "method": "GET",
+        "path": "/api/v2/zoeken",
+        "inputs": {
+          "naam": "Coolblue B.V."
+        },
+        "subject": "Coolblue B.V.",
+        "dependencies": []
+      },
+      {
+        "source": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "method": "GET",
+        "path": "/api/v1/basisprofielen",
+        "inputs": null,
+        "subject": "Coolblue B.V.",
+        "dependencies": [
+          {
+            "step": 1,
+            "field": "company_registry.kvknummer"
+          }
+        ]
+      },
+      {
+        "source": "opensanctions",
+        "capability": "company.sanctions-screen",
+        "method": "POST",
+        "path": "/match",
+        "inputs": {
+          "dataset": "default",
+          "limit": 10,
+          "queries": {
+            "q1": {
+              "properties": {
+                "name": [
+                  "Coolblue B.V."
+                ]
+              },
+              "schema": "Company"
+            }
+          }
+        },
+        "subject": "Coolblue B.V.",
+        "dependencies": [
+          {
+            "step": 2,
+            "field": "company.name"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "tenderned",
-    "question": "Find public tenders for cleaning services in the Netherlands through TenderNed.",
-    "subject": "cleaning services",
-    "source_hint": "tenderned",
-    "outputs": ["publication_page"],
-    "provider": "tenderned",
-    "operation": "procurement.nl-public-contracts",
-    "method": "GET",
-    "path": "/v2/publicaties",
-    "inputs": {"search": "schoonmaak", "page": 0, "size": 20, "sort": "publicatieDatum,desc"}
+    "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.97,
+          "description": "Find relevant public procurement notices for the specified service and country, distinguishing contract opportunities from notices of already awarded contracts.",
+          "domain": "procurement",
+          "inputs": [
+            "country",
+            "query"
+          ],
+          "name": "Procurement notices",
+          "outputs": [
+            "buyer",
+            "scope",
+            "publication_type",
+            "deadline",
+            "source_link",
+            "notice_type"
+          ],
+          "slug": "procurement.notices",
+          "source_hint": "tenderned",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "list"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "country": "Dutch",
+            "query": "cleaning services"
+          },
+          "label": "Dutch public procurement notices",
+          "type": "notice"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Shortlist relevant Dutch cleaning-services notices from the returned TenderNed results, explaining their relevance without claiming exhaustive coverage beyond the single page of up to 20 notices.",
+          "For each shortlisted notice, present the buyer, scope, publication type, available deadline and source link; mark missing details as unavailable.",
+          "Distinguish contract opportunities from notices of already awarded contracts, and identify corrections or cancellations separately. Do not assume an announcement is still open merely from its publication type."
+        ],
+        "goals": [
+          {
+            "capability": "procurement.nl-public-contracts",
+            "constraints": {
+              "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+              "source": "tenderned"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company_intel.input.search": {
+                "ref": "s1.identifiers.query"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check TenderNed’s available search and show the price first. The shortlist will distinguish contract opportunities from award notices and include the requested details where available, based on one page of up to 20 results."
+    },
+    "cap_atomic": 54348,
+    "steps": [
+      {
+        "source": "tenderned",
+        "capability": "procurement.nl-public-contracts",
+        "method": "GET",
+        "path": "/v2/publicaties",
+        "inputs": {
+          "page": 0,
+          "search": "schoonmaak",
+          "size": 20,
+          "sort": "publicatieDatum,desc"
+        },
+        "subject": "Dutch public procurement notices",
+        "dependencies": []
+      }
+    ]
   },
   {
     "id": "crunchbase",
-    "question": "Search Crunchbase for Starbucks and show its company description and profile link.",
-    "subject": "Starbucks",
-    "source_hint": "crunchbase",
-    "outputs": ["description", "profile_url"],
-    "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
-    "operation": "company.crunchbase-search",
-    "method": "POST",
-    "path": "/autocompletes",
-    "inputs": {"query": "Starbucks"}
+    "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Retrieve the company profile from the specified provider, including available founders, leaders, board members, funding rounds, and investors. Include returned dates and distinguish equity funding from debt.",
+          "domain": "company",
+          "inputs": [
+            "url"
+          ],
+          "name": "Company profile",
+          "outputs": [
+            "founders",
+            "leaders",
+            "board_members",
+            "funding_rounds",
+            "investors",
+            "dates",
+            "funding_type"
+          ],
+          "slug": "company.profile",
+          "source_hint": "crunchbase",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "summarize"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "url": "https://www.crunchbase.com/organization/starbucks"
+          },
+          "label": "Starbucks",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Summarize the available founders, leaders, board members, funding rounds and investors from the specified Starbucks Crunchbase profile.",
+          "Include the dates returned and distinguish equity funding from debt using the returned evidence; identify any funding whose type is unspecified.",
+          "Note missing information and any indications that returned relationship cards are incomplete."
+        ],
+        "goals": [
+          {
+            "capability": "company.crunchbase-profile",
+            "constraints": {
+              "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+              "source": "apimarket-magicapi-crunchbase-bbcca0a6"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.crunchbase_entity_id": {
+                "literal": "starbucks"
+              },
+              "company.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check the specified Crunchbase profile and show the price first. I’ll summarize the available people, funding rounds and investors, include returned dates, and distinguish equity from debt where the data supports it."
+    },
+    "cap_atomic": 54347,
+    "steps": [
+      {
+        "source": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "capability": "company.crunchbase-profile",
+        "method": "POST",
+        "path": "/mcp/cb_entity_get",
+        "inputs": {
+          "entity_def_id": "organization",
+          "entity_id": "starbucks"
+        },
+        "subject": "Starbucks",
+        "dependencies": []
+      }
+    ]
   },
   {
     "id": "glassdoor",
-    "question": "Search Glassdoor for Starbucks and show its employer rating and review count.",
-    "subject": "Starbucks",
-    "source_hint": "glassdoor",
-    "outputs": ["employer_rating", "review_count"],
-    "provider": "openwebninja",
-    "operation": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
-    "method": "GET",
-    "path": "/realtime-glassdoor-data/company-search",
-    "inputs": {"query": "Starbucks"}
+    "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Employer ratings",
+          "outputs": [
+            "overall_rating",
+            "review_count",
+            "pay_rating",
+            "work_life_balance_rating",
+            "career_opportunities_rating",
+            "management_rating",
+            "strongest_category",
+            "weakest_category",
+            "profile_url"
+          ],
+          "slug": "company.employerRatings",
+          "source_hint": "glassdoor",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Employer ratings, review counts, category ratings, strongest and weakest categories, and profile link.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Employer ratings",
+          "outputs": [
+            "overall_rating",
+            "review_count",
+            "pay_rating",
+            "work_life_balance_rating",
+            "career_opportunities_rating",
+            "management_rating",
+            "strongest_category",
+            "weakest_category",
+            "profile_url"
+          ],
+          "slug": "company.employerRatings",
+          "source_hint": "glassdoor",
+          "subject_id": "s2"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "compare"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Starbucks"
+          },
+          "label": "Starbucks",
+          "type": "company"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "company_name": "McDonalds"
+          },
+          "label": "McDonalds",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Select the matching Glassdoor employer profiles for Starbucks and McDonalds, distinguishing company-wide employers from individual branch locations.",
+          "Compare the returned overall employer ratings and review counts side by side.",
+          "Compare available category ratings for pay, work-life balance, career opportunities and management; explicitly note any requested category not returned.",
+          "Explain each employer's strongest and weakest returned scores, including ties, without inferring unavailable scores or unsupported reasons.",
+          "Include both matching Glassdoor profile links."
+        ],
+        "goals": [
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "constraints": {
+              "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+              "source": "openwebninja"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "constraints": {
+              "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+              "source": "openwebninja"
+            },
+            "subject": 1
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              },
+              "source_input.e22c6c82933545999a55d64ac65128077.query": {
+                "ref": "s1.label"
+              }
+            }
+          },
+          {
+            "subject_ref": "s2",
+            "values": {
+              "company.name": {
+                "ref": "s2.label"
+              },
+              "source_input.e22c6c82933545999a55d64ac65128077.query": {
+                "ref": "s2.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check the Glassdoor employer profiles for Starbucks and McDonalds and show you the total price first. The comparison will include overall ratings, review counts, available category scores, strongest and weakest scores, and both profile links."
+    },
+    "cap_atomic": 6900,
+    "steps": [
+      {
+        "source": "openwebninja",
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "method": "GET",
+        "path": "/realtime-glassdoor-data/company-search",
+        "inputs": {
+          "query": "Starbucks"
+        },
+        "subject": "Starbucks",
+        "dependencies": []
+      },
+      {
+        "source": "openwebninja",
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "method": "GET",
+        "path": "/realtime-glassdoor-data/company-search",
+        "inputs": {
+          "query": "McDonalds"
+        },
+        "subject": "McDonalds",
+        "dependencies": []
+      }
+    ]
   },
   {
-    "id": "vies",
-    "question": "Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.",
-    "subject": "NL002033354B01",
-    "source_hint": "vies",
-    "outputs": ["valid", "request_date"],
-    "provider": "vies",
-    "operation": "vat.eu.validate",
-    "method": "GET",
-    "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
-    "inputs": {"cc": "NL", "nr": "002033354B01"}
+    "id": "ownership",
+    "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.99,
+          "description": "Retrieve the company profile from the explicitly requested provider.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Company profile",
+          "outputs": [
+            "profile"
+          ],
+          "slug": "company.profile",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Retrieve current and resigned director appointments from the explicitly requested provider, distinguishing appointment status and including appointment dates.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Company directors",
+          "outputs": [
+            "directors",
+            "appointment_status",
+            "appointment_dates"
+          ],
+          "slug": "company.directors",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Retrieve persons with significant control and their recorded nature of control from the explicitly requested provider.",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "name": "Persons with significant control",
+          "outputs": [
+            "persons_with_significant_control",
+            "nature_of_control"
+          ],
+          "slug": "company.personsWithSignificantControl",
+          "source_hint": "companies house",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "summarize"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "MONZO BANK LIMITED"
+          },
+          "label": "MONZO BANK LIMITED",
+          "type": "company"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Summarize the Companies House profile for MONZO BANK LIMITED.",
+          "Identify current directors and summarize who runs the company based on the returned director records; include appointment dates and distinguish active from resigned appointments, including resignation dates where recorded.",
+          "Summarize the recorded persons with significant control and their nature of control, distinguishing current from ceased control where recorded.",
+          "Preserve source pagination and total counts, and disclose any limitations in the returned coverage."
+        ],
+        "goals": [
+          {
+            "capability": "company.registry-profile",
+            "constraints": {
+              "endpoint_id": "15842cfa-d3f5-4b18-b6c3-45d9722695b9",
+              "source": "companies-house"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "company.officers",
+            "constraints": {
+              "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+              "source": "companies-house"
+            },
+            "subject": 0
+          },
+          {
+            "capability": "company.significant-control",
+            "constraints": {
+              "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+              "source": "companies-house"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "company.name": {
+                "ref": "s1.label"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check Companies House for MONZO BANK LIMITED’s profile, director appointments and persons with significant control, and show the total price first. The summary will distinguish active from resigned appointments and include appointment dates and the recorded nature of control."
+    },
+    "cap_atomic": 217392,
+    "steps": [
+      {
+        "source": "companies-house",
+        "capability": "company.uk-registry-search",
+        "method": "GET",
+        "path": "/search/companies",
+        "inputs": {
+          "items_per_page": 10,
+          "q": "MONZO BANK LIMITED"
+        },
+        "subject": "MONZO BANK LIMITED",
+        "dependencies": []
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.registry-profile",
+        "method": "GET",
+        "path": "/company",
+        "inputs": null,
+        "subject": "MONZO BANK LIMITED",
+        "dependencies": [
+          {
+            "step": 1,
+            "field": "company.registration.gb.companies_house"
+          }
+        ]
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.officers",
+        "method": "GET",
+        "path": "/company/{company_number}/officers",
+        "inputs": null,
+        "subject": "MONZO BANK LIMITED",
+        "dependencies": [
+          {
+            "step": 2,
+            "field": "company.registration.gb.companies_house"
+          }
+        ]
+      },
+      {
+        "source": "companies-house",
+        "capability": "company.significant-control",
+        "method": "GET",
+        "path": "/company/{company_number}/persons-with-significant-control",
+        "inputs": null,
+        "subject": "MONZO BANK LIMITED",
+        "dependencies": [
+          {
+            "step": 2,
+            "field": "company.registration.gb.companies_house"
+          }
+        ]
+      }
+    ]
   },
   {
-    "id": "ecb",
-    "question": "Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.",
-    "subject": "EUR/USD",
-    "source_hint": "frankfurter",
-    "outputs": ["rate", "date", "base", "quote"],
-    "provider": "frankfurter",
-    "operation": "fx.ecb-reference-rate",
-    "method": "GET",
-    "path": "/v2/providers/ecb/rate/EUR/{quote}",
-    "inputs": {"quote": "USD"}
+    "id": "vehicle",
+    "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
+    "model_output": {
+      "capabilities": [
+        {
+          "confidence": 0.99,
+          "description": "Retrieve the official vehicle registration and explain which returned fields need attention before buying, marking missing fields as unavailable.",
+          "domain": "vehicle",
+          "inputs": [
+            "license_plate",
+            "country"
+          ],
+          "name": "Vehicle registration",
+          "outputs": [
+            "make",
+            "model",
+            "first_registration_date",
+            "apk_expiry",
+            "odometer_judgement",
+            "export_indicator",
+            "recall_indicator",
+            "purchase_attention",
+            "unavailable_fields"
+          ],
+          "slug": "vehicle.registration",
+          "source_hint": "rdw",
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "analyze"
+        ]
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "country": "Dutch",
+            "license_plate": "RZ874R"
+          },
+          "label": "Dutch plate RZ874R",
+          "type": "vehicle"
+        }
+      ]
+    },
+    "planner_reply": {
+      "decline_reason": "none",
+      "discover": true,
+      "intent": {
+        "answer_operations": [
+          "Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement, and registered export and recall indicators from the returned official RDW record.",
+          "Explain which returned fields need attention before buying, clearly distinguishing registered facts from purchase-related interpretation.",
+          "Mark missing requested fields as unavailable; do not infer absent indicators or treat missing values as reassurance."
+        ],
+        "goals": [
+          {
+            "capability": "vehicle.technical-profile",
+            "constraints": {
+              "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+              "source": "rdw"
+            },
+            "subject": 0
+          }
+        ],
+        "subjects": [
+          {
+            "subject_ref": "s1",
+            "values": {
+              "vehicle.registration.nl.plate": {
+                "ref": "s1.identifiers.license_plate"
+              }
+            }
+          }
+        ],
+        "unresolved_references": []
+      },
+      "message": "I’ll check the official RDW registration for RZ874R and show you the price first. I’ll highlight fields that need attention before buying and mark any missing fields as unavailable."
+    },
+    "cap_atomic": 54348,
+    "steps": [
+      {
+        "source": "rdw",
+        "capability": "vehicle.technical-profile",
+        "method": "GET",
+        "path": "/resource/m9d7-ebf2.json",
+        "inputs": {
+          "kenteken": "RZ874R"
+        },
+        "subject": "Dutch plate RZ874R",
+        "dependencies": []
+      }
+    ]
   }
 ]

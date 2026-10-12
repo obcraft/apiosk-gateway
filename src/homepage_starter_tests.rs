@@ -1,4 +1,5 @@
-//! All six published homepage examples must reach a complete, priced plan.
+//! Published homepage examples must reach complete, priced plans; historical
+//! starter regressions remain covered after the visible questions are refreshed.
 //! Model interpretation uses a local HTTP fixture; intake, discovery, coverage,
 //! subject binding and pricing run their production implementations against
 //! recorded source contracts. No prepared plan is stubbed and no external model,
@@ -50,8 +51,18 @@ fn model_reply_fixture(question: &str) -> Value {
 }
 
 async fn model_fixture(question: &str, output: Value) -> ModelFixture {
+    recorded_model_fixture(question, output, None).await
+}
+
+async fn recorded_model_fixture(
+    question: &str,
+    output: Value,
+    planner_reply: Option<Value>,
+) -> ModelFixture {
+    use axum::response::IntoResponse;
     use axum::{routing::post, Json, Router};
     let question = question.to_owned();
+    let has_planner = planner_reply.is_some();
     let calls = Arc::new(Mutex::new(Vec::new()));
     let capture = calls.clone();
     let app = Router::new().route(
@@ -60,7 +71,20 @@ async fn model_fixture(question: &str, output: Value) -> ModelFixture {
             let output = output.clone();
             let question = question.clone();
             let capture = capture.clone();
+            let planner_reply = planner_reply.clone();
             async move {
+                if body["stream"] != true {
+                    let input: Value =
+                        serde_json::from_str(body["messages"][1]["content"].as_str().unwrap())
+                            .unwrap();
+                    assert_eq!(input["question"], question);
+                    capture.lock().unwrap().push(body);
+                    let reply = planner_reply.expect("no additional model call was declared");
+                    return Json(serde_json::json!({
+                        "choices":[{"finish_reason":"stop","message":{"content":reply.to_string()}}]
+                    }))
+                    .into_response();
+                }
                 assert_eq!(
                     body["messages"][1]["content"], question,
                     "the actual user question must reach the interpretation model"
@@ -73,6 +97,7 @@ async fn model_fixture(question: &str, output: Value) -> ModelFixture {
                     [(axum::http::header::CONTENT_TYPE, "text/event-stream")],
                     format!("data: {event}\n\ndata: [DONE]\n\n"),
                 )
+                    .into_response()
             }
         }),
     );
@@ -87,12 +112,16 @@ async fn model_fixture(question: &str, output: Value) -> ModelFixture {
         "fixture-key".into(),
         "fixture-interpretation-model".into(),
     )
-    .with_local_endpoint(endpoint)
+    .with_local_endpoint(endpoint.clone())
     .unwrap();
     let parser = Parser::new(
         http,
-        "offline://additional-model-calls-forbidden".into(),
-        String::new(),
+        if has_planner {
+            endpoint
+        } else {
+            "offline://additional-model-calls-forbidden".into()
+        },
+        if has_planner { "fixture-key".into() } else { String::new() },
         "fixture-planner".into(),
     )
     .with_ask_v2(client);
@@ -123,19 +152,30 @@ async fn planner_engine_fixture(
     }));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint = format!("http://{}/", listener.local_addr().unwrap());
-    let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
     let http = reqwest::Client::new();
     let pool = sqlx::postgres::PgPoolOptions::new()
-        .connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
+        .connect_lazy("postgresql://postgres@127.0.0.1:1/unused")
+        .unwrap();
     let store = crate::store::Store { pool: pool.clone() };
     let engine = crate::engine::Engine {
         store: store.clone(),
         catalog: crate::catalog::CatalogCache::new(pool),
-        parser: Parser::new(http.clone(), endpoint, "fixture-key".into(), "fixture-planner".into()),
+        parser: Parser::new(
+            http.clone(),
+            endpoint,
+            "fixture-key".into(),
+            "fixture-planner".into(),
+        ),
         signer: crate::state::Signer::new(vec![8; 32]).unwrap(),
         app_url: "http://localhost".into(),
         executor: crate::execution::Executor {
-            store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false,
+            store,
+            http,
+            supabase_url: "http://127.0.0.1:1".into(),
+            enabled: false,
         },
     };
     (engine, calls, server)
@@ -211,12 +251,14 @@ fn catalog() -> Catalog {
 }
 
 async fn complete_plan(id: &str) {
-    let starters: Vec<Starter> =
-        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    let starters: Vec<Starter> = serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters-historical.json"
+    ))
+    .unwrap();
     assert_eq!(
         starters.len(),
         6,
-        "each published question must have an acceptance case"
+        "keep all six historical examples as planning regressions"
     );
     let case = starters.iter().find(|case| case.id == id).unwrap();
     let catalog = catalog();
@@ -231,7 +273,7 @@ async fn complete_plan(id: &str) {
     assert_eq!(
         model.calls.lock().unwrap().len(),
         1,
-        "every published question must be interpreted by the model"
+        "every historical example must be interpreted by the model"
     );
     assert_eq!(requested.meta.model, "fixture-interpretation-model");
     assert_eq!(
@@ -261,7 +303,7 @@ async fn complete_plan(id: &str) {
     );
     assert!(
         capability.missing.is_empty(),
-        "{id}: the published example supplies its required inputs"
+        "{id}: the historical example supplies its required inputs"
     );
     assert_eq!(
         capability.subject_id.as_deref(),
@@ -384,8 +426,10 @@ async fn ecb_rate_and_observation_date_are_priced() {
 #[tokio::test]
 async fn model_returned_extra_requirements_are_preserved_for_every_homepage_example() {
     let catalog = catalog();
-    let starters: Vec<Starter> =
-        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    let starters: Vec<Starter> = serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters-historical.json"
+    ))
+    .unwrap();
     for case in starters {
         let question = format!(
             "{} Also include a credit-risk assessment and a PDF report.",
@@ -421,8 +465,10 @@ async fn model_returned_extra_requirements_are_preserved_for_every_homepage_exam
 #[tokio::test]
 async fn stale_or_changed_named_source_scope_cannot_shortcut_to_a_narrower_plan() {
     let catalog = catalog();
-    let starters: Vec<Starter> =
-        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    let starters: Vec<Starter> = serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters-historical.json"
+    ))
+    .unwrap();
     for case in starters
         .iter()
         .filter(|case| matches!(case.id.as_str(), "crunchbase" | "glassdoor"))
@@ -474,8 +520,15 @@ async fn fallback_model_cannot_quote_a_plan_that_discards_a_parsed_location() {
     let question = "Search Crunchbase for Starbucks in Seattle and show its company description and profile link.";
     let catalog = catalog();
     let interpretation = model_fixture(question, model_reply_fixture(question)).await;
-    let intake = interpretation.parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
-    assert_eq!(intake.parsed_request.subjects[0].identifiers["location"], "Seattle");
+    let intake = interpretation
+        .parser
+        .ask_intake(question, &Task::default(), &catalog, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        intake.parsed_request.subjects[0].identifiers["location"],
+        "Seattle"
+    );
     let subject = &intake.parsed_request.subjects[0].id;
     let raw = serde_json::json!({"message":"I will retrieve the requested company details.","discover":true,"decline_reason":"none",
         "intent":{"subjects":[{"subject_ref":subject,"values":{"company.crunchbase_query":{"ref":format!("{subject}.label")}}}],
@@ -484,15 +537,26 @@ async fn fallback_model_cannot_quote_a_plan_that_discards_a_parsed_location() {
     let (engine, calls, server) = planner_engine_fixture(raw).await;
     let quote = engine.guest_plan(question, intake, &catalog).await.unwrap();
     server.abort();
-    assert_eq!(calls.lock().unwrap().len(), 1, "the fallback planner actually returned the omitted-filter intent");
-    assert_ne!(quote["status"], "ready", "source output coverage cannot excuse a discarded location");
+    assert_eq!(
+        calls.lock().unwrap().len(),
+        1,
+        "the fallback planner actually returned the omitted-filter intent"
+    );
+    assert_ne!(
+        quote["status"], "ready",
+        "source output coverage cannot excuse a discarded location"
+    );
     assert!(quote["total_atomic"].is_null());
-    assert!(quote["preview_token"].is_null(), "no payable quote may be minted from the incomplete plan");
+    assert!(
+        quote["preview_token"].is_null(),
+        "no payable quote may be minted from the incomplete plan"
+    );
 }
 
 #[tokio::test]
 async fn dynamic_compiler_prices_both_company_subjects_with_their_own_bound_names() {
-    let question = "Find the company descriptions and profile links for Starbucks and Mollie on Crunchbase.";
+    let question =
+        "Find the company descriptions and profile links for Starbucks and Mollie on Crunchbase.";
     let catalog = catalog();
     let output = serde_json::json!({"language":"en",
         "subjects":[{"id":"coffee","label":"Starbucks","type":"company","identifiers":{"company_name":"Starbucks"}},
@@ -502,33 +566,88 @@ async fn dynamic_compiler_prices_both_company_subjects_with_their_own_bound_name
             "outputs":["description","profile_url"],"subject_id":subject,"source_hint":"crunchbase","confidence":1}))),
         "deliverable":{"format":"chat","operations":[]}});
     let interpretation = model_fixture(question, output).await;
-    let intake = interpretation.parser.ask_intake(question, &Task::default(), &catalog, None).await.unwrap();
-    assert_eq!(interpretation.calls.lock().unwrap().len(), 1, "AI interpretation still owns both requirements");
-    let ids: Vec<_> = intake.parsed_request.subjects.iter().map(|subject| subject.id.as_str()).collect();
+    let intake = interpretation
+        .parser
+        .ask_intake(question, &Task::default(), &catalog, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        interpretation.calls.lock().unwrap().len(),
+        1,
+        "AI interpretation still owns both requirements"
+    );
+    let ids: Vec<_> = intake
+        .parsed_request
+        .subjects
+        .iter()
+        .map(|subject| subject.id.as_str())
+        .collect();
     let raw = serde_json::json!({"message":"I will show the total for both company searches.","discover":true,"decline_reason":"none",
         "intent":{"subjects":(ids.iter().map(|subject| serde_json::json!({"subject_ref":subject,
             "values":{"company.crunchbase_query":{"ref":format!("{subject}.identifiers.company_name")}}})).collect::<Vec<_>>()),
             "goals":([0,1].map(|subject| serde_json::json!({"subject":subject,"capability":"company.crunchbase-search","constraints":{}}))),
             "answer_operations":[],"unresolved_references":[]}});
     let (engine, calls, server) = planner_engine_fixture(raw).await;
-    let quote = engine.guest_plan(question, intake, &catalog).await
-        .unwrap_or_else(|error| panic!("planner rejected the complete fixture: {error}; requests: {:?}", calls.lock().unwrap()));
+    let quote = engine
+        .guest_plan(question, intake, &catalog)
+        .await
+        .unwrap_or_else(|error| {
+            panic!(
+                "planner rejected the complete fixture: {error}; requests: {:?}",
+                calls.lock().unwrap()
+            )
+        });
     server.abort();
-    assert_eq!(calls.lock().unwrap().len(), 0, "complete interpreted requirements compile without a second planning model call");
-    assert_eq!(quote["status"], "ready", "both complete source bindings must remain quotable: {quote}");
+    assert_eq!(
+        calls.lock().unwrap().len(),
+        0,
+        "complete interpreted requirements compile without a second planning model call"
+    );
+    assert_eq!(
+        quote["status"], "ready",
+        "both complete source bindings must remain quotable: {quote}"
+    );
     assert_eq!(quote["sources"].as_array().unwrap().len(), 2);
     let total: i64 = quote["total_atomic"].as_str().unwrap().parse().unwrap();
     assert!(total > 0);
-    assert_eq!(total, quote["sources"].as_array().unwrap().iter()
-        .map(|source| source["price_atomic"].as_str().unwrap().parse::<i64>().unwrap()).sum::<i64>());
-    let preview = crate::engine::guest_preview::Preview::open(&engine.signer, quote["preview_token"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        total,
+        quote["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|source| source["price_atomic"]
+                .as_str()
+                .unwrap()
+                .parse::<i64>()
+                .unwrap())
+            .sum::<i64>()
+    );
+    let preview = crate::engine::guest_preview::Preview::open(
+        &engine.signer,
+        quote["preview_token"].as_str().unwrap(),
+    )
+    .unwrap();
     let saved = serde_json::to_value(preview).unwrap();
     let task: Task = serde_json::from_value(saved["task"].clone()).unwrap();
-    let intent: crate::parser::Intent = serde_json::from_value(task.intent.clone().unwrap()).unwrap();
+    let intent: crate::parser::Intent =
+        serde_json::from_value(task.intent.clone().unwrap()).unwrap();
     assert_eq!(intent.subjects.len(), 2);
     for name in ["Starbucks", "Mollie"] {
-        let subject = intent.subjects.iter().find(|subject| subject.label == name).unwrap();
-        assert_eq!(crate::catalog::fact_value(&task.facts, subject.entity_ref.unwrap(), "company.crunchbase_query").unwrap(), Some(serde_json::json!(name)));
+        let subject = intent
+            .subjects
+            .iter()
+            .find(|subject| subject.label == name)
+            .unwrap();
+        assert_eq!(
+            crate::catalog::fact_value(
+                &task.facts,
+                subject.entity_ref.unwrap(),
+                "company.crunchbase_query"
+            )
+            .unwrap(),
+            Some(serde_json::json!(name))
+        );
     }
 }
 
@@ -777,8 +896,10 @@ async fn semantic_name_only_profile_scope_is_never_narrowed_or_rebound() {
 #[tokio::test]
 async fn model_requested_answer_format_survives_planning() {
     let catalog = catalog();
-    let starters: Vec<Starter> =
-        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    let starters: Vec<Starter> = serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters-historical.json"
+    ))
+    .unwrap();
     let case = starters
         .iter()
         .find(|case| case.id == "crunchbase")
@@ -808,4 +929,174 @@ async fn model_requested_answer_format_survives_planning() {
             .any(|operation| operation.to_ascii_lowercase().contains("pdf")),
         "the requested file format must remain part of the generated plan"
     );
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PublishedStarter {
+    id: String,
+    question: String,
+    model_output: Value,
+    planner_reply: Value,
+    cap_atomic: i64,
+    steps: Vec<PublishedStep>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PublishedStep {
+    source: String,
+    capability: String,
+    subject: String,
+    method: String,
+    path: String,
+    inputs: Option<Value>,
+    dependencies: Vec<Value>,
+}
+
+fn semantic_output(parsed: &crate::capability_intake::ParsedRequest) -> Value {
+    let mut output = serde_json::to_value(parsed).unwrap();
+    output.as_object_mut().unwrap().remove("meta");
+    for capability in output["capabilities"].as_array_mut().unwrap() {
+        capability.as_object_mut().unwrap().remove("missing");
+    }
+    output
+}
+
+#[tokio::test]
+async fn published_homepage_questions_preserve_complete_priced_plans() {
+    // These interpretations and decoded planner replies were recorded from the
+    // production models against a read-only catalog. Planner subject values are
+    // re-encoded as reference bindings for replay; no prepared plan is mocked.
+    // Unlike the historical cases above, no sentence recognizer supplies these
+    // model fixtures, and a question may need several subjects or dependencies.
+    let cases: Vec<PublishedStarter> =
+        serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
+    assert_eq!(cases.len(), 6);
+    let snapshot: Snapshot = serde_json::from_str(include_str!(
+        "../tests/fixtures/homepage-starters/catalog.json"
+    ))
+    .unwrap();
+    let catalog = Catalog::build(snapshot);
+    assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+
+    for case in cases {
+        let id = &case.id;
+        let model = recorded_model_fixture(
+            &case.question,
+            case.model_output.clone(),
+            Some(case.planner_reply),
+        )
+        .await;
+        let mut task = Task::default();
+        let intake = model
+            .parser
+            .ask_intake(&case.question, &task, &catalog, None)
+            .await
+            .unwrap_or_else(|error| panic!("{id}: interpretation failed: {error}"));
+        assert_eq!(model.calls.lock().unwrap().len(), 1, "{id}: one AI intake");
+        assert_eq!(
+            intake.parsed_request.meta.model,
+            "fixture-interpretation-model"
+        );
+        assert_eq!(
+            intake.parsed_request.meta.text_sha256,
+            hex::encode(Sha256::digest(case.question.as_bytes()))
+        );
+        assert_eq!(
+            semantic_output(&intake.parsed_request),
+            case.model_output,
+            "{id}: preserve every model-extracted subject, field and answer instruction"
+        );
+        let reply = model
+            .parser
+            .chat_from_capabilities(&case.question, None, &task, &catalog, &intake)
+            .await
+            .unwrap_or_else(|error| panic!("{id}: planning failed: {error}"));
+        assert!(reply.discover, "{id}: {}", reply.message);
+        let mut intent = reply.intent.expect("a complete plan requires an intent");
+        assert!(intent.unresolved_references.is_empty(), "{id}");
+        assert!(
+            model.calls.lock().unwrap().len() <= 2,
+            "{id}: at most one declared fallback model response; no retry loop"
+        );
+        task.record_turn(&case.question, None);
+        task.capability_intake = Some(intake);
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let resolution = crate::resolver::resolve(&catalog, &task, &intent);
+        let Resolution::Plan(plan) = resolution else {
+            panic!("{id}: expected a complete plan, got {resolution:?}")
+        };
+        assert_eq!(
+            plan.steps.len(),
+            case.steps.len(),
+            "{id}: full scope, no extra purchase"
+        );
+        assert!(!plan.quote_ref.is_nil(), "{id}: reviewable quote");
+        assert!(plan.cap_atomic > 0, "{id}: normal approval required");
+        assert_eq!(
+            plan.cap_atomic, case.cap_atomic,
+            "{id}: recorded complete price"
+        );
+        assert_eq!(
+            plan.cap_atomic,
+            plan.steps
+                .iter()
+                .map(|step| plan.step_total(step))
+                .sum::<i64>(),
+            "{id}: one total includes every dependency and requested source"
+        );
+        let shown = crate::resolver::describe_steps(&plan, &[]);
+        for (index, (step, expected)) in plan.steps.iter().zip(&case.steps).enumerate() {
+            assert_eq!(step.service.api_slug, expected.source, "{id}: step {index}");
+            assert_eq!(
+                step.service.contract.capability_slug, expected.capability,
+                "{id}: step {index}"
+            );
+            assert_eq!(step.service.method, expected.method, "{id}: step {index}");
+            assert_eq!(step.service.path, expected.path, "{id}: step {index}");
+            let subject = intent
+                .subjects
+                .iter()
+                .find(|subject| subject.entity_ref == Some(step.entity_ref))
+                .unwrap();
+            assert_eq!(
+                subject.label, expected.subject,
+                "{id}: step {index} subject binding"
+            );
+            let inputs = step
+                .service
+                .inputs(&task, step.entity_ref, &catalog.vocabulary);
+            assert_eq!(
+                inputs.ok(),
+                expected.inputs,
+                "{id}: step {index} literal input binding"
+            );
+            let dependencies: Vec<Value> = shown[index]["dependencies"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|dependency| {
+                    serde_json::json!({
+                        "step":dependency["step"], "field":dependency["field"]
+                    })
+                })
+                .collect();
+            assert_eq!(
+                dependencies, expected.dependencies,
+                "{id}: step {index} dependency binding"
+            );
+            if expected.inputs.is_none() {
+                assert!(
+                    !dependencies.is_empty(),
+                    "{id}: unresolved inputs need a quoted prior dependency"
+                );
+            }
+        }
+        assert_eq!(
+            semantic_output(&task.capability_intake.as_ref().unwrap().parsed_request),
+            case.model_output,
+            "{id}: planning must never rewrite or reduce the interpreted request"
+        );
+    }
 }

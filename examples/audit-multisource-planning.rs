@@ -39,8 +39,9 @@ async fn main() -> anyhow::Result<()> {
     let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|s| !s.is_empty())
         .or_else(|| std::env::var("INTENT_API_KEY").ok()).ok_or_else(|| anyhow::anyhow!("model key required"))?;
     let model = parser::pinned_model("INTENT_MODEL");
+    let intake_model = ask_v2::DEFAULT_MODEL.to_owned();
     let parser = Parser::new(http.clone(), std::env::var("INTENT_API_URL").unwrap_or_else(|_| "https://openrouter.ai/api/v1/chat/completions".into()), key.clone(), model.clone())
-        .with_ask_v2(ask_v2::Client::new(http, key, parser::pinned_model("ASK_V2_MODEL")));
+        .with_ask_v2(ask_v2::Client::new(http, key, intake_model.clone()));
     let full = false;
     let only = std::env::var("MULTISOURCE_CASES").ok();
     let suffix = std::env::var("MULTISOURCE_RUN").unwrap_or_else(|_| "baseline".into());
@@ -52,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         let started = Instant::now();
         let mut report = json!({"case":number,"title":case["title"],"expected_sources":case["sources"],"question":question,
             "variant":if full {"full"} else {"core"},"catalog_version":catalog.version,
-            "catalog_services":catalog.services.len(),"model":model,
+            "catalog_services":catalog.services.len(),"model":intake_model,
             "boundary":"Read-only catalog, real model, actual connector intake/search/planner and in-memory resolver; no provider calls, task persistence, approval, payment or execution.",
             "no_provider_execution":true});
         let mut task = Task::default();

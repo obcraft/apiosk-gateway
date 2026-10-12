@@ -1,0 +1,74 @@
+[
+  {
+    "id": "kvk",
+    "question": "Show the registered company details for Mollie B.V. (KVK 30204462).",
+    "subject": "Mollie B.V.",
+    "source_hint": "kvk",
+    "outputs": ["profile"],
+    "provider": "kvk-dutch-business-register",
+    "operation": "company.registry-profile",
+    "method": "GET",
+    "path": "/api/v1/basisprofielen",
+    "inputs": {"kvkNummer": "30204462"}
+  },
+  {
+    "id": "tenderned",
+    "question": "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+    "subject": "cleaning services",
+    "source_hint": "tenderned",
+    "outputs": ["publication_page"],
+    "provider": "tenderned",
+    "operation": "procurement.nl-public-contracts",
+    "method": "GET",
+    "path": "/v2/publicaties",
+    "inputs": {"search": "schoonmaak", "page": 0, "size": 20, "sort": "publicatieDatum,desc"}
+  },
+  {
+    "id": "crunchbase",
+    "question": "Search Crunchbase for Starbucks and show its company description and profile link.",
+    "subject": "Starbucks",
+    "source_hint": "crunchbase",
+    "outputs": ["description", "profile_url"],
+    "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+    "operation": "company.crunchbase-search",
+    "method": "POST",
+    "path": "/autocompletes",
+    "inputs": {"query": "Starbucks"}
+  },
+  {
+    "id": "glassdoor",
+    "question": "Search Glassdoor for Starbucks and show its employer rating and review count.",
+    "subject": "Starbucks",
+    "source_hint": "glassdoor",
+    "outputs": ["employer_rating", "review_count"],
+    "provider": "openwebninja",
+    "operation": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+    "method": "GET",
+    "path": "/realtime-glassdoor-data/company-search",
+    "inputs": {"query": "Starbucks"}
+  },
+  {
+    "id": "vies",
+    "question": "Validate EU VAT number NL002033354B01 through VIES and show its validity and check date.",
+    "subject": "NL002033354B01",
+    "source_hint": "vies",
+    "outputs": ["valid", "request_date"],
+    "provider": "vies",
+    "operation": "vat.eu.validate",
+    "method": "GET",
+    "path": "/taxation_customs/vies/rest-api/ms/{cc}/vat/{nr}",
+    "inputs": {"cc": "NL", "nr": "002033354B01"}
+  },
+  {
+    "id": "ecb",
+    "question": "Get the latest official ECB reference exchange rate for EUR/USD, including the observation date, via Frankfurter.",
+    "subject": "EUR/USD",
+    "source_hint": "frankfurter",
+    "outputs": ["rate", "date", "base", "quote"],
+    "provider": "frankfurter",
+    "operation": "fx.ecb-reference-rate",
+    "method": "GET",
+    "path": "/v2/providers/ecb/rate/EUR/{quote}",
+    "inputs": {"quote": "USD"}
+  }
+]

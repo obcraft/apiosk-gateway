@@ -1,0 +1,67 @@
+{
+  "recorded_at": "2026-10-12",
+  "intake_model": "openai/gpt-6-luna",
+  "planner_model": "openai/gpt-6.1-sol",
+  "original_catalog_version": "d5e1b8b9cf66e4fd59e35589bfa69961a693c5b76047e365420b94c664152870",
+  "boundary": "Real model intake and planner with a read-only production catalog; no source execution, task persistence, approval or payment. Offline tests replay the recorded semantic model outputs over HTTP and regenerate every plan with production code. Decoded planner replies are re-encoded as subject/value bindings.",
+  "catalog_scope": "All operations for requested providers and competing public registry / historical starter providers; all source directory descriptions and tags retained. Unrelated endpoint registrations and unused vocabulary are omitted.",
+  "providers": [
+    "apimarket-magicapi-crunchbase-bbcca0a6",
+    "bodemloket",
+    "companies-house",
+    "frankfurter",
+    "kvk-dutch-business-register",
+    "opensanctions",
+    "openwebninja",
+    "pdok",
+    "rdw",
+    "sirenic",
+    "tenderned",
+    "vies",
+    "yelp"
+  ],
+  "cases": [
+    {
+      "id": "supplier",
+      "question": "Look up the registered company profile for Coolblue B.V. through KVK and check for potential company matches in OpenSanctions. Show its legal name, registration details, activities and any potential sanctions matches with source links. Keep possible matches separate from confirmed identity matches.",
+      "duration_ms": 17214,
+      "expected_sources_present": true,
+      "status": "quoted"
+    },
+    {
+      "id": "tenderned",
+      "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+      "duration_ms": 17157,
+      "expected_sources_present": true,
+      "status": "quoted"
+    },
+    {
+      "id": "crunchbase",
+      "question": "Retrieve the Crunchbase company profile at https://www.crunchbase.com/organization/starbucks. Summarize the available founders, leaders, board members, funding rounds and investors. Include the dates returned and distinguish equity funding from debt.",
+      "duration_ms": 10460,
+      "expected_sources_present": true,
+      "status": "quoted"
+    },
+    {
+      "id": "glassdoor",
+      "question": "Look up Starbucks and McDonalds on Glassdoor. Compare their overall employer ratings, review counts and available category ratings for pay, work-life balance, career opportunities and management. Explain the strongest and weakest scores for each and include both profile links.",
+      "duration_ms": 16260,
+      "expected_sources_present": true,
+      "status": "quoted"
+    },
+    {
+      "id": "ownership",
+      "question": "Retrieve the Companies House profile, current directors and persons with significant control for MONZO BANK LIMITED. Summarize who runs and controls the company, including appointment dates and the recorded nature of control. Distinguish active from resigned appointments.",
+      "duration_ms": 13462,
+      "expected_sources_present": true,
+      "status": "quoted"
+    },
+    {
+      "id": "vehicle",
+      "question": "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.",
+      "duration_ms": 14661,
+      "expected_sources_present": true,
+      "status": "quoted"
+    }
+  ]
+}
