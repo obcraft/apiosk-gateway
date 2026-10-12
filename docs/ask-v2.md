@@ -13,7 +13,9 @@ independently.
    object; its old TypeScript normalization is a fallback for older Gateways.
 2. `/v2/ask-v2/search` and public Ask both call `search_catalog`. Apiosk matches
    registered contracts and directory metadata; Coinbase uses generic queries
-   scrubbed of subject labels and identifiers. Search outages remain visible.
+   scrubbed of subject labels and identifiers. The parsed concepts are already
+   English, so search performs no request or listing translation model calls.
+   Cached catalog translations remain available. Search outages remain visible.
 3. Admitted choices carry `api_id`, the exact capability, required input fields,
    schemas, known `input_values`, `missing_inputs`, output contracts and buyer
    prices. External offers are re-resolved against the executor's authoritative
@@ -28,9 +30,10 @@ independently.
 5. The old question-to-plan API is `/v2/ask/plan`. Explicit workflow requests
    retain `/v2/ask`; their saved plan, run and continuation paths are unchanged.
 
-The prompt remains streaming, temperature zero, with bounded output and a
-20-second transport deadline per parse attempt. `ASK_V2_MODEL` selects the
-configured model; its default is defined in `ask_v2::DEFAULT_MODEL`.
+The parser streams bounded JSON with a 20-second transport deadline per attempt.
+`ASK_V2_MODEL` selects the configured model; its default is defined in
+`ask_v2::DEFAULT_MODEL` and uses low reasoning effort. Other compatible models
+retain temperature zero.
 
 The App parse/search routes require an authenticated App user and apply the existing workspace
 membership checks. Separate bounded per-owner limits cover parsing and search,

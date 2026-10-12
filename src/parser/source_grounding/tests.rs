@@ -74,6 +74,39 @@ fn reviewed_mapping_metadata_is_bounded_and_contains_no_sample_values() {
     }
 }
 
+#[test]
+fn procurement_parse_variants_preserve_query_and_notice_classification_limits() {
+    let fixtures: Value = serde_json::from_str(include_str!("../../../tests/fixtures/homepage-starters.json")).unwrap();
+    let fixture = fixtures.as_array().unwrap().iter().find(|row| row["question"].as_str().unwrap().contains("TenderNed")).unwrap();
+    let catalog = Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
+    let mut raw = fixture["model_output"].clone();
+    raw["capabilities"][0]["outputs"] = json!(["contract_status"]);
+    raw["capabilities"][0]["inputs"] = json!(["country", "query"]);
+    raw["subjects"][0]["identifiers"] = json!({"country":"Dutch", "query":"cleaning services"});
+    let parsed_request = crate::capability_intake::normalize(&raw.to_string(), fixture["question"].as_str().unwrap(), "fixture").unwrap();
+    let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+    let intake = Intake {selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
+        parsed_request,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone()};
+    let sources: Vec<_> = catalog.services.iter().filter(|service|service.contract.capability_slug=="procurement.nl-public-contracts").collect();
+    let bindings = compile(&intake,&catalog,&sources);
+    let binding = bindings.iter().find(|binding|binding.output=="contract_status").unwrap();
+    assert!(binding.interpretation.contains("opportunity versus award notices"));
+    assert!(binding.limitation.as_ref().unwrap().contains("does not by itself establish that bidding is still open"));
+    assert!(compile(&intake,&catalog,&[]).is_empty());
+    let question = fixture["question"].as_str().unwrap();
+    let reply = crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&intake);
+    assert!(reply.discover,"{}",reply.message);
+    assert_eq!(reply.intent.unwrap().subjects[0].values["company_intel.input.search"],json!("cleaning services"));
+    let mut whole_question = intake.clone();
+    whole_question.parsed_request.subjects[0].identifiers.insert("query".into(),question.into());
+    assert!(!crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&whole_question).discover,
+        "the complete instruction cannot substitute for a supplied search phrase");
+    let mut extra_filter = intake;
+    extra_filter.parsed_request.subjects[0].identifiers.insert("maximum_budget".into(),"50000".into());
+    assert!(!crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&extra_filter).discover,
+        "a usable query must not hide an unsupported filter");
+}
+
 fn binding(
     intake: &Intake,
     catalog: &Catalog,

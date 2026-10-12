@@ -59,7 +59,8 @@
     "Published and additional NL/EN questions allow exactly one model call: intake.",
     "New registered sources combine without question templates and share a single dependency.",
     "Unavailable fields, unused filters, stale request hashes and discovery-only candidates do not become partial quotes.",
-    "Removed source fields invalidate their semantic mappings."
+    "Removed source fields invalidate their semantic mappings.",
+    "Literal query aliases reach documented keyword inputs; full instruction queries and unsupported filters remain refused."
   ],
   "boundaries": [
     "No source purchases, approval, schedule funding or delivery during verification.",
@@ -71,5 +72,51 @@
     "passed": 1121,
     "failed": 0,
     "ignored": 112
+  },
+  "initial_contract_compiler_live": {
+    "runtime_commit": "a9fe3bc",
+    "cases": [
+      {
+        "case": "tender-1",
+        "trace": "cffb3830-5415-483c-8923-6b44ae7ecf5b",
+        "elapsed_ms": 9977,
+        "status": "needs_input",
+        "total_atomic": null,
+        "message": "I can’t build a complete plan with these sources yet. Check the source selection and supplied filters."
+      },
+      {
+        "case": "tender-2",
+        "trace": "16988b73-40af-461b-82b4-f3f6939a9a77",
+        "elapsed_ms": 12471,
+        "status": "needs_input",
+        "total_atomic": null,
+        "message": "I couldn’t match these details to the selected sources: contract status. Choose another source or adjust those details."
+      },
+      {
+        "case": "tender-3",
+        "trace": "889259f1-e037-420f-be91-99074aba281d",
+        "elapsed_ms": 4627,
+        "status": "ready",
+        "total_atomic": "54348",
+        "message": "This plan uses the matching sources. Review the total price and approve to start."
+      },
+      {
+        "case": "glassdoor",
+        "trace": "ea24b45c-6afc-4830-b6ea-efa946c8ed94",
+        "elapsed_ms": 7217,
+        "status": "ready",
+        "total_atomic": "6900",
+        "message": "This plan uses the matching sources. Review the total price and approve to start."
+      },
+      {
+        "case": "company",
+        "trace": "0ced0521-bb78-455c-b1c5-7376d797638a",
+        "elapsed_ms": 3034,
+        "status": "ready",
+        "total_atomic": "97826",
+        "message": "This plan uses the matching sources. Review the total price and approve to start."
+      }
+    ],
+    "finding": "Live parse variants exposed a missing query-to-keyword input binding and contract_status output alias. The actual failing query parse was reproduced locally and became ready after fixing the binding, with zero planning-model calls."
   }
 }

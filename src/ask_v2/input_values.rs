@@ -57,6 +57,7 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         "domain.name" => identifier(&["domain", "domain_name"]),
         "domain.dns_name" => identifier(&["dns_name", "domain", "domain_name"]),
         "finance_markets.cityfalcon_identifiers" => identifier(&["ticker", "isin"]),
+        "company_intel.input.search" | "subsidy.discovery.keyword" | "source.koop.q" => identifier(&["query"]),
         "vat.eu.country_code" | "vat.eu.number" => {
             let number = identifier(&["vat_number", "btw_number"])?;
             // VIES takes the two literal parts separately. Do not infer a
@@ -177,7 +178,7 @@ pub(crate) fn documented_literal(field: &str, schema: &Value, subject: &Subject)
                         values.insert(value);
                     }
                 }
-                // Competing filters need a model-authored binding; never pick
+                // Competing filters need explicit disambiguation; never pick
                 // one arbitrarily or silently combine provider parameters.
                 if values.len() > 1 { return None; }
                 if let Some(value) = values.first() { return Some(json!(value)); }

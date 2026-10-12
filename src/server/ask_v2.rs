@@ -521,10 +521,10 @@ pub(super) async fn search(
 
 pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
     let started = Instant::now();
-    // Search reads each capability in English too (see crate::english); a
-    // request already in English, or any failure, is searched as it came.
-    let english = state.engine.catalog.english().clone();
-    let normalized = english.request(&parsed_request).await;
+    // The interpretation contract already supplies English capability names
+    // and descriptions. Search consumes that JSON without another model pass.
+    // Catalog translations prepared in the background remain available.
+    let english = state.engine.catalog.english().memory();
     let (mut matches, count, version, source_options) = match origin {
         Origin::Apiosk => {
             let catalog = match state.engine.catalog.get().await {
@@ -537,7 +537,7 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
                     ))
                 }
             };
-            let matches = crate::ask_v2::search::search_in_english(&normalized.original, &normalized.english, &catalog);
+            let matches = crate::ask_v2::search::search(parsed_request, &catalog);
             let source_options = crate::ask_v2::source_options::options(parsed_request, &matches, &catalog);
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             // Branding is cached separately from contracts. A slow directory
@@ -559,7 +559,7 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
             // Bazaar is searched in English; the query is also what a
             // purchase re-resolves the listing with.
             let mut matches: Vec<_> =
-                capability_intake::queries(&normalized.english, &crate::state::Task::default())
+                capability_intake::queries(parsed_request, &crate::state::Task::default())
                     .into_iter()
                     .map(|(slug, query)| Match {
                         slug,
@@ -576,12 +576,8 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
                 state.engine.parser.bazaar_search_url(),
             )
             .await;
-            let listings: Vec<String> = matches.iter()
-                .flat_map(|found| found.coinbase.iter().map(crate::ask_v2::search::listing_text))
-                .collect();
-            let rendered = english.listings(&listings).await;
-            crate::ask_v2::search::filter_coinbase_in_english(&normalized.original, &normalized.english, &mut matches,
-                &|text| rendered.get(text).cloned());
+            crate::ask_v2::search::filter_coinbase_in_english(parsed_request, parsed_request, &mut matches,
+                &|text| english.english(text));
             // Compare buyer totals in the table. This is still a discovery
             // estimate; the selected offer is independently resolved at quote.
             for candidate in matches.iter_mut().flat_map(|found| &mut found.coinbase) {

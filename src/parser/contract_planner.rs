@@ -231,6 +231,14 @@ fn finalize(
     let bindings = source_grounding::compile(intake, catalog, &services);
     plan_coverage::prepare_grounded(&mut intent, intake, catalog, &bindings).ok()?;
     intent.bind_constraint_inputs(literals, catalog).ok()?;
+    // Keyword APIs need a supplied phrase. Do this after all input-binding
+    // helpers; natural-language web-search contracts may use the full request.
+    let normalized = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    if intent.subjects.iter().any(|subject| subject.values.iter().any(|(field,value)|
+        matches!(field.as_str(), "company_intel.input.search" | "subsidy.discovery.keyword" | "source.koop.q")
+            && value.as_str().is_some_and(|query| normalized(query) == normalized(question)))) {
+        return None;
+    }
     intent.validate(literals, task, catalog).ok()?;
     let mut preview = task.clone();
     preview.capability_intake = Some(intake.clone());

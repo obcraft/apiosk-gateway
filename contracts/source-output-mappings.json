@@ -399,7 +399,8 @@
   },
   {
     "outputs": [
-      "notice_status"
+      "notice_status",
+      "contract_status"
     ],
     "fields": [
       {
