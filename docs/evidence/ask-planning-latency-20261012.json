@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-12",
+  "scope": "Question to unapproved plan. No source purchases, approvals, recurring funding or delivery.",
+  "reported_request": {
+    "task_id": "310ea172-d1d1-480c-b548-e6f616aa94b1",
+    "trace_id": "b3e1510c-cd0a-48ac-9b80-5cc88dec42f7",
+    "user_reported_seconds": 45,
+    "saved_parse_ms": 4648,
+    "saved_parse_attempts": 1,
+    "saved_search_ms": {
+      "apiosk": 0,
+      "coinbase": 0
+    },
+    "research_request_ms": 25289,
+    "planning_model_attempts": 2,
+    "planning_prompt_tokens_across_attempts": 38334,
+    "research_db_ms": 1652,
+    "boundary": "Saved chat timings plus request_costs. They do not establish the original complete browser wall time or the exact reason for its retry."
+  },
+  "before_live_preview": {
+    "trace_id": "ad43214f-8b6c-48bd-b5d7-d3b7441b3c84",
+    "http_status": 200,
+    "elapsed_ms": 16885,
+    "status": "ready",
+    "planning_model_ms": 10511,
+    "planning_model_attempts": 1,
+    "planning_input_bytes": 88840,
+    "planning_prompt_tokens": 19416,
+    "total_micro_usd": "54348"
+  },
+  "intermediate_payload_optimization": {
+    "runtime_commit": "8b2d7de",
+    "outcome": "Payload reduced, but live TenderNed previews still took 17.6-19.3 seconds. This did not meet the latency goal."
+  },
+  "architecture": {
+    "parse": "One canonical AI interpretation, with existing malformed-output correction bound.",
+    "search": "Deterministic catalog matching.",
+    "planning": "Contract-only compilation, source-field mapping, literal binding, complementary endpoints, shared dependencies, complete coverage and one total. No planning model or AI repair.",
+    "answer": "Uses saved source results after normal approval and execution."
+  },
+  "local_saved_intake_replay": {
+    "elapsed_ms": 2013,
+    "message": "This plan uses the matching sources. Review the total price and approve to start.",
+    "planning_model_calls": 0,
+    "question": "Find Dutch public procurement notices for cleaning services through TenderNed. Shortlist relevant notices with the buyer, scope, publication type, available deadline and source link. Distinguish contract opportunities from notices of already awarded contracts.",
+    "sources": [
+      {
+        "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+        "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+        "name": "TenderNed",
+        "price_atomic": "54348",
+        "source_slug": "tenderned"
+      }
+    ],
+    "status": "ready",
+    "total_atomic": "54348"
+  },
+  "regressions": [
+    "Published and additional NL/EN questions allow exactly one model call: intake.",
+    "New registered sources combine without question templates and share a single dependency.",
+    "Unavailable fields, unused filters, stale request hashes and discovery-only candidates do not become partial quotes.",
+    "Removed source fields invalidate their semantic mappings."
+  ],
+  "boundaries": [
+    "No source purchases, approval, schedule funding or delivery during verification.",
+    "A supported plan is not proof of a retrieved answer.",
+    "Legacy routes without an Ask parse retain their compatibility interpreter."
+  ],
+  "tests": {
+    "command": "cargo test --offline --all-targets",
+    "passed": 1121,
+    "failed": 0,
+    "ignored": 112
+  }
+}

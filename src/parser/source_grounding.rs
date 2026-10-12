@@ -309,6 +309,8 @@ fn inventory(service: &Service, catalog: &Catalog) -> BTreeMap<String, Field> {
         .collect()
 }
 
+
+
 fn candidates<'a>(intake: &Intake, index: usize, catalog: &'a Catalog) -> Vec<&'a Service> {
     let Some(found) = super::explicit_request::request_match(intake, index) else {
         return vec![];
@@ -358,6 +360,63 @@ pub(super) fn schema() -> Value {
         "fields":{"type":"array","minItems":1,"maxItems":12,"items":{"type":"string"}},
         "interpretation":{"type":"string","minLength":1,"maxLength":500},"limitation":{"type":["string","null"],"maxLength":300}
     }}})
+}
+
+/// Semantic mappings are reviewed source metadata, not another interpretation
+/// of a user's question. Field IDs are rebuilt from the current admitted
+/// service version; a removed or retyped field invalidates the mapping.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Mapping {
+    outputs: Vec<String>,
+    fields: Vec<MappedField>,
+    interpretation: String,
+    limitation: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MappedField {
+    source:String, capability:String, fact:String, path:String, types:BTreeSet<String>,
+}
+
+pub(super) fn compile(intake:&Intake,catalog:&Catalog,selected:&[&Service])->Vec<Binding> {
+    static MAPPINGS: std::sync::OnceLock<Vec<Mapping>> = std::sync::OnceLock::new();
+    let mappings=MAPPINGS.get_or_init(||serde_json::from_str(include_str!("../../contracts/source-output-mappings.json")).expect("reviewed source mappings"));
+    let selected:BTreeSet<_>=selected.iter().map(|service|service.id).collect();
+    let mut bindings=Vec::new();
+    for (requirement,cap) in intake.parsed_request.capabilities.iter().enumerate() {
+        let sources:Vec<_>=candidates(intake,requirement,catalog).into_iter().filter(|service|selected.contains(&service.id))
+            .map(|service|(service,inventory(service,catalog))).collect();
+        for output in &cap.outputs {
+            // A precise reviewed derivation takes priority over a coincidental
+            // leaf name (for example a director's appointment vs a PSC date).
+            let reviewed=mappings.iter().filter(|mapping|mapping.outputs.contains(output)).find_map(|mapping| {
+                let fields=mapping.fields.iter().map(|wanted|sources.iter().filter(|(service,_)|
+                    service.api_slug==wanted.source && service.contract.capability_slug==wanted.capability)
+                    .flat_map(|(_,fields)|fields.values()).find(|field|field.fact==wanted.fact && field.path==wanted.path
+                        && field.types.is_superset(&wanted.types)).map(|field|field.id.clone())).collect::<Option<Vec<_>>>()?;
+                Some(Binding {requirement,output:output.clone(),fields,interpretation:mapping.interpretation.clone(),limitation:mapping.limitation.clone()})
+            });
+            if let Some(binding)=reviewed {bindings.push(binding);continue;}
+            // Schema aliases and normalized field names work for any admitted
+            // API, including future catalog entries. No fuzzy semantic guess.
+            let normalized=|text:&str| {
+                let mut name=String::new();
+                for (index,ch) in text.chars().enumerate() {
+                    if ch.is_uppercase() && index>0 && !name.ends_with('_') {name.push('_');}
+                    if ch.is_alphanumeric() {name.extend(ch.to_lowercase());} else if !name.ends_with('_') {name.push('_');}
+                }
+                name.trim_matches('_').to_owned()
+            };
+            let mut fields:Vec<_>=sources.iter().flat_map(|(_,fields)|fields.values()).filter(|field|
+                field.aliases.contains(output) || field.path.rsplit('/').next().is_some_and(|name|!name.is_empty() && normalized(name)==normalized(output)))
+                .map(|field|field.id.clone()).collect();
+            fields.sort();fields.dedup();
+            if !fields.is_empty() && fields.len()<=12 {bindings.push(Binding {requirement,output:output.clone(),fields,
+                interpretation:format!("Report the returned {}.",output.replace('_'," ")),limitation:None});}
+        }
+    }
+    if validate(&bindings,intake,catalog).is_ok() {bindings} else {vec![]}
 }
 
 pub(super) fn validate(

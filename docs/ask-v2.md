@@ -30,7 +30,7 @@ independently.
 
 The prompt remains streaming, temperature zero, with bounded output and a
 20-second transport deadline per parse attempt. `ASK_V2_MODEL` selects the
-configured model; production's default is defined in `parser::MODEL`.
+configured model; its default is defined in `ask_v2::DEFAULT_MODEL`.
 
 The App parse/search routes require an authenticated App user and apply the existing workspace
 membership checks. Separate bounded per-owner limits cover parsing and search,
@@ -45,6 +45,22 @@ The App waits for source discovery before allowing a new source selection and
 automatically prepares the complete data question through `/v2/ask-v2/research`.
 A prepared task opens even when the directory also returned alternatives.
 The task owns the combined price ceiling, missing inputs and one approval.
+
+Planning from `parsed_request` calls no model. `parser::contract_planner`
+filters the ranked admitted endpoints, binds documented literal inputs,
+combines complementary sources, merges shared goals and resolves dependencies.
+It verifies every requested field and supplied filter against the resulting
+plan before returning one total price. Search and combination counts are bounded.
+An unsupported requirement returns a short explanation, without an AI repair
+or a model-generated refusal. The original extraction remains unchanged.
+
+`contracts/source-output-mappings.json` contains reviewed source semantics:
+exact source/capability/fact/path/type references, output concepts, derivations
+and limitations. These describe reusable source fields, not example questions.
+Current admitted schemas and samples must still contain every referenced field;
+runtime bindings use the current service version. Schema aliases and exact
+normalized field names also work for catalog entries without an explicit mapping.
+Samples establish available fields only and never supply a current answer.
 
 When at least two distinct requested retrievals have server-preferred executable
 matches from different providers, the App keeps them together: no individual

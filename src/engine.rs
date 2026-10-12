@@ -579,12 +579,12 @@ impl Engine {
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
                 reply = crate::parser::ChatReply { output_bindings: vec![], message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None };
             }
-            // A genuinely declined question (small talk, an unclear request, a
-            // requirement no source covers) is answered by the conversation
-            // model; on any failure the planner's own reply stands. The status
-            // and actions are the planner's either way.
-            if let Some(written) = self.parser.decline_reply(&req.question, &parsing_task, &catalog, &reply).await {
-                reply.message = written;
+            // Legacy conversation may write a reply. A parsed Ask request
+            // keeps the compiler's concise outcome: no second model call.
+            if task.capability_intake.is_none() {
+                if let Some(written) = self.parser.decline_reply(&req.question, &parsing_task, &catalog, &reply).await {
+                    reply.message = written;
+                }
             }
             task.output_grounding = task.capability_intake.as_ref().and_then(|intake|
                 crate::parser::source_grounding::Grounding::new(intake, &catalog, reply.output_bindings));
@@ -660,9 +660,9 @@ impl Engine {
         task.execution_error = None;
         let planning = telemetry::span(Phase::Plan).task(id);
         let mut status = self.plan(&mut task, &catalog, &intent)?;
-        // A selected endpoint is the person's own choice: the model reviews
-        // neither a direct call nor a selection, and their refusal stands.
-        if let (false, Resolution::Unsupported(reason)) = (direct || selection.is_some(), resolver::resolve(&catalog, &task, &intent)) {
+        // Model review exists only for the legacy route without an Ask parse.
+        // Parsed intents, direct calls and selections retain compiler outcomes.
+        if let (false, Resolution::Unsupported(reason)) = (direct || selection.is_some() || task.capability_intake.is_some(), resolver::resolve(&catalog, &task, &intent)) {
             let review = match self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await {
                 Ok(review) => review,
                 Err(error) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, true, error).await,

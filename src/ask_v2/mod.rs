@@ -1044,7 +1044,7 @@ mod tests {
                 let parser = crate::parser::Parser::new(reqwest::Client::new(), endpoint, "fixture-key".into(), "fixture".into());
                 let mut task = crate::state::Task { capability_intake: Some(intake.clone()), ..Default::default() };
                 let reply = parser.chat_from_capabilities(question, None, &task, &catalog, &intake).await.unwrap();
-                assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+                assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 0, "planning uses contracts, not a model");
                 server.abort();
                 if let Some(mut intent) = reply.intent {
                     crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();

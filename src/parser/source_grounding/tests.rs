@@ -45,6 +45,35 @@ fn glassdoor(catalog: &Catalog) -> &Service {
         .unwrap()
 }
 
+#[test]
+fn deterministic_mappings_require_the_current_field_and_source() {
+    let (intake,mut catalog)=fixture();
+    assert!(compile(&intake,&catalog,&[glassdoor(&catalog)]).iter().any(|b|b.output=="pay_rating"));
+    let service=catalog.services.iter_mut().find(|service|service.contract.capability_slug.contains("glassdoor")).unwrap();
+    fn remove(value:&mut Value) {
+        match value {
+            Value::Object(object)=>{object.remove("compensation_and_benefits_rating");for value in object.values_mut() {remove(value);}},
+            Value::Array(values)=>for value in values {remove(value);},
+            _=>{},
+        }
+    }
+    remove(service.sample_payload.as_mut().unwrap());
+    remove(&mut catalog.vocabulary.get_mut("company.glassdoor_search_results").unwrap().value_schema);
+    assert!(!compile(&intake,&catalog,&[glassdoor(&catalog)]).iter().any(|b|b.output=="pay_rating"),"a static alias cannot manufacture a removed field");
+    assert!(compile(&intake,&catalog,&[]).is_empty(),"an unselected source cannot establish coverage");
+}
+
+#[test]
+fn reviewed_mapping_metadata_is_bounded_and_contains_no_sample_values() {
+    let mappings:Vec<Mapping>=serde_json::from_str(include_str!("../../../contracts/source-output-mappings.json")).unwrap();
+    for mapping in mappings {
+        assert!(!mapping.outputs.is_empty() && !mapping.fields.is_empty() && mapping.fields.len()<=12);
+        assert!(!mapping.interpretation.trim().is_empty() && mapping.interpretation.chars().count()<=500);
+        assert!(mapping.limitation.as_ref().is_none_or(|note|!note.trim().is_empty() && note.chars().count()<=300));
+        for field in mapping.fields {assert!(!field.types.is_empty() && !field.fact.is_empty() && !field.source.is_empty());}
+    }
+}
+
 fn binding(
     intake: &Intake,
     catalog: &Catalog,

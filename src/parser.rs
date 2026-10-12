@@ -19,6 +19,7 @@ use std::{
 use uuid::Uuid;
 
 mod capability_binding;
+mod contract_planner;
 use capability_binding::Bindings;
 mod analysis_source_coverage;
 mod analysis_evidence;
@@ -430,9 +431,8 @@ pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// This constant only controls conversational text, never planning or
 /// synthesis. Multi-provider synthesis has its own stage constant below.
 pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
-/// Map extracted requirements onto reviewed source contracts when their
-/// literal inputs cannot be compiled directly. This does not change intake,
-/// ordinary chat, or the optional paid analysis route.
+/// Historical model-planning replay support. The active parsed Ask route uses
+/// `contract_planner` and never calls this model, including on missing coverage.
 pub const CAPABILITY_PLAN_MODEL: &str = "openai/gpt-6.1-sol";
 /// Combining distinct saved providers uses the stronger synthesis stage.
 /// This is separate from conversation replies and never changes planning.
@@ -1330,6 +1330,11 @@ impl Parser {
 
     /// Ask must finish capability extraction before any source search starts.
     pub async fn prepare_ask(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
+        if self.ask_v2.is_some() && selection.is_none() {
+            let mut intake=self.ask_intake(question,task,catalog,task.capability_intake.as_ref()).await?;
+            crate::capability_intake::add_coinbase(&self.discovery_http,&mut intake.matches,&self.bazaar_search_url).await;
+            return Ok(intake);
+        }
         self.prepare_ask_with_bazaar(question, selection, task, catalog, &self.bazaar_search_url).await
     }
 
@@ -1365,17 +1370,19 @@ impl Parser {
     }
 
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
-        if let Some(reply) = plan_coverage::uncovered_reply(intake) { return Ok(reply); }
-        if selection.is_none_or(|selection|selection.view["mode"]=="include") {
-            // The AI extraction owns the request. Plan any fully covered
-            // retrieval from live contracts, irrespective of its wording,
-            // company name, provider or membership of the example list.
-            let literals = capability_binding::literal_context(question, task, selection);
-            if let Some(reply) = plan_coverage::single_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
-            if let Some(reply) = plan_coverage::multiple_retrieval_reply(intake, catalog, question, &literals, task) { return Ok(reply); }
+        let literals=capability_binding::literal_context(question,task,selection);
+        if let Some(selection)=selection.filter(|selection|selection.view["mode"]=="restrict") {
+            let mut selected=intake.clone();
+            for found in &mut selected.matches {
+                found.apiosk.retain(|candidate|selection.view["endpoints"].as_array().into_iter().flatten().any(|endpoint|
+                    endpoint["planner_available"]==true && candidate.endpoint_id.as_deref()==endpoint["endpoint_id"].as_str()
+                        && endpoint["capabilities"].as_array().is_some_and(|caps|caps.iter().any(|cap|cap.as_str()==candidate.capability.as_deref()))));
+                found.operations=found.apiosk.iter().filter_map(|candidate|candidate.capability.clone()).collect();
+            }
+            selected.selected_capabilities=selected.matches.iter().flat_map(|found|found.operations.iter().cloned()).collect();
+            return Ok(contract_planner::compile(question,&literals,task,catalog,&selected));
         }
-        let view = capability_planning_view(catalog.selected_parser_view(&intake.selected_capabilities), &intake.selected_capabilities);
-        self.chat_with_view(question, selection, task, catalog, view, Some(intake)).await
+        Ok(contract_planner::compile(question,&literals,task,catalog,intake))
     }
 
     async fn chat_with_view(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, view: Value, intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<ChatReply> {
@@ -1875,73 +1882,29 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "uses saved AI intake, live planning model and read-only catalog; no source calls or writes"]
-    async fn live_saved_capability_intake_forms_a_complete_quote() {
-        dotenvy::dotenv().ok();
-        let _ = tracing_subscriber::fmt().with_env_filter("info,sqlx=error").try_init();
-        let saved: Value = serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE").expect("saved intake path required")).unwrap()).unwrap();
-        let question = saved["question"].as_str().unwrap();
-        let parsed: crate::capability_intake::ParsedRequest = serde_json::from_value(saved["parsed"].clone()).unwrap();
-        let catalog = if let Ok(path)=std::env::var("ASK_SAVED_INTAKE_CATALOG") {
-            std::sync::Arc::new(Catalog::build(serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()))
-        } else {
-            let pool=sqlx::postgres::PgPoolOptions::new().max_connections(1).connect(&std::env::var("DATABASE_URL").unwrap()).await.unwrap();
-            let catalog=crate::catalog::CatalogCache::new(pool.clone()).get().await.unwrap();
-            pool.close().await;catalog
-        };
-        let matches = crate::ask_v2::search::search(&parsed, &catalog);
-        let selected_capabilities = matches.iter().flat_map(|matched|matched.operations.iter().cloned()).collect();
-        let intake = crate::capability_intake::Intake { parsed_request: parsed, matches, selected_capabilities,
-            catalog_version:catalog.version.clone(),apiosk_sources_searched:crate::capability_intake::source_count(&catalog) };
-        let saved_reply=std::env::var("ASK_SAVED_MODEL_REPLY").ok();
-        let key = if saved_reply.is_some() { "local-replay".into() } else {
-            std::env::var("OPENROUTER_API_KEY").ok().filter(|key|!key.is_empty()).unwrap_or_else(||std::env::var("INTENT_API_KEY").unwrap())
-        };
-        let http = reqwest::Client::new();
-        let parser = Parser::new(http.clone(),"https://openrouter.ai/api/v1/chat/completions".into(),key,MODEL.into());
-        let task=Task::default();
-        let literals=capability_binding::literal_context(question,&task,None);
-        assert!(plan_coverage::single_retrieval_reply(&intake,&catalog,question,&literals,&task).is_none(),"this replay must require the planning model");
-        let unreachable=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
-        let store=crate::store::Store {pool:unreachable.clone()};
-        let mut engine=crate::engine::Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(unreachable),parser,
+    #[ignore = "replays a local saved intake and local catalog; no model, source or database calls"]
+    async fn saved_intake_compiles_without_a_model() {
+        let saved: Value=serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE").unwrap()).unwrap()).unwrap();
+        let question=saved["question"].as_str().unwrap();
+        let parsed=serde_json::from_value(saved["parsed"].clone()).unwrap();
+        let catalog=Catalog::build(serde_json::from_slice(&std::fs::read(std::env::var("ASK_SAVED_INTAKE_CATALOG").unwrap()).unwrap()).unwrap());
+        let started=std::time::Instant::now();
+        let matches=crate::ask_v2::search::search(&parsed,&catalog);
+        let intake=crate::capability_intake::Intake {parsed_request:parsed,selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
+            matches,catalog_version:catalog.version.clone(),apiosk_sources_searched:crate::capability_intake::source_count(&catalog)};
+        let http=reqwest::Client::new();
+        let parser=Parser::new(http.clone(),"offline://planning-must-not-call-models".into(),String::new(),MODEL.into());
+        let pool=sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
+        let store=crate::store::Store {pool:pool.clone()};
+        let engine=crate::engine::Engine {store:store.clone(),catalog:crate::catalog::CatalogCache::new(pool),parser,
             signer:crate::state::Signer::new(vec![8;32]).unwrap(),app_url:"http://localhost".into(),
             executor:crate::execution::Executor {store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false}};
-        let started=std::time::Instant::now();
-        // Record the exact validated model intent even if the quote resolver
-        // refuses it. Replay that same semantic reply locally through guest
-        // planning so this diagnostic never pays for a second model answer.
-        let reply=if let Some(path)=&saved_reply {
-            let saved:Value=serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-            ChatReply { output_bindings: vec![],message:"Review the complete source price.".into(),discover:true,
-                intent:Some(serde_json::from_value(saved["decoded_intent"].clone()).unwrap()),decline_reason:Some("none".into())}
-        } else { engine.parser.chat_from_capabilities(question,None,&task,&catalog,&intake).await.unwrap() };
-        let decoded_intent=serde_json::to_value(&reply.intent).unwrap();
-        let mut bound_intent=decoded_intent.clone();
-        if let Some(subjects)=bound_intent.get_mut("subjects").and_then(Value::as_array_mut) {
-            for subject in subjects {
-                let parsed=intake.parsed_request.subjects.iter().find(|parsed|subject["label"]==parsed.label).unwrap();
-                let values=subject["values"].as_object().unwrap().iter().map(|(key,value)|(key.clone(),json!({"literal":value}))).collect::<serde_json::Map<_,_>>();
-                *subject=json!({"subject_ref":parsed.id,"values":values});
-            }
-        }
-        let body=json!({"message":reply.message,"discover":reply.discover,"intent":bound_intent,"decline_reason":reply.decline_reason});
-        let envelope=json!({"choices":[{"finish_reason":"stop","message":{"content":body.to_string()}}]});
-        let (replay_parser,calls,server)=model_fixture(vec![(200,envelope)]).await;
-        engine.parser=replay_parser;
         let quote=engine.guest_plan(question,intake,&catalog).await.unwrap();
-        assert_eq!(calls.load(Ordering::Relaxed),1);server.abort();
-        use base64::Engine as _;
-        let preview=quote["preview_token"].as_str().and_then(|token|token.split_once('.'))
-            .and_then(|(payload,_)|base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).ok())
-            .and_then(|bytes|serde_json::from_slice::<Value>(&bytes).ok()).unwrap_or(Value::Null);
-        let evidence=json!({"question":question,"parsed":saved["parsed"],"model":CAPABILITY_PLAN_MODEL,
-            "replayed_saved_model_response":saved_reply.is_some(),
-            "status":quote["status"],"message":quote["message"],"sources":quote["sources"],"total_atomic":quote["total_atomic"],
-            "decoded_intent":decoded_intent,"intent":preview["task"]["intent"],"facts":preview["task"]["facts"],"elapsed_ms":started.elapsed().as_millis()});
-        std::fs::write(std::env::var("ASK_SAVED_INTAKE_EVIDENCE").expect("evidence output required"),serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();
+        let evidence=json!({"question":question,"status":quote["status"],"message":quote["message"],"sources":quote["sources"],
+            "total_atomic":quote["total_atomic"],"elapsed_ms":started.elapsed().as_millis(),"planning_model_calls":0});
+        if let Ok(path)=std::env::var("ASK_SAVED_INTAKE_EVIDENCE") {std::fs::write(path,serde_json::to_vec_pretty(&evidence).unwrap()).unwrap();}
         assert_eq!(quote["status"],"ready","{evidence}");
-        println!("saved intake reached a complete quote with {CAPABILITY_PLAN_MODEL} in {}ms",started.elapsed().as_millis());
+        println!("{evidence}");
     }
 
     #[test]
@@ -2724,9 +2687,9 @@ mod tests {
         let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen volledig plan"));
+        assert!(reply.message.contains("geen volledig plan") || reply.message.contains("passende bron"));
         assert!(!reply.message.contains("2023") && !reply.message.contains("5210"));
-        assert_eq!(calls.load(Ordering::Relaxed),2,"no free-form planning review is called after refusal");
+        assert_eq!(calls.load(Ordering::Relaxed),0,"no model planning or review is called");
         server.abort();
     }
 
@@ -2743,9 +2706,9 @@ mod tests {
         let (parser,calls,server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen volledig plan"));
+        assert!(reply.message.contains("geen volledig plan") || reply.message.contains("passende bron"));
         assert!(!reply.message.contains("2023") && !reply.message.contains("32006L0029") && !reply.message.contains("geen geldige uitvoeringscontracten"));
-        assert_eq!(calls.load(Ordering::Relaxed),2,"no extra planning review or source call");
+        assert_eq!(calls.load(Ordering::Relaxed),0,"no planning model or source call");
         server.abort();
     }
 

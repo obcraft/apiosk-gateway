@@ -516,7 +516,7 @@ async fn source_search_location_filters_cannot_be_discarded_after_model_interpre
 }
 
 #[tokio::test]
-async fn fallback_model_cannot_quote_a_plan_that_discards_a_parsed_location() {
+async fn contract_planner_cannot_quote_a_plan_that_discards_a_parsed_location() {
     let question = "Search Crunchbase for Starbucks in Seattle and show its company description and profile link.";
     let catalog = catalog();
     let interpretation = model_fixture(question, model_reply_fixture(question)).await;
@@ -539,8 +539,8 @@ async fn fallback_model_cannot_quote_a_plan_that_discards_a_parsed_location() {
     server.abort();
     assert_eq!(
         calls.lock().unwrap().len(),
-        1,
-        "the fallback planner actually returned the omitted-filter intent"
+        0,
+        "the planner must not ask a model to reinterpret the filters"
     );
     assert_ne!(
         quote["status"], "ready",
@@ -965,11 +965,9 @@ fn semantic_output(parsed: &crate::capability_intake::ParsedRequest) -> Value {
 
 #[tokio::test]
 async fn published_homepage_questions_preserve_complete_priced_plans() {
-    // These interpretations and decoded planner replies were recorded from the
-    // production models against a read-only catalog. Planner subject values are
-    // re-encoded as reference bindings for replay; no prepared plan is mocked.
-    // Unlike the historical cases above, no sentence recognizer supplies these
-    // model fixtures, and a question may need several subjects or dependencies.
+    // Recorded interpretations are replayed through the actual contract planner.
+    // No example recognizer or second model supplies a plan. The assertions
+    // cover complete scope, literal inputs, dependencies and one total price.
     let cases: Vec<PublishedStarter> =
         serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
     assert_recorded_plans(cases).await;
@@ -1033,8 +1031,8 @@ async fn assert_recorded_plans(cases:Vec<PublishedStarter>) {
         let mut intent = reply.intent.expect("a complete plan requires an intent");
         assert!(intent.unresolved_references.is_empty(), "{id}");
         assert!(
-            model.calls.lock().unwrap().len() <= 2,
-            "{id}: at most one declared fallback model response; no retry loop"
+            model.calls.lock().unwrap().len() == 1,
+            "{id}: only intake may call a model; planning must be deterministic"
         );
         task.record_turn(&case.question, None);
         task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake,&catalog,reply.output_bindings);
@@ -1144,9 +1142,9 @@ async fn unsupported_glassdoor_comparison_cannot_be_published_as_a_priced_exampl
     assert!(quote["preview_token"].is_null());
     assert!(quote["total_atomic"].is_null());
     let message = quote["message"].as_str().unwrap();
-    assert!(message.starts_with("I couldn’t confirm source coverage for:"), "{message}");
-    assert_eq!(message.matches("overall rating").count(), 1, "{message}");
-    assert!(message.contains("Nothing was run or charged."));
+    assert!(message.starts_with("I couldn’t match these details"), "{message}");
+    assert_eq!(message.matches("strongest category").count(), 1, "{message}");
+    assert!(!message.contains("overall rating"), "registered rating coverage remains available");
     assert!(message.chars().count() < 250, "{message}");
     server.abort();
 }

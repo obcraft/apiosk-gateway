@@ -180,12 +180,11 @@ mod tests {
         }
     }
 
-    /// The live report after the lookup fix: the planning model answered the
-    /// KVK question with "Would you like to retrieve this information now?"
-    /// (needs_input, no action). It is told once, declines again, and the
-    /// request is planned from the search: KVK name search, then the profile.
+    /// A planning model used to ask for confirmation before the real quote.
+    /// The compiler must now resolve the name-search dependency without ever
+    /// contacting that model, even when it would return a confirmation prompt.
     #[tokio::test]
-    async fn a_confirmation_reply_still_plans_the_name_search_and_the_profile() {
+    async fn contract_planner_resolves_missing_registry_id_without_a_model() {
         use axum::{extract::State, routing::post, Json, Router};
         use std::sync::{Arc, Mutex};
         let confirmation = json!({"message":"The KVK Business Register can provide the registered name, status, and address for Coolblue B.V. Would you like to retrieve this information now?",
@@ -225,10 +224,7 @@ mod tests {
         server.abort();
         assert!(reply.discover, "an explicit request is planned, not confirmed");
         let calls = calls.lock().unwrap().clone();
-        assert_eq!(calls.len(), 2, "one repair, then the search's plan");
-        assert!(calls[1]["messages"].to_string().contains("declined_explicit_request"));
-        assert_eq!(calls[0]["response_format"]["json_schema"]["schema"]["properties"]["decline_reason"]["enum"],
-            json!(["none", "conversation", "ambiguous_request", "unavailable_requirement"]));
+        assert!(calls.is_empty(), "a missing identifier uses the registered dependency, not a model");
 
         let mut intent = reply.intent.unwrap();
         input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();

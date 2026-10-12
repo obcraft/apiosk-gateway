@@ -620,6 +620,16 @@ fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::
         let input=normal(input);
         identifiers.contains(&input) || (name_alias(&input) && (label_used
             || (identity_bound && !matches!(input.as_str(),"query"|"topic"|"keyword"))))
+            || (cap.missing.iter().any(|missing|normal(missing)==input) && {
+                // An unsupplied provider identifier may be resolved by an
+                // actual dependency. Supplied filters still need literal
+                // preservation above; a hypothetical lookup is insufficient.
+                let mut probe=subject.clone();probe.label.clear();probe.identifiers.clear();
+                probe.identifiers.insert(input.clone(),"dependency-proof".into());
+                plan.steps.iter().enumerate().any(|(position,step)|step.entity_ref==entity && step.service.contract.input_map.keys().any(|field|
+                    catalog.vocabulary.get(field).is_some_and(|fact|crate::ask_v2::input_values::documented_literal(field,&fact.value_schema,&probe)==Some(json!("dependency-proof")))
+                    && plan.steps[..position].iter().any(|prior|prior.entity_ref==entity && prior.service.contract.output_map.produces.contains_key(field))))
+            })
             || (matches!(input.as_str(),"source"|"source_hint"|"provider") && cap.source_hint.as_ref().is_some_and(|hint|source_bound(hint)))
             || bound.iter().any(|(field,schema,value)| (normal(field)==input || field.rsplit('.').next().is_some_and(|tail|normal(tail)==input))
                 && mapped(field,schema,subject).as_ref()==Some(value))
