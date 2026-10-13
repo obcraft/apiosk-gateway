@@ -24,6 +24,17 @@ const PROVIDERS: &[&str] = &["alibaba", "parasail"];
 pub const DEADLINE: Duration = Duration::from_secs(6);
 const MAX_RESPONSE_BYTES: usize = 64 * 1024;
 const MAX_REPLY_CHARS: usize = 500;
+/// Product wording for a completed search or confirmed coverage gap. It is
+/// deliberately identical in every language and never rewritten by a model.
+pub(crate) const NO_RESULTS: &str = "We couldn’t find any results for you. Try a different question.";
+
+pub(super) fn normalize_decline(reply: &mut super::ChatReply) {
+    if !reply.discover && reply.intent.is_none()
+        && reply.decline_reason.as_deref() == Some("unavailable_requirement") {
+        reply.message = NO_RESULTS.into();
+        reply.output_bindings.clear();
+    }
+}
 
 /// Why no lookup was planned: the planner's `decline_reason`, or the App's
 /// reading of a search that found nothing.
@@ -108,6 +119,9 @@ impl Client {
     /// One bounded attempt: no retry fits the person's wait. Errors carry no
     /// prompt, reply, key or provider detail.
     pub async fn reply(&self, request: &Request<'_>, catalog: Value) -> Result<Reply> {
+        if request.reason == Reason::UnavailableRequirement {
+            return Ok(Reply { text: NO_RESULTS.into(), model: "deterministic" });
+        }
         ensure!(!self.key.is_empty(), "conversation_reply_unavailable");
         let payload = json!({
             "model": CHAT_MODEL, "temperature": 0.3, "max_tokens": 200,
@@ -259,7 +273,7 @@ fn validate(raw: &str) -> Result<String> {
     ensure!(lines.len() <= 3, "too many lines");
     ensure!(!lines.iter().any(|line| line.starts_with(['-', '*', '•', '#']) || numbered(line)), "list");
     let questions = text.matches(['?', '？']).count();
-    ensure!((1..=2).contains(&questions) && text.ends_with(['?', '？']), "one question at the end");
+    ensure!(questions == 1 && text.ends_with(['?', '？']), "one question at the end");
     Ok(text.split_whitespace().collect::<Vec<_>>().join(" "))
 }
 
@@ -284,6 +298,37 @@ mod tests {
     }
     fn request<'a>() -> Request<'a> {
         Request { question: "How are you?", earlier: vec![], reason: Reason::Conversation, language: Some("en"), draft: Some("What data do you need?") }
+    }
+
+    #[tokio::test]
+    async fn unavailable_is_exact_without_a_model_or_alternative_suggestions() {
+        let client = Client::new(reqwest::Client::new(), String::new())
+            .with_local_endpoint("http://127.0.0.1:1".into()).unwrap();
+        let mut asked = request();
+        asked.reason = Reason::UnavailableRequirement;
+        asked.language = Some("nl");
+        asked.draft = Some("Which other provider should I use?");
+        let reply = client.reply(&asked, json!({"related_sources":[{"source":"Unrelated Register"}]})).await.unwrap();
+        assert_eq!(reply.text, NO_RESULTS);
+        assert_eq!(reply.model, "deterministic");
+        let parser = super::super::Parser::new(reqwest::Client::new(), "http://127.0.0.1:1".into(), String::new(), super::super::MODEL.into());
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap());
+        let mut declined = super::super::ChatReply { output_bindings: vec![],
+            message: "Which other provider should I use?".into(), discover: false,
+            intent: None, decline_reason: Some("unavailable_requirement".into()) };
+        assert_eq!(parser.decline_reply("Missing data", &Task::default(), &catalog, &declined).await.as_deref(), Some(NO_RESULTS));
+        normalize_decline(&mut declined);
+        assert_eq!(declined.message, NO_RESULTS);
+    }
+
+    #[test]
+    fn a_real_missing_context_question_is_preserved() {
+        let mut reply = super::super::ChatReply { output_bindings: vec![],
+            message: "Which year should the financial statements cover?".into(),
+            discover: false, intent: None, decline_reason: Some("ambiguous_request".into()) };
+        normalize_decline(&mut reply);
+        assert_eq!(reply.message, "Which year should the financial statements cover?");
+        assert_eq!(validate(&reply.message).unwrap(), reply.message);
     }
 
     #[tokio::test]
@@ -392,10 +437,10 @@ mod tests {
     #[test]
     fn a_reply_is_plain_text_ending_in_its_question() {
         assert_eq!(validate("\"Hallo! Over welk bedrijf wil je informatie?\"").unwrap(), "Hallo! Over welk bedrijf wil je informatie?");
-        assert_eq!(validate("Hola, ¿en qué puedo ayudarte? ¿Sobre qué empresa necesitas información?").unwrap(),
-            "Hola, ¿en qué puedo ayudarte? ¿Sobre qué empresa necesitas información?");
+        assert_eq!(validate("Hola, ¿sobre qué empresa necesitas información?").unwrap(),
+            "Hola, ¿sobre qué empresa necesitas información?");
         for invalid in [
-            "", "Hello there.", "Which company? Which year? Which register?", "{\"message\":\"Which company?\"}",
+            "", "Hello there.", "Which company? Which year?", "Which company? Which year? Which register?", "{\"message\":\"Which company?\"}",
             "See https://apiosk.com. Which company?", "**Hi!** Which company?", "1. Companies\n2. Tenders\nWhich one?",
             "It costs €2. Which company?", "Which company?\nWhich year?\nWhich register?\nWhich source?",
         ] {

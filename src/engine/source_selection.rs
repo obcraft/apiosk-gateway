@@ -208,6 +208,9 @@ impl Engine {
         task.proposal = None;
         task.actions.clear();
         task.compute = None;
+        if let Some(turn) = task.conversation.last_mut() {
+            turn.reply = Some(reply.message.clone());
+        }
         let status = if reply.discover {
             let mut intent = reply.intent.ok_or_else(|| {
                 anyhow::anyhow!("Selected sources did not produce a complete intent")
@@ -236,18 +239,11 @@ impl Engine {
                 }
             }
             status
+        } else if planning_message::is_terminal_discovery(&task, &reply.message) {
+            planning_message::finish_without_plan(&mut task, json!({}))
         } else {
             Status::NeedsInput
         };
-        if let Some(turn) = task.conversation.last_mut() {
-            if !task
-                .actions
-                .iter()
-                .any(|action| action["kind"] == "planning_clarification")
-            {
-                turn.reply = Some(reply.message);
-            }
-        }
         anyhow::ensure!(task.bounded(), "Task capacity reached");
         sqlx::query("UPDATE tasks SET document=$3,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_id=$2 AND revision=$4")
             .bind(id).bind(p.owner).bind(serde_json::to_value(&task)?).bind(revision).execute(&mut *tx).await?;

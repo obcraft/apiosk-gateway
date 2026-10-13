@@ -1168,6 +1168,9 @@ impl Parser {
     pub async fn decline_reply(&self, question: &str, task: &Task, catalog: &Catalog, reply: &ChatReply) -> Option<String> {
         if reply.discover { return None; }
         let reason = conversation_reply::Reason::from_decline(reply.decline_reason.as_deref())?;
+        if reason == conversation_reply::Reason::UnavailableRequirement {
+            return Some(conversation_reply::NO_RESULTS.into());
+        }
         let client = self.conversation.as_ref()?;
         let intake = task.capability_intake.as_ref();
         let request = conversation_reply::Request {
@@ -1419,7 +1422,7 @@ impl Parser {
                     "apiosk_results":m.apiosk,
                     "additional_coinbase_results":m.coinbase,"coinbase_status":m.coinbase_status})
             )).collect::<Vec<_>>());
-            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Each selected source must use inputs available before approval. Never chain source results into another call. Preserve missing required inputs for the backend to collect before quoting. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Apiosk results include registered endpoints without executable contracts; their discovery_only or unverified status must be preserved. Discovery results from Apiosk and Coinbase are metadata only: they cannot be quoted or executed, are not evidence answering the question, and may offer broader context rather than the subject-specific output requested. Only apiosk_operations identify executable matches. Preserve source selections and the single total-price approval flow.");
+            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Each selected source must use inputs available before approval. Never chain source results into another call. Preserve missing required inputs for the backend to collect before quoting. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, do not quote a partial substitute or invent a clarification. Preserve actual matching source metadata; if no source covers the requirement, use unavailable_requirement. Ask a clarification only for actual missing subject, content, scope or input. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Apiosk results include registered endpoints without executable contracts; their discovery_only or unverified status must be preserved. Discovery results from Apiosk and Coinbase are metadata only: they cannot be quoted or executed, are not evidence answering the question, and may offer broader context rather than the subject-specific output requested. Only apiosk_operations identify executable matches. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
@@ -1429,7 +1432,7 @@ impl Parser {
             selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"))
         };
         let system = if let Some(intake) = intake {
-            format!("{}\n\nThe language code for your message is {}. Write the entire message in that language, including clarification questions.", include_str!("../contracts/capability-planning-prompt.txt"), intake.parsed_request.language)
+            format!("{}\n\nThe language code for your message is {}. Write in that language, including clarification questions, except for the required exact English no-results message.", include_str!("../contracts/capability-planning-prompt.txt"), intake.parsed_request.language)
         } else {
             format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.", include_str!("../contracts/ask-chat-prompt.txt"), include_str!("../contracts/parser-prompt.txt"))
         };
@@ -1496,6 +1499,7 @@ impl Parser {
                     source_grounding::verify_plan(intent, task, intake, catalog, &reply.output_bindings)?;
                 }
             }
+            conversation_reply::normalize_decline(&mut reply);
             Ok(reply)
         })
         .await;

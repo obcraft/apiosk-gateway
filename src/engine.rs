@@ -112,7 +112,8 @@ fn reply_to(task: &mut Task, question: &str, message: String) {
 fn planning_review_reply(task:&mut Task,question:&str,message:String) {
     // A revised executable plan still has to pass deterministic field
     // coverage. Its refusal must survive the model's optimistic review text.
-    if !task.actions.iter().any(|action|action.get("missing_output_contracts").is_some() || action.get("missing_input_bindings").is_some()) {
+    if !task.actions.iter().any(|action| action["kind"] == "unsupported_reason"
+        || action.get("missing_output_contracts").is_some() || action.get("missing_input_bindings").is_some()) {
         reply_to(task,question,message);
     }
 }
@@ -585,6 +586,7 @@ impl Engine {
             }
             task.output_grounding = task.capability_intake.as_ref().and_then(|intake|
                 crate::parser::source_grounding::Grounding::new(intake, &catalog, reply.output_bindings));
+            let terminal_discovery = !reply.discover && planning_message::is_terminal_discovery(&task, &reply.message);
             chat_intent = reply.intent;
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             // The written reply belongs to the App conversation, and drives its
@@ -593,10 +595,11 @@ impl Engine {
             task.record_turn(&req.question, (app_chat || !reply.discover).then_some(reply.message));
             if !reply.discover {
                 clear_plan(&mut task);
+                let status = if terminal_discovery {
+                    planning_message::finish_without_plan(&mut task, json!({}))
+                } else { Status::NeedsInput };
                 self.store.save_intent(p.owner, id, revision, &task).await?;
-                return self
-                    .view(p, id, req.request_id, Some(Status::NeedsInput))
-                    .await;
+                return self.view(p, id, req.request_id, Some(status)).await;
             }
         }
         let mut intent = match (forced, chat_intent) {
@@ -701,27 +704,19 @@ impl Engine {
             Resolution::Plan(mut plan) => {
                 if let Some(context)=&task.source_selection {
                     if let Err(error)=context.verify_plan(task,catalog,intent,&plan) {
-                        let message=error.to_string();
-                        if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
-                        task.actions.push(json!({"kind":"planning_clarification","message":message}));
-                        return Ok(Status::NeedsInput);
+                        return Ok(planning_message::finish_without_plan(task,
+                            json!({"diagnostic_reason":error.to_string()})));
                     }
                 }
                 let missing_inputs=match &task.source_selection {Some(context)=>context.uncovered_inputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_inputs(task,catalog,intent,&plan)};
                 if !missing_inputs.is_empty() {
-                    let message=planning_message::coverage(&missing_inputs, true,
-                        task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl"));
-                    if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
-                    task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_input_bindings":missing_inputs}));
-                    return Ok(Status::NeedsInput);
+                    return Ok(planning_message::finish_without_plan(task,
+                        json!({"missing_input_bindings":missing_inputs})));
                 }
                 let missing=match &task.source_selection {Some(context)=>context.uncovered_outputs(task,catalog,intent,&plan)?,None=>crate::parser::plan_coverage::uncovered_outputs(task,catalog,intent,&plan)};
                 if !missing.is_empty() {
-                    let message=planning_message::coverage(&missing, false,
-                        task.capability_intake.as_ref().is_some_and(|intake|intake.parsed_request.language=="nl"));
-                    if let Some(turn)=task.conversation.last_mut() {turn.reply=Some(message.clone());}
-                    task.actions.push(json!({"kind":"planning_clarification","message":message,"missing_output_contracts":missing}));
-                    return Ok(Status::NeedsInput);
+                    return Ok(planning_message::finish_without_plan(task,
+                        json!({"missing_output_contracts":missing})));
                 }
                 if task.supplier_check.is_some() || task.workflow.is_some() {
                     // Workflow runs carry the workflow markup on every step.
@@ -771,9 +766,8 @@ impl Engine {
                 Ok(Status::NeedsInput)
             }
             Resolution::Unsupported(reason) => {
-                task.actions
-                    .push(json!({"kind":"unsupported_reason","message":reason}));
-                Ok(Status::Unsupported)
+                Ok(planning_message::finish_without_plan(task,
+                    json!({"diagnostic_reason":reason})))
             }
         }
     }
@@ -1249,6 +1243,9 @@ mod account_navigation_tests {
         assert_eq!(task.actions[0]["kind"],"planning_clarification");
         task.actions=vec![serde_json::json!({"kind":"planning_clarification","missing_input_bindings":["location"]})];
         super::planning_review_reply(&mut task,"Give title and date","Complete lookup is ready for approval".into());
+        assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Source does not declare publication date"));
+        task.actions=vec![serde_json::json!({"kind":"unsupported_reason"})];
+        super::planning_review_reply(&mut task,"Give title and date","Try again with a provider name".into());
         assert_eq!(task.conversation.last().unwrap().reply.as_deref(),Some("Source does not declare publication date"));
         task.actions.clear();
         super::planning_review_reply(&mut task,"Give title and date","Revised plan is ready".into());

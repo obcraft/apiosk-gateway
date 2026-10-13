@@ -250,24 +250,7 @@ pub(super) fn uncovered_reply(intake: &Intake) -> Option<super::ChatReply> {
     if missing.is_empty() {
         return None;
     }
-    let names = missing.iter().map(|(_, name)| *name).collect::<Vec<_>>().join("; ");
-    let discovered = missing.iter().filter_map(|(index, _)| request_match(intake, *index)).collect::<Vec<_>>();
-    let message = if let Some(message) = discovery_message(&intake.parsed_request.language, &names, &discovered) {
-        message
-    } else if intake.parsed_request.language == "nl" {
-        format!("Voor deze onderdelen is geen passende uitvoerbare bron gevonden: {names}. De volledige aanvraag krijgt daarom nog geen prijs. Verduidelijk deze onderdelen of pas de vraag aan; de overige onderdelen blijven bewaard.")
-    } else {
-        format!("No matching executable source was found for these requirements: {names}. The complete request cannot be priced yet. Clarify these requirements or revise the question; the other requirements are kept.")
-    };
-    // This is a catalog fact, not a model draft to rewrite into broader claims
-    // about a provider's existence. It never quotes a reduced request.
-    Some(super::ChatReply {
-        output_bindings: vec![],
-        message,
-        discover: false,
-        intent: None,
-        decline_reason: None,
-    })
+    Some(rejected_reply(intake))
 }
 
 fn executable_match(matched: &crate::capability_intake::Match) -> bool {
@@ -276,36 +259,33 @@ fn executable_match(matched: &crate::capability_intake::Match) -> bool {
         && candidate.capability.as_ref().is_some_and(|capability| matched.operations.contains(capability)))
 }
 
-fn discovery_message(language: &str, names: &str, matches: &[&crate::capability_intake::Match]) -> Option<String> {
-    if matches.iter().any(|found| !found.coinbase.is_empty()) {
-        Some(if language == "nl" {
-            format!("Er zijn aanvullende diensten gevonden voor {names}. Een volledig automatisch plan is nog niet gereed. Kies een passende dienst uit de gevonden bronnen om de invoer en prijs te controleren.")
-        } else {
-            format!("Additional services were found for {names}. A complete automatic plan is not ready yet. Choose a matching service from the sources to review its inputs and price.")
-        })
-    } else if matches.iter().any(|found| found.apiosk.iter().any(|candidate| candidate.availability != "supported" && candidate.endpoint_id.is_some())) {
-        Some(if language == "nl" {
-            format!("Er zijn bronendpoints gevonden voor {names}. Een volledig automatisch plan is nog niet gereed; de dekking en uitvoerbaarheid moeten nog worden gecontroleerd. Bekijk de gevonden bronnen.")
-        } else {
-            format!("Source endpoints were found for {names}. A complete automatic plan is not ready yet; coverage and execution support still need verification. Review the matching sources below.")
-        })
-    } else { None }
+/// Discovery is useful even when no complete executable plan is available.
+/// Name only this request's actual matches; never suggest unrelated catalog
+/// alternatives or turn a planning failure into a request for a provider.
+pub(crate) fn discovery_message(intake: &Intake) -> Option<String> {
+    let mut seen = BTreeSet::new();
+    let mut names = Vec::new();
+    for found in intake.parsed_request.capabilities.iter().enumerate()
+        .filter(|(_, cap)| !answer_instruction(cap))
+        .filter_map(|(index, _)| request_match(intake, index)) {
+        for candidate in found.apiosk.iter().chain(&found.coinbase) {
+            let name = candidate.name.split_whitespace().collect::<Vec<_>>().join(" ");
+            if !name.is_empty() && seen.insert(name.to_lowercase()) {
+                names.push(format!("- {name}"));
+            }
+        }
+    }
+    if names.is_empty() { return None; }
+    let heading = if intake.parsed_request.language == "nl" { "Gevonden bronnen:" } else { "Matching sources:" };
+    Some(format!("{heading}\n{}", names.join("\n")))
 }
 
-/// A complete model reply was rejected for changing or duplicating the
-/// requirements. This is neither evidence of an outage nor of absent sources.
+/// A failed automatic plan does not erase real discovery matches. If there
+/// are none, use the completed no-results outcome instead of a retry loop.
 pub(super) fn rejected_reply(intake: &Intake) -> super::ChatReply {
-    let names = intake.parsed_request.capabilities.iter()
-        .filter(|cap| !answer_instruction(cap)).map(|cap| cap.name.as_str())
-        .collect::<Vec<_>>().join("; ");
-    let message = if let Some(message) = discovery_message(&intake.parsed_request.language, &names, &intake.matches.iter().collect::<Vec<_>>()) {
-        message
-    } else if intake.parsed_request.language == "nl" {
-        "Ik kon nog geen volledig plan maken. Probeer opnieuw. Er is niets uitgevoerd of afgeschreven.".into()
-    } else {
-        "I couldn’t build a complete plan yet. Try again. Nothing was run or charged.".into()
-    };
-    super::ChatReply {output_bindings: vec![], message, discover:false, intent:None, decline_reason:None}
+    super::ChatReply { output_bindings: vec![],
+        message: discovery_message(intake).unwrap_or_else(|| super::conversation_reply::NO_RESULTS.into()),
+        discover: false, intent: None, decline_reason: None }
 }
 
 /// Recover one concrete retrieval from the already displayed, ranked choices.
@@ -2160,18 +2140,51 @@ mod tests {
         );
     }
     #[test]
-    fn unmatched_requirement_reply_is_specific_and_keeps_catalog_provider_claims_out() {
+    fn unmatched_requirement_returns_found_sources_without_a_planning_retry() {
         let (mut intake, _) = fixture("MONZO BANK LIMITED", "company", 1);
         intake.parsed_request.capabilities[0].name = "CBS sector comparison".into();
         intake.matches[0].operations.clear();
+        intake.matches[0].apiosk[0].name = "Matched Register".into();
         let reply = uncovered_reply(&intake).unwrap();
         assert!(!reply.discover && reply.intent.is_none());
-        assert!(reply.message.contains("CBS sector comparison"));
-        assert!(!reply.message.contains("CBS is unavailable"));
+        assert_eq!(reply.message, "Matching sources:\n- Matched Register");
+        assert!(!reply.message.contains("?"));
         assert!(
             reply.decline_reason.is_none(),
             "deterministic catalog facts are not sent for a model rewrite"
         );
+    }
+    #[test]
+    fn no_sources_has_the_exact_no_results_outcome_in_every_language() {
+        let (mut intake, _) = fixture("MONZO BANK LIMITED", "company", 1);
+        intake.matches.clear();
+        for language in ["en", "nl", "es"] {
+            intake.parsed_request.language = language.into();
+            let reply = uncovered_reply(&intake).unwrap();
+            assert_eq!(reply.message, super::super::conversation_reply::NO_RESULTS);
+            assert!(!reply.discover && reply.intent.is_none() && reply.output_bindings.is_empty());
+            assert_eq!(rejected_reply(&intake).message, reply.message);
+        }
+    }
+    #[test]
+    fn discovery_list_preserves_real_supported_and_external_matches_only() {
+        let (mut intake, _) = fixture("MONZO BANK LIMITED", "company", 1);
+        intake.matches[0].apiosk[0].name = "Matched Register".into();
+        let mut external = intake.matches[0].apiosk[0].clone();
+        external.name = "External Directory".into();
+        external.origin = "coinbase".into();
+        external.availability = "discovery_only".into();
+        intake.matches[0].coinbase.push(external.clone());
+        intake.matches[0].coinbase.push(external);
+        let mut unrelated = intake.matches[0].clone();
+        unrelated.slug = "unrequested.data".into();
+        unrelated.apiosk[0].name = "Unrelated Source".into();
+        intake.matches.push(unrelated);
+        let before = serde_json::to_value(&intake.matches).unwrap();
+        assert_eq!(rejected_reply(&intake).message,
+            "Matching sources:\n- Matched Register\n- External Directory");
+        assert_eq!(serde_json::to_value(&intake.matches).unwrap(), before,
+            "source metadata and availability survive the text fallback");
     }
     #[test]
     fn platform_availability_is_metadata_but_tracking_remains_retrieval() {

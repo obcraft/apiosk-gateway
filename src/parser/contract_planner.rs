@@ -373,79 +373,8 @@ fn bind_inputs(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
     }
 }
 
-fn missing_reply(intake: &Intake, catalog: &Catalog) -> ChatReply {
-    if let Some(reply) = plan_coverage::uncovered_reply(intake) {
-        return reply;
-    }
-    let services: Vec<_> = catalog
-        .services
-        .iter()
-        .filter(|service| {
-            intake
-                .selected_capabilities
-                .contains(&service.contract.capability_slug)
-        })
-        .collect();
-    let bindings = source_grounding::compile(intake, catalog, &services);
-    let mut missing = Vec::new();
-    for (index, cap) in intake
-        .parsed_request
-        .capabilities
-        .iter()
-        .enumerate()
-        .filter(|(_, cap)| !plan_coverage::answer_instruction(cap))
-    {
-        for output in &cap.outputs {
-            if !services
-                .iter()
-                .filter(|service| {
-                    request_match(intake, index).is_some_and(|found| {
-                        found.apiosk.iter().any(|candidate| {
-                            candidate.capability.as_deref()
-                                == Some(service.contract.capability_slug.as_str())
-                                && candidate.source_slug.as_deref()
-                                    == Some(service.api_slug.as_str())
-                                && candidate.endpoint_id.as_deref()
-                                    == Some(service.endpoint_id.to_string().as_str())
-                        })
-                    })
-                })
-                .any(|service| plan_coverage::output_covered(output, service, catalog, false))
-                && !bindings
-                    .iter()
-                    .any(|binding| binding.requirement == index && &binding.output == output)
-                && !missing.contains(output)
-            {
-                missing.push(output.clone());
-            }
-        }
-    }
-    let mut details = missing
-        .iter()
-        .take(3)
-        .map(|name| name.replace('_', " "))
-        .collect::<Vec<_>>()
-        .join(", ");
-    if missing.len() > 3 {
-        details.push_str(&format!(" (+{})", missing.len() - 3));
-    }
-    ChatReply {
-        output_bindings: vec![],
-        message: if intake.parsed_request.language == "nl" {
-            if details.is_empty() {
-                "Ik kan met deze bronnen nog geen volledig plan maken. Controleer de bronkeuze en de opgegeven filters.".into()
-            } else {
-                format!("Voor deze gegevens ontbreekt een passende bron: {details}. Kies een andere bron of pas de gevraagde gegevens aan.")
-            }
-        } else if details.is_empty() {
-            "I can’t build a complete plan with these sources yet. Check the source selection and supplied filters.".into()
-        } else {
-            format!("I couldn’t match these details to the selected sources: {details}. Choose another source or adjust those details.")
-        },
-        discover: false,
-        intent: None,
-        decline_reason: None,
-    }
+fn missing_reply(intake: &Intake, _catalog: &Catalog) -> ChatReply {
+    plan_coverage::uncovered_reply(intake).unwrap_or_else(|| plan_coverage::rejected_reply(intake))
 }
 
 #[cfg(test)]

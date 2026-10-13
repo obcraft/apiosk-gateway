@@ -440,21 +440,32 @@ async fn researched_plan_refuses_undeclared_fields_without_a_quote_or_charge_and
     let (status,search)=intake.send(&person.bearer,"/v2/ask-v2/search",Some(json!({"origin":"apiosk","parsed_request":parsed}))).await;
     assert_eq!(status,StatusCode::OK,"{search}");
     let body=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed,"search_id":search["search_id"]});
-    let (status,refused)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    let (status,missing)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body.clone())).await;
+    assert_eq!(status,StatusCode::OK,"{missing}");
+    assert_eq!(missing["status"],"needs_input","a real missing ID must still be collected");
+    assert!(missing["proposal"].is_null());
+    let (_,recovered)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    assert_eq!(recovered,missing);
+    let supply=missing["next_actions"].as_array().unwrap().iter().find(|a|a["kind"]=="supply_input").unwrap();
+    let input=json!({"request_id":Uuid::new_v4(),"action_id":supply["action_id"],"state":missing["state"],
+        "idempotency_key":supply["action_id"],"input":{"value":"12345678"}});
+    let (status,refused)=intake.send(&person.bearer,"/v2/execute",Some(input.clone())).await;
     assert_eq!(status,StatusCode::OK,"{refused}");
-    assert_eq!(refused["status"],"needs_input","{refused}");
+    assert_eq!(refused["status"],"unsupported","{refused}");
     assert!(refused["proposal"].is_null());
     let task=refused["state"]["state_ref"].as_str().unwrap().parse::<Uuid>().unwrap();
     let document:Value=sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
-    assert_eq!(document["actions"][0]["kind"],"planning_clarification");
+    assert_eq!(document["actions"][0]["kind"],"unsupported_reason");
     assert!(document["actions"][0]["missing_output_contracts"].to_string().contains("publication_dates"));
     let reply=document["conversation"].as_array().unwrap().last().unwrap()["reply"].as_str().unwrap();
-    assert!(reply.contains("publication dates") && !reply.contains("publication_dates"));
+    assert!(reply.starts_with("Gevonden bronnen:"), "{reply}");
+    assert!(!reply.contains("publication_dates"));
     assert!(!reply.contains("toon eerst de prijs"));
-    let (_,recovered)=intake.send(&person.bearer,"/v2/ask-v2/research",Some(body)).await;
+    let (_,recovered)=intake.send(&person.bearer,"/v2/execute",Some(input)).await;
     assert_eq!(recovered,refused);
     let (_,read)=intake.send(&person.bearer,&format!("/v2/tasks/{task}"),None).await;
     assert!(read["proposal"].is_null());
+    assert_eq!(read["status"],"unsupported");
     assert_eq!(intake.model.chats().len(),1,"recovery neither replans nor rewrites the factual refusal");
     assert_no_purchase(&intake,&person,task).await;
 }

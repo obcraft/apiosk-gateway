@@ -100,6 +100,8 @@ impl Engine {
                 task.intent = Some(serde_json::to_value(&intent)?);
                 self.plan(&mut task, catalog, &intent)?
             } else { Status::NeedsInput }
+        } else if planning_message::is_terminal_discovery(&task, &reply.message) {
+            planning_message::finish_without_plan(&mut task, json!({}))
         } else { Status::NeedsInput };
         guest_view(&self.signer, question, &task, status)
     }

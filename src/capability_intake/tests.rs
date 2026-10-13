@@ -466,7 +466,7 @@ fn assert_account_draft_needs_id(
 }
 
 #[tokio::test]
-async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_outage_or_rewrite() {
+async fn repeated_duplicate_planning_returns_matching_sources_without_an_outage_or_rewrite() {
     let mut bad = planned();
     let goal = bad["intent"]["goals"][0].clone();
     bad["intent"]["goals"].as_array_mut().unwrap().push(goal);
@@ -485,8 +485,10 @@ async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_out
     let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none());
     assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
-    assert!(reply.message.contains("Company financial statements")
-        && reply.message.contains("Company registration status"),"{}",reply.message);
+    assert!(reply.message.starts_with("Gevonden bronnen:\n- "), "{}", reply.message);
+    assert!(reply.message.contains(&intake.matches[0].apiosk[0].name)
+        && reply.message.contains(&intake.matches[0].coinbase[0].name), "{}", reply.message);
+    assert_eq!(intake.parsed_request.capabilities.len(), 2, "source fallback preserves the full request");
     assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
     assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
     assert!(mock.queue.lock().unwrap().is_empty(),"one semantic attempt and one bounded repair; rejected duplicate goals never become a quote");
@@ -641,7 +643,8 @@ async fn external_only_match_cannot_become_an_apiosk_quote() {
     assert!(!intake.matches[0].coinbase.is_empty());
     let reply=parser.chat_from_capabilities(QUESTION, None, &task, &c, &intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none(), "external discovery cannot become an Apiosk quote");
-    assert!(reply.message.contains("aanvullende diensten gevonden") || reply.message.contains("Additional services were found"));
+    assert!(reply.message.starts_with("Gevonden bronnen:\n- ") || reply.message.starts_with("Matching sources:\n- "));
+    assert!(reply.message.contains(&intake.matches[0].coinbase[0].name));
     server.abort();
 }
 
