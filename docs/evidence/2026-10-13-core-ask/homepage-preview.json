@@ -1,0 +1,92 @@
+{
+  "checked_at": "2026-10-13T19:03:45.837Z",
+  "endpoint": "https://apiosk-gateway-v2.fly.dev/v2/ask-v2/guest/preview",
+  "results": [
+    {
+      "question": "Check whether the company name Coolblue appears on sanctions lists.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "23000",
+      "sources": [
+        {
+          "name": "Sirenic",
+          "source_slug": "sirenic",
+          "endpoint_id": "671184a2-54ab-5692-bc91-d2710b220028"
+        }
+      ],
+      "message": "I\u2019ll prepare a name-based check for Coolblue against Sirenic\u2019s loaded sanctions lists. Inputs are checked before the total price is shown for approval. Any results will be treated as potential name matches, not confirmed company identity."
+    },
+    {
+      "question": "Validate VAT number NL815839091B01.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "97826",
+      "sources": [
+        {
+          "name": "VIES EU VAT Validation",
+          "source_slug": "vies",
+          "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9"
+        }
+      ],
+      "message": "I\u2019ll prepare the source requests. Once all inputs are complete, you\u2019ll get one total price to approve."
+    },
+    {
+      "question": "Compare employee ratings of Starbucks and McDonald\u2019s as employers.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "6900",
+      "sources": [
+        {
+          "name": "OpenWeb Ninja",
+          "source_slug": "openwebninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        },
+        {
+          "name": "OpenWeb Ninja",
+          "source_slug": "openwebninja",
+          "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077"
+        }
+      ],
+      "message": "I\u2019ll prepare the source requests. Once all inputs are complete, you\u2019ll get one total price to approve."
+    },
+    {
+      "question": "Validate VAT number NL815839091B01 and check whether the company name Mollie B.V. appears on sanctions lists.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "120826",
+      "sources": [
+        {
+          "name": "VIES EU VAT Validation",
+          "source_slug": "vies",
+          "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9"
+        },
+        {
+          "name": "Sirenic",
+          "source_slug": "sirenic",
+          "endpoint_id": "671184a2-54ab-5692-bc91-d2710b220028"
+        }
+      ],
+      "message": "I\u2019ll prepare VAT validation through VIES and a sanctions-name check for Mollie B.V. Inputs are checked before the total price is shown for approval; sanctions results will be reported as potential matches, not a definitive legal verdict."
+    },
+    {
+      "question": "Use Overheid.io to look up the vehicle registered with Dutch plate RZ874R.",
+      "ready": true,
+      "http_status": 200,
+      "status": "ready",
+      "total_atomic": "86250",
+      "sources": [
+        {
+          "name": "Overheid.io Public Data",
+          "source_slug": "overheid-io",
+          "endpoint_id": "4265429e-0332-4397-a6a7-17147b6c9aa0"
+        }
+      ],
+      "message": "I\u2019ll prepare an Overheid.io vehicle lookup for Dutch plate RZ874R. The plate input will be checked before the total price is shown for your approval."
+    }
+  ],
+  "verification_scope": "Planning-only previews against the existing deployment. No source execution; not proof of deployment of this patch."
+}

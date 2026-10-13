@@ -22,7 +22,6 @@ use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
 pub(crate) mod ask_v2;
-mod ask_runs;
 mod ask_v2_external;
 mod ask_v2_guest;
 mod integrations;
@@ -99,15 +98,11 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/discover", post(discover))
         .route("/v2/link-preview", post(link_preview::preview).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/chat", any(ask_moved))
+        // Removed experimental page: old clients must never reach the executor.
+        .route("/v2/ask-v2/intent", any(ask_moved))
+        .route("/v2/ask-v2/runs", any(ask_moved))
+        .route("/v2/ask-v2/runs/*rest", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
-        .route("/v2/ask-v2/intent", post(ask_v2::intent).layer(DefaultBodyLimit::max(128 * 1024)))
-        .route("/v2/ask-v2/runs", post(ask_runs::start).layer(DefaultBodyLimit::max(128 * 1024)))
-        .route("/v2/ask-v2/runs/:id", get(ask_runs::get))
-        .route("/v2/ask-v2/runs/:id/events", get(ask_runs::events))
-        .route("/v2/ask-v2/runs/:id/approve", post(ask_runs::approve))
-        .route("/v2/ask-v2/runs/:id/cancel", post(ask_runs::cancel))
-        .route("/v2/ask-v2/runs/:id/clarify", post(ask_runs::clarify))
-        .route("/v2/ask-v2/runs/:id/replan", post(ask_runs::replan))
         .route("/v2/ask-v2/news", post(news::search).layer(DefaultBodyLimit::max(8 * 1024)))
         .route("/v2/ask-v2/guest/preview", post(ask_v2_guest::preview).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/guest/approve", post(ask_v2_guest::approve).layer(DefaultBodyLimit::max(256 * 1024)))
@@ -951,6 +946,11 @@ mod tests {
         for (method, path) in [
             (Method::POST, "/v2/chat".to_owned()),
             (Method::GET, "/v2/chat".to_owned()),
+            (Method::POST, "/v2/ask-v2/intent".to_owned()),
+            (Method::POST, "/v2/ask-v2/runs".to_owned()),
+            (Method::GET, format!("/v2/ask-v2/runs/{request}")),
+            (Method::POST, format!("/v2/ask-v2/runs/{request}/approve")),
+            (Method::GET, format!("/v2/ask-v2/runs/{request}/events")),
             (Method::GET, format!("/v2/requests/{request}")),
             (Method::POST, "/v2/documents".to_owned()),
             (Method::POST, format!("/v2/documents/{request}/read")),

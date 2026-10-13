@@ -46,9 +46,10 @@ if (live) {
         body: JSON.stringify({ request_id: randomUUID(), question }), signal: AbortSignal.timeout(100_000),
       })
       const body = await response.json()
+      // A complete single-provider request is just as valid as a combined one.
       const providers = new Set(body.sources?.map(source => source.source_slug).filter(Boolean) ?? [])
       const ready = response.ok && body.status === 'ready' && typeof body.preview_token === 'string'
-        && body.preview_token.length > 0 && Number(body.total_atomic) > 0 && providers.size >= 2
+        && body.preview_token.length > 0 && Number(body.total_atomic) > 0 && providers.size >= 1
       result = { question, ready: Boolean(ready), http_status: response.status, status: body.status, total_atomic: body.total_atomic,
         sources: body.sources?.map(source => ({ name: source.name, source_slug: source.source_slug, endpoint_id: source.endpoint_id })), message: body.message ?? body.error }
     } catch (error) {

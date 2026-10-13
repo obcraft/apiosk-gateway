@@ -897,11 +897,6 @@ const OPERATION_WEIGHT: f64 = 0.25;
 
 fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
     let exact = !wanted.capabilities.is_disjoint(&candidate.capabilities);
-    // Explicit concepts keep otherwise overlapping descriptions apart: annual
-    // accounts are not bank accounts, and officers are not PSC records.
-    if wanted.facets != 0 && wanted.facets & candidate.facets == 0 {
-        return 0.0;
-    }
     let overlap: Vec<_> = wanted.tokens.intersection(&candidate.tokens).collect();
     if overlap.is_empty() {
         // Generic reviewed contracts such as company.search can consist
@@ -1076,6 +1071,12 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 }
                 // Documented endpoint-local output evidence must survive the
                 // bounded shortlist ahead of incidental listing prose.
+                // Preserve synonym scope unless this reviewed operation
+                // supplies another explicitly named output of a grouped ask.
+                if wanted.facets != 0 && wanted.facets & candidate.facets == 0
+                    && !floor.complementary_output(candidate) {
+                    continue;
+                }
                 let score = score(&wanted, candidate, &index)
                     + if floor.output_matches(candidate) { 10.0 } else { 0.0 };
                 if score <= 0.0 || !floor.passes(&wanted, candidate, &index, restricted.is_some()) {
@@ -2056,6 +2057,32 @@ mod tests {
             found[0].operations,
             BTreeSet::from(["company.accounts".into()])
         );
+    }
+
+    #[test]
+    fn grouped_vat_and_sanctions_keep_sources_for_both_requested_checks() {
+        let snapshot = serde_json::from_str(include_str!("../../tests/fixtures/homepage-starters/catalog.json")).unwrap();
+        let catalog = Catalog::build(snapshot);
+        let mut request = parsed(vec![serde_json::json!({
+            "slug":"company.validation.vatAndSanctions", "name":"VAT and sanctions validation",
+            "description":"Validate the supplied VAT number and verify if the company appears on sanctions lists."
+        })]);
+        request.capabilities[0].outputs = vec!["vat_valid".into(), "sanctions_check".into()];
+        let found = search(&request, &catalog);
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.source_slug.as_deref() == Some("vies")),
+            "a grouped requirement must retain VAT validation: {:?}", found[0].operations);
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.source_slug.as_deref() == Some("opensanctions")),
+            "a grouped requirement must retain sanctions screening: {:?}", found[0].operations);
+
+        // Supplying a VAT number as context does not request VAT validation.
+        request.capabilities[0].slug = "company.sanctions".into();
+        request.capabilities[0].name = "Company sanctions screening".into();
+        request.capabilities[0].description = "Screen the company identified by its VAT number against sanctions lists.".into();
+        request.capabilities[0].inputs = vec!["vat_number".into()];
+        request.capabilities[0].outputs = vec!["sanctions_check".into()];
+        let found = search(&request, &catalog);
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() != Some("vies")),
+            "context alone must not add an unrequested check");
     }
 
     #[test]

@@ -365,7 +365,13 @@ impl Engine {
         let mut workflow = forced.as_ref().and_then(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
         let started = std::time::Instant::now();
-        anyhow::ensure!(limits::question_ok(&req.question), "invalid question length");
+        // The main Ask parser and signed research request accept 16,000 UTF-16
+        // units. Do not reject that already-validated extraction at the older
+        // public discovery limit after the user has waited for source search.
+        let valid_question = if has_displayed_search {
+            !req.question.trim().is_empty() && req.question.encode_utf16().count() <= 16_000
+        } else { limits::question_ok(&req.question) };
+        anyhow::ensure!(valid_question, "invalid question length");
         let catalog = match &displayed_search { Some((_, catalog,_)) => catalog.clone(), None => self.catalog.get().await? };
         // A selection is checked before any task exists: a refusal creates nothing.
         let selection = req.context_delta.selection.as_ref()

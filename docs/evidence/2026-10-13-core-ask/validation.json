@@ -1,0 +1,101 @@
+{
+  "checked_at": "2026-10-13T19:21:04.612176+00:00",
+  "scope": "Remove the separate Ask V2 experiment and improve the main Ask page",
+  "deployment": "Local code and browser verification only; no production deployment or paid purchase",
+  "removed": {
+    "app_page": "/ask-v2",
+    "browser_result": "404 Page not found",
+    "gateway_routes": {
+      "/v2/ask-v2/intent": 410,
+      "/v2/ask-v2/runs": 410
+    },
+    "shared_main_ask_components_and_api": "retained",
+    "historical_migrations_and_live_data": "retained"
+  },
+  "changes": [
+    "Source-covered homepage examples",
+    "Consistent 16000 UTF-16 unit limit from composer through research",
+    "Concise unsupported-coverage guidance",
+    "Grouped VAT and sanctions discovery retains both requested operations without treating supplied VAT context as a separate requested check"
+  ],
+  "checks": {
+    "app": {
+      "test_files": 281,
+      "passed": 3238,
+      "failed": 0,
+      "production_build": "passed"
+    },
+    "gateway": {
+      "command": "cargo test --offline --workspace -- --test-threads=1",
+      "passed": 1297,
+      "failed": 0,
+      "ignored": 116,
+      "parallel_run_note": "One tracing capture test failed in the parallel run; serial rerun passed."
+    },
+    "source_relevance": {
+      "passed": 104,
+      "failed": 0,
+      "ignored": 1
+    },
+    "local_launcher": {
+      "passed": 4,
+      "failed": 0
+    },
+    "main_ask_integration": {
+      "passed": 2,
+      "failed": 0,
+      "assertions": [
+        "Long accepted question preserved without reparsing or purchase",
+        "Single quote",
+        "No purchase before approval",
+        "Undersized cap rejected",
+        "Server worker completes answer",
+        "One charge",
+        "Saved source provenance and response",
+        "Reload and repeated approval do not repurchase"
+      ]
+    },
+    "opt_in_intake_suite": {
+      "command": "node scripts/test-intake-flow.mjs",
+      "passed": 14,
+      "failed": 18,
+      "failing_scenarios": [
+        "a_declined_question_is_answered_by_the_conversation_model_or_keeps_the_planner_reply",
+        "ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task",
+        "ask_v2_research_discovery_finds_real_pulse_listings_without_contracts",
+        "ask_v2_research_keeps_signed_bazaar_matches_in_the_plan_and_saved_task",
+        "ask_v2_research_preserves_displayed_parse_quotes_once_and_never_extracts_again",
+        "capability_object_precedes_discovery_and_survives_recovery_without_purchase",
+        "clarification_continues_the_saved_question_without_losing_its_subject",
+        "discover_looks_up_a_named_company_instead_of_asking_for_its_number",
+        "edited_workflow_starter_recovers_only_its_original_workflow",
+        "intake_counts_characters_not_bytes",
+        "intake_failures_save_scoped_recovery_and_replay_without_model_calls",
+        "planner_outage_clears_old_price_and_resume_creates_a_new_quote",
+        "planning_recovery_reuses_discovery_and_requires_a_fresh_explicit_approval",
+        "recovery_reparses_changed_questions_and_selections",
+        "requote_refuses_a_valid_or_mismatched_quote",
+        "retrying_an_identical_question_preserves_the_prior_clarification_turn",
+        "selection_restricts_and_binds_without_rewriting_the_question",
+        "workflow_recovery_preserves_collected_input_across_model_outages"
+      ],
+      "note": "These older scenarios remain unresolved. The focused main Ask integration cases pass; this is not an all-integration-tests-green claim."
+    },
+    "browser": {
+      "origin": "http://localhost:5276",
+      "gateway": "http://127.0.0.1:8082",
+      "verified": [
+        "Ask is the only Ask navigation entry",
+        "Removed V2 route returns the not-found page",
+        "Combined example creates a two-source plan with VIES and Sirenic logos",
+        "One maximum total and one approval button",
+        "Vehicle example preserves RZ874R and produces a plan"
+      ],
+      "purchases": "Disabled locally; no live purchase performed",
+      "screenshots": [
+        "../../../../app/docs/core-ask-evidence/homepage.jpg",
+        "../../../../app/docs/core-ask-evidence/combined-plan.jpg"
+      ]
+    }
+  }
+}

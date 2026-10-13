@@ -116,6 +116,12 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
   // The API.market metadata import has its own full provider-identity fixture.
   &&!/_((stage_company_reputation_sources)|(activate_company_reputation_sources)|(clarify_glassdoor_company_name_input)|(declare_company_reputation_response_fields)|(bind_company_reputation_typed_results))\.sql$/.test(name)
+  // Dutch-source onboarding has its own catalog/migration tests and requires
+  // production-owned providers; it is not a task-storage prerequisite.
+  &&!/_(onboard_nl_benefits_sources|onboard_nl_benefits_runtime|brand_nl_benefits_sources)\.sql$/.test(name)
+  // The experimental Ask run engine has been removed; keep its SQL history
+  // out of the current Ask fixture without dropping any existing live data.
+  &&!name.endsWith('_ask_v2_runs.sql')
   &&!name.endsWith('_allow_ask_analysis_compute.sql')
   &&!name.endsWith('_expand_ask_analysis_model_prices.sql')
   &&!name.endsWith('_declare_yelp_location_record_scope.sql')

@@ -453,6 +453,17 @@ impl Request {
             })
     }
 
+    /// A grouped request can name an additional operation with no synonym
+    /// facet of its own (VAT validation alongside sanctions screening).
+    /// Require the same specific term in the request identity, requested
+    /// output and reviewed operation identity; context prose is insufficient.
+    pub(super) fn complementary_output(&self, candidate: &Document) -> bool {
+        self.outputs.iter().any(|word| self.key.contains(word)
+            && candidate.contract.contains(word)
+            && !FACET_WORDS.contains(&word.as_str())
+            && !super::output_metadata::record_word(word))
+    }
+
     /// A shared word such as "profile" does not make an organisation's
     /// lobbying report or a board-game guide a profile of an individual.
     /// Read the operation's own scope, not input names or provider-wide copy.

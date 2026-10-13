@@ -42,7 +42,6 @@ test('local overrides reconnect App and MCP without giving them Gateway secrets'
     assert.equal(c.mcp.APIOSK_GATEWAY_URL, 'https://project.example/functions/v1/agent-gateway');
     assert.equal(c.gateway.V2_EXECUTION_ENABLED, '0');
     assert.equal(c.gateway.WORKSPACE_CONTEXT_ENABLED, 'true');
-    assert.equal(c.gateway.ASK_INTENT_DRAFT_PATH, path.join(dir, 'gateway/.local/ask-intent-capabilities.json'));
     assert.equal(c.gateway.OPENROUTER_API_KEY, 'server-only-model-key');
     for (const env of [c.app, c.mcp]) {
       assert.equal(env.TREASURY_PRIVATE_KEY, undefined);

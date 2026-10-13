@@ -2,22 +2,13 @@
 //! public API. This client never plans or executes a data-source request.
 
 pub mod search;
-pub mod intent;
-pub mod intent_catalog;
-pub mod intent_fields;
+pub(crate) mod output_schema;
 pub(crate) mod source_options;
 pub mod external;
 pub mod purchase;
 pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
-// Ask V2 runs (contracts/ask-v2-run.md). Phase 2 modules are registered here
-// once so their owners never edit this file concurrently.
-pub mod run_contract;
-pub mod planner;
-pub mod evidence;
-pub mod synthesis;
-pub mod run;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 
@@ -30,7 +21,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-/// Ask v1's canonical question parser; Ask v2 runs use `intent::MODEL`.
+/// Canonical question parser for the main Ask page and public API.
 pub const DEFAULT_MODEL: &str = "openai/gpt-oss-120b";
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");

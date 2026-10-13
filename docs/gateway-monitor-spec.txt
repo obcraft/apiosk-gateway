@@ -340,12 +340,12 @@ are not a claim about the currently deployed production version:
     source cost counters, plus optional persisted request-cost summaries.
     Persistence is conditional; these summaries are not a durable event stream.
 
-  src/ask_v2/run_contract.rs, src/ask_v2/run.rs, src/server/ask_runs.rs
-    Existing run stages, approval/charge contracts and run event endpoints.
-    Reuse them where applicable; adapt the older task flow without claiming
-    all routes already emit identical detailed planner events.
+  src/engine.rs and src/server.rs
+    The main Ask task flow owns quotes, approvals, execution and saved results.
+    The separate intent/run experiment was retired; extend task events without
+    claiming all routes already emit identical detailed planner events.
 
-  src/ask_v2/mod.rs, src/ask_v2/intent.rs and src/parser.rs
+  src/ask_v2/mod.rs and src/parser.rs
     Separate model clients and pinned model paths exist. Some environment
     overrides are explicitly ignored. Runtime model switching therefore needs
     a shared versioned resolver and changes to those call sites, not just a UI.

@@ -977,7 +977,7 @@ fn output_shape_matches(output:&str,schema:&Value)->bool {
     if kinds.len()!=1 || !matches!(kinds[0],"object"|"array") {return false;}
     let mut concrete=schema.clone();
     concrete["type"]=json!(kinds[0]);
-    crate::ask_v2::intent_fields::documented(&concrete)
+    crate::ask_v2::output_schema::documented(&concrete)
 }
 
 /// Schema properties support retrieving a field even if an individual row

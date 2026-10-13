@@ -1,7 +1,7 @@
 //! Endpoint-local discovery evidence from admitted output schemas. A source's
 //! marketing, request inputs and raw sample values are never output metadata.
 use crate::{
-    ask_v2::intent_fields::documented,
+    ask_v2::output_schema::documented,
     catalog::{Catalog, Service},
     parser::plan_coverage::output_aliases,
 };
