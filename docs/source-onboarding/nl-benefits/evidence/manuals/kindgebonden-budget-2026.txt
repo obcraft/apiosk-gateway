@@ -1,0 +1,397 @@
+Berekening
+kindgebonden budget
+2026
+     Kindgebonden budget is een bijdrage in de kosten voor kinderen tot 18 jaar. Uw klant krijgt het
+     kindgebonden budget naast de kinderbijslag. Of en hoeveel kindgebonden budget uw klant krijgt,
+     hangt onder andere af van:
+     • het aantal kinderen
+     • de leeftijd van de kinderen
+     • of uw klant een alleenstaande ouder is
+     • het (gezamenlijke) toetsingsinkomen
+     • het (gezamenlijke) vermogen
+     • het woonland van de kinderen
+
+
+
+
+     Vermogen mag niet te hoog zijn
+     Heeft uw klant of zijn eventuele partner vermogen, zoals spaargeld en beleggingen? Als het (gezamenlijke)
+     vermogen op 1 januari 2026 hoger is dan de vrijstellingsgrens, heeft uw klant het hele jaar geen recht op
+     kindgebonden budget.
+
+     In de tabel staat hoeveel vermogen uw klant maximaal mag hebben op 1 januari 2026.
+     Buitenlands vermogen telt ook mee.
+
+     Situatie                                                         Maximaal vermogen
+     Alleenstaande                                                    € 146.011
+     Aanvrager met toeslagpartner                                     € 184.633
+
+
+
+        Let op!
+        Heeft uw klant voor de inkomstenbelasting een vrijstelling voor groene beleggingen? Voor het
+         kindgebonden budget geldt deze vrijstelling niet. Tel groene beleggingen dus mee als vermogen.
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                                         2
+     Berekening
+     U berekent het kindgebonden budget van uw klant in 5 stappen.
+
+     Stap 1: bepaal het maximale toeslagbedrag
+     Het maximale toeslagbedrag hangt af van het aantal kinderen dat uw klant heeft en of hij een
+     toeslagpartner heeft. Kijk in de tabel welk bedrag voor uw klant geldt.
+
+     Maximaal jaar bedrag kindgebonden budget
+     Aantal kinderen                   Alleenstaande ouder           Ouder met toeslagpartner
+     1 kind                            € 5.996                       € 2.580
+     2 kinderen                        € 8.576                       € 5.160
+     Verhoging vanaf 3e kind           € 2.580                       € 2.580
+
+
+
+     Stap 2: verhoog het maximale toeslagbedrag
+     Is een kind 12 jaar of ouder? Verhoog dan het maximale toeslagbedrag met:
+     • € 724 voor elk kind van 12 t/m 15 jaar
+     • € 964 voor elk kind van 16 en 17 jaar
+
+     Deze verhoging is een tegemoetkoming in de onderwijsbijdrage en schoolkosten.
+
+     Stap 3: bereken het gezamenlijke toetsingsinkomen
+     Houd rekening met binnenlands en buitenlands inkomen.
+
+
+     Toetsingsinkomen aanvrager            €			
+     Toetsingsinkomen toeslagpartner       €		+
+     Gezamenlijk toetsingsinkomen          €			
+
+
+     Stap 4: verminder het maximale toeslagbedrag
+     Is uw klant een alleenstaande ouder? Bij een toetsingsinkomen tot en met € 29.736 ontvangt uw klant
+     de maximale toeslag.
+     Is het toetsingsinkomen meer dan € 29.736? Dan moet u de vermindering van het maximale toeslagbedrag
+     berekenen: 7,6% x (het toetsingsinkomen ­- € 29.736) = vermindering.
+
+     Heeft uw klant een toeslagpartner? Bij een toetsingsinkomen tot en met € 39.141 ontvangt uw klant
+     de maximale toeslag.
+     Is het toetsingsinkomen meer dan € 39.141? Dan moet u de vermindering van het maximale toeslagbedrag
+     berekenen: 7,6% x (het toetsingsinkomen ­- € 39.141) = vermindering.
+
+     Stap 5: bereken het kindgebonden budget
+     Maximaal toeslagbedrag (stap 1) + verhoging (stap 2) - vermindering (stap 4) = het kindgebonden budget
+     van uw klant
+
+        Let op!
+        Woont het kind buiten de Europese Unie (EU), Europese Economische Ruimte (EER) of in Zwitserland en
+        heeft de ouder recht op kinderbijslag voor dit kind? Dan past de SVB de woonlandfactor toe. Ook het
+        kindgebonden budget wordt aangepast aan het kostenniveau van het land waarin het kind van uw klant
+        woont. In de Tabel woonlandfactor kindgebonden budget 2026 staat per land hoeveel procent van het
+        maximale bedrag uw klant kan krijgen.
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                                      3
+     Woonlandfactor kindgebonden budget 2026                Woonlandfactor kindgebonden budget 2026
+     Woonland                              Woonlandfactor   Woonland                   Woonlandfactor
+     Afghanistan                                     30%    Eritrea                              50%
+     Albanië                                         50%    Estland                             100%
+     Algerije                                        40%    Ethiopië                             60%
+     Andorra                                         80%    Fiji                                 50%
+     Angola                                          40%    Filipijnen                           50%
+     Antigua en Barbuda                              90%    Finland                             100%
+     Argentinië                                      60%    Frankrijk                           100%
+     Armenië                                         50%    Gabon                                50%
+     Aruba                                          100%    Gambia                               40%
+     Australië                                      100%    Georgië                              40%
+     Azerbeidzjan                                    40%    Ghana                                40%
+     Bahama’s                                       100%    Grenada                              80%
+     Bahrein                                         60%    Griekenland                         100%
+     Bangladesh                                      40%    Guatemala                            60%
+     Barbados                                       100%    Guinee                               50%
+     Belarus                                         40%    Guinee-Bissau                        50%
+     België                                         100%    Guyana                               50%
+     Belize                                          70%    Haïti                                70%
+     Benin                                           50%    Honduras                             60%
+     Bhutan                                          50%    Hongkong                             90%
+     Burundi                                         30%    Hongarije                           100%
+     Bolivia                                         50%    Ierland                             100%
+     Bonaire                                         70%    IJsland                             100%
+     Bosnië-Herzegovina                             100%    India                                30%
+     Botswana                                        50%    Indonesië                           100%
+     Brazilië                                        60%    Irak                                 50%
+     Brunei                                          50%    Iran                                 40%
+     Bulgarije                                      100%    Israël                              100%
+     Burkina Faso                                    40%    Italië                              100%
+     Cambodja                                        40%    Ivoorkust                            50%
+     Canada                                         100%    Jamaica                              80%
+     Centraal-Afrikaanse Republiek                   50%    Japan                                90%
+     Chili                                           70%    Jemen                                50%
+     China                                           70%    Jordanië                             60%
+     Colombia                                        50%    Kaapverdië                           60%
+     Comoren                                         50%    Kameroen                             40%
+     Democratische Republiek Congo                   50%    Qatar                                80%
+     Congo                                           50%    Kazachstan                           50%
+     Costa Rica                                      80%    Kenya                                40%
+     Cuba                                            70%    Kirgizië                             40%
+     Curaçao                                         90%    Kiribati                             80%
+     Cyprus                                         100%    Koeweit                              80%
+     Denemarken                                     100%    Kosovo                               50%
+     Djibouti                                        70%    Kroatië                             100%
+     Dominica                                        70%    Laos                                 30%
+     Dominicaanse Republiek                          60%    Lesotho                              40%
+     Bondsrepubliek Duitsland                       100%    Letland                             100%
+     Ecuador                                         50%    Libanon                              60%
+     Egypte                                          30%    Liberia                              60%
+     El Salvador                                     60%    Libië                                60%
+     Equatoriaal-Guinea                              50%    Liechtenstein                       100%
+
+
+		   Berekening kindgebonden budget 2026                                                              4
+     Woonlandfactor kindgebonden budget 2026                Woonlandfactor kindgebonden budget 2026
+     Woonland                              Woonlandfactor   Woonland                          Woonlandfactor
+     Litouwen                                       100%    Senegal                                     50%
+     Luxemburg                                      100%    Servië                                     100%
+     Macau                                           80%    Seychellen                                  70%
+     Madagaskar                                      40%    Sierra Leone                                30%
+     Malawi                                          40%    Singapore                                   80%
+     Maldiven                                        70%    Slovenië                                   100%
+     Maleisië                                        40%    Slowakije                                  100%
+     Mali                                            40%    Soedan                                     100%
+     Malta                                          100%    Salomoneilanden                             90%
+     Marokko                                          0%    Somalia                                     50%
+     Marshalleilanden                               100%    Spanje                                     100%
+     Mauritanië                                      40%    Sri Lanka                                   40%
+     Mauritius                                       50%    Sint Eustatius                              70%
+     Mexico                                          70%    Sint Maarten                               100%
+     Micronesia                                     100%    Saint Kitts en Nevis                       100%
+     Moldavië                                        50%    Saint Lucia                                100%
+     Monaco                                         100%    Saint Vincent en de Grenadines              70%
+     Mongolië                                        40%    Suriname                                     0%
+     Montenegro                                     100%    Swaziland                                   40%
+     Mozambique                                      50%    Syrië                                       50%
+     Myanmar                                         30%    Tadzjikistan                                30%
+     Namibië                                         50%    Taiwan                                      80%
+     Nauru                                          100%    Tanzania                                    40%
+     Nederland                                      100%    Thailand                                    40%
+     Nepal                                           40%    Timor Leste                                 40%
+     Nicaragua                                       40%    Togo                                        40%
+     Nieuw-Zeeland                                  100%    Tonga                                       60%
+     Niger                                           50%    Trinidad en Tobago                          70%
+     Nigeria                                         40%    Tsjaad                                      50%
+     Noorwegen                                      100%    Tsjechië                                   100%
+     Uganda                                          40%    Tunesië                                    100%
+     Oekraïne                                        40%    Turkije                                     40%
+     Oezbekistan                                     40%    Turkmenistan                                60%
+     Oman                                            70%    Tuvalu                                     100%
+     Oostenrijk                                     100%    Uruguay                                     90%
+     Pakistan                                        30%    Vanuatu                                    100%
+     Palau                                          100%    Venezuela                                   60%
+     Panama                                          60%    Groot-Brittannië                           100%
+     Papoea-Nieuw-Guinea                             80%    Verenigde Arabische Emiraten                80%
+     Paraguay                                        50%    Verenigde Staten van Amerika               100%
+     Peru                                            60%    Vietnam                                     40%
+     Polen                                          100%    Westelijke Jordaanoever en Gaza             70%
+     Portugal                                       100%    Gazastrook en Westelijke                    70%
+     Republiek Noord-Macedonië                       50%    Jordaanoever, met inbegrip van
+                                                            Oost‑Jeruzalem
+     Roemenië                                       100%
+                                                            Zambia                                      40%
+     Rusland                                         40%
+                                                            Zimbabwe                                    70%
+     Rwanda                                          40%
+                                                            Zuid-Afrika                                100%
+     Saba                                            70%
+                                                            Zuid-Soedan                                 50%
+     Samoa                                           80%
+                                                            Zuid-Korea                                 100%
+     São Tomé en Principe                            60%
+                                                            Zweden                                     100%
+     Saoedi-Arabië                                   70%
+                                                            Zwitserland                                100%
+
+		   Berekening kindgebonden budget 2026                                                                   5
+     Rekenvoorbeelden
+     Rekenvoorbeeld 1
+     Richard en Kevin werken allebei. Het jaarinkomen van Richard is € 25.000, het jaarinkomen van Kevin
+     is € 20.000. Ze hebben 2 kinderen van 4 en 8 jaar. Hoeveel kindgebonden budget kunnen ze krijgen?
+
+     Stap 1
+     Ze hebben 2 kinderen. Het maximale toeslagbedrag is dan € 5.160.
+
+     Stap 2
+     De kinderen zijn jonger dan 12 jaar. Het maximale toeslagbedrag wordt dus niet verhoogd.
+
+     Stap 3
+     Het gezamenlijke toetsingsinkomen is € 45.000.
+
+     Toetsingsinkomen aanvrager            €     20.000		
+     Toetsingsinkomen toeslagpartner       €     25.000 +
+     Gezamenlijk toetsingsinkomen          €     45.000		
+
+
+     Stap 4
+     Het maximale toeslagbedrag wordt verminderd met € 445,28.
+
+
+     Gezamenlijk toetsingsinkomen          €     45.000		
+     Grensinkomen                          €     39.141 -/-
+     Subtotaal                             €      5.859		
+     Vermindering: € 5.859 x 7,6%          €     445,28		
+
+
+
+     Stap 5
+     Het kindgebonden budget is € 392 per maand.
+
+
+     Maximaal toeslagbedrag                € 5.160,00		
+     Vermindering                          € 	   445,28 -/-
+     Totaal kindgebonden budget per jaar   € 4.714,72		
+     Bedrag per maand                      €     392,89		
+                                           (na afronding € 392)
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                                   6
+     Rekenvoorbeeld 2
+     Tim en Vera werken allebei. Zijn jaarinkomen is € 16.000, haar jaarinkomen is € 29.000.
+     Ze hebben 2 kinderen. Het oudste kind is 16 jaar, de jongste is 13 jaar. Hoeveel kindgebonden
+     budget kunnen ze krijgen?
+
+     Stap 1
+     Ze hebben 2 kinderen. Het maximale toeslagbedrag is dan € 5.160.
+
+     Stap 2
+     De kinderen zijn ouder dan 12 jaar. Het maximale toeslagbedrag wordt verhoogd met € 1.688.
+
+
+     Verhoging voor kind van 13 jaar       €        724		
+     Verhoging voor kind van 16 jaar       €        964 +
+                                           €      1.688		
+
+
+     Stap 3
+     Het gezamenlijke toetsingsinkomen is € 45.000.
+
+
+     Toetsingsinkomen aanvrager            €     29.000		
+     Toetsingsinkomen toeslagpartner       €     16.000 +
+     Gezamenlijk toetsingsinkomen          €     45.000		
+
+
+     Stap 4
+     Het maximale toeslagbedrag wordt verminderd met € 445,28.
+
+
+     Gezamenlijk toetsingsinkomen          €     45.000		
+     Grensinkomen                          €     39.141 - /-
+     Subtotaal                             €      5.859		
+     Vermindering: € 5.859 x 7,6%          €     445,28		
+
+
+     Stap 5
+     Het kindgebonden budget is € 510 per maand.
+
+
+     Maximaal toeslagbedrag                € 5.160,00		
+     Verhoging                             € 1.688,00 +
+     Vermindering                          €     445,28 - /-
+     Totaal kindgebonden budget per jaar   € 6.402,72		
+     Bedrag per maand                      €     533,56		
+                                           (na afronding € 533)
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                             7
+     Rekenvoorbeeld 3
+     Mario is een alleenstaande ouder. Zijn jaarinkomen is € 30.000. Hij heeft een kind van 8 jaar.
+     Hoeveel kindgebonden budget kan hij krijgen?
+
+     Stap 1
+     Het maximale toeslagbedrag voor een alleenstaande ouder met 1 kind is € 5.996.
+
+     Stap 2
+     Zijn kind is jonger dan 12 jaar. Het maximale toeslagbedrag wordt dus niet verhoogd.
+
+     Stap 3
+     Het toetsingsinkomen is € 30.000.
+
+     Stap 4
+     Het maximale toeslagbedrag wordt verminderd met € 20,06.
+
+     Toetsingsinkomen                      €     30.000		
+     Grensinkomen                          €     29.736 - /-
+     Subtotaal                             €        264		
+     Vermindering: € 264 x 7,6%            €      20,06		
+
+
+     Stap 5
+     Het kindgebonden budget is € 497 per maand.
+
+
+     Maximaal toeslagbedrag                € 5.996,00		
+     Vermindering                          €      20,06 -/-
+     Totaal kindgebonden budget per jaar   € 5.975,94		
+     Bedrag per maand                      €     497,99		
+                                           (na afronding € 497)
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                              8
+     Rekenvoorbeeld 4
+     Robert en Natasha wonen op Curaçao. Zijn jaarinkomen is € 36.000, haar jaarinkomen is € 10.000.
+     Ze hebben 2 kinderen jonger dan 12 jaar waar zij kinderbijslag voor ontvangen. Hoeveel kindgebonden
+     budget kunnen ze krijgen?
+
+     Stap 1
+     Ze hebben 2 kinderen. Het maximale toeslagbedrag is dan € 5.160.
+
+     Stap 2
+     De kinderen zijn jonger dan 12 jaar. Het maximale toeslagbedrag wordt dus niet verhoogd.
+
+     Stap 3
+     Het gezamenlijke toetsingsinkomen is € 46.000.
+
+
+     Toetsingsinkomen aanvrager            €     36.000		
+     Toetsingsinkomen toeslagpartner       €     10.000 +
+     Gezamenlijk toetsingsinkomen          €     46.000		
+
+
+     Stap 4
+     Het maximale toeslagbedrag wordt verminderd met € 521,28.
+
+
+     Gezamenlijk toetsingsinkomen          €     46.000		
+     Grensinkomen                          €     39.141 - /-
+     Subtotaal                             €      6.859		
+     Vermindering: € 6.859 x 7,6%          €     521,28		
+
+
+     Stap 5
+     Het kindgebonden budget is € 347 per maand.
+
+
+     Maximaal toeslagbedrag                € 5.160,00		
+     Vermindering                          €     521,28 - /-
+     Subtotaal                             € 4.638,72		
+     Woonlandfactor Curaçao = 90% x € 4.638,72			
+     Totaal kindgebonden budget per jaar   € 4.174,84		
+     Bedrag per maand                      €     347,90		
+                                           (na afronding € 347)
+
+
+
+
+		   Berekening kindgebonden budget 2026                                                                   9
+TG 081 - 1Z61FD ﻿
+                    Dit is een uitgave van:
+
+                    Dienst Toeslagen - Ministerie van Financiën
+                    Januari 2026
+

@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-10-13",
+  "new_sources": [
+    {
+      "slug": "samenwerkende-catalogi",
+      "endpoints": 1,
+      "capabilities": 1,
+      "contracts": 1,
+      "status": "inactive",
+      "blockers": [
+        "SRU XML normalization and bounded collection binding",
+        "Apiosk execution acceptance",
+        "Listing price review"
+      ]
+    },
+    {
+      "slug": "dienst-toeslagen",
+      "endpoints": 5,
+      "capabilities": 5,
+      "contracts": 5,
+      "status": "inactive",
+      "blockers": [
+        "HTML extraction and source provenance",
+        "Year-specific content/version checks",
+        "Apiosk execution acceptance",
+        "Listing price review"
+      ]
+    },
+    {
+      "slug": "nibud",
+      "endpoints": 5,
+      "capabilities": 5,
+      "contracts": 5,
+      "status": "inactive",
+      "blockers": [
+        "Subscription/API key",
+        "Commercial price and redistribution licence",
+        "Private credential binding",
+        "Resolve documented schema/example inconsistencies",
+        "Live response schemas and Apiosk execution acceptance"
+      ]
+    }
+  ],
+  "existing_koop_endpoints_enriched": 2,
+  "existing_koop_capabilities": 5,
+  "unimplemented": [
+    "Municipal website crawler beyond official links",
+    "KOOP event-feed synchronization",
+    "Personal benefits eligibility engine"
+  ]
+}

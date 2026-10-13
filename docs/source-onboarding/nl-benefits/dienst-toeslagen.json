@@ -1,0 +1,753 @@
+{
+  "format": "apiosk.source-bundle.v1",
+  "bundle_id": "91b47c46-c3ef-47f7-829e-683c3c37cb3d",
+  "provenance": {
+    "model": "codex",
+    "generated_at": "2026-10-13T17:13:07.262800+00:00",
+    "documentation_urls": [
+      "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/toeslagen"
+    ],
+    "reviewer": null,
+    "live_test": {
+      "status": "not_run",
+      "notes": "Documentation verification is not an Apiosk execution test."
+    }
+  },
+  "source": {
+    "owner_id": "bf085fe8-41c4-4699-978f-e75e89518bf7",
+    "slug": "dienst-toeslagen",
+    "name": "Dienst Toeslagen — voorwaarden en tabellen",
+    "origin_url": "https://www.belastingdienst.nl",
+    "description": "Officiële publieke informatie over zorgtoeslag, huurtoeslag, kinderopvangtoeslag en kindgebonden budget. HTML-bronnen; geen bevestigde openbare berekenings-API en geen persoonlijke aanspraakberekening.",
+    "long_description": "Officiële publieke informatie over zorgtoeslag, huurtoeslag, kinderopvangtoeslag en kindgebonden budget. HTML-bronnen; geen bevestigde openbare berekenings-API en geen persoonlijke aanspraakberekening.",
+    "category": "government",
+    "docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/toeslagen",
+    "website_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/toeslagen/toeslagen",
+    "authentication_info": {
+      "type": "none"
+    },
+    "static_headers": [
+      {
+        "name": "Accept",
+        "value": "text/html"
+      }
+    ],
+    "listing_metadata": {
+      "tags": [
+        "toeslagen",
+        "zorgtoeslag",
+        "huurtoeslag",
+        "kinderopvangtoeslag",
+        "kindgebonden budget",
+        "voorwaarden"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "jurisdiction": "NL",
+      "language": "nl",
+      "coverage_notice": "Officiële publieke informatie over zorgtoeslag, huurtoeslag, kinderopvangtoeslag en kindgebonden budget. HTML-bronnen; geen bevestigde openbare berekenings-API en geen persoonlijke aanspraakberekening.",
+      "readiness": {
+        "state": "staged",
+        "blockers": [
+          "HTML extraction and source provenance",
+          "Year-specific content/version checks",
+          "Apiosk execution acceptance",
+          "Listing price review"
+        ]
+      },
+      "pricing": {
+        "state": "unpriced",
+        "upstream_cost_usd": null,
+        "listing_price_note": "Zero is a required database placeholder for inactive endpoints, not a free production offer."
+      },
+      "operator_notice": "Apiosk integration; not affiliated with the publisher.",
+      "eligibility": {
+        "state": "not_implemented",
+        "public_calculation_api_confirmed": false,
+        "requirements": [
+          "Year-versioned parameters",
+          "Validated calculation rules",
+          "Comparison with official trial calculations"
+        ]
+      }
+    }
+  },
+  "credential_requirements": [],
+  "subject_kinds": [
+    {
+      "slug": "dataset",
+      "description": "Dataset or source response"
+    }
+  ],
+  "fact_types": [
+    {
+      "slug": "nl.benefits.zorgtoeslag.information.response",
+      "name": "Lees officiële zorgtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.benefits.huurtoeslag.information.response",
+      "name": "Lees officiële huurtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.benefits.kinderopvangtoeslag.information.response",
+      "name": "Lees officiële kinderopvangtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.benefits.kindgebonden-budget.information.response",
+      "name": "Lees officiële kindgebonden budget informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.benefits.zorgtoeslag-tabellen.information.response",
+      "name": "Lees officiële zorgtoeslagtabellen informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "nl.benefits.zorgtoeslag.information",
+      "name": "Lees officiële zorgtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      }
+    },
+    {
+      "slug": "nl.benefits.huurtoeslag.information",
+      "name": "Lees officiële huurtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      }
+    },
+    {
+      "slug": "nl.benefits.kinderopvangtoeslag.information",
+      "name": "Lees officiële kinderopvangtoeslag informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      }
+    },
+    {
+      "slug": "nl.benefits.kindgebonden-budget.information",
+      "name": "Lees officiële kindgebonden budget informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      }
+    },
+    {
+      "slug": "nl.benefits.zorgtoeslag-tabellen.information",
+      "name": "Lees officiële zorgtoeslagtabellen informatie",
+      "description": "Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "key": "zorgtoeslag",
+      "method": "GET",
+      "path": "/wps/wcm/connect/nl/zorgtoeslag/zorgtoeslag",
+      "price": 0,
+      "description": "Lees officiële zorgtoeslag informatie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Lees officiële zorgtoeslag informatie\n\nPublic HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/zorgtoeslag/zorgtoeslag",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Dienst Toeslagen",
+        "Zorgtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland"
+      ],
+      "search_terms": [
+        "Dienst Toeslagen",
+        "Zorgtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland",
+        "Lees officiële zorgtoeslag informatie"
+      ],
+      "use_cases": [
+        "Lees officiële zorgtoeslag informatie"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.benefits.zorgtoeslag.information.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Lees officiële zorgtoeslag informatie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "huurtoeslag",
+      "method": "GET",
+      "path": "/wps/wcm/connect/nl/huurtoeslag/huurtoeslag",
+      "price": 0,
+      "description": "Lees officiële huurtoeslag informatie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Lees officiële huurtoeslag informatie\n\nPublic HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/huurtoeslag/huurtoeslag",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Dienst Toeslagen",
+        "Huurtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland"
+      ],
+      "search_terms": [
+        "Dienst Toeslagen",
+        "Huurtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland",
+        "Lees officiële huurtoeslag informatie"
+      ],
+      "use_cases": [
+        "Lees officiële huurtoeslag informatie"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.benefits.huurtoeslag.information.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Lees officiële huurtoeslag informatie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "kinderopvangtoeslag",
+      "method": "GET",
+      "path": "/wps/wcm/connect/nl/kinderopvangtoeslag/kinderopvangtoeslag",
+      "price": 0,
+      "description": "Lees officiële kinderopvangtoeslag informatie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Lees officiële kinderopvangtoeslag informatie\n\nPublic HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/kinderopvangtoeslag/kinderopvangtoeslag",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Dienst Toeslagen",
+        "Kinderopvangtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland"
+      ],
+      "search_terms": [
+        "Dienst Toeslagen",
+        "Kinderopvangtoeslag",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland",
+        "Lees officiële kinderopvangtoeslag informatie"
+      ],
+      "use_cases": [
+        "Lees officiële kinderopvangtoeslag informatie"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.benefits.kinderopvangtoeslag.information.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Lees officiële kinderopvangtoeslag informatie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "kindgebonden-budget",
+      "method": "GET",
+      "path": "/wps/wcm/connect/nl/kindgebonden-budget/kindgebonden-budget",
+      "price": 0,
+      "description": "Lees officiële kindgebonden budget informatie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Lees officiële kindgebonden budget informatie\n\nPublic HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/kindgebonden-budget/kindgebonden-budget",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Dienst Toeslagen",
+        "Kindgebonden budget",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland"
+      ],
+      "search_terms": [
+        "Dienst Toeslagen",
+        "Kindgebonden budget",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland",
+        "Lees officiële kindgebonden budget informatie"
+      ],
+      "use_cases": [
+        "Lees officiële kindgebonden budget informatie"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.benefits.kindgebonden-budget.information.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Lees officiële kindgebonden budget informatie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "zorgtoeslag-tabellen",
+      "method": "GET",
+      "path": "/wps/wcm/connect/nl/zorgtoeslag/content/hoeveel-zorgtoeslag",
+      "price": 0,
+      "description": "Lees officiële zorgtoeslagtabellen informatie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Official HTML page; not a JSON benefits calculator."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Lees officiële zorgtoeslagtabellen informatie\n\nPublic HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://www.belastingdienst.nl/wps/wcm/connect/nl/zorgtoeslag/content/hoeveel-zorgtoeslag",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Dienst Toeslagen",
+        "Zorgtoeslagtabellen",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland"
+      ],
+      "search_terms": [
+        "Dienst Toeslagen",
+        "Zorgtoeslagtabellen",
+        "voorwaarden",
+        "bedragen",
+        "inkomensgrenzen",
+        "Nederland",
+        "Lees officiële zorgtoeslagtabellen informatie"
+      ],
+      "use_cases": [
+        "Lees officiële zorgtoeslagtabellen informatie"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.benefits.zorgtoeslag-tabellen.information.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Lees officiële zorgtoeslagtabellen informatie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    }
+  ],
+  "contracts": [
+    {
+      "endpoint_key": "zorgtoeslag",
+      "capability_slug": "nl.benefits.zorgtoeslag.information",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.benefits.zorgtoeslag.information.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.benefits.zorgtoeslag.information.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "huurtoeslag",
+      "capability_slug": "nl.benefits.huurtoeslag.information",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.benefits.huurtoeslag.information.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.benefits.huurtoeslag.information.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "kinderopvangtoeslag",
+      "capability_slug": "nl.benefits.kinderopvangtoeslag.information",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.benefits.kinderopvangtoeslag.information.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.benefits.kinderopvangtoeslag.information.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "kindgebonden-budget",
+      "capability_slug": "nl.benefits.kindgebonden-budget.information",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.benefits.kindgebonden-budget.information.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.benefits.kindgebonden-budget.information.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "zorgtoeslag-tabellen",
+      "capability_slug": "nl.benefits.zorgtoeslag-tabellen.information",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.benefits.zorgtoeslag-tabellen.information.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.benefits.zorgtoeslag-tabellen.information.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Public HTML information only. Preserve source URL, retrieval date and applicable year. No entitlement calculation, login, application submission or personal data. Requires a verified executor response shape and live extraction before activation."
+    }
+  ],
+  "offers": [
+    {
+      "endpoint_key": "zorgtoeslag",
+      "capability_slug": "nl.benefits.zorgtoeslag.information",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "huurtoeslag",
+      "capability_slug": "nl.benefits.huurtoeslag.information",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "kinderopvangtoeslag",
+      "capability_slug": "nl.benefits.kinderopvangtoeslag.information",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "kindgebonden-budget",
+      "capability_slug": "nl.benefits.kindgebonden-budget.information",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "zorgtoeslag-tabellen",
+      "capability_slug": "nl.benefits.zorgtoeslag-tabellen.information",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    }
+  ]
+}

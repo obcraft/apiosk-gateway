@@ -1,0 +1,1917 @@
+{
+  "format": "apiosk.source-bundle.v1",
+  "bundle_id": "f6056ece-0902-452e-8ad5-cc09bb638ad9",
+  "provenance": {
+    "model": "codex",
+    "generated_at": "2026-10-13T17:13:07.262800+00:00",
+    "documentation_urls": [
+      "https://developer.nibud.nl/products2",
+      "https://developer.nibud.nl/technical-uitgaven",
+      "https://developer.nibud.nl/technical-pensioen-uitgaven",
+      "https://developer.nibud.nl/technical-afloscapaciteit"
+    ],
+    "reviewer": null,
+    "live_test": {
+      "status": "not_run",
+      "notes": "Documentation verification is not an Apiosk execution test."
+    },
+    "openapi_sha256": "1a5e3c24d6a008472ff768a36ebac4838c42a93d677247a981153ee939664a69"
+  },
+  "source": {
+    "owner_id": "bf085fe8-41c4-4699-978f-e75e89518bf7",
+    "slug": "nibud",
+    "name": "Nibud — huishoudelijke uitgaven en afloscapaciteit",
+    "origin_url": "https://api.nibud.nl",
+    "description": "Gelicentieerde referentie-uitgaven voor huishoudens, pensioenuitgaven en afloscapaciteit. Vereist een Nibud-abonnement en API-key; prijs en doorleveringsrechten zijn nog niet bevestigd. Geen toeslagrechten-database.",
+    "long_description": "Gelicentieerde referentie-uitgaven voor huishoudens, pensioenuitgaven en afloscapaciteit. Vereist een Nibud-abonnement en API-key; prijs en doorleveringsrechten zijn nog niet bevestigd. Geen toeslagrechten-database.",
+    "category": "finance",
+    "docs_url": "https://developer.nibud.nl/products2",
+    "website_url": "https://developer.nibud.nl/products2",
+    "authentication_info": {
+      "type": "api_key",
+      "in": "header",
+      "name": "Ocp-Apim-Subscription-Key",
+      "alternative": {
+        "in": "query",
+        "name": "key"
+      },
+      "upstream": {
+        "required": true
+      }
+    },
+    "static_headers": [
+      {
+        "name": "Accept",
+        "value": "application/json"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
+    ],
+    "listing_metadata": {
+      "tags": [
+        "Nibud",
+        "budget",
+        "huishouden",
+        "referentiebedragen",
+        "pensioen",
+        "afloscapaciteit"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "jurisdiction": "NL",
+      "language": "nl",
+      "coverage_notice": "Gelicentieerde referentie-uitgaven voor huishoudens, pensioenuitgaven en afloscapaciteit. Vereist een Nibud-abonnement en API-key; prijs en doorleveringsrechten zijn nog niet bevestigd. Geen toeslagrechten-database.",
+      "readiness": {
+        "state": "staged",
+        "blockers": [
+          "Subscription/API key",
+          "Commercial price and redistribution licence",
+          "Private credential binding",
+          "Resolve documented schema/example inconsistencies",
+          "Live response schemas and Apiosk execution acceptance"
+        ]
+      },
+      "pricing": {
+        "state": "unpriced",
+        "upstream_cost_usd": null,
+        "listing_price_note": "Zero is a required database placeholder for inactive endpoints, not a free production offer."
+      },
+      "operator_notice": "Apiosk integration; not affiliated with the publisher.",
+      "license": {
+        "name": "Nibud commercial subscription",
+        "status": "required",
+        "redistribution_rights": "unconfirmed",
+        "price_per_call_usd": null,
+        "url": "https://developer.nibud.nl/getting-started"
+      }
+    }
+  },
+  "credential_requirements": [
+    {
+      "vault_name": "APIOSK_NIBUD_SUBSCRIPTION_KEY",
+      "endpoint_key": null,
+      "in": "header",
+      "name": "Ocp-Apim-Subscription-Key",
+      "prefix": "",
+      "allowed_origin": "https://api.nibud.nl",
+      "runtime_binding": "missing",
+      "notes": "Product scope must be checked. No secret supplied or stored in catalog metadata."
+    }
+  ],
+  "subject_kinds": [
+    {
+      "slug": "dataset",
+      "description": "Dataset or source response"
+    }
+  ],
+  "fact_types": [
+    {
+      "slug": "nl.nibud.expenditures.versie.response",
+      "name": "Nibud Uitgaven: Versie",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.input.hoofdpersonen",
+      "name": "hoofdpersonen",
+      "description": "Nibud Uitgaven: Referentiebedragen: hoofdpersonen",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "required": [
+            "geboortedatum"
+          ],
+          "type": "object",
+          "properties": {
+            "geboortedatum": {
+              "type": "string"
+            },
+            "geslacht": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.input.kinderen",
+      "name": "kinderen",
+      "description": "Nibud Uitgaven: Referentiebedragen: kinderen",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "required": [
+            "geboortedatum"
+          ],
+          "type": "object",
+          "properties": {
+            "geboortedatum": {
+              "type": "string"
+            },
+            "geslacht": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.input.autos",
+      "name": "autos",
+      "description": "Nibud Uitgaven: Referentiebedragen: autos",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "required": [
+            "nieuwwaarde",
+            "kilometersPerJaar",
+            "status"
+          ],
+          "type": "object",
+          "properties": {
+            "nieuwwaarde": {
+              "type": "string"
+            },
+            "kilometersPerJaar": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.input.nettobesteedbaarinkomenpermaand",
+      "name": "nettoBesteedbaarInkomenPerMaand",
+      "description": "Nibud Uitgaven: Referentiebedragen: nettoBesteedbaarInkomenPerMaand",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.input.woning",
+      "name": "woning",
+      "description": "Nibud Uitgaven: Referentiebedragen: woning",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "required": [
+          "soort",
+          "typeWoning",
+          "bouwjaar",
+          "bouwenergielabel"
+        ],
+        "type": "object",
+        "properties": {
+          "soort": {
+            "type": "string"
+          },
+          "typeWoning": {
+            "type": "string"
+          },
+          "bouwjaar": {
+            "type": "string"
+          },
+          "energielabel": {
+            "type": "string"
+          },
+          "wozWaarde": {
+            "type": "integer"
+          },
+          "gemeenteCbsId": {
+            "type": "string"
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.response",
+      "name": "Nibud Uitgaven: Referentiebedragen",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.expenditures.gemeentes.response",
+      "name": "Nibud Uitgaven: Gemeentes",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.input.hoofdpersonen",
+      "name": "Hoofdpersonen",
+      "description": "Nibud pensioenuitgaven berekenen: Hoofdpersonen",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Geslacht": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.input.kinderen",
+      "name": "Kinderen",
+      "description": "Nibud pensioenuitgaven berekenen: Kinderen",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Leeftijd": {
+              "type": "integer"
+            },
+            "Geslacht": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Leeftijd"
+          ]
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.input.autos",
+      "name": "Autos",
+      "description": "Nibud pensioenuitgaven berekenen: Autos",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "KilometersPerJaar": {
+              "type": "integer"
+            },
+            "TypeAuto": {
+              "type": "integer"
+            },
+            "StatusAuto": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "KilometersPerJaar",
+            "TypeAuto",
+            "StatusAuto"
+          ]
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.input.woning",
+      "name": "Woning",
+      "description": "Nibud pensioenuitgaven berekenen: Woning",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "TypeWoning": {
+            "type": "integer"
+          },
+          "SoortWoning": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "TypeWoning",
+          "SoortWoning"
+        ]
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.input.nettobesteedbaarinkomenpermaand",
+      "name": "NettoBesteedbaarInkomenPerMaand",
+      "description": "Nibud pensioenuitgaven berekenen: NettoBesteedbaarInkomenPerMaand",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures.response",
+      "name": "Nibud pensioenuitgaven berekenen",
+      "description": "Input fields transcribed from the official operation reference. Enum string examples differ from integer schemas; verify before activation. Technical docs describe Bedrag/Uitgavepost outputs; exact envelope unverified.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.leeftijdhoofdpersoon",
+      "name": "LeeftijdHoofdpersoon",
+      "description": "Nibud afloscapaciteit berekenen: LeeftijdHoofdpersoon",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.heeftpartner",
+      "name": "HeeftPartner",
+      "description": "Nibud afloscapaciteit berekenen: HeeftPartner",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "boolean"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.aantalthuiswonendekinderen",
+      "name": "AantalThuiswonendeKinderen",
+      "description": "Nibud afloscapaciteit berekenen: AantalThuiswonendeKinderen",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.aantalautos",
+      "name": "AantalAutos",
+      "description": "Nibud afloscapaciteit berekenen: AantalAutos",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.nettobesteedbaarinkomenpermaand",
+      "name": "NettoBesteedbaarInkomenPerMaand",
+      "description": "Nibud afloscapaciteit berekenen: NettoBesteedbaarInkomenPerMaand",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer"
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.bijzondereuitgaven",
+      "name": "BijzondereUitgaven",
+      "description": "Nibud afloscapaciteit berekenen: BijzondereUitgaven",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "KostenZorg": {
+            "type": "integer"
+          },
+          "KostenPartnerAlimentatie": {
+            "type": "integer"
+          },
+          "KostenKinderAlimentatie": {
+            "type": "integer"
+          },
+          "KostenKinderOpvang": {
+            "type": "integer"
+          },
+          "KostenOverigeAflossingen": {
+            "type": "integer"
+          }
+        }
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.input.woning",
+      "name": "Woning",
+      "description": "Nibud afloscapaciteit berekenen: Woning",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "WoningSoort": {
+            "type": "integer"
+          },
+          "BrutoHypotheeklasten": {
+            "type": "integer"
+          },
+          "HuurPerMaand": {
+            "type": "integer"
+          },
+          "HuurServiceKosten": {
+            "type": "integer"
+          },
+          "BijdrageVve": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "WoningSoort"
+        ]
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity.response",
+      "name": "Nibud afloscapaciteit berekenen",
+      "description": "Official raw request schema transcribed. Example uses string woning type/null costs where schema says integer: resolve before activation. Describes repayment and maximum repayment capacity, not benefit eligibility.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "nl.nibud.expenditures.versie",
+      "name": "Nibud Uitgaven: Versie",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "category": "finance",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      }
+    },
+    {
+      "slug": "nl.nibud.expenditures",
+      "name": "Nibud Uitgaven: Referentiebedragen",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "category": "finance",
+      "input_contract": {
+        "required": [
+          "nettoBesteedbaarInkomenPerMaand",
+          "woning",
+          "hoofdpersonen",
+          "kinderen"
+        ],
+        "type": "object",
+        "properties": {
+          "hoofdpersonen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "kinderen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "autos": {
+            "type": "array",
+            "items": {
+              "required": [
+                "nieuwwaarde",
+                "kilometersPerJaar",
+                "status"
+              ],
+              "type": "object",
+              "properties": {
+                "nieuwwaarde": {
+                  "type": "string"
+                },
+                "kilometersPerJaar": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "nettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          },
+          "woning": {
+            "required": [
+              "soort",
+              "typeWoning",
+              "bouwjaar",
+              "bouwenergielabel"
+            ],
+            "type": "object",
+            "properties": {
+              "soort": {
+                "type": "string"
+              },
+              "typeWoning": {
+                "type": "string"
+              },
+              "bouwjaar": {
+                "type": "string"
+              },
+              "energielabel": {
+                "type": "string"
+              },
+              "wozWaarde": {
+                "type": "integer"
+              },
+              "gemeenteCbsId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "output_contract": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      }
+    },
+    {
+      "slug": "nl.nibud.expenditures.gemeentes",
+      "name": "Nibud Uitgaven: Gemeentes",
+      "description": "Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.",
+      "category": "finance",
+      "input_contract": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_contract": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      }
+    },
+    {
+      "slug": "nl.nibud.pension-expenditures",
+      "name": "Nibud pensioenuitgaven berekenen",
+      "description": "Input fields transcribed from the official operation reference. Enum string examples differ from integer schemas; verify before activation. Technical docs describe Bedrag/Uitgavepost outputs; exact envelope unverified.",
+      "category": "finance",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "Hoofdpersonen": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Geslacht": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "Kinderen": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Leeftijd": {
+                  "type": "integer"
+                },
+                "Geslacht": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "Leeftijd"
+              ]
+            }
+          },
+          "Autos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "KilometersPerJaar": {
+                  "type": "integer"
+                },
+                "TypeAuto": {
+                  "type": "integer"
+                },
+                "StatusAuto": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "KilometersPerJaar",
+                "TypeAuto",
+                "StatusAuto"
+              ]
+            }
+          },
+          "Woning": {
+            "type": "object",
+            "properties": {
+              "TypeWoning": {
+                "type": "integer"
+              },
+              "SoortWoning": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "TypeWoning",
+              "SoortWoning"
+            ]
+          },
+          "NettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "Hoofdpersonen",
+          "Kinderen",
+          "Autos",
+          "Woning",
+          "NettoBesteedbaarInkomenPerMaand"
+        ]
+      },
+      "output_contract": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      }
+    },
+    {
+      "slug": "nl.nibud.repayment-capacity",
+      "name": "Nibud afloscapaciteit berekenen",
+      "description": "Official raw request schema transcribed. Example uses string woning type/null costs where schema says integer: resolve before activation. Describes repayment and maximum repayment capacity, not benefit eligibility.",
+      "category": "finance",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "LeeftijdHoofdpersoon": {
+            "type": "integer"
+          },
+          "HeeftPartner": {
+            "type": "boolean"
+          },
+          "AantalThuiswonendeKinderen": {
+            "type": "integer"
+          },
+          "AantalAutos": {
+            "type": "integer"
+          },
+          "NettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          },
+          "BijzondereUitgaven": {
+            "type": "object",
+            "properties": {
+              "KostenZorg": {
+                "type": "integer"
+              },
+              "KostenPartnerAlimentatie": {
+                "type": "integer"
+              },
+              "KostenKinderAlimentatie": {
+                "type": "integer"
+              },
+              "KostenKinderOpvang": {
+                "type": "integer"
+              },
+              "KostenOverigeAflossingen": {
+                "type": "integer"
+              }
+            }
+          },
+          "Woning": {
+            "type": "object",
+            "properties": {
+              "WoningSoort": {
+                "type": "integer"
+              },
+              "BrutoHypotheeklasten": {
+                "type": "integer"
+              },
+              "HuurPerMaand": {
+                "type": "integer"
+              },
+              "HuurServiceKosten": {
+                "type": "integer"
+              },
+              "BijdrageVve": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "WoningSoort"
+            ]
+          }
+        },
+        "required": [
+          "LeeftijdHoofdpersoon",
+          "HeeftPartner",
+          "AantalThuiswonendeKinderen",
+          "AantalAutos",
+          "NettoBesteedbaarInkomenPerMaand",
+          "BijzondereUitgaven",
+          "Woning"
+        ]
+      },
+      "output_contract": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "key": "uitgaven-versie",
+      "method": "GET",
+      "path": "/Uitgaven/v6/Versie",
+      "price": 0,
+      "description": "Nibud Uitgaven: Versie",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json"
+        }
+      },
+      "documentation_markdown": "Nibud Uitgaven: Versie\n\nOfficial v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://developer.nibud.nl/reference#api=Uitgaven-v6&operation=get-getversie",
+      "authentication_notes": "Nibud subscription key required; inject privately on the server. Never request the key from buyers.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Nibud",
+        "Uitgaven",
+        "Versie",
+        "huishoudbudget"
+      ],
+      "search_terms": [
+        "Nibud",
+        "Uitgaven",
+        "Versie",
+        "huishoudbudget",
+        "Nibud Uitgaven: Versie"
+      ],
+      "use_cases": [
+        "Nibud Uitgaven: Versie"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.nibud.expenditures.versie.response"
+      ],
+      "endpoint_category": "finance",
+      "action_type": "lookup",
+      "task_summary": "Nibud Uitgaven: Versie",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "uitgaven-referentiebedragen",
+      "method": "POST",
+      "path": "/Uitgaven/v6/Referentiebedragen",
+      "price": 0,
+      "description": "Nibud Uitgaven: Referentiebedragen",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": {
+        "required": [
+          "nettoBesteedbaarInkomenPerMaand",
+          "woning",
+          "hoofdpersonen",
+          "kinderen"
+        ],
+        "type": "object",
+        "properties": {
+          "hoofdpersonen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "kinderen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "autos": {
+            "type": "array",
+            "items": {
+              "required": [
+                "nieuwwaarde",
+                "kilometersPerJaar",
+                "status"
+              ],
+              "type": "object",
+              "properties": {
+                "nieuwwaarde": {
+                  "type": "string"
+                },
+                "kilometersPerJaar": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "nettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          },
+          "woning": {
+            "required": [
+              "soort",
+              "typeWoning",
+              "bouwjaar",
+              "bouwenergielabel"
+            ],
+            "type": "object",
+            "properties": {
+              "soort": {
+                "type": "string"
+              },
+              "typeWoning": {
+                "type": "string"
+              },
+              "bouwjaar": {
+                "type": "string"
+              },
+              "energielabel": {
+                "type": "string"
+              },
+              "wozWaarde": {
+                "type": "integer"
+              },
+              "gemeenteCbsId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "response_body": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json"
+        }
+      },
+      "documentation_markdown": "Nibud Uitgaven: Referentiebedragen\n\nOfficial v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://developer.nibud.nl/reference#api=Uitgaven-v6&operation=post-postreferentiebedragen",
+      "authentication_notes": "Nibud subscription key required; inject privately on the server. Never request the key from buyers.",
+      "origin_override": null,
+      "cache_ttl_seconds": 0,
+      "tags": [
+        "Nibud",
+        "Uitgaven",
+        "Referentiebedragen",
+        "huishoudbudget"
+      ],
+      "search_terms": [
+        "Nibud",
+        "Uitgaven",
+        "Referentiebedragen",
+        "huishoudbudget",
+        "Nibud Uitgaven: Referentiebedragen"
+      ],
+      "use_cases": [
+        "Nibud Uitgaven: Referentiebedragen"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "input_entities": [
+        "hoofdpersonen",
+        "kinderen",
+        "autos",
+        "nettoBesteedbaarInkomenPerMaand",
+        "woning"
+      ],
+      "output_entities": [
+        "nl.nibud.expenditures.response"
+      ],
+      "endpoint_category": "finance",
+      "action_type": "compute",
+      "task_summary": "Nibud Uitgaven: Referentiebedragen",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "uitgaven-gemeentes",
+      "method": "GET",
+      "path": "/Uitgaven/v6/Gemeentes",
+      "price": 0,
+      "description": "Nibud Uitgaven: Gemeentes",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": null,
+      "response_body": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json"
+        }
+      },
+      "documentation_markdown": "Nibud Uitgaven: Gemeentes\n\nOfficial v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://developer.nibud.nl/reference#api=Uitgaven-v6&operation=get-getgemeentes",
+      "authentication_notes": "Nibud subscription key required; inject privately on the server. Never request the key from buyers.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "Nibud",
+        "Uitgaven",
+        "Gemeentes",
+        "huishoudbudget"
+      ],
+      "search_terms": [
+        "Nibud",
+        "Uitgaven",
+        "Gemeentes",
+        "huishoudbudget",
+        "Nibud Uitgaven: Gemeentes"
+      ],
+      "use_cases": [
+        "Nibud Uitgaven: Gemeentes"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "input_entities": [],
+      "output_entities": [
+        "nl.nibud.expenditures.gemeentes.response"
+      ],
+      "endpoint_category": "finance",
+      "action_type": "lookup",
+      "task_summary": "Nibud Uitgaven: Gemeentes",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "pensioen-resultaat",
+      "method": "POST",
+      "path": "/pensioenuitgaven/Resultaat",
+      "price": 0,
+      "description": "Nibud pensioenuitgaven berekenen",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "Hoofdpersonen": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Geslacht": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "Kinderen": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Leeftijd": {
+                  "type": "integer"
+                },
+                "Geslacht": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "Leeftijd"
+              ]
+            }
+          },
+          "Autos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "KilometersPerJaar": {
+                  "type": "integer"
+                },
+                "TypeAuto": {
+                  "type": "integer"
+                },
+                "StatusAuto": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "KilometersPerJaar",
+                "TypeAuto",
+                "StatusAuto"
+              ]
+            }
+          },
+          "Woning": {
+            "type": "object",
+            "properties": {
+              "TypeWoning": {
+                "type": "integer"
+              },
+              "SoortWoning": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "TypeWoning",
+              "SoortWoning"
+            ]
+          },
+          "NettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "Hoofdpersonen",
+          "Kinderen",
+          "Autos",
+          "Woning",
+          "NettoBesteedbaarInkomenPerMaand"
+        ]
+      },
+      "response_body": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json"
+        }
+      },
+      "documentation_markdown": "Nibud pensioenuitgaven berekenen\n\nInput fields transcribed from the official operation reference. Enum string examples differ from integer schemas; verify before activation. Technical docs describe Bedrag/Uitgavepost outputs; exact envelope unverified.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://developer.nibud.nl/reference#api=pensioenuitgaven&operation=berekenresultaat",
+      "authentication_notes": "Nibud subscription key required; inject privately on the server. Never request the key from buyers.",
+      "origin_override": null,
+      "cache_ttl_seconds": 0,
+      "tags": [
+        "Nibud",
+        "pensioen",
+        "uitgaven",
+        "referentiebedragen"
+      ],
+      "search_terms": [
+        "Nibud",
+        "pensioen",
+        "uitgaven",
+        "referentiebedragen",
+        "Nibud pensioenuitgaven berekenen"
+      ],
+      "use_cases": [
+        "Nibud pensioenuitgaven berekenen"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "input_entities": [
+        "Hoofdpersonen",
+        "Kinderen",
+        "Autos",
+        "Woning",
+        "NettoBesteedbaarInkomenPerMaand"
+      ],
+      "output_entities": [
+        "nl.nibud.pension-expenditures.response"
+      ],
+      "endpoint_category": "finance",
+      "action_type": "compute",
+      "task_summary": "Nibud pensioenuitgaven berekenen",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    },
+    {
+      "key": "afloscapaciteit-resultaat",
+      "method": "POST",
+      "path": "/Afloscapaciteit/Resultaat",
+      "price": 0,
+      "description": "Nibud afloscapaciteit berekenen",
+      "query_params": {
+        "type": "object",
+        "properties": {}
+      },
+      "request_body": {
+        "type": "object",
+        "properties": {
+          "LeeftijdHoofdpersoon": {
+            "type": "integer"
+          },
+          "HeeftPartner": {
+            "type": "boolean"
+          },
+          "AantalThuiswonendeKinderen": {
+            "type": "integer"
+          },
+          "AantalAutos": {
+            "type": "integer"
+          },
+          "NettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          },
+          "BijzondereUitgaven": {
+            "type": "object",
+            "properties": {
+              "KostenZorg": {
+                "type": "integer"
+              },
+              "KostenPartnerAlimentatie": {
+                "type": "integer"
+              },
+              "KostenKinderAlimentatie": {
+                "type": "integer"
+              },
+              "KostenKinderOpvang": {
+                "type": "integer"
+              },
+              "KostenOverigeAflossingen": {
+                "type": "integer"
+              }
+            }
+          },
+          "Woning": {
+            "type": "object",
+            "properties": {
+              "WoningSoort": {
+                "type": "integer"
+              },
+              "BrutoHypotheeklasten": {
+                "type": "integer"
+              },
+              "HuurPerMaand": {
+                "type": "integer"
+              },
+              "HuurServiceKosten": {
+                "type": "integer"
+              },
+              "BijdrageVve": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "WoningSoort"
+            ]
+          }
+        },
+        "required": [
+          "LeeftijdHoofdpersoon",
+          "HeeftPartner",
+          "AantalThuiswonendeKinderen",
+          "AantalAutos",
+          "NettoBesteedbaarInkomenPerMaand",
+          "BijzondereUitgaven",
+          "Woning"
+        ]
+      },
+      "response_body": {
+        "type": [
+          "object",
+          "array"
+        ],
+        "description": "Exact JSON response envelope is not published in OpenAPI and has not been verified with an authenticated call."
+      },
+      "request_example": null,
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "application/json"
+        }
+      },
+      "documentation_markdown": "Nibud afloscapaciteit berekenen\n\nOfficial raw request schema transcribed. Example uses string woning type/null costs where schema says integer: resolve before activation. Describes repayment and maximum repayment capacity, not benefit eligibility.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://developer.nibud.nl/reference#api=afloscapaciteit&operation=post-berekenresultaat",
+      "authentication_notes": "Nibud subscription key required; inject privately on the server. Never request the key from buyers.",
+      "origin_override": null,
+      "cache_ttl_seconds": 0,
+      "tags": [
+        "Nibud",
+        "afloscapaciteit",
+        "schulden",
+        "betalingsregeling",
+        "huishoudbudget"
+      ],
+      "search_terms": [
+        "Nibud",
+        "afloscapaciteit",
+        "schulden",
+        "betalingsregeling",
+        "huishoudbudget",
+        "Nibud afloscapaciteit berekenen"
+      ],
+      "use_cases": [
+        "Nibud afloscapaciteit berekenen"
+      ],
+      "sectors": [
+        "Personal finance",
+        "Financial services"
+      ],
+      "input_entities": [
+        "LeeftijdHoofdpersoon",
+        "HeeftPartner",
+        "AantalThuiswonendeKinderen",
+        "AantalAutos",
+        "NettoBesteedbaarInkomenPerMaand",
+        "BijzondereUitgaven",
+        "Woning"
+      ],
+      "output_entities": [
+        "nl.nibud.repayment-capacity.response"
+      ],
+      "endpoint_category": "finance",
+      "action_type": "compute",
+      "task_summary": "Nibud afloscapaciteit berekenen",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    }
+  ],
+  "contracts": [
+    {
+      "endpoint_key": "uitgaven-versie",
+      "capability_slug": "nl.nibud.expenditures.versie",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.nibud.expenditures.versie.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.nibud.expenditures.versie.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "uitgaven-referentiebedragen",
+      "capability_slug": "nl.nibud.expenditures",
+      "version": 1,
+      "requires": [
+        {
+          "fact_type": "nl.nibud.expenditures.input.hoofdpersonen",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.expenditures.input.kinderen",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.expenditures.input.autos",
+          "subject_role": "subject",
+          "optional": true
+        },
+        {
+          "fact_type": "nl.nibud.expenditures.input.nettobesteedbaarinkomenpermaand",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.expenditures.input.woning",
+          "subject_role": "subject",
+          "optional": false
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "nl.nibud.expenditures.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {
+        "nl.nibud.expenditures.input.hoofdpersonen": {
+          "in": "body",
+          "name": "hoofdpersonen"
+        },
+        "nl.nibud.expenditures.input.kinderen": {
+          "in": "body",
+          "name": "kinderen"
+        },
+        "nl.nibud.expenditures.input.autos": {
+          "in": "body",
+          "name": "autos"
+        },
+        "nl.nibud.expenditures.input.nettobesteedbaarinkomenpermaand": {
+          "in": "body",
+          "name": "nettoBesteedbaarInkomenPerMaand"
+        },
+        "nl.nibud.expenditures.input.woning": {
+          "in": "body",
+          "name": "woning"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.nibud.expenditures.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 300,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "uitgaven-gemeentes",
+      "capability_slug": "nl.nibud.expenditures.gemeentes",
+      "version": 1,
+      "requires": [],
+      "produces": [
+        {
+          "fact_type": "nl.nibud.expenditures.gemeentes.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {},
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.nibud.expenditures.gemeentes.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Official v6 OpenAPI input schema preserved. It disagrees with examples on casing and some numeric types, and requires woning.bouwenergielabel without defining it. Resolve with Nibud before activation. Output references Basis/Voorbeeld amounts; exact envelope unverified. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "pensioen-resultaat",
+      "capability_slug": "nl.nibud.pension-expenditures",
+      "version": 1,
+      "requires": [
+        {
+          "fact_type": "nl.nibud.pension-expenditures.input.hoofdpersonen",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.pension-expenditures.input.kinderen",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.pension-expenditures.input.autos",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.pension-expenditures.input.woning",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.pension-expenditures.input.nettobesteedbaarinkomenpermaand",
+          "subject_role": "subject",
+          "optional": false
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "nl.nibud.pension-expenditures.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {
+        "nl.nibud.pension-expenditures.input.hoofdpersonen": {
+          "in": "body",
+          "name": "Hoofdpersonen"
+        },
+        "nl.nibud.pension-expenditures.input.kinderen": {
+          "in": "body",
+          "name": "Kinderen"
+        },
+        "nl.nibud.pension-expenditures.input.autos": {
+          "in": "body",
+          "name": "Autos"
+        },
+        "nl.nibud.pension-expenditures.input.woning": {
+          "in": "body",
+          "name": "Woning"
+        },
+        "nl.nibud.pension-expenditures.input.nettobesteedbaarinkomenpermaand": {
+          "in": "body",
+          "name": "NettoBesteedbaarInkomenPerMaand"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.nibud.pension-expenditures.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 300,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Input fields transcribed from the official operation reference. Enum string examples differ from integer schemas; verify before activation. Technical docs describe Bedrag/Uitgavepost outputs; exact envelope unverified. Requires a verified executor response shape and live extraction before activation."
+    },
+    {
+      "endpoint_key": "afloscapaciteit-resultaat",
+      "capability_slug": "nl.nibud.repayment-capacity",
+      "version": 1,
+      "requires": [
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.leeftijdhoofdpersoon",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.heeftpartner",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.aantalthuiswonendekinderen",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.aantalautos",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.nettobesteedbaarinkomenpermaand",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.bijzondereuitgaven",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.nibud.repayment-capacity.input.woning",
+          "subject_role": "subject",
+          "optional": false
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "nl.nibud.repayment-capacity.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {
+        "nl.nibud.repayment-capacity.input.leeftijdhoofdpersoon": {
+          "in": "body",
+          "name": "LeeftijdHoofdpersoon"
+        },
+        "nl.nibud.repayment-capacity.input.heeftpartner": {
+          "in": "body",
+          "name": "HeeftPartner"
+        },
+        "nl.nibud.repayment-capacity.input.aantalthuiswonendekinderen": {
+          "in": "body",
+          "name": "AantalThuiswonendeKinderen"
+        },
+        "nl.nibud.repayment-capacity.input.aantalautos": {
+          "in": "body",
+          "name": "AantalAutos"
+        },
+        "nl.nibud.repayment-capacity.input.nettobesteedbaarinkomenpermaand": {
+          "in": "body",
+          "name": "NettoBesteedbaarInkomenPerMaand"
+        },
+        "nl.nibud.repayment-capacity.input.bijzondereuitgaven": {
+          "in": "body",
+          "name": "BijzondereUitgaven"
+        },
+        "nl.nibud.repayment-capacity.input.woning": {
+          "in": "body",
+          "name": "Woning"
+        }
+      },
+      "fixed_params": {},
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.nibud.repayment-capacity.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 300,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Official raw request schema transcribed. Example uses string woning type/null costs where schema says integer: resolve before activation. Describes repayment and maximum repayment capacity, not benefit eligibility. Requires a verified executor response shape and live extraction before activation."
+    }
+  ],
+  "offers": [
+    {
+      "endpoint_key": "uitgaven-versie",
+      "capability_slug": "nl.nibud.expenditures.versie",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "uitgaven-referentiebedragen",
+      "capability_slug": "nl.nibud.expenditures",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {
+        "hoofdpersonen": {
+          "in": "body",
+          "name": "hoofdpersonen"
+        },
+        "kinderen": {
+          "in": "body",
+          "name": "kinderen"
+        },
+        "autos": {
+          "in": "body",
+          "name": "autos"
+        },
+        "nettoBesteedbaarInkomenPerMaand": {
+          "in": "body",
+          "name": "nettoBesteedbaarInkomenPerMaand"
+        },
+        "woning": {
+          "in": "body",
+          "name": "woning"
+        }
+      },
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "uitgaven-gemeentes",
+      "capability_slug": "nl.nibud.expenditures.gemeentes",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {},
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "pensioen-resultaat",
+      "capability_slug": "nl.nibud.pension-expenditures",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {
+        "Hoofdpersonen": {
+          "in": "body",
+          "name": "Hoofdpersonen"
+        },
+        "Kinderen": {
+          "in": "body",
+          "name": "Kinderen"
+        },
+        "Autos": {
+          "in": "body",
+          "name": "Autos"
+        },
+        "Woning": {
+          "in": "body",
+          "name": "Woning"
+        },
+        "NettoBesteedbaarInkomenPerMaand": {
+          "in": "body",
+          "name": "NettoBesteedbaarInkomenPerMaand"
+        }
+      },
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    },
+    {
+      "endpoint_key": "afloscapaciteit-resultaat",
+      "capability_slug": "nl.nibud.repayment-capacity",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {
+        "LeeftijdHoofdpersoon": {
+          "in": "body",
+          "name": "LeeftijdHoofdpersoon"
+        },
+        "HeeftPartner": {
+          "in": "body",
+          "name": "HeeftPartner"
+        },
+        "AantalThuiswonendeKinderen": {
+          "in": "body",
+          "name": "AantalThuiswonendeKinderen"
+        },
+        "AantalAutos": {
+          "in": "body",
+          "name": "AantalAutos"
+        },
+        "NettoBesteedbaarInkomenPerMaand": {
+          "in": "body",
+          "name": "NettoBesteedbaarInkomenPerMaand"
+        },
+        "BijzondereUitgaven": {
+          "in": "body",
+          "name": "BijzondereUitgaven"
+        },
+        "Woning": {
+          "in": "body",
+          "name": "Woning"
+        }
+      },
+      "fixed_params": {},
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    }
+  ]
+}

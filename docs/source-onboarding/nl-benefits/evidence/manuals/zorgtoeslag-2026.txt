@@ -1,0 +1,299 @@
+Berekening zorgtoeslag
+2026
+     De zorgtoeslag is een bijdrage in de kosten van de zorgverzekering. Of en hoeveel zorgtoeslag uw klant
+     krijgt, hangt onder andere af van:
+     • de standaardpremie
+     • de normpremie
+     • het (gezamenlijke) toetsingsinkomen
+     • het (gezamenlijke) vermogen
+
+
+
+
+     Vermogen mag niet te hoog zijn
+     Heeft uw klant of zijn eventuele toeslagpartner vermogen, zoals spaargeld en beleggingen?
+     Als het (gezamenlijke) vermogen op 1 januari 2026 te hoog is, heeft uw klant het hele jaar geen recht
+     op zorgtoeslag.
+
+     In de tabel staat hoeveel vermogen uw klant maximaal mag hebben op 1 januari 2026.
+     Buitenlands vermogen telt ook mee.
+
+     Situatie                                                                         Maximaal vermogen
+     Alleenstaande                                                                    € 146.011
+     Aanvrager met toeslagpartner                                                     € 184.633
+
+
+
+         Let op!
+         Heeft uw klant voor de inkomstenbelasting een vrijstelling voor groene beleggingen? Voor de zorgtoeslag
+         geldt deze vrijstelling niet. Tel groene beleggingen dus mee als vermogen.
+
+
+
+
+     Berekening
+     Uw klant heeft recht op zorgtoeslag als de standaardpremie hoger is dan de normpremie. U berekent de
+     zorgtoeslag van uw klant in 5 stappen.
+
+     Stap 1: bepaal de standaardpremie
+     De standaardpremie is voor 2026 vastgesteld op € 2.119. Bij een aanvrager met een toeslagpartner wordt
+     tweemaal de standaardpremie genomen (€ 4.238).
+
+     Stap 2: bereken het gezamenlijke toetsingsinkomen
+
+
+     Toetsingsinkomen aanvrager                       €			
+     Toetsingsinkomen toeslagpartner                  €            +
+     Gezamenlijk toetsingsinkomen                     €			
+
+
+     Uw klant heeft geen recht op zorgtoeslag als het toetsingsinkomen hoger is dan:
+     • € 40.857 (aanvrager zonder toeslagpartner)
+     • € 51.142 (aanvrager met toeslagpartner)
+
+         Let op!
+         Woont uw klant buiten Nederland? Dan is het wereldinkomen het toetsingsinkomen.
+
+
+
+
+		   Berekening zorgtoeslag 2026                                                                                   2
+     Stap 3: bereken de normpremie
+     De normpremie wordt berekend met het drempelinkomen en het toetsingsinkomen.
+     Het drempelinkomen is voor 2026 vastgesteld op € 29.736.
+
+     Voor een aanvrager zonder toeslagpartner:
+     Normpremie = 1,912% x drempelinkomen + 13,73% (toetsingsinkomen - drempelinkomen)
+
+     Voor een aanvrager met toeslagpartner:
+     Normpremie = 4,289% x drempelinkomen + 13,73% (gezamenlijk toetsingsinkomen - drempelinkomen)
+
+         Let op!
+         Leidt het tweede deel van de formule tot een negatief bedrag? Reken dan met € 0.
+
+     De maximale zorgtoeslag wordt uitgekeerd bij een toetsingsinkomen op of onder het drempelinkomen.
+     In 2026 is de maximale zorgtoeslag voor een aanvrager zonder toeslagpartner € 1.550 en voor een aanvrager
+     met toeslagpartner € 2.963.
+
+     Stap 4: bereken de zorgtoeslag voor uw klant die in Nederland woont
+     Woont uw klant in het buitenland? Ga dan verder met stap 5.
+
+     Voor een aanvrager zonder toeslagpartner:
+
+
+     Standaardpremie                                  €     2.119		
+     Normpremie                                       €			 –
+     Zorgtoeslag                                      €			
+
+
+     Voor een aanvrager met toeslagpartner:
+
+
+     Standaardpremie                                  €     4.238		
+     Normpremie                                       €		–
+     Zorgtoeslag                                      €			
+
+
+     Is de toeslagpartner geen verzekerde voor de Wet op de zorgtoeslag? Dan is er recht op 50% van de
+     berekende zorgtoeslag.
+
+     Stap 5: bereken de zorgtoeslag voor uw klant die in het buitenland woont
+     Hoe u de zorgtoeslag berekent, hangt af van hoe uw klant verzekerd is voor de zorgkosten.
+
+     Situatie 1: Uw klant heeft een zorgverzekering in Nederland.
+     Uw klant is dan een ‘verzekerde’. U berekent de zorgtoeslag op de normale manier:
+     • standaardpremie - normpremie = zorgtoeslag
+
+
+
+
+		   Berekening zorgtoeslag 2026                                                                             3
+     Situatie 2: Uw klant heeft een verzekering via het CAK in Nederland.
+     Uw klant woont in een verdragsland en krijgt een uitkering of pensioen uit Nederland. Deze persoon is dan
+     een ‘verdragsgerechtigde’. Bij de berekening van de zorgtoeslag houden we rekening met de kosten van de
+     zorg in het land waar uw klant woont. Dit heet de woonlandfactor (zie de tabel woonlandfactor). U berekent
+     de zorgtoeslag op de volgende manier:
+     • (standaardpremie x woonlandfactor) - normpremie = zorgtoeslag
+
+     Heeft uw klant een toeslagpartner? Hoe u de zorgtoeslag berekent, hangt af van hoe uw klant en
+     toeslagpartner verzekerd zijn voor de zorgkosten.
+
+     Uw klant is een verzekerde en:
+     • de toeslagpartner van uw klant is een verzekerde:
+       standaardpremie + standaardpremie - normpremie = zorgtoeslag
+     • de toeslagpartner van uw klant is een verdragsgerechtigde:
+       standaardpremie + standaardpremie x woonlandfactor - normpremie = zorgtoeslag
+     • de toeslagpartner van uw klant is geen verdragsgerechtigde en geen verzekerde:
+       (standaardpremie + standaardpremie x woonlandfactor - normpremie) x 50% = zorgtoeslag
+
+     Uw klant is een verdragsgerechtigde en:
+     • de toeslagpartner van uw klant is een verdragsgerechtigde:
+       2 x standaardpremie x woonlandfactor - normpremie = zorgtoeslag
+     • de toeslagpartner van uw klant is een verzekerde:
+       standaardpremie x woonlandfactor + standaardpremie - normpremie = zorgtoeslag
+     • de toeslagpartner van uw klant is geen verdragsgerechtigde en geen verzekerde:
+       (2 x standaardpremie x woonlandfactor - normpremie) x 50% = zorgtoeslag
+
+
+     Tabel woonlandfactor 2026                              Tabel woonlandfactor 2026
+     Woonland                           Woonlandfactor      Woonland                           Woonlandfactor
+     BE    België                       0,8165              LU    Luxemburg                    0,8430
+     DE    Bondsrepubliek Duitsland     1,0000              MT    Malta                        0,4370
+
+     BA    Bosnië-Herzegovina           0,0881              MA    Marokko                      0,0212
+
+     BG    Bulgarije                    0,1363              ME    Montenegro                   0,1202
+
+     CY    Cyprus                       0,4498              NO    Noorwegen                    1,0000
+
+     DK    Denemarken                   1,0000              AT    Oostenrijk                   0,9177
+
+     EE    Estland                      0,3057              PL    Polen                        0,1940
+
+     FI    Finland                      0,8148              PT    Portugal                     0,3205
+
+     FR    Frankrijk                    0,8304              MK    Republiek Noord-Macedonië    0,0599
+
+     GR    Griekenland                  0,2206              RO    Roemenië                     0,1453
+
+     GB    Groot-Brittannië             0,8498              RS    Servië                       0,1118
+
+     HU    Hongarije                    0,1887              SI    Slovenië                     0,4029
+
+     IE    Ierland                      0,9789              SK    Slowakije                    0,2684
+
+     IS    IJsland                      1,0000              ES    Spanje                       0,4408
+
+     IT    Italië                       0,4641              CZ    Tsjechië                     0,4257
+
+     CV    Kaap-Verdië                  0,0346              TN    Tunesië                      0,0306
+
+     HR    Kroatië                      0,3201              TR    Turkije                      0,0682
+
+     LV    Letland                      0,2110              SE    Zweden                       1,0000
+
+     LI    Liechtenstein                1,0000              CH    Zwitserland                  1,0000
+     LT    Litouwen                     0,2459
+
+
+
+
+		   Berekening zorgtoeslag 2026                                                                             4
+     Rekenvoorbeelden
+     Rekenvoorbeeld 1
+     Wouter is een alleenstaande man met een jaarinkomen van € 19.000.
+
+     Stap 1
+     Standaardpremie = € 2.119
+
+     Stap 2
+
+
+     Toetsingsinkomen aanvrager                      €     19.000		
+     Toetsingsinkomen toeslagpartner                          n.v.t. +
+     Gezamenlijk toetsingsinkomen                    €     19.000		
+
+
+     Stap 3
+     Normpremie = 1,912% x € 29.736 + 13,73% (€ 19.000 - € 29.736) = € 568,55
+
+     Stap 4
+
+
+     Standaardpremie                                 € 2.119,00		
+     Normpremie                                      €     568,55 –
+     Zorgtoeslag per jaar                            € 1.550,45		
+     Bedrag per maand                                €     129,20		
+                                                     (na afronding € 129)
+
+
+
+
+     Rekenvoorbeeld 2
+     Marit (militair) en Rik (docent) zijn getrouwd. Haar jaarinkomen is € 26.200. Zijn jaarinkomen is € 7.000.
+     Marit is geen verzekerde voor de Wet op de zorgtoeslag, want ze is militair. Zij kan daarom zelf geen
+     zorgtoeslag aanvragen. Rik moet de zorgtoeslag aanvragen en kan 50% van de berekende zorgtoeslag krijgen.
+
+     Stap 1
+     Standaardpremie: € 4.238
+
+     Stap 2
+
+
+     Toetsingsinkomen aanvrager                      €      7.000		
+     Toetsingsinkomen toeslagpartner                 €     26.200 +
+     (Gezamenlijk) toetsingsinkomen                  €     33.200		
+
+
+     Stap 3
+     Normpremie = 4,289% x € 29.736 + 13,73% (€ 33.200 – € 29.736) = € 1.750,98
+
+
+
+
+		   Berekening zorgtoeslag 2026                                                                                  5
+     Stap 4
+
+
+     Standaardpremie                                   € 4.238,00		
+     Normpremie                                        € 1.750,98 –
+     Subtotaal                                         € 2.487,02		
+                                                                50% ×
+     Zorgtoeslag per jaar                              € 1.243,51		
+     Bedrag per maand                                  €     103,62		
+                                                       (na afronding € 103)
+
+
+
+
+     Rekenvoorbeeld 3
+     Jan en Kathleen zijn getrouwd en wonen in België. Jan heeft een Nederlands AOW-pensioen van € 12.000
+     per jaar. Kathleen werkt in België en haar jaarinkomen is € 11.000. Jan is voor zijn ziektekosten verzekerd
+     via het CAK in Nederland. Kathleen is in België zorgverzekerd. Zij is geen verzekerde en geen verdrags­
+     gerechtigde. Jan moet dus de zorgtoeslag aanvragen en kan 50% van de berekende zorgtoeslag krijgen.
+
+     Stap 1
+     Standaardpremie = € 4.238 x 0,8165 = € 3.460,33
+
+     Omdat Jan en Kathleen in België wonen, vermenigvuldigt u de standaardpremie voor 2 personen met de
+     woonlandfactor voor België.
+
+     Stap 2
+
+
+     Toetsingsinkomen aanvrager                        €     12.000		
+     Toetsingsinkomen toeslagpartner                   €     11.000 +
+     Gezamenlijk toetsingsinkomen                      €     23.000		
+
+
+     Stap 3
+     Normpremie = 4,289% x € 29.736 + 13,73% (€ 23.000 - € 29.736) = € 1.275,37
+
+     Stap 4
+     Niet van toepassing (situatie buitenland)
+
+     Stap 5
+     U berekent de zorgtoeslag volgens de formule: (2x standaardpremie x woonlandfactor - normpremie)
+     x 50% = zorgtoeslag
+
+
+     2 x standaardpremie                               € 4.238,00		
+     Woonlandfactor                                          0,8165 ×
+     Subtotaal                                         € 3.460,33		
+     Normpremie                                        € 1.275,37 –
+     Subtotaal                                         € 2.184,96		
+                                                                50% ×
+     Zorgtoeslag per jaar                              € 1.092,48		
+     Bedrag per maand                                  €       91,04		
+                                                       (na afronding € 91)
+
+
+
+
+		   Berekening zorgtoeslag 2026                                                                                   6
+TG 082 - 1Z62FD ﻿
+                    Dit is een uitgave van:
+
+                    Dienst Toeslagen - Ministerie van Financiën
+                    Januari 2026
+

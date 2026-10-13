@@ -1,0 +1,279 @@
+Berekening
+kinderopvangtoeslag
+2026
+     De kinderopvangtoeslag is een bijdrage in de kosten van kinderopvang. Hoeveel kinderopvangtoeslag
+     uw klant krijgt, hangt onder andere af van:
+     • de kosten van de kinderopvang
+     • het (gezamenlijke) toetsingsinkomen
+
+
+
+
+     Berekening
+     U berekent de kinderopvangtoeslag van uw klant in 7 stappen.
+
+     Stap 1: bepaal de uurprijs
+     Voor kinderopvangtoeslag geldt een maximumuurtarief:
+     • voor dagopvang bij een kindercentrum: € 11,23 per uur
+     • voor buitenschoolse opvang (bso) bij een kindercentrum: € 9,98 per uur
+     • voor gastouderopvang (dagopvang en bso): € 8,49 per uur
+
+     Is de opvang goedkoper? Ga dan uit van dat goedkopere uurtarief.
+     Is de opvang duurder? Ga dan uit van het maximumuurtarief.
+
+     Stap 2: bepaal de opvanguren waarvoor uw klant kinderopvangtoeslag kan krijgen
+     Het maximaal aantal opvanguren is gekoppeld aan het aantal gewerkte maanden in dat jaar. Het maximaal
+     aantal opvanguren per maand is 230 uren per kind.
+     Maximaal aantal uren per kind in het jaar = aantal gewerkte maanden x 230 uur.
+
+     Werken beide ouders? Dan gaan we uit van het aantal gewerkte maanden van de ouder die het minst werkt.
+
+     Het kind gaat meer dan 230 uur per maand naar de opvang
+     Als het kind meer uren naar de opvang gaat, dan krijgt de ouder toeslag voor maximaal 230 uur per maand.
+
+     Het kind gaat minder dan 230 uur per maand naar de opvang
+     Als het kind minder uren naar de opvang gaat, dan krijgt de ouder alleen toeslag voor de uren die in het
+     contract met de opvang staan.
+
+     Stap 3: bereken de opvangkosten voor het 1e kind
+     Het 1e kind is het kind met de meeste opvanguren per maand. Gaan meer kinderen evenveel uren naar de
+     kinderopvang? Dan telt het kind met de hoogste opvangkosten als het 1e kind. Houd hierbij rekening met
+     de berekende uren van stap 2.
+
+     Aantal opvanguren voor het 1e kind x uurprijs (stap 1) = de opvangkosten voor het 1e kind.
+
+     Stap 4: bereken het gezamenlijke toetsingsinkomen
+
+
+     Toetsingsinkomen aanvrager            €			
+     Toetsingsinkomen toeslagpartner       €		+
+     Gezamenlijk toetsingsinkomen          €			
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                        2
+     Stap 5: bereken de kinderopvangtoeslag voor het 1e kind
+     De hoogte van de kinderopvangtoeslag is afhankelijk van het (gezamenlijke) toetsingsinkomen.
+     In de tabel ziet u hoeveel procent van de opvangkosten vergoed wordt.
+
+     Opvangkosten 1e kind x percentage 1e kind = kinderopvangtoeslag 1e kind
+
+
+     Kinderopvangtoeslagtabel 2026                                Kinderopvangtoeslagtabel 2026
+     (Gezamenlijk) toetsingsinkomen Percentage van de             (Gezamenlijk) toetsingsinkomen Percentage van de
+                                    kosten van kinderopvang                                      kosten van kinderopvang
+                                               2e en                                                          2e en
+     Van             Tot             1e kind   volgende kind      Van            Tot                1e kind   volgende kind
+      €0             € 24.149         96,00%   96,00%              € 107.493     € 111.290          67,30%    89,50%
+      € 24.150       € 25.756         96,00%   96,00%              € 111.291     € 115.090          65,10%    89,10%
+      € 25.757       € 27.363         96,00%   96,00%              € 115.091     € 118.963          62,70%    88,60%
+      € 27.364       € 28.973         96,00%   96,00%              € 118.964     € 122.857          60,60%    87,90%
+      € 28.974       € 30.579         96,00%   96,00%              € 122.858     € 126.747          58,50%    87,40%
+      € 30.580       € 32.189         96,00%   96,00%              € 126.748     € 130.638          56,40%    87,00%
+      € 32.190       € 33.795         96,00%   96,00%              € 130.639     € 134.527          54,20%    86,70%
+      € 33.796       € 35.400         96,00%   96,00%              € 134.528     € 138.420          52,30%    86,00%
+      € 35.401       € 37.129         96,00%   96,00%              € 138.421     € 142.312          50,40%    85,40%
+      € 37.130       € 38.855         96,00%   96,00%              € 142.313     € 146.205          48,50%    85,00%
+      € 38.856       € 40.586         96,00%   96,00%              € 146.206     € 150.092          46,50%    84,40%
+      € 40.587       € 42.313         96,00%   96,00%              € 150.093     € 153.982          44,50%    84,00%
+      € 42.314       € 44.046         96,00%   96,00%              € 153.983     € 157.877          42,50%    83,30%
+      € 44.047       € 45.776         96,00%   96,00%              € 157.878     € 161.766          40,50%    82,70%
+      € 45.777       € 47.546         96,00%   96,00%              € 161.767     € 165.657          38,50%    81,70%
+      € 47.547       € 49.318         96,00%   96,00%              € 165.658     € 169.547          36,50%    81,40%
+      € 49.319       € 51.092         96,00%   96,00%              € 169.548     € 173.440          36,50%    80,60%
+      € 51.093       € 52.864         96,00%   96,00%              € 173.441     € 177.335          36,50%    79,70%
+      € 52.865       € 54.641         96,00%   96,00%              € 177.336     € 181.223          36,50%    79,10%
+      € 54.642       € 56.412         96,00%   96,00%              € 181.224     € 185.114          36,50%    78,20%
+      € 56.413       € 58.184         95,50%   95,60%              € 185.115     € 189.002          36,50%    77,70%
+      € 58.185       € 59.957         94,80%   95,60%              € 189.003     € 192.896          36,50%    76,90%
+      € 59.958       € 61.895         93,90%   95,60%              € 192.897     € 196.789          36,50%    76,20%
+      € 61.896       € 65.695         92,40%   95,60%              € 196.790     € 200.681          36,50%    75,50%
+      € 65.696       € 69.492         91,60%   95,20%              € 200.682     € 204.571          36,50%    74,50%
+      € 69.493       € 73.292         90,50%   94,60%              € 204.572     € 208.458          36,50%    74,00%
+      € 73.293       € 77.094         88,20%   94,20%              € 208.459     € 212.353          36,50%    73,30%
+      € 77.095       € 80.891         85,90%   93,90%              € 212.354     € 216.242          36,50%    72,50%
+      € 80.892       € 84.693         83,70%   93,20%              € 216.243     € 220.134          36,50%    71,80%
+      € 84.694       € 88.491         81,20%   92,70%              € 220.135     € 224.026          36,50%    71,20%
+      € 88.492       € 92.291         78,90%   92,20%              € 224.027     € 227.915          36,50%    70,40%
+      € 92.292       € 96.091         76,70%   91,50%              € 227.916     € 231.807          36,50%    69,60%
+      € 96.092       € 99.889         74,30%   90,90%              € 231.808     € 235.697          36,50%    69,10%
+      € 99.890       € 103.694        72,10%   90,50%              € 235.698     € 99.999.999       36,50%    68,20%
+      € 103.695      € 107.492        69,60%   90,20%
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                      3
+     Stap 6: bereken de kinderopvangtoeslag voor de andere kinderen
+     Zijn er meer kinderen die naar de kinderopvang gaan? Herhaal stap 1 tot en met 5 voor het 2e en
+     volgende kind.
+
+     Stap 7: bereken het totaal aan kinderopvangtoeslag
+     Tel de toeslag voor alle kinderen bij elkaar op.
+
+
+
+
+     Rekenvoorbeelden
+     Rekenvoorbeeld 1
+     Chris en Khadija werken beiden in loondienst. Het jaarinkomen van Khadija is € 40.000. Het jaarinkomen
+     van Chris is € 20.000. Ze hebben één kind, dat 122 uur per maand naar de dagopvang gaat bij een
+     kindercentrum. Het uurtarief van de opvang is € 10,50.
+
+     Stap 1
+     De opvang is goedkoper dan het maximumuurtarief. De uurprijs van de opvang is dus € 10,50.
+
+     Stap 2
+     Chris en Khadija hebben recht op kinderopvangtoeslag voor 122 uur per maand.
+
+     Stap 3
+     Kosten dagopvang 1e kind: 122 x € 10,50 = € 1.281 per maand
+
+     Stap 4
+     Het gezamenlijke toetsingsinkomen is € 60.000.
+
+
+     Toetsingsinkomen aanvrager            €   40.000		
+     Toetsingsinkomen toeslagpartner       €   20.000 +
+     Gezamenlijk toetsingsinkomen          €   60.000		
+
+
+     Stap 5
+     Kinderopvangtoeslag voor het 1e kind bij een inkomen van € 60.000:
+     93,90% van € 1.281= € 1.202,86
+
+     Stap 6
+     Is niet van toepassing (1 kind).
+
+     Stap 7
+     Totaal kinderopvangtoeslag: € 1.202,86 per maand (afgerond naar beneden € 1.202).
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                      4
+     Rekenvoorbeeld 2
+     Cynthia en Hannah werken beiden. Cynthia heeft een eigen bedrijf en haar jaarinkomen is € 100.000.
+     Hannah werkt in loondienst, haar jaarinkomen is € 20.000. Ze hebben 2 kinderen. Het oudste kind gaat
+     65 uur per maand naar de buitenschoolse opvang bij een kindercentrum. Het uurtarief is € 10,10.
+     Het jongste kind gaat 87 uur per maand naar de dagopvang bij een kindercentrum. Het uurtarief € 12,45.
+
+     Stap 1
+     Uurprijs jongste kind
+     Voor de dagopvang geldt het maximumuurtarief. Dat is dus € 11,23.
+
+     Uurprijs oudste kind
+     Voor de buitenschoolse opvang geldt het maximumuurtarief. Dat is dus € 9,98.
+
+     Stap 2
+     Cynthia en Hannah hebben voor hun jongste kind voor 87 uur per maand recht op kinderopvangtoeslag.
+     Voor hun oudste kind hebben zij voor 65 uur per maand recht op kinderopvangtoeslag.
+
+     Stap 3
+     Het jongste kind is het kind met de meeste opvanguren.
+     De kosten van dagopvang voor het 1e kind zijn dus: 87 x € 11,23 (maximumuurtarief ) = € 977,01 per maand.
+
+     Stap 4
+     Het gezamenlijke toetsingsinkomen is € 120.000.
+
+
+     Toetsingsinkomen aanvrager            €   100.000		
+     Toetsingsinkomen toeslagpartner       €     20.000 +
+     Gezamenlijk toetsingsinkomen          €   120.000
+
+
+     Stap 5
+     Kinderopvangtoeslag voor het 1e kind bij een inkomen van € 120.000:
+     60,60% van € 977,01 = € 592,07
+
+     Stap 6
+     Kosten van buitenschoolse opvang voor het 2e kind: 65 x € 9,98 (maximumuurtarief ) = € 648,70 per maand.
+     Kinderopvangtoeslag voor het 2e kind: 87,90% van € 648,70 = € 570,21
+
+     Stap 7
+     Totaal kinderopvangtoeslag:
+
+
+     1e kind                               €     592,07		
+     2e kind                               €     570,21 +
+     Totaal per maand                      € 1.162,28		
+                                           (na afronding € 1.162)
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                         5
+     Rekenvoorbeeld 3
+     Anne is een alleenstaande vrouw met één kind. Ze werkt 40 uur per week en haar jaarinkomen is € 40.000.
+     Haar kind gaat 240 uur per maand naar de dagopvang bij een gastouder. Het uurtarief is € 8,25.
+
+     Stap 1
+     De opvang is goedkoper dan het maximumuurtarief. De uurprijs van de opvang is dus € 8,25.
+
+     Stap 2
+     Let op! Anne kan voor maximaal 230 uur per maand kinderopvangtoeslag krijgen.
+
+     Stap 3
+     Kosten van gastouderopvang voor het 1e kind: 230 x € 8,25 = € 1.897,50 per maand
+
+     Stap 4
+     Anne heeft geen toeslagpartner. Het gezamenlijke toetsingsinkomen is dus gelijk aan haar jaarinkomen:
+     € 40.000.
+
+     Stap 5
+     Kinderopvangtoeslag voor het 1e kind bij een inkomen van € 40.000:
+     96,00% van € 1.897,50 = € 1.821,60
+
+     Stap 6
+     Is niet van toepassing (1 kind).
+
+     Stap 7
+     Totaal kinderopvangtoeslag: € 1.821,60 per maand (naar beneden afgerond € 1.821).
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                       6
+     Rekenvoorbeeld 4
+     Mark en Agnes hebben samen 1 kind. Mark studeert aan de universiteit en werkt daarnaast in loondienst.
+     Zijn jaarinkomen is € 15.000. Agnes werkt ook in loondienst. Haar jaarinkomen is € 35.000.
+     Hun kind gaat 108 uur per maand naar de dagopvang bij een gastouder. Het uurtarief is € 9,52.
+
+     Stap 1
+     Voor de opvang geldt het maximumuurtarief. De uurprijs is dus € 8,49.
+
+     Stap 2
+     Mark en Agnes hebben recht op kinderopvangtoeslag voor 108 uur per maand.
+
+     Stap 3
+     Kosten van gastouderopvang 1e kind: 108 x € 8,49 = € 916,92 per maand
+
+     Stap 4
+     Het gezamenlijke toetsingsinkomen is € 35.000.
+
+     Toetsingsinkomen aanvrager            €   35.000		
+     Toetsingsinkomen toeslagpartner       €   15.000 +
+     Gezamenlijk toetsingsinkomen          €   50.000		
+
+
+     Stap 5
+     Kinderopvangtoeslag voor het 1e kind bij een inkomen van € 50.000:
+     96,00% van € 916,92 = € 880,24
+
+     Stap 6
+     Is niet van toepassing (1 kind).
+
+     Stap 7
+     Totaal kinderopvangtoeslag: € 880,24 per maand (na afronding € 880).
+
+
+
+
+		   Berekening kinderopvangtoeslag 2026                                                                      7
+TG 080 - 1Z61FD ﻿
+                    Dit is een uitgave van:
+
+                    Dienst Toeslagen - Ministerie van Financiën
+                    Januari 2026
+

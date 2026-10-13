@@ -1,0 +1,420 @@
+Berekening huurtoeslag
+2026
+     De huurtoeslag is een bijdrage in de kosten van de huur. Hoeveel huurtoeslag uw klant krijgt, hangt onder
+     andere af van:
+     • de rekenhuur
+     • het rekeninkomen
+     • het soort huishouden
+     • de basishuur
+     • de kwaliteitskortingsgrens
+     • de aftoppingsgrens
+     • de huurgrens
+     • de inkomensafhankelijke correctie
+
+
+
+
+     Vermogen mag niet te hoog zijn
+     Heeft uw klant, de partner of medebewoner vermogen, zoals spaargeld en beleggingen? Als het
+     gezamenlijke vermogen op 1 januari 2026 te hoog is, heeft uw klant het hele jaar geen recht op huurtoeslag.
+
+     In de tabel staat hoeveel vermogen uw klant maximaal mag hebben op 1 januari 2026. Buitenlands
+     vermogen telt ook mee.
+
+     Situatie                                            Maximaal vermogen
+     Alleenstaande aanvrager                             € 38.479
+     Aanvrager met toeslagpartner                        € 76.958
+     Per medebewoner                                     € 38.479
+
+
+     Het vermogen van een toeslagpartner en medebewoner telt alleen mee als uw klant het hele jaar dezelfde
+     toeslagpartner of medebewoner heeft.
+
+         Let op!
+         Heeft uw klant voor de inkomstenbelasting een vrijstelling voor groene beleggingen? Voor de huurtoeslag
+         geldt deze vrijstelling niet. Tel groene beleggingen dus mee als vermogen.
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                                   2
+     Berekening
+     Voldoet uw klant aan de voorwaarden? Dan berekent u de huurtoeslag in 7 stappen.
+
+     Stap 1: bepaal de rekenhuur
+     De rekenhuur is het bedrag waarover de huurtoeslag wordt berekend. Dit is voor een woning de kale huur.
+     De rekenhuur kan niet hoger zijn dan de huurgrens.
+
+     Er zijn 2 huurgrenzen:
+     • voor jongeren onder 21 jaar. Deze grens is € 498,20.
+     • voor personen vanaf 21 jaar en voor jongeren onder 21 jaar met een (pleeg) kind of een handicap.
+        Deze grens is € 932,93.
+
+     Is de kale huur hoger dan de huurgrens? Dan is de rekenhuur gelijk aan de huurgrens.
+     Is de kale huur lager dan de huurgrens? Dan is de rekenhuur gelijk aan de kale huur.
+
+     Stap 1: Rekenhuur =                             €			
+
+
+
+     Standplaats woonwagen
+     Huurt uw klant een woonwagen? Dan telt u de huur van de standplaats mee bij de kale huur.
+
+     Servicekosten
+     Betaalt uw klant servicekosten? Vanaf 2026 tellen die niet meer mee bij de rekenhuur.
+
+     Stap 2: bepaal de basishuur
+     De basishuur is het eerste deel van de rekenhuur, dat uw klant zelf moet betalen. Vanaf 2026 is de basishuur
+     niet meer afhankelijk van het inkomen, maar wordt bepaald door het soort huishouden.
+
+     Er zijn 2 basishuren:
+     • voor huishoudens van 1 persoon. Deze basishuur is € 202,52.
+     • voor huishoudens van 2 of meer personen. Deze basishuur is € 200,71.
+
+
+     Stap 2: Basishuur =                             € 			
+
+
+     Stap 3: bepaal de kwaliteitskortingsgrens
+     De kwaliteitskortingsgrens is voor iedereen € 498,20. Voor het deel van de rekenhuur dat boven de
+     basishuur en onder de kwaliteitskortingsgrens ligt, krijgt uw klant 100% vergoeding.
+
+
+     Stap 3: Kwaliteitskortingsgrens is =            €    498,20		
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                                3
+     Stap 4: bepaal de aftoppingsgrens
+     Dit geldt voor huishoudens met minimaal 1 persoon die 21 of ouder is. Is iedereen onder de 21? Sla stap 4 over
+     en ga meteen door naar stap 5.
+
+     Er zijn 2 aftoppingsgrenzen:
+     • voor huishoudens van 1 of 2 personen. Deze grens is € 713,02.
+     • voor huishoudens van 3 of meer personen. Deze grens is € 764,14.
+
+     Voor het deel van de rekenhuur dat boven de kwaliteitskortingsgrens en onder de aftoppingsgrens ligt,
+     krijgt uw klant 65% vergoeding. Voor het deel van de rekenhuur dat boven de aftoppingsgrens ligt
+     tot aan de huurgrens van € 932,93 ,krijgt uw klant 40% vergoeding.
+
+     Onderhuurders
+     Onderhuurders en personen die bij het huishouden van onderhuurders horen tellen niet mee
+     bij het huishouden.
+
+
+     Stap 4: Aftoppingsgrens =                                 €			
+
+
+     Stap 5: bereken het rekeninkomen
+     Het rekeninkomen is het totaal van de toetsingsinkomens van alle leden van het huishouden:
+     • aanvrager
+     • toeslagpartner
+     • medebewoners
+
+
+     Toetsingsinkomen aanvrager                                €			
+     Toetsingsinkomen toeslagpartner                           €		 +
+     Toetsingsinkomen medebewoner(s)                           €		+
+     Rekeninkomen                                              €			
+
+
+     Stap 5: Rekeninkomen =                                    €			
+
+
+     Kinderen
+     Voor inwonende kinderen die bij aanvang van 2026 jonger zijn dan 23 jaar, telt alleen het inkomen
+     mee boven de vrijstellingsgrens van € 6.218 per persoon per jaar. Dit geldt ook voor pleeg-, stief- en
+     adoptiekinderen.
+
+     Onderhuurders
+     Het inkomen van onderhuurders telt niet mee voor de huurtoeslag. Ook tellen inkomens van personen
+     die bij het huishouden van onderhuurders horen niet mee.
+
+     Negatief inkomen
+     Heeft de aanvrager een toeslagpartner of medebewoners, en heeft iemand een negatief toetsingsinkomen?
+     Dan trekken wij het negatieve inkomen af van het positieve inkomen.
+     Is het saldo negatief? Dan is het rekeninkomen van € 0.
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                                      4
+     Stap 6: Bepaal de inkomensafhankelijke correctie
+     Vanaf 2026 wordt de huurtoeslag verlaagd met een correctie als het rekeninkomen hoger is
+     dan het inkomensijkpunt.
+
+     Er zijn 2 inkomensijkpunten:
+     • voor huishoudens van 1 persoon. Dit ijkpunt is € 23.425.
+     • voor huishoudens van 2 of meer personen. Dit ijkpunt is € 31.500.
+
+     Is het rekeninkomen (stap 5) lager dan het inkomensijkpunt? Dan is de correctie € 0,-
+     Is het rekeninkomen hoger dan het inkomensijkpunt? Bereken de correctie met de formule:
+
+     Correctie = (rekeninkomen - inkomensijkpunt) × (afbouwpercentage/12)
+
+     Er zijn 2 afbouwpercentages:
+     • voor huishoudens van 1 persoon: 27%
+     • voor huishoudens van 2 of meer personen: 22%
+
+     Stap 6: Inkomensafhankelijk correctie = 				
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                5
+     Stap 7: bereken de huurtoeslag
+     De huurtoeslag is opgebouwd uit 3 delen: A, B en C. Tel deze bij elkaar op. Trek daarna de
+     eventuele correctie (deel D) hiervan af. Gebruik hiervoor de bedragen uit de eerdere stappen.
+
+     Jongeren
+     Bij een huishouden van jongeren onder de 21 jaar hoeft u alleen onderdeel A in te vullen.
+     Dit is dan de huurtoeslag per maand.
+
+     Onderdeel A: het deel van de rekenhuur dat voor 100% vergoed wordt
+     Alleen invullen als de rekenhuur boven de basishuur ligt.
+     Anders is er geen huurtoeslag en hoeft u verder niets in te vullen.
+     Bepaal het laagste bedrag van rekenhuur (stap 1) en				
+     kwaliteitskortingsgrens (stap 3)                    €			
+     Basishuur (stap 2)                                     €		–
+     Huurtoeslag deel A                                     €			
+
+     Onderdeel B: het deel van de rekenhuur dat voor 65% vergoed wordt
+     Alleen invullen als de rekenhuur meer is dan € 498,20
+     Bepaal het laagste bedrag van rekenhuur(stap 1)				
+     en aftoppingsgrens (stap 4)                     €			
+     Kwaliteitskortingsgrens (stap 3)                       € 	   498,20 –
+                                                            €			
+                                                                    65% ×
+     Huurtoeslag deel B                                     €			
+
+     Onderdeel C: het deel van de rekenhuur dat voor 40% vergoed wordt
+     Alleen invullen als de rekenhuur boven de aftoppingsgrens (stap 4) ligt.
+     Rekenhuur (stap 1)                                     €			
+     Aftoppingsgrens (stap 4)                               €		–
+                                                            €			
+                                                                    40% ×
+     Huurtoeslag deel C                                     €			
+
+     Onderdeel D: de inkomensafhankelijke correctie
+     Neem de correctie over uit stap 6                      €			
+
+     Onderdeel E: Totaalbedrag huurtoeslag per maand
+     Huurtoeslag deel A                                     €			
+     Huurtoeslag deel B                                     €		 +
+     Huurtoeslag deel C                                     €		 +
+     Huurtoeslag deel D                                     €		–
+     Totaalbedrag huurtoeslag per maand                     €			
+     (Bedrag afronden naar beneden op hele euro’s)
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                     6
+     Rekenvoorbeelden
+
+     Rekenvoorbeeld 1
+     Sem is een alleenstaande man van 20 jaar. Hij woont in een huurhuis. Zijn jaarinkomen is € 22.000.
+     De kale huur is € 600. Hij vraagt huurtoeslag aan voor heel 2026.
+
+     Stap 1
+     De rekenhuur is € 498,20.
+     Omdat de kale huur hoger is dan de huurgrens voor personen onder 21 jaar, is de rekenhuur
+     gelijk aan de huurgrens.
+
+     Stap 2
+     De basishuur is € 202,52.
+
+     Stap 3
+     De kwaliteitskortingsgrens is voor iedereen € 498,20.
+
+     Stap 4
+     De aftoppingsgrens is niet van toepassing. Sam is jonger dan 21 jaar.
+
+     Stap 5
+     Sem heeft geen toeslagpartner of medebewoner(s). Het rekeninkomen is dus gelijk aan zijn jaarinkomen
+     (toetsingsinkomen): € 22.000.
+
+     Stap 6
+     De inkomensafhankelijke correctie is € 0. Het inkomen van Sem is lager dan het inkomensijkpunt
+     van € 23.425.
+
+     Stap 7
+
+     Berekening huurtoeslag deel A
+     Laagste bedrag kwaliteitskortingsgrens           €      498,20		
+     Basishuur                                        €      202,52 –
+     Huurtoeslag deel A                               €      295,68		
+
+     Berekening huurtoeslag deel B
+     Niet van toepassing bij jongerenhuishouden				
+
+     Berekening huurtoeslag deel C
+     Niet van toepassing bij jongerenhuishouding				
+
+     Berekening huurtoeslag deel D
+     Niet van toepassing				
+
+     Totaalbedrag huurtoeslag				
+     Berekening huurtoeslag deel A                    €      295,68 +
+     Berekening huurtoeslag deel B                    €        0,00 +
+     Berekening huurtoeslag deel C                    €        0,00 +
+     Berekening huurtoeslag D (n.v.t.)                €        0,00 –
+     Totaal per maand                                 €      295,68		
+                                                      (na afronding € 295)
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                            7
+     Rekenvoorbeeld 2
+     Demi (30 jaar) en Sophie (27 jaar) wonen met hun kind van 2 jaar in een huurhuis. Het jaarinkomen
+     van Demi is € 26.000, dat van Sophie is € 8.000. De kale huur is € 1.200. Ze vragen huurtoeslag aan
+     voor heel 2026.
+
+     Stap 1
+     De rekenhuur is: € 932,93.
+     Omdat de kale huur hoger is dan de huurgrens die geldt voor personen ouder dan 21 jaar, is de rekenhuur
+     gelijk aan de huurgrens.
+
+     Stap 2
+     De basishuur is € 200,71.
+
+     Stap 3
+     De kwaliteitskortingsgrens is. € 498,20.
+
+     Stap 4
+     De aftoppingsgrens is € 764,14.
+
+     Stap 5
+     Het rekeninkomen is € 34.000.
+
+
+     Toetsingsinkomen aanvrager                      €    26.000		
+     Toetsingsinkomen toeslagpartner                 €     8.000 +
+     Toetsingsinkomen medebewoner(s)                 €         0 +
+     Rekeninkomen                                    €    34.000		
+
+
+
+     Stap 6
+     De inkomensafhankelijke correctie is € 45,83.
+     Omdat het rekeninkomen hoger is dan het inkomensijkpunt, wordt de inkomensafhankelijke correctie
+     berekend met de formule:
+
+     Correctie = (rekeninkomen - inkomensijkpunt) × (afbouwpercentage/12)
+
+     (€ 34.000 - € 31.500) × (22%/12) = € 45,83
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                               8
+     Stap 7
+     De huurtoeslag is € 492 per maand.
+
+     Berekening huurtoeslag deel A
+     Kwaliteitskortingsgrens                       €     498,20		
+     Basishuur                                     €     200,71 –
+     Huurtoeslag deel A                            €     297,49		
+
+     Berekening huurtoeslag deel B		
+     Aftoppingsgrens                               €     764,14		
+     Kwaliteitskortingsgrens                       €     498,20 –
+     Subtotaal                                     €     265,94		
+                                                            65% ×
+     Huurtoeslag deel B                            €     172,86		
+
+     Berekening huurtoeslag deel C
+     Rekenhuur                                     €     932,93		
+     Aftoppingsgrens                               €     764,14 –
+     Subtotaal                                     €     168,79		
+                                                            40% ×
+     Huurtoeslag deel C                            €       67,51		
+
+     Berekening huurtoeslag deel D
+     Inkomensafhankelijke correctie                €       45,83		
+
+     Totaalbedrag huurtoeslag
+     Huurtoeslag deel A                            €     297,49 +
+     Huurtoeslag deel B                            €     172,86 +
+     Huurtoeslag deel C                            €       67,51 +
+     Huurtoeslag deel D                            €       45,83 –
+     Totaal per maand                              €     492,03		
+                                                   (na afronding € 492 )
+
+
+
+     Rekenvoorbeeld 3
+     Marina, een alleenstaande vrouw van 69 jaar, woont in een huurhuis. Haar jaarinkomen is € 29.000.
+     De kale huur is € 710. Ze vraagt huurtoeslag aan voor heel 2026.
+
+     Stap 1
+     De rekenhuur is € 710.
+
+     Stap 2
+     De basishuur is € 202,52.
+
+     Stap 3
+     De kwaliteitskortingsgrens is € 498,20.
+
+     Stap 4
+     De aftoppingsgrens is € 713,02.
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                         9
+     Stap 5
+     Marina heeft geen toeslagpartner of medebewoner. Het rekeninkomen is dus gelijk aan haar jaarinkomen
+     (toetsingsinkomen): € 29.000.
+
+     Stap 6
+     De inkomensafhankelijke correctie is € 125,44.
+     Omdat het rekeninkomen hoger is dan het inkomensijkpunt, wordt de inkomensafhankelijke correctie
+     berekend met de formule:
+
+     Correctie = (rekeninkomen - inkomensijkpunt) × (afbouwpercentage/12)
+
+     (€ 29.000 - € 23.425) × (27%/12) = € 125,44
+
+     Stap 7
+     De huurtoeslag is € 307 per maand.
+
+     Berekening huurtoeslag deel A
+     Laagste bedrag rekenhuur/kwaliteitskortingsgrens   €     498,20		
+     Basishuur                                          €     202,52 –
+     Huurtoeslag deel A                                 €     295,68		
+
+     Berekening huurtoeslag deel B		
+     Laagste bedrag rekenhuur/aftoppingsgrens           €     710,00		
+     Kwaliteitskortingsgrens                            €     498,20 –
+     Subtotaal                                          €     211,80		
+                                                                 65% ×
+     Huurtoeslag deel B                                 €     137,67		
+
+     Berekening huurtoeslag deel C				
+     Huurtoeslag deel C                                 €        0,00		
+     De rekenhuur is lager dan de aftoppingsgrens				
+
+     Berekening huurtoeslag deel D
+     Inkomensafhankelijke correctie                     €     125,44		
+
+     Totaalbedrag huurtoeslag		
+     Huurtoeslag deel A                                 €     295,68 +
+     Huurtoeslag deel B                                 €     137,67 +
+     Huurtoeslag deel C                                 €        0,00 +
+     Huurtoeslag deel D                                 €     125,44 –
+     Totaal per maand                                   €     307, 91		
+                                                        (na afronding € 307 )
+
+
+
+
+		   Berekening huurtoeslag 2026                                                                        10
+TG 083 - 1Z62FD ﻿
+                    Dit is een uitgave van:
+
+                    Dienst Toeslagen - Ministerie van Financiën
+                    Juni 2026
+

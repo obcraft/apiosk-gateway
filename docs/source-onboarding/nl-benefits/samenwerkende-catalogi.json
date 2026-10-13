@@ -1,0 +1,382 @@
+{
+  "format": "apiosk.source-bundle.v1",
+  "bundle_id": "888aed01-e330-4745-88b9-0d9e5c3eb4b8",
+  "provenance": {
+    "model": "codex",
+    "generated_at": "2026-10-13T17:13:07.262800+00:00",
+    "documentation_urls": [
+      "https://data.overheid.nl/sites/default/files/dataset/d0cca537-44ea-48cf-9880-fa21e1a7058f/resources/HandleidingSRU2.0.pdf"
+    ],
+    "reviewer": null,
+    "live_test": {
+      "status": "not_run",
+      "tested_at": null,
+      "notes": "Apiosk execution not run. Upstream-only probe: HTTP 200, valid SRU XML, 736 results and 2 returned records for bijstand. Evidence: evidence/samenwerkende-catalogi.xml and probes.json"
+    }
+  },
+  "source": {
+    "owner_id": "bf085fe8-41c4-4699-978f-e75e89518bf7",
+    "slug": "samenwerkende-catalogi",
+    "name": "Samenwerkende Catalogi — overheidsproducten en diensten",
+    "origin_url": "https://repository.overheid.nl",
+    "description": "Landelijke index van overheidsproducten en diensten, met gemeentelijke aanvraaginformatie en bronlinks. Geen volledige gemeentelijke website-index en geen berekening van persoonlijk recht.",
+    "long_description": "Landelijke index van overheidsproducten en diensten, met gemeentelijke aanvraaginformatie en bronlinks. Geen volledige gemeentelijke website-index en geen berekening van persoonlijk recht.",
+    "category": "government",
+    "docs_url": "https://data.overheid.nl/sites/default/files/dataset/d0cca537-44ea-48cf-9880-fa21e1a7058f/resources/HandleidingSRU2.0.pdf",
+    "website_url": "https://data.overheid.nl/sites/default/files/dataset/d0cca537-44ea-48cf-9880-fa21e1a7058f/resources/HandleidingSRU2.0.pdf",
+    "authentication_info": {
+      "type": "none"
+    },
+    "static_headers": [
+      {
+        "name": "Accept",
+        "value": "application/xml"
+      }
+    ],
+    "listing_metadata": {
+      "tags": [
+        "gemeenten",
+        "Samenwerkende Catalogi",
+        "bijzondere bijstand",
+        "inkomenstoeslag",
+        "aanvragen",
+        "lokale regelingen"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "jurisdiction": "NL",
+      "language": "nl",
+      "coverage_notice": "Landelijke index van overheidsproducten en diensten, met gemeentelijke aanvraaginformatie en bronlinks. Geen volledige gemeentelijke website-index en geen berekening van persoonlijk recht.",
+      "readiness": {
+        "state": "staged",
+        "blockers": [
+          "SRU XML normalization and bounded collection binding",
+          "Apiosk execution acceptance",
+          "Listing price review"
+        ]
+      },
+      "pricing": {
+        "state": "unpriced",
+        "upstream_cost_usd": null,
+        "listing_price_note": "Zero is a required database placeholder for inactive endpoints, not a free production offer."
+      },
+      "operator_notice": "Apiosk integration; not affiliated with the publisher.",
+      "upstream": {
+        "collection": "samenwerkendecatalogi",
+        "protocol": "SRU 2.0",
+        "fair_use": true,
+        "maximum_records": 1000
+      },
+      "municipal_websites": {
+        "state": "requires_connector",
+        "discovery": "Official links from Samenwerkende Catalogi",
+        "blockers": [
+          "Verify official domain per municipality",
+          "HTML/PDF extraction",
+          "Per-domain robots and reuse policy",
+          "Change detection"
+        ],
+        "subjects": [
+          "bijzondere bijstand",
+          "individuele inkomenstoeslag",
+          "energiefondsen",
+          "kwijtschelding",
+          "kindregelingen",
+          "sport en cultuur",
+          "aanvraagvoorwaarden"
+        ]
+      },
+      "upstream_probe": {
+        "name": "samenwerkende-catalogi",
+        "url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dsamenwerkendecatalogi+AND+dt.title%3Dbijstand&maximumRecords=2",
+        "final_url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dsamenwerkendecatalogi+AND+dt.title%3Dbijstand&maximumRecords=2",
+        "status": 200,
+        "content_type": "application/xml",
+        "bytes": 6713,
+        "sha256": "4fbe64f58781372ba74aecebfea5c7c3a158b7bdd227718bf78d785cc0cdbf16"
+      }
+    }
+  },
+  "credential_requirements": [],
+  "subject_kinds": [
+    {
+      "slug": "dataset",
+      "description": "Dataset or source response"
+    }
+  ],
+  "fact_types": [
+    {
+      "slug": "nl.municipal.services.search.input.query",
+      "name": "query",
+      "description": "Zoek gemeentelijke en landelijke producten en diensten: query",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "description": "CQL scoped to c.product-area==samenwerkendecatalogi; collection enforcement must be implemented before activation."
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.municipal.services.search.input.startrecord",
+      "name": "startRecord",
+      "description": "Zoek gemeentelijke en landelijke producten en diensten: startRecord",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.municipal.services.search.input.maximumrecords",
+      "name": "maximumRecords",
+      "description": "Zoek gemeentelijke en landelijke producten en diensten: maximumRecords",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 25
+      },
+      "freshness_seconds": null,
+      "match_hints": {}
+    },
+    {
+      "slug": "nl.municipal.services.search.response",
+      "name": "Zoek gemeentelijke en landelijke producten en diensten",
+      "description": "Search product descriptions and links. One bounded SRU page. No entitlement or complete municipal coverage claim; enforce collection before activation.",
+      "subject_kind": "dataset",
+      "jurisdiction": "NL",
+      "value_schema": {
+        "type": "string",
+        "description": "Raw SRU XML. Executor parsing and normalized response contract are pending."
+      },
+      "freshness_seconds": 86400,
+      "match_hints": {}
+    }
+  ],
+  "capabilities": [
+    {
+      "slug": "nl.municipal.services.search",
+      "name": "Zoek gemeentelijke en landelijke producten en diensten",
+      "description": "Search product descriptions and links. One bounded SRU page. No entitlement or complete municipal coverage claim; enforce collection before activation.",
+      "category": "government",
+      "input_contract": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CQL scoped to c.product-area==samenwerkendecatalogi; collection enforcement must be implemented before activation."
+          },
+          "startRecord": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maximumRecords": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "output_contract": {
+        "type": "string",
+        "description": "Raw SRU XML. Executor parsing and normalized response contract are pending."
+      }
+    }
+  ],
+  "endpoints": [
+    {
+      "key": "search",
+      "method": "GET",
+      "path": "/sru",
+      "price": 0,
+      "description": "Zoek gemeentelijke en landelijke producten en diensten",
+      "query_params": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "CQL scoped to c.product-area==samenwerkendecatalogi; collection enforcement must be implemented before activation."
+          },
+          "startRecord": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maximumRecords": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "request_body": null,
+      "response_body": {
+        "type": "string",
+        "description": "Raw SRU XML. Executor parsing and normalized response contract are pending."
+      },
+      "request_example": {
+        "query": "c.product-area==samenwerkendecatalogi AND dt.title=bijstand",
+        "maximumRecords": 2
+      },
+      "response_example": null,
+      "headers": {
+        "Accept": {
+          "type": "string",
+          "description": "text/html or application/xml"
+        }
+      },
+      "documentation_markdown": "Zoek gemeentelijke en landelijke producten en diensten\n\nSearch product descriptions and links. One bounded SRU page. No entitlement or complete municipal coverage claim; enforce collection before activation.\n\nRegistered on 2026-10-13. Inactive; no successful Apiosk execution is claimed. Price awaits review.",
+      "external_docs_url": "https://data.overheid.nl/sites/default/files/dataset/d0cca537-44ea-48cf-9880-fa21e1a7058f/resources/HandleidingSRU2.0.pdf",
+      "authentication_notes": "Public read access.",
+      "origin_override": null,
+      "cache_ttl_seconds": 86400,
+      "tags": [
+        "gemeenten",
+        "Samenwerkende Catalogi",
+        "bijzondere bijstand",
+        "inkomenstoeslag",
+        "aanvragen",
+        "lokale regelingen"
+      ],
+      "search_terms": [
+        "gemeenten",
+        "Samenwerkende Catalogi",
+        "bijzondere bijstand",
+        "inkomenstoeslag",
+        "aanvragen",
+        "lokale regelingen",
+        "Zoek gemeentelijke en landelijke producten en diensten"
+      ],
+      "use_cases": [
+        "Zoek gemeentelijke en landelijke producten en diensten"
+      ],
+      "sectors": [
+        "Government and public data"
+      ],
+      "input_entities": [
+        "query",
+        "startRecord",
+        "maximumRecords"
+      ],
+      "output_entities": [
+        "nl.municipal.services.search.response"
+      ],
+      "endpoint_category": "government",
+      "action_type": "lookup",
+      "task_summary": "Zoek gemeentelijke en landelijke producten en diensten",
+      "metadata_source": "provider_documentation",
+      "metadata_model": "codex",
+      "metadata_confidence": 0.9,
+      "metadata_at": "2026-10-13T17:13:07.262800+00:00",
+      "contract_documented": false
+    }
+  ],
+  "contracts": [
+    {
+      "endpoint_key": "search",
+      "capability_slug": "nl.municipal.services.search",
+      "version": 1,
+      "requires": [
+        {
+          "fact_type": "nl.municipal.services.search.input.query",
+          "subject_role": "subject",
+          "optional": false
+        },
+        {
+          "fact_type": "nl.municipal.services.search.input.startrecord",
+          "subject_role": "subject",
+          "optional": true
+        },
+        {
+          "fact_type": "nl.municipal.services.search.input.maximumrecords",
+          "subject_role": "subject",
+          "optional": true
+        }
+      ],
+      "produces": [
+        {
+          "fact_type": "nl.municipal.services.search.response",
+          "subject_role": "subject",
+          "cardinality": "one"
+        }
+      ],
+      "input_map": {
+        "nl.municipal.services.search.input.query": {
+          "in": "query",
+          "name": "query"
+        },
+        "nl.municipal.services.search.input.startrecord": {
+          "in": "query",
+          "name": "startRecord"
+        },
+        "nl.municipal.services.search.input.maximumrecords": {
+          "in": "query",
+          "name": "maximumRecords"
+        }
+      },
+      "fixed_params": {
+        "version": "2.0",
+        "operation": "searchRetrieve"
+      },
+      "output_map": {
+        "base": "$",
+        "produces": {
+          "nl.municipal.services.search.response": {
+            "path": "$"
+          }
+        }
+      },
+      "cardinality": "one",
+      "max_fan_out": 1,
+      "preconditions": {},
+      "pagination": {},
+      "effect": "read",
+      "price_model": "per_call",
+      "freshness_seconds": 86400,
+      "adapter_version": "pending-nl-benefits-v1",
+      "notes": "DRAFT: Search product descriptions and links. One bounded SRU page. No entitlement or complete municipal coverage claim; enforce collection before activation. Requires a verified executor response shape and live extraction before activation."
+    }
+  ],
+  "offers": [
+    {
+      "endpoint_key": "search",
+      "capability_slug": "nl.municipal.services.search",
+      "source": "declared",
+      "confidence": 0.9,
+      "input_map": {
+        "query": {
+          "in": "query",
+          "name": "query"
+        },
+        "startRecord": {
+          "in": "query",
+          "name": "startRecord"
+        },
+        "maximumRecords": {
+          "in": "query",
+          "name": "maximumRecords"
+        }
+      },
+      "fixed_params": {
+        "version": "2.0",
+        "operation": "searchRetrieve"
+      },
+      "notes": "Documentation-backed discovery link; endpoint and execution contract remain inactive/draft."
+    }
+  ]
+}
