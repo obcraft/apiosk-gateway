@@ -364,6 +364,27 @@ impl Gate {
             Some(json!({"quote_ref":proposal["quote_ref"],"max_total_atomic":proposal["max_total_atomic"]}))).await
     }
 
+    /// Recorded, already-planned task: isolates approval/requote execution
+    /// from the separate natural-language planner fixture.
+    async fn saved_input_quote(&self, person: &Person, label: &str) -> (Uuid, Value, Value) {
+        let catalog = self.engine.catalog.get().await.unwrap();
+        let mut intent = serde_json::from_value(json!({"subjects":[{"entity_ref":null,"label":label,"values":{"company.name":label}}],
+            "goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]})).unwrap();
+        let mut task = apiosk_gateway_v2::state::Task::default();
+        apiosk_gateway_v2::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let apiosk_gateway_v2::resolver::Resolution::Plan(plan) = apiosk_gateway_v2::resolver::resolve(&catalog, &task, &intent) else { panic!("fixture must resolve") };
+        task.focus.entity_refs = task.entities.iter().map(|e| e.entity_ref).collect();
+        task.focus.goal_refs = vec![Uuid::new_v4()];
+        task.intent = Some(serde_json::to_value(intent).unwrap());
+        task.proposal = Some(serde_json::to_value(plan).unwrap());
+        task.actions = vec![json!({"kind":"run","step":0,"action_id":Uuid::new_v4()})];
+        task.conversation = vec![apiosk_gateway_v2::state::ConversationTurn { question: format!("Company accounts for {label}"), reply: Some("The plan is ready for approval.".into()), output: None }];
+        let id = self.engine.store.create(person.owner, None).await.unwrap();
+        self.engine.store.save(person.owner, id, 0, &task).await.unwrap();
+        let view = self.view(person, id).await.1;
+        (id, view["proposal"].clone(), view)
+    }
+
     async fn requote(&self, person: &Person, task: Uuid, state: &Value, quote_ref: &Value) -> (StatusCode, Value) {
         self.send(person, &format!("/v2/tasks/{task}/requote"),
             Some(json!({"request_id":Uuid::new_v4(),"state":state,"quote_ref":quote_ref}))).await
@@ -591,6 +612,54 @@ async fn gate_workspace_isolation() {
     assert_eq!(body["errors"][0]["code"], "workspace_access_denied", "{body}");
     assert_eq!(gate.fake.provider.load(SeqCst), 2);
     println!("gate_workspace_isolation: read, approve, execute, list and events refused across workspaces");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db; no live database"]
+async fn gate_refreshed_old_inputs_complete_after_one_approval() {
+    let gate = Gate::start().await;
+    let person = Person::new();
+    let (id, quote, priced) = gate.saved_input_quote(&person, "SavedCompany").await;
+    sqlx::query("UPDATE tasks SET document=jsonb_set(jsonb_set(document,'{proposal,expires_at}',to_jsonb(now()-interval '8 hours')),'{facts}',(SELECT jsonb_agg(jsonb_set(f,'{expires_at}',to_jsonb(now()-interval '7 hours'))) FROM jsonb_array_elements(document->'facts') f)) WHERE id=$1")
+        .bind(id).execute(&gate.pool).await.unwrap();
+    assert_eq!(gate.authorize(&person, id, &quote).await.0, StatusCode::FORBIDDEN, "the old quote is still expired");
+    let model_calls = gate.fake.chat.load(SeqCst);
+    let (status, refreshed) = gate.requote(&person, id, &priced["state"], &quote["quote_ref"]).await;
+    assert_eq!(status, StatusCode::OK, "{refreshed}");
+    assert_eq!(refreshed["context_view"]["requote"]["changed"], false);
+    assert_eq!(gate.fake.chat.load(SeqCst), model_calls, "refresh must reuse the saved input");
+    let (status, _) = gate.authorize(&person, id, &refreshed["proposal"]).await;
+    assert_eq!(status, StatusCode::OK);
+    let done = gate.settled(&person, id).await;
+    assert_eq!(done["status"], "succeeded", "{done}");
+    assert_eq!(gate.fake.provider.load(SeqCst), 2, "one search and one dependent result");
+    assert_eq!(done["billing"]["total_charged"], "138");
+    assert_eq!(done["context_view"]["conversation"], priced["context_view"]["conversation"]);
+    gate::assert_all(&gate.pool, id, &refreshed["proposal"], &done).await;
+    gate.view(&person, id).await;
+    gate.engine.start_worker(person.principal(), person.bearer.clone(), id).await.unwrap();
+    assert_eq!(gate.fake.provider.load(SeqCst), 2, "reload and duplicate worker never repurchase");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db; no live database"]
+async fn gate_worker_failure_is_saved_for_observers() {
+    let gate = Gate::start().await;
+    let person = Person::new();
+    let (id, quote, _) = gate.saved_input_quote(&person, "MissingInput").await;
+    // A malformed saved independent plan must stop visibly before a purchase.
+    sqlx::query("UPDATE tasks SET document=jsonb_set(jsonb_set(document,'{facts}','[]'::jsonb),'{proposal,independent_calls}','true'::jsonb) WHERE id=$1")
+        .bind(id).execute(&gate.pool).await.unwrap();
+    let (status, _) = gate.authorize(&person, id, &quote).await;
+    assert_eq!(status, StatusCode::OK);
+    let done = gate.settled(&person, id).await;
+    assert_eq!(done["status"], "failed", "{done}");
+    assert_eq!(done["errors"][0]["code"], "execution_stopped");
+    assert_eq!(done["context_view"]["worker_active"], false);
+    assert_eq!(done["billing"]["total_charged"], "0");
+    assert_eq!(gate.fake.provider.load(SeqCst), 0);
+    let reloaded = gate.view(&person, id).await.1;
+    assert_eq!(reloaded["errors"], done["errors"], "the error must survive reloading");
 }
 
 /// An expired quote is never approved, and an approval that expires before

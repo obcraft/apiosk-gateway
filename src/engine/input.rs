@@ -64,12 +64,15 @@ pub(crate) fn user_fact(
         .get(kind)
         .ok_or_else(|| anyhow::anyhow!("unknown fact type"))?;
     catalog_core::facts::schema::validate(&ft.value_schema, &value)?;
-    if task.facts.iter().any(|f| {
+    if let Some(fact) = task.facts.iter_mut().find(|f| {
         f.entity_ref == entity
             && f.semantic_type == kind
             && f.value == value
-            && f.expires_at > Utc::now()
+            && f.provenance["kind"] == "user_input"
+            && f.verification == "user_asserted"
     }) {
+        // Rebinding an explicit request renews its input, never source evidence.
+        fact.expires_at = Utc::now() + chrono::Duration::hours(1);
         return Ok(());
     }
     task.facts.push(Fact {
@@ -119,6 +122,29 @@ mod tests {
         let (_, mut intent) = fixture();
         intent.subjects[0].entity_ref = Some(Uuid::new_v4());
         assert!(bind_subjects(&mut Task::default(), &catalog, &mut intent).is_err());
+    }
+
+    #[test]
+    fn rebinding_saved_request_renews_explicit_inputs_but_not_source_evidence() {
+        let (catalog, mut intent) = fixture();
+        let mut task = Task::default();
+        bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let expired = Utc::now() - chrono::Duration::hours(8);
+        task.facts[0].expires_at = expired;
+        let mut source_fact = task.facts[0].clone();
+        source_fact.semantic_type = "company.id".into();
+        source_fact.value = json!("123");
+        source_fact.provenance = json!({"kind":"source"});
+        source_fact.verification = "source_asserted".into();
+        task.facts.push(source_fact);
+        bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        assert_eq!(task.entities.len(), 1);
+        assert_eq!(task.facts.len(), 2);
+        let entity = intent.subjects[0].entity_ref.unwrap();
+        assert_eq!(crate::catalog::fact_value(&task.facts, entity, "company.name").unwrap(), Some(json!("Example")));
+        assert!(task.facts[0].expires_at > Utc::now() + chrono::Duration::minutes(59));
+        assert_eq!(task.facts[1].expires_at, expired);
+        assert_eq!(crate::catalog::fact_value(&task.facts, entity, "company.id").unwrap(), None);
     }
 
     #[test]

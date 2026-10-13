@@ -2,10 +2,9 @@
 //! changed, so a refresh needs no model call and no re-planning. The
 //! resolver itself does not bind literal inputs at quote time (a dependent
 //! step's input is only produced once an earlier step runs), so this checks
-//! catalog identity, not execution readiness: whether the step still exists
-//! with the exact contract, price and endpoint it was quoted with. A missing
-//! or genuinely expired input still surfaces normally, at dispatch, exactly
-//! as it does for a quote that was never refreshed.
+//! catalog identity: whether the step still exists with the exact contract,
+//! price and endpoint it was quoted with. The caller renews explicit inputs
+//! from the saved intent on both paths; source evidence keeps its own TTL.
 use crate::{catalog::Catalog, resolver::Plan};
 
 /// `None` when any step's service disappeared or changed shape since the

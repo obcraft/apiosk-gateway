@@ -296,6 +296,10 @@ impl Engine {
         let catalog = self.catalog.get().await?;
         let mut intent: Intent = serde_json::from_value(task.intent.clone().unwrap())?;
         let previous_quote_ref = plan.quote_ref;
+        // Refresh explicit inputs even when the catalog and plan are unchanged.
+        // Their task-local TTL may have elapsed while the buyer was away.
+        input::bind_subjects(&mut task, &catalog, &mut intent)?;
+        task.intent = Some(serde_json::to_value(&intent)?);
         let changed = match requote::same_steps(&catalog, &plan) {
             Some(mut refreshed) => {
                 refreshed.quote_ref = Uuid::new_v4();
@@ -307,8 +311,6 @@ impl Engine {
                 false
             }
             None => {
-                input::bind_subjects(&mut task, &catalog, &mut intent)?;
-                task.intent = Some(serde_json::to_value(&intent)?);
                 self.plan(&mut task, &catalog, &intent)?;
                 true
             }

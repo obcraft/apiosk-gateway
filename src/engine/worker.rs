@@ -117,6 +117,11 @@ impl Engine {
             let failed = result.is_err();
             if let Err(error) = result {
                 tracing::warn!(trace = telemetry::id(), task=%id, error=%error, "server execution stopped; recover saved task");
+                // Persist the outcome before releasing the lease. Otherwise
+                // observers see an approved, idle plan with no explanation.
+                if let Err(save_error) = engine.record_worker_failure(p.owner, id, plan.quote_ref, worker).await {
+                    tracing::error!(task=%id, error=%save_error, "could not save execution failure");
+                }
             }
             let _ = sqlx::query("DELETE FROM execution_leases WHERE task_id=$1 AND worker_id=$2")
                 .bind(id)
@@ -129,6 +134,29 @@ impl Engine {
             telemetry::execution_ended(id, saved.as_ref(), failed);
             telemetry::finish_worker(&engine.store.pool, started.elapsed());
         });
+        Ok(())
+    }
+
+    async fn record_worker_failure(&self, owner: Uuid, id: Uuid, quote: Uuid, worker: Uuid) -> anyhow::Result<()> {
+        for attempt in 0..3 {
+            let (revision, mut task, _) = self.store.load(owner, id).await?;
+            let owns_lease: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM execution_leases WHERE task_id=$1 AND worker_id=$2)")
+                .bind(id).bind(worker).fetch_one(&self.store.pool).await?;
+            if !owns_lease || task.cancelled || task.execution_error.is_some()
+                || task.proposal.as_ref().is_none_or(|p| p["quote_ref"] != json!(quote)) {
+                return Ok(());
+            }
+            task.execution_error = Some(json!({
+                "code": "execution_stopped",
+                "message": "Execution stopped before your request finished. Your request and any completed source results are saved. No new purchase was started to retry it.",
+                "retryable": false
+            }));
+            match self.store.save(owner, id, revision, &task).await {
+                Ok(_) => return Ok(()),
+                Err(error) if attempt == 2 => return Err(error),
+                Err(_) => continue,
+            }
+        }
         Ok(())
     }
 
