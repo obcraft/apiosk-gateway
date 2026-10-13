@@ -178,7 +178,7 @@ mod tests {
         ] {
             let original = source(data);
             let mut raw = answer(pointer);
-            hydrate(&mut raw, &[requirement()], &[original.clone()]);
+            hydrate(&mut raw, &[requirement()], std::slice::from_ref(&original));
             let qualifier = &raw["requirement_status"][0]["evidence"][0]["period"];
             assert_eq!(qualifier["pointer"], pointer);
             assert_eq!(qualifier["key"], "2024");
@@ -247,10 +247,10 @@ mod tests {
         uncited["observations"][0]["evidence"][0]["pointer"] = json!("/data/name");
         // Even pre-existing model metadata cannot turn an uncited year into proof.
         uncited["requirement_status"][0]["evidence"][0]["period"] = json!({"value":"2024"});
-        assert!(!reconciled(uncited, &[original.clone()]).complete);
+        assert!(!reconciled(uncited, std::slice::from_ref(&original)).complete);
         let mut modified = raw.clone();
         modified["requirement_status"][0]["evidence"][0]["value"] = json!("2023");
-        assert!(!reconciled(modified, &[original.clone()]).complete);
+        assert!(!reconciled(modified, std::slice::from_ref(&original)).complete);
         let mut quoted = raw;
         for entry in ["observations", "requirement_status"] {
             quoted[entry][0]["evidence"][0]["quote"] = json!("202");

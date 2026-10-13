@@ -228,7 +228,7 @@ async fn seed_completed(engine: &Engine, owner: Uuid) -> (Uuid, i64) {
         })
         .collect::<Vec<_>>();
     let cap = steps.iter().map(|step| step.service.total()).sum();
-    let plan = Plan { compute: None,
+    let plan = Plan { independent_calls: false, compute: None,
         quote_ref: Uuid::new_v4(),
         cap_atomic: cap,
         expires_at: Utc::now() + ChronoDuration::minutes(10),
@@ -657,13 +657,14 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
         0,
         "the frozen recipe cannot replan or freely resynthesize"
     );
+    {
     let events = fake.sources.lock().unwrap();
     for (index, pair) in events.chunks_exact(2).enumerate() {
         assert_eq!(pair[0].1, 0);
         assert_eq!(pair[1].1, 1);
         assert_eq!(pair[1].2["company.id"], format!("current-{}", index + 1));
     }
-    drop(events);
+    }
     let balance: i64 =
         sqlx::query_scalar("SELECT balance_micro_usd FROM billing.user_balances WHERE user_id=$1")
             .bind(owner)

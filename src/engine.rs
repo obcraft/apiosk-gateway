@@ -213,9 +213,6 @@ impl Engine {
     /// Continue the exact server-issued source search. The current catalog was
     /// checked before this call; its contracts and ordinary approval still own
     /// every executable step and price.
-    pub(crate) async fn discover_searched(&self, p: &Principal, req: DiscoverRequest, intake: crate::capability_intake::Intake, catalog: std::sync::Arc<Catalog>, search_id: &str) -> anyhow::Result<Response> {
-        self.discover_searched_configured(p,req,intake,catalog,search_id,None).await
-    }
     pub(crate) async fn discover_searched_configured(&self, p:&Principal, req:DiscoverRequest, intake:crate::capability_intake::Intake,
         catalog:std::sync::Arc<Catalog>, search_id:&str, context:Option<crate::ask_v2::source_selection::Context>)->anyhow::Result<Response> {
         anyhow::ensure!(p.is_person() && req.state.is_none() && intake.catalog_version == catalog.version, "Research requires a current App search");
@@ -394,7 +391,7 @@ impl Engine {
         if self.store.link_request_task(p.owner, req.request_id, id).await.is_err() {
             tracing::warn!("request receipt task link failed");
         }
-        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
         anyhow::ensure!(task.external_purchase.is_none(), "External source purchases keep their own saved quote. Start a new question to choose another source.");
         anyhow::ensure!(
             connection == p.connection,
@@ -472,7 +469,7 @@ impl Engine {
                 task.capability_intake = None;
                 match self.parser.prepare_ask(&req.question, model_selection.as_ref(), &crate::parser::conversation_route::interpretation_context(&task,new_topic), &catalog).await {
                     Ok(intake) => Some(intake),
-                    Err(error) => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Parsing, false, error).await,
+                    Err(error) => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Parsing, turn_recorded:false }, error).await,
                 }
             }
         } else { None };
@@ -496,7 +493,7 @@ impl Engine {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             forced = match self.collect_workflow(&req.question, &mut task, &catalog).await {
                 Ok(intent) => intent,
-                Err(error) => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
+                Err(error) => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Planning, turn_recorded:false }, error).await,
             };
             workflow = task.workflow.clone();
             if forced.is_none() {
@@ -573,7 +570,7 @@ impl Engine {
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { output_bindings: vec![], message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None },
-                (Err(error), None) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, false, error).await,
+                (Err(error), None) if app_chat => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Planning, turn_recorded:false }, error).await,
                 (Err(error), None) => return Err(error),
             };
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
@@ -617,17 +614,17 @@ impl Engine {
             self.store.save_intent(p.owner, id, revision, &task).await?;
             return self.view(p, id, req.request_id, Some(Status::NeedsInput)).await;
         }
-        if workflow.is_none() && selection.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
+        if task.capability_intake.is_none() && workflow.is_none() && selection.is_none() && crate::supplier_check::route(&req.question, &mut intent, &catalog) {
             tracing::info!("invoice question routed to the supplier payment check");
         }
         if !app_chat && !interpreted {
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
             task.record_turn(&req.question, None);
         }
-        crate::uk_supplier::expand(&mut intent, &catalog);
+        if !task.independent_sources() { crate::uk_supplier::expand(&mut intent, &catalog); }
         input::bind_subjects(&mut task, &catalog, &mut intent)?;
         task.supplier_check = None;
-        if let Some(expansion) = crate::supplier_check::expand(&req.question, &mut intent, &catalog) {
+        if let Some(expansion) = task.capability_intake.is_none().then(|| crate::supplier_check::expand(&req.question, &mut intent, &catalog)).flatten() {
             for (kind, value) in &expansion.facts {
                 self.user_fact(&mut task, &catalog, expansion.invoice.entity_ref, kind, value.clone())?;
             }
@@ -665,7 +662,7 @@ impl Engine {
         if let (false, Resolution::Unsupported(reason)) = (direct || selection.is_some() || task.capability_intake.is_some(), resolver::resolve(&catalog, &task, &intent)) {
             let review = match self.parser.review_plan(&req.question, &task, &catalog, &intent, &reason).await {
                 Ok(review) => review,
-                Err(error) if app_chat => return self.pause_intake(p, id, revision, req, &mut task, crate::state::IntakeStage::Planning, true, error).await,
+                Err(error) if app_chat => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Planning, turn_recorded:true }, error).await,
                 Err(error) => return Err(error),
             };
             if let Some(revised) = review.intent {
@@ -750,12 +747,27 @@ impl Engine {
                     .get(&kind)
                     .map(|v| v.value_schema.clone())
                     .unwrap_or(json!({}));
+                let label = schema["title"].as_str().map(str::to_owned)
+                    .unwrap_or_else(|| kind.rsplit('.').next().unwrap_or(&kind).replace(['_', '-'], " "));
+                let subject = task.entities.iter().find(|subject| subject.entity_ref == entity).map(|subject| subject.label.as_str()).unwrap_or("this request");
+                let dutch = task.capability_intake.as_ref().is_some_and(|intake| intake.parsed_request.language == "nl");
+                let message = if dutch { format!("Wat is de {label} voor {subject}? Deze invoer is nodig voordat ik het volledige plan kan prijzen.") }
+                    else { format!("What is the {label} for {subject}? This input is needed before I can price the complete plan.") };
+                if let Some(turn) = task.conversation.last_mut() { turn.reply = Some(message); }
                 task.actions.push(serde_json::to_value(Action::Supply {
                     action_id: Uuid::new_v4(),
                     entity_ref: entity,
                     semantic_type: kind,
                     schema,
                 })?);
+                Ok(Status::NeedsInput)
+            }
+            Resolution::Unsupported(reason) if reason == crate::protocol::SOURCE_LIMIT_MESSAGE => {
+                let message = if task.capability_intake.as_ref().is_some_and(|intake| intake.parsed_request.language == "nl") {
+                    "Een plan kan maximaal 10 bronaanvragen bevatten. Welke bronnen wil je behouden, of hoe wil je de vraag opsplitsen?".to_owned()
+                } else { reason };
+                if let Some(turn) = task.conversation.last_mut() { turn.reply = Some(message.clone()); }
+                task.actions.push(json!({"kind":"planning_clarification","message":message}));
                 Ok(Status::NeedsInput)
             }
             Resolution::Unsupported(reason) => {
@@ -804,7 +816,7 @@ impl Engine {
         documents: &mut std::collections::BTreeMap<Uuid, Value>,
     ) -> anyhow::Result<Response> {
         let started = std::time::Instant::now();
-        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
         if !p.is_person() && connection != p.connection {
             return Err(crate::store::StoreAccessError::TaskUnavailable.into());
         }
@@ -947,7 +959,7 @@ impl Engine {
                 for result in &output.result_refs { results.push(page(*result)?); }
                 r.context_view["conversation"][index]["output"]["results"] = json!(results);
                 if let Some(quote)=output.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
-                    if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,&documents) {
+                    if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,documents) {
                         r.context_view["conversation"][index]["output"]["report"]=report;
                     }
                 }
@@ -957,7 +969,7 @@ impl Engine {
         for result in &task.active_results { results.push(page(*result)?); }
         r.context_view["results"] = json!(results);
         if let Some(quote)=task.proposal.as_ref().and_then(|p|p["quote_ref"].as_str()).and_then(|s|s.parse().ok()) {
-            if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,&documents) {r.context_view["report"]=report;}
+            if let Ok(report)=self.research_report_link_from_results(p.owner,id,&task,quote,documents) {r.context_view["report"]=report;}
         }
         r.context_view["result_is_historical"] = json!(
             !task.result_refs.is_empty() && task.active_result_ref().is_none()

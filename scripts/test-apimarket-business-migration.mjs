@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const file='20261008110548_onboard_apimarket_business_sources.sql';
 const migration=await readFile(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8');

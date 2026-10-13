@@ -10,6 +10,7 @@ pub(super) const MAX_CANDIDATES: usize = 20;
 /// that a candidate can supply and the task does not know yet. Empty:
 /// choosing unblocks nothing.
 pub(super) fn needed_facts(task: &Task, plan: &Plan, source: &resolver::Step, candidate_types: &BTreeSet<&str>) -> BTreeSet<String> {
+    if plan.independent_calls { return BTreeSet::new(); }
     plan.steps.iter()
         .filter(|step| step.entity_ref == source.entity_ref && step.key() != source.key() && !task.step_finished(&step.key()))
         .flat_map(|step| &step.service.contract.requires)
@@ -81,7 +82,7 @@ pub(super) fn step_waits_for_choice(task: &Task, step: &resolver::Step) -> bool 
 // Polling an independent result must neither erase a real selection nor retain
 // an obsolete one after its dependent step failed or gained its identifier.
 pub(super) fn pending_choice(task: &mut Task, plan: &Plan) -> Option<Value> {
-    if task.cancelled || !plan.steps.iter().any(|step| step_waits_for_choice(task, step)) {
+    if plan.independent_calls || task.cancelled || !plan.steps.iter().any(|step| step_waits_for_choice(task, step)) {
         task.pending_candidates.clear();
         task.original_subject = None;
         return None;
@@ -116,7 +117,7 @@ mod tests {
         }).unwrap().clone();
         let subject = Uuid::new_v4();
         let task = Task { original_subject: Some(subject), ..Task::default() };
-        let plan = Plan { compute: None,
+        let plan = Plan { independent_calls: false, compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![resolver::Step {service, entity_ref: subject, goal_index: 0, browser_fallback: None}],
             cap_atomic: 100, expires_at: Utc::now() + chrono::Duration::minutes(10), hash: "fixture".into(),
@@ -129,6 +130,18 @@ mod tests {
         for value in ["123456789", "987654321"] {
             task.pending_candidates.push(json!({"entity_ref":Uuid::new_v4(),"facts":[{"type":kind,"value":value}]}));
         }
+    }
+
+    #[test]
+    fn independent_batch_never_waits_for_another_sources_search_matches() {
+        let (mut task, mut plan) = setup();
+        plan.independent_calls = true;
+        add_candidates(&mut task, "company.registration.fr.siren");
+        let types = BTreeSet::from(["company.registration.fr.siren"]);
+        assert!(needed_facts(&task, &plan, &plan.steps[0], &types).is_empty());
+        assert!(pending_choice(&mut task, &plan).is_none());
+        assert!(task.pending_candidates.is_empty());
+        assert!(task.original_subject.is_none());
     }
 
     #[test]

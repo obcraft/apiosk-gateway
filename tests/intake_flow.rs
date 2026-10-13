@@ -1473,9 +1473,10 @@ async fn workflow_recovery_preserves_collected_input_across_model_outages() {
         let continued: Value = sqlx::query_scalar("SELECT document->'workflow' FROM tasks WHERE id=$1")
             .bind(task).fetch_one(&intake.pool).await.unwrap();
         assert_eq!(continued["input"], json!({"location":"Amsterdam","topic":"software"}));
-        let workflow_calls = intake.model.workflow_chats.lock().unwrap();
+        {
+            let workflow_calls = intake.model.workflow_chats.lock().unwrap();
         assert_eq!(workflow_calls.last().unwrap()["collected"]["location"], "Amsterdam", "resume passes prior inputs to the workflow model");
-        drop(workflow_calls);
+        }
         assert_no_purchase(&intake, &person, task).await;
     }
 }

@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 pub(super) const DECLINE_REASONS: &[&str] = &["none", "conversation", "ambiguous_request", "unavailable_requirement"];
 /// The validation error that triggers one repair attempt.
 pub(super) const DECLINED: &str = "an explicit data request needs its plan, not a confirmation";
-pub(super) const DECLINED_REPAIR: &str = "The request is an explicit data request: every requested capability names its subject and has a matched Apiosk operation. Do not ask for permission or confirmation; the backend's total-price proposal is the confirmation, and the person approves it there. A registry number or other identifier the user did not give is looked up by the backend from the company name: bind company.name to the subject's label reference. Return discover=true, decline_reason=\"none\" and the complete intent.";
+pub(super) const DECLINED_REPAIR: &str = "The request is an explicit data request with matched operations. Return its complete intent and bind only supplied inputs to those operations. Leave missing required values absent so the backend can ask the user before quoting. Do not add lookup calls or chain results. Do not ask permission to prepare a plan; approval happens on the complete total-price proposal.";
 const PLANNED_MESSAGE: &str = "I'll check the sources and show the total price before anything is bought.";
 
 /// Every requested capability is a data retrieval with a parsed subject and

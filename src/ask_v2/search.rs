@@ -17,6 +17,10 @@ mod calibration;
 mod country;
 pub(crate) use country::{exact_country, named_countries};
 mod relevance;
+mod output_metadata;
+mod collection_search;
+#[cfg(test)]
+mod output_ranking_tests;
 
 /// A fixed endpoint scope can preserve an explicit country without a country
 /// argument. Provider headquarters/jurisdiction alone are not that proof.
@@ -99,6 +103,15 @@ struct Document {
     /// Full endpoint wording for measurement compatibility. Provider names,
     /// input names and unrelated provider metadata cannot supply a metric.
     operation_words: BTreeSet<String>,
+    /// Exact documented response field names and reviewed aliases. These
+    /// identify supported data without turning prose into operation identity.
+    output_concepts: BTreeSet<String>,
+    /// Entity domains with an admitted many-record search that consumes and
+    /// returns a typed name. Generic search words alone are not evidence.
+    name_search_domains: BTreeSet<String>,
+    /// Schema breadth helps discovery without outranking an operation's own
+    /// more specific identity merely because it declares many response fields.
+    output_only_tokens: BTreeSet<String>,
     /// DNS types in the operation itself. A/NS/MX are too short for the
     /// general lexical index, but they name different paid capabilities.
     dns_record_types: u16,
@@ -152,7 +165,8 @@ fn opening_description(text: &str) -> &str {
 // previous Arc, but new versions replace the cache rather than accumulating.
 // New English renderings (see `crate::english`) rebuild it too.
 fn index(catalog: &Catalog) -> Arc<Index> {
-    static LAST: OnceLock<Mutex<Option<(IndexKey, Arc<Index>)>>> = OnceLock::new();
+    type CachedIndex = Option<(IndexKey, Arc<Index>)>;
+    static LAST: OnceLock<Mutex<CachedIndex>> = OnceLock::new();
     let cache = LAST.get_or_init(|| Mutex::new(None));
     let english = &catalog.english;
     let version = (catalog.version.clone(), english.id(), english.generation());
@@ -181,6 +195,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             })
             .and_then(serde_json::Value::as_str)
             .unwrap_or("");
+        let output_metadata::Metadata { text: output_metadata, concepts: output_concepts } = output_metadata::metadata(service, catalog);
         // Do not attach a provider's broad description to each endpoint: that
         // would make its officers endpoint falsely match beneficial ownership.
         let mut text = format!(
@@ -214,12 +229,12 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         // Input names describe what a caller supplies, not what the API
         // returns. "financial assistance" plus an input named
         // "first-statement-date" must not become financial statements.
-        let offered_facets = document(Target::Endpoint(position), &format!("{} {} {} {} {} {}",
+        let offered_facets = document(Target::Endpoint(position), &format!("{} {} {} {} {} {} {}",
             service.contract.capability_slug, service.name,
             service.description.as_deref().unwrap_or(""), described,
             service.contract.output_map.produces.keys().map(String::as_str).collect::<Vec<_>>().join(" "),
-            rendering), BTreeSet::new()).facets;
-        let original = (!rendering.is_empty()).then(|| text.clone());
+            rendering, output_metadata), BTreeSet::new()).facets;
+        let original = (!rendering.is_empty()).then(|| format!("{text} {output_metadata}"));
         append(&mut text, rendering);
         let capabilities =
             normalized_capabilities(std::iter::once(service.contract.capability_slug.as_str()));
@@ -229,7 +244,10 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             capabilities.clone(),
         )
         .facets;
+        let lexical_tokens = document(Target::Endpoint(position), &text, capabilities.clone()).tokens;
+        append(&mut text, output_metadata.clone());
         let mut indexed = document(Target::Endpoint(position), &text, capabilities);
+        indexed.output_only_tokens = indexed.tokens.difference(&lexical_tokens).cloned().collect();
         let description=service.description.as_deref().unwrap_or(described);
         let opening = opening_description(description);
         let translated_description=english.render(&[description]);
@@ -247,7 +265,13 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             relevance::dns_record_types(&service.contract.capability_slug)
                 | relevance::dns_record_types(opening) | relevance::dns_record_types(translated_opening)
         };
-        indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening}"), BTreeSet::new()).tokens;
+        // Admitted response fields describe this operation's own scope. They
+        // can expose employee details in a company profile even when its
+        // provider-specific capability name omits those words. Coverage and
+        // execution still require the selected contract's exact output proof.
+        indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening} {output_metadata}"), BTreeSet::new()).tokens;
+        indexed.output_concepts = output_concepts;
+        indexed.name_search_domains = collection_search::domains(service, catalog);
         indexed.person_scope = relevance::person_scope(&format!("{opening} {translated_opening}"));
         indexed.coverage = country::endpoint(service, known);
         indexed.contract = relevance::contract_words(&service.contract.capability_slug);
@@ -443,6 +467,7 @@ fn singular(word: &str) -> Option<String> {
     }
     Some(match word {
         "companies" => "company".into(),
+        "matches" => "match".into(),
         "addresses" => "address".into(),
         "neighborhood" | "neighborhoods" | "neighbourhoods" => "neighbourhood".into(),
         "jaarrekeningen" => "jaarrekening".into(),
@@ -648,24 +673,24 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
     let location = if has("violation") { VIOLATIONS }
         else if has("boundary") { BOUNDARY }
         else if has("permit") && (has("building") || has("construction")) { PERMITS }
-        else { u16::from(has("building") || has("dwelling") || (has("bag") && has("unit"))) * BUILDING
-            | u16::from(has("neighbourhood") || has("buurt")) * NEIGHBOURHOOD };
+        else { (u16::from(has("building") || has("dwelling") || (has("bag") && has("unit"))) * BUILDING)
+            | (u16::from(has("neighbourhood") || has("buurt")) * NEIGHBOURHOOD) };
     let market = has("stock") || ((has("equity") || has("share"))
         && (has("price") || has("quote") || has("market") || has("trading")));
     let analyst = has("analyst") && (has("consensu") || has("consensus") || has("rating") || has("recommendation") || has("target"));
     let insider = has("insider") && (has("transaction") || has("trade") || has("trading") || has("dealing"));
     let valuation = has("valuation") || has("multiple") || (has("enterprise") && has("value"));
-    let facets = u16::from(financial) * FINANCIAL
-        | u16::from(officers) * OFFICERS
-        | u16::from(control) * CONTROL
-        | u16::from(sanctions) * SANCTIONS
-        | u16::from(market) * STOCK_MARKET
-        | u16::from(analyst) * ANALYST_CONSENSUS
-        | u16::from(insider) * INSIDER_TRADES
-        | u16::from(valuation) * VALUATION
-        | u16::from(has("legislation")) * LEGISLATION
-        | u16::from(has("adverse") && has("media")) * ADVERSE_MEDIA
-        | u16::from(has("sentiment")) * SENTIMENT
+    let facets = (u16::from(financial) * FINANCIAL)
+        | (u16::from(officers) * OFFICERS)
+        | (u16::from(control) * CONTROL)
+        | (u16::from(sanctions) * SANCTIONS)
+        | (u16::from(market) * STOCK_MARKET)
+        | (u16::from(analyst) * ANALYST_CONSENSUS)
+        | (u16::from(insider) * INSIDER_TRADES)
+        | (u16::from(valuation) * VALUATION)
+        | (u16::from(has("legislation")) * LEGISLATION)
+        | (u16::from(has("adverse") && has("media")) * ADVERSE_MEDIA)
+        | (u16::from(has("sentiment")) * SENTIMENT)
         | location;
     tokens.retain(|token| !vague(token));
     for &(facet, marker) in FACETS {
@@ -675,6 +700,9 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         derivative_asset: false,
         enterprise_multiple: false,
         operation_words: BTreeSet::new(),
+        output_concepts: BTreeSet::new(),
+        name_search_domains: BTreeSet::new(),
+        output_only_tokens: BTreeSet::new(),
         dns_record_types: relevance::dns_record_types(text),
         topic_scope: tokens.clone(),
         person_scope: relevance::person_scope(opening_description(text)),
@@ -899,7 +927,8 @@ fn score(wanted: &Document, candidate: &Document, index: &Index) -> f64 {
                 / (index.frequency.get(token).copied().unwrap_or(0) + 1) as f64)
                 .ln()
                 + 1.0;
-            idf * if token.starts_with('@') {
+            let schema_weight = if candidate.output_only_tokens.contains(token) { 0.25 } else { 1.0 };
+            schema_weight * idf * if token.starts_with('@') {
                 8.0
             } else if DELIVERABLE_OPERATIONS
                 .iter()
@@ -1042,7 +1071,10 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     .is_some_and(|hint| !operation_names_source(hint, candidate, catalog)) {
                     continue;
                 }
-                let score = score(&wanted, candidate, &index);
+                // Documented endpoint-local output evidence must survive the
+                // bounded shortlist ahead of incidental listing prose.
+                let score = score(&wanted, candidate, &index)
+                    + if floor.output_matches(candidate) { 10.0 } else { 0.0 };
                 if score <= 0.0 || !floor.passes(&wanted, candidate, &index, restricted.is_some()) {
                     continue;
                 }
@@ -1072,6 +1104,15 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 a.demoted
                     .cmp(&b.demoted)
                     .then(b.score.total_cmp(&a.score))
+                    .then_with(|| {
+                        // Several contracts can describe the same response.
+                        // If their evidence ties, retain the operation whose
+                        // reviewed identity most specifically names the ask.
+                        if a.item.endpoint_id != b.item.endpoint_id { return std::cmp::Ordering::Equal; }
+                        let specificity = |service: &Service| relevance::contract_words(&service.contract.capability_slug)
+                            .intersection(&wanted.tokens).count();
+                        specificity(b.item).cmp(&specificity(a.item))
+                    })
                     .then(a.item.unverified.cmp(&b.item.unverified))
                     .then(a.item.total().cmp(&b.item.total()))
                     .then(a.item.api_slug.cmp(&b.item.api_slug))
@@ -1102,6 +1143,68 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                 })
                 .map(|ranked| endpoint(ranked.item))
                 .collect();
+            // A provider's detail endpoints can occupy the lexical shortlist
+            // while all require identifiers the user did not supply. Preserve
+            // those matches, but also offer its highest-ranked relevant call
+            // that can already use the subject's literal inputs. This is a
+            // standalone alternative, never an implicit dependency purchase.
+            if let Some(subject) = capability.subject_id.as_ref()
+                .and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))
+            {
+                let providers: BTreeSet<_> = apiosk.iter().filter_map(|candidate| candidate.source_slug.clone()).collect();
+                for provider in providers {
+                    let first = apiosk.iter().position(|candidate| candidate.source_slug.as_deref() == Some(provider.as_str())).unwrap();
+                    let best = &apiosk[first];
+                    let Some(selected) = endpoints.iter().find(|ranked|
+                        best.endpoint_id.as_deref() == Some(ranked.item.endpoint_id.to_string().as_str())
+                            && best.capability.as_deref() == Some(ranked.item.contract.capability_slug.as_str())) else { continue; };
+                    let best_is_ready = super::source_options::missing(selected.item, subject, catalog).is_empty();
+                    let missing: BTreeSet<_> = endpoints.iter().filter(|ranked| ranked.item.api_slug == provider
+                        && apiosk.iter().any(|candidate| candidate.endpoint_id.as_deref() == Some(ranked.item.endpoint_id.to_string().as_str())
+                            && candidate.capability.as_deref() == Some(ranked.item.contract.capability_slug.as_str())))
+                        .flat_map(|ranked| super::source_options::missing(ranked.item, subject, catalog)).collect();
+                    if missing.is_empty() { continue; }
+                    // Prefer a ready relevant alternative only when the best
+                    // match lacks inputs. Otherwise retain its ranking and add
+                    // only a lookup that returns a missing input of another match.
+                    let ready = endpoints.iter().find(|ranked|
+                        ranked.item.api_slug == provider && !ranked.item.unverified
+                            && (ranked.item.contract.output_map.produces.keys().any(|field| missing.contains(field))
+                                || (!best_is_ready && ranked.item.contract.requires.iter().any(|required|
+                                    !required.optional && selected.item.contract.output_map.produces.contains_key(&required.fact_type))))
+                            && super::source_options::missing(ranked.item, subject, catalog).is_empty())
+                        .map(|ranked| ranked.item)
+                        .or_else(|| {
+                            // Name search and detail retrieval have different
+                            // relevance scopes. Use the contracts' typed output
+                            // relation to OFFER a standalone way to find the
+                            // missing value, even when lexical matching excluded
+                            // search. This never adds an execution dependency.
+                            index.documents.iter().filter_map(|document| {
+                                let Target::Endpoint(position) = document.target else { return None; };
+                                let service = &catalog.services[position];
+                                (service.api_slug == provider && !service.unverified
+                                    && !signal.adjustment(&document.coverage).demoted
+                                    && service.contract.output_map.produces.keys().any(|field| missing.contains(field))
+                                    && super::source_options::missing(service, subject, catalog).is_empty()
+                                    && !super::source_options::input_values(service, subject, catalog).is_empty())
+                                    .then_some(service)
+                            }).min_by_key(|service| (service.total(), service.endpoint_id, &service.contract.capability_slug))
+                        });
+                    let Some(ready) = ready else { continue; };
+                    let offered = apiosk.iter().position(|candidate|
+                        candidate.endpoint_id.as_deref() == Some(ready.endpoint_id.to_string().as_str())
+                            && candidate.capability.as_deref() == Some(ready.contract.capability_slug.as_str()));
+                    if best_is_ready {
+                        // Keep an already-ready relevant result first. A lookup
+                        // for another candidate is only an additional option.
+                        if offered.is_none() { apiosk.push(endpoint(ready)); }
+                    } else {
+                        let candidate = offered.map(|index| apiosk.remove(index)).unwrap_or_else(|| endpoint(ready));
+                        apiosk.insert(first, candidate);
+                    }
+                }
+            }
             let mut seen_endpoints: BTreeSet<_> = apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
             // Missing automation support must not erase registered matching
             // endpoints or displace executable choices. Keep both shortlists.
@@ -1143,6 +1246,124 @@ mod tests {
     use crate::{catalog::Snapshot, readiness::Metadata};
     use serde_json::json;
     use uuid::Uuid;
+
+    fn company_details_request(source: &str) -> ParsedRequest {
+        crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"Example Company","type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.details","name":"Company details",
+                "description":"Retrieve company registration details","domain":"company",
+                "inputs":["company_name"],"outputs":["company_details"],"subject_id":"s1","source_hint":source,"confidence":1.0}],
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), &format!("Summarize company details for Example Company from {source}."), "fixture").unwrap()
+    }
+
+    #[test]
+    fn ready_search_survives_a_shortlist_full_of_identifier_only_details() {
+        let mut snapshot: Snapshot = serde_json::from_str(include_str!(
+            "../../tests/fixtures/integration-catalog.json"
+        )).unwrap();
+        let mut lookup = snapshot.services[0].clone();
+        lookup.description = Some("Search company registration records by company name".into());
+        lookup.api_slug = "arbitrary-registry".into();
+        let details = (0..4).map(|i| {
+            let mut detail = snapshot.services[1].clone();
+            detail.id = Uuid::new_v4(); detail.endpoint_id = Uuid::new_v4();
+            detail.api_slug = lookup.api_slug.clone();
+            detail.contract.capability_slug = format!("company.details-{i}");
+            detail.description = Some("Company registration details and company records".into());
+            detail
+        }).collect::<Vec<_>>();
+        snapshot.services = details;
+        snapshot.services.push(lookup.clone());
+        let catalog = Catalog::build(snapshot);
+        let request = company_details_request("arbitrary-registry");
+        let found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk[0].endpoint_id.as_deref(), Some(lookup.endpoint_id.to_string().as_str()));
+        assert!(found[0].apiosk.iter().any(|candidate| candidate.capability.as_deref().unwrap().starts_with("company.details-")),
+            "usable search must not erase explicit-detail alternatives");
+    }
+
+    #[test]
+    fn named_registry_offers_its_name_search_for_company_details() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!(
+            "../../tests/fixtures/homepage-starters/catalog.json"
+        )).unwrap());
+        let request = company_details_request("kvk");
+        let found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk[0].capability.as_deref(), Some("company_registry.search"));
+        let options = super::super::source_options::options(&request, &found, &catalog);
+        let first = options.iter().find(|option| option.source.source_slug.as_deref() == Some("kvk-dutch-business-register")).unwrap();
+        assert_eq!(first.source.capability.as_deref(), Some("company_registry.search"));
+        assert!(first.missing_inputs.is_empty());
+        assert_eq!(first.input_values["company.name"], request.subjects[0].label);
+    }
+
+    #[test]
+    fn captured_profile_interpretation_keeps_the_ready_identifier_search() {
+        let catalog = Catalog::build(serde_json::from_str(include_str!(
+            "../../tests/fixtures/homepage-starters/catalog.json"
+        )).unwrap());
+        let captured: serde_json::Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/name-search-alternative.json"
+        )).unwrap();
+        let request: ParsedRequest = serde_json::from_value(captured["parsed_request"].clone()).unwrap();
+        let found = search(&request, &catalog);
+        assert_eq!(found[0].apiosk[0].capability.as_deref(), Some("company_registry.search"),
+            "the live parser called company details a profile; lexical profile matching must not hide name search");
+        assert!(found[1].operations.contains("company.sanctions-screen"));
+        assert!(found[0].apiosk.iter().all(|candidate| candidate.source_slug.as_deref() == Some("kvk-dutch-business-register")));
+        let mut identified = request.clone();
+        identified.subjects[0].identifiers.insert("kvk_number".into(), "12345678".into());
+        let found = search(&identified, &catalog);
+        assert_eq!(found[0].apiosk[0].capability.as_deref(), Some("company.registry-profile"),
+            "the requested profile remains preferred when its actual input was supplied");
+    }
+
+    #[test]
+    fn identifier_alternatives_use_contracts_without_provider_or_question_rules() {
+        for variant in ["usable", "other_provider", "wrong_output", "missing_input"] {
+            let mut snapshot: Snapshot = serde_json::from_str(include_str!(
+                "../../tests/fixtures/integration-catalog.json"
+            )).unwrap();
+            let provider = format!("register-{}",Uuid::new_v4().simple());
+            let field = format!("record.id_{}",Uuid::new_v4().simple());
+            snapshot.vocabulary.iter_mut().find(|fact| fact.slug == "company.id").unwrap().slug = field.clone();
+            let lookup = &mut snapshot.services[0];
+            lookup.api_slug = provider.clone();
+            lookup.description = Some("Find registration numbers by name".into());
+            lookup.contract.identifies = Some(field.clone());
+            let output = lookup.contract.output_map.produces.remove("company.id").unwrap();
+            lookup.contract.output_map.produces.insert(field.clone(),output);
+            if variant == "other_provider" { lookup.api_slug = "another-register".into(); }
+            if variant == "wrong_output" {
+                lookup.contract.output_map.produces = serde_json::from_value(json!({"company.name":{"path":"$.name"}})).unwrap();
+                lookup.contract.identifies = None;
+            }
+            if variant == "missing_input" {
+                lookup.contract.requires[0].fact_type = field.clone();
+                let binding = lookup.contract.input_map.remove("company.name").unwrap();
+                lookup.contract.input_map.insert(field.clone(),binding);
+            }
+            let search_id = lookup.endpoint_id;
+            let profile = &mut snapshot.services[1];
+            profile.api_slug = provider.clone();
+            profile.contract.capability_slug = "company.profile".into();
+            profile.description = Some("Retrieve the official company profile".into());
+            profile.contract.requires[0].fact_type = field.clone();
+            let binding = profile.contract.input_map.remove("company.id").unwrap();
+            profile.contract.input_map.insert(field,binding);
+            let catalog = Catalog::build(snapshot);
+            assert!(catalog.rejected.is_empty(),"{:?}",catalog.rejected);
+            let mut request = company_details_request(&provider);
+            request.capabilities[0].slug = "company.profile".into();
+            request.capabilities[0].name = "Company profile".into();
+            request.capabilities[0].description = "Retrieve the official company profile".into();
+            request.capabilities[0].outputs = vec!["profile".into()];
+            let found = search(&request,&catalog);
+            assert_eq!(found[0].apiosk.iter().any(|candidate|candidate.endpoint_id.as_deref() == Some(search_id.to_string().as_str())),
+                variant == "usable", "{variant}: only a ready same-provider producer of the actual missing field is an alternative");
+        }
+    }
 
     #[test]
     fn board_members_and_directors_share_governance_scope_without_board_game_matches() {
@@ -1511,20 +1732,22 @@ mod tests {
         let matches = search(&request, &catalog);
         assert!(!matches[0].apiosk.is_empty());
         assert!(!matches[1].apiosk.is_empty());
-        assert!(matches[0].apiosk.iter().all(|c| c.capability.as_deref().is_some_and(|c| c.starts_with("building.bag-"))));
-        assert_eq!(matches[1].apiosk[0].capability.as_deref(), Some("area.cbs-neighbourhood-2025"));
+        assert!(matches[0].apiosk.iter().all(|c| c.capability.as_deref().is_some_and(|c|
+            c.starts_with("building.bag-") || c == "location.property-search")));
+        assert!(matches[1].operations.contains("area.cbs-neighbourhood-2025"));
         assert!(matches.iter().flat_map(|m| &m.apiosk).all(|c| !matches!(c.capability.as_deref(), Some("area.boundaries" | "building.violations"))));
 
         // The actual failed chat parsed both outputs into one capability and
         // retained "Damrak 1" as the subject. Both requested kinds must fit in
-        // the three-result limit, ahead of address context and boundaries.
+        // the retrieval shortlist; the ready address search is an additional
+        // way to find missing identifiers, not a substitute for those records.
         let mut combined = parsed(vec![json!({"slug":"location.building.neighbourhood.info","name":"Building and neighbourhood information","description":"Provides detailed information about a building and its surrounding neighbourhood."})]);
         combined.subjects[0].label = "Damrak 1".into();
         combined.subjects[0].kind = "address".into();
         combined.capabilities[0].inputs = vec!["address".into()];
         combined.capabilities[0].outputs = vec!["building_info".into(), "neighbourhood_info".into()];
         let found = search(&combined, &catalog);
-        assert_eq!(found[0].operations, BTreeSet::from(["building.bag-building".into(), "building.bag-unit".into(), "area.cbs-neighbourhood-2025".into()]));
+        assert_eq!(found[0].operations, BTreeSet::from(["building.bag-building".into(), "building.bag-unit".into(), "area.cbs-neighbourhood-2025".into(), "location.property-search".into()]));
 
         // These are distinct supported requests, not globally hidden sources.
         let mut violation_request = parsed(vec![json!({"slug":"location.building.violations","name":"Building violations"})]);

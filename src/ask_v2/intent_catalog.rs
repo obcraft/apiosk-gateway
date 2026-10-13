@@ -604,7 +604,7 @@ mod tests {
         ));
         let path = directory.join("drafts.json");
         let valid = definition("general.conversation", "general");
-        save_drafts_at(&path, &[valid.clone()]).await.unwrap();
+        save_drafts_at(&path, std::slice::from_ref(&valid)).await.unwrap();
         let before = fs::read(&path).await.unwrap();
         let mut invalid = valid;
         invalid.input_contract = json!([]);

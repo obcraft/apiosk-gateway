@@ -399,11 +399,20 @@ impl Catalog {
     }
 
     pub fn selected_parser_view(&self, selected: &std::collections::BTreeSet<String>) -> Value {
+        self.parser_view_for(selected, true)
+    }
+
+    pub fn independent_parser_view(&self, selected: &std::collections::BTreeSet<String>) -> Value {
+        self.parser_view_for(selected, false)
+    }
+
+    fn parser_view_for(&self, selected: &std::collections::BTreeSet<String>, dependencies: bool) -> Value {
         let mut view=self.parser_view();
         let mut needed=selected.clone();
         // Dependencies are also executable operations. Retain every candidate
         // producer rather than introducing a vendor preference here.
-        loop {
+        if dependencies {
+          loop {
             let before=needed.len();
             for s in &self.services {
                 if !needed.contains(&s.contract.capability_slug) {continue;}
@@ -415,9 +424,10 @@ impl Catalog {
             }
             if before==needed.len(){break;}
         }
+        }
         // Existing composite presets need their authored dependency vocabulary.
         // They remain explicit options, not preferred providers.
-        if selected.contains(crate::uk_supplier::PRESET)||selected.contains(crate::supplier_check::PRESET) {
+        if dependencies && (selected.contains(crate::uk_supplier::PRESET)||selected.contains(crate::supplier_check::PRESET)) {
             return view;
         }
         view["capabilities"].as_array_mut().unwrap().retain(|v|v.as_str().is_some_and(|s|needed.contains(s)));

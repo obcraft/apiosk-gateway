@@ -21,6 +21,8 @@ pub(crate) mod broad_information;
 pub(crate) mod company_lookup;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod capability_merge_tests;
 
 const DOMAINS: &[&str] = &[
     "company",
@@ -476,10 +478,28 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
                 "input concepts require supplied identifiers or the literal subject: {}. Correct the input concepts and identifier keys while preserving all requested criteria and outputs; do not invent missing provider parameters",
                 ungrounded.into_iter().cloned().collect::<Vec<_>>().join(", "));
         }
-        if !normalized.iter().any(|c: &Capability| {
+        if let Some(existing) = normalized.iter_mut().find(|c: &&mut Capability| {
             c.slug == capability.slug && c.subject_id == capability.subject_id
                 && c.source_hint == capability.source_hint
         }) {
+            // Models can split fields of one requested record across several
+            // entries. Consolidate that record without losing later fields or
+            // changing its subject/source scope.
+            for input in capability.inputs {
+                if !existing.inputs.contains(&input) { existing.inputs.push(input); }
+            }
+            for output in capability.outputs {
+                if !existing.outputs.contains(&output) { existing.outputs.push(output); }
+            }
+            ensure!(existing.inputs.len() <= 32 && existing.outputs.len() <= 32,
+                "too many input or output concepts for one capability");
+            if existing.description != capability.description {
+                existing.description = format!("{} {}", existing.description, capability.description);
+                ensure!(existing.description.len() <= 1000, "combined capability description is too long");
+            }
+            existing.confidence = existing.confidence.min(capability.confidence);
+            existing.missing = missing_inputs(existing, &normalized_subjects);
+        } else {
             normalized.push(capability);
         }
     }
@@ -536,63 +556,6 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
             text_sha256: hex::encode(Sha256::digest(request.as_bytes())),
         },
     })
-}
-
-#[cfg(test)]
-mod model_normalization_regressions {
-    use super::*;
-
-    #[test]
-    fn known_questions_and_greetings_cannot_bypass_model_output_validation() {
-        for request in [
-            "Search Crunchbase for Starbucks and show its company description and profile link.",
-            "Find public tenders for cleaning services in the Netherlands through TenderNed.",
-            "Show the registered company details for Mollie B.V. (KVK 30204462).",
-            "hoe gaat het met jou?",
-        ] {
-            assert!(normalize("invalid output", request, "fixture-model").is_err(), "{request}");
-        }
-    }
-
-    #[test]
-    fn greeting_normalization_preserves_model_fields_instead_of_a_canned_parse() {
-        let raw = json!({"language":"nl","subjects":[],"capabilities":[{
-            "slug":"general.conversation","name":"Reply to the user","description":"Respond to the greeting in the requested tone.",
-            "domain":"general","inputs":[],"outputs":["reply","tone"],"subject_id":null,"source_hint":null,"confidence":0.8
-        }],"deliverable":{"format":"chat","operations":[]}});
-        let parsed = normalize(&raw.to_string(), "hoe gaat het met jou?", "fixture-model").unwrap();
-        assert_eq!(parsed.capabilities[0].outputs, ["reply", "tone"]);
-        assert_eq!(parsed.capabilities[0].name, "Reply to the user");
-        assert_eq!(parsed.capabilities[0].confidence, 0.8);
-        assert_eq!(parsed.meta.model, "fixture-model");
-    }
-
-    #[test]
-    fn invalid_subject_links_cannot_detach_supplied_filters() {
-        let question = "Show the company profile for ExampleCo in Seattle.";
-        let mut raw = json!({"language":"en","subjects":[{
-            "id":"company","label":"ExampleCo","type":"company",
-            "identifiers":{"company_name":"ExampleCo","location":"Seattle"}
-        }],"capabilities":[{
-            "slug":"company.profile","name":"Company profile","description":"Retrieve a company profile.",
-            "domain":"company","inputs":[],"outputs":["profile"],
-            "subject_id":"company","source_hint":null,"confidence":0.95
-        }],"deliverable":{"format":"chat","operations":[]}});
-        let linked = normalize(&raw.to_string(), question, "fixture-model").unwrap();
-        assert_eq!(linked.capabilities[0].subject_id.as_deref(), Some("s1"));
-        assert_eq!(linked.subjects[0].identifiers["location"], "Seattle");
-        // Even when a model omits input names, a bad subject reference must
-        // trigger the existing correction attempt instead of losing Seattle.
-        for invalid in [json!("missing-subject"), json!("s1"), json!(""), json!(7), json!([])] {
-            raw["capabilities"][0]["subject_id"] = invalid.clone();
-            let error = normalize(&raw.to_string(), question, "fixture-model").unwrap_err();
-            assert_eq!(error.to_string(), "capability subject_id must reference a supplied subject or be null", "{invalid}");
-        }
-        raw["capabilities"][0]["subject_id"] = Value::Null;
-        raw["subjects"] = json!([]);
-        assert!(normalize(&raw.to_string(), question, "fixture-model").unwrap().capabilities[0].subject_id.is_none(),
-            "an explicitly subjectless request remains supported");
-    }
 }
 
 fn identifier_input(input: &str) -> bool {
@@ -1137,4 +1100,61 @@ pub fn decode_matches(
         "incomplete capability matching"
     );
     Ok(matches)
+}
+
+#[cfg(test)]
+mod model_normalization_regressions {
+    use super::*;
+
+    #[test]
+    fn known_questions_and_greetings_cannot_bypass_model_output_validation() {
+        for request in [
+            "Search Crunchbase for Starbucks and show its company description and profile link.",
+            "Find public tenders for cleaning services in the Netherlands through TenderNed.",
+            "Show the registered company details for Mollie B.V. (KVK 30204462).",
+            "hoe gaat het met jou?",
+        ] {
+            assert!(normalize("invalid output", request, "fixture-model").is_err(), "{request}");
+        }
+    }
+
+    #[test]
+    fn greeting_normalization_preserves_model_fields_instead_of_a_canned_parse() {
+        let raw = json!({"language":"nl","subjects":[],"capabilities":[{
+            "slug":"general.conversation","name":"Reply to the user","description":"Respond to the greeting in the requested tone.",
+            "domain":"general","inputs":[],"outputs":["reply","tone"],"subject_id":null,"source_hint":null,"confidence":0.8
+        }],"deliverable":{"format":"chat","operations":[]}});
+        let parsed = normalize(&raw.to_string(), "hoe gaat het met jou?", "fixture-model").unwrap();
+        assert_eq!(parsed.capabilities[0].outputs, ["reply", "tone"]);
+        assert_eq!(parsed.capabilities[0].name, "Reply to the user");
+        assert_eq!(parsed.capabilities[0].confidence, 0.8);
+        assert_eq!(parsed.meta.model, "fixture-model");
+    }
+
+    #[test]
+    fn invalid_subject_links_cannot_detach_supplied_filters() {
+        let question = "Show the company profile for ExampleCo in Seattle.";
+        let mut raw = json!({"language":"en","subjects":[{
+            "id":"company","label":"ExampleCo","type":"company",
+            "identifiers":{"company_name":"ExampleCo","location":"Seattle"}
+        }],"capabilities":[{
+            "slug":"company.profile","name":"Company profile","description":"Retrieve a company profile.",
+            "domain":"company","inputs":[],"outputs":["profile"],
+            "subject_id":"company","source_hint":null,"confidence":0.95
+        }],"deliverable":{"format":"chat","operations":[]}});
+        let linked = normalize(&raw.to_string(), question, "fixture-model").unwrap();
+        assert_eq!(linked.capabilities[0].subject_id.as_deref(), Some("s1"));
+        assert_eq!(linked.subjects[0].identifiers["location"], "Seattle");
+        // Even when a model omits input names, a bad subject reference must
+        // trigger the existing correction attempt instead of losing Seattle.
+        for invalid in [json!("missing-subject"), json!("s1"), json!(""), json!(7), json!([])] {
+            raw["capabilities"][0]["subject_id"] = invalid.clone();
+            let error = normalize(&raw.to_string(), question, "fixture-model").unwrap_err();
+            assert_eq!(error.to_string(), "capability subject_id must reference a supplied subject or be null", "{invalid}");
+        }
+        raw["capabilities"][0]["subject_id"] = Value::Null;
+        raw["subjects"] = json!([]);
+        assert!(normalize(&raw.to_string(), question, "fixture-model").unwrap().capabilities[0].subject_id.is_none(),
+            "an explicitly subjectless request remains supported");
+    }
 }

@@ -13,12 +13,13 @@ kill_timeout = "120s"
   # Pinned models via OpenRouter; these values document the code constants.
   INTENT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
   # Ask capability interpretation is independent of planning and analysis.
-  ASK_V2_MODEL = "openai/gpt-6-luna"
+  ASK_V2_MODEL = "openai/gpt-oss-120b"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"
   ASK_PAID_ANALYSIS_ENABLED = "1"
   ASK_PAID_ANALYSIS_OWNERS = "bf085fe8-41c4-4699-978f-e75e89518bf7" # Private paid acceptance before broad rollout.
-  RECURRING_ORDERS_ENABLED = "0" # Temporarily paused pending recurring workflow repairs.
+  RECURRING_ORDERS_ENABLED = "0" # Keep the existing production pause during this Ask release.
+  RECURRING_ALLOWED_OWNER_IDS = "bf085fe8-41c4-4699-978f-e75e89518bf7"
   KVK_WORKERS_ENABLED = "0" # The standalone KVK worker owns upstream retrieval.
   V2_SINGLE_CALL_MODE = "0"
   ASK_ENGINE_V2 = "true"

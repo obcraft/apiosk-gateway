@@ -26,6 +26,9 @@ impl Step {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan {
+    /// All inputs were available before approval; no result-to-input chaining.
+    #[serde(default)]
+    pub independent_calls: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compute: Option<crate::compute::Quote>,
     pub quote_ref: Uuid,
@@ -43,6 +46,23 @@ pub fn standard_markup() -> i64 {
     catalog_core::fees::BUYER_MARKUP_BPS as i64
 }
 impl Plan {
+    pub fn validate_source_limit(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(self.steps.len() <= MAX_STEPS, crate::protocol::SOURCE_LIMIT_MESSAGE);
+        Ok(())
+    }
+    /// Check the whole batch before queuing its first call. Pending dispatches
+    /// already contain their frozen inputs and are reused during recovery.
+    pub fn validate_independent_inputs(&self, task: &Task, vocabulary: &catalog_core::facts::contract::Vocabulary) -> anyhow::Result<()> {
+        self.validate_source_limit()?;
+        if !self.independent_calls { return Ok(()); }
+        for (index, step) in self.steps.iter().enumerate() {
+            anyhow::ensure!(step.browser_fallback.is_none(), "independent calls cannot contain a conditional lookup");
+            if !task.step_finished(&step.key()) && !task.pending_dispatches.iter().any(|pending| pending.step == index) {
+                step.service.inputs(task, step.entity_ref, vocabulary)?;
+            }
+        }
+        Ok(())
+    }
     /// Charge this plan's steps with the workflow markup and re-quote the cap.
     pub fn apply_markup(&mut self, markup_bps: i64) {
         self.fee_bps = catalog_core::fees::allowed_markup(markup_bps.into()) as i64;
@@ -318,7 +338,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
         }
     }
     if steps.len() > MAX_STEPS {
-        return Resolution::Unsupported("dependency step limit".into());
+        return Resolution::Unsupported(crate::protocol::SOURCE_LIMIT_MESSAGE.into());
     }
     // Stable dependency layers: resolve every independent company first,
     // then retrieve its dependent report. Never bind across company refs.
@@ -333,10 +353,12 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     let mut layered: Vec<_> = steps.into_iter().zip(depths).collect();
     layered.sort_by_key(|(_, depth)| *depth);
     let mut steps: Vec<_> = layered.into_iter().map(|(step, _)| step).collect();
-    crate::browser_fallback::reserve(catalog, task, intent, &mut steps);
+    if !task.independent_sources() {
+        crate::browser_fallback::reserve(catalog, task, intent, &mut steps);
+    }
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);
-    Resolution::Plan(Plan { compute: None,
+    Resolution::Plan(Plan { independent_calls: task.independent_sources(), compute: None,
         quote_ref: Uuid::new_v4(),
         steps,
         cap_atomic,
@@ -359,8 +381,23 @@ fn add(
     depth: usize,
     expansions: &mut usize,
 ) -> Result<(), String> {
+    if task.independent_sources() {
+        for req in service.contract.requires.iter().filter(|r| !r.optional) {
+            match fact_value(&task.facts, entity, &req.fact_type) {
+                Ok(Some(_)) => {},
+                Ok(None) => return Err(req.fact_type.clone()),
+                Err(error) => return Err(error.to_string()),
+            }
+        }
+        service.inputs(task, entity, &catalog.vocabulary).map_err(|error| error.to_string())?;
+        if !steps.iter().any(|step| step.service.id == service.id && step.entity_ref == entity) {
+            if steps.len() >= MAX_STEPS { return Err(crate::protocol::SOURCE_LIMIT_MESSAGE.into()); }
+            steps.push(Step { service: service.clone(), entity_ref: entity, goal_index: goal, browser_fallback: None });
+        }
+        return Ok(());
+    }
     *expansions += 1;
-    if depth > MAX_DEPTH || *expansions > 256 || steps.len() >= MAX_STEPS {
+    if depth > MAX_DEPTH || *expansions > 256 {
         return Err("dependency search limit".into());
     }
     if steps
@@ -368,6 +405,9 @@ fn add(
         .any(|s| s.service.id == service.id && s.entity_ref == entity)
     {
         return Ok(());
+    }
+    if steps.len() >= MAX_STEPS {
+        return Err(crate::protocol::SOURCE_LIMIT_MESSAGE.into());
     }
     if !visiting.insert(service.id) {
         return Err("dependency cycle".into());
@@ -505,7 +545,7 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
                 .unwrap_or_else(||capability.replace(['.', '_', '-'], " ")),
         }
         };
-        let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !r.optional).filter_map(|required| {
+        let dependencies: Vec<_> = service.contract.requires.iter().filter(|r| !plan.independent_calls && !r.optional).filter_map(|required| {
             plan.steps[..index].iter().enumerate().rev().find(|(_, previous)|
                 previous.entity_ref == step.entity_ref && previous.service.contract.output_map.produces.contains_key(&required.fact_type)
             ).map(|(previous, _)| json!({"step":previous+1,"field":required.fact_type,
@@ -570,7 +610,7 @@ mod presentation_tests {
     #[test]
     fn step_prices_use_the_quoted_markup_and_sum_to_the_approved_cap() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
-        let mut plan = Plan { compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 0, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(3).map(|service| Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }).collect() };
+        let mut plan = Plan { independent_calls: false, compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 0, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(3).map(|service| Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }).collect() };
         for markup in [1500, 2000] {
             plan.apply_markup(markup);
             let details = describe_steps(&plan, &[]);
@@ -588,7 +628,7 @@ mod presentation_tests {
     fn explains_only_dependencies_between_steps_for_the_same_entity() {
         let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
         let entity = Uuid::new_v4();
-        let mut plan = Plan { compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0, browser_fallback: None }).collect() };
+        let mut plan = Plan { independent_calls: false, compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 138, expires_at: Utc::now(), hash: "unchanged".into(), fee_bps: standard_markup(), workflow_slug: None, steps: snapshot.services.into_iter().take(2).map(|service| Step { service, entity_ref: entity, goal_index: 0, browser_fallback: None }).collect() };
         let details = describe_steps(&plan, &[]);
         assert_eq!(details[1]["dependencies"][0]["step"], 1);
         assert_eq!(details[1]["dependencies"][0]["field"], "company.id");
@@ -598,3 +638,6 @@ mod presentation_tests {
         assert_eq!(plan.cap_atomic, 138);
     }
 }
+
+#[cfg(test)]
+mod independent_tests;

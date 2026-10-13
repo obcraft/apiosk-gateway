@@ -419,12 +419,15 @@ fn enqueue_ready(
     catalog: &Catalog,
 ) -> anyhow::Result<Vec<crate::state::PendingDispatch>> {
     let mut added = Vec::new();
+    plan.validate_independent_inputs(task, &catalog.vocabulary)?;
     crate::browser_fallback::settle_unused(task, plan);
     if task.cancelled || !task.pending_candidates.is_empty() {
         return Ok(added);
     }
     for (index, step) in plan.steps.iter().enumerate() {
-        if task.pending_dispatches.len() >= 4 {
+        // Start every ready branch of the bounded plan. Dependencies are
+        // admitted as soon as their inputs arrive, without waiting for a wave.
+        if task.pending_dispatches.len() >= crate::protocol::MAX_STEPS {
             break;
         }
         if task.step_finished(&step.key())
@@ -535,6 +538,53 @@ mod pre_kyb_tests {
             value: json!("RESOLVED REGISTERED LIMITED"), verification: "source_observed".into(),
             provenance: json!({"kind":"provider_response", "contract_id":profile.service.id, "result_ref":result_ref}),
             observed_at: Utc::now(), expires_at: Utc::now() + chrono::Duration::hours(1) }
+    }
+
+    #[test]
+    fn all_independent_steps_are_queued_together_and_recovery_reuses_them() {
+        let (catalog, mut task, mut plan) = fixture("GB", Some("09446231"));
+        let profile = plan.steps.iter()
+            .find(|step| step.service.contract.capability_slug == "company.registry-profile")
+            .unwrap().clone();
+        let facts = task.facts.clone();
+        plan.steps = (0..crate::protocol::MAX_STEPS).map(|index| {
+            let mut step = profile.clone();
+            step.entity_ref = Uuid::new_v4();
+            step.goal_index = index;
+            task.facts.extend(facts.iter().cloned().map(|mut fact| {
+                fact.entity_ref = step.entity_ref;
+                fact
+            }));
+            step
+        }).collect();
+        plan.independent_calls = true;
+        assert_eq!(plan.steps.len(), 10);
+        let mut oversized = plan.clone();
+        oversized.steps.push(plan.steps[0].clone());
+        assert_eq!(enqueue_ready(&mut task, &oversized, &catalog).unwrap_err().to_string(), crate::protocol::SOURCE_LIMIT_MESSAGE);
+        assert!(task.pending_dispatches.is_empty(), "an oversized saved plan cannot queue even its first call");
+        let mut incomplete = task.clone();
+        let last = plan.steps.last().unwrap().entity_ref;
+        incomplete.facts.retain(|fact| fact.entity_ref != last);
+        assert!(enqueue_ready(&mut incomplete, &plan, &catalog).is_err());
+        assert!(incomplete.pending_dispatches.is_empty(), "a missing input blocks the entire batch before any call is queued");
+        let queued = enqueue_ready(&mut task, &plan, &catalog).unwrap();
+        assert_eq!(queued.len(), crate::protocol::MAX_STEPS,
+            "ready sources after the fourth must start immediately too");
+        assert_eq!(queued.iter().map(|pending| pending.step).collect::<Vec<_>>(),
+            (0..plan.steps.len()).collect::<Vec<_>>());
+        let actions: Vec<_> = queued.iter().map(|pending| pending.action_id).collect();
+        let inputs: Vec<_> = queued.iter().map(|pending| pending.inputs.clone()).collect();
+        task.facts.clear(); // Recovery uses the frozen requests, never another source's output.
+        assert!(enqueue_ready(&mut task, &plan, &catalog).unwrap().is_empty());
+        assert_eq!(task.pending_dispatches.iter().map(|pending| pending.action_id).collect::<Vec<_>>(), actions);
+        assert_eq!(task.pending_dispatches.iter().map(|pending| pending.inputs.clone()).collect::<Vec<_>>(), inputs);
+
+        // Settled branches cannot be purchased again while slower calls run.
+        task.pending_dispatches.remove(0);
+        task.completed.push(plan.steps[0].key());
+        assert!(enqueue_ready(&mut task, &plan, &catalog).unwrap().is_empty());
+        assert_eq!(task.pending_dispatches.len(), plan.steps.len() - 1);
     }
 
     #[test]

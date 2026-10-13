@@ -31,9 +31,8 @@ independently.
    retain `/v2/ask`; their saved plan, run and continuation paths are unchanged.
 
 The parser streams bounded JSON with a 20-second transport deadline per attempt.
-`ASK_V2_MODEL` selects the configured model; its default is defined in
-`ask_v2::DEFAULT_MODEL` and uses low reasoning effort. Other compatible models
-retain temperature zero.
+Ask v1 uses GPT-OSS 120B (`ask_v2::DEFAULT_MODEL`) with low reasoning effort.
+`ASK_V2_MODEL` documents that pinned model; deployment overrides are ignored.
 
 The App parse/search routes require an authenticated App user and apply the existing workspace
 membership checks. Separate bounded per-owner limits cover parsing and search,
@@ -48,22 +47,38 @@ The App waits for source discovery before allowing a new source selection and
 automatically prepares the complete data question through `/v2/ask-v2/research`.
 A prepared task opens even when the directory also returned alternatives.
 The task owns the combined price ceiling, missing inputs and one approval.
+After approval, the server starts every independent ready API call concurrently,
+up to ten source calls per plan. Source options and manual selection also allow
+at most ten. Larger requests must be narrowed or split, never silently truncated.
+The same limit is checked again before approval and dispatch, including saved plans.
+Ask calls must already have every
+required input before approval. Results are saved as each source finishes; recovery reuses pending calls and their action IDs.
 
-Planning from `parsed_request` calls no model. `parser::contract_planner`
-filters the ranked admitted endpoints, binds documented literal inputs,
-combines complementary sources, merges shared goals and resolves dependencies.
-It verifies every requested field and supplied filter against the resulting
-plan before returning one total price. Search and combination counts are bounded.
-An unsupported requirement returns a short explanation, without an AI repair
-or a model-generated refusal. The original extraction remains unchanged.
+Ask plans independent source calls. Exact contract fields are compiled directly;
+other wording goes through semantic planning against the discovered endpoints'
+current field inventory. There is no question registry or static output mapping
+table. Requested subjects, fields, filters and selected endpoints remain binding.
+A failed semantic validation gets a bounded repair; ambiguous or unavailable
+scope returns a focused clarification.
 
-`contracts/source-output-mappings.json` contains reviewed source semantics:
-exact source/capability/fact/path/type references, output concepts, derivations
-and limitations. These describe reusable source fields, not example questions.
-Current admitted schemas and samples must still contain every referenced field;
-runtime bindings use the current service version. Schema aliases and exact
-normalized field names also work for catalog entries without an explicit mapping.
-Samples establish available fields only and never supply a current answer.
+Discovery keeps relevant alternatives that can use the supplied inputs, even
+when a provider's detail endpoints occupy the initial shortlist. If lexical
+matching excludes search, discovery also checks the same provider's admitted
+contracts for a ready call that returns a shortlisted endpoint's missing input.
+That call must bind the current subject and pass jurisdiction checks. It is an
+offered standalone alternative, never an execution dependency. Within a
+provider, usable options appear before endpoints with missing inputs. Planning
+tries complete alternatives before requesting an identifier and proves output
+coverage even for drafts that still need input. A standalone name search can
+answer a broad request for available records, but cannot replace explicitly
+requested detail fields it does not return or an explicitly selected endpoint.
+
+All selected APIs must have their required inputs before a quote is created.
+Missing inputs produce schema-bound input requests; they are never obtained by
+adding dependency calls. A ready batch has one total price and one approval.
+The worker validates the whole batch before queuing any call, starts every call
+concurrently and retains frozen pending inputs and action IDs for recovery.
+Explicit workflow recipes retain their separate execution contracts.
 
 When at least two distinct requested retrievals have server-preferred executable
 matches from different providers, the App keeps them together: no individual

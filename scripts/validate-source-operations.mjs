@@ -10,8 +10,9 @@
 // of every attempt already on disk, whatever its outcome. An attempt is
 // written before its request and is never sent again. Only a response the
 // document adapter accepts counts as evidence.
+// Supply APIOSK_APP_SERVICE_KEY explicitly; credentials are never fetched
+// from another environment or remote process.
 import fs from 'node:fs/promises';
-import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 
@@ -26,6 +27,11 @@ const limit = Number(flag('limit') ?? Infinity);
 const skipSources = new Set((flag('skip-sources') ?? '').split(',').filter(Boolean));
 if (paid && !(budget > 0)) throw Error('--pay needs --budget-usd');
 
+const key = process.env.APIOSK_APP_SERVICE_KEY;
+if (typeof key !== 'string' || key.trim().length <= 20 || /[\r\n]/.test(key)) {
+  throw Error('Set APIOSK_APP_SERVICE_KEY explicitly before running source validation');
+}
+
 const staged = JSON.parse(await fs.readFile(stagedPath, 'utf8'));
 const samples = {};
 for (const file of (await fs.readdir(samplesDir)).filter((f) => /^samples-\d+\.json$/.test(f))) {
@@ -35,16 +41,10 @@ const dryDir = path.join(outDir, 'dry'), paidDir = path.join(outDir, 'paid');
 await fs.mkdir(dryDir, {recursive: true});
 await fs.mkdir(paidDir, {recursive: true});
 
-let key = process.env.APIOSK_APP_SERVICE_KEY;
-try {
-  key ||= execFileSync('fly', ['ssh', 'console', '-a', 'apiosk-gateway-v2', '-q', '-C', `sh -c 'printf "%s" "$APIOSK_APP_SERVICE_KEY"'`], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
-} catch { throw Error('Treasury service credential unavailable'); }
-if (!(key.length > 20) || key.includes('\n')) throw Error('Treasury service credential unavailable');
-
 const buyerCap = (list) => list + Math.ceil(list * 0.15);
 // Mirrors catalog-core facts::document::response: an upstream error, a pending
 // job or an empty body is not source evidence.
-export function usable(body) {
+function usable(body) {
   if (body == null || typeof body === 'boolean' || typeof body === 'number') return false;
   if (typeof body === 'string') return body.trim() !== '';
   if (Array.isArray(body)) return body.length > 0;

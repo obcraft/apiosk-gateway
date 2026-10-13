@@ -2,9 +2,11 @@
 //! performs no retrieval. A complete latest monthly slice and its saved
 //! codebooks must be present before it can describe a sector comparison.
 use crate::answer_blocks::{CriterionKind, Requirement};
+#[cfg(test)]
 use crate::capability_intake::{Capability, Deliverable, Meta, ParsedRequest, Subject};
 use anyhow::{ensure, Context};
 use serde_json::{json, Value};
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -27,6 +29,7 @@ fn language(question: &str) -> Option<&'static str> {
 
 /// Consume the entire plain request. Explicit years, rates, extra deliverables,
 /// countries or additional questions remain on the ordinary interpretation path.
+#[cfg(test)]
 pub(crate) fn canonical_request(question: &str) -> Option<ParsedRequest> {
     let language = language(question)?;
     Some(ParsedRequest {
@@ -50,6 +53,7 @@ pub(crate) fn canonical_request(question: &str) -> Option<ParsedRequest> {
 
 /// Only the reviewed fixed native calls can implement this default-period
 /// request. Raw OData inputs and generic unfiltered observations remain separate.
+#[cfg(test)]
 pub(crate) fn reviewed_services(catalog: &crate::catalog::Catalog) -> anyhow::Result<Vec<&crate::catalog::Service>> {
     let definitions = [
         (CAPABILITY, "/odata/v1/CBS/82244NED/Observations", json!({"$filter":"TypeGefailleerde eq 'A047596' and contains(Perioden,'MM')", "$orderby":"Perioden desc", "$top":1000, "$count":true})),
@@ -154,7 +158,7 @@ fn comparison(sources: &[Value]) -> anyhow::Result<Comparison<'_>> {
     let period_codes = code_index(&periods)?;
     let measure_codes = code_index(&measures)?;
     let population_codes = code_index(&populations)?;
-    let (&period, &period_row) = period_codes.iter().filter(|(code, _)| monthly(code)).next_back().context("CBS has no monthly reporting period")?;
+    let (&period, &period_row) = period_codes.iter().rfind(|(code, _)| monthly(code)).context("CBS has no monthly reporting period")?;
     let &measure_row = measure_codes.get(MEASURE).context("CBS bankruptcy measure is missing")?;
     let &population_row = population_codes.get(POPULATION).context("CBS business population is missing")?;
     ensure!(measures.rows[measure_row]["Unit"] == "Aantal", "CBS measure is not a count");
@@ -292,7 +296,7 @@ pub(crate) fn compose(question: &str, sources: &[Value]) -> anyhow::Result<Optio
         ],
         "limitations": limitations,
         "presentation": {"kind":"table", "title": if dutch {"Faillissementen per sector in Nederland"} else {"Bankruptcies by sector in the Netherlands"},
-            "columns":[{"label":if dutch {"Sector"}else{"Sector"}}, {"label":if dutch {"Faillissementen"}else{"Bankruptcies"}}, {"label":if dutch {"Maand"}else{"Month"}}, {"label":if dutch {"CBS-status"}else{"CBS status"}}], "rows":rows}
+            "columns":[{"label":"Sector"}, {"label":if dutch {"Faillissementen"}else{"Bankruptcies"}}, {"label":if dutch {"Maand"}else{"Month"}}, {"label":if dutch {"CBS-status"}else{"CBS status"}}], "rows":rows}
     });
     let mut analysis = crate::parser::validate_analysis(&raw.to_string(), sources, missing)?;
     analysis["method"] = json!("saved_cbs_bankruptcy_sector_comparison");

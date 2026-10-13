@@ -986,6 +986,7 @@ mod tests {
     #[tokio::test]
     async fn slack_content_alias_is_resolved_once_from_the_schema_before_approval() {
         let (client, provider) = fake().await;
+        {
         let mut metadata = provider.tool.lock().unwrap();
         metadata["input_parameters"]["properties"]
             .as_object_mut()
@@ -993,7 +994,8 @@ mod tests {
             .remove("text");
         metadata["input_parameters"]["properties"]["markdown_text"] = json!({"type":"string"});
         metadata["input_parameters"]["required"] = json!(["channel", "markdown_text"]);
-        drop(metadata);
+
+        }
         let contract = prepared(&client).await;
         assert_eq!(contract.mutable_content_fields, vec!["markdown_text"]);
         assert_eq!(

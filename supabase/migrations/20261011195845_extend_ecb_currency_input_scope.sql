@@ -273,4 +273,3 @@ $reviewed$::jsonb)
   END LOOP;
 END;
 $migration$;
-

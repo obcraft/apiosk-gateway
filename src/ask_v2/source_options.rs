@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-const MAX_OPTIONS: usize = 24;
+const MAX_OPTIONS: usize = super::source_selection::MAX_SOURCES;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct SourceOption {
@@ -47,25 +47,15 @@ fn literal(field: &str, subject: &Subject, catalog: &Catalog) -> Option<Value> {
     }
 }
 
-fn missing(service: &Service, subject: &Subject, catalog: &Catalog) -> Vec<String> {
-    let resolved = lookup(service, subject, catalog).map(|(_, _, resolved)| resolved).unwrap_or_default();
+pub(crate) fn missing(service: &Service, subject: &Subject, catalog: &Catalog) -> Vec<String> {
     service.contract.requires.iter().filter(|input| !input.optional)
-        .filter(|input| literal(&input.fact_type, subject, catalog).is_none() && !resolved.contains(&input.fact_type))
+        .filter(|input| literal(&input.fact_type, subject, catalog).is_none())
         .map(|input| input.fact_type.clone()).collect()
 }
 
-fn lookup(service: &Service, subject: &Subject, catalog: &Catalog) -> Option<(String, Value, Vec<String>)> {
-    let (seed, resolved) = crate::engine::Engine::endpoint_lookup(catalog, service)?;
-    if !service.contract.requires.iter().any(|input| !input.optional && resolved.contains(&input.fact_type)
-        && literal(&input.fact_type, subject, catalog).is_none()) { return None; }
-    Some((seed.into(), literal(seed, subject, catalog)?, resolved))
-}
-
-fn input_values(service: &Service, subject: &Subject, catalog: &Catalog) -> BTreeMap<String, Value> {
-    let mut values: BTreeMap<_, _> = service.contract.requires.iter()
-        .filter_map(|input| literal(&input.fact_type, subject, catalog).map(|value| (input.fact_type.clone(), value))).collect();
-    if let Some((seed, value, _)) = lookup(service, subject, catalog) { values.insert(seed, value); }
-    values
+pub(crate) fn input_values(service: &Service, subject: &Subject, catalog: &Catalog) -> BTreeMap<String, Value> {
+    service.contract.requires.iter()
+        .filter_map(|input| literal(&input.fact_type, subject, catalog).map(|value| (input.fact_type.clone(), value))).collect()
 }
 
 /// A typed input is stronger than a shared tag. Broad query inputs alone must
@@ -205,7 +195,12 @@ pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catal
             });
             groups[index].push(option);
         }
-        let mut rows: Vec<_> = groups.into_iter().map(Vec::into_iter).collect();
+        // Surface usable alternatives from each provider before asking for
+        // identifiers needed by its other endpoints. Selection remains explicit.
+        let mut rows: Vec<_> = groups.into_iter().map(|mut group| {
+            group.sort_by_key(|option| !option.missing_inputs.is_empty());
+            group.into_iter()
+        }).collect();
         let mut result = Vec::new();
         loop {
             let before = result.len();
@@ -266,21 +261,27 @@ mod tests {
         let choices = options(&parsed, &found, &catalog);
         let slugs: Vec<_> = choices.iter().filter_map(|option| option.source.capability.as_deref()).collect();
         assert!(slugs.contains(&"company_registry.search"), "{slugs:?}");
-        assert!(slugs.contains(&"company.crunchbase-search"), "{slugs:?}");
         assert!(slugs.contains(&"company.crunchbase-official-search"), "{slugs:?}");
         assert!(slugs.iter().any(|slug| slug.contains("glassdoor")), "{slugs:?}");
-        let business = choices.iter().find(|option| option.requirement.outputs.iter().any(|output| output == "location.yelp_search_results")).expect("business-location records");
-        assert_eq!(business.missing_inputs.len(), 1, "{business:?}");
-        assert!(business.missing_inputs[0].ends_with(".location"));
-        assert!(business.input_values.values().any(|value| value == "Example Coffee"));
         let registry = choices.iter().find(|option| option.source.capability.as_deref() == Some("company.registry-profile")
             && option.source.source_slug.as_deref() == Some("kvk-dutch-business-register")).unwrap();
-        assert_eq!(registry.input_values["company.name"], "Example Coffee");
-        assert!(registry.missing_inputs.is_empty(), "known names seed documented identifier dependencies");
+        assert!(!registry.input_values.contains_key("company.name"), "an unrequested lookup seed is not a profile input");
+        assert!(registry.missing_inputs.iter().any(|field| field == "company_registry.kvknummer"), "collect the profile input before approval");
         assert!(!slugs.iter().any(|slug| slug.starts_with("person.")), "{slugs:?}");
         assert!(choices.len() <= MAX_OPTIONS);
         assert_eq!(parsed.capabilities.len(), 1, "options never mutate requested scope");
         assert!(choices.iter().all(|option| option.subject_id == "s1"));
+        // A smaller shortlist may omit the provider's less-ready alternatives.
+        // When a location-search option is offered, its missing input remains explicit.
+        let local = Catalog::build(Snapshot {
+            services: catalog.services.iter().filter(|service| service.contract.output_map.produces.contains_key("location.yelp_search_results")).cloned().collect(),
+            vocabulary: catalog.vocabulary.into_values().collect(), known_sources: catalog.known_sources,
+        });
+        let local_choices = options(&parsed, &[], &local);
+        let business = local_choices.first().expect("business-location records");
+        assert_eq!(business.missing_inputs.len(), 1, "{business:?}");
+        assert!(business.missing_inputs[0].ends_with(".location"));
+        assert!(business.input_values.values().any(|value| value == "Example Coffee"));
     }
 
     #[test]
@@ -382,7 +383,8 @@ mod tests {
         let choices = options(&request("Unseen Name", None), &[], &catalog);
         assert_eq!(choices.len(), MAX_OPTIONS);
         assert!(choices.iter().any(|option| option.requirement.outputs.contains(&"company.glassdoor_search_results".into())));
-        assert!(choices.iter().any(|option| option.requirement.outputs.contains(&"location.yelp_search_results".into())));
+        assert!(choices.iter().filter_map(|option| option.source.source_slug.as_deref()).collect::<BTreeSet<_>>().len() >= 5);
+        assert!(choices.iter().filter(|option| option.source.source_slug.as_deref() == Some("many-company-records")).count() <= 2);
         assert!(choices.iter().all(|option| !matches!(option.source.capability.as_deref(), Some("area.boundary" | "company.browse"))));
     }
 

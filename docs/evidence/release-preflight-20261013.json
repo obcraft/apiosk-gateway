@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-13",
+  "scope": "Release preflight for the reviewed Gateway changes and matching App contracts. Concurrent edits made after validation are excluded.",
+  "gateway": {
+    "cargo_all_targets": {
+      "initial_passed": 1256,
+      "initial_failed": 96,
+      "ignored": 117,
+      "sandbox_loopback_failures": 94,
+      "obsolete_fixture_failures_fixed_and_rerun": 2,
+      "full_suite_passed": false
+    },
+    "clippy_all_targets_deny_warnings": "passed",
+    "knip": "passed",
+    "legacy_executor_knip": "passed",
+    "node_script_tests": { "passed": 32, "sandbox_loopback_failures": 3 },
+    "contract_mirrors": "passed",
+    "migration_mirrors": "passed"
+  },
+  "app": {
+    "tests_passed": 3251,
+    "test_files_passed": 283,
+    "production_build": "passed",
+    "lint": "passed before final prompt and test-label edits"
+  },
+  "mcp": {
+    "tests_passed": 175,
+    "sandbox_loopback_failures": 4,
+    "private_evidence": "Screenshot and raw review reports are retained locally and excluded from publication."
+  },
+  "database": {
+    "reviewed_migrations_already_applied": 15,
+    "local_filenames_aligned_with_production_versions": 7,
+    "database_writes": 0,
+    "scope": "The existing company-reputation and planner-contract migrations only; concurrent source-onboarding work is excluded."
+  },
+  "limitations": [
+    "This is build and test evidence, not a new paid end-to-end acceptance test.",
+    "Socket fixture failures were blocked by sandbox listen EPERM; they were not marked as passing.",
+    "Gateway Fly deployment could not be started because this environment cannot resolve api.fly.io."
+  ]
+}

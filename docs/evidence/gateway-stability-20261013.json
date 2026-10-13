@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-13",
+  "scope": "Gateway cleanup and reliability fixes; current release pending concurrent edits",
+  "implemented": [
+    "Preserve supplied filters while collecting missing inputs",
+    "Offer typed identifier search alternatives without displacing ready relevant sources",
+    "Require resolved independent inputs before showing a complete plan",
+    "Repair isolated statistics migration fixture and source-reuse check",
+    "Verify pricing compatibility with legacy executor",
+    "Clean Clippy warnings across all workspace targets"
+  ],
+  "checks_before_concurrent_edits": {
+    "knip": "passed in Gateway and legacy-executor",
+    "clippy": "cargo clippy --workspace --all-targets --locked --offline -- -D warnings passed",
+    "build": "cargo build --workspace --locked --offline passed",
+    "rust_library": {
+      "passed": 920,
+      "socket_permission_failures": 90,
+      "ignored": 24
+    },
+    "workspace": {
+      "passed": 1226,
+      "socket_permission_failures": 93,
+      "other_failures": 1,
+      "ignored": 117,
+      "remaining_assertion": "Historical twelve-call UK fixture; updated to prove rejection and explicit narrowed ten-call plan; all 11 tests in that binary subsequently passed"
+    },
+    "javascript": {
+      "pure_suites_passed": 63,
+      "local_server_tests_blocked": 3
+    },
+    "isolated_database_scripts": {
+      "migration_scripts_passed": 18,
+      "credential_schema_script_passed": 1
+    },
+    "pricing_compatibility_tests": 27,
+    "contract_and_migration_sync": "passed; 15 existing canonical migration files copied to sibling App; no SQL applied"
+  },
+  "current_gateway_release": {
+    "status": "pending",
+    "reason": "src/parser.rs, src/parser/contract_planner.rs, src/ask_v2/search.rs and other files changed concurrently after validation. The next test attempt found is_err_or compilation failure; another edit subsequently replaced that expression. Current moving tree is not release-validated.",
+    "commit_or_push_performed": false,
+    "deployment_performed": false,
+    "latest_test_log": "/tmp/apiosk-gateway-release-tests.log"
+  },
+  "mcp_release": {
+    "commit": "bf263ffc358cae4e2ed5bc23484a8428945a99de",
+    "branch": "main",
+    "deployment_run": "https://github.com/obcraft/apiosk-mcp/actions/runs/38422170785",
+    "deployment_status": "success",
+    "changes": "Retire obsolete smart-contract payment claims and unused Fly configuration; describe balance authorization",
+    "tests_passed": 175,
+    "socket_tests_blocked": 4,
+    "live_page_verified": "https://mcp.apiosk.com/security/settlement-contract",
+    "health_check": "Browser client blocked direct /health navigation; deployment job succeeded"
+  },
+  "browser_planning": {
+    "question": "Summarize the KVK company details and OpenSanctions screening results for Coolblue B.V., with sources.",
+    "sources": [
+      "KVK Business Register name search",
+      "OpenSanctions"
+    ],
+    "maximum_total_eur": "0.120001",
+    "runtime": "Previously running local binary; not proof of the subsequently modified checkout",
+    "paid_execution": false
+  },
+  "database_applied": false,
+  "limits": [
+    "No paid source replay or execution",
+    "Full socket and isolated-server tests require an environment that permits loopback listeners",
+    "Current Gateway checkout must be retested once concurrent edits finish"
+  ]
+}

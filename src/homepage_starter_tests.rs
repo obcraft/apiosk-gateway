@@ -711,26 +711,32 @@ fn profile_catalog_with_unrelated_directory_entries() -> Catalog {
 }
 
 #[tokio::test]
-async fn semantic_name_only_profiles_discover_and_price_registry_resolution() {
+async fn explicit_profile_fields_require_the_identifier_before_pricing() {
     let catalog = profile_catalog_with_unrelated_directory_entries();
     for (name, question, slug) in [
         (
             "Mollie B.V.",
-            "Show the registered company details for Mollie B.V.",
+            "Show the legal form and SBI codes for Mollie B.V.",
             "company.profile",
         ),
         (
             "Atelier De Blauwe Maan B.V.",
-            "Please retrieve the available registered profile for Atelier De Blauwe Maan B.V.",
+            "Please retrieve the legal form and SBI codes for Atelier De Blauwe Maan B.V.",
             "company.registry.profile",
         ),
         (
             "Coolblue B.V.",
-            "Can you find the business registration details of Coolblue B.V.?",
+            "Can you find the legal form and SBI codes of Coolblue B.V.?",
             "company.profile",
         ),
     ] {
-        let intake = semantic_name_profile_intake(question, name, slug, &catalog);
+        let mut intake = semantic_name_profile_intake(question, name, slug, &catalog);
+        intake.parsed_request.capabilities[0].description =
+            "Retrieve the legal form and SBI codes of a registered company.".into();
+        intake.parsed_request.capabilities[0].outputs = vec!["legal_form".into(), "sbi_codes".into()];
+        intake.matches = crate::ask_v2::search::search(&intake.parsed_request, &catalog);
+        intake.selected_capabilities = intake.matches.iter()
+            .flat_map(|found| found.operations.iter().cloned()).collect();
         assert!(intake.matches.iter().flat_map(|found| &found.apiosk).any(|candidate|
             candidate.source_slug.as_deref() == Some("kvk-dutch-business-register")
                 && candidate.capability.as_deref() == Some("company.registry-profile")),
@@ -766,51 +772,12 @@ async fn semantic_name_only_profiles_discover_and_price_registry_resolution() {
         );
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let resolution = crate::resolver::resolve(&catalog, &task, &intent);
-        let Resolution::Plan(plan) = resolution else {
-            panic!("{question}: expected lookup-dependent profile plan, got {resolution:?}")
-        };
-        assert_eq!(
-            plan.steps
-                .iter()
-                .map(|step| step.service.contract.capability_slug.as_str())
-                .collect::<Vec<_>>(),
-            ["company_registry.search", "company.registry-profile"],
-            "name search is a dependency, not a substitute for the requested profile"
-        );
-        assert!(plan
-            .steps
-            .iter()
-            .all(|step| step.service.api_slug == "kvk-dutch-business-register"));
-        assert!(plan.cap_atomic > 0);
-        assert_eq!(
-            plan.cap_atomic,
-            plan.steps
-                .iter()
-                .map(|step| plan.step_total(step))
-                .sum::<i64>()
-        );
-        let lookup = &plan.steps[0];
-        assert_eq!(
-            lookup
-                .service
-                .inputs(&task, lookup.entity_ref, &catalog.vocabulary)
-                .unwrap(),
-            serde_json::json!({"naam":name})
-        );
-        let profile = &plan.steps[1];
-        assert!(
-            profile
-                .service
-                .inputs(&task, profile.entity_ref, &catalog.vocabulary)
-                .is_err(),
-            "profile execution must wait for the registry's resolved or explicitly selected number"
-        );
-        let shown = crate::resolver::describe_steps(&plan, &[]);
-        assert_eq!(
-            shown[1]["dependencies"][0]["field"],
-            "company_registry.kvknummer"
-        );
-        assert_eq!(shown[1]["dependencies"][0]["step"], 1);
+        assert!(matches!(resolution, Resolution::Missing { kind, .. } if kind == "company_registry.kvknummer"),
+            "a profile cannot be priced while its identifier is missing: {}", serde_json::to_string(&intent).unwrap());
+        assert_eq!(intent.goals.len(), 1, "no implicit paid name-search dependency");
+        assert!(task.independent_sources());
+        assert!(task.facts.iter().all(|fact| fact.semantic_type != "company_registry.kvknummer"));
+
     }
 }
 

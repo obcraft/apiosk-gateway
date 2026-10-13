@@ -1,10 +1,10 @@
 // Local PostgreSQL wire adapter for SQLx integration tests. PGlite is the
-// existing App test dependency. One connection only: production concurrency
+// Gateway test dependency. One connection only: production concurrency
 // must additionally be exercised against a real multi-connection Postgres.
 import net from 'node:net';
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 const db=new PGlite();await db.waitReady;
 await db.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
 // The durable-flow fixture needs only the v2 runtime schema. Provider-onboarding

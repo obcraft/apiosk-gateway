@@ -30,6 +30,7 @@ const COMPANY_KINDS: &[&str] = &["company", "business", "organization", "organis
 /// value is the user's own literal text (the parse only keeps literal labels),
 /// bound like any other explicit value and kept in the intent for requotes.
 pub(super) fn seed(task: &mut Task, catalog: &Catalog, intent: &mut Intent) -> anyhow::Result<()> {
+    if task.independent_sources() { return Ok(()); }
     let Some(parsed) = task.capability_intake.as_ref().map(|intake| intake.parsed_request.clone()) else {
         return Ok(());
     };
@@ -127,6 +128,7 @@ mod tests {
     /// What the planning model returned in the live report: the matched KVK
     /// profile, the parsed subject, and no bound name.
     fn planned(task: &mut Task, catalog: &Catalog, parsed: ParsedRequest, subjects: &[(&str, serde_json::Value)], constraints: serde_json::Value) -> Intent {
+        task.workflow = crate::compound_examples_tests::historical_workflow_task().workflow;
         task.capability_intake = Some(Intake { parsed_request: parsed, matches: vec![], apiosk_sources_searched: 1,
             catalog_version: catalog.version.clone(), selected_capabilities: Default::default() });
         let mut intent: Intent = serde_json::from_value(json!({
@@ -180,27 +182,10 @@ mod tests {
         }
     }
 
-    /// A planning model used to ask for confirmation before the real quote.
-    /// The compiler must now resolve the name-search dependency without ever
-    /// contacting that model, even when it would return a confirmation prompt.
+    /// A missing identifier becomes an input request, without a model call,
+    /// a hidden lookup chain, or a premature approval question.
     #[tokio::test]
-    async fn contract_planner_resolves_missing_registry_id_without_a_model() {
-        use axum::{extract::State, routing::post, Json, Router};
-        use std::sync::{Arc, Mutex};
-        let confirmation = json!({"message":"The KVK Business Register can provide the registered name, status, and address for Coolblue B.V. Would you like to retrieve this information now?",
-            "discover":false,"intent":null,"decline_reason":"none"});
-        let calls = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
-        let app = Router::new().route("/model", post(move |State(calls): State<Arc<Mutex<Vec<serde_json::Value>>>>, Json(body): Json<serde_json::Value>| {
-            let reply = confirmation.clone();
-            async move {
-                calls.lock().unwrap().push(body);
-                Json(json!({"choices":[{"message":{"content":reply.to_string()}}]}))
-            }
-        })).with_state(calls.clone());
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let url = format!("http://{}/model", listener.local_addr().unwrap());
-        let server = crate::telemetry::spawn(async move { axum::serve(listener, app).await.unwrap() });
-
+    async fn contract_planner_collects_missing_registry_id_without_a_model() {
         let catalog = catalog();
         let ranked = ["company.registry-profile", "company.branch-profile", "company.registered-names"];
         let candidate = |op: &str| crate::capability_intake::Candidate { origin: "apiosk".into(), name: "KVK Business Register".into(),
@@ -209,7 +194,7 @@ mod tests {
             method: "GET".into(), price: None, network: None, calls_30d: None, availability: "supported".into() };
         let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
             "subjects":[{"id":"s1","label":"Coolblue B.V.","type":"company","identifiers":{}}],
-            "capabilities":[{"slug":"company.registry.profile","name":"Company registry profile","description":"Retrieve a company's registered name, status and address.","domain":"company","inputs":["kvk_number"],"outputs":["registered_name","status","address"],"subject_id":"s1","source_hint":"kvk","confidence":0.95}],
+            "capabilities":[{"slug":"company.registry.profile","name":"Company registry profile","description":"Retrieve a company's registered name, status and address.","domain":"company","inputs":["kvk_number"],"outputs":["company.profile"],"subject_id":"s1","source_hint":"kvk","confidence":0.95}],
             "deliverable":{"format":"chat","operations":[]}}).to_string(), QUESTION, "fixture").unwrap();
         assert_eq!(parsed_request.capabilities[0].missing, ["kvk_number"], "as in the live parse");
         let intake = Intake { parsed_request,
@@ -218,20 +203,19 @@ mod tests {
                 coinbase: vec![], coinbase_status: "skipped".into() }],
             apiosk_sources_searched: 1, catalog_version: catalog.version.clone(),
             selected_capabilities: ranked.iter().map(|op| op.to_string()).collect() };
-        let parser = crate::parser::Parser::new(reqwest::Client::new(), url, "fixture".into(), "fixture".into());
+        let parser = crate::parser::Parser::new(reqwest::Client::new(), "offline://model-forbidden".into(), "fixture".into(), "fixture".into());
         let mut task = Task { capability_intake: Some(intake.clone()), ..Task::default() };
         let reply = parser.chat_from_capabilities(QUESTION, None, &task, &catalog, &intake).await.unwrap();
-        server.abort();
         assert!(reply.discover, "an explicit request is planned, not confirmed");
-        let calls = calls.lock().unwrap().clone();
-        assert!(calls.is_empty(), "a missing identifier uses the registered dependency, not a model");
 
         let mut intent = reply.intent.unwrap();
         input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         seed(&mut task, &catalog, &mut intent).unwrap();
-        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected a quote") };
-        let steps: Vec<_> = plan.steps.iter().map(|s| (s.service.api_slug.as_str(), s.service.contract.capability_slug.as_str())).collect();
-        assert_eq!(steps, [(KVK, "company_registry.search"), (KVK, "company.registry-profile")]);
+        assert_eq!(missing(&catalog, &task, &intent), "company_registry.kvknummer");
+        assert_eq!(intent.goals.len(), 1);
+        assert!(task.independent_sources());
+        assert!(task.facts.iter().all(|fact| fact.semantic_type != "company_registry.kvknummer"));
+
     }
 
     #[test]

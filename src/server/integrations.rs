@@ -14,18 +14,18 @@ use uuid::Uuid;
 
 /// The person the integration belongs to. An organisation key has no person
 /// behind it to give consent, so it is refused rather than mapped to one.
-async fn person(state: &ServerState, headers: &HeaderMap) -> Result<Uuid, Response> {
+async fn person(state: &ServerState, headers: &HeaderMap) -> Result<Uuid, Box<Response>> {
     let ctx = authenticated(state, headers)
         .await
         .map_err(|r| failure(r.status, r.code, r.message))?;
     if ctx.api_key.is_some() {
-        return Err(failure(StatusCode::FORBIDDEN, "integrations_person_only", "Integrations belong to a person. Connect them in the Apiosk app or through a connected agent, not with an organisation API key."));
+        return Err(Box::new(failure(StatusCode::FORBIDDEN, "integrations_person_only", "Integrations belong to a person. Connect them in the Apiosk app or through a connected agent, not with an organisation API key.")));
     }
     Ok(ctx.principal.owner)
 }
 
-fn client() -> Result<&'static integrations::Composio, Response> {
-    integrations::configured().ok_or_else(not_configured)
+fn client() -> Result<&'static integrations::Composio, Box<Response>> {
+    integrations::configured().ok_or_else(|| Box::new(not_configured()))
 }
 
 fn not_configured() -> Response {
@@ -36,9 +36,9 @@ fn not_configured() -> Response {
     )
 }
 
-fn toolkit(slug: &str) -> Result<&'static str, Response> {
+fn toolkit(slug: &str) -> Result<&'static str, Box<Response>> {
     integrations::toolkit(slug).ok_or_else(|| {
-        failure(StatusCode::NOT_FOUND, "unknown_integration", "Supported integrations: slack, microsoft_teams, discordbot, telegram, whatsapp, google_chat, gmail, outlook, notion.")
+        Box::new(failure(StatusCode::NOT_FOUND, "unknown_integration", "Supported integrations: slack, microsoft_teams, discordbot, telegram, whatsapp, google_chat, gmail, outlook, notion."))
     })
 }
 
@@ -69,7 +69,7 @@ fn provider_failed(context: &str, error: ComposioError) -> Response {
 pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -> Response {
     let (owner, composio) = match (person(&state, &headers).await, client()) {
         (Ok(owner), Ok(composio)) => (owner, composio),
-        (Err(r), _) | (_, Err(r)) => return r,
+        (Err(r), _) | (_, Err(r)) => return *r,
     };
     match composio.list(owner).await {
         Ok(rows) => Json(json!({ "integrations": rows })).into_response(),
@@ -87,7 +87,7 @@ pub(super) async fn connect(
     let (owner, composio, toolkit) =
         match (person(&state, &headers).await, client(), toolkit(&slug)) {
             (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
-            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
         };
     match composio.connect(owner, toolkit).await {
         Ok(link) => Json(link).into_response(),
@@ -103,7 +103,7 @@ pub(super) async fn disconnect(
     let (owner, composio, toolkit) =
         match (person(&state, &headers).await, client(), toolkit(&slug)) {
             (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
-            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+            (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
         };
     match composio.disconnect(owner, toolkit).await {
         Ok(removed) => Json(json!({ "toolkit": toolkit, "removed": removed })).into_response(),
@@ -117,7 +117,7 @@ pub(super) async fn disconnect(
 pub(super) async fn actions(State(state): State<ServerState>, headers: HeaderMap) -> Response {
     let (owner, composio) = match (person(&state, &headers).await, client()) {
         (Ok(owner), Ok(composio)) => (owner, composio),
-        (Err(r), _) | (_, Err(r)) => return r,
+        (Err(r), _) | (_, Err(r)) => return *r,
     };
     match composio.actions(owner).await {
         Ok(actions) => Json(json!({ "actions": actions })).into_response(),
@@ -140,9 +140,9 @@ pub(super) async fn execute(
     Path(slug): Path<String>,
     Json(body): Json<ExecuteAction>,
 ) -> Response {
-    let (owner, composio) = match (super::app_person(&state, &headers).await, client()) {
+    let (owner, composio) = match (super::app_person(&state, &headers).await.map_err(Box::new), client()) {
         (Ok(person), Ok(composio)) => (person.owner, composio),
-        (Err(r), _) | (_, Err(r)) => return r,
+        (Err(r), _) | (_, Err(r)) => return *r,
     };
     match composio.execute(owner, &slug, &body.arguments).await {
         Ok(outcome) => Json(outcome).into_response(),
@@ -193,9 +193,9 @@ pub(super) async fn prepare(
     Path(slug): Path<String>,
     Json(body): Json<PrepareAction>,
 ) -> Response {
-    let (owner, composio) = match (super::app_person(&state, &headers).await, client()) {
+    let (owner, composio) = match (super::app_person(&state, &headers).await.map_err(Box::new), client()) {
         (Ok(person), Ok(composio)) => (person.owner, composio),
-        (Err(r), _) | (_, Err(r)) => return r,
+        (Err(r), _) | (_, Err(r)) => return *r,
     };
     let question = body.question.trim();
     if question.is_empty() || question.chars().count() > 16_000 {
@@ -249,7 +249,7 @@ pub(super) async fn toolkit_actions(
 ) -> Response {
     let (_, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
         (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
-        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return r,
+        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
     };
     match composio.catalog(toolkit).await {
         Ok(actions) => Json(json!({ "toolkit": toolkit, "actions": actions })).into_response(),

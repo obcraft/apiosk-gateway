@@ -4,6 +4,54 @@ use crate::{
     state::Task,
 };
 
+#[test]
+fn captured_name_only_request_can_quote_two_independent_sources() {
+    let captured: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/name-search-alternative.json"
+    )).unwrap();
+    let catalog = Catalog::build(serde_json::from_str(include_str!(
+        "../../../tests/fixtures/homepage-starters/catalog.json"
+    )).unwrap());
+    let parsed_request = serde_json::from_value(captured["parsed_request"].clone()).unwrap();
+    let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+    let intake = Intake { selected_capabilities:matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+        parsed_request, matches, apiosk_sources_searched:2, catalog_version:catalog.version.clone() };
+    let mut intent = Intent { subjects:vec![Subject { entity_ref:None, label:intake.parsed_request.subjects[0].label.clone(),
+        values:BTreeMap::from([("company.name".into(),json!(intake.parsed_request.subjects[0].label))]) }],
+        goals:vec![], answer_operations:vec![],unresolved_references:vec![] };
+    let mut bindings = Vec::new();
+    for (requirement, capability) in ["company_registry.search", "company.sanctions-screen"].into_iter().enumerate() {
+        let service = candidates(&intake, requirement, &catalog).into_iter()
+            .find(|service| service.contract.capability_slug == capability).expect("discovery must offer the name-based call");
+        intent.goals.push(Goal { capability:capability.into(),subject:0,constraints:BTreeMap::from([
+            ("source".into(),json!(service.api_slug)),("endpoint_id".into(),json!(service.endpoint_id))]) });
+        // A valid semantic planner response over the real admitted contracts.
+        // This is a replay of the planning boundary, not a live model/source call.
+        bindings.push(Binding { requirement,output:intake.parsed_request.capabilities[requirement].outputs[0].clone(),
+            fields:inventory(service,&catalog).into_values().take(10).map(|field|field.id).collect(),
+            interpretation:if requirement == 0 {"Summarize the returned candidate names and registration numbers."}
+                else {"Summarize the returned screening matches."}.into(),
+            limitation:Some("Candidate matches do not confirm identity; this is not a complete registration profile.".into()) });
+    }
+    validate(&bindings,&intake,&catalog).unwrap();
+    crate::parser::plan_coverage::prepare_grounded(&mut intent,&intake,&catalog,&bindings).unwrap();
+    let mut task = Task { capability_intake:Some(intake.clone()),
+        output_grounding:Grounding::new(&intake,&catalog,bindings.clone()), ..Default::default() };
+    task.record_turn(captured["question"].as_str().unwrap(),None);
+    intent.validate(captured["question"].as_str().unwrap(),&task,&catalog).unwrap();
+    verify_plan(&intent,&task,&intake,&catalog,&bindings).unwrap();
+    crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+    let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog,&task,&intent) else {
+        panic!("both calls must be ready using only the supplied company name");
+    };
+    assert_eq!(plan.steps.len(),2);
+    assert!(plan.independent_calls);
+    assert_eq!(plan.steps.iter().map(|step| &step.service.api_slug).collect::<BTreeSet<_>>().len(),2);
+    assert!(crate::resolver::describe_steps(&plan,&[]).iter().all(|step| step["dependencies"] == json!([])));
+    plan.validate_independent_inputs(&task,&catalog.vocabulary).unwrap();
+    assert!(task.pending_dispatches.is_empty() && task.completed.is_empty());
+}
+
 fn fixture() -> (Intake, Catalog) {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../../tests/fixtures/unsupported-glassdoor-starter.json"
@@ -45,66 +93,37 @@ fn glassdoor(catalog: &Catalog) -> &Service {
         .unwrap()
 }
 
+#[tokio::test]
+async fn unrecognized_wording_reaches_dynamic_planning_instead_of_a_fixed_refusal() {
+    let (mut intake, catalog) = fixture();
+    let question = "Explain the supplied employer's compensation experience.";
+    use sha2::Digest;
+    intake.parsed_request.meta.text_sha256 = hex::encode(sha2::Sha256::digest(question.as_bytes()));
+    for cap in &mut intake.parsed_request.capabilities {
+        cap.outputs = vec![format!("novel_meaning_{}", Uuid::new_v4().simple())];
+    }
+    let parser = crate::parser::Parser::new(reqwest::Client::new(), "offline://no-model-transport".into(), String::new(), "fixture".into());
+    let error = parser.chat_from_capabilities(question, None, &Task::default(), &catalog, &intake).await.unwrap_err();
+    assert!(matches!(error.downcast_ref::<crate::parser::ModelFailure>(), Some(crate::parser::ModelFailure::Unavailable)),
+        "unknown wording must reach model planning; an unavailable model is a retryable error, not a false source mismatch");
+}
+
 #[test]
-fn deterministic_mappings_require_the_current_field_and_source() {
-    let (intake,mut catalog)=fixture();
-    assert!(compile(&intake,&catalog,&[glassdoor(&catalog)]).iter().any(|b|b.output=="pay_rating"));
-    let service=catalog.services.iter_mut().find(|service|service.contract.capability_slug.contains("glassdoor")).unwrap();
-    fn remove(value:&mut Value) {
+fn removed_fields_invalidate_semantic_bindings() {
+    let (intake, mut catalog) = fixture();
+    let link = binding(&intake, &catalog, 0, "pay_rating", "/document/data/*/compensation_and_benefits_rating");
+    validate(std::slice::from_ref(&link), &intake, &catalog).unwrap();
+    fn remove(value: &mut Value) {
         match value {
-            Value::Object(object)=>{object.remove("compensation_and_benefits_rating");for value in object.values_mut() {remove(value);}},
-            Value::Array(values)=>for value in values {remove(value);},
-            _=>{},
+            Value::Object(object) => { object.remove("compensation_and_benefits_rating"); for value in object.values_mut() { remove(value); } }
+            Value::Array(values) => for value in values { remove(value); },
+            _ => {}
         }
     }
+    let service = catalog.services.iter_mut().find(|service| service.contract.capability_slug.contains("glassdoor")).unwrap();
     remove(service.sample_payload.as_mut().unwrap());
     remove(&mut catalog.vocabulary.get_mut("company.glassdoor_search_results").unwrap().value_schema);
-    assert!(!compile(&intake,&catalog,&[glassdoor(&catalog)]).iter().any(|b|b.output=="pay_rating"),"a static alias cannot manufacture a removed field");
-    assert!(compile(&intake,&catalog,&[]).is_empty(),"an unselected source cannot establish coverage");
-}
-
-#[test]
-fn reviewed_mapping_metadata_is_bounded_and_contains_no_sample_values() {
-    let mappings:Vec<Mapping>=serde_json::from_str(include_str!("../../../contracts/source-output-mappings.json")).unwrap();
-    for mapping in mappings {
-        assert!(!mapping.outputs.is_empty() && !mapping.fields.is_empty() && mapping.fields.len()<=12);
-        assert!(!mapping.interpretation.trim().is_empty() && mapping.interpretation.chars().count()<=500);
-        assert!(mapping.limitation.as_ref().is_none_or(|note|!note.trim().is_empty() && note.chars().count()<=300));
-        for field in mapping.fields {assert!(!field.types.is_empty() && !field.fact.is_empty() && !field.source.is_empty());}
-    }
-}
-
-#[test]
-fn procurement_parse_variants_preserve_query_and_notice_classification_limits() {
-    let fixtures: Value = serde_json::from_str(include_str!("../../../tests/fixtures/homepage-starters.json")).unwrap();
-    let fixture = fixtures.as_array().unwrap().iter().find(|row| row["question"].as_str().unwrap().contains("TenderNed")).unwrap();
-    let catalog = Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
-    let mut raw = fixture["model_output"].clone();
-    raw["capabilities"][0]["outputs"] = json!(["contract_status"]);
-    raw["capabilities"][0]["inputs"] = json!(["country", "query"]);
-    raw["subjects"][0]["identifiers"] = json!({"country":"Dutch", "query":"cleaning services"});
-    let parsed_request = crate::capability_intake::normalize(&raw.to_string(), fixture["question"].as_str().unwrap(), "fixture").unwrap();
-    let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
-    let intake = Intake {selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
-        parsed_request,matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone()};
-    let sources: Vec<_> = catalog.services.iter().filter(|service|service.contract.capability_slug=="procurement.nl-public-contracts").collect();
-    let bindings = compile(&intake,&catalog,&sources);
-    let binding = bindings.iter().find(|binding|binding.output=="contract_status").unwrap();
-    assert!(binding.interpretation.contains("opportunity versus award notices"));
-    assert!(binding.limitation.as_ref().unwrap().contains("does not by itself establish that bidding is still open"));
-    assert!(compile(&intake,&catalog,&[]).is_empty());
-    let question = fixture["question"].as_str().unwrap();
-    let reply = crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&intake);
-    assert!(reply.discover,"{}",reply.message);
-    assert_eq!(reply.intent.unwrap().subjects[0].values["company_intel.input.search"],json!("cleaning services"));
-    let mut whole_question = intake.clone();
-    whole_question.parsed_request.subjects[0].identifiers.insert("query".into(),question.into());
-    assert!(!crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&whole_question).discover,
-        "the complete instruction cannot substitute for a supplied search phrase");
-    let mut extra_filter = intake;
-    extra_filter.parsed_request.subjects[0].identifiers.insert("maximum_budget".into(),"50000".into());
-    assert!(!crate::parser::contract_planner::compile(question,question,&Task::default(),&catalog,&extra_filter).discover,
-        "a usable query must not hide an unsupported filter");
+    assert!(validate(&[link], &intake, &catalog).is_err());
 }
 
 fn binding(
@@ -157,7 +176,7 @@ fn observed_extracted_fields_support_semantics_without_disclosing_sample_answers
         "pay_rating",
         "/document/data/*/compensation_and_benefits_rating",
     );
-    validate(&[link.clone()], &intake, &catalog).unwrap();
+    validate(std::slice::from_ref(&link), &intake, &catalog).unwrap();
     assert!(covered(
         &[link],
         0,
@@ -195,7 +214,7 @@ fn grounding_rejects_invented_fields_other_endpoints_and_changed_requests() {
         .find(|service| !service.contract.capability_slug.contains("glassdoor"))
         .unwrap();
     assert!(!covered(
-        &[link.clone()],
+        std::slice::from_ref(&link),
         0,
         "pay_rating",
         &[unrelated],
@@ -203,7 +222,7 @@ fn grounding_rejects_invented_fields_other_endpoints_and_changed_requests() {
     ));
     assert!(
         !covered(
-            &[link.clone()],
+            std::slice::from_ref(&link),
             1,
             "pay_rating",
             &[glassdoor(&catalog)],

@@ -325,9 +325,9 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
     );
     let dates = utc_dates(engine, &b.schedule, &calendar).await?;
     anyhow::ensure!(!dates.is_empty(), "No future runs in this period.");
-    if !per_run && b.schedule.count.is_some() {
+    if let Some(count) = b.schedule.count.filter(|_| !per_run) {
         anyhow::ensure!(
-            dates.len() == b.schedule.count.unwrap(),
+            dates.len() == count,
             "The start time has passed; choose a future start."
         );
     }
@@ -673,6 +673,27 @@ pub async fn deliver_one_pass(engine: &Engine) -> anyhow::Result<()> {
     worker::deliver(engine).await
 }
 
+pub async fn read_run(
+    engine: &Engine,
+    p: &Principal,
+    order: Uuid,
+    run: Uuid,
+) -> anyhow::Result<Value> {
+    require_owner(p.owner)?;
+    engine.store.check_workspace(p).await?;
+    let result:Value=sqlx::query_scalar("select r.result from billing.recurring_runs r join billing.recurring_orders o on o.id=r.order_id where r.id=$1 and o.id=$2 and o.owner_id=$3 and o.workspace_id is not distinct from $4 and r.result is not null").bind(run).bind(order).bind(p.owner).bind(p.workspace).fetch_one(&engine.store.pool).await?;
+    Ok(result)
+}
+
+async fn utc_dates(
+    engine: &Engine,
+    schedule: &Schedule,
+    dates: &[NaiveDate],
+) -> anyhow::Result<Vec<DateTime<Utc>>> {
+    Ok(sqlx::query_scalar("select distinct (d+$2::time) at time zone $3 from unnest($1::date[]) d where (d+$2::time) at time zone $3 > now()+interval '2 minutes' order by 1")
+        .bind(dates).bind(schedule.time).bind(&schedule.timezone).fetch_all(&engine.store.pool).await?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -756,25 +777,4 @@ mod tests {
         .validate()
         .is_err());
     }
-}
-
-pub async fn read_run(
-    engine: &Engine,
-    p: &Principal,
-    order: Uuid,
-    run: Uuid,
-) -> anyhow::Result<Value> {
-    require_owner(p.owner)?;
-    engine.store.check_workspace(p).await?;
-    let result:Value=sqlx::query_scalar("select r.result from billing.recurring_runs r join billing.recurring_orders o on o.id=r.order_id where r.id=$1 and o.id=$2 and o.owner_id=$3 and o.workspace_id is not distinct from $4 and r.result is not null").bind(run).bind(order).bind(p.owner).bind(p.workspace).fetch_one(&engine.store.pool).await?;
-    Ok(result)
-}
-
-async fn utc_dates(
-    engine: &Engine,
-    schedule: &Schedule,
-    dates: &[NaiveDate],
-) -> anyhow::Result<Vec<DateTime<Utc>>> {
-    Ok(sqlx::query_scalar("select distinct (d+$2::time) at time zone $3 from unnest($1::date[]) d where (d+$2::time) at time zone $3 > now()+interval '2 minutes' order by 1")
-        .bind(dates).bind(schedule.time).bind(&schedule.timezone).fetch_all(&engine.store.pool).await?)
 }

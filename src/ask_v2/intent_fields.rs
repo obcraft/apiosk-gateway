@@ -244,7 +244,6 @@ pub fn ground_response(response: &mut Value, catalog: &Catalog) -> Result<()> {
             .as_array()
             .unwrap()
             .iter()
-            .cloned()
             .map(|v| v.as_str().unwrap().to_owned())
             .collect();
         request["required_fields"]

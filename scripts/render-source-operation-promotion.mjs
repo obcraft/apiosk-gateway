@@ -14,7 +14,7 @@ import {createHash} from 'node:crypto';
 const [outDir, migration] = process.argv.slice(2);
 if (!outDir || !migration) throw Error('Usage: render-source-operation-promotion.mjs out-dir migration.sql');
 
-export function trim(value, depth = 0) {
+function trim(value, depth = 0) {
   if (typeof value === 'string') return value.length > 600 ? value.slice(0, 600) : value;
   if (Array.isArray(value)) return depth > 8 ? [] : value.slice(0, 3).map((v) => trim(v, depth + 1));
   if (value && typeof value === 'object') {

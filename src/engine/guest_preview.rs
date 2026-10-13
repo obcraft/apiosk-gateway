@@ -73,6 +73,7 @@ impl Preview {
             step["service"] = serde_json::to_value(service)?;
         }
         let plan: Plan = serde_json::from_value(proposal.clone())?;
+        plan.validate_independent_inputs(&task, &catalog.vocabulary).map_err(|_| Refusal::Changed)?;
         let current = requote::same_steps(catalog, &plan).ok_or(Refusal::Changed)?;
         anyhow::ensure!(plan.quote_ref == self.quote_ref && plan.expires_at == self.expires_at
             && plan.cap_atomic == self.total_atomic && current.cap_atomic == self.total_atomic
@@ -91,7 +92,7 @@ impl Engine {
         task.record_turn(question, Some(reply.message.clone()));
         let status = if reply.discover {
             if let Some(mut intent) = reply.intent {
-                crate::uk_supplier::expand(&mut intent, catalog);
+                // Ask calls remain independent; explicit workflow expansion is separate.
                 input::bind_subjects(&mut task, catalog, &mut intent)?;
                 name_lookup::seed(&mut task, catalog, &mut intent)?;
                 task.focus.entity_refs = intent.subjects.iter().filter_map(|subject| subject.entity_ref).collect();
@@ -144,9 +145,9 @@ fn guest_view(signer: &Signer, question: &str, task: &Task, status: Status) -> a
     let preview = if ready { Some(Preview::from_task(task)?) } else { None };
     let token = preview.as_ref().map(|preview| preview.seal(signer)).transpose()?;
     let message = task.actions.iter().find_map(|action| action["message"].as_str().map(str::to_owned))
+        .or_else(|| task.conversation.last().and_then(|turn| turn.reply.clone()))
         .or_else(|| task.actions.iter().find_map(|action| action["semantic_type"].as_str().map(|field|
-            format!("Add {} to your question so these sources can be priced.", field.replace(['.', '_'], " ")))))
-        .or_else(|| task.conversation.last().and_then(|turn| turn.reply.clone())).unwrap_or_default();
+            format!("What is the {} for this request?", field.replace(['.', '_'], " "))))).unwrap_or_default();
     Ok(json!({"question":question,"status":if ready { "ready" } else if status == Status::Unsupported { "unsupported" } else { "needs_input" },
         "sources":sources,"total_atomic":preview.as_ref().map(|preview| preview.total_atomic.to_string()),"currency":"USDC",
         "preview_token":token,"expires_at":preview.as_ref().map(|preview| preview.expires_at),"message":message,
@@ -177,6 +178,53 @@ mod tests {
         task.proposal = Some(serde_json::to_value(plan).unwrap());
         task.actions = vec![serde_json::to_value(Action::Run { action_id:Uuid::new_v4(), step:0 }).unwrap()];
         task
+    }
+
+    #[tokio::test]
+    async fn independent_batch_collects_input_before_exposing_a_single_approval() {
+        let catalog = catalog();
+        let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://postgres@127.0.0.1:1/unused").unwrap();
+        let store = crate::store::Store { pool: pool.clone() };
+        let http = reqwest::Client::new();
+        let engine = Engine { store: store.clone(), catalog: crate::catalog::CatalogCache::new(pool),
+            parser: crate::parser::Parser::new(http.clone(), "offline://unused".into(), String::new(), "fixture".into()),
+            signer: Signer::new(vec![8;32]).unwrap(), app_url: "http://localhost".into(),
+            executor: crate::execution::Executor { store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false } };
+        let mut task = quoted_task(&catalog);
+        // This boundary test supplies a draft directly; no interpretation or
+        // provider is mocked as a successful live answer.
+        task.capability_intake = Some(serde_json::from_value(json!({
+            "parsed_request":{"language":"en","subjects":[],"capabilities":[],"deliverable":{"format":"chat","operations":[]},
+                "meta":{"model":"fixture","parsed_at":"2026-10-13T00:00:00Z","text_sha256":"fixture"}},
+            "matches":[],"selected_capabilities":[],"catalog_version":catalog.version,"apiosk_sources_searched":0
+        })).unwrap());
+        let mut intent: Intent = serde_json::from_value(task.intent.clone().unwrap()).unwrap();
+        intent.goals.push(Goal { capability: "company.accounts".into(), subject: 0, constraints: BTreeMap::new() });
+        let status = engine.plan(&mut task, &catalog, &intent).unwrap();
+        assert_eq!(status, Status::NeedsInput);
+        assert!(task.proposal.is_none());
+        assert_eq!(task.actions.len(), 1);
+        assert_eq!(task.actions[0]["kind"], "supply");
+        let action: Action = serde_json::from_value(task.actions[0].clone()).unwrap();
+        assert_eq!(action.public().kind, "supply_input");
+        let preview = guest_view(&engine.signer, "Search Example and retrieve its accounts", &task, status).unwrap();
+        assert!(preview["preview_token"].is_null() && preview["total_atomic"].is_null());
+        assert!(preview["message"].as_str().unwrap().contains("What is"));
+        let field = task.actions[0]["semantic_type"].as_str().unwrap().to_owned();
+        engine.user_fact(&mut task, &catalog, intent.subjects[0].entity_ref.unwrap(), &field, json!("001234")).unwrap();
+        assert_eq!(engine.plan(&mut task, &catalog, &intent).unwrap(), Status::Ready);
+        let plan: Plan = serde_json::from_value(task.proposal.clone().unwrap()).unwrap();
+        assert!(plan.independent_calls);
+        assert_eq!(plan.steps.len(), 2);
+        assert_eq!(task.actions.len(), 1, "one approval for the complete batch");
+        assert_eq!(task.actions[0]["kind"], "run");
+        assert!(task.pending_dispatches.is_empty(), "planning cannot dispatch any API");
+        let search = plan.steps.iter().find(|step| step.service.contract.capability_slug == "company.search").unwrap();
+        let report = plan.steps.iter().find(|step| step.service.contract.capability_slug == "company.accounts").unwrap();
+        engine.fail_step(&mut task, search, json!({"code":"source_unavailable"})).unwrap();
+        assert!(task.failed_steps.contains_key(&search.key()));
+        assert!(!task.failed_steps.contains_key(&report.key()), "a failed independent source cannot cancel another call with complete inputs");
+        assert!(task.actions.iter().any(|action| action["kind"] == "run"));
     }
 
     #[test]

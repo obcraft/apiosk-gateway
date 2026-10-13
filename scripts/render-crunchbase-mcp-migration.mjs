@@ -26,7 +26,7 @@ function factSchema(value){
  return Object.fromEntries(Object.entries(value).filter(([k])=>!['maxItems','format'].includes(k)).map(([k,v])=>[k,factSchema(v)]));
 }
 const facts=new Map();
-export function factName(cap,key){
+function factName(cap,key){
  return key==='entity_id'?`${cap.category}.crunchbase_entity_id`:`crunchbase.${cap.tool.replace('cb_','')}_${key}`;
 }
 for(const c of capabilities){

@@ -21,7 +21,7 @@ const UNKNOWN = 'unknown'
 const COLD = new Set(['refresh_wait', 'first_load'])
 const FAILED = new Set(['failed', 'unsupported'])
 
-export const percentile = (values, p) => {
+const percentile = (values, p) => {
   const sorted = values.filter(Number.isFinite).sort((a, b) => a - b)
   return sorted.length ? sorted[Math.max(0, Math.ceil(p * sorted.length) - 1)] : null
 }
@@ -32,7 +32,7 @@ export function telemetryOf(row) {
   try { return { ...JSON.parse(row.fields.telemetry), timestamp: row.timestamp ?? null } } catch { return null }
 }
 
-export function parseLines(text) {
+function parseLines(text) {
   return text.split('\n').filter(line => line.trim()).flatMap(line => {
     try { return [JSON.parse(line)] } catch { return [] }
   })
@@ -67,7 +67,7 @@ export function traces(lines) {
 }
 
 /** Samples per phase for one trace: browser journeys, server spans, provider wait. */
-export function samples(trace, dictionary) {
+function samples(trace, dictionary) {
   const out = []
   const add = (phase, ms, ok = true) => { if (Number.isFinite(ms)) out.push({ phase, ms, ok }) }
   const measured = trace.client?.phases ?? {}
@@ -93,7 +93,7 @@ function group(entries) {
 }
 
 /** p50/p95 and errors per (query class, phase, cache, device, sources). */
-export function phaseTable(allTraces, dictionary) {
+function phaseTable(allTraces, dictionary) {
   const rows = new Map()
   for (const trace of allTraces) {
     const traceSamples = samples(trace, dictionary)
@@ -159,7 +159,7 @@ const COMPLETE_KEYS = ['tokens_complete', 'cost_complete', 'charged_complete', '
 const ROW_KEYS = { cached_prompt_tokens: 'cached_tokens', model_cost_nanousd: 'cost_nanousd', model_cost_complete: 'cost_complete' }
 
 /** One trace's costs: a sum per field, null when no line measured it. */
-export function traceCost(lines) {
+function traceCost(lines) {
   const cost = Object.fromEntries(COST_KEYS.map(key => [key, null]))
   const complete = Object.fromEntries(COMPLETE_KEYS.map(key => [key, true]))
   for (const line of lines) {

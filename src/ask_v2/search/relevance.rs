@@ -99,6 +99,8 @@ pub(super) struct Request {
     /// Key words plus the rest of the name ("public", "local", "filed").
     topic: BTreeSet<String>,
     outputs: BTreeSet<String>,
+    output_concepts: BTreeSet<String>,
+    name_collection_search: bool,
     actions: BTreeSet<&'static str>,
     contract: BTreeSet<String>,
     domain: String,
@@ -356,6 +358,7 @@ impl Request {
             && ["market", "price", "liquidity", "volume", "capitalization"].iter()
                 .any(|word| valuation_words.contains(*word));
         Self {
+            name_collection_search: super::collection_search::requested(capability),
             person_profile,
             company_profile,
             dns,
@@ -382,6 +385,8 @@ impl Request {
                 .filter(|word| meaningful(word) && !supplied.contains(*word))
                 .cloned()
                 .collect(),
+            output_concepts: capability.outputs.iter().map(|output| super::output_metadata::concept(output))
+                .filter(|concept| !concept.is_empty()).collect(),
             // Only a source's own action is evidence: that a listing
             // "compares portfolios" says nothing about comparing bankruptcies,
             // which Apiosk does itself once it has the data.
@@ -403,6 +408,8 @@ impl Request {
         self.key.extend(other.key);
         self.topic.extend(other.topic);
         self.outputs.extend(other.outputs);
+        self.output_concepts.extend(other.output_concepts);
+        self.name_collection_search |= other.name_collection_search;
         self.actions.extend(other.actions);
         self.contract.extend(other.contract);
         self.anchors.extend(other.anchors);
@@ -419,6 +426,26 @@ impl Request {
         self.person_profile |= other.person_profile;
         self.company_profile |= other.company_profile;
         self
+    }
+
+    /// A broad data category may have only one non-generic lexical word.
+    /// Exact schema fields/aliases are stronger evidence than a prose mention,
+    /// but do not change the operation's record, asset or measurement scope.
+    pub(super) fn output_matches(&self, candidate: &Document) -> bool {
+        if self.name_collection_search {
+            return candidate.namespace.contains(&self.domain)
+                && candidate.name_search_domains.contains(&self.domain);
+        }
+        self.primary_facets == 0 && candidate.namespace.contains(&self.domain)
+            && self.metrics.supported_by(candidate) && self.sentiment_scope_matches(candidate)
+            && self.output_concepts.iter().any(|concept| {
+                !words(concept).is_disjoint(&self.key)
+                    && (candidate.output_concepts.contains(concept)
+                        // A documented collection can be relevant to fields
+                        // of its records. This implication is one-way: a
+                        // scalar never establishes record-category coverage.
+                        || candidate.output_concepts.contains(&format!("record:{concept}")))
+            })
     }
 
     /// A shared word such as "profile" does not make an organisation's
@@ -494,7 +521,7 @@ impl Request {
         // capacity vs credit-card net value). Semantic reviewed ids and
         // explicit synonym facets retain their existing evidence path.
         let needed = if generated {
-            self.anchors.iter().filter(|word| core(word)).count().min(2).max(1)
+            self.anchors.iter().filter(|word| core(word)).count().clamp(1, 2)
         } else { 1 };
         anchored >= needed
             // A named measurement is also an explicit output when it follows
@@ -581,11 +608,13 @@ impl Request {
         if !self.crypto_market_matches(candidate) { return false; }
         if self.enterprise_multiple && candidate.target.is_endpoint()
             && !self.valuation_matches(candidate) { return false; }
+        if self.name_collection_search { return self.output_matches(candidate); }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
+        let reviewed_output = self.output_matches(candidate);
         if candidate.target.is_endpoint()
-            && !self.primary_topic_matches(wanted, candidate) { return false; }
+            && !self.primary_topic_matches(wanted, candidate) && !reviewed_output { return false; }
         // A registered listing can establish a discovery match from its own
         // operation description, just like a Bazaar listing. Requiring a
         // second contract/output signal here hides clear matches such as
@@ -636,7 +665,7 @@ impl Request {
         // "PDOK Maps & Addresses") is not a company profile. Unreviewed
         // services have no such id, so their outputs may still anchor them.
         let foreign = !candidate.contract.is_empty() && !candidate.namespace.contains(&self.domain);
-        let anchored = facet
+        let anchored = reviewed_output || facet
             || self.key.iter().any(|word| counted(&word))
             || (!foreign
                 && outputs.len() >= 2
@@ -644,7 +673,7 @@ impl Request {
         if !anchored {
             return false;
         }
-        let evidence = f64::from(u8::from(facet))
+        let evidence = f64::from(u8::from(facet || reviewed_output))
             + topic.union(&outputs).map(|word| weight(word)).sum::<f64>()
             + if candidate
                 .tokens
@@ -661,7 +690,7 @@ impl Request {
         let family = !candidate.contract.is_disjoint(&self.contract)
             || wanted.facets & candidate.contract_facets != 0;
         evidence
-            >= if family || hinted {
+            >= if family || hinted || reviewed_output {
                 FAMILY_EVIDENCE
             } else {
                 OTHER_EVIDENCE

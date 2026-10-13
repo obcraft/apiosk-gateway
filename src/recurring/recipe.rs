@@ -716,7 +716,7 @@ mod tests {
             "output_map":{"base":"$","produces":{"company.detail":{"path":"$.detail"}}}
         }))
         .unwrap();
-        let plan = Plan { compute: None,
+        let plan = Plan { independent_calls: false, compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![search.clone(), detail.clone()]
                 .into_iter()
@@ -998,7 +998,7 @@ mod tests {
             service: None,
             date_rules: vec![],
         };
-        let recipe = Recipe::fixed(&[source.clone()]).unwrap();
+        let recipe = Recipe::fixed(std::slice::from_ref(&source)).unwrap();
         assert_eq!(
             materialize(&recipe, 0, &[], &Vocabulary::new()).unwrap(),
             json!({"query":"fixed"})

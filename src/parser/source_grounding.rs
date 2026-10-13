@@ -85,17 +85,21 @@ fn inventory(service: &Service, catalog: &Catalog) -> BTreeMap<String, Field> {
     }
     let version = service.version_hash();
     let mut fields = BTreeMap::<(String, String), Field>::new();
+    struct FieldMetadata {
+        types: Vec<String>,
+        aliases: Vec<String>,
+        description: Option<String>,
+        observed: bool,
+    }
     fn add(
         fields: &mut BTreeMap<(String, String), Field>,
         service: Uuid,
         version: &str,
         fact: &str,
         path: &str,
-        types: Vec<String>,
-        aliases: Vec<String>,
-        description: Option<String>,
-        observed: bool,
+        metadata: FieldMetadata,
     ) {
+        let FieldMetadata { types, aliases, description, observed } = metadata;
         if fields.len() >= 256 {
             return;
         }
@@ -169,12 +173,9 @@ fn inventory(service: &Service, catalog: &Catalog) -> BTreeMap<String, Field> {
                 version,
                 fact,
                 path,
-                types,
-                aliases,
-                value["description"]
-                    .as_str()
-                    .map(|s| s.chars().take(240).collect()),
-                false,
+                FieldMetadata { types, aliases,
+                    description:value["description"].as_str().map(|s| s.chars().take(240).collect()),
+                    observed:false },
             );
         }
         for (name, value) in value["properties"].as_object().into_iter().flatten() {
@@ -234,10 +235,7 @@ fn inventory(service: &Service, catalog: &Catalog) -> BTreeMap<String, Field> {
                 version,
                 fact,
                 path,
-                vec![kind.into()],
-                vec![],
-                None,
-                true,
+                FieldMetadata { types:vec![kind.into()], aliases:vec![], description:None, observed:true },
             );
         }
         match value {
@@ -334,6 +332,17 @@ fn candidates<'a>(intake: &Intake, index: usize, catalog: &'a Catalog) -> Vec<&'
         .collect()
 }
 
+fn record_field(field:&Field)->bool {
+    field.types.iter().any(|kind|matches!(kind.as_str(),"object"|"array"))
+}
+
+fn binding_shape_matches(output:&str,fields:&[&Field])->bool {
+    // Semantic planning may compose a record from several concrete fields.
+    // One scalar, even with a matching label, cannot stand for a record.
+    !super::plan_coverage::requires_record_shape(output)
+        || fields.len()>1 || fields.first().is_some_and(|field|record_field(field))
+}
+
 pub(super) fn view(intake: &Intake, catalog: &Catalog) -> Value {
     let selected: BTreeSet<_> = (0..intake.parsed_request.capabilities.len())
         .flat_map(|index| candidates(intake, index, catalog))
@@ -342,6 +351,9 @@ pub(super) fn view(intake: &Intake, catalog: &Catalog) -> Value {
     json!({
         "requirements": intake.parsed_request.capabilities.iter().enumerate().map(|(index, cap)| json!({"requirement":index,"subject":cap.subject_id,"outputs":cap.outputs,
             "binding_required":cap.outputs.iter().filter(|output|!candidates(intake,index,catalog).iter().any(|service|super::plan_coverage::output_covered(output,service,catalog,false))).collect::<Vec<_>>(),
+            "input_readiness":cap.subject_id.as_ref().and_then(|id| intake.parsed_request.subjects.iter().find(|subject| &subject.id == id))
+                .map(|subject| candidates(intake,index,catalog).iter().map(|service| json!({"service":service.id,
+                    "missing_inputs":crate::ask_v2::source_options::missing(service,subject,catalog)})).collect::<Vec<_>>()),
             "services":candidates(intake,index,catalog).iter().map(|service|service.id).collect::<Vec<_>>()})).collect::<Vec<_>>(),
         "sources": catalog.services.iter().filter(|service|selected.contains(&service.id)).map(|service|json!({
             "service":service.id,"source":service.name,"capability":service.contract.capability_slug,"endpoint_id":service.endpoint_id,
@@ -362,42 +374,15 @@ pub(super) fn schema() -> Value {
     }}})
 }
 
-/// Semantic mappings are reviewed source metadata, not another interpretation
-/// of a user's question. Field IDs are rebuilt from the current admitted
-/// service version; a removed or retyped field invalidates the mapping.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Mapping {
-    outputs: Vec<String>,
-    fields: Vec<MappedField>,
-    interpretation: String,
-    limitation: Option<String>,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct MappedField {
-    source:String, capability:String, fact:String, path:String, types:BTreeSet<String>,
-}
-
+/// Exact schema fields and schema-declared aliases can be compiled without a
+/// model. Other wording is grounded dynamically against `view` by the planner.
 pub(super) fn compile(intake:&Intake,catalog:&Catalog,selected:&[&Service])->Vec<Binding> {
-    static MAPPINGS: std::sync::OnceLock<Vec<Mapping>> = std::sync::OnceLock::new();
-    let mappings=MAPPINGS.get_or_init(||serde_json::from_str(include_str!("../../contracts/source-output-mappings.json")).expect("reviewed source mappings"));
     let selected:BTreeSet<_>=selected.iter().map(|service|service.id).collect();
     let mut bindings=Vec::new();
     for (requirement,cap) in intake.parsed_request.capabilities.iter().enumerate() {
         let sources:Vec<_>=candidates(intake,requirement,catalog).into_iter().filter(|service|selected.contains(&service.id))
             .map(|service|(service,inventory(service,catalog))).collect();
         for output in &cap.outputs {
-            // A precise reviewed derivation takes priority over a coincidental
-            // leaf name (for example a director's appointment vs a PSC date).
-            let reviewed=mappings.iter().filter(|mapping|mapping.outputs.contains(output)).find_map(|mapping| {
-                let fields=mapping.fields.iter().map(|wanted|sources.iter().filter(|(service,_)|
-                    service.api_slug==wanted.source && service.contract.capability_slug==wanted.capability)
-                    .flat_map(|(_,fields)|fields.values()).find(|field|field.fact==wanted.fact && field.path==wanted.path
-                        && field.types.is_superset(&wanted.types)).map(|field|field.id.clone())).collect::<Option<Vec<_>>>()?;
-                Some(Binding {requirement,output:output.clone(),fields,interpretation:mapping.interpretation.clone(),limitation:mapping.limitation.clone()})
-            });
-            if let Some(binding)=reviewed {bindings.push(binding);continue;}
             // Schema aliases and normalized field names work for any admitted
             // API, including future catalog entries. No fuzzy semantic guess.
             let normalized=|text:&str| {
@@ -409,7 +394,8 @@ pub(super) fn compile(intake:&Intake,catalog:&Catalog,selected:&[&Service])->Vec
                 name.trim_matches('_').to_owned()
             };
             let mut fields:Vec<_>=sources.iter().flat_map(|(_,fields)|fields.values()).filter(|field|
-                field.aliases.contains(output) || field.path.rsplit('/').next().is_some_and(|name|!name.is_empty() && normalized(name)==normalized(output)))
+                (!super::plan_coverage::requires_record_shape(output) || record_field(field))
+                    && (field.aliases.contains(output) || field.path.rsplit('/').next().is_some_and(|name|!name.is_empty() && normalized(name)==normalized(output))))
                 .map(|field|field.id.clone()).collect();
             fields.sort();fields.dedup();
             if !fields.is_empty() && fields.len()<=12 {bindings.push(Binding {requirement,output:output.clone(),fields,
@@ -452,14 +438,16 @@ pub(super) fn validate(
                     .is_none_or(|note| !note.trim().is_empty() && note.chars().count() <= 300),
             "invalid source field explanation"
         );
-        let available: BTreeSet<_> = candidates(intake, binding.requirement, catalog)
+        let available: BTreeMap<_,_> = candidates(intake, binding.requirement, catalog)
             .into_iter()
-            .flat_map(|service| inventory(service, catalog).into_keys())
+            .flat_map(|service| inventory(service, catalog))
             .collect();
         ensure!(
-            binding.fields.iter().all(|field| available.contains(field)),
+            binding.fields.iter().all(|field| available.contains_key(field)),
             "source field is not backed by this requirement's admitted endpoint"
         );
+        ensure!(binding_shape_matches(&binding.output,&binding.fields.iter().filter_map(|id|available.get(id)).collect::<Vec<_>>()),
+            "a record category needs a structured field or a composition of concrete fields");
     }
     Ok(())
 }
@@ -480,11 +468,12 @@ pub(crate) fn covered(
     if binding.fields.is_empty() {
         return false;
     }
-    let fields: BTreeSet<_> = services
+    let fields: BTreeMap<_,_> = services
         .iter()
-        .flat_map(|service| inventory(service, catalog).into_keys())
+        .flat_map(|service| inventory(service, catalog))
         .collect();
-    binding.fields.iter().all(|field| fields.contains(field))
+    binding.fields.iter().all(|field| fields.contains_key(field))
+        && binding_shape_matches(output,&binding.fields.iter().filter_map(|id|fields.get(id)).collect::<Vec<_>>())
 }
 
 pub(super) fn answer_instructions(bindings: &[Binding], intake: &Intake) -> Vec<String> {
@@ -514,6 +503,12 @@ pub(super) fn verify_plan(
     draft.output_grounding = Grounding::new(intake, catalog, bindings.to_vec());
     let mut intent = intent.clone();
     crate::engine::bind_subjects(&mut draft, catalog, &mut intent)?;
+    if draft.independent_sources() {
+        let outputs = super::plan_coverage::uncovered_intent_outputs(intake, catalog, &intent, bindings);
+        if !outputs.is_empty() {
+            return Err(CoverageError { outputs, inputs: vec![] }.into());
+        }
+    }
     if let crate::resolver::Resolution::Plan(plan) =
         crate::resolver::resolve(catalog, &draft, &intent)
     {
@@ -537,3 +532,5 @@ pub(super) fn verify_plan(
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod record_shape_tests;

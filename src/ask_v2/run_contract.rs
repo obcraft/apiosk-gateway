@@ -1320,7 +1320,7 @@ pub struct PlannerTrace {
 #[derive(Debug, Clone)]
 pub enum PlanOutcome {
     Ready { plan: Box<SourcePlan>, seed: Box<ExecutionSeed>, scores: Vec<ScoreRecord>, trace: PlannerTrace },
-    NeedsClarification { clarification: ClarificationRequest, scores: Vec<ScoreRecord>, trace: PlannerTrace },
+    NeedsClarification { clarification: Box<ClarificationRequest>, scores: Vec<ScoreRecord>, trace: PlannerTrace },
     NoQualifyingSources { gaps: Vec<RequirementGap>, scores: Vec<ScoreRecord>, trace: PlannerTrace },
 }
 

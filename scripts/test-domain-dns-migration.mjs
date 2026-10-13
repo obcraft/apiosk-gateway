@@ -1,7 +1,7 @@
 // Real SQL in isolated PGlite. No credentials, network, account or paid calls.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const read = path => fs.readFile(new URL(path, import.meta.url), 'utf8');
 const migration = await read('../supabase/migrations/20261007093340_typed_domain_dns_records.sql');

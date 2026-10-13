@@ -376,7 +376,7 @@ mod tests {
         intent
             .answer_operations
             .push("Compare with competitors".into());
-        assert!(compose(QUESTION, &intent, &[source.clone()], Some(&intake))
+        assert!(compose(QUESTION, &intent, std::slice::from_ref(&source), Some(&intake))
             .unwrap()
             .is_none());
         intent.answer_operations.pop();

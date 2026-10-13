@@ -1,8 +1,10 @@
 //! Whole, literal requests for the registered profile and available annual
 //! figures of an explicitly identified Dutch company. This does not select a
 //! filing or claim that the available figures are the latest filed accounts.
-use crate::capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject};
+use crate::capability_intake::{Capability, Deliverable, Meta, ParsedRequest, Subject};
 use anyhow::{ensure, Context};
+#[cfg(test)]
+use crate::capability_intake::Intake;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -67,6 +69,7 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
 /// Return the canonical request only when the displayed intake retains its
 /// complete subject, identifier and scope. This is permission to prepare a
 /// normal checked plan, never permission to execute a provider call.
+#[cfg(test)]
 pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<ParsedRequest> {
     let expected = parse(question, "literal-company-request")?;
     let actual = &intake.parsed_request;
@@ -756,8 +759,7 @@ mod tests {
         let mut intent = crate::parser::plan_coverage::offline_fixture_reply(&intake, &catalog, &question, &Default::default()).unwrap()
             .intent
             .unwrap();
-        let mut task = crate::state::Task::default();
-        task.capability_intake = Some(intake);
+        let mut task = crate::state::Task { capability_intake:Some(intake), ..Default::default() };
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) =
             crate::resolver::resolve(&catalog, &task, &intent)
@@ -1094,8 +1096,7 @@ mod tests {
             intent.subjects[0].values["company_registry.kvknummer"],
             "24330087"
         );
-        let mut task = crate::state::Task::default();
-        task.capability_intake = Some(intake);
+        let mut task = crate::state::Task { capability_intake:Some(intake), ..Default::default() };
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) =
             crate::resolver::resolve(&catalog, &task, &intent)

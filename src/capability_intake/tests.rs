@@ -447,6 +447,24 @@ fn planned() -> Value {
     json!({"message":"Ik zoek de jaarrekening op en toon eerst de prijs.","discover":true,"intent":{"subjects":[{"subject_ref":"s1","values":{"company.name":{"ref":"s1.label"}}}],"goals":[{"capability":"company.accounts","subject":0,"constraints":{}}],"answer_operations":[],"unresolved_references":[]}})
 }
 
+fn assert_account_draft_needs_id(
+    reply: &crate::parser::ChatReply,
+    task: &Task,
+    catalog: &Catalog,
+    intake: &Intake,
+    question: &str,
+) {
+    assert!(reply.discover);
+    let mut intent = reply.intent.clone().expect("the requested retrieval stays a draft");
+    let mut connected = task.clone();
+    connected.record_turn(question, None);
+    connected.capability_intake = Some(intake.clone());
+    crate::engine::bind_subjects(&mut connected, catalog, &mut intent).unwrap();
+    assert!(matches!(crate::resolver::resolve(catalog, &connected, &intent),
+        crate::resolver::Resolution::Missing { kind, .. } if kind == "company.id"),
+        "connected Ask keeps the missing ID; it must not buy an implicit lookup dependency");
+}
+
 #[tokio::test]
 async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_outage_or_rewrite() {
     let mut bad = planned();
@@ -467,10 +485,11 @@ async fn repeated_duplicate_planning_returns_scoped_clarification_without_an_out
     let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
     assert!(!reply.discover && reply.intent.is_none());
     assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
-    assert!(reply.message.contains("passende bron"),"{}",reply.message);
+    assert!(reply.message.contains("Company financial statements")
+        && reply.message.contains("Company registration status"),"{}",reply.message);
     assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
-    assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),0);
-    assert_eq!(mock.queue.lock().unwrap().len(),2,"untrusted planner drafts are never requested");
+    assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
+    assert!(mock.queue.lock().unwrap().is_empty(),"one semantic attempt and one bounded repair; rejected duplicate goals never become a quote");
     server.abort();
 }
 
@@ -493,25 +512,24 @@ async fn strict_sequence_is_parse_then_apiosk_then_bazaar_then_plan() {
         .chat_from_capabilities(PLAN_QUESTION, None, &task, &c, &intake)
         .await
         .unwrap();
+    assert_account_draft_needs_id(&reply, &task, &c, &intake, PLAN_QUESTION);
     assert!(reply.discover);
-    let mut intent = reply.intent.unwrap();
+    let intent = reply.intent.unwrap();
     assert_eq!(intent.subjects[0].label, intake.parsed_request.subjects[0].label);
     assert_eq!(intent.subjects[0].values["company.name"], intake.parsed_request.subjects[0].label);
     assert_eq!(
         *mock.events.lock().unwrap(),
-        vec!["parse", "search", "bazaar"]
+        vec!["parse", "search", "bazaar", "plan"]
     );
-    assert_eq!(mock.inputs.lock().unwrap().len(),2,"planning has no model request");
-    let mut planning_task = task.clone();
-    crate::engine::bind_subjects(&mut planning_task, &c, &mut intent).unwrap();
-    let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&c, &planning_task, &intent) else { panic!("name still resolves through its lookup dependency"); };
-    assert!(plan.steps.iter().any(|step| step.service.contract.capability_slug == "company.search"));
+    assert_eq!(mock.inputs.lock().unwrap().len(),3,"a missing-input draft gets one semantic alternative attempt");
+    assert!(mock.queue.lock().unwrap().is_empty());
     server.abort();
 }
 
 #[tokio::test]
 async fn clarification_answer_keeps_prior_user_subject_and_deliverable() {
-    let (parser, mock, bazaar, server) = fixture(vec![raw(), matched(), plannable_raw(), matched()], false).await;
+    let clarification = json!({"message":"Welke beschikbare bedrijfsgegevens bedoel je?","discover":false,"intent":null,"output_bindings":[],"decline_reason":"ambiguous_request"});
+    let (parser, mock, bazaar, server) = fixture(vec![raw(), matched(), clarification, plannable_raw(), matched(), planned()], false).await;
     let c = catalog();
     let mut task = Task::default();
     let intake = parser.prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar).await.unwrap();
@@ -523,12 +541,14 @@ async fn clarification_answer_keeps_prior_user_subject_and_deliverable() {
     let intake = parser.prepare_ask_with_bazaar(followup, None, &task, &c, &bazaar).await.unwrap();
     assert_eq!(intake.parsed_request.deliverable.format, "xlsx");
     let reply = parser.chat_from_capabilities(followup, None, &task, &c, &intake).await.unwrap();
-    assert!(reply.discover);
-    let mut intent = reply.intent.unwrap();
+    assert_account_draft_needs_id(&reply, &task, &c, &intake, followup);
+    let intent = reply.intent.unwrap();
     assert_eq!(intent.subjects[0].label, "Coolblue");
-    crate::engine::bind_subjects(&mut task, &c, &mut intent).unwrap();
-    assert!(matches!(crate::resolver::resolve(&c, &task, &intent), crate::resolver::Resolution::Plan(_)));
-    assert!(!mock.events.lock().unwrap().iter().any(|event|event=="plan"));
+    assert_eq!(intent.subjects[0].values["company.name"], "Coolblue");
+    assert!(intent.answer_operations.iter().any(|operation| operation.contains("xlsx")));
+    assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2,
+        "one initial clarification and one alternative attempt for the follow-up's missing ID");
+    assert!(mock.queue.lock().unwrap().is_empty());
     server.abort();
 }
 
@@ -559,8 +579,14 @@ async fn two_companies_cannot_be_reduced_to_one_retrieval() {
     // query map collapses identical slugs and is deliberately not bindable.
     intake.matches = crate::ask_v2::search::search(&intake.parsed_request, &c);
     let reply = parser.chat_from_capabilities(&question, None, &task, &c, &intake).await.unwrap();
-    assert_eq!(reply.intent.unwrap().goals.len(), 2);
-    assert_eq!(*mock.events.lock().unwrap(), vec!["parse", "search", "bazaar"]);
+    assert_account_draft_needs_id(&reply, &task, &c, &intake, &question);
+    let intent = reply.intent.unwrap();
+    assert_eq!(intent.goals.len(), 2);
+    assert_eq!(intent.subjects.iter().map(|subject| subject.label.as_str()).collect::<Vec<_>>(), ["Coolblue", "Example"]);
+    assert_eq!(intent.goals.iter().map(|goal| goal.subject).collect::<BTreeSet<_>>(), [0, 1].into());
+    assert!(intent.goals.iter().all(|goal| goal.capability == "company.accounts"));
+    assert_eq!(*mock.events.lock().unwrap(), vec!["parse", "search", "bazaar", "plan", "plan"]);
+    assert!(mock.queue.lock().unwrap().is_empty(), "an incomplete alternative gets one repair and cannot erase a subject");
     server.abort();
 }
 #[tokio::test]
@@ -635,14 +661,16 @@ async fn generic_parsed_slug_cannot_replace_the_discovered_operation() {
         .chat_from_capabilities(PLAN_QUESTION, None, &task, &c, &intake)
         .await
         .unwrap();
+    assert_account_draft_needs_id(&reply, &task, &c, &intake, PLAN_QUESTION);
     assert_eq!(
         reply.intent.unwrap().goals[0].capability,
         "company.accounts"
     );
     assert_eq!(
         *mock.events.lock().unwrap(),
-        vec!["parse", "search", "bazaar"]
+        vec!["parse", "search", "bazaar", "plan", "plan"]
     );
+    assert!(mock.queue.lock().unwrap().is_empty(), "the wrong operation gets one repair; the admitted account draft remains scoped");
     server.abort();
 }
 

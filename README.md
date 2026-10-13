@@ -36,6 +36,16 @@ staan uitsluitend onder `supabase/migrations/`.
 
 ## Controleren
 
+Installeer de Gateway-ontwikkeltools met `npm ci`. `npx knip` (of
+`npm run check:unused`) controleert de JavaScript-scripts van de Gateway en
+de afzonderlijke scriptpakketten in `legacy-executor`. De gedeelde configuratie
+volgt de [Knip-workspaces](https://knip.dev/features/monorepos-and-workspaces).
+PGlite is een eigen Gateway-testdependency; de migratietests laden die niet
+meer uit de App-installatie. De Rust-code wordt met Cargo gecontroleerd.
+`fly` en `psql` zijn systeemprogramma's; de imports van `k6` worden door de
+k6-runtime geleverd. Vendored contractbibliotheken en het bevroren auditrapport
+vallen buiten deze scriptcontrole.
+
 Haal na het clonen eerst de vastgelegde submodules op:
 
 ```sh

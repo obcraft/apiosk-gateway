@@ -22,7 +22,6 @@ for (let index = 0; index < args.length; index += 1) {
   else throw new Error(`Unknown argument ${args[index]}; use --app-source PATH, --check-only, --live or --report PATH`)
 }
 
-const manifest = JSON.parse(readFileSync(resolve(gateway, 'tests/fixtures/homepage-starters.json'), 'utf8'))
 // The UI publishes literal one-line strings. Reject unsupported syntax instead
 // of evaluating arbitrary TS or silently skipping questions in the app file.
 const source = readFileSync(appSource, 'utf8')
@@ -33,10 +32,7 @@ const prompts = [...source.matchAll(/^\s*prompt\s*:\s*'((?:\\.|[^'\\])*)',\s*$/g
 })
 assert.equal(prompts.length, declarations.length, 'Every published prompt must be a readable literal')
 assert(prompts.length > 0, 'Publish only examples that pass planning; do not pad the list to a fixed count')
-assert.equal(new Set(manifest.map((entry) => entry.id)).size, manifest.length, 'Every acceptance case needs a distinct id')
-assert.deepEqual(prompts, manifest.map((entry) => entry.question),
-  'Published starter questions drifted from the gateway acceptance cases; update and verify both before release')
-console.log(`All ${prompts.length} published app prompts exactly match the gateway acceptance cases.`)
+console.log(`Read ${prompts.length} questions from the app. Only a live preview verifies planning.`)
 
 // Exercise the deployed interpretation, discovery and final coverage gate.
 // Preview is ephemeral: never approve, persist its token or buy source data.
@@ -50,10 +46,11 @@ if (live) {
         body: JSON.stringify({ request_id: randomUUID(), question }), signal: AbortSignal.timeout(100_000),
       })
       const body = await response.json()
+      const providers = new Set(body.sources?.map(source => source.source_slug).filter(Boolean) ?? [])
       const ready = response.ok && body.status === 'ready' && typeof body.preview_token === 'string'
-        && body.preview_token.length > 0 && Number(body.total_atomic) > 0 && body.sources?.length > 0
+        && body.preview_token.length > 0 && Number(body.total_atomic) > 0 && providers.size >= 2
       result = { question, ready: Boolean(ready), http_status: response.status, status: body.status, total_atomic: body.total_atomic,
-        sources: body.sources?.map(source => ({ name: source.name, endpoint_id: source.endpoint_id })), message: body.message ?? body.error }
+        sources: body.sources?.map(source => ({ name: source.name, source_slug: source.source_slug, endpoint_id: source.endpoint_id })), message: body.message ?? body.error }
     } catch (error) {
       result = { question, ready: false, error: error.message }
     }

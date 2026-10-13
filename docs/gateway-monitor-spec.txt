@@ -1,0 +1,396 @@
+APIOSK GATEWAY MONITOR — PRODUCT AND IMPLEMENTATION SPECIFICATION
+Date: 13 October 2026
+Status: proposed tool; this document does not implement or deploy it.
+
+1. PURPOSE
+
+Build an internal operations console that answers four questions immediately:
+  - Which model is Ask actually using, and can we change it live?
+  - Where is each request in planning, and why did it advance or stop?
+  - Was the exact plan approved, and did execution respect that approval?
+  - What happened to each source call, reservation, charge and saved result?
+
+The console must show backend evidence. A healthy server, a successful HTTP
+response, a valid JSON plan and a financially settled purchase are different
+things. Display each separately, including unknown or stale observations.
+
+The tool is for authenticated operators. It is not the customer Ask interface.
+It must handle arbitrary questions and catalog sources dynamically. No lookup
+table of example questions, expected company names or fabricated answers.
+
+2. HOW IT SHOULD LOOK
+
+A compact desktop dashboard with a persistent environment banner and left
+navigation: Overview, Live requests, Models, Planner lab, Payments, Sources,
+Incidents and Audit history. Use the existing Apiosk typography and colors.
+Give the content panel a top and left border only. Tables should remain readable
+without opening a separate page for every event.
+
+Suggested main view:
+
+  [PRODUCTION] Gateway <release SHA>   Stream: connected   Updated: <time>
+  [Ask model: <effective model>] [Change model] [Search request / trace ID]
+
+  Active requests | Planning errors | Waiting for approval | Unresolved money
+  Plan-ready rate | Planning p95    | Source success       | Event freshness
+
+  REQUEST       STAGE              MODEL       SOURCES   AGE    PAYMENT
+  <request>     Finding sources    <model>     --        1.2s   Not started
+  <request>     Needs input        <model>     2 / 10    35s    Not started
+  <request>     Executing          <model>     4 / 10    3.1s   Reserved
+
+  Selected request:
+  [Timeline] [Requirements & plan] [Source calls] [Approval & money] [Events]
+
+The placeholders above describe layout, not production data. Use text and icons
+alongside status colors. Waiting for the user is amber without a loading spinner;
+technical failure is red; completed checks are green; unknown or disconnected
+observations are gray. Show the last observation time on every status panel.
+
+Filters: environment, release, entry route, workspace, time range, stage, model,
+configuration version, provider, error category and payment state. Mask customer
+questions in the default list; revealing content requires the appropriate role.
+Clicking a row opens a wide detail panel while preserving list filters.
+
+3. LIVE MODEL CONTROL
+
+Provide a default Ask model selector plus an advanced view of actual model roles:
+  - Question interpretation and intent extraction.
+  - Semantic planning, where that route uses a model.
+  - Answer synthesis and answer verification, where applicable.
+
+Show which roles inherit the default, which have an explicit override, and which
+stages are deterministic and make no model call. Changing the default must show
+exactly which routes and roles it affects. The App, MCP and public API must use
+the same server-owned routing policy for equivalent Ask operations.
+
+The model list comes from an approved server-side registry of available models,
+credentials and supported capabilities. Show structured-output compatibility,
+configured limits, availability and observed latency/error/cost data. Do not
+offer arbitrary provider URLs or credential entry in this screen.
+
+The change flow:
+  1. Select a model and scope: test workspace, environment default, or a defined
+     canary percentage. Show the current and proposed routing configuration.
+  2. Validate credentials, schema support, timeout and token limits. Run a small
+     planning-only check, with its model cost disclosed and bounded.
+  3. Apply the versioned configuration with a compare-and-swap version check.
+     Record actor, timestamp, reason, old version and new version.
+  4. Publish the change to every Gateway instance without restarting servers.
+     Show each instance's acknowledged version and effective time.
+  5. Keep one-click rollback to a previous validated configuration. Rollback
+     creates a new audit entry and version; it does not rewrite old history.
+
+Target: active healthy instances acknowledge within five seconds. Until then,
+show propagation pending. Instances that have not accepted the new version
+must not admit new work under the superseded environment default; drain them
+from new admissions while allowing already pinned work to finish. Use a shared
+admission/version check so this remains correct during a network partition.
+
+Pin the complete routing configuration to a request revision at admission.
+Existing requests, their retries and later approval/execution keep that version.
+Each model attempt records both the requested model and the provider-reported
+model. Any fallback must be explicitly configured, validated and visible.
+If that model becomes unavailable, show the failure instead of silently changing
+the plan. An explicit replan creates a new revision under the current policy;
+any changed quote or executable plan requires a fresh approval.
+
+Display desired configuration, instance-effective configuration and request-
+effective configuration separately. A dropdown change is not proof that traffic
+has changed. Cache keys must include model, prompt, schema and catalog versions.
+
+4. REQUEST TIMELINE AND PLANNER INSPECTION
+
+Use real backend transitions, not animated timers that pretend work progressed.
+Map existing route-specific stages into this common timeline while retaining
+the original event names and route. Mark stages that do not apply as skipped.
+
+  Received / authenticated
+    Request, trace and workspace IDs; entry route; release; policy version.
+
+  Understanding / validating intent
+    Subjects, requested fields, filters, identifiers, dates and source choices.
+    Model, prompt/schema version, attempts, duration, usage and validation errors.
+
+  Finding / filtering / ranking sources
+    Catalog version, candidate counts, considered endpoints and eligibility.
+    For each inclusion or rejection: contract evidence and a structured reason
+    such as missing input, unsupported output, jurisdiction or unavailable API.
+    Show candidate, provider, selected endpoint and billable call counts apart.
+
+  Building / validating the plan
+    Requirement-to-source coverage; input bindings and their provenance;
+    source readiness; total call count; price availability; validation results.
+    The operator can inspect why a ready search endpoint was considered or
+    rejected before the system asked the user for an identifier.
+
+  Needs clarification / input
+    Exact missing field or ambiguity, affected API, input schema, available
+    values already supplied and the question shown to the user. Preserve known
+    values. User waiting time is separate from backend processing time.
+
+  Quote ready / awaiting approval
+    Immutable plan revision, quote ID, total ceiling, expiry and approval state.
+    A waiting request is not a planner timeout. An expired quote is visible.
+
+  Authorized / reserved / queued / executing
+    Approval evidence, authoritative reservation and worker ownership. Display
+    each source call as a parallel lane with queue, dispatch and completion times.
+
+  Validating results / summarizing / verifying answer
+    Source response validation, supported claims, missing fields, citation
+    references, synthesis model/usage and any bounded repair attempt.
+
+  Completed / partial / failed / cancelled
+    Saved result reference, requirement coverage and independent payment state.
+    A cancelled run may still have an in-flight payment requiring reconciliation.
+
+For every stage show start/end, elapsed time, attempt, outcome, last heartbeat,
+and the responsible component. Display the actual timeout/retry policy. A lack
+of events is an observability gap until durable state confirms what happened.
+Provide structured decision summaries and validation evidence, not private
+model reasoning or hidden chain-of-thought.
+
+5. DYNAMIC PLANNING RULES TO MAKE VISIBLE
+
+Show a checklist driven by the current contracts and actual request:
+  - Supplied identifiers, selected sources and required filters were preserved.
+  - Every requested output has a supporting source or an explicit unresolved gap.
+  - All selected API inputs are known, correctly typed and bound to the subject.
+  - Available ready alternatives were considered before requesting more input.
+  - The plan contains at most ten source calls and at most ten selected endpoints.
+  - Prices are authoritative and the complete plan has one total approval ceiling.
+  - No source API was executed before the required approval.
+
+Ask source calls are independent. Once every call has its inputs and the whole
+plan is approved, schedule the ready batch concurrently. Show provider rate
+limits and queue delays honestly; concurrency does not guarantee identical
+network start times. Do not secretly use one source response as another's input.
+Explicit workflow recipes with dependencies remain a separately labeled flow.
+
+A company-name search that returns registration numbers may be a valid ready
+alternative if it covers the requested information. If the user explicitly
+requires profile-only fields, do not label a search-only plan as complete.
+The monitor must expose that distinction through contract coverage, without
+hardcoding a company or provider-specific example handler.
+
+Requests exceeding ten calls require a clear narrowing or split decision;
+never silently discard the extra calls or show an eleventh as executable.
+Count actual planned source calls, not only unique provider names. Internal
+discovery may inspect more candidates; the proposed source selection is capped.
+Two-source examples must be checked for actual coverage of both sources, but
+ordinary single-source questions must not acquire an irrelevant second source.
+
+6. APPROVALS AND PAYMENTS
+
+The payment page needs an exception queue and a per-request accounting view.
+Approval, source execution and financial outcome are separate status columns.
+
+Approval evidence:
+  - Quote ID, plan revision/hash, workspace, approving actor and timestamp.
+  - Approved amount/currency, expiry and authorization scope.
+  - Awaiting, approved, expired or superseded; rejected attempts shown separately.
+  - Idempotency reference and whether repeated submissions reused the same run.
+
+Financial evidence, from the existing authoritative ledger/executor:
+  - Not started, reserved, captured, released, refunded or pending reconciliation.
+  - Reservation/charge/receipt IDs and execution/action IDs.
+  - Customer charge, source cost basis, fee and refund as separate amounts.
+  - Payment rail and observed supplier settlement status when applicable.
+  - Last reconciliation attempt, outcome, age and next scheduled check.
+
+Use exact integer money units and the currency/unit reported by the backend.
+Display customer-friendly formatting without losing the precise amount.
+Unknown amount is unknown, never zero. Distinguish estimated model cost from
+provider-reported model usage and from the customer's source purchase charge.
+Read fees and price rules from the authoritative versioned policy.
+
+Highlight these invariants and link each failure to its evidence:
+  - The executed plan matches the approval and remaining authorized ceiling.
+  - A duplicate approval does not create another execution or charge.
+  - A reservation is evidenced by the ledger, not just a dispatch log.
+  - Successful source data does not imply payment settlement is complete.
+  - Partial results and unresolved charges remain independently visible.
+  - Unknown payment outcomes do not release budget or trigger another purchase.
+  - A later refund updates the financial view without deleting the saved result.
+
+Primary recovery action: refresh saved state / request reconciliation through
+the existing authorized backend mechanism. Monitoring never writes balances,
+marks a payment settled manually, invents a refund, or replays a paid call.
+Operator execution controls require separate server-side permissions and audit.
+Do not add Solidity, smart contracts or a wallet-based monitoring dependency.
+
+7. METRICS AND INCIDENTS
+
+Overview: active requests, completion/partial/failure counts, plan-ready rate,
+clarification rate, no-qualifying-source rate, schema-validation failures,
+retries, stage latency p50/p95, source timeouts, unresolved charges and their age.
+Include model usage/cost, stream lag, dropped telemetry and release distribution.
+
+Define each denominator in the UI. Show plan-ready, clarification, unsupported
+and technical-failure outcomes separately; a useful clarification is not an
+error and does not count as a completed plan. Separate user waiting, execution
+queue time and active processing time. Compare models on equivalent request
+types and catalog versions with sample sizes shown. Confidence is not accuracy.
+
+Proposed alerts, with configurable thresholds and deduplicated incidents:
+  - Any observed execution without valid authorization or duplicate charge.
+  - Authorized ceiling exceeded or a selected batch larger than ten calls.
+  - An active stage exceeds its configured deadline without a terminal event.
+  - Unresolved reservations/payments exceed the rail's reconciliation threshold.
+  - Model failure or clarification rates regress after a configuration change.
+  - Config propagation is incomplete, the executor is unavailable, or financial
+    event delivery is stale even while HTTP health remains green.
+
+Every incident shows severity, first/last seen, affected IDs, release/model
+configuration, evidence and a recovery link. Acknowledging an incident does not
+change the underlying transaction. Automated recovery must use existing state
+machines and idempotency rules, not dashboard-side retry loops.
+
+8. PLANNER LAB
+
+Let an operator enter any question and optional context, select one or more
+approved models, and compare interpretation, source discovery, coverage,
+clarification, plan validity, latency and model cost side by side.
+
+Default to planning only: no customer approval, reservation or paid source API
+call. Model calls can still cost money, so expose a per-test and batch budget.
+Use the normal planner and catalog in a mode that cannot dispatch execution.
+Record the catalog, prompt, schema, model and routing versions for reproducibility.
+
+Offer replay of redacted saved input against a chosen configuration. It creates
+a new diagnostic run; it cannot overwrite an original plan or reuse its approval.
+Saved source results may test answer synthesis with no new source purchase.
+Keep live end-to-end execution separate, on an explicitly authorized test
+workspace and approved spend ceiling, through the normal purchase flow.
+
+Regression coverage should include unseen subjects and paraphrases, multilingual
+questions, missing values, explicit identifiers, irrelevant search alternatives,
+ambiguous matches, unavailable sources, one to ten calls and the eleven-call
+rejection. Test cases are fixtures and acceptance evidence, not production
+question-to-answer routing rules.
+
+9. REAL-TIME DATA AND SERVICE BOUNDARIES
+
+Use an authenticated monitor API, an initial durable snapshot and a resumable
+SSE event stream. Retain the existing customer API and execution ownership.
+Read saved run/task, quote and ledger state for authoritative status; project
+events into the operator view. Do not create a second financial ledger.
+
+Event envelope: schema version, event ID, stream cursor, occurred/observed times,
+environment, instance, release SHA, trace ID, request/run/task IDs where present,
+request and plan revisions, stage/attempt, status, reason code and config version.
+Source events add endpoint, capability and action/execution references; approval
+and payment events add quote, authorization and ledger references. Use a unique
+event ID plus per-run sequence/version; do not infer causal order from clocks.
+
+Deliver at least once and deduplicate by event ID. Resume from a server cursor;
+if retention has removed it, fetch a fresh snapshot and display the history gap.
+Handle out-of-order events without regressing newer durable state. Show live,
+reconnecting, stale and disconnected states. Proposed target: p95 update latency
+below two seconds at a declared load, verified by measurement.
+
+Operational telemetry may be buffered with bounded queues and explicit drop
+counters; it must not block purchasing. Approval and financial audit evidence
+must come from durable transactions or their transactional outbox, with retry
+and retention, so a dropped best-effort log cannot erase financial history.
+Monitor failure must not interrupt Gateway execution or relax its controls.
+
+Proposed admin API surface (new, not claimed to exist):
+  GET  /admin/monitor/overview
+  GET  /admin/monitor/requests?cursor=...&filters=...
+  GET  /admin/monitor/requests/:id
+  GET  /admin/monitor/events?cursor=...
+  GET  /admin/monitor/models
+  GET  /admin/monitor/model-config
+  POST /admin/monitor/model-config/validate
+  PUT  /admin/monitor/model-config  (expected version required)
+  POST /admin/monitor/model-config/rollback
+  POST /admin/monitor/planner-tests
+  GET  /admin/monitor/incidents
+
+Paginate lists, bound queries and stream subscriptions, and authorize every
+snapshot, event subscription, detail fetch and mutation on the server.
+
+10. ACCESS, PRIVACY AND AUDIT
+
+Separate read-only monitoring, customer-content access, model administration
+and financial operations permissions. Enforce workspace scope, including in
+event streams and exports. Revoke active streams when access is revoked.
+Production controls must show their environment and require an explicit Apply.
+
+Never include credentials, access tokens, authorization headers, treasury keys
+or payment signing material in events or exports. Default telemetry contains
+IDs, counts and reason codes. Fetch redacted question/input/output detail only
+through authorized evidence views; do not put full prompts in generic logs.
+Render all provider/model text as untrusted text. Audit configuration changes,
+diagnostic runs, sensitive evidence access and operational actions.
+
+Set configurable retention by data class: short-lived diagnostic content,
+longer-lived aggregate metrics and audit records under existing financial/data
+retention policy. Explain retention gaps; do not promise permanent raw traces.
+
+11. WHAT ALREADY EXISTS AND WHAT MUST BE ADDED
+
+Inspected in the local Gateway source on 13 October 2026; these observations
+are not a claim about the currently deployed production version:
+
+  src/telemetry.rs and src/telemetry/{names,journey,cost,persist}.rs
+    Existing x-apiosk-trace propagation, phase/milestone vocabulary, model and
+    source cost counters, plus optional persisted request-cost summaries.
+    Persistence is conditional; these summaries are not a durable event stream.
+
+  src/ask_v2/run_contract.rs, src/ask_v2/run.rs, src/server/ask_runs.rs
+    Existing run stages, approval/charge contracts and run event endpoints.
+    Reuse them where applicable; adapt the older task flow without claiming
+    all routes already emit identical detailed planner events.
+
+  src/ask_v2/mod.rs, src/ask_v2/intent.rs and src/parser.rs
+    Separate model clients and pinned model paths exist. Some environment
+    overrides are explicitly ignored. Runtime model switching therefore needs
+    a shared versioned resolver and changes to those call sites, not just a UI.
+
+  src/server.rs, contracts/ask-limits.json, docs/ask-v2.md, docs/payments.md
+    Existing health, task/run/approval routes, ten-endpoint selection limit and
+    documented purchase/recovery contracts. Verify runtime ledger/executor code
+    when implementing; older payment documentation is not current tariff proof.
+
+New work: admin console/API, shared runtime model policy, propagation and
+pinning, detailed coverage/rejection events, durable monitor projection,
+authorized financial joins, incidents and the planning-only comparison lab.
+Any schema migration should support reusable event/configuration contracts;
+it must not contain special answers or routing for individual example questions.
+
+12. DELIVERY AND ACCEPTANCE
+
+Deliver in three reviewable increments:
+  A. Read-only live overview, request timelines and authoritative payment views.
+  B. Validated live model changes, request pinning, propagation and rollback.
+  C. Planner comparison lab, regression metrics and actionable incident rules.
+
+Acceptance must demonstrate the visible flow, not only unit tests or /health:
+  - An arbitrary fresh question produces a valid plan or an explained input/
+    coverage decision, with observable evidence for each applicable stage.
+  - A model switch reaches every active instance; new requests show the new
+    policy while an existing request and its retries retain their old version.
+  - Stale concurrent config edits fail cleanly; rollback and unavailable-model
+    handling preserve request/approval correctness.
+  - Required inputs block quoting/dispatch; supplied identifiers survive.
+    Ready alternatives are considered with their actual output coverage.
+  - Ten independent ready calls are scheduled as one approved batch; eleven
+    are rejected or explicitly narrowed. Provider queue delay is visible.
+  - Repeated approval and page reload do not execute or charge twice. Expired
+    or superseded approval cannot authorize a changed plan.
+  - Reserve, capture, release, refund, insufficient balance and uncertain
+    payment outcomes remain accurate independently of result availability.
+  - SSE reconnect, missing events, out-of-order delivery and monitor outages
+    recover from durable state without replaying source purchases.
+  - Unauthorized workspace reads, stream access and config changes are denied;
+    traces and exports contain no secrets.
+  - A production rollout shows the intended release, connected instances,
+    configuration versions and fresh events. Test evidence labels fixture,
+    planning-only and explicitly authorized paid execution separately.
+
+Done means an operator can identify where a request stopped, inspect the exact
+contract or financial evidence, and safely change the model for new work from
+one console, without altering existing approvals or buying data again.

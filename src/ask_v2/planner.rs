@@ -196,7 +196,9 @@ fn values(s: &IntentSubject, c: &Catalog) -> BTreeMap<String, Value> {
         let candidates: Vec<_> = c
             .vocabulary
             .keys()
-            .filter(|k| *k == key || norm(k.rsplit('.').next().unwrap_or(k)) == norm(key))
+            .filter(|k| *k == key || norm(k.rsplit('.').next().unwrap_or(k)) == norm(key)
+                || (k.as_str() == "vehicle.registration.nl.plate"
+                    && matches!(key.as_str(), "license_plate" | "registration_plate" | "kenteken")))
             .collect();
         if candidates.len() == 1 {
             let k = candidates[0];
@@ -218,6 +220,43 @@ fn values(s: &IntentSubject, c: &Catalog) -> BTreeMap<String, Value> {
         }
     }
     out
+}
+
+/// Recover an identifier that extraction put only in the subject label. Use
+/// the original question's explicit plate marker, not a generated goal or a
+/// schema-shaped vehicle/model name. Never borrow another subject's plate.
+pub(crate) fn recover_explicit_inputs(input: &mut PlannerInput, question: &str) {
+    const PLATE: &str = "vehicle.registration.nl.plate";
+    for subject in &mut input.subjects {
+        if subject.kind != "vehicle"
+            || subject.identifiers.keys().any(|key| {
+                matches!(key.as_str(), PLATE | "plate" | "license_plate" | "registration_plate" | "kenteken")
+            })
+        {
+            continue;
+        }
+        let label = &subject.label;
+        let compact: String = label.chars().filter(|ch| *ch != '-').collect();
+        if compact.len() != 6
+            || !label.bytes().all(|ch| ch.is_ascii_alphanumeric() || ch == b'-')
+            || !compact.bytes().any(|ch| ch.is_ascii_digit())
+            || !compact.bytes().any(|ch| ch.is_ascii_alphabetic())
+        {
+            continue;
+        }
+        let explicit = question.match_indices(label.as_str()).any(|(offset, _)| {
+            let suffix = &question[offset + label.len()..];
+            if suffix.starts_with(|ch: char| ch.is_alphanumeric() || ch == '-') {
+                return false;
+            }
+            let prefix = question[..offset].trim_end_matches(|ch: char| ch.is_whitespace() || matches!(ch, ':' | '\'' | '"'));
+            let marker = prefix.rsplit(|ch: char| !ch.is_alphanumeric()).next().unwrap_or("");
+            matches!(marker.to_ascii_lowercase().as_str(), "plate" | "kenteken")
+        });
+        if explicit {
+            subject.identifiers.insert(PLATE.into(), label.clone());
+        }
+    }
 }
 fn gap(
     r: &GroundedRequest,
@@ -675,7 +714,7 @@ pub fn plan(input: &PlannerInput, catalog: &Catalog, ctx: &PlanContext) -> PlanO
     if steps.is_empty() || steps.len() > crate::protocol::MAX_STEPS {
         if let Some(clarification) = clarification {
             return PlanOutcome::NeedsClarification {
-                clarification,
+                clarification: Box::new(clarification),
                 scores,
                 trace,
             };
@@ -697,6 +736,7 @@ pub fn plan(input: &PlannerInput, catalog: &Catalog, ctx: &PlanContext) -> PlanO
         };
     };
     let plan = resolver::Plan {
+        independent_calls: false,
         compute: None,
         quote_ref: Uuid::new_v4(),
         hash: digest(&steps),
@@ -844,6 +884,71 @@ pub(crate) mod tests {
         };
         (c, input, ctx)
     }
+    #[test]
+    fn rdw_plate_in_original_question_reaches_a_priced_plan() {
+        let c = Catalog::build(serde_json::from_str(include_str!(
+            "../../tests/fixtures/dutch-public-sources/catalog.json"
+        )).unwrap());
+        let (_, mut input, ctx) = fixture();
+        input.field_catalog_version = c.version.clone();
+        input.subjects[0] = IntentSubject {
+            id: "s1".into(), kind: "vehicle".into(), label: "RZ874R".into(), identifiers: BTreeMap::new(),
+        };
+        input.requests[0].capability_slug = "vehicle.technical-profile".into();
+        input.capabilities[0].slug = input.requests[0].capability_slug.clone();
+        input.requests[0].required_fields = vec!["vehicle.rdw.technical_page#".into()];
+        input.requests[0].sources = vec!["RDW".into()];
+        // Reproduce the persisted extraction from the reported run: label
+        // contains the plate, identifiers is empty.
+        let missing = plan(&input, &c, &ctx);
+        assert!(matches!(missing, PlanOutcome::NeedsClarification { .. }), "{missing:?}; rejected: {:?}", c.rejected);
+        recover_explicit_inputs(&mut input, "Retrieve the official RDW vehicle registration for Dutch plate RZ874R. Show the make and model, first registration date, APK inspection expiry, recorded odometer judgement and registered export and recall indicators. Explain which returned fields need attention before buying and mark missing fields as unavailable.");
+        let PlanOutcome::Ready { seed, plan, .. } = plan(&input, &c, &ctx) else { panic!("plate was lost") };
+        assert_eq!(seed.plan.steps.len(), 1);
+        assert_eq!(seed.plan.steps[0].service.api_slug, "rdw");
+        assert!(seed.facts.iter().any(|fact| fact.semantic_type == "vehicle.registration.nl.plate" && fact.value == json!("RZ874R")));
+        check_quote_totals(&plan).unwrap();
+    }
+
+    #[test]
+    fn plate_recovery_requires_explicit_context_and_stays_with_its_subject() {
+        let (_, mut input, _) = fixture();
+        input.subjects[0].kind = "vehicle".into();
+        input.subjects[0].label = "RZ874R".into();
+        for question in ["Check model RZ874R", "Check plate RZ874RX", "Check plate XX123X for RZ874R", "Check nameplate RZ874R"] {
+            let mut candidate = input.clone();
+            recover_explicit_inputs(&mut candidate, question);
+            assert!(candidate.subjects[0].identifiers.is_empty(), "{question}");
+        }
+        let mut second = input.subjects[0].clone();
+        second.id = "s2".into();
+        second.label = "XX123X".into();
+        input.subjects.push(second);
+        recover_explicit_inputs(&mut input, "Compare Dutch plate RZ874R and kenteken XX123X.");
+        for subject in &input.subjects {
+            assert_eq!(subject.identifiers["vehicle.registration.nl.plate"], subject.label);
+        }
+        // An explicit identifier wins over the label, including user corrections.
+        input.subjects[0].identifiers = BTreeMap::from([("license_plate".into(), "AB123C".into())]);
+        recover_explicit_inputs(&mut input, "plate RZ874R");
+        assert_eq!(input.subjects[0].identifiers.len(), 1);
+        assert_eq!(input.subjects[0].identifiers["license_plate"], "AB123C");
+    }
+
+    #[test]
+    fn extracted_plate_aliases_are_bound_and_schema_validated() {
+        let c = Catalog::build(serde_json::from_str(include_str!(
+            "../../tests/fixtures/dutch-public-sources/catalog.json"
+        )).unwrap());
+        for alias in ["plate", "license_plate", "registration_plate", "kenteken", "vehicle.registration.nl.plate"] {
+            let mut subject = IntentSubject { id: "s1".into(), kind: "vehicle".into(), label: "the car".into(),
+                identifiers: BTreeMap::from([(alias.into(), "RZ874R".into())]) };
+            assert_eq!(values(&subject, &c).get("vehicle.registration.nl.plate"), Some(&json!("RZ874R")), "{alias}");
+            subject.identifiers.insert(alias.into(), "not a plate".into());
+            assert!(!values(&subject, &c).contains_key("vehicle.registration.nl.plate"));
+        }
+    }
+
     #[test]
     fn prices_dependencies_once_and_preserves_unknown_fields() {
         let (c, mut input, ctx) = fixture();

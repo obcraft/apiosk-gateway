@@ -86,7 +86,7 @@ async fn failed_registry_analysis_recovers_saved_results_without_model_or_purcha
     }
     task.intent = Some(json!({"subjects":[{"entity_ref":entity,"label":"Example PLC","values":{"company.registration.gb.companies_house":"00000001"}}],
         "goals":goals,"answer_operations":["Toon de opgeslagen registergegevens"],"unresolved_references":[]}));
-    task.proposal = Some(serde_json::to_value(Plan { compute: None, quote_ref: quote, cap_atomic: 163044, steps, expires_at: Utc::now() + Duration::hours(1),
+    task.proposal = Some(serde_json::to_value(Plan { independent_calls: false, compute: None, quote_ref: quote, cap_atomic: 163044, steps, expires_at: Utc::now() + Duration::hours(1),
         hash: "fixture".into(), fee_bps: 1500, workflow_slug: None }).unwrap());
     task.analysis = Some(json!({"status":"unavailable","observations":[],"limitations":["Synthesis failed"]}));
     task.actions = vec![serde_json::to_value(Action::RetryAnalysis { action_id: action }).unwrap()];
@@ -196,7 +196,7 @@ async fn saved_nonempty_analysis_retry_is_offered_and_preserves_findings_and_pay
         }
         task.intent = Some(json!({"subjects":[{"entity_ref":entity,"label":"Saved fixture","values":{}}],"goals":goals,
             "answer_operations":["Combine the saved findings"],"unresolved_references":[]}));
-        task.proposal = Some(serde_json::to_value(Plan { compute: None, quote_ref: quote, cap_atomic: 200, steps, expires_at: Utc::now()-Duration::hours(1),
+        task.proposal = Some(serde_json::to_value(Plan { independent_calls: false, compute: None, quote_ref: quote, cap_atomic: 200, steps, expires_at: Utc::now()-Duration::hours(1),
             hash: "saved-fixture".into(), fee_bps: 1500, workflow_slug: None }).unwrap());
         let previous = json!({"status":status,"observations":[{"text":"The saved findings remain available.","evidence":evidence}],
             "presentation":{"kind":"text"},"limitations":if status=="partial" {vec!["The saved sources have a bounded scope."]} else {vec![]},"follow_up_question":null});
@@ -349,7 +349,7 @@ async fn saved_lookup_and_batched_history_preserve_results() {
     };
     task.completed.push(step.key());
     task.proposal = Some(
-        serde_json::to_value(Plan { compute: None,
+        serde_json::to_value(Plan { independent_calls: false, compute: None,
             quote_ref: quote,
             steps: vec![step],
             cap_atomic: service.total(),

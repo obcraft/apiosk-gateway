@@ -1,8 +1,11 @@
 //! Complete literal requests for reviewed public-source operations. Each
 //! recognizer consumes the whole question, so extra facts, periods or output
 //! formats continue through ordinary strict interpretation.
+#[cfg(test)]
 use crate::capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject};
+#[cfg(test)]
 use sha2::{Digest, Sha256};
+#[cfg(test)]
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,10 +16,12 @@ pub(crate) enum Request {
     Domain { domain: String },
 }
 
+#[cfg(test)]
 pub(crate) fn recognize(question: &str) -> Option<Request> {
     recognize_with_language(question).map(|(_, request)| request)
 }
 
+#[cfg(test)]
 impl Request {
     /// The saved-answer projection reviews these exact source operations.
     /// Field overlap in a future generic offer cannot authorize another route.
@@ -223,6 +228,7 @@ fn valid_domain(value: &str) -> bool {
         })
 }
 
+#[cfg(test)]
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     let (language, request) = recognize_with_language(question)?;
     let (label, kind, identifiers) = match &request {
@@ -311,6 +317,7 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     })
 }
 
+#[cfg(test)]
 pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<ParsedRequest> {
     let expected = parse(question, "literal-profession-request")?;
     let actual = &intake.parsed_request;

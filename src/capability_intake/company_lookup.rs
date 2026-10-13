@@ -126,7 +126,7 @@ mod tests {
             assert_eq!(intake.parsed_request.language,"en");
             let reply=parser.chat_from_capabilities(&question,None,&Default::default(),&catalog,&intake).await.unwrap();
             let mut intent=reply.intent.unwrap();
-            let mut task=Task::default(); task.capability_intake=Some(intake);
+            let mut task = Task { capability_intake:Some(intake), ..Default::default() };
             crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
             let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("named profile must be priced")};
             assert_eq!(plan.steps.len(),1);

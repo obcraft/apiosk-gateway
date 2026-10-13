@@ -61,6 +61,7 @@ mod tests {
         let schemas: Value = serde_json::from_str(include_str!("../../contracts/tool-schemas.json")).unwrap();
         assert_eq!(schemas["discover"]["properties"]["question"]["maxLength"], limits().question.max_chars);
         assert_eq!(limits().unit, "unicode_scalar_values");
+        assert_eq!(limits().selection.max_endpoints, crate::protocol::MAX_STEPS);
     }
 
     #[test]

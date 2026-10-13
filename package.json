@@ -1,0 +1,13 @@
+{
+  "name": "apiosk-gateway-tools",
+  "private": true,
+  "type": "module",
+  "description": "Development checks for the Rust Gateway and its maintenance scripts.",
+  "scripts": {
+    "check:unused": "knip"
+  },
+  "devDependencies": {
+    "knip": "6.38.0",
+    "@electric-sql/pglite": "0.3.14"
+  }
+}

@@ -19,12 +19,11 @@ fn catalog(text: &str) -> Catalog {
 async fn planned(question: &str, catalog: &Catalog, steps: usize) -> (Intent, Task, Plan) {
     let intake = crate::capability_intake::offline_fixture_intake(question, catalog);
     let reply = crate::parser::plan_coverage::offline_fixture_reply(
-        &intake, catalog, question, &Task::default(),
+        &intake, catalog, question, &crate::compound_examples_tests::historical_workflow_task(),
     ).expect("the declared contract fixture must be complete");
     assert!(reply.discover, "{question}: {}", reply.message);
     let mut intent = reply.intent.unwrap();
-    let mut task = Task::default();
-    task.capability_intake = Some(intake);
+    let mut task = Task { capability_intake:Some(intake), ..crate::compound_examples_tests::historical_workflow_task() };
     crate::engine::bind_subjects(&mut task, catalog, &mut intent).unwrap();
     let Resolution::Plan(plan) = crate::resolver::resolve(catalog, &task, &intent) else {
         panic!("{question}: no complete plan")

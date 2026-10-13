@@ -7,7 +7,8 @@ pub mod limits;
 
 pub const VERSION: &str = "2";
 pub const MAX_INLINE: usize = 32 * 1024;
-pub const MAX_STEPS: usize = 12;
+pub const MAX_STEPS: usize = 10;
+pub const SOURCE_LIMIT_MESSAGE: &str = "A plan can include at most 10 source calls. Choose fewer sources or split your question.";
 pub const MAX_DEPTH: usize = 5;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

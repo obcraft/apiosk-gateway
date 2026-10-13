@@ -3,18 +3,23 @@
 use super::*;
 use crate::state::{IntakeRecovery, IntakeStage};
 
+pub(super) struct InterruptedIntake<'a> {
+    pub id: Uuid,
+    pub revision: i64,
+    pub request: &'a DiscoverRequest,
+    pub stage: IntakeStage,
+    pub turn_recorded: bool,
+}
+
 impl Engine {
     pub(super) async fn pause_intake(
         &self,
         p: &Principal,
-        id: Uuid,
-        revision: i64,
-        req: &DiscoverRequest,
         task: &mut Task,
-        stage: IntakeStage,
-        turn_recorded: bool,
+        interrupted: InterruptedIntake<'_>,
         error: anyhow::Error,
     ) -> anyhow::Result<Response> {
+        let InterruptedIntake { id, revision, request:req, stage, turn_recorded } = interrupted;
         if !matches!(error.downcast_ref::<crate::parser::ModelFailure>(), Some(crate::parser::ModelFailure::Unavailable)) {
             return Err(error);
         }

@@ -1,5 +1,7 @@
 //! EU/NL source engine integration: actual binding and adapters, fixture billing/model.
 //! Billing, model and upstream responses are explicit local fixtures.
+// The shared executor adapter also exposes operations outside this fixture.
+#[allow(dead_code)]
 #[path = "../legacy-executor/src/proxy/public_sources.rs"]
 mod adapter;
 use apiosk_gateway_v2::{

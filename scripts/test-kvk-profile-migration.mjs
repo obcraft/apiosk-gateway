@@ -1,7 +1,7 @@
 // Isolated local PostgreSQL test. No credentials, provider calls or production writes.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const fixture = JSON.parse(await fs.readFile(new URL('../tests/fixtures/research-report-catalog.json', import.meta.url), 'utf8'));
 const service = fixture.services.find(s => s.path === '/api/v1/basisprofielen');

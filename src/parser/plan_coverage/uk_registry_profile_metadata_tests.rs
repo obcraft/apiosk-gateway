@@ -37,7 +37,7 @@ fn reviewed_uk_record_alias_preserves_validation_and_field_scope() {
 }
 
 #[test]
-fn recorded_broad_uk_company_requests_compile_a_complete_name_lookup_and_profile() {
+fn recorded_broad_uk_company_requests_collect_profile_inputs_before_quoting() {
     let before=catalog(false);let after=catalog(true);
     let recorded:Vec<Value>=serde_json::from_str(include_str!("../../../tests/fixtures/uk-registry-profile/recorded-intakes.json")).unwrap();
     assert_eq!(recorded.len(),2);
@@ -50,16 +50,14 @@ fn recorded_broad_uk_company_requests_compile_a_complete_name_lookup_and_profile
         };
         assert!(single_retrieval_reply(&intake_for(&before),&before,question,question,&Default::default()).is_none(),"unreviewed aggregate must fail output proof");
         let intake=intake_for(&after);
-        let reply=single_retrieval_reply(&intake,&after,question,question,&Default::default()).expect("reviewed profile must compile");
-        let mut intent=reply.intent.unwrap();
+        let reply=crate::parser::contract_planner::compile(question,question,&Default::default(),&after,&intake);
+        let mut intent=reply.intent.expect("supported profile retains a draft for input collection");
         let mut task=crate::state::Task {capability_intake:Some(intake),..Default::default()};task.record_turn(question,None);
         crate::engine::bind_subjects(&mut task,&after,&mut intent).unwrap();
-        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&after,&task,&intent) else {panic!("complete profile plan")};
-        assert_eq!(plan.steps.len(),2);
-        assert!(plan.steps.iter().all(|step|step.service.api_slug=="companies-house"));
-        assert!(uncovered_outputs(&task,&after,&intent,&plan).is_empty());
-        assert!(uncovered_inputs(&task,&after,&intent,&plan).is_empty());
-        task.capability_intake.as_mut().unwrap().parsed_request.subjects[0].identifiers.insert("country".into(),"France".into());
-        assert!(!uncovered_inputs(&task,&after,&intent,&plan).is_empty(),"UK plan cannot prove another country");
+        let crate::resolver::Resolution::Missing {kind,..}=crate::resolver::resolve(&after,&task,&intent) else {panic!("ask for the actual profile identifier")};
+        assert!(after.vocabulary.contains_key(&kind));
+        assert_eq!(intent.goals.len(),1,"no implicit name lookup");
+        assert!(task.proposal.is_none());
+
     }
 }

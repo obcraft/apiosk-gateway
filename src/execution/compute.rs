@@ -1,6 +1,15 @@
 use super::*;
 use crate::compute;
 
+pub struct ComputeDispatch<'a> {
+    pub task_id: Uuid,
+    pub revision: i64,
+    pub action: Uuid,
+    pub authorization: Uuid,
+    pub plan: &'a Plan,
+    pub inputs: &'a Value,
+}
+
 impl Executor {
     /// Fixed destination and server-built input only. The reservation, charge,
     /// receipt and reconciliation all use the existing App payment ledger.
@@ -8,13 +17,9 @@ impl Executor {
         &self,
         p: &Principal,
         bearer: &str,
-        task_id: Uuid,
-        revision: i64,
-        action: Uuid,
-        authorization: Uuid,
-        plan: &Plan,
-        inputs: &Value,
+        request: ComputeDispatch<'_>,
     ) -> anyhow::Result<Dispatch> {
+        let ComputeDispatch { task_id, revision, action, authorization, plan, inputs } = request;
         anyhow::ensure!(
             self.enabled && p.is_person(),
             "Extended analysis execution unavailable"

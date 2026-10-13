@@ -100,8 +100,18 @@ fn parser() -> Parser {
     )
 }
 
+/// Replay the authored chains used by historical saved-result fixtures.
+/// This is an explicit workflow test context, never an ad hoc Ask request.
+/// Live dynamic planning and independent execution have separate regressions.
+pub(crate) fn historical_workflow_task() -> Task {
+    Task { workflow:Some(crate::workflow_catalog::WorkflowContext {
+        collecting:false, slug:"historical-contract-fixture".into(),
+        title:"Historical source-contract fixture".into(), input:Default::default(), limitations:vec![],
+    }), ..Default::default() }
+}
+
 async fn plan(question: &str, catalog: &Catalog) -> (Task, Intent, Plan) {
-    let task = Task::default();
+    let task = historical_workflow_task();
     let intake = crate::capability_intake::offline_fixture_intake(question, catalog);
     assert_eq!(intake.parsed_request.language, "en");
     let reply = crate::parser::plan_coverage::offline_fixture_reply(

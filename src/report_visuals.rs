@@ -260,32 +260,6 @@ pub fn sections(doc: &mut genpdf::Document, document: &Value) -> anyhow::Result<
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-    #[test]
-    fn charts_never_guess_currency_scale_or_duplicate_contexts() {
-        let mut d = json!({"opendataFields":[{"key":"FinancialYear","value":"2025"},{"key":"Currency","value":"EUR"},{"key":"Assets","value":"1200"},{"key":"Equity","value":"-50"}]});
-        let c = financial_chart(&d).unwrap();
-        assert_eq!(c.values[1].1, -50.0);
-        d["opendataFields"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({"key":"Currency","value":"USD"}));
-        assert!(financial_chart(&d).is_none());
-        d["opendataFields"].as_array_mut().unwrap().pop();
-        d["opendataFields"][1]["value"] = Value::Null;
-        assert!(financial_chart(&d).is_none());
-        d["opendataFields"][1]["value"] = json!("EUR");
-        d["opendataFields"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!({"key":"Scale","value":"1000"}));
-        assert!(financial_chart(&d).is_none());
-    }
-}
-
 // Annotation is a report overlay; the original evidence PNG remains unchanged.
 struct MarkedMap(Image, bool);
 impl Element for MarkedMap {
@@ -318,5 +292,31 @@ impl Element for MarkedMap {
             }
         }
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    #[test]
+    fn charts_never_guess_currency_scale_or_duplicate_contexts() {
+        let mut d = json!({"opendataFields":[{"key":"FinancialYear","value":"2025"},{"key":"Currency","value":"EUR"},{"key":"Assets","value":"1200"},{"key":"Equity","value":"-50"}]});
+        let c = financial_chart(&d).unwrap();
+        assert_eq!(c.values[1].1, -50.0);
+        d["opendataFields"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"key":"Currency","value":"USD"}));
+        assert!(financial_chart(&d).is_none());
+        d["opendataFields"].as_array_mut().unwrap().pop();
+        d["opendataFields"][1]["value"] = Value::Null;
+        assert!(financial_chart(&d).is_none());
+        d["opendataFields"][1]["value"] = json!("EUR");
+        d["opendataFields"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"key":"Scale","value":"1000"}));
+        assert!(financial_chart(&d).is_none());
     }
 }

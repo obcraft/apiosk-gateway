@@ -1,4 +1,6 @@
 //! Keep the answer fixture coupled to the actual public-source adapter.
+// The shared executor adapter also exposes operations outside this fixture.
+#[allow(dead_code)]
 #[path = "../legacy-executor/src/proxy/public_sources.rs"]
 mod adapter;
 use serde_json::{json, Value};

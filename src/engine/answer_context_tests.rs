@@ -44,7 +44,7 @@ fn fixture(address: &str, code: &str) -> (Plan, Intent, Task, BTreeMap<Uuid, Val
             }
         }));
     }
-    let plan = Plan { compute: None, quote_ref:Uuid::new_v4(), steps, cap_atomic:1, expires_at:Utc::now(), hash:"fixture".into(), fee_bps:1500, workflow_slug:None };
+    let plan = Plan { independent_calls: false, compute: None, quote_ref:Uuid::new_v4(), steps, cap_atomic:1, expires_at:Utc::now(), hash:"fixture".into(), fee_bps:1500, workflow_slug:None };
     (plan,intent,task,documents)
 }
 

@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn preserves_escaped_scalar_pointers_and_false_zero_without_metadata_facts() {
         let original=source("r","registry",json!({"a/b":{"~key":false},"zero":0,"truth":true,"missing":null}));
-        let index=Index::new(&[original.clone()],&[original.clone()]);
+        let index=Index::new(std::slice::from_ref(&original),std::slice::from_ref(&original));
         let fields=index.sources[0]["fields"].as_array().unwrap();
         for (path,value) in [("/data/a~1b/~0key",json!(false)),("/data/zero",json!(0)),("/data/truth",json!(true))] {
             let field=fields.iter().find(|f|f["path"]==path).unwrap();
@@ -244,7 +244,7 @@ mod tests {
     fn projected_excerpts_must_match_original_and_reduced_array_indices_stay_original() {
         let original=source("r","p",json!({"text":"prefix Exact café excerpt suffix","rows":[{"n":0},{"n":1},{"n":2}]}));
         let projected=source("r","p",json!({"text":"Exact café excerpt","rows":{"2":{"n":2}},"invented":"never saved"}));
-        let index=Index::new(&[projected],&[original.clone()]);
+        let index=Index::new(&[projected],std::slice::from_ref(&original));
         let fields=index.sources[0]["fields"].as_array().unwrap();
         assert!(fields.iter().any(|f|f["path"]=="/data/rows/2/n" && f["value"]==2));
         let field=fields.iter().find(|f|f["path"]=="/data/text").unwrap();

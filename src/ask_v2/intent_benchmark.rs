@@ -105,7 +105,8 @@ async fn ministral_3b_strict_schema_live() -> anyhow::Result<()> {
     ].into_iter().map(str::to_owned).collect::<Vec<_>>();
     let key = std::env::var("OPENROUTER_API_KEY").or_else(|_| std::env::var("INTENT_API_KEY"))?;
     let mut handles = Vec::new();
-    for model in ["mistralai/ministral-3b-2512"] {
+    {
+        let model = "mistralai/ministral-3b-2512";
         let definitions = defs.clone();
         let key = key.clone();
         let questions = questions.clone();

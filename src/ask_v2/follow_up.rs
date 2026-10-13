@@ -259,16 +259,15 @@ impl Client {
             );
             anyhow::anyhow!("ask_v2_model_timeout")
         })?
-        .map_err(|error| {
+        .inspect_err(|_| {
             tracing::warn!(
                 surface = "endpoint-follow-up",
                 stage = "generation",
                 reason = "transport_or_stream",
                 "follow-up interpretation unavailable"
             );
-            error
         })?;
-        validate_reply(&raw, question, context).map_err(|error| {
+        validate_reply(&raw, question, context).inspect_err(|error| {
             // Classifications only: never log the message, model reply, input,
             // schema validation detail or saved task/account identifiers.
             let reason = if error.downcast_ref::<serde_json::Error>().is_some() {
@@ -288,7 +287,6 @@ impl Client {
                 reason,
                 "follow-up interpretation unavailable"
             );
-            error
         })
     }
 }
@@ -618,7 +616,7 @@ mod tests {
             answer_operations: vec![],
             unresolved_references: vec![],
         };
-        let plan = Plan { compute: None,
+        let plan = Plan { independent_calls: false, compute: None,
             quote_ref: Uuid::new_v4(),
             steps: vec![step.clone()],
             cap_atomic: service.total(),

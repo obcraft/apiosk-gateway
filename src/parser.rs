@@ -19,7 +19,7 @@ use std::{
 use uuid::Uuid;
 
 mod capability_binding;
-mod contract_planner;
+pub(crate) mod contract_planner;
 use capability_binding::Bindings;
 mod analysis_source_coverage;
 mod analysis_evidence;
@@ -431,8 +431,8 @@ pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// This constant only controls conversational text, never planning or
 /// synthesis. Multi-provider synthesis has its own stage constant below.
 pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
-/// Historical model-planning replay support. The active parsed Ask route uses
-/// `contract_planner` and never calls this model, including on missing coverage.
+/// Semantic planning for requests that cannot be compiled by exact contract
+/// fields alone. The model sees only the discovered contracts and their fields.
 pub const CAPABILITY_PLAN_MODEL: &str = "openai/gpt-6.1-sol";
 /// Combining distinct saved providers uses the stronger synthesis stage.
 /// This is separate from conversation replies and never changes planning.
@@ -1371,8 +1371,8 @@ impl Parser {
 
     pub async fn chat_from_capabilities(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, intake: &crate::capability_intake::Intake) -> anyhow::Result<ChatReply> {
         let literals=capability_binding::literal_context(question,task,selection);
+        let mut selected=intake.clone();
         if let Some(selection)=selection.filter(|selection|selection.view["mode"]=="restrict") {
-            let mut selected=intake.clone();
             for found in &mut selected.matches {
                 found.apiosk.retain(|candidate|selection.view["endpoints"].as_array().into_iter().flatten().any(|endpoint|
                     endpoint["planner_available"]==true && candidate.endpoint_id.as_deref()==endpoint["endpoint_id"].as_str()
@@ -1380,15 +1380,33 @@ impl Parser {
                 found.operations=found.apiosk.iter().filter_map(|candidate|candidate.capability.clone()).collect();
             }
             selected.selected_capabilities=selected.matches.iter().flat_map(|found|found.operations.iter().cloned()).collect();
-            return Ok(contract_planner::compile(question,&literals,task,catalog,&selected));
         }
-        Ok(contract_planner::compile(question,&literals,task,catalog,intake))
+        let compiled = contract_planner::compile(question, &literals, task, catalog, &selected);
+        if contract_planner::ready(question, &compiled, task, catalog, &selected) {
+            return Ok(compiled);
+        }
+        // Exact field matching is an optimization, never a terminal refusal.
+        // Interpret arbitrary wording against this request's discovered source
+        // fields, or ask for the missing context. No question/alias registry.
+        let view = capability_planning_view(catalog.independent_parser_view(&selected.selected_capabilities), &selected.selected_capabilities);
+        let semantic = self.chat_with_view(question, selection, task, catalog, view, Some(&selected)).await;
+        // An identifier-only exact match is a useful draft, not proof that
+        // every matched name-based alternative needs that identifier. Give
+        // semantic field grounding one bounded chance to find a ready plan.
+        // A refusal, outage or another incomplete draft cannot erase the
+        // already validated missing-input request or loosen its scope.
+        if compiled.discover && !semantic.as_ref().is_ok_and(|reply|
+            contract_planner::ready(question, reply, task, catalog, &selected)) {
+            return Ok(compiled);
+        }
+        semantic
     }
 
     async fn chat_with_view(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, view: Value, intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<ChatReply> {
         // The chat route has no interpretation cache: every question is read anew.
         crate::telemetry::set_parser_cache(Cache::Miss);
-        let mut input=json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":view});
+        let mut input=json!({"surface":"ask-chat","question":question,"context":task.parser_context(),"catalog":view,
+            "limits":{"max_source_calls":crate::protocol::MAX_STEPS}});
         if intake.is_none() { input["source_groups"] = crate::eu_capabilities::catalog_view(catalog); }
         let bindings = intake.map(|i| Bindings::new(&i.parsed_request, question, task, selection));
         if let Some(bindings) = &bindings { input["bindings"] = bindings.view(); }
@@ -1401,7 +1419,7 @@ impl Parser {
                     "apiosk_results":m.apiosk,
                     "additional_coinbase_results":m.coinbase,"coinbase_status":m.coinbase_status})
             )).collect::<Vec<_>>());
-            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Dependencies belong to the backend resolver. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Apiosk results include registered endpoints without executable contracts; their discovery_only or unverified status must be preserved. Discovery results from Apiosk and Coinbase are metadata only: they cannot be quoted or executed, are not evidence answering the question, and may offer broader context rather than the subject-specific output requested. Only apiosk_operations identify executable matches. Preserve source selections and the single total-price approval flow.");
+            input["discovery_rules"] = json!("Interpret the complete original request using parsed_request and the matched Apiosk catalog. Cover every retrieval capability and its subject. A combined retrieval may use several matched goals only when their selected contracts jointly prove all requested outputs and each goal adds requested scope. One goal may cover several requirements only when one matched contract explicitly returns all their output facts; never duplicate a goal. Keep answer-only instructions in answer_operations. Each selected source must use inputs available before approval. Never chain source results into another call. Preserve missing required inputs for the backend to collect before quoting. Do not discard unmatched capabilities or coverage requirements. If an essential capability has no executable match, ask a focused clarification or explain the gap instead of quoting a partial substitute. A missing match means this specific requirement is not covered; do not claim an entire provider is absent. Apiosk results include registered endpoints without executable contracts; their discovery_only or unverified status must be preserved. Discovery results from Apiosk and Coinbase are metadata only: they cannot be quoted or executed, are not evidence answering the question, and may offer broader context rather than the subject-specific output requested. Only apiosk_operations identify executable matches. Preserve source selections and the single total-price approval flow.");
         }
         if let Some(selection) = selection { input["selection"] = selection.view.clone(); }
         // Entered values are literals too; the question is still sent as typed.
@@ -1410,8 +1428,8 @@ impl Parser {
         } else {
             selection.map(|selection| std::iter::once(question).chain(selection.literals.iter().map(String::as_str)).collect::<Vec<_>>().join("\n"))
         };
-        let system = if intake.is_some() {
-            format!("{}\n\nThe language code for your message is {}. Write the entire message in that language, including clarification questions.", include_str!("../contracts/capability-planning-prompt.txt"), intake.unwrap().parsed_request.language)
+        let system = if let Some(intake) = intake {
+            format!("{}\n\nThe language code for your message is {}. Write the entire message in that language, including clarification questions.", include_str!("../contracts/capability-planning-prompt.txt"), intake.parsed_request.language)
         } else {
             format!("{}\n\nIntent interpretation rules (place their output INSIDE the intent field of the chat reply):\n{}\n\nReturn one object with message, discover, intent. For a concrete request, discover=true and intent is the complete Intent object. For conversation or clarification, discover=false and intent=null. Never return a bare Intent object.", include_str!("../contracts/ask-chat-prompt.txt"), include_str!("../contracts/parser-prompt.txt"))
         };
@@ -1451,7 +1469,7 @@ impl Parser {
             }
             if intake.is_some() {
                 anyhow::ensure!(!reply.discover || reply.intent.is_some(), "discovery requires a matched intent");
-                anyhow::ensure!(!reply.discover || intake.is_none_or(|i| plan_coverage::retrievals_matched(i)), "unmatched capabilities need clarification before a quote");
+                anyhow::ensure!(!reply.discover || intake.is_none_or(plan_coverage::retrievals_matched), "unmatched capabilities need clarification before a quote");
             }
             if let Some(intent) = &mut reply.intent {
                 anyhow::ensure!(reply.discover, "unexpected intent for conversational reply");
@@ -1958,9 +1976,9 @@ mod tests {
         assert_eq!(catalog.services.len(), 17);
         let goal_schema = &intent_reply_schema("intent").unwrap()["properties"]["goals"];
         assert_eq!(goal_schema["maxItems"], 16);
-        assert_eq!(crate::protocol::MAX_STEPS, 12);
+        assert_eq!(crate::protocol::MAX_STEPS, 10);
         assert_eq!(crate::protocol::MAX_DEPTH, 5);
-        for count in [9, 16, 17] {
+        for count in [9, 10, 11, 16, 17] {
             let mut intent = Intent {
                 subjects: vec![Subject {entity_ref:None,label:"Coolblue".into(),values:BTreeMap::new()}],
                 goals: (0..count).map(|index|Goal {capability:format!("company.audit{index}"),subject:0,constraints:BTreeMap::new()}).collect(),
@@ -1972,13 +1990,12 @@ mod tests {
             if count > 16 {continue;}
             crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
             match crate::resolver::resolve(&catalog, &task, &intent) {
-                crate::resolver::Resolution::Plan(plan) if count == 9 => assert_eq!(plan.steps.len(), count),
-                crate::resolver::Resolution::Unsupported(_) if count == 16 => {},
+                crate::resolver::Resolution::Plan(plan) if count <= 10 => assert_eq!(plan.steps.len(), count),
+                crate::resolver::Resolution::Unsupported(message) if count > 10 => assert_eq!(message, crate::protocol::SOURCE_LIMIT_MESSAGE),
                 result => panic!("{count} goals: unexpected {result:?}"),
             }
             assert_eq!(intent.goals.len(), count, "the execution cap refuses the complete plan instead of discarding goals");
         }
-        assert!(include_str!("../contracts/capability-planning-prompt.txt").contains("goals: one to sixteen objects"));
         assert!(intent_repair_message("chat", "fixture").contains("between one and sixteen goals"));
     }
 
@@ -2636,6 +2653,67 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn missing_input_draft_allows_a_grounded_ready_alternative_and_survives_failed_fallback() {
+        let question = "Show the current status of ExampleCo.";
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let search = &mut snapshot.services[0];
+        search.contract.output_map.produces.insert("company.operating_state".into(),
+            serde_json::from_value(json!({"path":"$.state"})).unwrap());
+        search.sample_payload = Some(json!({"companies":[{"id":"123","state":"active"}]}));
+        let details = &mut snapshot.services[1];
+        details.contract.output_map.produces = serde_json::from_value(json!({"company.current_status":{"path":"$.status"}})).unwrap();
+        details.sample_payload = Some(json!({"status":"active"}));
+        for slug in ["company.current_status", "company.operating_state"] {
+            snapshot.vocabulary.push(serde_json::from_value(json!({"slug":slug,"value_schema":{"type":"string"}})).unwrap());
+        }
+        let catalog = Catalog::build(snapshot);
+        assert!(catalog.rejected.is_empty());
+        let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":[{"id":"s1","label":"ExampleCo","type":"company","identifiers":{"company_name":"ExampleCo"}}],
+            "capabilities":[{"slug":"company.status","name":"Company status","description":"Current company status","domain":"company",
+                "inputs":["company_name"],"outputs":["current_status"],"subject_id":"s1","source_hint":null,"confidence":1.0}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
+        let apiosk = catalog.services.iter().rev().map(|service| serde_json::from_value(json!({
+            "origin":"apiosk","name":service.name,"description":"Current company status","source_slug":service.api_slug,
+            "capability":service.contract.capability_slug,"endpoint_id":service.endpoint_id,"method":"GET","availability":"supported"
+        })).unwrap()).collect();
+        let operations: std::collections::BTreeSet<_> = catalog.services.iter().map(|service|service.contract.capability_slug.clone()).collect();
+        let intake = crate::capability_intake::Intake { parsed_request,
+            matches:vec![crate::capability_intake::Match {slug:"company.status".into(),query:"Current company status".into(),
+                operations:operations.clone(),apiosk,coinbase:vec![],coinbase_status:"skipped".into()}],
+            selected_capabilities:operations,apiosk_sources_searched:1,catalog_version:catalog.version.clone() };
+        let task = Task::default();
+        let compiled = contract_planner::compile(question, question, &task, &catalog, &intake);
+        assert!(compiled.discover, "the exact identifier-only endpoint remains a valid draft");
+        assert!(!contract_planner::ready(question, &compiled, &task, &catalog, &intake));
+        assert_eq!(compiled.intent.as_ref().unwrap().goals[0].capability,"company.accounts");
+        let fields = source_grounding::view(&intake,&catalog);
+        let field = fields["sources"].as_array().unwrap().iter().find(|source|source["capability"]=="company.search").unwrap()["fields"]
+            .as_array().unwrap().iter().find(|field|field["fact"]=="company.operating_state").unwrap()["id"].clone();
+        let successful = json!({"message":"I will show the total price.","discover":true,"decline_reason":"none",
+            "output_bindings":[{"requirement":0,"output":"current_status","fields":[field],"interpretation":"The operating state reports the requested current company status.","limitation":null}],
+            "intent":{"subjects":[{"subject_ref":"s1","values":{"company.name":{"ref":"s1.identifiers.company_name"}}}],
+                "goals":[{"subject":0,"capability":"company.search","constraints":{"source":"fixture","endpoint_id":catalog.services[0].endpoint_id}}],
+                "answer_operations":[],"unresolved_references":[]}});
+        let refused = json!({"message":"Which registered company identifier do you have?","discover":false,
+            "decline_reason":"ambiguous_request","intent":null,"output_bindings":[]});
+        let envelope = |value:Value| json!({"choices":[{"finish_reason":"stop","message":{"content":value.to_string()}}]});
+        for (responses, expected_ready, expected_calls) in [
+            (vec![(200,envelope(successful))],true,1),
+            (vec![(200,envelope(refused))],false,1),
+            (vec![(503,json!({"error":"unavailable"})),(503,json!({"error":"unavailable"}))],false,2),
+        ] {
+            let (parser,calls,server) = model_fixture(responses).await;
+            let reply = parser.chat_from_capabilities(question,None,&task,&catalog,&intake).await.unwrap();
+            assert_eq!(contract_planner::ready(question,&reply,&task,&catalog,&intake),expected_ready,"{reply:?}");
+            assert_eq!(reply.intent.as_ref().unwrap().goals[0].capability, if expected_ready {"company.search"} else {"company.accounts"});
+            assert!(!reply.intent.as_ref().unwrap().subjects[0].values.contains_key("company.id"), "no prerequisite ID is invented");
+            assert_eq!(calls.load(Ordering::Relaxed),expected_calls);
+            server.abort();
+        }
+    }
+
+    #[tokio::test]
     async fn one_vat_retrieval_recovers_from_duplicate_alternatives_without_losing_scope() {
         let fixture: Value=serde_json::from_str(include_str!("../tests/fixtures/profession-vies-planning.json")).unwrap();
         let catalog=Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
@@ -2687,9 +2765,9 @@ mod tests {
         let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen volledig plan") || reply.message.contains("passende bron"));
+        assert!(!reply.message.trim().is_empty());
         assert!(!reply.message.contains("2023") && !reply.message.contains("5210"));
-        assert_eq!(calls.load(Ordering::Relaxed),0,"no model planning or review is called");
+        assert_eq!(calls.load(Ordering::Relaxed),2,"the semantic planner gets one bounded repair; invented inputs still cannot be quoted");
         server.abort();
     }
 
@@ -2706,9 +2784,9 @@ mod tests {
         let (parser,calls,server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
         let reply = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
         assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(reply.message.contains("geen volledig plan") || reply.message.contains("passende bron"));
+        assert!(!reply.message.trim().is_empty());
         assert!(!reply.message.contains("2023") && !reply.message.contains("32006L0029") && !reply.message.contains("geen geldige uitvoeringscontracten"));
-        assert_eq!(calls.load(Ordering::Relaxed),0,"no planning model or source call");
+        assert_eq!(calls.load(Ordering::Relaxed),2,"the dynamic planner must attempt a repair without accepting invented values");
         server.abort();
     }
 

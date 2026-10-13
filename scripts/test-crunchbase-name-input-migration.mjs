@@ -1,7 +1,7 @@
 // Reviewed semantic metadata only; no provider calls or production writes.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 const fixture=JSON.parse(await fs.readFile(new URL('../tests/fixtures/crunchbase/typed-name-input.json',import.meta.url),'utf8'));
 const sql=await fs.readFile(new URL('../supabase/migrations/20261011205913_declare_crunchbase_typed_name_inputs.sql',import.meta.url),'utf8');
 const db=new PGlite();await db.waitReady;

@@ -1,0 +1,288 @@
+[
+  {
+    "id": "personnel-nl",
+    "question": "Ik ben op zoek naar personeelsinformatie van Coolblue.",
+    "expect_concepts": [
+      [
+        "employee",
+        "personnel",
+        "staff",
+        "workforce",
+        "person"
+      ],
+      [
+        "employee_details"
+      ]
+    ],
+    "source_free": true
+  },
+  {
+    "id": "company-personnel-nl",
+    "question": "Geef bedrijfs- en personeelsinformatie over Coolblue.",
+    "expect_concepts": [
+      [
+        "company",
+        "business"
+      ],
+      [
+        "employee",
+        "personnel",
+        "staff",
+        "workforce",
+        "person"
+      ],
+      [
+        "employee_details"
+      ]
+    ],
+    "source_free": true,
+    "minimum_capabilities": 2
+  },
+  {
+    "id": "company-nl",
+    "question": "Ik zoek bedrijfsinformatie over Coolblue.",
+    "expect_concepts": [
+      [
+        "company",
+        "profile",
+        "business"
+      ]
+    ],
+    "source_free": true
+  },
+  {
+    "id": "company-search",
+    "question": "Find companies named Coolblue.",
+    "expect_concepts": [
+      [
+        "company",
+        "companies",
+        "business"
+      ],
+      [
+        "company_matches"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true
+  },
+  {
+    "id": "employee-names-titles",
+    "question": "Find the employee names and job titles for Coolblue.",
+    "expect_concepts": [
+      [
+        "employee",
+        "person",
+        "staff"
+      ],
+      [
+        "name"
+      ],
+      [
+        "title",
+        "role",
+        "position"
+      ]
+    ],
+    "source_free": true
+  },
+  {
+    "id": "employee-count",
+    "question": "How many employees does Coolblue have?",
+    "expect_concepts": [
+      [
+        "employee",
+        "staff",
+        "workforce"
+      ],
+      [
+        "count",
+        "number",
+        "headcount",
+        "size"
+      ]
+    ],
+    "source_free": true
+  },
+  {
+    "id": "employer-ratings",
+    "question": "Compare employee ratings of Starbucks and McDonald's as employers.",
+    "expect_concepts": [
+      [
+        "employee",
+        "employer",
+        "workplace"
+      ],
+      [
+        "rating",
+        "review",
+        "score"
+      ]
+    ],
+    "source_free": true
+  },
+  {
+    "id": "kvk-search-control",
+    "question": "Search KVK for companies named Coolblue.",
+    "expect_concepts": [
+      [
+        "company",
+        "companies",
+        "business"
+      ],
+      [
+        "company_matches"
+      ]
+    ],
+    "source_free": false,
+    "named_source": "kvk",
+    "expect_plan": true
+  },
+  {
+    "id": "kvk-number-control",
+    "question": "Find the company name and KVK number for Coolblue using KVK.",
+    "expect_concepts": [
+      [
+        "company",
+        "business"
+      ],
+      [
+        "name"
+      ],
+      [
+        "kvk",
+        "registration"
+      ]
+    ],
+    "source_free": false,
+    "named_source": "kvk",
+    "expect_plan": true
+  },
+  {
+    "id": "starter-company-sanctions",
+    "question": "Find companies named Coolblue and check whether the company name appears on sanctions lists.",
+    "expect_concepts": [
+      [
+        "company",
+        "companies"
+      ],
+      [
+        "sanction"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 2
+  },
+  {
+    "id": "starter-vat-company",
+    "question": "Validate VAT number NL815839091B01 and show the registered company details for Mollie B.V., registration number 30204462.",
+    "expect_concepts": [
+      [
+        "vat"
+      ],
+      [
+        "company",
+        "profile"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 2
+  },
+  {
+    "id": "starter-employer-ratings",
+    "question": "Compare employee ratings of Starbucks and McDonald’s as employers.",
+    "expect_concepts": [
+      [
+        "employee",
+        "employer"
+      ],
+      [
+        "rating",
+        "review"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 2
+  },
+  {
+    "id": "starter-leadership-sanctions",
+    "question": "Who runs and controls MONZO BANK LIMITED, UK company number 09446231, and does the company appear on sanctions lists?",
+    "expect_concepts": [
+      [
+        "officer",
+        "director",
+        "leadership",
+        "management"
+      ],
+      [
+        "control",
+        "owner"
+      ],
+      [
+        "sanction"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 3
+  },
+  {
+    "id": "starter-vehicle-company",
+    "question": "Show the vehicle details for Dutch plate RZ874R and the registered company details for Louwman Dealerbedrijven B.V., registration number 27095155.",
+    "expect_concepts": [
+      [
+        "vehicle"
+      ],
+      [
+        "company",
+        "profile"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 2
+  },
+  {
+    "id": "starter-building",
+    "question": "Show the building details for Damrak 1, Amsterdam.",
+    "expect_concepts": [
+      [
+        "building"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true
+  },
+  {
+    "id": "starter-address-record",
+    "question": "Find the address record for Damrak 1, Amsterdam.",
+    "expect_concepts": [
+      [
+        "address"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true
+  },
+  {
+    "id": "starter-officers-control-sanctions",
+    "question": "List the registered company officers and persons with significant control for MONZO BANK LIMITED, company number 09446231, and check the company name against sanctions lists.",
+    "expect_concepts": [
+      [
+        "officer"
+      ],
+      [
+        "control"
+      ],
+      [
+        "sanction"
+      ]
+    ],
+    "source_free": true,
+    "expect_plan": true,
+    "minimum_capabilities": 2
+  }
+]

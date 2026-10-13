@@ -4,7 +4,7 @@
 // exercised with exactly what --apply would send.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 import { batchRows, buildCatalog } from './bazaar-sync.mjs';
 
 const migration = await readFile(new URL('../supabase/migrations/20260928001500_coinbase_bazaar_source.sql', import.meta.url), 'utf8');

@@ -35,6 +35,13 @@ impl Parser {
     }
 }
 
+/// A new topic keeps the durable chat, but its source search must not inherit
+/// a prior company, source, quote, requirement or assistant clarification.
+pub(crate) fn interpretation_context(task: &Task, new_topic: bool) -> Task {
+    if new_topic { Task { capability_intake: task.capability_intake.clone(), ..Task::default() } }
+    else { task.clone() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,11 +65,4 @@ mod tests {
         assert_eq!(interpretation_context(&task,false).conversation.len(),1);
         assert_eq!(task.conversation.len(),1,"durable history is retained");
     }
-}
-
-/// A new topic keeps the durable chat, but its source search must not inherit
-/// a prior company, source, quote, requirement or assistant clarification.
-pub(crate) fn interpretation_context(task: &Task, new_topic: bool) -> Task {
-    if new_topic { Task { capability_intake: task.capability_intake.clone(), ..Task::default() } }
-    else { task.clone() }
 }

@@ -30,7 +30,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub const DEFAULT_MODEL: &str = "openai/gpt-6-luna";
+/// Ask v1's canonical question parser; Ask v2 runs use `intent::MODEL`.
+pub const DEFAULT_MODEL: &str = "openai/gpt-oss-120b";
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // The parse contract: connected chatbots fill in exactly this shape
@@ -278,6 +279,10 @@ impl Client {
             "response_format": {"type": "json_object"}
         });
         if self.model == DEFAULT_MODEL {
+            // GPT-OSS requires reasoning. Low effort keeps extraction fast;
+            // normalization still validates the complete returned intent.
+            body["reasoning"] = json!({"effort":"low","exclude":true});
+        } else if self.model == "openai/gpt-6-luna" {
             // Extraction produces the same validated intent; the deterministic
             // planner does the source selection. Spend reasoning only on the
             // existing correction attempt when validation rejects that intent.
@@ -451,10 +456,6 @@ impl Sse {
         Ok(())
     }
 
-    fn finish(self) -> Result<String> {
-        self.finish_with_usage().map(|reply| reply.0)
-    }
-
     fn finish_with_usage(mut self) -> Result<(String, Option<ModelUsage>)> {
         if !self.done {
             let line = std::mem::take(&mut self.pending);
@@ -526,7 +527,7 @@ mod tests {
 
     #[test]
     fn intake_model_is_independent_and_fixture_endpoint_is_loopback_only() {
-        assert_eq!(DEFAULT_MODEL, "openai/gpt-6-luna");
+        assert_eq!(DEFAULT_MODEL, "openai/gpt-oss-120b");
         assert_ne!(DEFAULT_MODEL, crate::parser::MODEL);
         assert_eq!(
             Client::new(reqwest::Client::new(), "fixture".into(), String::new()).model,
@@ -561,13 +562,13 @@ mod tests {
         for byte in payload.as_bytes() {
             parsed.push(&[*byte]).unwrap();
         }
-        assert_eq!(parsed.finish().unwrap(), "{\"label\":\"Utrécht\"}");
+        assert_eq!(parsed.finish_with_usage().unwrap().0, "{\"label\":\"Utrécht\"}");
 
         let mut multiline = Sse::default();
         multiline
             .push(b"data: {\"choices\":\ndata: [{\"delta\":{\"content\":\"ok\"}}]}\n\n")
             .unwrap();
-        assert_eq!(multiline.finish().unwrap(), "ok");
+        assert_eq!(multiline.finish_with_usage().unwrap().0, "ok");
     }
 
     #[test]
@@ -581,17 +582,17 @@ mod tests {
             .as_bytes(),
         )
         .unwrap();
-        assert_eq!(done.finish().unwrap(), "{}");
+        assert_eq!(done.finish_with_usage().unwrap().0, "{}");
         let mut eof = Sse::default();
         eof.push(b"data: {\"choices\":[{\"delta\":{\"content\":\"{}\"}}]}")
             .unwrap();
-        assert_eq!(eof.finish().unwrap(), "{}");
+        assert_eq!(eof.finish_with_usage().unwrap().0, "{}");
     }
 
     #[test]
     fn stream_rejects_empty_errors_invalid_json_and_oversize_without_provider_details() {
         assert_eq!(
-            Sse::default().finish().unwrap_err().to_string(),
+            Sse::default().finish_with_usage().unwrap_err().to_string(),
             "ask_v2_model_empty_response"
         );
         for payload in [
@@ -1267,7 +1268,7 @@ mod tests {
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"max_tokens":4096,
                 "provider":{"require_parameters":true,"sort":"latency"},
-                "reasoning":{"effort":"none","exclude":true},
+                "reasoning":{"effort":"low","exclude":true},
                 "response_format":{"type":"json_object"}
             })
         );

@@ -874,6 +874,26 @@ async fn authorize(
     }
 }
 
+async fn analysis_upgrade(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Json(req): Json<crate::engine::UpgradeRequest>) -> HttpResponse {
+    let p = match app_person(&state,&headers).await { Ok(p)=>p,Err(r)=>return r };
+    if req.state.state_ref != id || req.request_id.is_nil() { return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its analysis."); }
+    let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly."); };
+    match state.engine.analysis_upgrade(&p,req).await {
+        Ok(view)=>Json(view).into_response(),
+        Err(_)=>failure(StatusCode::CONFLICT,"analysis_upgrade_unavailable","Reload the saved task before changing its analysis. Nothing new was purchased."),
+    }
+}
+
+async fn source_selection(State(state):State<ServerState>,headers:HeaderMap,Path(id):Path<Uuid>,Json(req):Json<crate::engine::SourceSelectionRequest>)->HttpResponse {
+    let p=match app_person(&state,&headers).await {Ok(p)=>p,Err(response)=>return response};
+    if req.state.state_ref!=id || req.request_id.is_nil() {return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its sources.");}
+    let Ok(_permit)=state.permits.try_acquire() else {return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly.");};
+    match state.engine.select_sources(&p,req).await {
+        Ok(response)=>Json(response).into_response(),
+        Err(_)=>failure(StatusCode::CONFLICT,"source_selection_unavailable","Reload this unapproved plan before changing its sources. Nothing was purchased."),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -949,25 +969,5 @@ mod tests {
         let response = app.oneshot(axum::http::Request::get("/v1/legacy-probe").body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(forwarded.load(SeqCst), 1);
-    }
-}
-
-async fn analysis_upgrade(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Json(req): Json<crate::engine::UpgradeRequest>) -> HttpResponse {
-    let p = match app_person(&state,&headers).await { Ok(p)=>p,Err(r)=>return r };
-    if req.state.state_ref != id || req.request_id.is_nil() { return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its analysis."); }
-    let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly."); };
-    match state.engine.analysis_upgrade(&p,req).await {
-        Ok(view)=>Json(view).into_response(),
-        Err(_)=>failure(StatusCode::CONFLICT,"analysis_upgrade_unavailable","Reload the saved task before changing its analysis. Nothing new was purchased."),
-    }
-}
-
-async fn source_selection(State(state):State<ServerState>,headers:HeaderMap,Path(id):Path<Uuid>,Json(req):Json<crate::engine::SourceSelectionRequest>)->HttpResponse {
-    let p=match app_person(&state,&headers).await {Ok(p)=>p,Err(response)=>return response};
-    if req.state.state_ref!=id || req.request_id.is_nil() {return failure(StatusCode::BAD_REQUEST,"invalid_request","Reload this task before changing its sources.");}
-    let Ok(_permit)=state.permits.try_acquire() else {return failure(StatusCode::TOO_MANY_REQUESTS,"busy","Try again shortly.");};
-    match state.engine.select_sources(&p,req).await {
-        Ok(response)=>Json(response).into_response(),
-        Err(_)=>failure(StatusCode::CONFLICT,"source_selection_unavailable","Reload this unapproved plan before changing its sources. Nothing was purchased."),
     }
 }

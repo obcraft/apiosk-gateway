@@ -40,7 +40,7 @@ impl Engine {
     ) -> anyhow::Result<Response> {
         self.signer.verify(p.owner, &req.state, true)?;
         let id = req.state.state_ref;
-        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
         anyhow::ensure!(
             connection.is_none(),
             "Continue connected chatbot tasks through their chatbot"
@@ -86,7 +86,7 @@ impl Engine {
             goal_index: 0,
         browser_fallback: None,
         }];
-        let plan = Plan { compute: None,
+        let plan = Plan { independent_calls: false, compute: None,
             quote_ref: Uuid::new_v4(),
             cap_atomic: steps[0].service.total(),
             hash: digest(&steps),

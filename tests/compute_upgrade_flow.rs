@@ -33,12 +33,12 @@ async fn provider(
         .map(|m| m["content"].as_str().unwrap())
         .collect::<String>();
     let evidence: Value = serde_json::from_str(&input).unwrap();
-    let fields = evidence["sources"][0]["records"]
+    let mut fields = evidence["sources"][0]["records"]
         .as_array()
         .unwrap()
         .iter()
         .flat_map(|r| r["fields"].as_array().unwrap());
-    let id = fields.filter(|f| f[2] == 3.5).next().unwrap()[0].clone();
+    let id = fields.find(|f| f[2] == 3.5).unwrap()[0].clone();
     Json(
         json!({"ok":true,"charged_micro_usd":3450,"provider_micro_usd":3000,"fee_micro_usd":450,
         "result":{"data":{"choices":[{"finish_reason":"stop","message":{"content":json!({"observations":[{"text":"The employer rating is {{a}}.","evidence":[{"fact_id":id}]}],"limitations":[]}).to_string()}}]}}}),
@@ -108,7 +108,7 @@ async fn quote_approval_saved_result_and_no_paid_replay() {
     let source_cost = service.total();
     let quote = Uuid::new_v4();
     let plan = Plan {
-        compute: None,
+        independent_calls: false, compute: None,
         quote_ref: quote,
         steps: vec![Step {
             service,
@@ -253,7 +253,6 @@ async fn quote_approval_saved_result_and_no_paid_replay() {
     task.analysis = Some(json!({"status":"completed","observations":[],"limitations":[]}));
     let revision = store.save(p.owner, id, revision, &task).await.unwrap();
     // The optional upfront compute uses the same authorization as the source.
-    let mut task = task;
     task.actions =
         vec![json!({"kind":"compute","action_id":task.compute.as_ref().unwrap().action_id})];
     store.save(p.owner, id, revision, &task).await.unwrap();
@@ -368,12 +367,10 @@ async fn quote_approval_saved_result_and_no_paid_replay() {
             .dispatch_compute(
                 &p,
                 "fixture",
-                id,
-                0,
-                run.action_id,
-                auth,
-                &plan,
-                &run.prepared.as_ref().unwrap().payload,
+                apiosk_gateway_v2::execution::ComputeDispatch {
+                    task_id:id, revision:0, action:run.action_id, authorization:auth,
+                    plan:&plan, inputs:&run.prepared.as_ref().unwrap().payload,
+                },
             )
             .await
             .unwrap();

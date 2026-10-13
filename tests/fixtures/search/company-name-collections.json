@@ -1,0 +1,487 @@
+{
+  "known_sources": [],
+  "services": [
+    {
+      "id": "a4ea2bea-9438-4e8d-9ce5-06a1e4e435d8",
+      "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "method": "GET",
+      "path": "/api/v2/zoeken",
+      "listing_type": "api",
+      "list_atomic": 18903,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "contract": {
+        "capability_slug": "company_registry.search",
+        "cardinality": "many",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "building.huisletter": {
+            "in": "query",
+            "name": "huisletter"
+          },
+          "building.postcode": {
+            "in": "query",
+            "name": "postcode"
+          },
+          "company.name": {
+            "in": "query",
+            "name": "naam"
+          },
+          "company_registry.kvknummer": {
+            "in": "query",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.resultaten[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "building.postcode",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "building.huisletter",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 5
+      },
+      "sample_payload": {
+        "resultaten": [
+          {
+            "naam": "Example Company",
+            "kvkNummer": "12345678"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ae0ab587-cb28-5215-9f4e-ba36070da8a3",
+      "endpoint_id": "acd906d7-1a9d-4ac7-b949-a163fe08c678",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "method": "GET",
+      "path": "/search",
+      "listing_type": "api",
+      "list_atomic": 85066,
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "contract": {
+        "capability_slug": "company.watchlist-search",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "company.name": {
+            "in": "query",
+            "name": "q"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.watchlist_search_page": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "sample_payload": {
+        "results": [],
+        "total": 0
+      }
+    },
+    {
+      "id": "d5e891a6-e5fa-5f87-bd0e-1fc622b7336c",
+      "endpoint_id": "b2738673-7f30-4c6c-a962-cb83fc71f7b0",
+      "api_slug": "gleif",
+      "name": "GLEIF",
+      "description": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entity status. Returns matching LEIs and canonical legal-entity records rather than scraped firmographic guesses.",
+      "source_url": "https://www.gleif.org/en/lei-data/gleif-api",
+      "method": "GET",
+      "path": "/lei-records",
+      "listing_type": "api",
+      "list_atomic": 47259,
+      "fixed_params": {
+        "page[size]": 10
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "contract": {
+        "capability_slug": "company.legal-entity-search",
+        "cardinality": "many",
+        "identifies": "company.registration.lei",
+        "input_map": {
+          "company.name": {
+            "in": "query",
+            "name": "filter[entity.legalName]"
+          },
+          "company.search.country_code": {
+            "in": "query",
+            "name": "filter[entity.legalAddress.country]"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.data[*]",
+          "produces": {
+            "company.gleif_record": {
+              "path": "$"
+            },
+            "company.name": {
+              "path": "$.attributes.entity.legalName.name"
+            },
+            "company.registration.lei": {
+              "path": "$.id"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company.search.country_code",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "sample_payload": {
+        "data": [
+          {
+            "id": "12345678901234567890",
+            "attributes": {
+              "entity": {
+                "legalName": {
+                  "name": "Example Company"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "dc655508-e529-4c2f-905e-1b6d69b80e4c",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbiActiviteiten[*].sbiCode"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.handelsnamen[*].naam"
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "web.company_website_query": {
+              "adapter": "record.website-query",
+              "key": "{\"name\":\"/naam\",\"identifier\":\"/kvkNummer\",\"registry\":\"KVK\",\"pattern\":\"^[0-9]{8}$\"}"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 9
+      },
+      "sample_payload": {
+        "naam": "Example Company",
+        "statutaireNaam": "Example Company",
+        "kvkNummer": "12345678",
+        "sbiActiviteiten": [
+          {
+            "sbiCode": "62010"
+          }
+        ],
+        "handelsnamen": [
+          {
+            "naam": "Example Company"
+          }
+        ],
+        "_embedded": {
+          "eigenaar": {
+            "rsin": "123456789"
+          },
+          "hoofdvestiging": {
+            "adressen": [],
+            "vestigingsnummer": "123456789012"
+          }
+        }
+      }
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "building.huisletter",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "building.postcode",
+      "value_schema": {
+        "pattern": "^[0-9]{4}(\\s?[A-Za-z]{2})?$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "pattern": "^[0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.gleif_record",
+      "value_schema": {
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "attributes"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "pattern": "^[0-9]{9}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+        "properties": {
+          "employee_count": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sbi_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trade_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "legal_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.registration.lei",
+      "value_schema": {
+        "pattern": "^[A-Z0-9]{18}[0-9]{2}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.search.country_code",
+      "value_schema": {
+        "pattern": "^[A-Z]{2}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.watchlist_search_page",
+      "value_schema": {
+        "properties": {
+          "results": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results",
+          "total"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "web.company_website_query",
+      "value_schema": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      }
+    }
+  ]
+}

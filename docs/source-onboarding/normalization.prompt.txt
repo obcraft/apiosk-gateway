@@ -24,6 +24,31 @@ Use JSON Schema objects with properties={} when an endpoint has no inputs.
 Endpoint headers describe the protocol; executable public static headers go in
 source.static_headers. Credentials are never user inputs or fixed_params.
 
+Inventory every documented information category returned by EACH endpoint,
+including nested records, relationship cards and optional fields. Prefer
+reusable provider-independent capability meanings over provider/path names.
+One endpoint may implement several capabilities; several endpoints may offer
+the same capability. Keep their distinct execution requirements and prices.
+Do not stop at a broad "company profile" label when the documented response
+also contains employee records, headcount, directors or funding information.
+Keep those meanings distinct: headcount is not an employee roster, directors
+are not all employees, and employer reviews are not personnel records.
+
+For each returned category provide its exact typed output shape, field names,
+field descriptions, subject granularity, optionality and pagination/coverage
+limits. Place reviewed semantic field aliases in value_schema $comment using
+{"apiosk_output_aliases_v1":["meaningful_output_concept"]} at the field they
+actually describe. An alias must be supported by that documented field, not
+provider marketing or a guessed use case. A generic opaque object cannot
+establish any specific nested output. Preserve uncertain fields as gaps for
+review; never fabricate support to make a broad question match. Search terms
+and use cases should include ordinary provider-free questions that these
+outputs can answer, in addition to accurate technical terminology.
+For polymorphic field_id/label/value rows, document the actual admitted field
+identifiers and their types. The row container or a relationship-card name
+does not prove that every conceivable field in that category is returned.
+Keep scalar counts and size bands explicitly described as measurements.
+
 For each capability write typed requires/produces plus matching input_map and
 output_map. Output paths are relative to output_map.base, which selects the
 subject. Never zip separate arrays; preserve one entity's field associations.

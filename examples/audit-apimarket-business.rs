@@ -152,10 +152,11 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     let mut probes = vec![];
-    for (name, description) in [(
+    {
+        let (name, description) = (
         "Crunchbase company search",
         "Find companies by name in Crunchbase",
-    )] {
+    );
         let matches = search(&request(name, description, None), &catalog);
         let found: Vec<_> = matches
             .iter()

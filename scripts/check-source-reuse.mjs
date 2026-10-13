@@ -1,8 +1,16 @@
 import fs from 'node:fs/promises';
-const files=['facts.rs','fees.rs','facts/adapter.rs','facts/contract.rs','facts/path.rs','facts/schema.rs'];
+import { spawnSync } from 'node:child_process';
+// These two modules still intentionally share an identical implementation.
+// Contracts/adapters/schema have evolved separately; pricing is checked by behavior.
+const files=['facts.rs','facts/path.rs'];
 for(const file of files) {
- const original=await fs.readFile(new URL(`../../gateway/src/${file}`,import.meta.url));
+ const original=await fs.readFile(new URL(`../legacy-executor/src/${file}`,import.meta.url));
  const extracted=await fs.readFile(new URL(`../crates/catalog-core/src/${file}`,import.meta.url));
  if(!original.equals(extracted)) throw new Error(`Shared core drift: ${file}. Review the change before updating either implementation.`);
 }
-console.log(`${files.length} shared catalog/pricing source files match the existing gateway.`);
+console.log(`${files.length} shared fact modules match the legacy executor.`);
+const check=spawnSync('cargo',['test','--locked','--test','source_reuse'],{
+ cwd:new URL('..',import.meta.url),stdio:'inherit'
+});
+if(check.error) throw check.error;
+if(check.status!==0) process.exit(check.status??1);

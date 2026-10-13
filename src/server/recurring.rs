@@ -50,22 +50,12 @@ pub(super) async fn access(State(s): State<ServerState>, h: HeaderMap) -> Respon
 /// is removed. Authenticate the App session normally, but authorize this narrow
 /// non-spending operation against the stored owner/workspace in `control`.
 async fn owner_control(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
-    let workspace = h
-        .get("x-apiosk-workspace")
-        .map(|value| {
-            value
-                .to_str()
-                .ok()
-                .and_then(|value| value.parse::<Uuid>().ok())
-                .ok_or_else(|| {
-                    failure(
-                        StatusCode::BAD_REQUEST,
-                        "invalid_workspace",
-                        "Invalid workspace.",
-                    )
-                })
-        })
-        .transpose()?;
+    let workspace = if let Some(value) = h.get("x-apiosk-workspace") {
+        match value.to_str().ok().and_then(|value| value.parse::<Uuid>().ok()) {
+            Some(id) => Some(id),
+            None => return Err(failure(StatusCode::BAD_REQUEST, "invalid_workspace", "Invalid workspace.")),
+        }
+    } else { None };
     let mut authentication = h.clone();
     authentication.remove("x-apiosk-workspace");
     let mut principal = person(s, &authentication).await?;

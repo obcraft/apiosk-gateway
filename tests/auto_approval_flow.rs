@@ -67,14 +67,13 @@ async fn a_standing_rule_approves_within_its_limits_and_nothing_else() {
         let pool = pool.clone();
         async move {
             let id = Uuid::new_v4();
-            let plan = Plan { compute: None,
+            let plan = Plan { independent_calls: false, compute: None,
                 quote_ref: Uuid::new_v4(), steps: vec![], cap_atomic: cap,
                 expires_at: chrono::Utc::now() + chrono::Duration::minutes(10),
                 hash: format!("plan-{id}"), fee_bps: 1500, workflow_slug: None,
             };
-            let mut task = Task::default();
-            task.proposal = Some(serde_json::to_value(&plan).unwrap());
-            task.actions = vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":0})];
+            let mut task = Task { proposal:Some(serde_json::to_value(&plan).unwrap()),
+                actions:vec![json!({"kind":"run","action_id":Uuid::new_v4(),"step":0})], ..Default::default() };
             if choice_pending {
                 task.pending_candidates = vec![json!({"entity_ref":Uuid::new_v4()})];
             }

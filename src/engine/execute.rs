@@ -81,7 +81,7 @@ impl Engine {
                 .await;
         }
         let id = req.state.state_ref;
-        let (revision, mut task, connection) = self.store.load_scoped(&p, id).await?;
+        let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
         anyhow::ensure!(
             connection == p.connection,
             "task belongs to another connection"
@@ -467,7 +467,9 @@ impl Engine {
                     .get(step)
                     .ok_or_else(|| anyhow::anyhow!("invalid step"))?;
                 anyhow::ensure!(!task.step_finished(&selected.key()), "step already finished");
-                let fresh = self.catalog.fresh_execution(&[selected.service.id]).await?;
+                let service_ids = if plan.independent_calls { plan.steps.iter().map(|step| step.service.id).collect() } else { vec![selected.service.id] };
+                let fresh = self.catalog.fresh_execution(&service_ids).await?;
+                plan.validate_independent_inputs(&task, &fresh.vocabulary)?;
                 // The executor validates the entire remaining quote before
                 // reservation and returns a saved, user-visible refusal.
                 anyhow::ensure!(crate::browser_fallback::ready(&task, selected), "fallback is not eligible");
@@ -630,7 +632,7 @@ impl Engine {
                             .is_ok_and(|v| v.is_some())
                     })
                     .filter(|r| {
-                        !plan.steps.iter().any(|parent| {
+                        plan.independent_calls || !plan.steps.iter().any(|parent| {
                             parent.entity_ref == candidate.entity_ref
                                 && !task.step_finished(&parent.key())
                                 && parent.key() != candidate.key()
@@ -702,6 +704,7 @@ impl Engine {
         // Skip only descendants of this failure. Independent companies and
         // goals remain executable under the original approved cap.
         for step in &plan.steps {
+            if plan.independent_calls { break; }
             if task.step_finished(&step.key()) || step.browser_fallback.is_some() {
                 continue;
             }
@@ -841,6 +844,24 @@ fn retrieval_scope(step: &crate::resolver::Step, task: &Task, document: &Value) 
     Some(scope)
 }
 
+/// What the analysis is asked: the person's last question first, then the
+/// intent's answer operations, or a plain summary when there are none.
+pub(crate) fn analysis_operations(task: &Task) -> Value {
+    let mut operations = task
+        .intent
+        .as_ref()
+        .and_then(|v| v["answer_operations"].as_array())
+        .cloned()
+        .unwrap_or_default();
+    if let Some(turn) = task.conversation.last() {
+        operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
+    }
+    if operations.is_empty() {
+        operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
+    }
+    json!(operations)
+}
+
 #[cfg(test)]
 mod retrieval_scope_tests {
     use super::*;
@@ -904,22 +925,4 @@ mod retrieval_scope_tests {
         step.service.description = Some("x".repeat(1201));
         assert!(retrieval_scope(&step, &task, &document).unwrap().get("description").is_none());
     }
-}
-
-/// What the analysis is asked: the person's last question first, then the
-/// intent's answer operations, or a plain summary when there are none.
-pub(crate) fn analysis_operations(task: &Task) -> Value {
-    let mut operations = task
-        .intent
-        .as_ref()
-        .and_then(|v| v["answer_operations"].as_array())
-        .cloned()
-        .unwrap_or_default();
-    if let Some(turn) = task.conversation.last() {
-        operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
-    }
-    if operations.is_empty() {
-        operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));
-    }
-    json!(operations)
 }

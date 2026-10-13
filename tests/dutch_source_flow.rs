@@ -1,5 +1,7 @@
 //! Local durable engine + real HTTP boundary + public source adapters.
 //! Billing/model are explicit fixtures; optional live upstream reads cost no Apiosk balance.
+// The shared executor adapter also exposes operations outside this fixture.
+#[allow(dead_code)]
 #[path = "../legacy-executor/src/proxy/public_sources.rs"]
 mod adapter;
 use apiosk_gateway_v2::{

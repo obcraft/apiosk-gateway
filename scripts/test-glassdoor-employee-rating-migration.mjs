@@ -1,7 +1,7 @@
 // Local metadata regression only; no provider calls or production writes.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 const fixture=JSON.parse(await fs.readFile(new URL('../tests/fixtures/glassdoor-employee-rating/reviewed-schema.json',import.meta.url),'utf8'));
 const sql=await fs.readFile(new URL('../supabase/migrations/20261011210329_declare_glassdoor_employee_rating_alias.sql',import.meta.url),'utf8');
 const db=new PGlite();await db.waitReady;

@@ -34,7 +34,7 @@ fn fact(task: &mut Task, e: Uuid, kind: &str, value: Value) {
     });
 }
 #[test]
-fn exact_question_resolves_all_checks_and_one_price_ceiling() {
+fn oversized_check_requires_narrowing_before_one_price_ceiling() {
     let c = catalog();
     let e = Uuid::new_v4();
     let mut task = Task::default();
@@ -54,13 +54,21 @@ fn exact_question_resolves_all_checks_and_one_price_ceiling() {
         unresolved_references: vec![],
     };
     uk_supplier::expand(&mut intent, &c);
+    assert!(matches!(resolve(&c, &task, &intent), Resolution::Unsupported(message)
+        if message == apiosk_gateway_v2::protocol::SOURCE_LIMIT_MESSAGE),
+        "the original twelve-call scope must not be quoted under a ten-call limit");
+    // An explicitly narrowed fixture asks for at most three director screens.
+    // The resolver must price that scope, rather than silently truncate the original.
+    intent.goals.retain(|goal| goal.capability != uk_supplier::screening_cap(3)
+        && goal.capability != uk_supplier::screening_cap(4));
+    intent.answer_operations = vec!["Produce a PDF with the requested register and VAT findings and at most three director screens. Report incomplete screening if the roster is larger.".into()];
     let Resolution::Plan(p) = resolve(&c, &task, &intent) else {
         panic!(
             "Cannot resolve exact UK request: {:?}",
             resolve(&c, &task, &intent)
         );
     };
-    assert_eq!(p.steps.len(), 12);
+    assert_eq!(p.steps.len(), 10);
     assert_eq!(
         p.steps
             .iter()
@@ -115,7 +123,7 @@ fn exact_question_resolves_all_checks_and_one_price_ceiling() {
     assert_eq!(
         calls.len(),
         9,
-        "only two directors; unused three slots do not dispatch"
+        "only two directors; the remaining unused slot does not dispatch"
     );
 }
 

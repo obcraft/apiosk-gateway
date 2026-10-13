@@ -1,7 +1,7 @@
 // Isolated PostgreSQL metadata regression: no credentials, network or provider calls.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const read = path => fs.readFile(new URL(path, import.meta.url), 'utf8');
 const kvk = JSON.parse(await read('../tests/fixtures/research-report-catalog.json')).services.find(s => s.path === '/api/v1/basisprofielen');

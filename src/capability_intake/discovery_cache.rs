@@ -20,7 +20,7 @@ const UNIT_BYTES: usize = 16 * 1024;
 fn weight(candidates: &[Candidate]) -> u32 {
     let bytes = size_of::<[u8; 32]>()
         + size_of::<Vec<Candidate>>()
-        + candidates.len() * size_of::<Candidate>()
+        + std::mem::size_of_val(candidates)
         + candidates
             .iter()
             .map(|candidate| {

@@ -1,7 +1,7 @@
 // Validate local staging, repeatability and existing-listing guards in PostgreSQL.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 const migration=await fs.readFile(new URL('../supabase/migrations/20261002084852_frankfurter_ecb_reference_rates_staged_prod_only.sql',import.meta.url),'utf8');
 const fixture=JSON.parse(await fs.readFile(new URL('../tests/fixtures/frankfurter/catalog.json',import.meta.url),'utf8'));
 const db=new PGlite();

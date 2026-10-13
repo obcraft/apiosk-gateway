@@ -270,8 +270,8 @@ fn find_nl_address(tokens: &[String]) -> (Option<String>, Option<String>) {
             (!digits.is_empty() && digits.len() <= 5 && rest.len() <= 4 && rest.bytes().all(|b| b.is_ascii_alphabetic() || b == b'-')
                 && street.len() >= 3 && street.bytes().all(|b| b.is_ascii_alphabetic() || b == b'-' || b == b'.' || b >= 0x80)).then_some(digits)
         };
-        let number = (i.saturating_sub(2)..i).rev().find_map(|j| street_number(j))
-            .or_else(|| (i + consumed + 1..(i + consumed + 5).min(upper.len())).find_map(|j| street_number(j)));
+        let number = (i.saturating_sub(2)..i).rev().find_map(&street_number)
+            .or_else(|| (i + consumed + 1..(i + consumed + 5).min(upper.len())).find_map(street_number));
         return (Some(postcode), number);
     }
     (None, None)

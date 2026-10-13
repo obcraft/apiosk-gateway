@@ -1,0 +1,555 @@
+{
+  "date": "2026-10-13",
+  "scope": "Gateway unused-code and development-tool cleanup. Existing planner changes preserved.",
+  "changes": {
+    "unused_exports_removed": 39,
+    "unused_local_constants_deleted": 1,
+    "rust_unused_wrappers_and_helpers_deleted": 3,
+    "fixture_only_planning_helpers_excluded_from_production": true,
+    "gateway_owns_pglite_dependency": true,
+    "knip_version": "6.38.0"
+  },
+  "checks": [
+    {
+      "command": "npx knip",
+      "status": "passed",
+      "issues": 0,
+      "configuration_hints": 0,
+      "scope": "Gateway scripts and five legacy-executor script workspaces"
+    },
+    {
+      "command": "node ../node_modules/knip/bin/knip.js",
+      "cwd": "legacy-executor",
+      "status": "passed",
+      "issues": 0,
+      "configuration_hints": 0
+    },
+    {
+      "command": "cargo check --workspace --all-targets --locked --offline",
+      "status": "passed",
+      "warnings": 0
+    },
+    {
+      "command": "cargo build --workspace --locked --offline",
+      "status": "passed"
+    },
+    {
+      "command": "node --test (8 affected script suites)",
+      "status": "passed",
+      "passed": 68
+    },
+    {
+      "command": "node --test scripts/bazaar-sync.test.mjs",
+      "status": "passed",
+      "note": "Rerun after removing the locally unused token constant."
+    },
+    {
+      "command": "node scripts/sync-contracts.mjs --check",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check (Gateway and legacy-executor)",
+      "status": "passed"
+    },
+    {
+      "command": "19 isolated PGlite migration scripts",
+      "passed": 18,
+      "failed": 1,
+      "failure": "test-public-statistics-migration.mjs uses an old test schema: actions.executions does not exist."
+    },
+    {
+      "command": "cargo test --workspace --locked --offline",
+      "status": "failed",
+      "passed": 900,
+      "ignored": 24,
+      "sandbox_socket_failures": 91,
+      "other_failures": 19,
+      "note": "The run stopped at the failing Gateway library; later workspace test binaries were not run.",
+      "assertion_failures": [
+        "additional_examples_tests::extra_locations_preserve_actual_five_step_address_building_neighbourhood_chains",
+        "company_name_request::tests::offline_named_company_fixture_prices_source_bound_website_search",
+        "compound_examples_tests::compound_dynamic_editing_one_duplicated_address_does_not_change_the_other",
+        "compound_examples_tests::compound_dynamic_unpublished_address_reaches_location_and_notice_search",
+        "compound_examples_tests::compound_dynamic_clause_reorder_preserves_scope_and_source_bindings",
+        "compound_examples_tests::compound_example_groningen",
+        "compound_examples_tests::compound_example_rotterdam",
+        "compound_examples_tests::compound_example_location",
+        "compound_examples_tests::compound_examples_question_boundaries_preserve_quoted_question_marks_and_edited_values",
+        "compound_examples_tests::compound_examples_changed_values_reach_their_own_sources_without_original_identity",
+        "compound_examples_tests::compound_examples_question_forms_preserve_entire_plans_and_original_hashes",
+        "compound_examples_tests::compound_homepage_extra_rotterdam_binds_the_same_address_to_both_sources",
+        "compound_examples_tests::compound_examples_six_short_published_questions_keep_sources_inputs_and_synthesis",
+        "engine::name_lookup::tests::each_named_company_gets_its_own_lookup_in_one_quote",
+        "engine::name_lookup::tests::a_named_company_is_found_by_the_sources_own_name_search_before_its_profile",
+        "homepage_starter_tests::semantic_name_only_profile_scope_is_never_narrowed_or_rebound",
+        "homepage_starter_tests::semantic_name_only_profiles_discover_and_price_registry_resolution",
+        "ask_v2::search::calibration::multilingual::every_language_and_domain_offers_a_relevant_source_first",
+        "server::ask_v2::tests::early_planning_requires_complete_scope_and_literal_inputs"
+      ]
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets --locked --offline -- -D warnings",
+      "status": "failed",
+      "diagnostics": [
+        {
+          "file": "src/ask_v2/search.rs",
+          "line": 651,
+          "code": "clippy::precedence",
+          "message": "operator precedence might not be obvious"
+        },
+        {
+          "file": "src/ask_v2/search.rs",
+          "line": 658,
+          "code": "clippy::precedence",
+          "message": "operator precedence might not be obvious"
+        },
+        {
+          "file": "src/ask_v2/search/relevance.rs",
+          "line": 497,
+          "code": "clippy::manual_clamp",
+          "message": "clamp-like pattern without using clamp function"
+        },
+        {
+          "file": "src/ask_v2/search.rs",
+          "line": 155,
+          "code": "clippy::type_complexity",
+          "message": "very complex type used. Consider factoring parts into `type` definitions"
+        },
+        {
+          "file": "src/ask_v2/intent_fields.rs",
+          "line": 243,
+          "code": "clippy::redundant_iter_cloned",
+          "message": "unneeded cloning of iterator items"
+        },
+        {
+          "file": "src/ask_v2/follow_up.rs",
+          "line": 262,
+          "code": "clippy::manual_inspect",
+          "message": "using `map_err` over `inspect_err`"
+        },
+        {
+          "file": "src/ask_v2/follow_up.rs",
+          "line": 271,
+          "code": "clippy::manual_inspect",
+          "message": "using `map_err` over `inspect_err`"
+        },
+        {
+          "file": "src/ask_v2/run_contract.rs",
+          "line": 1321,
+          "code": "clippy::large_enum_variant",
+          "message": "large size difference between variants"
+        },
+        {
+          "file": "src/ask_v2/run.rs",
+          "line": 71,
+          "code": "clippy::needless_question_mark",
+          "message": "enclosing `Ok` and `?` operator are unneeded"
+        },
+        {
+          "file": "src/catalog.rs",
+          "line": 414,
+          "code": "clippy::while_immutable_condition",
+          "message": "variables in the condition are not mutated in the loop body"
+        },
+        {
+          "file": "src/capability_intake/discovery_cache.rs",
+          "line": 23,
+          "code": "clippy::manual_slice_size_calculation",
+          "message": "manual slice size calculation"
+        },
+        {
+          "file": "src/engine/execute.rs",
+          "line": 84,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/engine/followups.rs",
+          "line": 43,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/engine/intake_recovery.rs",
+          "line": 7,
+          "code": "clippy::too_many_arguments",
+          "message": "this function has too many arguments (9/7)"
+        },
+        {
+          "file": "src/engine.rs",
+          "line": 394,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/engine.rs",
+          "line": 819,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/engine.rs",
+          "line": 962,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/engine.rs",
+          "line": 972,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/execution/compute.rs",
+          "line": 7,
+          "code": "clippy::too_many_arguments",
+          "message": "this function has too many arguments (9/7)"
+        },
+        {
+          "file": "src/parser/contract_planner.rs",
+          "line": 216,
+          "code": "clippy::manual_clamp",
+          "message": "clamp-like pattern without using clamp function"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 459,
+          "code": "clippy::too_many_arguments",
+          "message": "this function has too many arguments (8/7)"
+        },
+        {
+          "file": "src/parser/source_grounding.rs",
+          "line": 88,
+          "code": "clippy::too_many_arguments",
+          "message": "this function has too many arguments (9/7)"
+        },
+        {
+          "file": "src/parser.rs",
+          "line": 1422,
+          "code": "clippy::unnecessary_unwrap",
+          "message": "called `unwrap` on `intake` after checking its variant with `is_some`"
+        },
+        {
+          "file": "src/parser.rs",
+          "line": 1462,
+          "code": "clippy::redundant_closure",
+          "message": "redundant closure"
+        },
+        {
+          "file": "src/cbs_comparison.rs",
+          "line": 161,
+          "code": "clippy::filter_next",
+          "message": "called `filter(..).next_back()` on an `DoubleEndedIterator`. This is more succinctly expressed by calling `.rfind(..)` instead"
+        },
+        {
+          "file": "src/cbs_comparison.rs",
+          "line": 299,
+          "code": "clippy::if_same_then_else",
+          "message": "this `if` has identical blocks"
+        },
+        {
+          "file": "src/server/ask_v2.rs",
+          "line": 613,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/server/integrations.rs",
+          "line": 27,
+          "code": "clippy::result_large_err",
+          "message": "the `Err`-variant returned from this function is very large"
+        },
+        {
+          "file": "src/server/integrations.rs",
+          "line": 39,
+          "code": "clippy::result_large_err",
+          "message": "the `Err`-variant returned from this function is very large"
+        },
+        {
+          "file": "src/server/recurring.rs",
+          "line": 55,
+          "code": "clippy::result_large_err",
+          "message": "the `Err`-variant returned from this closure is very large"
+        },
+        {
+          "file": "src/supplier_check.rs",
+          "line": 273,
+          "code": "clippy::redundant_closure",
+          "message": "redundant closure"
+        },
+        {
+          "file": "src/supplier_check.rs",
+          "line": 274,
+          "code": "clippy::redundant_closure",
+          "message": "redundant closure"
+        },
+        {
+          "file": "src/recurring.rs",
+          "line": 330,
+          "code": "clippy::unnecessary_unwrap",
+          "message": "called `unwrap` on `b.schedule.count` after checking its variant with `is_some`"
+        },
+        {
+          "file": "src/ask_v2/intent_benchmark.rs",
+          "line": 108,
+          "code": "clippy::single_element_loop",
+          "message": "for loop over a single element"
+        },
+        {
+          "file": "src/ask_v2/intent_catalog.rs",
+          "line": 607,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/direct_answer/crunchbase_profile.rs",
+          "line": 379,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/capability_intake.rs",
+          "line": 542,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/capability_intake/company_lookup.rs",
+          "line": 129,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/engine/execute.rs",
+          "line": 848,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/evidence_selection.rs",
+          "line": 387,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/integrations/frozen.rs",
+          "line": 989,
+          "code": "clippy::await_holding_lock",
+          "message": "this `MutexGuard` is held across an await point"
+        },
+        {
+          "file": "src/parser/conversation_route.rs",
+          "line": 39,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/parser/analysis_evidence.rs",
+          "line": 202,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/analysis_evidence.rs",
+          "line": 202,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/analysis_evidence.rs",
+          "line": 247,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/analysis_period.rs",
+          "line": 181,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/analysis_period.rs",
+          "line": 250,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/analysis_period.rs",
+          "line": 253,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 777,
+          "code": "clippy::question_mark",
+          "message": "this `match` expression can be replaced with `?`"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1885,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1885,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1889,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1901,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1901,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1910,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 1910,
+          "code": "clippy::needless_borrow",
+          "message": "this expression creates a reference which is immediately dereferenced by the compiler"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 2148,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/parser/plan_coverage.rs",
+          "line": 2276,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/parser/source_grounding/tests.rs",
+          "line": 115,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/source_grounding/tests.rs",
+          "line": 179,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/source_grounding/tests.rs",
+          "line": 217,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/parser/source_grounding/tests.rs",
+          "line": 225,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/tenderned.rs",
+          "line": 581,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/tenderned.rs",
+          "line": 644,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/tenderned.rs",
+          "line": 740,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/company_request.rs",
+          "line": 763,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/company_request.rs",
+          "line": 1101,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        },
+        {
+          "file": "src/report_visuals.rs",
+          "line": 264,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/server.rs",
+          "line": 878,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/source_preview.rs",
+          "line": 40,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/recurring.rs",
+          "line": 677,
+          "code": "clippy::items_after_test_module",
+          "message": "items after a test module"
+        },
+        {
+          "file": "src/recurring/recipe.rs",
+          "line": 1001,
+          "code": "clippy::cloned_ref_to_slice_refs",
+          "message": "unnecessary use of `clone` to create a slice from a reference"
+        },
+        {
+          "file": "src/../legacy-executor/src/proxy/eu_public_sources.rs",
+          "line": 72,
+          "code": "clippy::if_same_then_else",
+          "message": "this `if` has identical blocks"
+        },
+        {
+          "file": "src/additional_examples_tests.rs",
+          "line": 27,
+          "code": "clippy::field_reassign_with_default",
+          "message": "field assignment outside of initializer for an instance created with Default::default()"
+        }
+      ]
+    },
+    {
+      "command": "node scripts/check-source-reuse.mjs",
+      "status": "failed",
+      "reason": "Obsolete original Gateway path src/facts.rs. Four of the six source files also differ from legacy-executor; no source overwrites were made."
+    },
+    {
+      "command": "node scripts/sync-migration.mjs --check",
+      "status": "failed",
+      "reason": "15 Gateway migrations have no corresponding file in the sibling App checkout; no migrations were applied or copied."
+    }
+  ],
+  "limits": [
+    "This is not evidence of paid source execution or deployment.",
+    "The complete Rust/Clippy baseline remains red; failed assertions were not removed or marked ignored."
+  ]
+}

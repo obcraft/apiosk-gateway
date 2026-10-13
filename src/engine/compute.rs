@@ -134,6 +134,7 @@ impl Engine {
             task.execution_error = None;
             task.intake_recovery = None;
             plan = Plan {
+                independent_calls: false,
                 compute: Some(choice.clone()),
                 quote_ref: Uuid::new_v4(),
                 steps: vec![],
@@ -387,12 +388,10 @@ impl Engine {
                 .dispatch_compute(
                     p,
                     bearer,
-                    id,
-                    revision,
-                    run.action_id,
-                    auth,
-                    &plan,
-                    &prepared.payload,
+                    crate::execution::ComputeDispatch {
+                        task_id:id, revision, action:run.action_id, authorization:auth,
+                        plan:&plan, inputs:&prepared.payload,
+                    },
                 )
                 .await?
         };

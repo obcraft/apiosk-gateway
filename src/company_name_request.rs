@@ -1,11 +1,15 @@
 //! A named-company request keeps the name literal and leaves identifiers and
 //! website searches to the source dependency graph and its normal selection rules.
+#[cfg(test)]
 use crate::capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject};
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 
 pub(crate) const WEBSITE_QUERY: &str = "web.company_website_query";
+#[cfg(test)]
 pub(crate) const ANSWER_SCOPE: &str = "Combine the selected company's registered details, available annual financial figures and sourced website information into one cited answer. Preserve the resolved company identity, financial year, units, currency, consolidation scope and missing fields. Website search uses the registered name and KVK number returned for the selected company; verify the cited pages' identity before attributing statements to that company. Search results alone do not establish domain ownership or independently verify website claims. Do not infer a domain from the company name. State unavailable website information and identity uncertainty. Available figures do not establish the latest filing or a complete original annual report.";
 
+#[cfg(test)]
 pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     let (language, name) = request_name(question)?;
     let label = crate::company_request::literal_name(name)?;
@@ -42,11 +46,13 @@ pub(crate) fn parse(question: &str, model: &str) -> Option<ParsedRequest> {
     })
 }
 
+#[cfg(test)]
 fn strip_prefix<'a>(text: &'a str, prefix: &str) -> Option<&'a str> {
     text.get(..prefix.len())?.eq_ignore_ascii_case(prefix)
         .then(|| &text[prefix.len()..])
 }
 
+#[cfg(test)]
 fn strip_suffix<'a>(text: &'a str, suffix: &str) -> Option<&'a str> {
     let end = text.len().checked_sub(suffix.len())?;
     text.get(end..)?.eq_ignore_ascii_case(suffix).then(|| &text[..end])
@@ -55,6 +61,7 @@ fn strip_suffix<'a>(text: &'a str, suffix: &str) -> Option<&'a str> {
 /// A bounded, whole-request grammar keeps common English and Dutch phrasing
 /// on the same checked source plan. Never remove a field, a period constraint,
 /// a second company or a requested output format to make a sentence fit.
+#[cfg(test)]
 fn request_name(question: &str) -> Option<(&'static str, &str)> {
     let text = question.trim();
     let text = text.strip_suffix(['.', '?', '!']).unwrap_or(text).trim_end();
@@ -107,6 +114,7 @@ fn request_name(question: &str) -> Option<(&'static str, &str)> {
     None
 }
 
+#[cfg(test)]
 pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<ParsedRequest> {
     let expected = parse(question, "literal-company-name-request")?;
     let actual = &intake.parsed_request;
@@ -136,7 +144,7 @@ pub(crate) fn query_identity_gap(service: &crate::catalog::Service, inputs: &ser
 mod tests {
     use super::*;
     use serde_json::json;
-    use crate::{catalog::{Catalog, Snapshot}, resolver::Resolution, state::{Fact, Task}};
+    use crate::{catalog::{Catalog, Snapshot}, resolver::Resolution, state::Fact};
     use std::collections::BTreeSet;
     pub(super) const QUESTION: &str = "Look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information.";
     const QUESTION_FORM: &str = "Can you look up Mollie B.V. by name and combine its registered details, available annual financial figures and website information?";
@@ -203,7 +211,7 @@ mod tests {
             ("Atelier De Blauwe Maan", "Atelier De Blauwe Maan B.V.", "00123456")].into_iter()
             .flat_map(|(name, selected, number)| supported_questions().into_iter().map(move |(language, form)| (name, selected, number, language, form))) {
             let question = form.replace("Mollie B.V.", name);
-            let mut task = Task::default();
+            let mut task = crate::compound_examples_tests::historical_workflow_task();
             let intake = crate::capability_intake::offline_fixture_intake(&question, &catalog);
             assert_eq!(intake.parsed_request.meta.text_sha256, hex::encode(Sha256::digest(question.as_bytes())));
             let mut expected = serde_json::to_value(parse(&QUESTION.replace("Mollie B.V.", name), "fixture").unwrap()).unwrap();

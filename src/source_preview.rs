@@ -36,6 +36,15 @@ pub fn project(provider:&str,data:&Value)->Option<Value> {
     };
     (serde_json::to_vec(&preview).ok()?.len()<=24*1024).then_some(preview)
 }
+
+/// A partial search can omit a competing identity; never turn its top hit into
+/// authority for another paid lookup. Keep the original response inspectable.
+pub fn sirenic_search_incomplete(data: &serde_json::Value) -> bool {
+    data["resultats_partiels"] == true
+        || data["aucune_correspondance_fiable"] == true
+        || ["registres_muets", "etages_abandonnes"].iter().any(|key|
+            data[*key].as_array().is_some_and(|items| !items.is_empty()))
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -49,13 +58,4 @@ mod tests {
         assert!(p["result"]["results"][0].get("organization").is_none());
         assert_eq!(data["result"]["results"][0]["notes"],"large irrelevant description");
     }
-}
-
-/// A partial search can omit a competing identity; never turn its top hit into
-/// authority for another paid lookup. Keep the original response inspectable.
-pub fn sirenic_search_incomplete(data: &serde_json::Value) -> bool {
-    data["resultats_partiels"] == true
-        || data["aucune_correspondance_fiable"] == true
-        || ["registres_muets", "etages_abandonnes"].iter().any(|key|
-            data[*key].as_array().is_some_and(|items| !items.is_empty()))
 }

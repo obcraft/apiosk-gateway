@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import {PGlite} from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import {PGlite} from '@electric-sql/pglite';
 import {tools,capabilities,source,pricing,capabilityOutputSchema} from './crunchbase-mcp-catalog.mjs';
 import {formatSourcePrice,formatQuoteCeiling} from '../../app/src/lib/ui/source-price.ts';
 const originalPricing={...pricing,listAtomic:47_259,buyerAtomic:54_348};

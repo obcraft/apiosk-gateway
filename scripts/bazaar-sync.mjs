@@ -27,19 +27,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildOperations } from './source-operation-contracts.mjs';
 
-export const BAZAAR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources';
-export const BASE_NETWORK = 'eip155:8453';
+const BAZAAR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources';
+const BASE_NETWORK = 'eip155:8453';
 // USDC on Base, the only asset the treasury pays with (resell.rs, Sirenic guard).
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 // wallets.network_tokens row for USDC on Base (legacy-executor migration 103).
-export const BASE_USDC_TOKEN_ID = '26adabc5-92ec-44f3-9540-3bd636eeb1f4';
-export const MAX_PRICE_ATOMIC = 1_000_000n; // $1.00 in USDC atomic units
-export const STALE_DAYS = 30;
-export const MIN_LISTING_SCORE = 8; // legacy-executor bazaar.rs MIN_LISTING_SCORE
-export const MAX_PER_HOST = 40; // legacy-executor bazaar.rs MAX_PER_HOST
-export const BATCH_MAX_ROWS = 200;
-export const BATCH_MAX_BYTES = 280_000;
-export const SERVICE_PREFIX = 'cbz-';
+const MAX_PRICE_ATOMIC = 1_000_000n; // $1.00 in USDC atomic units
+const STALE_DAYS = 30;
+const MIN_LISTING_SCORE = 8; // legacy-executor bazaar.rs MIN_LISTING_SCORE
+const MAX_PER_HOST = 40; // legacy-executor bazaar.rs MAX_PER_HOST
+const BATCH_MAX_ROWS = 200;
+const BATCH_MAX_BYTES = 280_000;
+const SERVICE_PREFIX = 'cbz-';
 const PAGE_LIMIT = 1000;
 const PAGE_GAP_MS = 250; // >= 120 ms between pages
 const MAX_PAGES = 60;
@@ -68,14 +67,14 @@ const BAD_HOST_SUFFIXES = ['localhost', 'local', 'test', 'invalid', 'internal', 
   'ngrok.io', 'ngrok-free.app', 'ngrok-free.dev', 'ngrok.app', 'ngrok.dev', 'trycloudflare.com', 'loca.lt', 'serveo.net', 'nip.io', 'sslip.io', 'xip.io'];
 const PAAS_HOST_SUFFIXES = ['onrender.com', 'zeabur.app', 'run.app', 'herokuapp.com', 'railway.app', 'up.railway.app', 'fly.dev', 'replit.dev',
   'repl.co', 'glitch.me', 'vercel.app', 'netlify.app', 'pages.dev', 'workers.dev'];
-export const isUnder = (host, suffix) => host === suffix || host.endsWith(`.${suffix}`);
-export function unsafeHost(host) {
+const isUnder = (host, suffix) => host === suffix || host.endsWith(`.${suffix}`);
+function unsafeHost(host) {
   if (!host || host.startsWith('[') || /^\d+(\.\d+){3}$/.test(host) || host === 'metadata.google.internal') return true;
   if (BAD_HOST_SUFFIXES.some(s => isUnder(host, s))) return true;
   const [left, tld] = [host.slice(0, host.lastIndexOf('.')), host.slice(host.lastIndexOf('.') + 1)];
   return !host.includes('.') || !left || tld.length < 2 || !/^[a-z]+$/.test(tld) || !/^[a-z0-9.-]+$/.test(host);
 }
-export const paasHost = host => PAAS_HOST_SUFFIXES.some(s => isUnder(host, s));
+const paasHost = host => PAAS_HOST_SUFFIXES.some(s => isUnder(host, s));
 /** `cbz-<host>`: a valid /v2 service slug (<= 100 chars of [a-z0-9-]). */
 export function serviceSlug(host) {
   const base = host.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -87,14 +86,14 @@ export function serviceSlug(host) {
 // Listing quality (ports of legacy-executor bazaar.rs; the same facts, not new judgement)
 // ---------------------------------------------------------------------------
 const TOY_MARKERS = ['dice', 'coinflip', 'coin-flip', 'hello world', 'helloworld', 'test endpoint', 'lorem ipsum', 'random number', 'guess the', '8ball', '8-ball', 'fortune cookie'];
-export function looksLikeToy(text) {
+function looksLikeToy(text) {
   const lower = String(text ?? '').toLowerCase();
   const words = lower.split(/[^a-z0-9]+/);
   return TOY_MARKERS.some(m => (m.includes(' ') || m.includes('-')) ? lower.includes(m) : words.includes(m));
 }
 const JUNK_WORDS = ['test', 'testing', 'demo', 'example', 'sample', 'foo', 'bar', 'baz', 'ping', 'pong', 'asdf', 'todo', 'tbd', 'n/a', 'none', 'untitled'];
 const JUNK_PHRASES = ['lorem ipsum', 'your description here', 'description here', 'add a description', 'no description', 'coming soon', 'placeholder'];
-export function junkDescription(description) {
+function junkDescription(description) {
   const lower = String(description ?? '').trim().toLowerCase();
   if ([...lower].filter(c => /\p{L}/u.test(c)).length < 3) return true;
   if (JUNK_PHRASES.some(p => lower.includes(p))) return true;
@@ -176,9 +175,9 @@ const STRIPPED = ['$schema', '$id', 'format', 'example', 'deprecated', 'readOnly
 const TYPES = new Set(['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']);
 class SchemaError extends Error {}
 const schemaFail = detail => { throw new SchemaError(detail); };
-export const validName = name => typeof name === 'string' && name.length > 0 && name.length <= 120
+const validName = name => typeof name === 'string' && name.length > 0 && name.length <= 120
   && !['__proto__', 'constructor', 'prototype'].includes(name) && /^[A-Za-z0-9_.:$[\]-]+$/.test(name);
-export function rustRegexCompatible(pattern) {
+function rustRegexCompatible(pattern) {
   if (typeof pattern !== 'string' || /\(\?<?[=!]|\\[1-9]|\\k</.test(pattern)) return false;
   try { new RegExp(pattern); return true; } catch { return false; }
 }
@@ -231,7 +230,7 @@ const GROUPS = { pathParams: 'path', queryParams: 'query', body: 'body', bodyFie
  * One adaptation of external.rs fields(): `bodyType` (JSON only) and optional-only
  * `headers` are transport metadata like `method`/`type` and are not provider inputs.
  */
-export function declaredSchema(item, method) {
+function declaredSchema(item, method) {
   let input = item.extensions?.bazaar?.schema?.properties?.input;
   if (input == null) return { error: 'missing_input_schema' };
   if (!isObject(input)) return { error: 'schema_unsupported', detail: 'input schema is not an object' };
@@ -293,14 +292,14 @@ export function declaredSchema(item, method) {
 const EFFECT = /\b(create|delete|send|publish|transfer|order|subscribe|unsubscribe|render|upload|execute|deploy)\b/i; // source-operation-contracts.mjs
 const SPECIALIZED = /exploit|penetration|pentest|intrusion|payload|offensive|vulnerability.?scan|attack.surface|open ports|credential.dump|initial.access.broker/i;
 const ASYNC = /pending job|asynchronous|async job/i;
-export function actionType(description, pathname) {
+function actionType(description, pathname) {
   const text = `${pathname} ${description}`.toLowerCase();
   if (/\b(generat\w*|image|video|audio|speech|tts|transcri\w*|translat\w*|summar\w*|rewrite|completion|llm|prompt)\b/.test(text)) return 'generate';
   if (/\b(search\w*|find|discover\w*|query|list\w*|browse|explore|scan\w*)\b/.test(text)) return 'search';
   if (/\b(scor\w*|analy[sz]\w*|calculat\w*|estimat\w*|predict\w*|classif\w*|convert\w*|verif\w*|validat\w*|screen\w*|check\w*|detect\w*|compar\w*|simulat\w*|audit\w*|assess\w*|risk)\b/.test(text)) return 'compute';
   return 'lookup';
 }
-export function endpointCategory(text) {
+function endpointCategory(text) {
   const t = String(text).toLowerCase();
   if (/\b(crypto\w*|defi|tokens?|wallets?|onchain|on-chain|blockchain|chain|markets?|prices?|stocks?|financ\w*|trading|swaps?|nfts?|ethereum|eth|solana|bitcoin|btc|forex|dex)\b/.test(t)) return 'finance';
   if (/\b(images?|video|audio|media|music|photos?|speech|tts)\b/.test(t)) return 'media';
@@ -414,7 +413,7 @@ export function admitItem(item, ctx) {
 // Catalog: admitted candidates -> ranked tier -> services with staged contracts
 // ---------------------------------------------------------------------------
 const rank = (a, b) => b.calls_30d - a.calls_30d || b.payers_30d - a.payers_30d || a.resource.localeCompare(b.resource) || a.method.localeCompare(b.method);
-export const resourceKey = c => `${c.host} ${c.method} ${c.path}`;
+const resourceKey = c => `${c.host} ${c.method} ${c.path}`;
 /** Identifier-like segments (UA123, KJFK, 0x…, 42) become `*`; words and versions stay. */
 export const pathShape = pathname => pathname.split('/').map(seg =>
   /^\d+$/.test(seg) || /^0x[0-9a-f]{6,}$/i.test(seg) || /^[A-Z]{3,4}$/.test(seg) || (/^[A-Z0-9]{2,}$/.test(seg) && /\d/.test(seg)) ? '*' : seg).join('/');
@@ -552,7 +551,7 @@ export function sqlChunk(batch, index, total) {
 // Report
 // ---------------------------------------------------------------------------
 const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; };
-export function summarize({ read, total, pages, complete }, catalog, rows, chunks, tierSize) {
+function summarize({ read, total, pages, complete }, catalog, rows, chunks, tierSize) {
   const reasons = {};
   for (const x of catalog.excluded) reasons[x.reason] = (reasons[x.reason] ?? 0) + 1;
   const sortedReasons = Object.fromEntries(Object.entries(reasons).sort((a, b) => b[1] - a[1]));
@@ -634,7 +633,7 @@ async function killSwitch(env) {
   const { data } = await rest(env, 'GET', 'bazaar_sync_control?select=enabled,max_tier&id=eq.true');
   return data?.[0] ?? { enabled: false, max_tier: 0 };
 }
-export async function apply(catalog, rows, read, { env = process.env, tier, log = console.error } = {}) {
+async function apply(catalog, rows, read, { env = process.env, tier, log = console.error } = {}) {
   for (const key of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']) if (!env[key]) throw new Error(`--apply needs ${key}`);
   const control = await killSwitch(env);
   if (!control.enabled) throw new Error('Kill switch is OFF (providers.bazaar_sync_control.enabled=false); nothing written.');

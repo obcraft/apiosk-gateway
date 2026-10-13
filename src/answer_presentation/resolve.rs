@@ -471,7 +471,7 @@ impl<'c, 'a> Scope<'c, 'a> {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::answer_blocks::{Granularity, SourceState, SourceStatus};
+    use crate::answer_blocks::{Granularity, SourceStatus};
     use serde_json::json;
 
     pub(crate) fn sources() -> Vec<Value> {

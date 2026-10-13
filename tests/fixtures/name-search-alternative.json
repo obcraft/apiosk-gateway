@@ -1,0 +1,17 @@
+{
+  "question": "Summarize the KVK company details and OpenSanctions screening results for Coolblue B.V., with sources.",
+  "parsed_request": {
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-13T10:48:12.057924+00:00",
+      "text_sha256": "e8af0cb04f7f3f0ef56ede5dbaf702097a0d6fd9f544a86d67ad04710af55f6b"
+    },
+    "language": "en",
+    "subjects": [{"id":"s1","type":"company","label":"Coolblue B.V.","identifiers":{"company_name":"Coolblue B.V."}}],
+    "deliverable": {"format":"chat","operations":["summarize"]},
+    "capabilities": [
+      {"name":"Company profile","slug":"company.profile","domain":"company","inputs":["company_name"],"missing":[],"outputs":["profile"],"confidence":0.9,"subject_id":"s1","description":"Retrieve KVK company details for the specified company.","source_hint":"kvk"},
+      {"name":"Screening results","slug":"company.screeningResults","domain":"company","inputs":["company_name"],"missing":[],"outputs":["screening_results"],"confidence":0.9,"subject_id":"s1","description":"Retrieve OpenSanctions screening results for the specified company.","source_hint":"opensanctions"}
+    ]
+  }
+}

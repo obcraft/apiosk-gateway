@@ -72,7 +72,7 @@ impl Engine {
                 task.record_turn(&req.question,None);
                 task.intent = Some(json!({"subjects":[],"goals":[],"answer_operations":operations,"unresolved_references":[]}));
                 let quote = Uuid::new_v4();
-                let plan = Plan { compute:None,quote_ref:quote,steps:vec![],cap_atomic:0,
+                let plan = Plan { independent_calls: false, compute:None,quote_ref:quote,steps:vec![],cap_atomic:0,
                     expires_at:Utc::now()+chrono::Duration::minutes(15),hash:digest(&(quote,&task.active_results,&req.question)),fee_bps:0,workflow_slug:None };
                 task.proposal = Some(serde_json::to_value(plan)?);
                 let action = Uuid::new_v4();

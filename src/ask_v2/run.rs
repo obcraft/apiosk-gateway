@@ -68,7 +68,7 @@ impl Run {
     }
     async fn row(&self) -> Result<sqlx::postgres::PgRow> {
         self.engine.store.check_workspace(&self.person).await?;
-        Ok(sqlx::query("SELECT * FROM ask_runs WHERE id=$1 AND owner_id=$2 AND workspace_id IS NOT DISTINCT FROM $3 AND expires_at>now()").bind(self.id).bind(self.person.owner).bind(self.person.workspace).fetch_optional(&self.engine.store.pool).await?.ok_or_else(||anyhow::anyhow!("run_unavailable"))?)
+        sqlx::query("SELECT * FROM ask_runs WHERE id=$1 AND owner_id=$2 AND workspace_id IS NOT DISTINCT FROM $3 AND expires_at>now()").bind(self.id).bind(self.person.owner).bind(self.person.workspace).fetch_optional(&self.engine.store.pool).await?.ok_or_else(||anyhow::anyhow!("run_unavailable"))
     }
     pub async fn event(&self, stage: Stage, status: EventStatus, counts: Counts) -> Result<()> {
         self.append_event(stage, status, counts, None).await
@@ -210,7 +210,8 @@ impl Run {
         if row.get::<String, _>("stage") == "cancelled" {
             return Ok(());
         }
-        let input: PlannerInput = serde_json::from_value(row.get::<Value, _>("planner_input"))?;
+        let mut input: PlannerInput = serde_json::from_value(row.get::<Value, _>("planner_input"))?;
+        planner::recover_explicit_inputs(&mut input, &row.get::<String, _>("question"));
         if row.get::<Option<i32>, _>("plan_revision").is_none() {
             self.event(
                 Stage::FindingSources,

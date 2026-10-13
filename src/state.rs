@@ -277,6 +277,11 @@ pub struct PendingDispatch {
     pub inputs: Value,
 }
 impl Task {
+    /// Ad hoc Ask calls take their inputs from the context available before
+    /// approval. Explicit workflow recipes retain their separate execution DAG.
+    pub fn independent_sources(&self) -> bool {
+        self.capability_intake.is_some() && self.workflow.is_none() && self.supplier_check.is_none()
+    }
     pub fn step_finished(&self, key: &str) -> bool {
         self.completed.iter().any(|done| done == key) || self.failed_steps.contains_key(key) || self.skipped_steps.contains(key)
     }

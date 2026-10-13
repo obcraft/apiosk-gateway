@@ -2,9 +2,11 @@
 //! topic with TenderNed's phrase-search syntax and reviewed Dutch keywords. No CPV code, source
 //! result, deadline or open/awarded status is inferred from the question.
 use crate::{
-    capability_intake::{Capability, Deliverable, Intake, Meta, ParsedRequest, Subject},
+    capability_intake::{Capability, Deliverable, Meta, ParsedRequest, Subject},
     catalog::Service,
 };
+#[cfg(test)]
+use crate::capability_intake::Intake;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -182,6 +184,7 @@ fn plain_topic(topic: &str) -> bool {
 /// Restrict the model-free recovery to the exact parsed request and an
 /// already-discovered Dutch national-notices contract. Other countries retain
 /// their country requirement and use the regular planner/source contracts.
+#[cfg(test)]
 pub(crate) fn executable_intake(question: &str, intake: &Intake) -> Option<Intake> {
     let expected = parse(question, "literal")?;
     let actual = &intake.parsed_request;
@@ -574,8 +577,7 @@ mod tests {
             assert_eq!(intent.goals[0].capability, BROWSE);
             assert_eq!(intent.goals[0].constraints["source"], "tenderned");
             assert_eq!(intent.subjects[0].values[SEARCH], topic);
-            let mut task = crate::state::Task::default();
-            task.capability_intake = Some(intake);
+            let mut task = crate::state::Task { capability_intake:Some(intake), ..Default::default() };
             crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
             let crate::resolver::Resolution::Plan(plan) =
                 crate::resolver::resolve(&catalog, &task, &intent)
@@ -638,7 +640,7 @@ mod tests {
             let mut document = json!({"subject":{"entity_ref":step.entity_ref,"label":topic},"source":{"provider":"tenderned","path":"/v2/publicaties","endpoint_id":step.service.endpoint_id},"data":fixture["body"],"missing_fields":[],"coverage":"source_response"});
             record_request(&step.service, &inputs, &mut document);
             let source = json!({"result_ref":uuid::Uuid::new_v4(),"document":document});
-            let answer = crate::direct_answer::reviewed_compose(&question, &intent, &[source.clone()]).unwrap().unwrap();
+            let answer = crate::direct_answer::reviewed_compose(&question, &intent, std::slice::from_ref(&source)).unwrap().unwrap();
             assert_eq!(answer["status"], "completed");
             assert_eq!(answer["presentation"]["title"], "TenderNed publications");
             assert_eq!(answer["presentation"]["columns"][0]["value"], "Title");
@@ -734,7 +736,7 @@ mod tests {
             &mut document,
         );
         let source = json!({"result_ref":uuid::Uuid::new_v4(),"document":document});
-        let answer = crate::direct_answer::compose(question, &intent, &[source.clone()]).unwrap();
+        let answer = crate::direct_answer::compose(question, &intent, std::slice::from_ref(&source)).unwrap();
         assert_eq!(answer["status"], "completed");
         assert!(answer["follow_up_question"].is_null());
         assert_eq!(answer["presentation"]["rows"].as_array().unwrap().len(), 20);

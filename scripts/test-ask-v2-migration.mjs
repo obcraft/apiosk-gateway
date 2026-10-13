@@ -1,7 +1,7 @@
 // Regression: the runtime tables moved from gateway_v2 to actions in September.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 const migration = await fs.readFile(new URL('../supabase/migrations/20261012200000_ask_v2_runs.sql', import.meta.url), 'utf8');
 const base = await fs.readFile(new URL('../supabase/migrations/20260907094100_gateway_v2_state.sql', import.meta.url), 'utf8');
 for (const layout of ['legacy', 'actions', 'both', 'missing']) {

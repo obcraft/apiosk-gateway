@@ -1,7 +1,7 @@
 // Isolated metadata regression: no production reads, writes or provider calls.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 
 const fixture = JSON.parse(await fs.readFile(new URL('../tests/fixtures/semantic-intake-aliases/reviewed-schemas.json', import.meta.url), 'utf8'));
 const sql = await fs.readFile(new URL('../supabase/migrations/20261011194903_reviewed_intake_semantic_scope.sql', import.meta.url), 'utf8');

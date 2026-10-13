@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const ORIGIN = 'https://api.market';
+const ORIGIN = 'https://api.market';
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_CATEGORIES = 64;
 const GAP_MS = 1100; // robots.txt asks for at least one second between requests.

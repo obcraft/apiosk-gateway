@@ -384,7 +384,7 @@ mod tests {
         let source = rows(5000);
         assert!(serialized_len(&source) > ANALYSIS_INPUT_BYTES);
         let operations = json!(["Answer this question directly using only the saved source fields, in the same language: Balance sheet line 4321"]);
-        let projected = project(&[source.clone()], &operations, ANALYSIS_INPUT_BYTES);
+        let projected = project(std::slice::from_ref(&source), &operations, ANALYSIS_INPUT_BYTES);
         assert!(serialized_len(&projected) <= ANALYSIS_INPUT_BYTES);
         let document = &projected[0]["document"];
         // The same pointer resolves in the projection and in the original.

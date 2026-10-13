@@ -648,7 +648,7 @@ mod tests {
                 "provider":"pdok","path":step.service.path,"endpoint_id":step.service.endpoint_id,"name":step.service.name,"contract_version":1},
                 "subject":{"entity_ref":entity,"label":"Damrak 1, Amsterdam"},"coverage":"source_response","missing_fields":[]}
         })).collect();
-        let plan = Plan { compute: None,
+        let plan = Plan { independent_calls: false, compute: None,
             quote_ref: Uuid::new_v4(),
             steps,
             cap_atomic: 1,

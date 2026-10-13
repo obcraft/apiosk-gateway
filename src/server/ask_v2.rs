@@ -584,7 +584,7 @@ pub(super) async fn search(
             if matches!(request.origin, Origin::Apiosk) {
                 if let Some(question) = request.question.as_deref() {
                     if let Ok(catalog) = state.engine.catalog.get().await {
-                        value["complete_plan_available"] = json!(complete_local_plan(&state.engine.parser, &catalog, question, &request.parsed_request, &value).await);
+                        value["complete_plan_available"] = json!(complete_local_plan(&catalog, question, &request.parsed_request, &value));
                     }
                 }
             }
@@ -603,16 +603,25 @@ pub(super) async fn search(
 /// A directory match alone never releases the complete-plan UI. Compile and
 /// resolve every requested field and literal filter before it can proceed
 /// while optional external discovery is still running. No model or DB writes.
-async fn complete_local_plan(parser: &crate::parser::Parser, catalog: &crate::catalog::Catalog, question: &str, parsed: &ParsedRequest, search: &Value) -> bool {
+fn complete_local_plan(catalog: &crate::catalog::Catalog, question: &str, parsed: &ParsedRequest, search: &Value) -> bool {
     let checked = ResearchRequest { request_id: Uuid::new_v4(), question: question.into(), parsed_request: parsed.clone(),
         search_id: None, discovery_id: None, selection: None };
     if checked.normalized().is_err() { return false; }
     if search["catalog_version"].as_str() != Some(catalog.version.as_str()) { return false; }
     let Ok(matches) = serde_json::from_value::<Vec<Match>>(search["matches"].clone()) else { return false; };
     let intake = capability_intake::Intake { parsed_request: parsed.clone(), selected_capabilities: matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),
-        matches, catalog_version: catalog.version.clone(), apiosk_sources_searched: capability_intake::source_count(&catalog) };
-    parser.chat_from_capabilities(question, None, &crate::state::Task::default(), catalog, &intake).await
-        .is_ok_and(|reply| reply.discover && reply.intent.is_some())
+        matches, catalog_version: catalog.version.clone(), apiosk_sources_searched: capability_intake::source_count(catalog) };
+    let mut task = crate::state::Task { capability_intake:Some(intake.clone()), ..Default::default() };
+    let reply = crate::parser::contract_planner::compile(question, question, &task, catalog, &intake);
+    let Some(mut intent) = reply.intent.filter(|_| reply.discover) else { return false; };
+    task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake, catalog, reply.output_bindings);
+    task.record_turn(question, None);
+    if crate::engine::bind_subjects(&mut task, catalog, &mut intent).is_err() { return false; }
+    let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &task, &intent) else { return false; };
+    plan.validate_independent_inputs(&task, &catalog.vocabulary).is_ok()
+        && crate::parser::plan_coverage::uncovered_inputs(&task, catalog, &intent, &plan).is_empty()
+        && crate::parser::plan_coverage::uncovered_outputs(&task, catalog, &intent, &plan).is_empty()
+
 }
 
 pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
@@ -986,7 +995,12 @@ mod tests {
     }
     #[test]
     fn endpoint_descriptor_uses_live_canonical_inputs_and_server_prices() {
-        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap());
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap();
+        for service in &mut snapshot.services {
+            service.name = "Company registration details".into();
+            service.description = Some("Company registration details and company accounts".into());
+        }
+        let catalog = crate::catalog::Catalog::build(snapshot);
         let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();
         let descriptor = endpoint_descriptor(&catalog, service, None);
         assert_eq!(descriptor["endpoint_id"], json!(service.endpoint_id));
@@ -1045,26 +1059,43 @@ mod tests {
         assert_eq!(matches[0]["apiosk"][0]["endpoint"]["missing_inputs"], json!([]));
     }
 
-    #[tokio::test]
-    async fn early_planning_requires_complete_scope_and_literal_inputs() {
-        let fixture: Value = serde_json::from_str(include_str!("../../tests/fixtures/tender-service-category.json")).unwrap();
-        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
-        let parsed: ParsedRequest = serde_json::from_value(fixture["parsed"].clone()).unwrap();
-        let question = fixture["question"].as_str().unwrap();
-        let matches = crate::ask_v2::search::search(&parsed, &catalog);
-        let search = json!({"matches":matches,"catalog_version":catalog.version});
-        let parser = crate::parser::Parser::new(reqwest::Client::new(), "offline://no-model".into(), String::new(), "unused".into());
-        assert!(complete_local_plan(&parser, &catalog, question, &parsed, &search).await);
-        assert!(!complete_local_plan(&parser, &catalog, "Another question", &parsed, &search).await);
+    #[test]
+    fn early_planning_requires_complete_scope_and_literal_inputs() {
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap());
+        let name = format!("Company {}", Uuid::new_v4().simple());
+        let question = format!("Find the company identifier for {name} with sources.");
+        let parsed = capability_intake::normalize(&json!({
+            "language":"en", "subjects":[{"id":"s1","label":name,"type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.details","name":"Company details","description":"Company registration details",
+                "domain":"company","inputs":["company_name"],"outputs":["company.id"],"subject_id":"s1","source_hint":"fixture","confidence":1.0}],
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), &question, "fixture").unwrap();
+        let search_for = |request: &ParsedRequest| json!({"catalog_version":catalog.version, "matches":[{
+            "slug":request.capabilities[0].slug, "query":"Company registration details",
+            "operations":catalog.services.iter().map(|service| &service.contract.capability_slug).collect::<Vec<_>>(),
+            "apiosk":catalog.services.iter().map(|service| json!({"origin":"apiosk","name":service.name,
+                "description":"Company registration details","source_slug":service.api_slug,
+                "capability":service.contract.capability_slug,"endpoint_id":service.endpoint_id,
+                "method":"GET","availability":"supported"})).collect::<Vec<_>>(),
+            "coinbase":[],"coinbase_status":"complete"
+        }]});
+        let search = search_for(&parsed);
+        assert!(complete_local_plan(&catalog, &question, &parsed, &search));
+        assert!(!complete_local_plan(&catalog, "Another question", &parsed, &search));
         let mut missing = parsed.clone();
         missing.capabilities[0].outputs.push("supplier_credit_rating".into());
-        assert!(!complete_local_plan(&parser, &catalog, question, &missing, &search).await);
+        assert!(!complete_local_plan(&catalog, &question, &missing, &search));
         let mut wrong_catalog = search.clone(); wrong_catalog["catalog_version"] = json!("expired");
-        assert!(!complete_local_plan(&parser, &catalog, question, &parsed, &wrong_catalog).await);
+        assert!(!complete_local_plan(&catalog, &question, &parsed, &wrong_catalog));
         let mut filter = parsed.clone();
-        filter.subjects[0].identifiers.insert("buyer".into(), "contract opportunities".into());
-        filter.capabilities[0].inputs.push("buyer".into());
-        assert!(!complete_local_plan(&parser, &catalog, question, &filter, &search).await);
+        filter.subjects[0].identifiers.insert("country".into(), "Netherlands".into());
+        filter.capabilities[0].inputs.push("country".into());
+        assert!(!complete_local_plan(&catalog, &question, &filter, &search));
+        let mut incomplete = parsed.clone();
+        incomplete.capabilities[0].outputs = vec!["company.accounts".into()];
+        let search = search_for(&incomplete);
+        assert!(!complete_local_plan(&catalog, &question, &incomplete, &search),
+            "a draft that still needs an identifier cannot release the complete-plan UI");
     }
 
     fn request() -> ParseRequest {

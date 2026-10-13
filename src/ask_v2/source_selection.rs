@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
-pub const MAX_SOURCES: usize = 8;
+pub const MAX_SOURCES: usize = crate::protocol::MAX_STEPS;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -63,8 +63,16 @@ pub struct Context {
 }
 impl Context {
     pub fn view(&self) -> Value {
+        // Older saved tasks may contain a larger option list. Keep their
+        // selections visible while applying the current display limit.
+        let mut options: Vec<_> = self.options.iter().collect();
+        options.sort_by_key(|option| !self.selection.sources.iter().any(|selected|
+            selected.subject_id == option.subject_id
+                && option.source.endpoint_id.as_deref() == Some(selected.endpoint_id.to_string().as_str())
+                && option.source.capability.as_deref() == Some(selected.capability.as_str())));
+        options.truncate(MAX_SOURCES);
         json!({"question":self.question,"parsed_request":self.original_intake.parsed_request,
-            "search_id":self.search_id,"discovery_id":self.discovery_id,"options":self.options,
+            "search_id":self.search_id,"discovery_id":self.discovery_id,"options":options,
             "selection":self.selection,"can_choose":true,"max_sources":MAX_SOURCES})
     }
 
@@ -84,9 +92,10 @@ impl Context {
 
     pub fn expanded(&self, catalog: &Catalog) -> Result<Intake> {
         ensure!(
-            self.selection.version == 1 && self.selection.sources.len() <= MAX_SOURCES,
-            "invalid source selection size or version"
+            self.selection.version == 1,
+            "invalid source selection version"
         );
+        ensure!(self.selection.sources.len() <= MAX_SOURCES, crate::protocol::SOURCE_LIMIT_MESSAGE);
         ensure!(
             self.original_intake.catalog_version == catalog.version,
             "Refresh the source options before changing this plan"
@@ -150,8 +159,7 @@ impl Context {
                         .iter()
                         .any(|required| required.fact_type == *field)
                         && service.contract.input_map.contains_key(field)
-                        || crate::engine::Engine::endpoint_lookup(catalog, service)
-                            .is_some_and(|(seed, _)| seed == field),
+,
                     "Selected source does not accept this input"
                 );
                 let text = literal(value)
@@ -325,15 +333,12 @@ impl Context {
                     });
                     index
                 });
-            let mut fields: BTreeSet<_> = service
+            let fields: BTreeSet<_> = service
                 .contract
                 .requires
                 .iter()
                 .map(|input| input.fact_type.as_str())
                 .collect();
-            if let Some((seed, _)) = crate::engine::Engine::endpoint_lookup(catalog, service) {
-                fields.insert(seed);
-            }
             for field in fields {
                 let Some(fact) = catalog.vocabulary.get(field) else {
                     continue;
@@ -798,10 +803,8 @@ mod tests {
         else {
             panic!("selected roots need complete aggregate plan")
         };
-        assert!(context
-            .uncovered_inputs(&task, catalog, &intent, &plan)
-            .unwrap()
-            .is_empty());
+        let missing = context.uncovered_inputs(&task, catalog, &intent, &plan).unwrap();
+        assert!(missing.is_empty(), "{missing:?}");
         assert!(context
             .uncovered_outputs(&task, catalog, &intent, &plan)
             .unwrap()
@@ -858,7 +861,7 @@ mod tests {
         assert_eq!(automatic_plan.steps.len(), 1);
     }
     #[tokio::test]
-    async fn selected_profile_binds_reviewed_lookup_seed_with_equal_semantic_alias() {
+    async fn selected_profile_requires_its_identifier_without_an_implicit_lookup() {
         let (mut context, _) = fixture();
         let catalog = Catalog::build(
             serde_json::from_str(include_str!(
@@ -872,6 +875,7 @@ mod tests {
         cap.name = "Company accounts".into();
         cap.description = "Retrieve company accounts".into();
         cap.source_hint = None;
+        cap.inputs = vec!["company.id".into()];
         cap.outputs = vec!["accounts".into()];
         context.original_intake.matches =
             super::super::search::search(&context.original_intake.parsed_request, &catalog);
@@ -886,34 +890,23 @@ mod tests {
             .input
             .insert("company.name".into(), json!("Starbucks"));
         context.selection.sources = vec![selected];
-        let expanded = context.expanded(&catalog).unwrap();
-        assert_eq!(
-            expanded.parsed_request.subjects[0].identifiers["company_name"],
-            "Starbucks"
-        );
-        assert_eq!(
-            expanded.parsed_request.subjects[0].identifiers["company.name"],
-            "Starbucks"
-        );
+        assert_eq!(context.expanded(&catalog).unwrap_err().to_string(), "Selected source does not accept this input");
+        context.selection.sources[0].input.clear();
+        let intake = context.expanded(&catalog).unwrap();
+        let mut task = Task { capability_intake: Some(intake), ..Default::default() };
+        let mut intent = context.compile(&catalog).unwrap().unwrap().intent.unwrap();
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        assert!(matches!(crate::resolver::resolve(&catalog, &task, &intent),
+            crate::resolver::Resolution::Missing { kind, .. } if kind == "company.id"));
+        context.selection.sources[0].input.insert("company.id".into(), json!("001234"));
+        context.question = "Retrieve accounts for company ID 001234".into();
+        context.original_intake.parsed_request.subjects[0].label = "Company 001234".into();
+        context.original_intake.parsed_request.subjects[0].identifiers =
+            BTreeMap::from([("company.id".into(), "001234".into())]);
         let (task, intent, plan) = compile(&context, &catalog).await;
-        assert_eq!(
-            intent.subjects[0].values["company.name"],
-            json!("Starbucks")
-        );
-        assert_eq!(
-            intent.goals.len(),
-            1,
-            "the search is a dependency, never an unselected optional root"
-        );
-        assert_eq!(plan.steps.len(), 2);
-        assert_eq!(plan.cap_atomic, 138);
-        assert_eq!(
-            plan.steps[0]
-                .service
-                .inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary)
-                .unwrap()["company.name"],
-            "Starbucks"
-        );
+        assert_eq!(intent.goals.len(), 1);
+        assert_eq!(plan.steps.len(), 1, "only the selected call is quoted");
+        assert_eq!(plan.steps[0].service.inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary).unwrap()["company.id"], "001234");
     }
     #[tokio::test]
     async fn optional_global_facets_do_not_erase_or_inherit_original_registry_country_scope() {
@@ -921,6 +914,15 @@ mod tests {
         let mut snapshot: Snapshot =
             serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json"))
                 .unwrap();
+        // This test exercises country isolation, using a declared record shape.
+        // Opaque objects without published properties are covered by the
+        // separate output-metadata rejection tests.
+        snapshot.vocabulary.iter_mut()
+            .find(|fact| fact.slug == "company.uk_registry_record").unwrap()
+            .value_schema["properties"] = json!({
+                "company_name": {"type":"string"},
+                "company_number": {"type":"string"}
+            });
         snapshot
             .services
             .extend(reputation.services.iter().cloned());
@@ -936,14 +938,14 @@ mod tests {
         parsed.subjects[0].identifiers = BTreeMap::from([
             ("company_name".into(), "Monzo".into()),
             ("country".into(), "United Kingdom".into()),
+            ("company.registration.gb.companies_house".into(), "09446231".into()),
         ]);
         let cap = &mut parsed.capabilities[0];
         cap.slug = "company.profile".into();
         cap.name = "Registered company details".into();
         cap.description = "Retrieve registered company name status and address".into();
         cap.source_hint = Some("companies-house".into());
-        // This recorded fixture declares an opaque whole registry record;
-        // field-level/profile aliases are tested by the separate metadata gate.
+        // Request the declared whole record; profile aliases have separate tests.
         cap.outputs = vec!["company.uk_registry_record".into()];
         cap.inputs = vec!["company_name".into(), "country".into()];
         context.original_intake.catalog_version = catalog.version.clone();
@@ -981,7 +983,7 @@ mod tests {
         ];
         let (task, intent, plan) = compile(&context, &catalog).await;
         assert_eq!(intent.goals.len(), 3);
-        assert_eq!(plan.steps.len(), 4, "three roots plus name lookup");
+        assert_eq!(plan.steps.len(), 3, "three independent calls using supplied inputs");
         assert!(context
             .uncovered_inputs(&task, &catalog, &intent, &plan)
             .unwrap()
@@ -1066,7 +1068,7 @@ mod tests {
             &yelp.original_intake.matches,
             &catalog,
         );
-        yelp.selection.sources.push(choose(&yelp, "yelp"));
+        yelp.selection.sources = vec![choose(&yelp, "yelp")];
         let expanded = yelp.expanded(&catalog).unwrap();
         let mut yelp_task = Task {
             capability_intake: Some(expanded),
@@ -1100,7 +1102,12 @@ mod tests {
             "../../tests/fixtures/selected-company-sources/uk-recorded-selection.json"
         ))
         .unwrap();
-        let parsed = serde_json::from_value(row["parsed"].clone()).unwrap();
+        let mut parsed: crate::capability_intake::ParsedRequest = serde_json::from_value(row["parsed"].clone()).unwrap();
+        parsed.subjects[0].identifiers.insert("company.registration.gb.companies_house".into(), "09446231".into());
+        // This older capture assumed a hidden name-to-number dependency.
+        // Independent selection requires the actual profile input instead.
+        let mut selected: Vec<SelectedSource> = serde_json::from_value(row["selected"].clone()).unwrap();
+        selected[0].input = BTreeMap::from([("company.registration.gb.companies_house".into(), json!("09446231"))]);
         let matches = super::super::search::search(&parsed, &catalog);
         let options = super::super::source_options::options(&parsed, &matches, &catalog);
         let context = Context {
@@ -1121,12 +1128,12 @@ mod tests {
             selection: Selection {
                 version: 1,
                 mode: Mode::Include,
-                sources: serde_json::from_value(row["selected"].clone()).unwrap(),
+                sources: selected,
             },
         };
         let (task, intent, plan) = compile(&context, &catalog).await;
         assert_eq!(intent.goals.len(), 3);
-        assert_eq!(plan.steps.len(), 4);
+        assert_eq!(plan.steps.len(), 3);
         assert!(context
             .uncovered_outputs(&task, &catalog, &intent, &plan)
             .unwrap()
@@ -1193,6 +1200,28 @@ mod tests {
         );
     }
     #[test]
+    fn saved_source_options_show_at_most_ten_and_keep_selected_items_visible() {
+        let (mut context, _) = fixture();
+        let template = context.options[0].clone();
+        context.options = (0..15).map(|_| {
+            let mut option = template.clone();
+            option.source.endpoint_id = Some(Uuid::new_v4().to_string());
+            option
+        }).collect();
+        let last = context.options.last().unwrap();
+        context.selection.sources = vec![SelectedSource {
+            endpoint_id: last.source.endpoint_id.as_deref().unwrap().parse().unwrap(),
+            capability: last.source.capability.clone().unwrap(),
+            subject_id: last.subject_id.clone(), input: BTreeMap::new(),
+        }];
+        let view = context.view();
+        assert_eq!(view["max_sources"], 10);
+        assert_eq!(view["options"].as_array().unwrap().len(), 10);
+        assert_eq!(view["options"][0]["source"]["endpoint_id"], last.source.endpoint_id.as_deref().unwrap());
+        assert_eq!(context.options.len(), 15, "rendering does not rewrite saved task data");
+    }
+
+    #[test]
     fn references_inputs_and_original_named_provider_are_authoritative() {
         let (mut context, catalog) = fixture();
         let choice = choose(&context, "glassdoor");
@@ -1210,6 +1239,7 @@ mod tests {
             "conflict",
             "duplicate",
             "version",
+            "size",
         ] {
             let mut changed = context.clone();
             match invalid {
@@ -1234,6 +1264,10 @@ mod tests {
                 }
                 "duplicate" => changed.selection.sources.push(choice.clone()),
                 "version" => changed.selection.version = 2,
+                "size" => {
+                    changed.selection.sources = vec![choice.clone(); 11];
+                    assert_eq!(changed.expanded(&catalog).unwrap_err().to_string(), crate::protocol::SOURCE_LIMIT_MESSAGE);
+                }
                 _ => unreachable!(),
             }
             assert!(changed.expanded(&catalog).is_err(), "{invalid}");

@@ -1,4 +1,5 @@
 mod compute;
+pub use compute::ComputeDispatch;
 use crate::{
     auth::Principal,
     auto_approval::{Budget, Denial, Policy, Quote},
@@ -256,6 +257,7 @@ impl Executor {
             plan.quote_ref == quote && plan.expires_at > Utc::now(),
             "quote changed or expired"
         );
+        plan.validate_source_limit()?;
         anyhow::ensure!(
             cap == plan.cap_atomic.to_string(),
             "approval amount must match displayed cap"
@@ -323,6 +325,7 @@ impl Executor {
             plan.quote_ref == quote && plan.expires_at > Utc::now(),
             "quote changed or expired"
         );
+        plan.validate_source_limit()?;
         anyhow::ensure!(
             cap == plan.cap_atomic.to_string(),
             "approval amount must match displayed cap"
@@ -351,6 +354,7 @@ impl Executor {
         step: &Step,
         inputs: &Value,
     ) -> anyhow::Result<Dispatch> {
+        plan.validate_source_limit()?;
         anyhow::ensure!(
             self.enabled,
             "paid execution disabled until deployment verification"

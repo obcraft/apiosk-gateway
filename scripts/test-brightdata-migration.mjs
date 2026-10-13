@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { PGlite } from '../../app/node_modules/@electric-sql/pglite/dist/index.js';
+import { PGlite } from '@electric-sql/pglite';
 import { buyerChargeMicro, feeMicro, usdToMicro, WORKFLOW_FEE_BPS } from '../../app/supabase/functions/_shared/pricing.ts';
 import { formatSourcePrice, formatQuoteCeiling } from '../../app/src/lib/ui/source-price.ts';
 const filename='20261008092408_onboard_brightdata_linkedin.sql';

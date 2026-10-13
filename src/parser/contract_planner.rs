@@ -12,7 +12,25 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 const MAX_CHOICES: usize = 24;
 const MAX_COMBINATIONS: usize = 256;
 
-pub(super) fn compile(
+/// A compiled intent can be a valid missing-input draft. Only a complete,
+/// independently executable plan may skip semantic alternative selection.
+pub(crate) fn ready(question: &str, reply: &ChatReply, task: &Task, catalog: &Catalog, intake: &Intake) -> bool {
+    let Some(mut intent) = reply.intent.clone().filter(|_| reply.discover) else { return false; };
+    let mut preview = task.clone();
+    preview.record_turn(question, None);
+    preview.capability_intake = Some(intake.clone());
+    preview.output_grounding = source_grounding::Grounding::new(intake, catalog, reply.output_bindings.clone());
+    if crate::engine::bind_subjects(&mut preview, catalog, &mut intent).is_err() { return false; }
+    let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &intent) else { return false; };
+    plan_coverage::uncovered_outputs(&preview, catalog, &intent, &plan).is_empty()
+        && plan_coverage::uncovered_inputs(&preview, catalog, &intent, &plan).is_empty()
+}
+
+#[cfg(test)]
+#[path = "contract_planner/tests.rs"]
+mod alternatives_tests;
+
+pub(crate) fn compile(
     question: &str,
     literals: &str,
     task: &Task,
@@ -122,17 +140,17 @@ fn compile_request(
         }
         let mut smaller = intent.clone();
         smaller.goals.remove(index);
-        if finalize(question, literals, task, catalog, intake, smaller.clone()).is_some() {
+        if finalize(question, literals, task, catalog, intake, smaller.clone(), true).is_some() {
             intent = smaller;
         }
     }
-    let (mut intent, bindings) = finalize(question, literals, task, catalog, intake, intent)?;
+    let (mut intent, bindings, _) = finalize(question, literals, task, catalog, intake, intent, true)?;
     intent
         .answer_operations
         .extend(source_grounding::answer_instructions(&bindings, intake));
     Some(ChatReply {output_bindings:bindings,message:if parsed.language=="nl" {
-        "Dit plan gebruikt de passende bronnen. Bekijk de totale prijs en keur het goed om te starten."
-    } else {"This plan uses the matching sources. Review the total price and approve to start."}.into(),
+        "Ik bereid de bronaanvragen voor. Zodra alle invoer compleet is, krijg je één totaalprijs ter goedkeuring."
+    } else {"I’ll prepare the source requests. Once all inputs are complete, you’ll get one total price to approve."}.into(),
         discover:true,intent:Some(intent),decline_reason:None})
 }
 
@@ -180,6 +198,7 @@ fn compile_requirement(
     choices.truncate(MAX_CHOICES);
     let mut queue: VecDeque<Vec<usize>> = (0..choices.len()).map(|i| vec![i]).collect();
     let mut attempts = 0;
+    let mut draft = None;
     while let Some(indices) = queue.pop_front() {
         attempts += 1;
         if attempts > MAX_COMBINATIONS {
@@ -195,12 +214,20 @@ fn compile_requirement(
             answer_operations: vec![],
             unresolved_references: vec![],
         };
-        if let Some((intent, _)) = finalize(question, literals, task, catalog, intake, intent) {
-            return Some(intent);
+        if let Some((intent, _, ready)) = finalize(question, literals, task, catalog, intake, intent, false) {
+            if ready {
+                return Some(intent);
+            }
+            // A matching endpoint with a missing identifier is only a fallback.
+            // Try the other admitted alternatives before asking for that value.
+            if draft.is_none() {
+                draft = Some(intent);
+            }
+            continue;
         }
         // Combining sources must add requested fields. The final resolver also
         // validates dependencies, input scope and redundant purchases.
-        if indices.len() < cap.outputs.len().max(1).min(super::MAX_GOALS) {
+        if indices.len() < cap.outputs.len().clamp(1, super::MAX_GOALS) {
             for next in indices.last().copied().unwrap() + 1..choices.len() {
                 let mut union = indices.clone();
                 union.push(next);
@@ -211,7 +238,7 @@ fn compile_requirement(
             }
         }
     }
-    None
+    draft
 }
 
 fn finalize(
@@ -221,7 +248,8 @@ fn finalize(
     catalog: &Catalog,
     intake: &Intake,
     mut intent: Intent,
-) -> Option<(Intent, Vec<source_grounding::Binding>)> {
+    complete_scope: bool,
+) -> Option<(Intent, Vec<source_grounding::Binding>, bool)> {
     bind_inputs(&mut intent, intake, catalog);
     capability_binding::bind_source_requirements(&mut intent, intake, catalog);
     if intake.parsed_request.subjects.is_empty() {
@@ -246,17 +274,33 @@ fn finalize(
     preview.record_turn(question, None);
     let mut bound = intent.clone();
     crate::engine::bind_subjects(&mut preview, catalog, &mut bound).ok()?;
-    let crate::resolver::Resolution::Plan(plan) =
-        crate::resolver::resolve(catalog, &preview, &bound)
-    else {
-        return None;
-    };
-    if !plan_coverage::uncovered_outputs(&preview, catalog, &bound, &plan).is_empty()
-        || !plan_coverage::uncovered_inputs(&preview, catalog, &bound, &plan).is_empty()
+    if preview.independent_sources()
+        && !plan_coverage::uncovered_intent_outputs(intake, catalog, &bound, &bindings).is_empty()
     {
         return None;
     }
-    Some((intent, bindings))
+    let plan = match crate::resolver::resolve(catalog, &preview, &bound) {
+        crate::resolver::Resolution::Plan(plan) => plan,
+        // This is a draft, never a quote. The engine emits the schema-bound
+        // input action and rechecks all calls when the value is supplied.
+        crate::resolver::Resolution::Missing { .. } if preview.independent_sources() => {
+            if complete_scope && !plan_coverage::supplied_inputs_preserved(intake, catalog, &preview, &bound, question) {
+                return None;
+            }
+            return Some((intent, bindings, false));
+        },
+        _ => return None,
+    };
+    // A provisional branch cannot consume identifiers supplied for another
+    // retrieval on the same subject (e.g. a profile URL beside a company name).
+    // Preserve them and prove every identifier on the complete combined plan;
+    // only that final scope can leave compile_request as an approval-ready plan.
+    if !plan_coverage::uncovered_outputs(&preview, catalog, &bound, &plan).is_empty()
+        || (complete_scope && !plan_coverage::uncovered_inputs(&preview, catalog, &bound, &plan).is_empty())
+    {
+        return None;
+    }
+    Some((intent, bindings, true))
 }
 
 fn selected_services<'a>(
@@ -284,8 +328,8 @@ fn selected_services<'a>(
 }
 
 fn bind_inputs(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
-    // Traverse registered input dependencies. Only documented literal bindings
-    // on the corresponding parsed subject can populate these fields.
+    // Bind only inputs of the selected calls from the supplied subject.
+    // Missing values are collected before approval, never fetched by a chain.
     for index in 0..intent.subjects.len() {
         let Some(subject) = intake
             .parsed_request
@@ -295,32 +339,12 @@ fn bind_inputs(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
         else {
             continue;
         };
-        let mut pending: Vec<_> = selected_services(intent, catalog)
+        let fields: BTreeSet<_> = selected_services(intent, catalog)
             .into_iter()
-            .filter(|service| {
-                intent.goals.iter().any(|goal| {
-                    goal.subject == index && goal.capability == service.contract.capability_slug
-                })
-            })
+            .filter(|service| intent.goals.iter().any(|goal|
+                goal.subject == index && goal.capability == service.contract.capability_slug))
+            .flat_map(|service| service.contract.input_map.keys().cloned())
             .collect();
-        let mut seen = BTreeSet::new();
-        let mut fields = BTreeSet::new();
-        while let Some(service) = pending.pop() {
-            if !seen.insert(service.id) {
-                continue;
-            }
-            fields.extend(service.contract.input_map.keys().cloned());
-            for required in &service.contract.requires {
-                for producer in catalog
-                    .by_output
-                    .get(&required.fact_type)
-                    .into_iter()
-                    .flatten()
-                {
-                    pending.push(&catalog.services[*producer]);
-                }
-            }
-        }
         for field in fields {
             let Some(fact) = catalog.vocabulary.get(&field) else {
                 continue;
@@ -436,6 +460,11 @@ mod tests {
         .unwrap();
         for service in &mut snapshot.services {
             service.api_slug = "newly-registered-source".into();
+            if service.contract.capability_slug == "company.accounts" {
+                service.contract.identifies = Some("company.id".into());
+                service.contract.output_map.produces.insert("company.id".into(),
+                    serde_json::from_value(json!({"path":"$.id"})).unwrap());
+            }
         }
         let mut additional = snapshot
             .services
@@ -448,7 +477,7 @@ mod tests {
         additional.api_slug = "another-registered-source".into();
         additional.contract.capability_slug = "company.status".into();
         additional.contract.output_map.produces =
-            serde_json::from_value(json!({"company.status":{"path":"$.status"}})).unwrap();
+            serde_json::from_value(json!({"company.status":{"path":"$.status"}, "company.id":{"path":"$.id"}})).unwrap();
         additional.sample_payload = Some(json!({"status":"active"}));
         snapshot.services.push(additional);
         snapshot
@@ -459,9 +488,9 @@ mod tests {
             });
         let catalog = Catalog::build(snapshot);
         assert!(catalog.rejected.is_empty());
-        let question = "Show the accounts and status for Arbitrary Company as JSON".to_owned();
+        let question = "Show the accounts and status for Arbitrary Company (company ID 001234) as JSON".to_owned();
         let parsed=crate::capability_intake::normalize(&json!({"language":"en",
-            "subjects":[{"id":"s1","label":"Arbitrary Company","type":"company","identifiers":{"company_name":"Arbitrary Company"}}],
+            "subjects":[{"id":"s1","label":"Arbitrary Company","type":"company","identifiers":{"company_name":"Arbitrary Company","company.id":"001234"}}],
             "capabilities":[{"slug":"company.records","name":"Company records","description":"Retrieve company accounts and status.","domain":"company",
                 "inputs":["company_name"],"outputs":["accounts","status"],"subject_id":"s1","source_hint":null,"confidence":1}],
             "deliverable":{"format":"json","operations":["compare"]}}).to_string(),&question,"one-intake").unwrap();
@@ -530,15 +559,15 @@ mod tests {
         };
         assert_eq!(
             plan.steps.len(),
-            3,
-            "two requested sources share one identifier lookup"
+            2,
+            "both requested sources use the supplied identifier independently"
         );
         assert_eq!(
             plan.steps
                 .iter()
                 .filter(|s| s.service.contract.capability_slug == "company.search")
                 .count(),
-            1
+            0
         );
         assert_eq!(
             plan.cap_atomic,
