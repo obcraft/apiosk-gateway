@@ -1,0 +1,72 @@
+{
+  "checked_on": "2026-10-13",
+  "production_project": "jgjoiyqdyypouskftzeq",
+  "migration": "20261013182516_brand_nl_benefits_sources",
+  "migration_sha256": "149df8998f3f30db6e366def080d9f58b6801fbe421b125b45d59a083f0b08c9",
+  "suites": {
+    "gateway": {
+      "passed": 1352,
+      "failed": 0,
+      "ignored": 117
+    },
+    "executor": {
+      "passed": 1329,
+      "failed": 0,
+      "ignored": 9
+    },
+    "app": {
+      "passed": 3259,
+      "failed": 0,
+      "ignored": 0,
+      "files": 283
+    },
+    "benefits": {
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "sql_suites": [
+    "test.mjs",
+    "test-runtime.mjs",
+    "test-catalogue.mjs"
+  ],
+  "native_extraction_samples": 5,
+  "typescript": "tsc -b passed",
+  "migration_mirrors": "identical",
+  "browser": {
+    "surface": "local app reading production catalogue",
+    "sources": {
+      "dienst-toeslagen": {
+        "endpoints": 5,
+        "logo_decoded_width": 300
+      },
+      "samenwerkende-catalogi": {
+        "endpoints": 1,
+        "logo_decoded_width": 180
+      },
+      "nl-toeslagen-rekenservice": {
+        "endpoints": 4,
+        "logo_decoded_width": 180
+      },
+      "nl-gemeentelijke-regelingen": {
+        "endpoints": 1,
+        "logo_decoded_width": 180
+      }
+    }
+  },
+  "production_execution_guard": {
+    "url": "https://gateway.apiosk.com/nl-toeslagen-rekenservice/2026/zorgtoeslag/calculate",
+    "method": "POST",
+    "body": {},
+    "http_status": 503,
+    "response": {
+      "error": "catalog_only",
+      "message": "This source is available for catalog browsing, but execution is disabled until its commercial access and credentials are validated."
+    },
+    "billing": "no wallet or authorization supplied"
+  },
+  "runtime_deployed": false,
+  "nibud": "unchanged, hidden, inactive",
+  "unrelated_pending_migration": "20261012200000_ask_v2_runs.sql deliberately excluded from source-only deployment"
+}

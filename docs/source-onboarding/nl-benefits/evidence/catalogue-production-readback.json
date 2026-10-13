@@ -1,0 +1,90 @@
+{
+  "migration": "20261013182516_brand_nl_benefits_sources",
+  "checked_on": "2026-10-13",
+  "sources": [
+    {
+      "slug": "dienst-toeslagen",
+      "name": "Dienst Toeslagen — voorwaarden en tabellen",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "logo": "https://www.belastingdienst.nl/bld-assets/bld/images/apple-touch-icon.png",
+      "catalog_state": "browse_only",
+      "execution_enabled": false,
+      "endpoint_count": 5,
+      "visible_endpoints": 5,
+      "reviewed_contracts": 0
+    },
+    {
+      "slug": "koop",
+      "name": "KOOP Official Publications and Regulations",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "logo": "https://apiosk.com/brands/koop.png",
+      "catalog_state": "published",
+      "execution_enabled": null,
+      "endpoint_count": 2,
+      "visible_endpoints": 2,
+      "reviewed_contracts": 5
+    },
+    {
+      "slug": "nibud",
+      "name": "Nibud — huishoudelijke uitgaven en afloscapaciteit",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "is_verified": false,
+      "logo": null,
+      "catalog_state": null,
+      "execution_enabled": null,
+      "endpoint_count": 5,
+      "visible_endpoints": 0,
+      "reviewed_contracts": 0
+    },
+    {
+      "slug": "nl-gemeentelijke-regelingen",
+      "name": "Gemeentelijke regelingen — websitecrawler",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "logo": "https://app.apiosk.com/apple-touch-icon.png",
+      "catalog_state": "browse_only",
+      "execution_enabled": false,
+      "endpoint_count": 1,
+      "visible_endpoints": 1,
+      "reviewed_contracts": 0
+    },
+    {
+      "slug": "nl-toeslagen-rekenservice",
+      "name": "Nederlandse toeslagen — rekenservice 2026",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "logo": "https://app.apiosk.com/apple-touch-icon.png",
+      "catalog_state": "browse_only",
+      "execution_enabled": false,
+      "endpoint_count": 4,
+      "visible_endpoints": 4,
+      "reviewed_contracts": 0
+    },
+    {
+      "slug": "samenwerkende-catalogi",
+      "name": "Samenwerkende Catalogi — overheidsproducten en diensten",
+      "status": "active",
+      "active": true,
+      "discoverable": true,
+      "is_verified": true,
+      "logo": "https://apiosk.com/brands/koop.png",
+      "catalog_state": "browse_only",
+      "execution_enabled": false,
+      "endpoint_count": 1,
+      "visible_endpoints": 1,
+      "reviewed_contracts": 0
+    }
+  ]
+}

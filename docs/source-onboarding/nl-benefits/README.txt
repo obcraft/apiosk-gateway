@@ -1,5 +1,11 @@
 Nederlandse regelingen en toeslagen — bronregistratie, 13 oktober 2026
 
+Actuele catalogusstatus: migratie 20261013182516_brand_nl_benefits_sources is
+toegepast. Vier bronnen (Nibud uitgezonderd) zijn zichtbaar met logo en elf
+endpoints. Browse-only; uitvoering staat uit. Zie README.runtime.txt en de
+catalogue-production-readback.json voor de actuele verificatie. De onderstaande
+inactive-statussen beschrijven het oorspronkelijke registratiemoment.
+
 Vervolg: de gemeentelijke crawler en vier toeslagberekeningen zijn inmiddels
 gebouwd als aparte Apiosk-API's. Zie README.runtime.txt en runtime.openapi.json
 voor implementatie, tests, grenzen en huidige activatiestatus. Nibud is op

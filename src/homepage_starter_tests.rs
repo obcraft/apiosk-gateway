@@ -1,9 +1,10 @@
-//! Published homepage examples must reach complete, priced plans; historical
-//! starter regressions remain covered after the visible questions are refreshed.
+//! Historical starter contract regressions remain covered after the visible
+//! questions are refreshed. Current app prompts use the live release gate.
 //! Model interpretation uses a local HTTP fixture; intake, discovery, coverage,
 //! subject binding and pricing run their production implementations against
-//! recorded source contracts. No prepared plan is stubbed and no external model,
-//! source, database or payment is contacted.
+//! recorded source contracts. Declared model planning replies pass through the
+//! real grounding and pricing validators; no external model, source, database
+//! or payment is contacted.
 use crate::{
     catalog::{Catalog, Snapshot},
     parser::Parser,
@@ -539,8 +540,8 @@ async fn contract_planner_cannot_quote_a_plan_that_discards_a_parsed_location() 
     server.abort();
     assert_eq!(
         calls.lock().unwrap().len(),
-        0,
-        "the planner must not ask a model to reinterpret the filters"
+        1,
+        "an incomplete exact match gets one semantic attempt; coverage must still reject the dropped filter"
     );
     assert_ne!(
         quote["status"], "ready",
@@ -931,17 +932,17 @@ fn semantic_output(parsed: &crate::capability_intake::ParsedRequest) -> Value {
 }
 
 #[tokio::test]
-async fn published_homepage_questions_preserve_complete_priced_plans() {
-    // Recorded interpretations are replayed through the actual contract planner.
-    // No example recognizer or second model supplies a plan. The assertions
-    // cover complete scope, literal inputs, dependencies and one total price.
+async fn historical_homepage_contracts_preserve_complete_priced_workflow_plans() {
+    // Recorded interpretations and optional semantic plans run through the real
+    // contract/grounding validators. Assertions cover complete scope, literal
+    // inputs, dependencies and one total price.
     let cases: Vec<PublishedStarter> =
         serde_json::from_str(include_str!("../tests/fixtures/homepage-starters.json")).unwrap();
     assert_recorded_plans(cases).await;
 }
 
 #[tokio::test]
-async fn unpublished_multilingual_questions_preserve_complete_priced_plans() {
+async fn historical_multilingual_contracts_preserve_complete_priced_workflow_plans() {
     let cases:Vec<PublishedStarter>=serde_json::from_str(include_str!("../tests/fixtures/general-planning.json")).unwrap();
     assert_recorded_plans(cases).await;
 }
@@ -963,13 +964,17 @@ async fn assert_recorded_plans(cases:Vec<PublishedStarter>) {
 
     for case in cases {
         let id = &case.id;
+        let semantic_reply = case.planner_reply.clone();
         let model = recorded_model_fixture(
             &case.question,
             case.model_output.clone(),
             case.planner_reply,
         )
         .await;
-        let mut task = Task::default();
+        // These recordings predate independent Ask. Only their explicitly
+        // authored dependency chains are replayed as workflow regressions.
+        let chained = case.steps.iter().any(|step| !step.dependencies.is_empty());
+        let mut task = if chained { crate::compound_examples_tests::historical_workflow_task() } else { Task::default() };
         let intake = model
             .parser
             .ask_intake(&case.question, &task, &catalog, None)
@@ -997,14 +1002,24 @@ async fn assert_recorded_plans(cases:Vec<PublishedStarter>) {
         assert!(reply.discover, "{id}: {}", reply.message);
         let mut intent = reply.intent.expect("a complete plan requires an intent");
         assert!(intent.unresolved_references.is_empty(), "{id}");
-        assert!(
-            model.calls.lock().unwrap().len() == 1,
-            "{id}: only intake may call a model; planning must be deterministic"
-        );
+        let calls = model.calls.lock().unwrap();
+        assert!((1..=2).contains(&calls.len()), "{id}: one intake and at most one declared semantic plan");
+        if calls.len() == 2 {
+            assert!(semantic_reply.is_some(), "{id}: a semantic response must be declared by the fixture");
+            let input: Value = serde_json::from_str(calls[1]["messages"][1]["content"].as_str().unwrap()).unwrap();
+            assert_eq!(input["parsed_request"], serde_json::to_value(&intake.parsed_request).unwrap(), "{id}: planning receives the unchanged interpretation");
+            assert!(input["source_fields"].is_object(), "{id}: semantic planning must be grounded in discovered fields");
+        }
+        drop(calls);
         task.record_turn(&case.question, None);
         task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake,&catalog,reply.output_bindings);
         task.capability_intake = Some(intake);
         crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        if chained {
+            let independent = Task { workflow:None, ..task.clone() };
+            assert!(!matches!(crate::resolver::resolve(&catalog, &independent, &intent), Resolution::Plan(_)),
+                "{id}: independent Ask must collect missing identifiers instead of silently running this historical chain");
+        }
         let resolution = crate::resolver::resolve(&catalog, &task, &intent);
         let Resolution::Plan(plan) = resolution else {
             panic!("{id}: expected a complete plan, got {resolution:?}")
@@ -1105,13 +1120,13 @@ async fn unsupported_glassdoor_comparison_cannot_be_published_as_a_priced_exampl
     let intake = model.parser.ask_intake(&case.question, &Task::default(), &catalog, None).await.unwrap();
     let (engine, _, server) = planner_engine_fixture(case.planner_reply.unwrap()).await;
     let quote = engine.guest_plan(&case.question, intake, &catalog).await.unwrap();
-    assert_eq!(quote["status"], "needs_input");
+    assert_eq!(quote["status"], "unsupported");
     assert!(quote["preview_token"].is_null());
     assert!(quote["total_atomic"].is_null());
     let message = quote["message"].as_str().unwrap();
-    assert!(message.starts_with("I couldn’t match these details"), "{message}");
-    assert_eq!(message.matches("strongest category").count(), 1, "{message}");
-    assert!(!message.contains("overall rating"), "registered rating coverage remains available");
+    assert_eq!(message, "Matching sources:\n- OpenWeb Ninja");
+    assert!(quote["sources"].as_array().is_some_and(|sources| !sources.is_empty()),
+        "related source metadata remains browsable without implying a complete answer");
     assert!(message.chars().count() < 250, "{message}");
     server.abort();
 }

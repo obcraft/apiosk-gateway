@@ -1257,7 +1257,7 @@ mod tests {
         .unwrap();
         qwen.parse("Hoi!", &[], None).await.unwrap();
         let captured = captured.lock().unwrap();
-        assert!(PROMPT.contains("capabilities: one per piece of data or action requested, at most sixteen."));
+        assert!(PROMPT.contains("capabilities: one per distinct requested information category or action, at most sixteen."));
         assert_eq!(
             captured[0]["messages"],
             json!([{"role":"system","content":PROMPT},{"role":"user","content":"Hoi!"}])

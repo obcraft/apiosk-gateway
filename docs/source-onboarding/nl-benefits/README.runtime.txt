@@ -10,8 +10,10 @@ STATUS (2026-10-13)
 - Registered in production by migration 20261013181301_onboard_nl_benefits_runtime.
 - Two sources, five POST endpoints, five typed execution contracts and discovery
   offers, with per-endpoint capabilities, tags, categories, schemas and samples.
-- Sources/endpoints INACTIVE, hidden, contracts DRAFT. No runtime deployment,
-  production Apiosk execution or paid buyer-flow acceptance has been claimed.
+- Migration 20261013182516_brand_nl_benefits_sources publishes the four
+  non-Nibud sources for BROWSING, with logos and all 11 documented endpoints.
+  Contracts remain DRAFT and execution_enabled=false. No runtime deployment,
+  successful production execution or paid buyer-flow acceptance is claimed.
 - List prices follow existing first-party IBAN (0.054348 USD per calculation)
   and KOOP (0.085066 USD per crawler request) tariffs; standard buyer markup is
   applied by the existing payment path. No Nibud key or third-party paid calls.
@@ -23,6 +25,7 @@ POST /nl-toeslagen-rekenservice/2026/kindgebonden-budget/calculate
 POST /nl-toeslagen-rekenservice/2026/kinderopvangtoeslag/calculate
 POST /nl-gemeentelijke-regelingen/regelingen/search
 
+Public route origin: https://gateway.apiosk.com (api.apiosk.com is Supabase).
 runtime.openapi.json includes exact request/response schemas and real native
 response samples. The source-bundle JSON files supply catalog registration.
 All endpoints require POST JSON; the adapter caps input at 32 KiB and rejects
@@ -88,12 +91,23 @@ VERIFICATION
   403. These are coverage limitations, not complete Netherlands acceptance.
 - Production registration readback stored separately. This is not proof that the
   new code is deployed or that an authenticated paid request succeeds.
+- Catalogue publication is verified in evidence/catalogue-production-readback.json.
+  All four source pages were opened in the local app against production data;
+  the real logos decoded and endpoint counts were 5, 1, 4, 1. Browser screenshots
+  are saved alongside the readback. Production direct execution returns HTTP
+  503 catalog_only before billing, as intended while the APIs are browse-only.
+- Whole-suite follow-up: App 3,259 passed; Gateway workspace 1,352 passed with
+  117 intentionally ignored; executor 1,329 passed with 9 ignored; benefits 13
+  passed. Three SQL migration suites pass, including atomic publication rollback,
+  unchanged Nibud/KOOP and unchanged draft execution contracts/prices/schemas.
+  Five native samples pass the actual catalog-core extraction validator.
 
 REPRODUCE (from gateway)
   cargo test --offline --manifest-path legacy-executor/crates/nl-benefits/Cargo.toml
   cargo build --offline --manifest-path legacy-executor/crates/nl-benefits/Cargo.toml --example request
   node docs/source-onboarding/nl-benefits/build-runtime.mjs
   node docs/source-onboarding/nl-benefits/test-runtime.mjs
+  node docs/source-onboarding/nl-benefits/test-catalogue.mjs
   cargo run --offline -p catalog-core --example check_source_bundle -- docs/source-onboarding/nl-benefits/nl-toeslagen-rekenservice.json
   cargo run --offline -p catalog-core --example check_source_bundle -- docs/source-onboarding/nl-benefits/nl-gemeentelijke-regelingen.json
 
