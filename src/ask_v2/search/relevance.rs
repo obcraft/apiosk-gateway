@@ -385,7 +385,8 @@ impl Request {
                 .filter(|word| meaningful(word) && !supplied.contains(*word))
                 .cloned()
                 .collect(),
-            output_concepts: capability.outputs.iter().map(|output| super::output_metadata::concept(output))
+            output_concepts: capability.outputs.iter().map(|output|
+                super::output_metadata::concept_in_domain(output, &words(&capability.domain)))
                 .filter(|concept| !concept.is_empty()).collect(),
             // Only a source's own action is evidence: that a listing
             // "compares portfolios" says nothing about comparing bankruptcies,
@@ -432,19 +433,23 @@ impl Request {
     /// Exact schema fields/aliases are stronger evidence than a prose mention,
     /// but do not change the operation's record, asset or measurement scope.
     pub(super) fn output_matches(&self, candidate: &Document) -> bool {
-        if self.name_collection_search {
-            return candidate.namespace.contains(&self.domain)
-                && candidate.name_search_domains.contains(&self.domain);
+        if self.name_collection_search && candidate.namespace.contains(&self.domain)
+            && candidate.name_search_domains.contains(&self.domain) {
+            return true;
         }
+        let offered = if self.name_collection_search { &candidate.collection_concepts }
+            else { &candidate.output_concepts };
         self.primary_facets == 0 && candidate.namespace.contains(&self.domain)
             && self.metrics.supported_by(candidate) && self.sentiment_scope_matches(candidate)
             && self.output_concepts.iter().any(|concept| {
-                !words(concept).is_disjoint(&self.key)
-                    && (candidate.output_concepts.contains(concept)
+                (!words(concept).is_disjoint(&self.key)
+                    || (self.key.iter().all(|word| super::output_metadata::record_word(word))
+                        && concept == &format!("record:{}", self.domain)))
+                    && (offered.contains(concept)
                         // A documented collection can be relevant to fields
                         // of its records. This implication is one-way: a
                         // scalar never establishes record-category coverage.
-                        || candidate.output_concepts.contains(&format!("record:{concept}")))
+                        || offered.contains(&format!("record:{concept}")))
             })
     }
 
@@ -608,11 +613,14 @@ impl Request {
         if !self.crypto_market_matches(candidate) { return false; }
         if self.enterprise_multiple && candidate.target.is_endpoint()
             && !self.valuation_matches(candidate) { return false; }
-        if self.name_collection_search { return self.output_matches(candidate); }
         if !wanted.capabilities.is_disjoint(&candidate.capabilities) {
             return true;
         }
         let reviewed_output = self.output_matches(candidate);
+        // A domain word alone does not turn a profile into a collection.
+        // Exact reviewed operations above remain valid with other response
+        // envelopes; non-exact alternatives need declared output evidence.
+        if self.name_collection_search && !reviewed_output { return false; }
         if candidate.target.is_endpoint()
             && !self.primary_topic_matches(wanted, candidate) && !reviewed_output { return false; }
         // A registered listing can establish a discovery match from its own
@@ -622,7 +630,8 @@ impl Request {
         if matches!(candidate.target, Target::Listing(_, _)) {
             return self.mentions(wanted, candidate);
         }
-        if !hinted && candidate.contract.is_empty() && !self.primary_topic_matches(wanted,candidate) { return false; }
+        if !hinted && candidate.contract.is_empty() && !reviewed_output
+            && !self.primary_topic_matches(wanted,candidate) { return false; }
         let facet = wanted.facets & candidate.facets != 0;
         // A shared facet already stands for its vocabulary ("officer",
         // "director"); counting those words again would let a program

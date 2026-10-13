@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://docs.oasis-open.org/ns/search-ws/sruResponse"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/sruResponse http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/sruResponse.xsd">
+   <version>2.0</version>
+   <numberOfRecords>1131</numberOfRecords>
+   <records>
+      <record>
+         <recordSchema>http://standaarden.overheid.nl/sru/</recordSchema>
+         <recordPacking>xml</recordPacking>
+         <recordData>
+            <gzd xmlns="http://standaarden.overheid.nl/sru"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:overheid="http://standaarden.overheid.nl/owms/terms/"
+                 xmlns:overheidbwb="http://standaarden.overheid.nl/bwb/terms/"
+                 xsi:schemaLocation="http://standaarden.overheid.nl/sru https://standaarden.overheid.nl/sru/gzd.xsd">
+               <originalData>
+                  <overheidbwb:meta>
+                     <owmskern>
+                        <dcterms:identifier>BWBR0047436</dcterms:identifier>
+                        <dcterms:title>Wet hersteloperatie toeslagen</dcterms:title>
+                        <dcterms:type>wet</dcterms:type>
+                        <dcterms:language>nl</dcterms:language>
+                        <overheid:authority>Financiën</overheid:authority>
+                        <dcterms:creator>Ministerie van Binnenlandse Zaken en Koninkrijksrelaties</dcterms:creator>
+                        <dcterms:modified>2023-07-21</dcterms:modified>
+                     </owmskern>
+                     <owmsmantel>
+                        <dcterms:created>2022-11-08</dcterms:created>
+                     </owmsmantel>
+                     <bwbipm>
+                        <overheidbwb:toestand>http://wetten.overheid.nl/id/BWBR0047436/2022-11-05/0</overheidbwb:toestand>
+                        <overheidbwb:rechtsgebied>Arbeidsrecht en sociaal-zekerheidsrecht</overheidbwb:rechtsgebied>
+                        <overheidbwb:rechtsgebied>Sociaal zekerheidsrecht</overheidbwb:rechtsgebied>
+                        <overheidbwb:overheidsdomein>Subsidies, uitkeringen en toeslagen</overheidbwb:overheidsdomein>
+                        <overheidbwb:geldigheidsperiode_startdatum>2022-11-05</overheidbwb:geldigheidsperiode_startdatum>
+                        <overheidbwb:geldigheidsperiode_einddatum>2023-07-14</overheidbwb:geldigheidsperiode_einddatum>
+                        <overheidbwb:zichtperiode_startdatum>2022-11-05</overheidbwb:zichtperiode_startdatum>
+                        <overheidbwb:zichtperiode_einddatum>2023-07-14</overheidbwb:zichtperiode_einddatum>
+                     </bwbipm>
+                  </overheidbwb:meta>
+               </originalData>
+               <enrichedData>
+                  <overheidbwb:locatie_toestand>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/2022-11-05_0/xml/BWBR0047436_2022-11-05_0.xml</overheidbwb:locatie_toestand>
+                  <overheidbwb:locatie_wti>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/BWBR0047436.WTI</overheidbwb:locatie_wti>
+                  <overheidbwb:locatie_manifest>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/manifest.xml</overheidbwb:locatie_manifest>
+               </enrichedData>
+            </gzd>
+         </recordData>
+         <recordPosition>1</recordPosition>
+      </record>
+      <record>
+         <recordSchema>http://standaarden.overheid.nl/sru/</recordSchema>
+         <recordPacking>xml</recordPacking>
+         <recordData>
+            <gzd xmlns="http://standaarden.overheid.nl/sru"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:overheid="http://standaarden.overheid.nl/owms/terms/"
+                 xmlns:overheidbwb="http://standaarden.overheid.nl/bwb/terms/"
+                 xsi:schemaLocation="http://standaarden.overheid.nl/sru https://standaarden.overheid.nl/sru/gzd.xsd">
+               <originalData>
+                  <overheidbwb:meta>
+                     <owmskern>
+                        <dcterms:identifier>BWBR0047436</dcterms:identifier>
+                        <dcterms:title>Wet hersteloperatie toeslagen</dcterms:title>
+                        <dcterms:type>wet</dcterms:type>
+                        <dcterms:language>nl</dcterms:language>
+                        <overheid:authority>Financiën</overheid:authority>
+                        <dcterms:creator>Ministerie van Binnenlandse Zaken en Koninkrijksrelaties</dcterms:creator>
+                        <dcterms:modified>2024-02-21</dcterms:modified>
+                     </owmskern>
+                     <owmsmantel>
+                        <dcterms:created>2023-07-20</dcterms:created>
+                     </owmsmantel>
+                     <bwbipm>
+                        <overheidbwb:toestand>http://wetten.overheid.nl/id/BWBR0047436/2022-11-05/1</overheidbwb:toestand>
+                        <overheidbwb:rechtsgebied>Arbeidsrecht en sociaal-zekerheidsrecht</overheidbwb:rechtsgebied>
+                        <overheidbwb:rechtsgebied>Sociaal zekerheidsrecht</overheidbwb:rechtsgebied>
+                        <overheidbwb:overheidsdomein>Subsidies, uitkeringen en toeslagen</overheidbwb:overheidsdomein>
+                        <overheidbwb:geldigheidsperiode_startdatum>2022-11-05</overheidbwb:geldigheidsperiode_startdatum>
+                        <overheidbwb:geldigheidsperiode_einddatum>2023-07-14</overheidbwb:geldigheidsperiode_einddatum>
+                        <overheidbwb:zichtperiode_startdatum>2023-07-15</overheidbwb:zichtperiode_startdatum>
+                        <overheidbwb:zichtperiode_einddatum>2023-12-31</overheidbwb:zichtperiode_einddatum>
+                     </bwbipm>
+                  </overheidbwb:meta>
+               </originalData>
+               <enrichedData>
+                  <overheidbwb:locatie_toestand>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/2022-11-05_1/xml/BWBR0047436_2022-11-05_1.xml</overheidbwb:locatie_toestand>
+                  <overheidbwb:locatie_wti>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/BWBR0047436.WTI</overheidbwb:locatie_wti>
+                  <overheidbwb:locatie_manifest>https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0047436/manifest.xml</overheidbwb:locatie_manifest>
+               </enrichedData>
+            </gzd>
+         </recordData>
+         <recordPosition>2</recordPosition>
+      </record>
+   </records>
+   <nextRecordPosition>3</nextRecordPosition>
+</searchRetrieveResponse>
+

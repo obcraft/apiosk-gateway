@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<explainResponse xmlns="http://docs.oasis-open.org/ns/search-ws/sruResponse"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/sruResponse http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/sruResponse.xsd">
+   <version>2.0</version>
+   <record>
+      <recordSchema>http://standaarden.overheid.nl/owms/sru</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+         <explain xmlns="http://explain.z3950.org/dtd/2.0/"
+                  xsi:schemaLocation="http://explain.z3950.org/dtd/2.0/ http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/explain.xsd">
+            <serverInfo protocol="SRU" version="2.0" transport="http">
+               <host>zoekservice.overheid.nl</host>
+               <port>80</port>
+               <database numRecs="148551" lastUpdate="2026-10-13T00:00:00Z">BWB Repository</database>
+            </serverInfo>
+            <databaseInfo>
+               <title lang="en" primary="true">Overheid.nl search and retrieval service</title>
+               <description lang="nl" primary="true">Gemeenschappelijke zoekdienst van overheid.nl voor BWB Online</description>
+               <author>Logius|KOOP</author>
+               <contact>servicedesk@koop.overheid.nl</contact>
+               <extent>Dutch national legislation</extent>
+               <langUsage>Records are in Dutch</langUsage>
+               <restrictions>Database is freely available</restrictions>
+            </databaseInfo>
+            <metaInfo>
+               <dateModified>2026-10-13</dateModified>
+            </metaInfo>
+            <indexInfo>
+               <set name="dcterms" identifier="http://purl.org/dc/terms/">
+                  <title>Indexes in the namespace "http://purl.org/dc/terms/"</title>
+               </set>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">identifier</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">modified</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">type</name>
+                  </map>
+               </index>
+               <set name="overheid" identifier="http://standaarden.overheid.nl/owms/terms/">
+                  <title>Indexes in the namespace "http://standaarden.overheid.nl/owms/terms/"</title>
+               </set>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheid">authority</name>
+                  </map>
+               </index>
+               <set name="overheidbwb"
+                    identifier="http://standaarden.overheid.nl/bwb/terms/">
+                  <title>Indexes in the namespace "http://standaarden.overheid.nl/bwb/terms/"</title>
+               </set>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">rechtsgebied</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">overheidsdomein</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">onderwerpVerdrag</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">titel</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">afkorting</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">wetsfamilie</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">geldigheidsdatum</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">zichtdatum</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">bekendmaking</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidbwb">dossiernummer</name>
+                  </map>
+               </index>
+            </indexInfo>
+         </explain>
+      </recordData>
+   </record>
+</explainResponse>
+

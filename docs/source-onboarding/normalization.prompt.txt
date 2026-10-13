@@ -29,10 +29,10 @@ including nested records, relationship cards and optional fields. Prefer
 reusable provider-independent capability meanings over provider/path names.
 One endpoint may implement several capabilities; several endpoints may offer
 the same capability. Keep their distinct execution requirements and prices.
-Do not stop at a broad "company profile" label when the documented response
-also contains employee records, headcount, directors or funding information.
-Keep those meanings distinct: headcount is not an employee roster, directors
-are not all employees, and employer reviews are not personnel records.
+Do not stop at a broad endpoint or profile label: declare every distinct
+documented information category that it can supply, for every domain.
+Keep records, collections, measurements, counts, assessments and relationships
+distinct, preserving their subjects, direction, scope and granularity.
 
 For each returned category provide its exact typed output shape, field names,
 field descriptions, subject granularity, optionality and pagination/coverage

@@ -2,287 +2,604 @@
   {
     "id": "personnel-nl",
     "question": "Ik ben op zoek naar personeelsinformatie van Coolblue.",
-    "expect_concepts": [
-      [
-        "employee",
-        "personnel",
-        "staff",
-        "workforce",
-        "person"
-      ],
-      [
-        "employee_details"
-      ]
-    ],
-    "source_free": true
+    "source_free": true,
+    "expect_needs": [
+      {
+        "label": "Personnel information",
+        "concepts": [
+          [
+            "employee",
+            "personnel",
+            "staff",
+            "workforce",
+            "person",
+            "people",
+            "team"
+          ]
+        ],
+        "insufficient_output_terms": [
+          "count",
+          "headcount",
+          "size",
+          "number",
+          "total",
+          "aggregate",
+          "statistic",
+          "rating",
+          "score",
+          "review"
+        ]
+      }
+    ]
   },
   {
     "id": "company-personnel-nl",
     "question": "Geef bedrijfs- en personeelsinformatie over Coolblue.",
-    "expect_concepts": [
-      [
-        "company",
-        "business"
-      ],
-      [
-        "employee",
-        "personnel",
-        "staff",
-        "workforce",
-        "person"
-      ],
-      [
-        "employee_details"
-      ]
-    ],
     "source_free": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Company information",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ]
+        ]
+      },
+      {
+        "label": "Personnel information",
+        "concepts": [
+          [
+            "employee",
+            "personnel",
+            "staff",
+            "workforce",
+            "person",
+            "people",
+            "team"
+          ]
+        ],
+        "insufficient_output_terms": [
+          "count",
+          "headcount",
+          "size",
+          "number",
+          "total",
+          "aggregate",
+          "statistic",
+          "rating",
+          "score",
+          "review"
+        ]
+      }
+    ]
   },
   {
     "id": "company-nl",
     "question": "Ik zoek bedrijfsinformatie over Coolblue.",
-    "expect_concepts": [
-      [
-        "company",
-        "profile",
-        "business"
-      ]
-    ],
-    "source_free": true
+    "source_free": true,
+    "expect_needs": [
+      {
+        "label": "Requested information",
+        "concepts": [
+          [
+            "company",
+            "profile",
+            "business"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "company-search",
     "question": "Find companies named Coolblue.",
-    "expect_concepts": [
-      [
-        "company",
-        "companies",
-        "business"
-      ],
-      [
-        "company_matches"
-      ]
-    ],
     "source_free": true,
-    "expect_plan": true
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Find matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list",
+            "resolve"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "employee-names-titles",
     "question": "Find the employee names and job titles for Coolblue.",
-    "expect_concepts": [
-      [
-        "employee",
-        "person",
-        "staff"
-      ],
-      [
-        "name"
-      ],
-      [
-        "title",
-        "role",
-        "position"
-      ]
-    ],
-    "source_free": true
+    "source_free": true,
+    "expect_needs": [
+      {
+        "label": "Employee names and job titles",
+        "concepts": [
+          [
+            "employee",
+            "personnel",
+            "staff",
+            "workforce",
+            "person",
+            "people",
+            "team"
+          ]
+        ],
+        "outputs": [
+          [
+            "name"
+          ],
+          [
+            "title",
+            "role",
+            "position"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "employee-count",
     "question": "How many employees does Coolblue have?",
-    "expect_concepts": [
-      [
-        "employee",
-        "staff",
-        "workforce"
-      ],
-      [
-        "count",
-        "number",
-        "headcount",
-        "size"
-      ]
-    ],
-    "source_free": true
+    "source_free": true,
+    "expect_needs": [
+      {
+        "label": "Workforce size",
+        "concepts": [
+          [
+            "employee",
+            "personnel",
+            "staff",
+            "workforce",
+            "person",
+            "people",
+            "team"
+          ]
+        ],
+        "outputs": [
+          [
+            "count",
+            "number",
+            "headcount",
+            "size"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "employer-ratings",
     "question": "Compare employee ratings of Starbucks and McDonald's as employers.",
-    "expect_concepts": [
-      [
-        "employee",
-        "employer",
-        "workplace"
-      ],
-      [
-        "rating",
-        "review",
-        "score"
-      ]
-    ],
-    "source_free": true
+    "source_free": true,
+    "expect_needs": [
+      {
+        "label": "Requested information",
+        "concepts": [
+          [
+            "employee",
+            "employer",
+            "workplace"
+          ],
+          [
+            "rating",
+            "review",
+            "score"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "kvk-search-control",
     "question": "Search KVK for companies named Coolblue.",
-    "expect_concepts": [
-      [
-        "company",
-        "companies",
-        "business"
-      ],
-      [
-        "company_matches"
-      ]
-    ],
     "source_free": false,
     "named_source": "kvk",
-    "expect_plan": true
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Find matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list",
+            "resolve"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "kvk-number-control",
     "question": "Find the company name and KVK number for Coolblue using KVK.",
-    "expect_concepts": [
-      [
-        "company",
-        "business"
-      ],
-      [
-        "name"
-      ],
-      [
-        "kvk",
-        "registration"
-      ]
-    ],
     "source_free": false,
     "named_source": "kvk",
-    "expect_plan": true
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Company name and registration number",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ]
+        ],
+        "outputs": [
+          [
+            "name"
+          ],
+          [
+            "kvk",
+            "registration"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-company-sanctions",
     "question": "Find companies named Coolblue and check whether the company name appears on sanctions lists.",
-    "expect_concepts": [
-      [
-        "company",
-        "companies"
-      ],
-      [
-        "sanction"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Find matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list",
+            "resolve"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions screening",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-vat-company",
     "question": "Validate VAT number NL815839091B01 and show the registered company details for Mollie B.V., registration number 30204462.",
-    "expect_concepts": [
-      [
-        "vat"
-      ],
-      [
-        "company",
-        "profile"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "VAT validation",
+        "concepts": [
+          [
+            "vat"
+          ],
+          [
+            "valid",
+            "validate",
+            "validation",
+            "check",
+            "status"
+          ]
+        ]
+      },
+      {
+        "label": "Registered company information",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-employer-ratings",
     "question": "Compare employee ratings of Starbucks and McDonald’s as employers.",
-    "expect_concepts": [
-      [
-        "employee",
-        "employer"
-      ],
-      [
-        "rating",
-        "review"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Requested information",
+        "concepts": [
+          [
+            "employee",
+            "employer"
+          ],
+          [
+            "rating",
+            "review"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-leadership-sanctions",
     "question": "Who runs and controls MONZO BANK LIMITED, UK company number 09446231, and does the company appear on sanctions lists?",
-    "expect_concepts": [
-      [
-        "officer",
-        "director",
-        "leadership",
-        "management"
-      ],
-      [
-        "control",
-        "owner"
-      ],
-      [
-        "sanction"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 3
+    "minimum_capabilities": 3,
+    "expect_needs": [
+      {
+        "label": "Registered leadership",
+        "concepts": [
+          [
+            "officer",
+            "director",
+            "leadership",
+            "management"
+          ]
+        ]
+      },
+      {
+        "label": "Significant control",
+        "concepts": [
+          [
+            "control",
+            "owner",
+            "ownership"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions screening",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-vehicle-company",
     "question": "Show the vehicle details for Dutch plate RZ874R and the registered company details for Louwman Dealerbedrijven B.V., registration number 27095155.",
-    "expect_concepts": [
-      [
-        "vehicle"
-      ],
-      [
-        "company",
-        "profile"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Vehicle information",
+        "concepts": [
+          [
+            "vehicle",
+            "car"
+          ]
+        ]
+      },
+      {
+        "label": "Registered company information",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-building",
     "question": "Show the building details for Damrak 1, Amsterdam.",
-    "expect_concepts": [
-      [
-        "building"
-      ]
-    ],
     "source_free": true,
-    "expect_plan": true
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Requested information",
+        "concepts": [
+          [
+            "building"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-address-record",
     "question": "Find the address record for Damrak 1, Amsterdam.",
-    "expect_concepts": [
-      [
-        "address"
-      ]
-    ],
     "source_free": true,
-    "expect_plan": true
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Requested information",
+        "concepts": [
+          [
+            "address"
+          ]
+        ]
+      }
+    ]
   },
   {
     "id": "starter-officers-control-sanctions",
     "question": "List the registered company officers and persons with significant control for MONZO BANK LIMITED, company number 09446231, and check the company name against sanctions lists.",
-    "expect_concepts": [
-      [
-        "officer"
-      ],
-      [
-        "control"
-      ],
-      [
-        "sanction"
-      ]
-    ],
     "source_free": true,
     "expect_plan": true,
-    "minimum_capabilities": 2
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Registered leadership",
+        "concepts": [
+          [
+            "officer",
+            "director",
+            "leadership",
+            "management"
+          ]
+        ]
+      },
+      {
+        "label": "Significant control",
+        "concepts": [
+          [
+            "control",
+            "owner",
+            "ownership"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions screening",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "domain-currency",
+    "question": "What is the latest daily reference exchange rate from EUR to USD, including its observation date?",
+    "source_free": true,
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Daily exchange rate and observation date",
+        "concepts": [
+          [
+            "currency",
+            "exchange",
+            "fx"
+          ]
+        ],
+        "outputs": [
+          [
+            "rate"
+          ],
+          [
+            "date",
+            "time",
+            "as_of"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "domain-procurement",
+    "question": "Show recent Dutch public procurement notices.",
+    "source_free": true,
+    "expect_plan": true,
+    "expect_needs": [
+      {
+        "label": "Dutch procurement notices",
+        "concepts": [
+          [
+            "procurement",
+            "tender",
+            "contract",
+            "aanbesteding"
+          ]
+        ]
+      }
+    ],
+    "coverage_note": "Observed 2026-10-13 in general-semantics-c: intake failed after the literal-input correction attempt. Retain the original provider-free question and required-plan expectation to expose the unresolved country/recency extraction failure."
+  },
+  {
+    "id": "domain-weather",
+    "question": "What are the current temperature and wind conditions in Amsterdam?",
+    "source_free": true,
+    "expect_discovery": true,
+    "coverage_probe": true,
+    "coverage_note": "Observed 2026-10-13 in general-semantics-c: three unverified weather candidates, zero executable operations, and an explicit unavailable response. Discovery passed; no validated plan.",
+    "expect_needs": [
+      {
+        "label": "Current temperature and wind",
+        "concepts": [
+          [
+            "weather",
+            "climate",
+            "temperature"
+          ]
+        ],
+        "outputs": [
+          [
+            "temperature",
+            "temp"
+          ],
+          [
+            "wind"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "domain-patents",
+    "question": "Find patents about solid-state batteries, including their titles and grant dates.",
+    "source_free": true,
+    "expect_discovery": true,
+    "coverage_probe": true,
+    "coverage_note": "Observed 2026-10-13 in general-semantics-c: three supported patent-related candidates were discovered, but the selected patent-status operation required an absent patent ID for a topic-search question. Source selection/input grounding remains unresolved; no validated plan.",
+    "expect_needs": [
+      {
+        "label": "Patent titles and grant dates",
+        "concepts": [
+          [
+            "patent"
+          ]
+        ],
+        "outputs": [
+          [
+            "title",
+            "name"
+          ],
+          [
+            "grant",
+            "date"
+          ]
+        ]
+      }
+    ]
   }
 ]

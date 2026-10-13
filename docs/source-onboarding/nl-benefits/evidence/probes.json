@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-13T17:13:07.262800+00:00",
+  "probes": [
+    {
+      "name": "koop-publications",
+      "url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dofficielepublicaties+AND+dt.title%3Dbijstand&maximumRecords=2",
+      "final_url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dofficielepublicaties+AND+dt.title%3Dbijstand&maximumRecords=2",
+      "status": 200,
+      "content_type": "application/xml",
+      "bytes": 9076,
+      "sha256": "3a6d548cfddca3e8e92bc448e795834f53bd09374d88dd4fe3809dfcc9fa6b5e"
+    },
+    {
+      "name": "bwb",
+      "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&operation=searchRetrieve&version=2.0&query=overheidbwb.titel+any+%22toeslagen%22&maximumRecords=2",
+      "final_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&operation=searchRetrieve&version=2.0&query=overheidbwb.titel+any+%22toeslagen%22&maximumRecords=2",
+      "status": 200,
+      "content_type": "application/xml;charset=UTF-8",
+      "bytes": 6728,
+      "sha256": "5bfd04962aad2fe424743d31cc0498622bbfdbfd3344852ab8167daab74f8953"
+    },
+    {
+      "name": "cvdr",
+      "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&operation=searchRetrieve&version=2.0&query=dcterms.title+any+%22inkomenstoeslag%22&maximumRecords=2",
+      "final_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&operation=searchRetrieve&version=2.0&query=dcterms.title+any+%22inkomenstoeslag%22&maximumRecords=2",
+      "status": 200,
+      "content_type": "application/xml;charset=UTF-8",
+      "bytes": 403037,
+      "sha256": "51d5e1b742c40528cc6909ab5ab7c8d089c2bf417b350184709b8daa02ce73f7"
+    },
+    {
+      "name": "samenwerkende-catalogi",
+      "url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dsamenwerkendecatalogi+AND+dt.title%3Dbijstand&maximumRecords=2",
+      "final_url": "https://repository.overheid.nl/sru?query=c.product-area%3D%3Dsamenwerkendecatalogi+AND+dt.title%3Dbijstand&maximumRecords=2",
+      "status": 200,
+      "content_type": "application/xml",
+      "bytes": 6713,
+      "sha256": "4fbe64f58781372ba74aecebfea5c7c3a158b7bdd227718bf78d785cc0cdbf16"
+    },
+    {
+      "name": "bwb-explain",
+      "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&operation=explain&version=2.0",
+      "final_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&operation=explain&version=2.0",
+      "status": 200,
+      "content_type": "application/xml;charset=UTF-8",
+      "bytes": 5068,
+      "sha256": "39dd6dc03bc3435a1d75ddaa8452cebdfc02a1cdee62d8465d06e00c1da3994d"
+    },
+    {
+      "name": "cvdr-explain",
+      "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&operation=explain&version=2.0",
+      "final_url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&operation=explain&version=2.0",
+      "status": 200,
+      "content_type": "application/xml;charset=UTF-8",
+      "bytes": 10438,
+      "sha256": "59ce2f22ced2addc61eb4a30d7af96fb77117e6b1117b11131493c5cdcaedd8b"
+    }
+  ]
+}

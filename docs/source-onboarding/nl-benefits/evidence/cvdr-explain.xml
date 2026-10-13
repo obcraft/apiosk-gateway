@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<explainResponse xmlns="http://docs.oasis-open.org/ns/search-ws/sruResponse"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://docs.oasis-open.org/ns/search-ws/sruResponse http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/sruResponse.xsd">
+   <version>2.0</version>
+   <record>
+      <recordSchema>http://standaarden.overheid.nl/owms/sru</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+         <explain xmlns="http://explain.z3950.org/dtd/2.0/"
+                  xsi:schemaLocation="http://explain.z3950.org/dtd/2.0/ http://docs.oasis-open.org/search-ws/searchRetrieve/v1.0/os/schemas/explain.xsd">
+            <serverInfo protocol="SRU" version="2.0" transport="http">
+               <host>zoekservice.overheid.nl</host>
+               <port>80</port>
+               <database numRecs="343880" lastUpdate="2026-10-13T16:23:06.095Z">CVDR Repository</database>
+            </serverInfo>
+            <databaseInfo>
+               <title lang="en" primary="true">Overheid.nl search and retrieval service</title>
+               <description lang="nl" primary="true">Gemeenschappelijke zoekdienst van overheid.nl voor Centrale Voorziening Decentrale Regelgeving</description>
+               <author>Logius|KOOP</author>
+               <contact>servicedesk@koop.overheid.nl</contact>
+               <extent>Lokale regelingen of the Dutch government</extent>
+               <langUsage>Records are in Dutch</langUsage>
+               <restrictions>Database is freely available</restrictions>
+            </databaseInfo>
+            <metaInfo>
+               <dateModified>2026-10-13</dateModified>
+            </metaInfo>
+            <indexInfo>
+               <set name="dcterms" identifier="http://purl.org/dc/terms/">
+                  <title>Indexes in the namespace "http://purl.org/dc/terms/"</title>
+               </set>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="dcterms">identifier</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">title</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="dcterms">language</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">creator</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">modified</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">isFormatOf</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">alternative</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">source</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">isRatifiedBy</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">subject</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="dcterms">issued</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>workid</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>bronformaat</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name>organisatieType</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name>sorteerTitel</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>gemeente</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>provincie</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>waterschap</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>regionaalsamenwerkingsorgaan</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>koninkrijksdeel</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>nederlandseantillen</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>deelgemeente</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>caribischopenbaarlichaam</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>anderopenbaarlichaam</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name>eilandgebied</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name>relevance</name>
+                  </map>
+               </index>
+               <set name="overheidrg"
+                    identifier="http://standaarden.overheid.nl/cvdr/terms/">
+                  <title>Indexes in the namespace "http://standaarden.overheid.nl/cvdr/terms/"</title>
+               </set>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">body</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">wti</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">keyword</name>
+                  </map>
+               </index>
+               <index search="true" sort="">
+                  <map>
+                     <name set="overheidrg">alternatieveIdentifier</name>
+                  </map>
+               </index>
+               <index search="true" sort="">
+                  <map>
+                     <name set="overheidrg">opvolgerVan</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheidrg">inwerkingtredingDatum</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheidrg">terugwerkendekrachtDatum</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheidrg">uitwerkingtredingDatum</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheidrg">betreft</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">kenmerk</name>
+                  </map>
+               </index>
+               <index search="true" sort="true">
+                  <map>
+                     <name set="overheidrg">onderwerp</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">redactioneleToevoeging</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">gedelegeerdeRegelgeving</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">datumGeldendOp</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">creatorTijdelijkeregeling</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">indeling</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">omgevingswet</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">postcodeCijfers</name>
+                  </map>
+               </index>
+               <index search="true" sort="false">
+                  <map>
+                     <name set="overheidrg">indexeerdatum</name>
+                  </map>
+               </index>
+            </indexInfo>
+         </explain>
+      </recordData>
+   </record>
+</explainResponse>
+

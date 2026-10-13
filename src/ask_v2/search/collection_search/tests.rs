@@ -1,6 +1,6 @@
 use super::*;
 use crate::capability_intake::ParsedRequest;
-use serde_json::json;
+use serde_json::{json, Value};
 
 fn catalog() -> Catalog {
     Catalog::build(
@@ -85,4 +85,57 @@ fn generic_search_words_do_not_promote_single_records_opaque_outputs_or_other_do
     other.capabilities[0].inputs = vec!["person_name".into()];
     other.capabilities[0].outputs = vec!["person_matches".into()];
     assert!(super::super::search(&other, &catalog)[0].apiosk.is_empty());
+}
+
+#[test]
+fn an_exact_product_search_contract_survives_a_different_collection_envelope() {
+    let mut value: Value = serde_json::from_str(include_str!(
+        "../../../../tests/fixtures/search/company-name-collections.json"
+    )).unwrap();
+    let mut service = value["services"][0].clone();
+    service["contract"]["capability_slug"] = json!("product.search");
+    service["contract"]["cardinality"] = json!("one");
+    service["contract"]["identifies"] = Value::Null;
+    service["contract"]["requires"] = json!([{"fact_type":"product.query","subject_role":"subject","optional":false}]);
+    service["contract"]["input_map"] = json!({"product.query":{"in":"query","name":"query"}});
+    service["contract"]["output_map"] = json!({"base":"$","produces":{"product.results":{"path":"$.results"}}});
+    service["sample_payload"] = json!({"results":[{"name":"Example"}]});
+    value["services"] = json!([service]);
+    value["vocabulary"] = json!([
+        {"slug":"product.query","value_schema":{"type":"string"}},
+        {"slug":"product.results","value_schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"}}}}}
+    ]);
+    let catalog = Catalog::build(serde_json::from_value(value.clone()).unwrap());
+    assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+    assert!(domains(&catalog.services[0], &catalog).is_empty(), "this contract uses neither *.name facts nor many-subject cardinality");
+    let mut parsed = request();
+    parsed.subjects[0].kind = "product".into();
+    let cap = &mut parsed.capabilities[0];
+    cap.slug = "product.search".into();
+    cap.domain = "product".into();
+    cap.name = "Product search".into();
+    cap.description = "Find matching products.".into();
+    cap.inputs = vec!["product_name".into()];
+    cap.outputs = vec!["product_matches".into()];
+    assert!(requested(cap));
+    assert!(super::super::search(&parsed, &catalog)[0].operations.contains("product.search"));
+    value["services"][0]["contract"]["capability_slug"] = json!("product.profile");
+    let profile = Catalog::build(serde_json::from_value(value.clone()).unwrap());
+    assert!(profile.rejected.is_empty());
+    assert!(super::super::search(&parsed, &profile)[0].apiosk.is_empty(),
+        "a shared product domain is insufficient evidence for a collection search");
+    value["vocabulary"][1]["value_schema"] = json!({"type":"object","properties":{"name":{"type":"string"}},
+        "$comment":"{\"apiosk_output_aliases_v1\":[\"product_details\"]}"});
+    value["services"][0]["sample_payload"] = json!({"results":{"name":"Example"}});
+    let singleton = Catalog::build(serde_json::from_value(value.clone()).unwrap());
+    assert!(singleton.rejected.is_empty());
+    assert!(super::super::search(&parsed, &singleton)[0].apiosk.is_empty(),
+        "a documented singleton product category is not a product collection");
+    value["vocabulary"][1]["value_schema"] = json!({"type":"array","items":{"type":"object","properties":{"name":{"type":"string"}}},
+        "$comment":"{\"apiosk_output_aliases_v1\":[\"product_matches\"]}"});
+    value["services"][0]["sample_payload"] = json!({"results":[{"name":"Example"}]});
+    let collection = Catalog::build(serde_json::from_value(value).unwrap());
+    assert!(collection.rejected.is_empty());
+    assert!(super::super::search(&parsed, &collection)[0].operations.contains("product.profile"),
+        "reviewed array output evidence can establish a differently named operation");
 }

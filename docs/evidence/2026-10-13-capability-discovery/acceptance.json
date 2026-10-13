@@ -1,0 +1,2801 @@
+{
+  "recorded_at": "2026-10-13T15:46:54.292177+00:00",
+  "verification": "Real OpenRouter intake and semantic planning against a read-only production catalog snapshot; deterministic discovery, input binding and resolver.",
+  "boundary": "Zero source API execution, approvals, purchases, task persistence or database mutation. This verifies local changed-code planning, not deployed MCP transport or returned provider data.",
+  "model_destination": "https://openrouter.ai/api/v1/chat/completions",
+  "redirects": false,
+  "intake_model": "openai/gpt-oss-120b",
+  "planning_model": "openai/gpt-6.1-sol",
+  "catalog_version": "34a4d4c5e9235b1c8b168b614b804ad0c4b6862a54a0853a86185c4414489dc0",
+  "catalog_sha256": "a5c0adac0ad1952a083e475253bcb9141c288ffe238dc12e4e36046c83aa3044",
+  "interpretation": "Harness assertions passing do not imply a usable plan; inspect status, output scope, missing inputs and limitations. A needs_input outcome is not ready for purchase.",
+  "initial_comparison": {
+    "artifact_sha256": "2bc170faeaa57788a42a570920b3d80eb42ee56c32038c936789db808e8d7fba",
+    "counts": {
+      "plan_ready": 3,
+      "needs_input": 4,
+      "clarification": 1,
+      "no_executable_coverage": 1
+    },
+    "known_false_positive": "The original personnel-nl plan selected a scalar employees size-band from StableEnrich; it did not prove personnel records. Three harness plan_ready cases therefore included one semantic failure.",
+    "known_regressions": [
+      "Company search collapsed to profile",
+      "Named KVK search had no executable match",
+      "Explicit KVK name+number fields collapsed to profile"
+    ]
+  },
+  "catalog_limitations": [
+    "The currently admitted company.crunchbase-profile call uses cb_entity_get and requires a supplied company.crunchbase_entity_id. No admitted name-to-profile operation is available in this snapshot; this is an adapter/catalog gap, not proof that the underlying provider lacks name resolution.",
+    "Broad personnel cards are documented, but their generic field_id/value schema alone does not prove specific employee names or job titles."
+  ],
+  "runs": [
+    {
+      "run": "final-capability-discovery",
+      "artifact_sha256": "bd3fd69e50b827fd3fe1023b3d8c62325646609d5b23e6613126f6962729bfe6",
+      "counts": {
+        "clarification": 1,
+        "needs_input": 3,
+        "no_executable_coverage": 2,
+        "plan_ready": 3
+      },
+      "source_version": {
+        "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+        "recorded_at": "2026-10-13T15:38:00.644216+00:00",
+        "binary_sha256": "55a764d391bf33db763de0dd17d5922c3ab20207b7e149a4d1d19565108ecafe",
+        "file_hash_overrides_relative_to_latest": {
+          "src/ask_v2/search.rs": "222c5794c30bec1df226acf5fb16918c693ecd9d97dab7eda258217c73bb9222",
+          "src/ask_v2/search/collection_search.rs": "83d4e5c6d092670443f87c68c375004b7e2836f4969122613788a0ddd1d69cf4",
+          "contracts/ask-v2-webgpu-prompt.txt": "ae3eb8760400bb912590d1a86acde6bc73e287a76dda1f8b46b0624cec8b7f17",
+          "tests/fixtures/capability-discovery-questions.json": "512be338037461a5fa01c9ac7a036860a8f7faa6cba57d5b026d602aef3e4e79"
+        }
+      }
+    },
+    {
+      "run": "final-search-controls",
+      "artifact_sha256": "47b8148e4d726dfd69888d695b37822aa9960e1674011825e1764fa62aa84834",
+      "counts": {
+        "plan_ready": 2
+      },
+      "source_version": {
+        "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+        "recorded_at": "2026-10-13T15:40:25.086602+00:00",
+        "binary_sha256": "c1507e4ba2cc513ca1318f59edf348fa238e53694b5e2458cb8e3686da9e7d07",
+        "file_hash_overrides_relative_to_latest": {
+          "contracts/ask-v2-webgpu-prompt.txt": "ae3eb8760400bb912590d1a86acde6bc73e287a76dda1f8b46b0624cec8b7f17",
+          "tests/fixtures/capability-discovery-questions.json": "512be338037461a5fa01c9ac7a036860a8f7faa6cba57d5b026d602aef3e4e79"
+        }
+      }
+    },
+    {
+      "run": "provider-free-starters",
+      "artifact_sha256": "3fdb340cc94f1ae0d88d5f55a2c172dfd4a6cbb246b1982b1d3888230b31e6fa",
+      "counts": {
+        "clarification": 2,
+        "needs_input": 1,
+        "plan_ready": 3
+      },
+      "source_version": {
+        "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+        "recorded_at": "2026-10-13T15:40:25.086602+00:00",
+        "binary_sha256": "c1507e4ba2cc513ca1318f59edf348fa238e53694b5e2458cb8e3686da9e7d07",
+        "file_hash_overrides_relative_to_latest": {
+          "contracts/ask-v2-webgpu-prompt.txt": "ae3eb8760400bb912590d1a86acde6bc73e287a76dda1f8b46b0624cec8b7f17",
+          "tests/fixtures/capability-discovery-questions.json": "512be338037461a5fa01c9ac7a036860a8f7faa6cba57d5b026d602aef3e4e79"
+        }
+      }
+    },
+    {
+      "run": "final-starter-retention",
+      "artifact_sha256": "1247d8380cdb66532cd2ca949ee68d2893c7c7ba9ea05fe47b246715c283ded6",
+      "counts": {
+        "clarification": 1,
+        "plan_ready": 1
+      },
+      "source_version": {
+        "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+        "recorded_at": "2026-10-13T15:43:46.957136+00:00",
+        "binary_sha256": "e174458887f08a32e5712ded671bfdab0d8884c340be962db67b9ce6db099228",
+        "file_hash_overrides_relative_to_latest": {
+          "tests/fixtures/capability-discovery-questions.json": "512be338037461a5fa01c9ac7a036860a8f7faa6cba57d5b026d602aef3e4e79"
+        }
+      }
+    },
+    {
+      "run": "replacement-starters",
+      "artifact_sha256": "2ea46782e173f0189d072cb3a648e85c38aa38d85716b1f7de97e0d1c6731b18",
+      "counts": {
+        "plan_ready": 2
+      },
+      "source_version": {
+        "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+        "recorded_at": "2026-10-13T15:45:59.765625+00:00",
+        "binary_sha256": "ffef536167181f915947ed366d391564a584e5a36000ec1acf070f9f36c2d6f9",
+        "file_hash_overrides_relative_to_latest": {}
+      }
+    }
+  ],
+  "effective_counts": {
+    "clarification": 2,
+    "needs_input": 4,
+    "plan_ready": 11
+  },
+  "cases": [
+    {
+      "case": "personnel-nl",
+      "question": "Ik ben op zoek naar personeelsinformatie van Coolblue.",
+      "status": "needs_input",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.employeeDetails",
+          "description": "Retrieve personnel information for the specified company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "employee_details"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.employeeDetails",
+          "executable_operations": [
+            "company.crunchbase-profile"
+          ],
+          "candidates": [
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.crunchbase-profile",
+          "constraints": {
+            "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "source": "apimarket-magicapi-crunchbase-bbcca0a6"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": null,
+      "missing_input": "company.crunchbase_entity_id",
+      "message": "Ik kan de beschikbare openbare personeelsinformatie van Coolblue via Crunchbase opvragen; dit is mogelijk geen volledig personeelsbestand. Hiervoor ontbreekt nog de Crunchbase-identificatie van het bedrijf. De benodigde invoer wordt gecontroleerd voordat je de totaalprijs ter goedkeuring krijgt.",
+      "output_bindings": [
+        {
+          "fields": [
+            "fc72936190edada24",
+            "f0b08d9582219de66",
+            "f33eb2234893e9fc3"
+          ],
+          "interpretation": "De personeelscollecties in het bedrijfsprofiel bevatten beschikbare openbare medewerkerrecords; de volledigheidsindicator geeft aan of er meer records bestaan.",
+          "limitation": "Alleen de door Crunchbase geleverde openbare medewerkerrecords zijn beschikbaar; dit is niet noodzakelijk een volledig personeelsbestand.",
+          "output": "employee_details",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 11629,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "company-personnel-nl",
+      "question": "Geef bedrijfs- en personeelsinformatie over Coolblue.",
+      "status": "needs_input",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.profile",
+          "description": "Retrieve profile information for the specified company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "profile"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.employeeDetails",
+          "description": "Retrieve employee information for the specified company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "employee_details"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.profile",
+          "executable_operations": [
+            "company.crunchbase-profile",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.employeeDetails",
+          "executable_operations": [
+            "company.crunchbase-profile"
+          ],
+          "candidates": [
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.crunchbase-profile",
+          "constraints": {
+            "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "source": "apimarket-magicapi-crunchbase-bbcca0a6"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": null,
+      "missing_input": "company.crunchbase_entity_id",
+      "message": "Crunchbase kan bedrijfsinformatie en beschikbare openbare personeelsgegevens samen leveren. Daarvoor ontbreekt nog de Crunchbase-identificatie van Coolblue; deze invoer wordt eerst gecontroleerd voordat de totaalprijs wordt getoond. Personeelsgegevens kunnen onvolledig zijn.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f6fb140281f7fbedb"
+          ],
+          "interpretation": "De bedrijfsvelden ondersteunen een overzicht van beschikbare bedrijfsinformatie, waaronder naam, beschrijving, website, hoofdkantoor en personeelsomvang.",
+          "limitation": "Alleen daadwerkelijk teruggegeven openbare gegevens worden opgenomen.",
+          "output": "profile",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fc72936190edada24",
+            "f33eb2234893e9fc3"
+          ],
+          "interpretation": "De personeelscollectie bevat beschikbare openbare medewerkersprofielen; de volledigheidsindicator geeft aan of er meer records bestaan.",
+          "limitation": "Geen gegarandeerd volledig personeelsbestand; gegevens kunnen ontbreken en collecties kunnen onvolledig zijn.",
+          "output": "employee_details",
+          "requirement": 1
+        }
+      ],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 13890,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "company-nl",
+      "question": "Ik zoek bedrijfsinformatie over Coolblue.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.profile",
+          "description": "Retrieve company profile information",
+          "inputs": [],
+          "outputs": [
+            "profile"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.profile",
+          "executable_operations": [
+            "company.crunchbase-profile",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company_registry.search",
+          "constraints": {
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 21739,
+        "sources": [
+          "kvk-dutch-business-register"
+        ],
+        "steps": [
+          {
+            "capability": "company_registry.search",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.postcode",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company_registry.kvknummer",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.huisletter",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "naam": "Coolblue"
+            },
+            "source": "kvk-dutch-business-register",
+            "total_atomic": 21739
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "Ik kan op naam zoeken in het Handelsregister en de gevonden bedrijfsnamen en KvK-nummers als mogelijke matches voor Coolblue tonen, niet als volledig bevestigd bedrijfsprofiel. Eerst worden de invoergegevens gecontroleerd; daarna krijg je de totaalprijs ter goedkeuring.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f5fea44a7459c2624",
+            "fbfe0543ed90bf7d0"
+          ],
+          "interpretation": "Bedrijfsnamen en KvK-nummers bieden beknopte bedrijfsinformatie over kandidaatmatches op de naam Coolblue.",
+          "limitation": "Zoekresultaten zijn mogelijke matches, geen bevestigd of volledig bedrijfsprofiel.",
+          "output": "profile",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 13217,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "company-search",
+      "question": "Find companies named Coolblue.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.search",
+          "description": "Find companies matching the given name",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "company_matches"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.search",
+          "executable_operations": [
+            "company.eu-registry-search",
+            "company.fr-registry-search",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "sirenic",
+              "capability": "company.fr-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.eu-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.eu-registry-search",
+          "constraints": {
+            "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+            "source": "sirenic"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 3450,
+        "sources": [
+          "sirenic"
+        ],
+        "steps": [
+          {
+            "capability": "company.eu-registry-search",
+            "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company.search.country_code",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "q": "Coolblue"
+            },
+            "source": "sirenic",
+            "total_atomic": 3450
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll search European business registers for companies named Coolblue and present candidate matches with available registration identifiers and countries. Coverage varies by register. Inputs are checked before the total price is shown for approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f40bc74e1d5adb719",
+            "f62b4eca27aa3a983",
+            "f8f292309311eefe2"
+          ],
+          "interpretation": "Company names, national registration identifiers and country codes describe candidates returned by the name search.",
+          "limitation": "Results are candidate matches, not confirmed identities; European register coverage varies and fields may be unavailable.",
+          "output": "company_matches",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 10540,
+      "validated_run": "final-search-controls"
+    },
+    {
+      "case": "employee-names-titles",
+      "question": "Find the employee names and job titles for Coolblue.",
+      "status": "clarification",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.employeeDetails",
+          "description": "Retrieve employee names and job titles",
+          "inputs": [],
+          "outputs": [
+            "employee_name",
+            "job_title"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.employeeDetails",
+          "executable_operations": [
+            "company.crunchbase-profile"
+          ],
+          "candidates": [
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "talentpulse",
+              "capability": null,
+              "availability": "discovery_only"
+            },
+            {
+              "provider": "brightdata",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [],
+      "plan": null,
+      "missing_input": null,
+      "message": "The available Crunchbase contract includes employee records, but does not document employee names or job titles, so I can’t verify coverage for your request. Would you like the available employee information instead, with its coverage limitations clearly noted?",
+      "output_bindings": [],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 7145,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "employee-count",
+      "question": "How many employees does Coolblue have?",
+      "status": "needs_input",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {},
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.employeeCount",
+          "description": "Retrieve the number of employees for the specified company",
+          "inputs": [],
+          "outputs": [
+            "employee_count"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.employeeCount",
+          "executable_operations": [
+            "company.crunchbase-profile",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "capability": "company.crunchbase-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.registry-profile",
+          "constraints": {
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": null,
+      "missing_input": "company_registry.kvknummer",
+      "message": "I’ll prepare the source requests. Once all inputs are complete, you’ll get one total price to approve.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f7abffa69f8ba8367"
+          ],
+          "interpretation": "Report the returned employee count.",
+          "limitation": null,
+          "output": "employee_count",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 9927,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "employer-ratings",
+      "question": "Compare employee ratings of Starbucks and McDonald's as employers.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Starbucks"
+          },
+          "label": "Starbucks",
+          "type": "company"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "company_name": "McDonald's"
+          },
+          "label": "McDonald's",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.employeeRatings",
+          "description": "Retrieve employee rating for a company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "employee_rating"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.employeeRatings",
+          "description": "Retrieve employee rating for a company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "employee_rating"
+          ],
+          "subject_id": "s2",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.employeeRatings",
+          "executable_operations": [
+            "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829"
+          ],
+          "candidates": [
+            {
+              "provider": "openwebninja",
+              "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+              "availability": "supported"
+            },
+            {
+              "provider": "stableenrich",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.employeeRatings",
+          "executable_operations": [
+            "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829"
+          ],
+          "candidates": [
+            {
+              "provider": "openwebninja",
+              "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+              "availability": "supported"
+            },
+            {
+              "provider": "stableenrich",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 1
+        }
+      ],
+      "plan": {
+        "cap_atomic": 6900,
+        "sources": [
+          "openwebninja"
+        ],
+        "steps": [
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "input_requirements": [
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "query": "Starbucks"
+            },
+            "source": "openwebninja",
+            "total_atomic": 3450
+          },
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "input_requirements": [
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "query": "McDonald's"
+            },
+            "source": "openwebninja",
+            "total_atomic": 3450
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll prepare the source requests. Once all inputs are complete, you’ll get one total price to approve.",
+      "output_bindings": [
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "Report the returned employee rating.",
+          "limitation": null,
+          "output": "employee_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "Report the returned employee rating.",
+          "limitation": null,
+          "output": "employee_rating",
+          "requirement": 1
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 1506,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "kvk-search-control",
+      "question": "Search KVK for companies named Coolblue.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.search",
+          "description": "Search for companies matching the given name",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "company_matches"
+          ],
+          "subject_id": "s1",
+          "source_hint": "kvk"
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.search",
+          "executable_operations": [
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company_registry.search",
+          "constraints": {
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 21739,
+        "sources": [
+          "kvk-dutch-business-register"
+        ],
+        "steps": [
+          {
+            "capability": "company_registry.search",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.postcode",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company_registry.kvknummer",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.huisletter",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "naam": "Coolblue"
+            },
+            "source": "kvk-dutch-business-register",
+            "total_atomic": 21739
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll prepare a KVK name search for Coolblue and present matching company names and registration numbers as candidates. Inputs are checked before the total price is shown for your approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f5fea44a7459c2624",
+            "fbfe0543ed90bf7d0"
+          ],
+          "interpretation": "Returned company names and KVK registration numbers identify candidate companies matching the supplied name.",
+          "limitation": "Search matches are candidates, not confirmation of a particular company’s identity.",
+          "output": "company_matches",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 9757,
+      "validated_run": "final-search-controls"
+    },
+    {
+      "case": "kvk-number-control",
+      "question": "Find the company name and KVK number for Coolblue using KVK.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.profile",
+          "description": "Retrieve company name and KVK number for the specified company",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "company_name",
+            "kvk_number"
+          ],
+          "subject_id": "s1",
+          "source_hint": "kvk"
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.profile",
+          "executable_operations": [
+            "company.branch-profile",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.branch-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company_registry.search",
+          "constraints": {
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 21739,
+        "sources": [
+          "kvk-dutch-business-register"
+        ],
+        "steps": [
+          {
+            "capability": "company_registry.search",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.postcode",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company_registry.kvknummer",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "building.huisletter",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "naam": "Coolblue"
+            },
+            "source": "kvk-dutch-business-register",
+            "total_atomic": 21739
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll search KVK for Coolblue and present matching company names and KVK numbers as candidates. Inputs are checked before the total price is shown for your approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f5fea44a7459c2624"
+          ],
+          "interpretation": "Company names returned for records matching the Coolblue name search.",
+          "limitation": "Search results are candidate matches, not confirmed company identity.",
+          "output": "company_name",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "fbfe0543ed90bf7d0"
+          ],
+          "interpretation": "KVK registration numbers returned for matching company candidates.",
+          "limitation": "Search results are candidate matches, not confirmed company identity.",
+          "output": "kvk_number",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 9593,
+      "validated_run": "final-capability-discovery"
+    },
+    {
+      "case": "starter-company-sanctions",
+      "question": "Find companies named Coolblue and check whether the company name appears on sanctions lists.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "Coolblue"
+          },
+          "label": "Coolblue",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.search",
+          "description": "Search for companies matching a given name",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "company_matches"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "compliance.sanctions.check",
+          "description": "Check whether a company appears on sanctions lists",
+          "inputs": [
+            "company_name"
+          ],
+          "outputs": [
+            "sanctions_match"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.search",
+          "executable_operations": [
+            "company.eu-registry-search",
+            "company.fr-registry-search",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "sirenic",
+              "capability": "company.fr-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.eu-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "compliance.sanctions.check",
+          "executable_operations": [
+            "company.sanctions-screen",
+            "company.sirenic-sanctions-check",
+            "operation.compliancepulse.get-api-screen-sanctions-96e543e5"
+          ],
+          "candidates": [
+            {
+              "provider": "opensanctions",
+              "capability": "company.sanctions-screen",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.sirenic-sanctions-check",
+              "availability": "supported"
+            },
+            {
+              "provider": "compliancepulse",
+              "capability": "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.eu-registry-search",
+          "constraints": {
+            "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+            "source": "sirenic"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "company.sirenic-sanctions-check",
+          "constraints": {
+            "endpoint_id": "671184a2-54ab-5692-bc91-d2710b220028",
+            "source": "sirenic"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 26450,
+        "sources": [
+          "sirenic"
+        ],
+        "steps": [
+          {
+            "capability": "company.eu-registry-search",
+            "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company.search.country_code",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "q": "Coolblue"
+            },
+            "source": "sirenic",
+            "total_atomic": 3450
+          },
+          {
+            "capability": "company.sirenic-sanctions-check",
+            "endpoint_id": "671184a2-54ab-5692-bc91-d2710b220028",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company.sirenic.input.sanctions_check.birth_year",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "name": "Coolblue"
+            },
+            "source": "sirenic",
+            "total_atomic": 23000
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll plan a European company-name search for Coolblue and an independent sanctions-name check. Results will be presented as potential matches, not confirmed identities or a legal verdict. Inputs are checked before the total price is shown for approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f40bc74e1d5adb719",
+            "f62b4eca27aa3a983",
+            "f8f292309311eefe2"
+          ],
+          "interpretation": "Returned company names, national registration identifiers and country codes describe candidate companies matching Coolblue.",
+          "limitation": "Coverage is limited to available European registers; candidate matches do not confirm identity, and missing fields remain unavailable.",
+          "output": "company_matches",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f936051dce717b82c",
+            "f2c02010aa0ba7f01",
+            "f0a32756f84d13021",
+            "f4c7ad5035d401b2c",
+            "f99aae59a5b75b643",
+            "fff84123f97917916",
+            "ff4d2adffd252e56e"
+          ],
+          "interpretation": "Match count, matched names, source lists, confidence scores and levels support reporting potential sanctions-name matches, with consulted lists and truncation disclosed.",
+          "limitation": "Name matches are not confirmed company identities or a definitive legal verdict; conclusions are limited to the lists checked and any reported truncation.",
+          "output": "sanctions_match",
+          "requirement": 1
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 14751,
+      "validated_run": "final-starter-retention"
+    },
+    {
+      "case": "starter-vat-company",
+      "question": "Validate VAT number NL815839091B01 and show the registered company details for Mollie B.V., registration number 30204462.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "vat_number": "NL815839091B01"
+          },
+          "label": "NL815839091B01",
+          "type": "vat_number"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "company_name": "Mollie B.V.",
+            "registration_number": "30204462"
+          },
+          "label": "Mollie B.V.",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "finance.vatValidate",
+          "description": "Validate a VAT number",
+          "inputs": [
+            "vat_number"
+          ],
+          "outputs": [
+            "validation_status"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.profile",
+          "description": "Retrieve registered company details",
+          "inputs": [
+            "company_name",
+            "registration_number"
+          ],
+          "outputs": [
+            "profile"
+          ],
+          "subject_id": "s2",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "finance.vatValidate",
+          "executable_operations": [
+            "vat.eu.check",
+            "vat.eu.service-status",
+            "vat.eu.validate"
+          ],
+          "candidates": [
+            {
+              "provider": "vies",
+              "capability": "vat.eu.service-status",
+              "availability": "supported"
+            },
+            {
+              "provider": "vies",
+              "capability": "vat.eu.validate",
+              "availability": "supported"
+            },
+            {
+              "provider": "vies",
+              "capability": "vat.eu.check",
+              "availability": "supported"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.profile",
+          "executable_operations": [
+            "company.eu-registry-search",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.eu-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "vat.eu.validate",
+          "constraints": {
+            "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+            "source": "vies"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "company.registry-profile",
+          "constraints": {
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 1
+        }
+      ],
+      "plan": {
+        "cap_atomic": 173913,
+        "sources": [
+          "kvk-dutch-business-register",
+          "vies"
+        ],
+        "steps": [
+          {
+            "capability": "vat.eu.validate",
+            "endpoint_id": "2b665371-58b4-493c-8807-83cdabbd1db9",
+            "input_requirements": [
+              {
+                "fact_type": "vat.eu.country_code",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "vat.eu.number",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "cc": "NL",
+              "nr": "815839091B01"
+            },
+            "source": "vies",
+            "total_atomic": 97826
+          },
+          {
+            "capability": "company.registry-profile",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "input_requirements": [
+              {
+                "fact_type": "company_registry.kvknummer",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "kvkNummer": "30204462"
+            },
+            "source": "kvk-dutch-business-register",
+            "total_atomic": 76087
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll prepare VIES validation for NL815839091B01 and a KVK registered-company lookup using registration number 30204462. Inputs are checked before the total price is shown; neither call runs until you approve.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f673d5ceb8a9dc98c"
+          ],
+          "interpretation": "The VIES validity boolean indicates whether the supplied VAT number is valid.",
+          "limitation": null,
+          "output": "validation_status",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "f20629d7ec1591cf4",
+            "fc8d3ada4ed1f68f9",
+            "f31c753d2c2da15c6",
+            "f5e4cc0bf53cf06aa",
+            "fc5b20427ac5aa5d4",
+            "f5ddb82701daf22f3"
+          ],
+          "interpretation": "Registered legal name, KVK number, trade names, establishment addresses and SBI activity codes and descriptions support the registered-company summary.",
+          "limitation": "Only details returned by KVK will be shown; missing fields will not be inferred.",
+          "output": "profile",
+          "requirement": 1
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 13436,
+      "validated_run": "provider-free-starters"
+    },
+    {
+      "case": "starter-employer-ratings",
+      "question": "Compare employee ratings of Starbucks and McDonald’s as employers.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {},
+          "label": "Starbucks",
+          "type": "company"
+        },
+        {
+          "id": "s2",
+          "identifiers": {},
+          "label": "McDonald’s",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.employeeRatings",
+          "description": "Retrieve employee rating for a company",
+          "inputs": [],
+          "outputs": [
+            "employee_rating"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.employeeRatings",
+          "description": "Retrieve employee rating for a company",
+          "inputs": [],
+          "outputs": [
+            "employee_rating"
+          ],
+          "subject_id": "s2",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.employeeRatings",
+          "executable_operations": [
+            "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829"
+          ],
+          "candidates": [
+            {
+              "provider": "openwebninja",
+              "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+              "availability": "supported"
+            },
+            {
+              "provider": "stableenrich",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.employeeRatings",
+          "executable_operations": [
+            "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829"
+          ],
+          "candidates": [
+            {
+              "provider": "openwebninja",
+              "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+              "availability": "supported"
+            },
+            {
+              "provider": "stableenrich",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+          "constraints": {
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "source": "openwebninja"
+          },
+          "subject": 1
+        }
+      ],
+      "plan": {
+        "cap_atomic": 6900,
+        "sources": [
+          "openwebninja"
+        ],
+        "steps": [
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "input_requirements": [
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "query": "Starbucks"
+            },
+            "source": "openwebninja",
+            "total_atomic": 3450
+          },
+          {
+            "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+            "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+            "input_requirements": [
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.limit",
+                "optional": true,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.query",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "source_input.e22c6c82933545999a55d64ac65128077.domain",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "query": "McDonald’s"
+            },
+            "source": "openwebninja",
+            "total_atomic": 3450
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll prepare the source requests. Once all inputs are complete, you’ll get one total price to approve.",
+      "output_bindings": [
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "Report the returned employee rating.",
+          "limitation": null,
+          "output": "employee_rating",
+          "requirement": 0
+        },
+        {
+          "fields": [
+            "ff92ca1238bc4f98a"
+          ],
+          "interpretation": "Report the returned employee rating.",
+          "limitation": null,
+          "output": "employee_rating",
+          "requirement": 1
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 1811,
+      "validated_run": "provider-free-starters"
+    },
+    {
+      "case": "starter-leadership-sanctions",
+      "question": "Who runs and controls MONZO BANK LIMITED, UK company number 09446231, and does the company appear on sanctions lists?",
+      "status": "clarification",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "MONZO BANK LIMITED",
+            "company_number": "09446231",
+            "country": "UK"
+          },
+          "label": "MONZO BANK LIMITED",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.leadershipAndControl",
+          "description": "Identify the individuals who run and control the company",
+          "inputs": [
+            "company_name",
+            "company_number",
+            "country"
+          ],
+          "outputs": [
+            "leadership",
+            "controllers"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.sanctionsCheck",
+          "description": "Determine whether the company appears on sanctions lists",
+          "inputs": [
+            "company_name",
+            "company_number",
+            "country"
+          ],
+          "outputs": [
+            "sanctions_listed"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.leadershipAndControl",
+          "executable_operations": [
+            "company.significant-control"
+          ],
+          "candidates": [
+            {
+              "provider": "companies-house",
+              "capability": "company.significant-control",
+              "availability": "supported"
+            },
+            {
+              "provider": "geopoliticalpulse",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.sanctionsCheck",
+          "executable_operations": [
+            "company.sanctions-screen",
+            "company.sirenic-sanctions-check",
+            "operation.compliancepulse.get-api-screen-sanctions-96e543e5"
+          ],
+          "candidates": [
+            {
+              "provider": "opensanctions",
+              "capability": "company.sanctions-screen",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.sirenic-sanctions-check",
+              "availability": "supported"
+            },
+            {
+              "provider": "compliancepulse",
+              "capability": "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [],
+      "plan": null,
+      "missing_input": null,
+      "message": "The available endpoints can retrieve registered persons with significant control and screen for sanctions matches, but they do not provide directors or executive leadership. Would you like to narrow this request to registered controllers and sanctions screening?",
+      "output_bindings": [],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": false,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": false,
+      "issues": [
+        "requested_categories_collapsed",
+        "known_search_regression_did_not_plan"
+      ],
+      "manual_semantic_issues": [],
+      "duration_ms": 7189,
+      "validated_run": "final-starter-retention"
+    },
+    {
+      "case": "starter-vehicle-company",
+      "question": "Show the vehicle details for Dutch plate RZ874R and the registered company details for Louwman Dealerbedrijven B.V., registration number 27095155.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "plate_number": "RZ874R"
+          },
+          "label": "RZ874R",
+          "type": "vehicle"
+        },
+        {
+          "id": "s2",
+          "identifiers": {
+            "company_name": "Louwman Dealerbedrijven B.V.",
+            "registration_number": "27095155"
+          },
+          "label": "Louwman Dealerbedrijven B.V.",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "vehicle.profile",
+          "description": "Retrieve detailed information about the specified vehicle",
+          "inputs": [
+            "plate_number"
+          ],
+          "outputs": [
+            "profile"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.profile",
+          "description": "Retrieve registered company details for the specified entity",
+          "inputs": [
+            "company_name",
+            "registration_number"
+          ],
+          "outputs": [
+            "profile"
+          ],
+          "subject_id": "s2",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "vehicle.profile",
+          "executable_operations": [
+            "vehicle.registry-lookup",
+            "vehicle.registry-search",
+            "vehicle.technical-profile"
+          ],
+          "candidates": [
+            {
+              "provider": "rdw",
+              "capability": "vehicle.technical-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "vehicle.registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "vehicle.registry-lookup",
+              "availability": "supported"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.profile",
+          "executable_operations": [
+            "company.eu-registry-search",
+            "company.registry-profile",
+            "company_registry.lookup",
+            "company_registry.search"
+          ],
+          "candidates": [
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            },
+            {
+              "provider": "kvk-dutch-business-register",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.search",
+              "availability": "supported"
+            },
+            {
+              "provider": "overheid-io",
+              "capability": "company_registry.lookup",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.eu-registry-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.registry-profile",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "vehicle.technical-profile",
+          "constraints": {
+            "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+            "source": "rdw"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "company.registry-profile",
+          "constraints": {
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source": "kvk-dutch-business-register"
+          },
+          "subject": 1
+        }
+      ],
+      "plan": {
+        "cap_atomic": 130435,
+        "sources": [
+          "kvk-dutch-business-register",
+          "rdw"
+        ],
+        "steps": [
+          {
+            "capability": "vehicle.technical-profile",
+            "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+            "input_requirements": [
+              {
+                "fact_type": "vehicle.registration.nl.plate",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "kenteken": "RZ874R"
+            },
+            "source": "rdw",
+            "total_atomic": 54348
+          },
+          {
+            "capability": "company.registry-profile",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "input_requirements": [
+              {
+                "fact_type": "company_registry.kvknummer",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "kvkNummer": "27095155"
+            },
+            "source": "kvk-dutch-business-register",
+            "total_atomic": 76087
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll prepare the RDW vehicle details and KVK registered company details using the plate and registration number you supplied. The inputs will be checked before a total price is shown for your approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f7c6e3dc62357e9e6",
+            "fc3a23d11fa2720bf",
+            "f82c0b898267eadf4",
+            "f4139db7dafd21eb9",
+            "f957a85cf3158a81b",
+            "f4d641bc58497949a",
+            "f00f871f59835aee7",
+            "f8d5807079b5a687d",
+            "f1b120af6fb7837bf",
+            "fe1746b543e0a7f0b"
+          ],
+          "interpretation": "The returned plate, make, commercial name, vehicle type, APK expiry, engine displacement, mass, dimensions and colour support a summary of vehicle details.",
+          "limitation": "Fuel and emissions data and owner identity are excluded; fields not returned will remain unavailable.",
+          "output": "profile",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 12815,
+      "validated_run": "provider-free-starters"
+    },
+    {
+      "case": "starter-building",
+      "question": "Show the building details for Damrak 1, Amsterdam.",
+      "status": "needs_input",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Damrak 1",
+            "city": "Amsterdam"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "building"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "location.buildingDetails",
+          "description": "Retrieve detailed information about the specified building.",
+          "inputs": [
+            "address",
+            "city"
+          ],
+          "outputs": [
+            "building_details"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "location.buildingDetails",
+          "executable_operations": [
+            "building.bag-building",
+            "building.bag-unit",
+            "building.registry-lookup",
+            "location.property-search"
+          ],
+          "candidates": [
+            {
+              "provider": "pdok",
+              "capability": "location.property-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "pdok",
+              "capability": "building.bag-building",
+              "availability": "supported"
+            },
+            {
+              "provider": "pdok",
+              "capability": "building.bag-unit",
+              "availability": "supported"
+            },
+            {
+              "provider": "pdok",
+              "capability": "building.registry-lookup",
+              "availability": "supported"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "building.bag-building",
+          "constraints": {
+            "endpoint_id": "722b54d3-d6d4-49c0-ae9b-3037b02066c4",
+            "source": "pdok"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": null,
+      "missing_input": "location.single_building_href",
+      "message": "I can retrieve the building’s construction year, status, identifier, use purpose and unit count. The source requires its direct BAG building link; required inputs will be checked before a total price is shown for approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f2a3cab1ce796ac3c",
+            "f0bea6e5c45438f72",
+            "f3edb20bc233b3aa0",
+            "fe5705ab656c52787",
+            "f2a125ef15492f1f0"
+          ],
+          "interpretation": "Building details comprise construction year, building status, building identifier, use purpose and number of registered units.",
+          "limitation": "The direct BAG building link must be supplied before pricing or retrieval; it cannot be inferred from the address.",
+          "output": "building_details",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true
+      },
+      "assertions_passed": false,
+      "issues": [
+        "known_search_regression_did_not_plan"
+      ],
+      "manual_semantic_issues": [],
+      "duration_ms": 11086,
+      "validated_run": "provider-free-starters"
+    },
+    {
+      "case": "starter-address-record",
+      "question": "Find the address record for Damrak 1, Amsterdam.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "city": "Amsterdam",
+            "street_address": "Damrak 1"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "address"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "location.address.search",
+          "description": "Retrieve address details for a given street and city",
+          "inputs": [
+            "street_address",
+            "city"
+          ],
+          "outputs": [
+            "address_record"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "location.address.search",
+          "executable_operations": [
+            "location.bag-address-context",
+            "location.property-search"
+          ],
+          "candidates": [
+            {
+              "provider": "pdok",
+              "capability": "location.property-search",
+              "availability": "supported"
+            },
+            {
+              "provider": "pdok",
+              "capability": "location.bag-address-context",
+              "availability": "supported"
+            },
+            {
+              "provider": "agentbodega",
+              "capability": null,
+              "availability": "discovery_only"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "location.property-search",
+          "constraints": {
+            "endpoint_id": "e1dc0681-d7e3-48d7-8f1a-eafca2eab00b",
+            "source": "pdok"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 10000,
+        "sources": [
+          "pdok"
+        ],
+        "steps": [
+          {
+            "capability": "location.property-search",
+            "endpoint_id": "e1dc0681-d7e3-48d7-8f1a-eafca2eab00b",
+            "input_requirements": [
+              {
+                "fact_type": "geo.input.q",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "fq": "type:adres AND straatnaam:\"Damrak\" AND huisnummer:1 AND woonplaatsnaam:\"Amsterdam\" AND -huisletter:[* TO *] AND -huisnummertoevoeging:[* TO *]",
+              "q": "*:*",
+              "rows": 5
+            },
+            "source": "pdok",
+            "total_atomic": 10000
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll use PDOK’s address search to find the matching address record and BAG identifier for Damrak 1, Amsterdam. Inputs are checked before the total price is shown for your approval.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f6a28a6e60dae3a51",
+            "f8add724f33376cbb"
+          ],
+          "interpretation": "The returned address label and BAG object identifier identify the matching address record.",
+          "limitation": "If the search returns multiple matches, they will be presented as candidates rather than a confirmed address.",
+          "output": "address_record",
+          "requirement": 0
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 11736,
+      "validated_run": "replacement-starters"
+    },
+    {
+      "case": "starter-officers-control-sanctions",
+      "question": "List the registered company officers and persons with significant control for MONZO BANK LIMITED, company number 09446231, and check the company name against sanctions lists.",
+      "status": "plan_ready",
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "company_name": "MONZO BANK LIMITED",
+            "company_number": "09446231"
+          },
+          "label": "MONZO BANK LIMITED",
+          "type": "company"
+        }
+      ],
+      "parsed_capabilities": [
+        {
+          "slug": "company.officers",
+          "description": "Retrieve registered officers of the company",
+          "inputs": [],
+          "outputs": [
+            "officer_name",
+            "officer_role"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "company.personsWithSignificantControl",
+          "description": "Retrieve PSCs of the company",
+          "inputs": [],
+          "outputs": [
+            "person_name",
+            "control_type"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        },
+        {
+          "slug": "compliance.sanctionsCheck",
+          "description": "Check company name against sanctions lists",
+          "inputs": [],
+          "outputs": [
+            "sanction_match"
+          ],
+          "subject_id": "s1",
+          "source_hint": null
+        }
+      ],
+      "discovered_candidates": [
+        {
+          "parsed_capability": "company.officers",
+          "executable_operations": [
+            "company.officers",
+            "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+            "company.uk-director-roster"
+          ],
+          "candidates": [
+            {
+              "provider": "companies-house",
+              "capability": "company.officers",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.sirenic-eu-entreprise-gb-company-number-dirigeants",
+              "availability": "supported"
+            },
+            {
+              "provider": "companies-house",
+              "capability": "operation.companies-house.get-officers-f01533f9",
+              "availability": "unverified"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.uk-director-roster",
+              "availability": "supported"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "company.personsWithSignificantControl",
+          "executable_operations": [
+            "company.significant-control",
+            "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs"
+          ],
+          "candidates": [
+            {
+              "provider": "companies-house",
+              "capability": "company.significant-control",
+              "availability": "supported"
+            },
+            {
+              "provider": "sirenic",
+              "capability": "company.sirenic-eu-entreprise-gb-company-number-beneficiaires-effectifs",
+              "availability": "supported"
+            },
+            {
+              "provider": "companies-house",
+              "capability": "operation.companies-house.get-persons-with-significant-control-86d4c314",
+              "availability": "unverified"
+            }
+          ]
+        },
+        {
+          "parsed_capability": "compliance.sanctionsCheck",
+          "executable_operations": [
+            "company.sanctions-screen",
+            "operation.compliancepulse.get-api-screen-sanctions-96e543e5"
+          ],
+          "candidates": [
+            {
+              "provider": "opensanctions",
+              "capability": "company.sanctions-screen",
+              "availability": "supported"
+            },
+            {
+              "provider": "compliancepulse",
+              "capability": "operation.compliancepulse.get-api-screen-sanctions-96e543e5",
+              "availability": "supported"
+            },
+            {
+              "provider": "cbz-agent-pocket-network",
+              "capability": "operation.cbz-agent-pocket-network.post-v1-sanctions-watchlist-screen-e2274d2e",
+              "availability": "unverified"
+            }
+          ]
+        }
+      ],
+      "selected_goals": [
+        {
+          "capability": "company.officers",
+          "constraints": {
+            "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+            "source": "companies-house"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "company.significant-control",
+          "constraints": {
+            "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+            "source": "companies-house"
+          },
+          "subject": 0
+        },
+        {
+          "capability": "company.sanctions-screen",
+          "constraints": {
+            "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+            "source": "opensanctions"
+          },
+          "subject": 0
+        }
+      ],
+      "plan": {
+        "cap_atomic": 217392,
+        "sources": [
+          "companies-house",
+          "opensanctions"
+        ],
+        "steps": [
+          {
+            "capability": "company.officers",
+            "endpoint_id": "f585dd55-9b35-553e-a993-7b225d3d1df5",
+            "input_requirements": [
+              {
+                "fact_type": "company.registration.gb.companies_house",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "company_number": "09446231",
+              "items_per_page": 100
+            },
+            "source": "companies-house",
+            "total_atomic": 54348
+          },
+          {
+            "capability": "company.significant-control",
+            "endpoint_id": "3c961454-b706-5601-a449-9afa29affb7a",
+            "input_requirements": [
+              {
+                "fact_type": "company.registration.gb.companies_house",
+                "optional": false,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "company_number": "09446231",
+              "items_per_page": 100
+            },
+            "source": "companies-house",
+            "total_atomic": 54348
+          },
+          {
+            "capability": "company.sanctions-screen",
+            "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+            "input_requirements": [
+              {
+                "fact_type": "company.name",
+                "optional": false,
+                "subject_role": "subject"
+              },
+              {
+                "fact_type": "company.search.country_code",
+                "optional": true,
+                "subject_role": "subject"
+              }
+            ],
+            "inputs": {
+              "dataset": "default",
+              "limit": 10,
+              "queries": {
+                "q1": {
+                  "properties": {
+                    "name": [
+                      "MONZO BANK LIMITED"
+                    ]
+                  },
+                  "schema": "Company"
+                }
+              }
+            },
+            "source": "opensanctions",
+            "total_atomic": 108696
+          }
+        ]
+      },
+      "missing_input": null,
+      "message": "I’ll plan Companies House officer and significant-control checks, plus an OpenSanctions company-name screening. Inputs are checked before the total price is shown for approval; screening results will be treated as potential matches, not a definitive sanctions verdict.",
+      "output_bindings": [
+        {
+          "fields": [
+            "f3728ec878fde06dd",
+            "ff11ff3308893c004"
+          ],
+          "interpretation": "The registered natures of control describe each PSC's type of control.",
+          "limitation": "Control details are available only when returned; pagination may limit the records shown.",
+          "output": "control_type",
+          "requirement": 1
+        },
+        {
+          "fields": [
+            "f1b888a39147278a7",
+            "f596f2e57402267a4",
+            "f95aa0752a809a2dd",
+            "fde1a51e30970328d"
+          ],
+          "interpretation": "Candidate names, match flags, scores and dataset membership support reporting potential sanctions-list matches separately from other watchlist hits.",
+          "limitation": "Name-screening candidates do not confirm identity or constitute a definitive legal sanctions verdict.",
+          "output": "sanction_match",
+          "requirement": 2
+        }
+      ],
+      "assertions": {
+        "all_inputs_available": true,
+        "missing_concept_groups": [],
+        "requested_concepts_retained": true,
+        "separate_categories_retained": true,
+        "single_cap_equals_steps": true,
+        "source_field_coverage_validated_by_parser": true,
+        "source_hints_preserved": true,
+        "steps_from_discovered_executable_endpoints": true
+      },
+      "assertions_passed": true,
+      "issues": [],
+      "manual_semantic_issues": [],
+      "duration_ms": 12335,
+      "validated_run": "replacement-starters"
+    }
+  ],
+  "publishable_starter_cases": [
+    "starter-company-sanctions",
+    "starter-vat-company",
+    "starter-employer-ratings",
+    "starter-officers-control-sanctions",
+    "starter-vehicle-company",
+    "starter-address-record"
+  ],
+  "unpublished_original_starters": {
+    "starter-leadership-sanctions": "The request for actual leadership has broader scope than registered officer records, and the admitted shortlist did not prove it. Replaced by explicit registered officers/significant-control question.",
+    "starter-building": "Address alone cannot supply the admitted detailed-building call’s required direct BAG href. Replaced by address-record retrieval, which is a different, supported scope."
+  },
+  "production_code_unchanged_since_latest_run": true,
+  "latest_source_fingerprint": {
+    "recorded_at": "2026-10-13T15:45:59.765625+00:00",
+    "head": "c4d9e985bdc3262afe72d14a2ca6fbb6444942e1",
+    "files_sha256": {
+      "src/parser.rs": "8fc22a2a8405f490b809a82148af4f21936ea64db6546d02566eb1912abdf1ab",
+      "src/parser/contract_planner.rs": "f1a8ce916847a357e92bdc2648df63f335b4ea9f3faa0d3f216faefb165963b9",
+      "src/parser/plan_coverage.rs": "6e5f96e7ac2f33291493d5282f8edee62ee46ef365dfefff3170e24748442e7a",
+      "src/parser/source_grounding.rs": "06f22d6378876cde526976fe609ae792629be1a489a0b8e73c592c5700666660",
+      "src/ask_v2/search.rs": "f534b7f9281059b54832fd0f3707bc1f5b185df6075054f0dc4e8a4434e558ce",
+      "src/ask_v2/search/relevance.rs": "d9214d8d72d83feb7cbb101bc338635616b3894aa4ccde1fb629be111df9f4eb",
+      "src/ask_v2/search/output_metadata.rs": "caaafd3f5453f0f4dc177115e73f4499bf7583be79e3a5b47dba7908be7bf011",
+      "src/ask_v2/search/collection_search.rs": "3eabe982014b2eaf1ce5d9f9462c22df6bbad65de69199eb2656c6ccc5725071",
+      "contracts/ask-v2-webgpu-prompt.txt": "08a527e9d3442dbae4b42531dd6fcd12047b4debfed5dd36c4cb7b9e878cafe2",
+      "contracts/capability-planning-prompt.txt": "1d71d52400fc97bb4080ffd82b86db2b9a7c2cc1b7758a399a35a30a4485b03c",
+      "examples/audit-capability-discovery.rs": "48648dc87cc7f3a7bdca10d880d72b76d7b615667258642c528e19c642cdba24",
+      "tests/fixtures/capability-discovery-questions.json": "456594c8171c1545bc6b602cf52086a7920cd84a9306f7cd24d1855d16fce634"
+    },
+    "binary_sha256": "ffef536167181f915947ed366d391564a584e5a36000ec1acf070f9f36c2d6f9",
+    "authorization": "User explicitly approved OpenRouter test questions and catalog descriptions/schema metadata; no secrets, user results or provider purchases."
+  },
+  "unit_verification": {
+    "ask_v2_search": {
+      "passed": 100,
+      "ignored": 1
+    },
+    "capability_intake": {
+      "passed": 52
+    },
+    "source_grounding": {
+      "passed": 11
+    },
+    "plan_coverage": {
+      "passed": 60,
+      "ignored": 1
+    },
+    "contract_planner": {
+      "passed": 6
+    },
+    "semantic_fallback": {
+      "passed": 1
+    },
+    "scope": "Local final-code tests; loopback mock model server for transport fixtures. No deployment or provider execution."
+  },
+  "ui_verification": {
+    "command": "npm test -- tests/components/ask-v2/ask-starters.test.tsx",
+    "passed": 7,
+    "failed": 0,
+    "scope": "Rendered six starter buttons and selecting each exact editable question; no full production browser journey."
+  },
+  "deployment": "Local working-tree changes only; no deployment, commit, database mutation or data purchase in this task.",
+  "official_source_reference": "https://data.crunchbase.com/docs/tool-reference",
+  "source_registration_changes": "Expanded endpoint-local schema discovery and onboarding normalization guidance; existing public capability registrations were not modified.",
+  "published_starter_source": {
+    "path": "app/src/lib/ui/ask-examples.ts",
+    "sha256": "30e2d4bc0a713dc647320fceb441452612bb6215a167215b4575debdff0d5e8e",
+    "meaning": "Updated local source, not a deployed release."
+  }
+}

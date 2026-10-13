@@ -106,6 +106,7 @@ struct Document {
     /// Exact documented response field names and reviewed aliases. These
     /// identify supported data without turning prose into operation identity.
     output_concepts: BTreeSet<String>,
+    collection_concepts: BTreeSet<String>,
     /// Entity domains with an admitted many-record search that consumes and
     /// returns a typed name. Generic search words alone are not evidence.
     name_search_domains: BTreeSet<String>,
@@ -195,7 +196,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             })
             .and_then(serde_json::Value::as_str)
             .unwrap_or("");
-        let output_metadata::Metadata { text: output_metadata, concepts: output_concepts } = output_metadata::metadata(service, catalog);
+        let output_metadata::Metadata { text: output_metadata, concepts: output_concepts, collections: collection_concepts } = output_metadata::metadata(service, catalog);
         // Do not attach a provider's broad description to each endpoint: that
         // would make its officers endpoint falsely match beneficial ownership.
         let mut text = format!(
@@ -271,6 +272,7 @@ fn index(catalog: &Catalog) -> Arc<Index> {
         // execution still require the selected contract's exact output proof.
         indexed.topic_scope = document(Target::Endpoint(position), &format!("{opening} {translated_opening} {output_metadata}"), BTreeSet::new()).tokens;
         indexed.output_concepts = output_concepts;
+        indexed.collection_concepts = collection_concepts;
         indexed.name_search_domains = collection_search::domains(service, catalog);
         indexed.person_scope = relevance::person_scope(&format!("{opening} {translated_opening}"));
         indexed.coverage = country::endpoint(service, known);
@@ -701,6 +703,7 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         enterprise_multiple: false,
         operation_words: BTreeSet::new(),
         output_concepts: BTreeSet::new(),
+        collection_concepts: BTreeSet::new(),
         name_search_domains: BTreeSet::new(),
         output_only_tokens: BTreeSet::new(),
         dns_record_types: relevance::dns_record_types(text),

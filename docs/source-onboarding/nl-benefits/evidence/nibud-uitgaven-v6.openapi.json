@@ -1,0 +1,281 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Uitgaven API",
+    "description": "The Uitgaven API helps you get the reference data for expenditures of a particular household.",
+    "version": "v6"
+  },
+  "servers": [
+    {
+      "url": "https://api.nibud.nl/Uitgaven/v6"
+    }
+  ],
+  "paths": {
+    "/Versie": {
+      "get": {
+        "summary": "Versie",
+        "description": "Get the current version number of the API",
+        "operationId": "get-getversie",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Your Ocp-Apim-Subscription-Key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/Referentiebedragen": {
+      "post": {
+        "summary": "Referentiebedragen",
+        "description": "Based on the information provided for a household type get the reference amount for different expenditure type. ",
+        "operationId": "post-postreferentiebedragen",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Your Ocp-Apim-Subscription-Key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "description": "Determines how results are returned by the API",
+            "required": true,
+            "schema": {
+              "enum": [
+                "application/json",
+                "application/xml"
+              ],
+              "type": "string",
+              "default": "application/xml"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "{<br>\nhoofdpersonen  :\tarray<br>\nkinderen  :\tarray<br>\nhuisgenoten :\tarray<br>\nautos\t : array<br>\nwoning  :\tobject<br>\nnettoBesteedbaarInkomenPerMaand\t: number<br>\nadviesdatum :\tstring<br>\n}",
+          "content": {
+            "application/xml": {
+              "schema": {
+                "$ref": "#/components/schemas/Gezin"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <Gezin xmlns=\"http://nibud.nl/uitgaven\"> <Autos> <Auto> <KilometersPerJaar>25000</KilometersPerJaar> <Nieuwwaarde>21000</Nieuwwaarde> <Status>Nieuw</Status> </Auto> </Autos> <Hoofdpersonen> <Hoofdpersoon> <Geboortedatum>1963-01-01</Geboortedatum> </Hoofdpersoon> <Hoofdpersoon> <Geboortedatum>1963-01-01</Geboortedatum> </Hoofdpersoon> </Hoofdpersonen> <Kinderen> <Kind> <Geboortedatum>2003-01-01</Geboortedatum> </Kind> <Kind> <Geboortedatum>1997-01-01</Geboortedatum> </Kind> </Kinderen> <NettoBesteedbaarInkomenPerMaand>6000</NettoBesteedbaarInkomenPerMaand> <Woning> <Bouwjaar>BouwjaarVanaf2000</Bouwjaar> <Soort>Koopwoning</Soort> <TypeWoning>VrijstaandGroot</TypeWoning> <WozWaarde>375000</WozWaarde> </Woning> </Gezin>"
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/gezin2"
+              },
+              "example": {
+                "Hoofdpersonen": [
+                  {
+                    "Geslacht": "Man",
+                    "Geboortedatum": "1980-01-01"
+                  },
+                  {
+                    "Geslacht": "Vrouw",
+                    "Geboortedatum": "1980-01-01"
+                  }
+                ],
+                "Kinderen": [
+                  {
+                    "Schooltype": "Basis",
+                    "Geslacht": "Man",
+                    "Geboortedatum": "2012-01-01",
+                    "Woonsituatie": "Thuiswonend"
+                  }
+                ],
+                "Autos": [
+                  {
+                    "Nieuwwaarde": 20000,
+                    "KilometersPerJaar": 10000,
+                    "Status": "Nieuw"
+                  }
+                ],
+                "Huisgenoten": [
+                  {
+                    "Geslacht": null,
+                    "Geboortedatum": "2012-01-01"
+                  }
+                ],
+                "Adviesdatum": "2021-03-24",
+                "Woning": {
+                  "WozWaarde": 0,
+                  "Soort": "Huurwoning",
+                  "TypeWoning": "Galerij",
+                  "Bouwjaar": "BouwjaarVanaf2000",
+                  "Energielabel": "C",
+                  "GemeenteId": 10,
+                  "GemeenteCbsId": "1680"
+                },
+                "NettoBesteedbaarInkomenPerMaand": 3000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Please see the Technical  Documentation for the response.\n\nSample output can be viewed by using the \u2018Try it\u2019 button above."
+          }
+        }
+      }
+    },
+    "/Gemeentes": {
+      "get": {
+        "summary": "Gemeentes",
+        "description": "Get a list of all municipalities with their corresponding gemeenteId and gemeenteCbsId. These id\u2019s can be used to set the gemeenteId or gemeenteCbsId of the woning object in Referentiebedragen operation.",
+        "operationId": "get-getgemeentes",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Your Ocp-Apim-Subscription-Key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Please see the Technical  Documentation for the response.\n\nSample output can be viewed by using the \u2018Try it\u2019 button above."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "gezin2": {
+        "required": [
+          "nettoBesteedbaarInkomenPerMaand",
+          "woning",
+          "hoofdpersonen",
+          "kinderen"
+        ],
+        "type": "object",
+        "properties": {
+          "hoofdpersonen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "kinderen": {
+            "type": "array",
+            "items": {
+              "required": [
+                "geboortedatum"
+              ],
+              "type": "object",
+              "properties": {
+                "geboortedatum": {
+                  "type": "string"
+                },
+                "geslacht": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "autos": {
+            "type": "array",
+            "items": {
+              "required": [
+                "nieuwwaarde",
+                "kilometersPerJaar",
+                "status"
+              ],
+              "type": "object",
+              "properties": {
+                "nieuwwaarde": {
+                  "type": "string"
+                },
+                "kilometersPerJaar": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "nettoBesteedbaarInkomenPerMaand": {
+            "type": "integer"
+          },
+          "woning": {
+            "required": [
+              "soort",
+              "typeWoning",
+              "bouwjaar",
+              "bouwenergielabel"
+            ],
+            "type": "object",
+            "properties": {
+              "soort": {
+                "type": "string"
+              },
+              "typeWoning": {
+                "type": "string"
+              },
+              "bouwjaar": {
+                "type": "string"
+              },
+              "energielabel": {
+                "type": "string"
+              },
+              "wozWaarde": {
+                "type": "integer"
+              },
+              "gemeenteCbsId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Gezin": {
+        "example": "{\n  \"hoofdpersonen\": [\n    { \"geboortedatum\": \"1963-01-01\" },\n    { \"geboortedatum\": \"1963-01-01\" }\n  ],\n  \"kinderen\": [\n    { \"geboortedatum\": \"2003-01-01\" },\n    { \"geboortedatum\": \"1997-01-01\" }\n  ],\n  \"autos\": [\n    {\n      \"nieuwwaarde\": 21000,\n      \"kilometersPerJaar\": 25000,\n      \"status\": \"Nieuw\"\n    }\n  ],\n  \"nettoBesteedbaarInkomenPerMaand\": 6000,\n  \"woning\": {\n    \"soort\": \"Koopwoning\",\n    \"typeWoning\": \"VrijstaandGroot\",\n    \"bouwjaar\": \"Van1989TotEnMet2000\",\n    \"wozWaarde\": 375000\n  }\n}"
+      }
+    },
+    "securitySchemes": {
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "name": "Ocp-Apim-Subscription-Key",
+        "in": "header"
+      },
+      "apiKeyQuery": {
+        "type": "apiKey",
+        "name": "key",
+        "in": "query"
+      }
+    }
+  },
+  "security": [
+    {
+      "apiKeyHeader": []
+    },
+    {
+      "apiKeyQuery": []
+    }
+  ]
+}

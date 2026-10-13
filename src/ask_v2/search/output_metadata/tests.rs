@@ -42,6 +42,74 @@ fn request() -> ParsedRequest {
     })).unwrap()
 }
 
+fn root_catalog(domain: &str, field: &str, schema: Value, sample: Value) -> Catalog {
+    let mut value: Value = serde_json::from_str(include_str!(
+        "../../../../tests/fixtures/integration-catalog.json"
+    )).unwrap();
+    let mut service = value["services"][0].clone();
+    service["name"] = json!("Reviewed source");
+    service["description"] = json!("Retrieve the documented response.");
+    service["contract"]["capability_slug"] = json!(format!("{domain}.vendor-record"));
+    service["contract"]["cardinality"] = json!("one");
+    service["contract"]["identifies"] = Value::Null;
+    service["contract"]["requires"] = json!([]);
+    service["contract"]["input_map"] = json!({});
+    let fact = format!("{domain}.{field}");
+    service["contract"]["output_map"] = json!({"base":"$","produces":{(&fact):{"path":"$.data"}}});
+    service["sample_payload"] = json!({"data":sample});
+    value["services"] = json!([service]);
+    value["vocabulary"] = json!([{"slug":fact,"value_schema":schema}]);
+    let catalog = Catalog::build(serde_json::from_value(value).unwrap());
+    assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+    catalog
+}
+
+#[test]
+fn root_scalar_facts_supply_provider_free_concepts_in_other_domains() {
+    for (domain, field, sample) in [("vehicle", "engine_capacity", json!(1998)), ("product", "unit_price", json!(12.5))] {
+        let catalog = root_catalog(domain, field, json!({"type":"number"}), sample);
+        assert!(metadata(&catalog.services[0], &catalog).concepts.contains(&concept(field)));
+        let mut parsed = request();
+        parsed.subjects[0].kind = domain.into();
+        let cap = &mut parsed.capabilities[0];
+        cap.domain = domain.into();
+        cap.slug = format!("{domain}.{field}");
+        cap.name = field.replace('_', " ");
+        cap.description = format!("Retrieve {field}.");
+        cap.outputs = vec![field.into()];
+        let found = search(&parsed, &catalog);
+        assert_eq!(found[0].apiosk.len(), 1, "{domain}: {:?}", found[0].apiosk);
+    }
+}
+
+#[test]
+fn broad_domain_categories_require_a_documented_structured_alias() {
+    for domain in ["location", "company"] {
+        let alias = format!("{domain}_details");
+        let comment = json!({"apiosk_output_aliases_v1":[alias]}).to_string();
+        let mut parsed = request();
+        parsed.subjects[0].kind = domain.into();
+        let cap = &mut parsed.capabilities[0];
+        cap.domain = domain.into();
+        cap.slug = format!("{domain}.details");
+        cap.name = format!("{domain} details");
+        cap.description = format!("Retrieve {domain} details.");
+        cap.outputs = vec![alias];
+        for (schema, sample, expected) in [
+            (json!({"type":"object","properties":{"name":{"type":"string"}},"$comment":comment}), json!({"name":"Example"}), 1),
+            (json!({"type":"string","$comment":comment}), json!("Example"), 0),
+            (json!({"type":"object","properties":{"name":{"type":"string"}}}), json!({"name":"Example"}), 0),
+        ] {
+            let catalog = root_catalog(domain, "record", schema, sample);
+            assert_eq!(search(&parsed, &catalog)[0].apiosk.len(), expected, "{domain}");
+            let mut alternate = parsed.clone();
+            alternate.capabilities[0].slug = format!("{domain}.info");
+            alternate.capabilities[0].name = format!("{domain} info");
+            assert_eq!(search(&alternate, &catalog)[0].apiosk.len(), expected, "{domain}.info");
+        }
+    }
+}
+
 #[test]
 fn provider_free_employee_request_finds_reviewed_output_alias_only_on_its_endpoint() {
     let catalog = catalog(json!({"type":"object","properties":{"staff":{
@@ -113,7 +181,7 @@ fn reviewed_nullable_fields_are_searchable_but_compositions_are_not() {
             "description":"invented coverage","$comment":"{\"apiosk_output_aliases_v1\":[\"invented_details\"]}"}
     }});
     let mut terms = BTreeSet::new();
-    collect(&schema, "", 0, &mut terms, &mut BTreeSet::new());
+    collect(&schema, "", 0, &mut terms, &mut BTreeSet::new(), &BTreeSet::new(), &mut BTreeSet::new());
     assert!(terms.contains("employee_name"));
     assert!(!terms.iter().any(|term| term.contains("invented")));
 }

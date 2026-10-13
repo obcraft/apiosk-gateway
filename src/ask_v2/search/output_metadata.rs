@@ -12,7 +12,12 @@ use std::collections::BTreeSet;
 /// category. A scalar `employees` field may contain a count or size band, so it
 /// must not be the same evidence as `employee_details`. Only a documented
 /// structured field can supply the record-category variant below.
+#[cfg(test)]
 pub(super) fn concept(name: &str) -> String {
+    concept_in_domain(name, &BTreeSet::new())
+}
+
+pub(super) fn concept_in_domain(name: &str, domain: &BTreeSet<String>) -> String {
     let words = super::words(name);
     let tokens = super::tokens(name);
     // A bare plural is a collection category, while a named scalar such as
@@ -22,8 +27,8 @@ pub(super) fn concept(name: &str) -> String {
         && tokens[0].ends_with('s')
         && super::singular(&tokens[0]).is_some_and(|singular| singular != tokens[0]);
     let record = collection || words.iter().any(|word| record_word(word));
-    let concept = words
-        .into_iter()
+    let mut meaningful = words
+        .iter()
         .filter(|word| {
             !super::vague(word)
                 && !record_word(word)
@@ -32,8 +37,15 @@ pub(super) fn concept(name: &str) -> String {
                     "id" | "url" | "value" | "label" | "title" | "description"
                 )
         })
-        .collect::<Vec<_>>()
-        .join("_");
+        .cloned()
+        .collect::<Vec<_>>();
+    // A domain word alone is normally too broad. In an explicitly named
+    // record category, however, dropping it would erase the entire meaning
+    // of aliases such as location_details. Keep only the declared domain.
+    if meaningful.is_empty() && record {
+        meaningful.extend(words.intersection(domain).filter(|word| !record_word(word)).cloned());
+    }
+    let concept = meaningful.join("_");
     if record && !concept.is_empty() {
         format!("record:{concept}")
     } else {
@@ -41,12 +53,12 @@ pub(super) fn concept(name: &str) -> String {
     }
 }
 
-fn record_word(word: &str) -> bool {
-    matches!(word, "detail" | "record" | "information" | "info" | "overview" | "data")
+pub(super) fn record_word(word: &str) -> bool {
+    matches!(word, "detail" | "record" | "information" | "info" | "overview" | "data" | "match" | "result")
 }
 
-fn insert_concept(name: &str, structured: bool, concepts: &mut BTreeSet<String>) {
-    let concept = concept(name);
+fn insert_concept(name: &str, structured: bool, domain: &BTreeSet<String>, concepts: &mut BTreeSet<String>) {
+    let concept = concept_in_domain(name, domain);
     if concept.is_empty() || (!structured && concept.starts_with("record:")) {
         return;
     }
@@ -77,6 +89,8 @@ fn collect(
     depth: usize,
     terms: &mut BTreeSet<String>,
     concepts: &mut BTreeSet<String>,
+    domain: &BTreeSet<String>,
+    collections: &mut BTreeSet<String>,
 ) {
     if depth > 10
         || terms.len() >= 256
@@ -98,12 +112,14 @@ fn collect(
         let structured = matches!(kind, "object" | "array");
         if !name.is_empty() {
             terms.insert(name.chars().take(160).collect());
-            insert_concept(name, structured, concepts);
+            insert_concept(name, structured, domain, concepts);
+            if kind == "array" { insert_concept(name, true, domain, collections); }
         }
         let aliases = output_aliases(schema);
         terms.extend(aliases.iter().cloned());
         for alias in aliases {
-            insert_concept(&alias, structured, concepts);
+            insert_concept(&alias, structured, domain, concepts);
+            if kind == "array" { insert_concept(&alias, true, domain, collections); }
         }
         if let Some(description) = schema["description"].as_str() {
             terms.insert(description.chars().take(240).collect());
@@ -111,11 +127,11 @@ fn collect(
     }
     if kind == "object" {
         for (name, child) in schema["properties"].as_object().into_iter().flatten() {
-            collect(child, name, depth + 1, terms, concepts);
+            collect(child, name, depth + 1, terms, concepts, domain, collections);
         }
     } else if kind == "array" {
         if let Some(items) = schema.get("items") {
-            collect(items, "", depth + 1, terms, concepts);
+            collect(items, "", depth + 1, terms, concepts, domain, collections);
         }
     }
 }
@@ -124,6 +140,7 @@ fn collect(
 pub(super) struct Metadata {
     pub text: String,
     pub concepts: BTreeSet<String>,
+    pub collections: BTreeSet<String>,
 }
 
 pub(super) fn metadata(service: &Service, catalog: &Catalog) -> Metadata {
@@ -132,14 +149,17 @@ pub(super) fn metadata(service: &Service, catalog: &Catalog) -> Metadata {
     }
     let mut terms = BTreeSet::new();
     let mut concepts = BTreeSet::new();
+    let mut collections = BTreeSet::new();
     for fact in service.contract.output_map.produces.keys() {
         if let Some(definition) = catalog.vocabulary.get(fact) {
-            collect(&definition.value_schema, "", 0, &mut terms, &mut concepts);
+            let (namespace, name) = fact.rsplit_once('.').unwrap_or(("", fact));
+            collect(&definition.value_schema, name, 0, &mut terms, &mut concepts, &super::words(namespace), &mut collections);
         }
     }
     Metadata {
         text: terms.into_iter().collect::<Vec<_>>().join(" "),
         concepts,
+        collections,
     }
 }
 
