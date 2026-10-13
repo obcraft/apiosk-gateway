@@ -1,5 +1,11 @@
 Nederlandse regelingen en toeslagen — bronregistratie, 13 oktober 2026
 
+Vervolg: de gemeentelijke crawler en vier toeslagberekeningen zijn inmiddels
+gebouwd als aparte Apiosk-API's. Zie README.runtime.txt en runtime.openapi.json
+voor implementatie, tests, grenzen en huidige activatiestatus. Nibud is op
+verzoek uitgesteld. Hieronder staat het eerdere bronregistratiemoment;
+inventory.json beschrijft uitsluitend die oorspronkelijke registratie.
+
 Toegepast op apiosk-production (jgjoiyqdyypouskftzeq).
 Migratie: 20261013172106_onboard_nl_benefits_sources.
 Dezelfde migratie staat in gateway/supabase/migrations en app/supabase/migrations.

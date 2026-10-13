@@ -1,0 +1,117 @@
+{
+  "migration": "20261013181301_onboard_nl_benefits_runtime",
+  "scope": "Registration only; runtime not deployed or activated",
+  "endpoints": [
+    {
+      "slug": "nl-gemeentelijke-regelingen",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "path": "/regelingen/search",
+      "method": "POST",
+      "price": "0.08506600",
+      "endpoint_active": false,
+      "tags": [
+        "gemeente",
+        "bijzondere bijstand",
+        "inkomenstoeslag",
+        "minimaregelingen",
+        "kwijtschelding",
+        "aanvragen",
+        "crawler"
+      ],
+      "endpoint_category": "government",
+      "capability_slug": "nl.municipal.websites.search",
+      "contract_status": "draft",
+      "adapter_version": "nl-benefits-v1"
+    },
+    {
+      "slug": "nl-toeslagen-rekenservice",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "path": "/2026/huurtoeslag/calculate",
+      "method": "POST",
+      "price": "0.05434800",
+      "endpoint_active": false,
+      "tags": [
+        "Huurtoeslag",
+        "berekenen",
+        "persoonlijk",
+        "2026",
+        "toeslag",
+        "schatting"
+      ],
+      "endpoint_category": "government",
+      "capability_slug": "nl.benefits.huurtoeslag.estimate",
+      "contract_status": "draft",
+      "adapter_version": "nl-benefits-v1"
+    },
+    {
+      "slug": "nl-toeslagen-rekenservice",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "path": "/2026/kinderopvangtoeslag/calculate",
+      "method": "POST",
+      "price": "0.05434800",
+      "endpoint_active": false,
+      "tags": [
+        "Kinderopvangtoeslag",
+        "berekenen",
+        "persoonlijk",
+        "2026",
+        "toeslag",
+        "schatting"
+      ],
+      "endpoint_category": "government",
+      "capability_slug": "nl.benefits.kinderopvangtoeslag.estimate",
+      "contract_status": "draft",
+      "adapter_version": "nl-benefits-v1"
+    },
+    {
+      "slug": "nl-toeslagen-rekenservice",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "path": "/2026/kindgebonden-budget/calculate",
+      "method": "POST",
+      "price": "0.05434800",
+      "endpoint_active": false,
+      "tags": [
+        "Kindgebonden budget",
+        "berekenen",
+        "persoonlijk",
+        "2026",
+        "toeslag",
+        "schatting"
+      ],
+      "endpoint_category": "government",
+      "capability_slug": "nl.benefits.kindgebonden-budget.estimate",
+      "contract_status": "draft",
+      "adapter_version": "nl-benefits-v1"
+    },
+    {
+      "slug": "nl-toeslagen-rekenservice",
+      "status": "inactive",
+      "active": false,
+      "discoverable": false,
+      "path": "/2026/zorgtoeslag/calculate",
+      "method": "POST",
+      "price": "0.05434800",
+      "endpoint_active": false,
+      "tags": [
+        "Zorgtoeslag",
+        "berekenen",
+        "persoonlijk",
+        "2026",
+        "toeslag",
+        "schatting"
+      ],
+      "endpoint_category": "government",
+      "capability_slug": "nl.benefits.zorgtoeslag.estimate",
+      "contract_status": "draft",
+      "adapter_version": "nl-benefits-v1"
+    }
+  ]
+}

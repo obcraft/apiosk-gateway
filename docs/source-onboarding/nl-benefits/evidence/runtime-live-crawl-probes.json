@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-10-13T18:13:13.419036+00:00",
+  "mode": "local native dispatcher with live public upstreams, no Apiosk purchase",
+  "probes": [
+    {
+      "municipality": "Leiderdorp",
+      "success": true,
+      "pages": 2,
+      "catalogue_matches": 8,
+      "source_urls": [
+        "https://www.leiderdorp.nl/producten/bijstand-studietoeslag",
+        "https://www.leiderdorp.nl/producten/bijstand-individuele-bijzondere-bijstand"
+      ]
+    },
+    {
+      "municipality": "Leiden",
+      "success": true,
+      "pages": 2,
+      "catalogue_matches": 7,
+      "source_urls": [
+        "https://gemeente.leiden.nl/inwoners-en-ondernemers/uitkering-en-inkomen/bijstandsuitkering/bijstand-en-samenwonen/",
+        "https://gemeente.leiden.nl/inwoners-en-ondernemers/uitkering-en-inkomen/bijstandsuitkering/bijstand-voor-zelfstandigen/"
+      ]
+    },
+    {
+      "municipality": "Rotterdam",
+      "success": true,
+      "pages": 2,
+      "catalogue_matches": 8,
+      "source_urls": [
+        "https://www.rotterdam.nl/bijzondere-bijstand-voor-eigen-bijdrage-rechtshulp-aanvragen",
+        "https://www.rotterdam.nl/bijzondere-bijstand-voor-bewindvoerderskosten-aanvragen"
+      ]
+    }
+  ],
+  "known_limitations_from_initial_probes": [
+    {
+      "municipality": "Utrecht",
+      "outcome": "refused",
+      "reason": "Robots endpoint redirects to HTML, cannot verify robots policy"
+    },
+    {
+      "municipality": "Amsterdam",
+      "outcome": "unavailable",
+      "reason": "Municipal product pages returned HTTP 403; no bypass attempted"
+    }
+  ]
+}
