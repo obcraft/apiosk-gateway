@@ -220,6 +220,8 @@ fn scrubbed(text: &str, capability: &Capability, parsed: &ParsedRequest) -> Stri
 
 impl Request {
     pub fn new(capability: &Capability, parsed: &ParsedRequest) -> Self {
+        let collection_domain = super::collection_search::request_domain(capability, parsed);
+        let domain = collection_domain.as_deref().unwrap_or(&capability.domain).to_lowercase();
         let meaningful = |word: &String| !vague(word) && action(word).is_none();
         let identity = words(&scrubbed(
             &format!("{} {}", capability.domain, capability.slug),
@@ -358,7 +360,7 @@ impl Request {
             && ["market", "price", "liquidity", "volume", "capitalization"].iter()
                 .any(|word| valuation_words.contains(*word));
         Self {
-            name_collection_search: super::collection_search::requested(capability),
+            name_collection_search: collection_domain.is_some(),
             person_profile,
             company_profile,
             dns,
@@ -386,7 +388,7 @@ impl Request {
                 .cloned()
                 .collect(),
             output_concepts: capability.outputs.iter().map(|output|
-                super::output_metadata::concept_in_domain(output, &words(&capability.domain)))
+                super::output_metadata::concept_in_domain(output, &words(&domain)))
                 .filter(|concept| !concept.is_empty()).collect(),
             // Only a source's own action is evidence: that a listing
             // "compares portfolios" says nothing about comparing bankruptcies,
@@ -399,7 +401,7 @@ impl Request {
                 .filter(|stem| !DELIVERABLE_OPERATIONS.contains(stem))
                 .collect(),
             contract,
-            domain: capability.domain.to_lowercase(),
+            domain,
         }
     }
 
@@ -433,7 +435,7 @@ impl Request {
     /// Exact schema fields/aliases are stronger evidence than a prose mention,
     /// but do not change the operation's record, asset or measurement scope.
     pub(super) fn output_matches(&self, candidate: &Document) -> bool {
-        if self.name_collection_search && candidate.namespace.contains(&self.domain)
+        if self.name_collection_search && self.primary_facets == 0 && candidate.namespace.contains(&self.domain)
             && candidate.name_search_domains.contains(&self.domain) {
             return true;
         }

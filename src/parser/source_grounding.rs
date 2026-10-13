@@ -488,6 +488,12 @@ pub(crate) struct CoverageError {
     pub inputs: Vec<String>,
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("the proposed matched sources do not form an executable plan")]
+pub(super) struct ResolutionError {
+    pub reason: String,
+}
+
 /// Run the final coverage checks inside the model's bounded repair loop too.
 /// A correctable draft must not become a user-facing refusal before the model
 /// has seen which field or literal its proposed sources failed to preserve.
@@ -509,23 +515,34 @@ pub(super) fn verify_plan(
             return Err(CoverageError { outputs, inputs: vec![] }.into());
         }
     }
-    if let crate::resolver::Resolution::Plan(plan) =
-        crate::resolver::resolve(catalog, &draft, &intent)
-    {
-        let (outputs, inputs) = if let Some(context) = &draft.source_selection {
-            (
-                context.uncovered_outputs(&draft, catalog, &intent, &plan)?,
-                context.uncovered_inputs(&draft, catalog, &intent, &plan)?,
-            )
-        } else {
-            (
-                super::plan_coverage::uncovered_outputs(&draft, catalog, &intent, &plan),
-                super::plan_coverage::uncovered_inputs(&draft, catalog, &intent, &plan),
-            )
-        };
-        if !outputs.is_empty() || !inputs.is_empty() {
-            return Err(CoverageError { outputs, inputs }.into());
-        }
+    match crate::resolver::resolve(catalog, &draft, &intent) {
+        crate::resolver::Resolution::Plan(plan) => {
+            let (outputs, inputs) = if let Some(context) = &draft.source_selection {
+                (
+                    context.uncovered_outputs(&draft, catalog, &intent, &plan)?,
+                    context.uncovered_inputs(&draft, catalog, &intent, &plan)?,
+                )
+            } else {
+                (
+                    super::plan_coverage::uncovered_outputs(&draft, catalog, &intent, &plan),
+                    super::plan_coverage::uncovered_inputs(&draft, catalog, &intent, &plan),
+                )
+            };
+            if !outputs.is_empty() || !inputs.is_empty() {
+                return Err(CoverageError { outputs, inputs }.into());
+            }
+        },
+        crate::resolver::Resolution::Unsupported(reason)
+            if super::plan_coverage::retrievals_matched(intake)
+                && reason != crate::protocol::SOURCE_LIMIT_MESSAGE => {
+            // Matched output fields do not prove that these exact calls can
+            // satisfy the proposed constraints. Return the rejected draft to
+            // the bounded model repair before presenting a terminal outcome.
+            return Err(ResolutionError { reason }.into());
+        },
+        // Missing API inputs and the ten-call limit have dedicated actions in
+        // the engine. They are requests for user context, not model outages.
+        _ => {},
     }
     Ok(())
 }

@@ -9,6 +9,7 @@ pub mod purchase;
 pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
+mod scope_review;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 
@@ -82,23 +83,13 @@ impl Client {
     /// consume this saved shape rather than normalizing the model differently.
     pub async fn interpret(&self, question: &str, known_slugs: &[String]) -> Result<Value> {
         let started = Instant::now();
-        let mut correction = None;
-        for attempt in 1..=2 {
-            let output = self.parse(question, known_slugs, correction.as_deref()).await?;
-            match crate::capability_intake::normalize(&output.text, question, &output.model) {
-                Ok(parsed) => {
-                    let mut parsed = serde_json::to_value(parsed)?;
-                    for capability in parsed["capabilities"].as_array_mut().into_iter().flatten() {
-                        capability["status"] = Value::Null;
-                    }
-                    return Ok(json!({"text":output.text,"model":output.model,"parsed_request":parsed,
-                        "attempts":attempt,"timing":{"parse_ms":started.elapsed().as_millis() as u64}}));
-                }
-                Err(error) if attempt == 1 => correction = Some(error.to_string()),
-                Err(error) => return Err(error),
-            }
+        let interpretation = self.interpret_with_context(question, question, question, known_slugs).await?;
+        let mut parsed = serde_json::to_value(interpretation.parsed_request)?;
+        for capability in parsed["capabilities"].as_array_mut().into_iter().flatten() {
+            capability["status"] = Value::Null;
         }
-        unreachable!()
+        Ok(json!({"text":interpretation.output.text,"model":interpretation.output.model,"parsed_request":parsed,
+            "attempts":interpretation.attempts,"scope_reviewed":true,"timing":{"parse_ms":started.elapsed().as_millis() as u64}}))
     }
 
     pub fn new(http: reqwest::Client, key: String, model: String) -> Self {
@@ -260,6 +251,12 @@ impl Client {
     /// Shared bounded JSON transport. Each interpretation stage validates its
     /// own output; this transport never chooses or executes an endpoint.
     async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize, use_reasoning: bool) -> Result<String> {
+        self.generate_object_with_effort(prompt, question, max_tokens, use_reasoning, None).await
+    }
+
+    /// Scope review independently checks the whole extraction and can request
+    /// more reasoning without slowing every initial parse or endpoint reply.
+    async fn generate_object_with_effort(&self, prompt: &str, question: &str, max_tokens: usize, use_reasoning: bool, reasoning_effort: Option<&str>) -> Result<String> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
         // All models return JSON objects; normalization validates every field.
         let mut body = json!({
@@ -272,13 +269,13 @@ impl Client {
         if self.model == DEFAULT_MODEL {
             // GPT-OSS requires reasoning. Low effort keeps extraction fast;
             // normalization still validates the complete returned intent.
-            body["reasoning"] = json!({"effort":"low","exclude":true});
+            body["reasoning"] = json!({"effort":reasoning_effort.unwrap_or("low"),"exclude":true});
         } else if self.model == "openai/gpt-6-luna" {
             // Extraction produces the same validated intent; the deterministic
             // planner does the source selection. Spend reasoning only on the
             // existing correction attempt when validation rejects that intent.
             // Endpoint follow-ups retain their existing low effort as well.
-            body["reasoning"] = json!({"effort":if use_reasoning { "low" } else { "none" },"exclude":true});
+            body["reasoning"] = json!({"effort":reasoning_effort.unwrap_or(if use_reasoning { "low" } else { "none" }),"exclude":true});
         } else {
             body["temperature"] = json!(0);
             if self.model.starts_with("qwen/") {
@@ -508,6 +505,23 @@ mod tests {
         )
     }
 
+    // These existing fixtures test normalization/transport and supply authored
+    // interpretations. Their reviewer likewise accepts the authored scope;
+    // scope_review::tests separately exercises rejection, correction and the
+    // failure boundary with explicit, independent review responses.
+    fn authored_scope_review(body: &Value) -> Option<Response> {
+        if body["messages"][0]["content"] != super::scope_review::PROMPT { return None; }
+        let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str()?).ok()?;
+        let parsed = &input["interpretation"];
+        let capabilities: Vec<_> = parsed["capabilities"].as_array()?.iter().enumerate()
+            .map(|(index,cap)| json!({"index":index,"outputs":cap["outputs"]})).collect();
+        let quote: String = input["question"].as_str()?.chars().take(500).collect();
+        let review = json!({"requirements":[{"quote":quote,"capabilities":capabilities,
+            "operations":parsed["deliverable"]["operations"],"format":parsed["deliverable"]["format"],"issue":null}]});
+        Some(Response::builder().header("content-type","text/event-stream")
+            .body(Body::from(format!("{}data: [DONE]\n\n",delta(&review.to_string())))).unwrap())
+    }
+
     #[test]
     fn connected_chatbots_fill_in_the_ask_parse_schema_exactly() {
         let tools: serde_json::Value = serde_json::from_str(include_str!("../../contracts/tool-schemas.json")).unwrap();
@@ -678,6 +692,7 @@ mod tests {
             let captured = requests.clone();
             let replies = replies.clone();
             async move {
+                if let Some(review) = authored_scope_review(&body) { return review; }
                 let question = body["messages"][1]["content"].as_str().unwrap();
                 let index = questions.iter().position(|expected| *expected == question).unwrap();
                 captured.lock().unwrap().push(body.0);
@@ -736,6 +751,7 @@ mod tests {
             let salary = salary.clone();
             let market = market.clone();
             async move {
+                if let Some(review) = authored_scope_review(&body) { return review; }
                 let question = body["messages"][1]["content"].as_str().unwrap();
                 let result = if question == salary_question { salary } else { assert_eq!(question, market_question); market };
                 captured.lock().unwrap().push(body.0);
@@ -819,6 +835,7 @@ mod tests {
                 let first = first.clone();
                 let second = second.clone();
                 async move {
+                    if let Some(review) = authored_scope_review(&body) { return review; }
                     let mut requests = capture.lock().unwrap();
                     let raw = if requests.is_empty() { first } else { second };
                     requests.push(body.0);
@@ -837,7 +854,7 @@ mod tests {
                 assert_eq!(result["parsed_request"]["subjects"][0]["identifiers"], json!({"country":"Nederlandse","sector":"softwaresector"}));
                 assert_eq!(result["parsed_request"]["subjects"][1]["identifiers"], json!({"country":"Duitse","sector":"softwaresector"}));
             } else {
-                assert_eq!(result.unwrap_err().to_string(), "subject must be literal and have a type");
+                assert_eq!(result.unwrap_err().to_string(), "ask_v2_interpretation_unverified");
             }
             assert_eq!(captured[0]["messages"][0]["content"], PROMPT);
             if captured.len() == 2 {

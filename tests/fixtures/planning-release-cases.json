@@ -1,0 +1,325 @@
+[
+  {
+    "id": "sanctions-name",
+    "question": "Check whether the company name Coolblue appears on sanctions lists.",
+    "expected_status": "ready",
+    "minimum_sources": 1,
+    "expect_needs": [
+      {
+        "label": "Sanctions matches",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vat-validity",
+    "question": "Validate VAT number NL815839091B01.",
+    "expected_status": "ready",
+    "minimum_sources": 1,
+    "expect_needs": [
+      {
+        "label": "VAT validity",
+        "concepts": [
+          [
+            "VAT",
+            "tax"
+          ]
+        ],
+        "outputs": [
+          [
+            "valid",
+            "validity",
+            "validation",
+            "status"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "employer-comparison",
+    "question": "Compare employee ratings of Starbucks and McDonald’s as employers.",
+    "expected_status": "ready",
+    "minimum_sources": 1,
+    "expect_needs": [
+      {
+        "label": "Employee ratings",
+        "concepts": [
+          [
+            "employee",
+            "employer",
+            "workplace"
+          ]
+        ],
+        "outputs": [
+          [
+            "rating",
+            "score",
+            "review"
+          ]
+        ],
+        "subjects": [
+          "Starbucks",
+          "McDonald’s"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vat-and-sanctions",
+    "question": "Validate VAT number NL815839091B01 and check whether the company name Mollie B.V. appears on sanctions lists.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expect_needs": [
+      {
+        "label": "VAT validity",
+        "concepts": [
+          [
+            "VAT",
+            "tax"
+          ]
+        ],
+        "outputs": [
+          [
+            "valid",
+            "validity",
+            "validation",
+            "status"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions matches",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "vehicle-registration",
+    "question": "Use Overheid.io to look up the vehicle registered with Dutch plate RZ874R.",
+    "expected_status": "ready",
+    "minimum_sources": 1,
+    "expect_needs": [
+      {
+        "label": "Vehicle registration",
+        "concepts": [
+          [
+            "vehicle",
+            "registration",
+            "plate"
+          ]
+        ],
+        "outputs": [
+          [
+            "vehicle",
+            "registration",
+            "plate",
+            "make",
+            "brand"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "company-search-and-sanctions",
+    "question": "Find companies named Coolblue and check whether the company name appears on sanctions lists.",
+    "expected_status": "ready",
+    "minimum_sources": 1,
+    "expect_needs": [
+      {
+        "label": "Matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list"
+          ]
+        ],
+        "outputs": [
+          [
+            "companies",
+            "company",
+            "business",
+            "organization",
+            "organisation",
+            "registered",
+            "register",
+            "registry"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions matches",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "officers-control-and-sanctions",
+    "question": "List the registered company officers and persons with significant control for MONZO BANK LIMITED, company number 09446231, and check the company name against sanctions lists.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "literal_inputs": [
+      "09446231"
+    ],
+    "expect_needs": [
+      {
+        "label": "Registered officers",
+        "concepts": [
+          [
+            "officer",
+            "director",
+            "leadership",
+            "management"
+          ]
+        ],
+        "outputs": [
+          [
+            "officer",
+            "director",
+            "leadership",
+            "management"
+          ]
+        ]
+      },
+      {
+        "label": "Persons with significant control",
+        "concepts": [
+          [
+            "control",
+            "owner",
+            "ownership",
+            "PSC"
+          ]
+        ],
+        "outputs": [
+          [
+            "control",
+            "owner",
+            "ownership",
+            "PSC"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions matches",
+        "concepts": [
+          [
+            "sanction"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "company-search-named-sources",
+    "question": "Search KVK for companies named Coolblue and screen the company name with OpenSanctions.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expect_needs": [
+      {
+        "label": "Matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list"
+          ]
+        ],
+        "outputs": [
+          [
+            "companies",
+            "company",
+            "business",
+            "organization",
+            "organisation",
+            "registered",
+            "register",
+            "registry"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions matches",
+        "concepts": [
+          [
+            "sanction",
+            "OpenSanctions"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list",
+            "screening_result"
+          ]
+        ]
+      }
+    ]
+  }
+]

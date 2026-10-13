@@ -484,7 +484,14 @@ fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::
     let label_used=bound.iter().any(|(field,schema,value)|mapped(field,schema,&label_only).as_ref()==Some(value)
         && mapped(field,schema,&without_label).as_ref()!=Some(value));
     let identifying_input=|field:&str|steps.iter().any(|step|step.entity_ref==entity
-        && step.service.contract.identifies.as_deref()==Some(field) && step.service.contract.input_map.contains_key(field));
+        && step.service.contract.input_map.contains_key(field))
+        && catalog.by_output.get(field).into_iter().flatten().any(|index|
+            !catalog.services[*index].unverified
+                && catalog.services[*index].contract.identifies.as_deref()==Some(field));
+    // Identity belongs to the typed fact, not to the response shape of this
+    // particular call. A report can consume a registered identifier while
+    // returning officers, filings or other records instead of an entity. An
+    // admitted identity contract proves that fact type without executing it.
     let identity_bound=bound.iter().any(|(field,schema,value)|identifying_input(field)
         && (mapped(field,schema,subject).as_ref()==Some(value)
             || (proof.model_bindings && intent.subjects[0].values.get(*field)==Some(value)
@@ -1631,14 +1638,51 @@ mod tests {
         parsed.subjects[0].identifiers=BTreeMap::from([("company_name".into(),"Mollie B.V.".into())]);
         parsed.capabilities[0].inputs=vec!["company_name".into()];
         assert!(!uncovered_inputs(&unnamed_identity,&catalog,&intent,&plan).is_empty(),"an invented ID cannot turn a supplied name into context");
-        let mut no_identity=plan.clone();for step in &mut no_identity.steps {step.service.contract.identifies=None;}
-        assert!(!uncovered_inputs(&task,&catalog,&intent,&no_identity).is_empty(),"an ordinary filter binding cannot serve as entity identity");
+        let mut no_identity=catalog.clone();for service in &mut no_identity.services {service.contract.identifies=None;}
+        assert!(!uncovered_inputs(&task,&no_identity,&intent,&plan).is_empty(),"an ordinary filter binding cannot serve as entity identity");
         let mut names_as_id=task.clone();
         let parsed=&mut names_as_id.capability_intake.as_mut().unwrap().parsed_request;
         parsed.subjects[0].identifiers.insert("company_name".into(),"30204462".into());
         parsed.subjects[0].identifiers.remove("kvk");parsed.capabilities[0].inputs=vec!["company_name".into()];
         assert!(!input_bindings_preserved(names_as_id.capability_intake.as_ref().unwrap(),&catalog,&names_as_id,&intent,&plan.steps,question,InputProof::complete(true)),
             "a contradictory company name is not the displayed subject merely because it matches the ID input");
+    }
+
+    #[test]
+    fn identifier_only_reports_preserve_name_context_from_catalog_identity_facts() {
+        let catalog=catalog();
+        let label=format!("Company {}",uuid::Uuid::new_v4().simple());
+        let identifier=format!("registered-{}",uuid::Uuid::new_v4().simple());
+        let question=format!("Show accounts for {label}, record ID {identifier}.");
+        let (mut intake,mut intent)=fixture(&label,"company",1);
+        intake.parsed_request.subjects[0].identifiers=BTreeMap::from([
+            ("name".into(),label.clone()),("record_id".into(),identifier.clone())]);
+        intake.parsed_request.capabilities[0].inputs=vec!["name".into(),"record_id".into()];
+        intake.parsed_request.capabilities[0].outputs=vec!["company.accounts".into()];
+        intent.subjects[0].values.insert("company.id".into(),json!(identifier));
+        prepare(&mut intent,&intake,&catalog).unwrap();
+        let mut task=crate::state::Task {capability_intake:Some(intake.clone()),..Default::default()};
+        task.record_turn(&question,None);
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("supplied identifier resolves independently")};
+        assert_eq!(plan.steps.len(),1,"identity metadata must not add a lookup call");
+        assert!(plan.steps[0].service.contract.identifies.is_none(),"the selected endpoint returns a report");
+        assert!(uncovered_inputs(&task,&catalog,&intent,&plan).is_empty(),"the supplied typed identifier identifies the named subject");
+        for (key,value) in [("record_id","another-id"),("name","Another Company"),("location","another-place")] {
+            let mut changed=task.clone();
+            changed.capability_intake.as_mut().unwrap().parsed_request.subjects[0].identifiers.insert(key.into(),value.into());
+            assert!(!uncovered_inputs(&changed,&catalog,&intent,&plan).is_empty(),"{key} cannot be discarded as name context");
+        }
+        let mut no_identity=catalog.clone();
+        for service in &mut no_identity.services {service.contract.identifies=None;}
+        assert!(!uncovered_inputs(&task,&no_identity,&intent,&plan).is_empty(),"a generic consumed filter is not an identity fact");
+        let mut unverified_identity=catalog.clone();
+        for service in &mut unverified_identity.services {service.unverified=true;}
+        assert!(!uncovered_inputs(&task,&unverified_identity,&intent,&plan).is_empty(),"unverified operations cannot prove identity semantics");
+        let mut invented=task.clone();
+        let parsed=&mut invented.capability_intake.as_mut().unwrap().parsed_request;
+        parsed.subjects[0].identifiers.remove("record_id"); parsed.capabilities[0].inputs=vec!["name".into()];
+        assert!(!uncovered_inputs(&invented,&catalog,&intent,&plan).is_empty(),"an unsupplied identifier cannot replace the name");
     }
 
     #[test]

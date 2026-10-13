@@ -15,10 +15,7 @@ pub(crate) fn record_validation_failure(raw:&str,error:&anyhow::Error) {
 
 async fn live_context() -> (crate::engine::Engine, std::sync::Arc<crate::catalog::Catalog>) {
     dotenvy::dotenv().ok();
-    let pool = sqlx::postgres::PgPoolOptions::new().max_connections(1)
-        .connect(&std::env::var("DATABASE_URL").unwrap()).await.unwrap();
-    let catalog = crate::catalog::CatalogCache::new(pool.clone()).get().await.unwrap();
-    pool.close().await;
+    let catalog = planning_catalog().await;
     let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|s| !s.is_empty())
         .unwrap_or_else(|| std::env::var("INTENT_API_KEY").unwrap());
     let http = reqwest::Client::new();
@@ -32,6 +29,31 @@ async fn live_context() -> (crate::engine::Engine, std::sync::Arc<crate::catalog
         signer: crate::state::Signer::new(vec![8;32]).unwrap(), app_url: "http://localhost".into(),
         executor: crate::execution::Executor { store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false },
     }, catalog)
+}
+
+/// A recorded catalog is explicit, never silently reused from an output path.
+/// Operational account activity is not needed to verify public API contracts.
+async fn planning_catalog() -> std::sync::Arc<crate::catalog::Catalog> {
+    let mut catalog = if let Ok(path) = std::env::var("ASK_PLANNING_CATALOG") {
+        let snapshot = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        crate::catalog::Catalog::build(snapshot)
+    } else {
+        let pool = sqlx::postgres::PgPoolOptions::new().max_connections(1)
+            .after_connect(|connection, _| Box::pin(async move {
+                sqlx::query("SET default_transaction_read_only=on").execute(connection).await?;
+                Ok(())
+            }))
+            .connect(&std::env::var("DATABASE_URL").unwrap()).await.unwrap();
+        let catalog = crate::catalog::CatalogCache::new(pool.clone()).get().await.unwrap();
+        pool.close().await;
+        (*catalog).clone()
+    };
+    for source in &mut catalog.known_sources {
+        source.metadata.recent_successes = 0;
+        source.metadata.recent_failures = 0;
+        source.metadata.recent_unresolved = 0;
+    }
+    std::sync::Arc::new(catalog)
 }
 
 #[tokio::test]
@@ -100,10 +122,7 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
     let questions: Vec<String> = serde_json::from_slice(&std::fs::read(
         std::env::var("ASK_PLANNING_QUESTIONS").expect("question JSON file required")
     ).unwrap()).unwrap();
-    let pool = sqlx::postgres::PgPoolOptions::new().max_connections(1)
-        .connect(&std::env::var("DATABASE_URL").unwrap()).await.unwrap();
-    let catalog = crate::catalog::CatalogCache::new(pool.clone()).get().await.unwrap();
-    pool.close().await;
+    let catalog = planning_catalog().await;
     let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|s| !s.is_empty())
         .unwrap_or_else(|| std::env::var("INTENT_API_KEY").unwrap());
     let http = reqwest::Client::new();

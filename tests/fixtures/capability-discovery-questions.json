@@ -289,6 +289,18 @@
             "list",
             "resolve"
           ]
+        ],
+        "outputs": [
+          [
+            "companies",
+            "company",
+            "business",
+            "organization",
+            "organisation",
+            "registered",
+            "register",
+            "registry"
+          ]
         ]
       },
       {
@@ -297,9 +309,19 @@
           [
             "sanction"
           ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
         ]
       }
-    ]
+    ],
+    "minimum_sources": 1,
+    "coverage_note": "Original provider-independent screenshot regression: retain both categories. The published named-source variant below also requires two distinct providers."
   },
   {
     "id": "starter-vat-company",
@@ -335,7 +357,8 @@
           ]
         ]
       }
-    ]
+    ],
+    "minimum_sources": 2
   },
   {
     "id": "starter-employer-ratings",
@@ -395,7 +418,8 @@
           ]
         ]
       }
-    ]
+    ],
+    "minimum_sources": 2
   },
   {
     "id": "starter-vehicle-company",
@@ -425,7 +449,8 @@
           ]
         ]
       }
-    ]
+    ],
+    "minimum_sources": 2
   },
   {
     "id": "starter-building",
@@ -475,6 +500,14 @@
             "leadership",
             "management"
           ]
+        ],
+        "outputs": [
+          [
+            "officer",
+            "director",
+            "leadership",
+            "management"
+          ]
         ]
       },
       {
@@ -485,6 +518,14 @@
             "owner",
             "ownership"
           ]
+        ],
+        "outputs": [
+          [
+            "control",
+            "owner",
+            "ownership",
+            "PSC"
+          ]
         ]
       },
       {
@@ -493,9 +534,18 @@
           [
             "sanction"
           ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list"
+          ]
         ]
       }
-    ]
+    ],
+    "minimum_sources": 2
   },
   {
     "id": "domain-currency",
@@ -601,5 +651,66 @@
         ]
       }
     ]
+  },
+  {
+    "id": "starter-company-named-sources",
+    "question": "Search KVK for companies named Coolblue and screen the company name with OpenSanctions.",
+    "source_free": false,
+    "expect_plan": true,
+    "minimum_capabilities": 2,
+    "expect_needs": [
+      {
+        "label": "Find matching companies",
+        "concepts": [
+          [
+            "company",
+            "companies",
+            "business",
+            "organization",
+            "organisation"
+          ],
+          [
+            "search",
+            "find",
+            "match",
+            "lookup",
+            "list",
+            "resolve"
+          ]
+        ],
+        "outputs": [
+          [
+            "companies",
+            "company",
+            "business",
+            "organization",
+            "organisation",
+            "registered",
+            "register",
+            "registry"
+          ]
+        ]
+      },
+      {
+        "label": "Sanctions screening",
+        "concepts": [
+          [
+            "sanction",
+            "OpenSanctions"
+          ]
+        ],
+        "outputs": [
+          [
+            "sanction",
+            "match",
+            "screening",
+            "list",
+            "screening_result"
+          ]
+        ]
+      }
+    ],
+    "minimum_sources": 2,
+    "coverage_note": "Published two-provider example; both explicit source restrictions must remain in the planned calls."
   }
 ]

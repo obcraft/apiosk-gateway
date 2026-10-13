@@ -133,12 +133,17 @@ async fn ungrounded_inputs_get_one_transported_model_correction_and_keep_the_sup
     for corrected in [true, false] {
         let mut second = invalid.clone();
         if corrected {second["capabilities"][0]["inputs"] = json!(["sector","country"]);}
-        let queue = Arc::new(Mutex::new(VecDeque::from([invalid.clone(),second])));
+        let mut replies = VecDeque::from([invalid.clone(),second]);
+        if corrected {
+            replies.push_back(json!({"requirements":[{"quote":question,
+                "capabilities":[{"index":0,"outputs":["records"]}],"operations":[],"format":null,"issue":null}]}));
+        }
+        let queue = Arc::new(Mutex::new(replies));
         let calls = Arc::new(Mutex::new(Vec::new()));
         let capture = calls.clone();
         let app = Router::new().route("/",post(move |Json(body):Json<Value>| {
             capture.lock().unwrap().push(body);
-            let next = queue.lock().unwrap().pop_front().expect("at most two model calls");
+            let next = queue.lock().unwrap().pop_front().expect("two parse attempts and a successful scope review");
             async move {
                 let event = json!({"choices":[{"delta":{"content":next.to_string()}}]});
                 ([(axum::http::header::CONTENT_TYPE,"text/event-stream")],format!("data: {event}\n\ndata: [DONE]\n\n"))
@@ -150,7 +155,7 @@ async fn ungrounded_inputs_get_one_transported_model_correction_and_keep_the_sup
         let client = crate::ask_v2::Client::new(reqwest::Client::new(),"fixture".into(),"fixture".into()).with_local_endpoint(endpoint).unwrap();
         let result = client.interpret(question,&[]).await;
         let calls = calls.lock().unwrap();
-        assert_eq!(calls.len(),2);
+        assert_eq!(calls.len(),if corrected {3} else {2});
         assert!(calls[1]["messages"][0]["content"].as_str().unwrap().contains("input concepts require supplied identifiers or the literal subject: record_type"));
         if corrected {
             let parsed = &result.unwrap()["parsed_request"];
@@ -466,7 +471,7 @@ fn assert_account_draft_needs_id(
 }
 
 #[tokio::test]
-async fn repeated_duplicate_planning_returns_matching_sources_without_an_outage_or_rewrite() {
+async fn repeated_duplicate_planning_keeps_the_complete_request_retryable() {
     let mut bad = planned();
     let goal = bad["intent"]["goals"][0].clone();
     bad["intent"]["goals"].as_array_mut().unwrap().push(goal);
@@ -482,14 +487,12 @@ async fn repeated_duplicate_planning_returns_matching_sources_without_an_outage_
     let mut source_match = intake.matches[0].clone();
     source_match.slug = second.slug;
     intake.matches.push(source_match);
-    let reply = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap();
-    assert!(!reply.discover && reply.intent.is_none());
-    assert!(reply.decline_reason.is_none(), "no third model may rewrite this factual refusal");
-    assert!(reply.message.starts_with("Gevonden bronnen:\n- "), "{}", reply.message);
-    assert!(reply.message.contains(&intake.matches[0].apiosk[0].name)
-        && reply.message.contains(&intake.matches[0].coinbase[0].name), "{}", reply.message);
-    assert_eq!(intake.parsed_request.capabilities.len(), 2, "source fallback preserves the full request");
-    assert!(!reply.message.contains("tijdelijk") && !reply.message.contains("uitgevallen"));
+    let before=json!({"intake":intake,"task":task});
+    let error = parser.chat_from_capabilities(QUESTION,None,&task,&catalog,&intake).await.unwrap_err();
+    assert!(matches!(error.downcast_ref::<crate::parser::ModelFailure>(),Some(crate::parser::ModelFailure::Unavailable)),
+        "an invalid duplicate draft is not proof that its matched sources are unavailable");
+    assert_eq!(json!({"intake":intake,"task":task}),before,"retry retains every requirement and discovered source");
+    assert!(task.proposal.is_none() && task.actions.is_empty(),"no quote or executable action is produced");
     assert_eq!(mock.events.lock().unwrap().iter().filter(|event|*event=="plan").count(),2);
     assert!(mock.queue.lock().unwrap().is_empty(),"one semantic attempt and one bounded repair; rejected duplicate goals never become a quote");
     server.abort();
@@ -692,12 +695,15 @@ async fn a_dependency_goal_cannot_silently_replace_the_requested_retrieval() {
         .prepare_ask_with_bazaar(QUESTION, None, &task, &c, &bazaar)
         .await
         .unwrap();
-    let reply = parser
+    let before=json!({"intake":intake,"task":task});
+    let error = parser
         .chat_from_capabilities(QUESTION, None, &task, &c, &intake)
         .await
-        .unwrap();
-    assert!(!reply.discover && reply.intent.is_none(), "the unsupported substitution gets a clarification, never a price");
-    assert!(reply.decline_reason.is_none());
+        .unwrap_err();
+    assert!(matches!(error.downcast_ref::<crate::parser::ModelFailure>(),Some(crate::parser::ModelFailure::Unavailable)),
+        "a rejected dependency substitution remains retryable without claiming source unavailability");
+    assert_eq!(json!({"intake":intake,"task":task}),before,"the requested retrieval survives unchanged");
+    assert!(task.proposal.is_none() && task.actions.is_empty(),"no replacement source can be quoted or executed");
     server.abort();
 }
 

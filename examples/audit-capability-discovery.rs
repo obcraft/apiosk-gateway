@@ -29,12 +29,16 @@ struct Case {
     expect_plan: bool,
     #[serde(default)]
     minimum_capabilities: usize,
+    #[serde(default = "one_source")]
+    minimum_sources: usize,
     #[serde(default)]
     expect_discovery: bool,
     #[serde(default)]
     coverage_probe: bool,
     coverage_note: Option<String>,
 }
+
+fn one_source() -> usize { 1 }
 
 /// Audit-only vocabulary describes the meaning of each question, never the
 /// exact slug/output spelling the parser must generate or the chosen provider.
@@ -108,9 +112,15 @@ async fn main() -> anyhow::Result<()> {
     let dir = PathBuf::from(std::env::var("CAPABILITY_AUDIT_DIR")
         .unwrap_or_else(|_| "/private/tmp/apiosk-capability-discovery-audit".into()));
     std::fs::create_dir_all(&dir)?;
-    let snapshot_path = std::env::var("CAPABILITY_AUDIT_CATALOG")
-        .map(PathBuf::from).unwrap_or_else(|_| dir.join("catalog.json"));
-    if !snapshot_path.exists() {
+    let all_cases: Vec<Case> = serde_json::from_str(include_str!("../tests/fixtures/capability-discovery-questions.json"))?;
+    let filter = std::env::var("CAPABILITY_AUDIT_CASES").ok();
+    let cases = selected_cases(all_cases, filter.as_deref())?;
+    let recorded_snapshot = std::env::var("CAPABILITY_AUDIT_CATALOG").ok().map(PathBuf::from);
+    if let Some(path) = &recorded_snapshot { anyhow::ensure!(path.is_file(), "explicit catalog snapshot is missing"); }
+    let snapshot_path = recorded_snapshot.clone().unwrap_or_else(|| dir.join("catalog.json"));
+    // A default output directory is not an instruction to reuse yesterday's
+    // catalog. Only an explicit snapshot path selects recorded contracts.
+    if recorded_snapshot.is_none() {
         let database_url = std::env::var("DATABASE_URL")?;
         let database_host = reqwest::Url::parse(&database_url)?.host_str().unwrap_or_default().to_owned();
         anyhow::ensure!(database_host.ends_with(".supabase.com") || database_host.ends_with(".supabase.co"), "audit catalog must use the configured Supabase database");
@@ -126,7 +136,15 @@ async fn main() -> anyhow::Result<()> {
         pool.close().await;
         std::fs::write(&snapshot_path, serde_json::to_vec(&raw)?)?;
     }
-    let snapshot: Snapshot = serde_json::from_slice(&std::fs::read(&snapshot_path)?)?;
+    let mut snapshot: Snapshot = serde_json::from_slice(&std::fs::read(&snapshot_path)?)?;
+    // This audit is approved for public API metadata, not account activity.
+    // Readiness normally includes aggregate recent execution counts; erase
+    // these before catalog construction or any model request.
+    for source in &mut snapshot.known_sources {
+        source.metadata.recent_successes = 0;
+        source.metadata.recent_failures = 0;
+        source.metadata.recent_unresolved = 0;
+    }
     let catalog = Catalog::build(snapshot);
     let http = reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).build()?;
     let key = std::env::var("OPENROUTER_API_KEY").ok().filter(|s| !s.is_empty())
@@ -137,15 +155,14 @@ async fn main() -> anyhow::Result<()> {
         "https://openrouter.ai/api/v1/chat/completions".into(),
         key.clone(), parser::pinned_model("INTENT_MODEL"))
         .with_ask_v2(ask_v2::Client::new(http, key, model.clone()));
-    let cases: Vec<Case> = serde_json::from_str(include_str!("../tests/fixtures/capability-discovery-questions.json"))?;
-    let filter = std::env::var("CAPABILITY_AUDIT_CASES").ok();
     let suffix = std::env::var("CAPABILITY_AUDIT_RUN").unwrap_or_else(|_| "baseline".into());
     let mut results = vec![];
     for case in cases {
-        if filter.as_ref().is_some_and(|ids| !ids.split(',').any(|id| id == case.id)) { continue; }
         let started = Instant::now();
         let mut report = json!({"case":case.id,"question":case.question,"model":model,
             "catalog_version":catalog.version,"catalog_services":catalog.services.len(),
+            "catalog_origin":if recorded_snapshot.is_some() { "explicit_snapshot" } else { "fresh_read_only_catalog" },
+            "execution_activity_in_model_context":false,
             "boundary":"Live catalog metadata, real model parse/search/plan, in-memory bind and resolve; zero source execution, approval, payment, task persistence or database mutation.",
             "no_provider_execution":true,"assertions":{},"issues":[]});
         let mut issues = vec![];
@@ -205,14 +222,34 @@ async fn main() -> anyhow::Result<()> {
                                             }).collect();
                                             let actual: BTreeSet<_> = plan.steps.iter().map(|s| &s.service.api_slug).collect();
                                             let one_cap = plan.cap_atomic == plan.steps.iter().map(|s| s.service.total()).sum::<i64>();
+                                            let categories_planned: Vec<_> = case.expect_needs.iter().map(|need| {
+                                                let planned = intake.parsed_request.capabilities.iter().filter(|cap| matches_need(need, cap)).any(|cap| {
+                                                    let subject = intake.parsed_request.subjects.iter().find(|subject| cap.subject_id.as_deref() == Some(&subject.id));
+                                                    intake.matches.iter().filter(|found| found.slug == cap.slug).any(|found| plan.steps.iter().any(|step| {
+                                                        intent.goals.get(step.goal_index).is_some_and(|goal| found.operations.contains(&goal.capability)
+                                                            && intent.subjects.get(goal.subject).is_some_and(|bound| bound.entity_ref == Some(step.entity_ref)
+                                                                && subject.is_none_or(|subject| bound.label == subject.label)))
+                                                    }))
+                                                });
+                                                json!({"need":need.label,"planned":planned})
+                                            }).collect();
+                                            let all_categories_planned = categories_planned.iter().all(|category| category["planned"] == true);
+                                            let independent = plan.independent_calls && plan.validate_independent_inputs(&task, &catalog.vocabulary).is_ok();
                                             report["status"] = json!("plan_ready");
                                             report["plan"] = json!({"cap_atomic":plan.cap_atomic,"steps":steps,"sources":actual});
                                             report["assertions"]["all_inputs_available"] = json!(all_inputs_ready);
                                             report["assertions"]["steps_from_discovered_executable_endpoints"] = json!(matched);
                                             report["assertions"]["single_cap_equals_steps"] = json!(one_cap);
+                                            report["planned_categories"] = json!(categories_planned);
+                                            report["assertions"]["every_required_category_planned"] = json!(all_categories_planned);
+                                            report["assertions"]["minimum_distinct_sources"] = json!(actual.len() >= case.minimum_sources);
+                                            report["assertions"]["independent_calls_with_all_inputs"] = json!(independent);
                                             if !all_inputs_ready { issues.push("plan_has_missing_inputs".into()); }
                                             if !matched { issues.push("plan_uses_undiscovered_endpoint".into()); }
                                             if !one_cap { issues.push("price_cap_mismatch".into()); }
+                                            if !all_categories_planned { issues.push("requested_category_missing_from_plan".into()); }
+                                            if actual.len() < case.minimum_sources { issues.push("too_few_distinct_sources".into()); }
+                                            if !independent { issues.push("plan_is_not_a_complete_independent_batch".into()); }
                                         }
                                         Resolution::Missing { kind, .. } => {
                                             report["status"] = json!("needs_input"); report["missing_input"] = json!(kind);
@@ -255,9 +292,30 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn selected_cases(cases: Vec<Case>, filter: Option<&str>) -> anyhow::Result<Vec<Case>> {
+    let wanted = filter.map(|filter| filter.split(',').map(str::trim).collect::<BTreeSet<_>>());
+    if let Some(wanted) = &wanted {
+        anyhow::ensure!(wanted.iter().all(|id| !id.is_empty() && cases.iter().any(|case| &case.id == id)), "audit filter contains an unknown or empty case ID");
+    }
+    let cases: Vec<_> = cases.into_iter().filter(|case| wanted.as_ref().is_none_or(|ids| ids.contains(case.id.as_str()))).collect();
+    anyhow::ensure!(!cases.is_empty(), "audit requires at least one selected case");
+    anyhow::ensure!(cases.iter().all(|case| (1..=10).contains(&case.minimum_sources)), "invalid source minimum");
+    Ok(cases)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn empty_or_misspelled_filters_cannot_report_success_without_testing() {
+        for filter in [Some(""), Some("not-a-case"), Some("company-search,typo")] {
+            let cases = serde_json::from_str(include_str!("../tests/fixtures/capability-discovery-questions.json")).unwrap();
+            assert!(selected_cases(cases, filter).is_err());
+        }
+        let cases = serde_json::from_str(include_str!("../tests/fixtures/capability-discovery-questions.json")).unwrap();
+        assert_eq!(selected_cases(cases, Some("company-search")).unwrap().len(), 1);
+    }
 
     fn capability(slug: &str, description: &str, outputs: &[&str]) -> Capability {
         serde_json::from_value(json!({
@@ -316,6 +374,20 @@ mod tests {
     fn outputless_capability_is_not_semantic_coverage() {
         let expected = need(json!({"label":"Patents","concepts":[["patent"]]}));
         assert!(!matches_need(&expected, &capability("patent.search", "Patent search.", &[])));
+    }
+
+    #[test]
+    fn named_source_screening_terms_do_not_require_a_particular_capability_spelling() {
+        let cases: Vec<Case> = serde_json::from_str(include_str!("../tests/fixtures/capability-discovery-questions.json")).unwrap();
+        let case = cases.iter().find(|case| case.id == "starter-company-named-sources").unwrap();
+        assert_eq!(case.minimum_sources, 2);
+        assert_eq!(case.expect_needs.len(), 2);
+        let screening = capability("compliance.screen.opensanctions", "Screen the given company name against OpenSanctions data.", &["screening_result"]);
+        let companies = capability("company.search", "Find companies matching the given name.", &["company_records"]);
+        assert!(matches_need(&case.expect_needs[0], &companies));
+        assert!(matches_need(&case.expect_needs[1], &screening));
+        assert!(!matches_need(&case.expect_needs[1], &companies), "company search cannot substitute for screening");
+        assert!(!matches_need(&case.expect_needs[0], &screening), "screening cannot substitute for registry search");
     }
 
     #[test]

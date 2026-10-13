@@ -71,7 +71,7 @@ node scripts/test-integration.mjs
 cargo build --release --offline
 ```
 
-De homepagecontrole vergelijkt alle gepubliceerde vragen met `../app/src/lib/ui/ask-examples.ts` en test intake, bronselectie, invoerbinding, dekking van alle gevraagde velden en totaalprijs met opgeslagen broncontracten. Een ontbrekende App-checkout, gewijzigde vraag of onvolledig plan laat de controle falen. Zonder `--live` gebruikt modelinterpretatie een lokale HTTP-fixture.
+De homepagecontrole leest de gepubliceerde vragen uit `../app/src/lib/ui/ask-examples.ts`. Zonder `--live` controleert hij alleen de vorm van deze vragen en speelt hij historische modeluitvoer opnieuw af met opgeslagen broncontracten. Dat bewijst niet dat de huidige vragen met het echte model werken. De live controle vereist per gepubliceerde voorbeeldvraag minstens twee verschillende bronnen, maximaal tien onafhankelijke API-aanroepen, behoud van gevraagde onderdelen en opgegeven waarden, beschikbare invoer en één kloppende totaalprijs. `--cases` accepteert aanvullende vraagverwachtingen; de twee eerder mislukte gecombineerde bedrijfsvragen zijn standaard regressiegevallen.
 
 Voor publicatie is ook `--live` vereist: iedere exacte vraag moet via de productie-preview een volledig geprijsd plan opleveren. Herstel of verwijder vragen die niet slagen; vul de lijst niet aan om een vast aantal te halen. Rol bij wijzigingen aan beide repositories eerst de Gateway uit en controleer daarna de preview voordat de App wordt gepubliceerd. De releaserunner `scripts/test-release-gate.mjs` voert deze live controle eerst uit. De preview maakt geen taak aan, koopt geen brondata en wordt nooit goedgekeurd. Rapporten bewaren geen goedkeuringstokens.
 

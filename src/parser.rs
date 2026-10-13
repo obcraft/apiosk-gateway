@@ -19,6 +19,8 @@ use std::{
 use uuid::Uuid;
 
 mod capability_binding;
+#[cfg(test)]
+mod intake_scope_tests;
 pub(crate) mod contract_planner;
 use capability_binding::Bindings;
 mod analysis_source_coverage;
@@ -369,7 +371,8 @@ fn requirement_rejection(reason: &str) -> bool {
     matches!(reason, "duplicate_goal" | "redundant_goal" | "missing_subject_goal" | "requirement_goal_count"
         | "missing_capability_goal" | "unmatched_capabilities" | "undiscovered_operation"
         | "wrong_subject_input" | "non_literal_input" | "misplaced_source_input" | "unmatched_source_input"
-        | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input" | "missing_source_coverage")
+        | "unsupported_constraint" | "ungrounded_constraint" | "invalid_constraint" | "non_scalar_input" | "missing_source_coverage"
+        | "unexecutable_matched_plan")
 }
 
 fn intent_repair_message(surface: &str, reason: &str) -> String {
@@ -1280,6 +1283,10 @@ impl Parser {
     /// does: the Ask v2 capability parse, then the deterministic source search.
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
+        self.ask_intake_selected(question, None, task, catalog, earlier).await
+    }
+
+    async fn ask_intake_selected(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
         let parsed = {
             let client = self.ask_v2.as_ref().ok_or(ModelFailure::Unavailable)?;
@@ -1290,24 +1297,25 @@ impl Parser {
             let known = Vec::new();
             // A follow-up is parsed as the Ask page sends it: the previous
             // request is context only, and its values stay literal.
-            let asked = match task.conversation.last() {
+            let mut asked = match task.conversation.last() {
                 Some(_) => format!("Previous conversation (context only): {}\n\nCurrent request: {question}", task.parser_context()),
                 None => question.to_owned(),
             };
-            let literals = capability_binding::literal_context(question, task, None);
+            if let Some(selection) = selection.filter(|selection| !selection.literals.is_empty()) {
+                // Only values the user actually supplied may inform request
+                // interpretation. Catalogue descriptions/fields remain in the
+                // later source-selection stage, never the scope reviewer.
+                asked.push_str(&format!("\nUser-supplied selection values (context only): {}", json!(selection.literals)));
+            }
+            let literals = capability_binding::literal_context(question, task, selection);
             let unavailable = |error: anyhow::Error| {
                 tracing::warn!(surface = "ask-intake", reason = %error, "Ask v2 capability parse failed");
                 anyhow::Error::from(ModelFailure::Unavailable)
             };
-            // One correction, as the Ask page gives its parser.
-            let first = client.parse(&asked, &known, None).await.map_err(unavailable)?;
-            match intake::normalize_with_context(&first.text, question, &literals, &first.model) {
-                Ok(parsed) => parsed,
-                Err(error) => {
-                    let second = client.parse(&asked, &known, Some(&error.to_string())).await.map_err(unavailable)?;
-                    intake::normalize_with_context(&second.text, question, &literals, &second.model).map_err(unavailable)?
-                }
-            }
+            // Use the same reviewed interpretation as the App. Schema-valid
+            // output alone does not prove that every requested clause survived.
+            client.interpret_with_context(&asked, question, &literals, &known)
+                .await.map_err(unavailable)?.parsed_request
         };
         let mut matches = crate::ask_v2::search::search(&parsed, catalog);
         let mut selected_capabilities: std::collections::BTreeSet<String> = matches.iter().flat_map(|m| m.operations.iter().cloned()).collect();
@@ -1333,14 +1341,14 @@ impl Parser {
 
     /// Ask must finish capability extraction before any source search starts.
     pub async fn prepare_ask(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
-        if self.ask_v2.is_some() && selection.is_none() {
-            let mut intake=self.ask_intake(question,task,catalog,task.capability_intake.as_ref()).await?;
-            crate::capability_intake::add_coinbase(&self.discovery_http,&mut intake.matches,&self.bazaar_search_url).await;
-            return Ok(intake);
-        }
-        self.prepare_ask_with_bazaar(question, selection, task, catalog, &self.bazaar_search_url).await
+        let mut intake=self.ask_intake_selected(question,selection,task,catalog,task.capability_intake.as_ref()).await?;
+        crate::capability_intake::add_coinbase(&self.discovery_http,&mut intake.matches,&self.bazaar_search_url).await;
+        Ok(intake)
     }
 
+    /// Historical contract fixtures exercise their authored intake and search
+    /// replies directly. Every production request uses the reviewed path above.
+    #[cfg(test)]
     pub(crate) async fn prepare_ask_with_bazaar(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, bazaar: &str) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
         let known: Vec<String> = Vec::new();
@@ -1504,9 +1512,20 @@ impl Parser {
         })
         .await;
         match (result, intake) {
-            (Err(error), Some(intake)) if error.is::<RequirementRejection>() => Ok(
-                plan_coverage::single_retrieval_reply(intake,catalog,question,literals.as_deref().unwrap_or(question),task)
-                    .unwrap_or_else(||plan_coverage::rejected_reply(intake))),
+            (Err(error), Some(intake)) if error.is::<RequirementRejection>() => {
+                if let Some(reply) = plan_coverage::single_retrieval_reply(
+                    intake, catalog, question, literals.as_deref().unwrap_or(question), task,
+                ) {
+                    Ok(reply)
+                } else if !plan_coverage::retrievals_matched(intake) {
+                    Ok(plan_coverage::rejected_reply(intake))
+                } else {
+                    // A rejected draft is not evidence that matched sources
+                    // cannot answer the request. Preserve the unpaid intake
+                    // for retry instead of reporting source unavailability.
+                    Err(ModelFailure::Unavailable.into())
+                }
+            },
             (Err(error), None) if error.is::<RequirementRejection>() => Err(ModelFailure::Unavailable.into()),
             (result, _) => result,
         }
@@ -1670,7 +1689,10 @@ impl Parser {
                                             }
                                             if matches!(surface, "intent" | "chat" | "capability-plan") {
                                                 let coverage = error.downcast_ref::<source_grounding::CoverageError>();
-                                                let reason = if coverage.is_some() { "missing_source_coverage" } else { intent_validation_reason(&error) };
+                                                let resolution = error.downcast_ref::<source_grounding::ResolutionError>();
+                                                let reason = if coverage.is_some() { "missing_source_coverage" }
+                                                    else if resolution.is_some() { "unexecutable_matched_plan" }
+                                                    else { intent_validation_reason(&error) };
                                                 if matches!(surface, "chat" | "capability-plan") && requirement_rejection(reason) {
                                                     rejected_requirement = Some(reason);
                                                 }
@@ -1680,6 +1702,9 @@ impl Parser {
                                                     messages.push(json!({"role":"user","content":intent_repair_message(surface, reason)}));
                                                     if let Some(coverage) = coverage {
                                                         messages.push(json!({"role":"user","content":format!("The proposed source plan does not yet support outputs {} or preserve supplied inputs {}. Recheck source_fields and the exact input definitions. Correct source selection, literal bindings and output_bindings using only admitted evidence. Do not remove requirements to pass this check. If an essential item is genuinely unavailable, explain it briefly with discover=false and intent=null.",json!(coverage.outputs),json!(coverage.inputs))}));
+                                                    }
+                                                    if let Some(resolution) = resolution {
+                                                        messages.push(json!({"role":"user","content":format!("The proposed matched source calls could not be resolved: {}. Recheck the exact selected endpoints and their input and scope definitions. Preserve every user requirement. Correct the proposed source selection or constraints only using the supplied contracts; never remove a requested filter to force a quote. If the source contracts genuinely cannot cover the requested scope, return discover=false, intent=null and decline_reason=unavailable_requirement. If actual user context is missing, ask one focused clarification instead.",resolution.reason)}));
                                                     }
                                                 }
                                             }
@@ -2732,11 +2757,13 @@ mod tests {
             let mut request=intake.clone();
             if unsupported {request.parsed_request.capabilities[0].outputs.push("vat_registration_date".into());}
             let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope.clone())]).await;
-            let reply=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&request.selected_capabilities), &request.selected_capabilities),Some(&request)).await.unwrap();
+            let result=parser.chat_with_view(question,None,&Task::default(),&catalog,capability_planning_view(catalog.selected_parser_view(&request.selected_capabilities), &request.selected_capabilities),Some(&request)).await;
             assert_eq!(calls.load(Ordering::Relaxed),2,"bounded correction remains two calls");
             if unsupported {
-                assert!(!reply.discover && reply.intent.is_none(),"recovery cannot remove an unsupported output");
+                assert!(matches!(result.unwrap_err().downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)),
+                    "rejected coverage must remain retryable, without removing the requested output");
             } else {
+                let reply=result.unwrap();
                 let intent=reply.intent.expect("the displayed validity/date contract resolves with the supplied VAT identifier");
                 assert!(reply.discover);assert_eq!(intent.goals.len(),1);
                 assert!(matches!(intent.goals[0].capability.as_str(),"vat.eu.check"|"vat.eu.validate"));
@@ -2767,10 +2794,9 @@ mod tests {
         }).collect::<Vec<_>>());
         let envelope=json!({"choices":[{"finish_reason":"stop","message":{"content":json!({"message":"I will show the price.","discover":true,"intent":intent,"decline_reason":"none"}).to_string()}}]});
         let (parser,calls,server)=model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
-        let reply=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
-        assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(!reply.message.trim().is_empty());
-        assert!(!reply.message.contains("2023") && !reply.message.contains("5210"));
+        let error=parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap_err();
+        assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)),
+            "an invented constraint is a rejected draft, not proof of source unavailability");
         assert_eq!(calls.load(Ordering::Relaxed),2,"the semantic planner gets one bounded repair; invented inputs still cannot be quoted");
         server.abort();
     }
@@ -2786,12 +2812,135 @@ mod tests {
         intent["subjects"] = json!([{"subject_ref":intake.parsed_request.subjects[0].id,"values":values}]);
         let envelope = json!({"choices":[{"finish_reason":"stop","message":{"content":json!({"message":"I will show the price.","discover":true,"intent":intent,"decline_reason":"none"}).to_string()}}]});
         let (parser,calls,server) = model_fixture(vec![(200,envelope.clone()),(200,envelope)]).await;
-        let reply = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap();
-        assert!(!reply.discover && reply.intent.is_none() && reply.decline_reason.is_none());
-        assert!(!reply.message.trim().is_empty());
-        assert!(!reply.message.contains("2023") && !reply.message.contains("32006L0029") && !reply.message.contains("geen geldige uitvoeringscontracten"));
+        let error = parser.chat_from_capabilities(fixture["question"].as_str().unwrap(),None,&Task::default(),&catalog,&intake).await.unwrap_err();
+        assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)),
+            "an invented input must retain the request for a safe retry");
         assert_eq!(calls.load(Ordering::Relaxed),2,"the dynamic planner must attempt a repair without accepting invented values");
         server.abort();
+    }
+
+    fn matched_account_request() -> (String, Catalog, crate::capability_intake::Intake, Value) {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
+        let labels = [format!("Company {}", Uuid::new_v4().simple()), format!("Company {}", Uuid::new_v4().simple())];
+        let identifiers = ["001234", "005678"];
+        let question = format!("Show accounts for {} (company ID {}) and {} (company ID {}).", labels[0], identifiers[0], labels[1], identifiers[1]);
+        let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
+            "subjects":(0..2).map(|index|json!({"id":format!("s{index}"),"label":labels[index],"type":"company",
+                "identifiers":{"company_id":identifiers[index]}})).collect::<Vec<_>>(),
+            "capabilities":(0..2).map(|index|json!({"slug":"company.accounts","name":"Company accounts",
+                "description":"Retrieve the company accounts","domain":"company","inputs":["company_id"],
+                "outputs":["company.accounts"],"subject_id":format!("s{index}"),"source_hint":null,"confidence":1})).collect::<Vec<_>>(),
+            "deliverable":{"format":"chat","operations":[]}
+        }).to_string(), &question, "fixture").unwrap();
+        let service = catalog.services.iter().find(|service|service.contract.capability_slug=="company.accounts").unwrap();
+        let candidate = json!({"origin":"apiosk","name":service.name,"description":"Company accounts",
+            "source_slug":service.api_slug,"capability":service.contract.capability_slug,"endpoint_id":service.endpoint_id,
+            "method":"GET","availability":"supported"});
+        let intake = crate::capability_intake::Intake { parsed_request,
+            matches:(0..2).map(|_|crate::capability_intake::Match { slug:"company.accounts".into(),query:"Company accounts".into(),
+                operations:std::collections::BTreeSet::from(["company.accounts".into()]),
+                apiosk:vec![serde_json::from_value(candidate.clone()).unwrap()],coinbase:vec![],coinbase_status:"skipped".into() }).collect(),
+            selected_capabilities:std::collections::BTreeSet::from(["company.accounts".into()]),
+            apiosk_sources_searched:1,catalog_version:catalog.version.clone() };
+        let valid = json!({"message":"I will show the total price.","discover":true,"decline_reason":"none","output_bindings":[],
+            "intent":{"subjects":intake.parsed_request.subjects.iter().map(|subject|json!({"subject_ref":subject.id,
+                "values":{"company.id":{"ref":format!("{}.identifiers.company_id",subject.id)}}})).collect::<Vec<_>>(),
+                "goals":(0..2).map(|index|json!({"subject":index,"capability":"company.accounts",
+                    "constraints":{"source":service.api_slug,"endpoint_id":service.endpoint_id}})).collect::<Vec<_>>(),
+                "answer_operations":[],"unresolved_references":[]}});
+        (question, catalog, intake, valid)
+    }
+
+    #[tokio::test]
+    async fn incomplete_matched_plan_stays_retryable_and_preserves_every_subject() {
+        let (question, catalog, mut intake, valid) = matched_account_request();
+        let mut incomplete = valid.clone();
+        incomplete["intent"]["goals"].as_array_mut().unwrap().pop();
+        let envelope = |reply:Value|json!({"choices":[{"finish_reason":"stop","message":{"content":reply.to_string()}}]});
+        let (parser,calls,server,requests)=model_fixture_with_requests(vec![(200,envelope(incomplete.clone())),(200,envelope(incomplete.clone())),(200,envelope(valid.clone())),(200,envelope(valid))]).await;
+        let task = Task::default();
+        let before = json!({"intake":intake,"task":task});
+        let error = parser.chat_with_view(&question,None,&task,&catalog,
+            capability_planning_view(catalog.independent_parser_view(&intake.selected_capabilities),&intake.selected_capabilities),Some(&intake)).await.unwrap_err();
+        assert!(matches!(error.downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable)),
+            "failure to cover a matched subject is a retryable planning failure");
+        assert_eq!(calls.load(Ordering::Relaxed),2,"one bounded semantic repair");
+        assert!(requests.lock().unwrap()[1]["messages"].as_array().unwrap().last().unwrap()["content"]
+            .as_str().unwrap().contains("missing_subject_goal"),"the repair diagnoses the omitted subject");
+        assert_eq!(json!({"intake":intake,"task":task}),before,"the original question and both requirements survive unchanged");
+        assert!(task.proposal.is_none() && task.actions.is_empty(),"no price or executable action exists after a rejected draft");
+        let reply = parser.chat_with_view(&question,None,&task,&catalog,
+            capability_planning_view(catalog.independent_parser_view(&intake.selected_capabilities),&intake.selected_capabilities),Some(&intake)).await
+            .unwrap_or_else(|error|panic!("retry failed: {error}; feedback: {:?}", requests.lock().unwrap().last().map(|request|request["messages"].as_array().unwrap().last())));
+        assert!(reply.discover && contract_planner::ready(&question,&reply,&task,&catalog,&intake),"a retry can prepare the full request");
+        assert_eq!(reply.intent.unwrap().goals.len(),2);
+        assert_eq!(calls.load(Ordering::Relaxed),3);
+        assert_eq!(json!({"intake":intake,"task":task}),before,"planning never approves, executes or mutates the caller's task");
+        server.abort();
+
+        // A genuinely absent operation remains distinct from a rejected plan.
+        intake.matches[1].operations.clear();
+        intake.matches[1].apiosk[0].availability="discovery_only".into();
+        let (parser,calls,server)=model_fixture(vec![(200,envelope(incomplete.clone())),(200,envelope(incomplete))]).await;
+        let reply = parser.chat_with_view(&question,None,&task,&catalog,
+            capability_planning_view(catalog.independent_parser_view(&intake.selected_capabilities),&intake.selected_capabilities),Some(&intake)).await.unwrap();
+        assert!(!reply.discover && reply.intent.is_none(),"absent execution coverage cannot produce a quote or invented input request");
+        assert_eq!(reply.message,plan_coverage::discovery_message(&intake).unwrap());
+        assert_eq!(calls.load(Ordering::Relaxed),2);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn resolver_rejection_repairs_the_source_choice_or_accepts_a_genuine_scope_decline() {
+        use sha2::Digest;
+        let (question, _, mut intake, mut valid) = matched_account_request();
+        let question = format!("{question} Use company records from the Netherlands.");
+        intake.parsed_request.meta.text_sha256 = hex::encode(sha2::Sha256::digest(question.as_bytes()));
+        let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        for service in &mut snapshot.services { service.jurisdiction=Some("NL".into()); }
+        let mut foreign = snapshot.services.iter().find(|service|service.contract.capability_slug=="company.accounts").unwrap().clone();
+        foreign.id=Uuid::new_v4(); foreign.endpoint_id=Uuid::new_v4(); foreign.api_slug="foreign-register".into(); foreign.jurisdiction=Some("GB".into());
+        snapshot.services.push(foreign.clone());
+        let catalog=Catalog::build(snapshot);
+        for found in &mut intake.matches {
+            found.apiosk.push(serde_json::from_value(json!({"origin":"apiosk","name":"Foreign register","description":"Company accounts",
+                "source_slug":foreign.api_slug,"capability":foreign.contract.capability_slug,"endpoint_id":foreign.endpoint_id,
+                "method":"GET","availability":"supported"})).unwrap());
+        }
+        intake.catalog_version=catalog.version.clone();
+        for goal in valid["intent"]["goals"].as_array_mut().unwrap() { goal["constraints"]["jurisdiction"]=json!("NL"); }
+        let mut wrong_source=valid.clone();
+        for goal in wrong_source["intent"]["goals"].as_array_mut().unwrap() {
+            goal["constraints"]["source"]=json!(foreign.api_slug);
+            goal["constraints"]["endpoint_id"]=json!(foreign.endpoint_id);
+        }
+        let decline=json!({"message":"These sources do not cover the requested registry scope.","discover":false,
+            "decline_reason":"unavailable_requirement","intent":null,"output_bindings":[]});
+        let envelope=|reply:Value|json!({"choices":[{"finish_reason":"stop","message":{"content":reply.to_string()}}]});
+        for (second,expected) in [(valid,"ready"),(wrong_source.clone(),"retry"),(decline,"unsupported")] {
+            let mut catalog=catalog.clone();
+            if expected=="unsupported" {
+                // In this case there really is no admitted endpoint covering
+                // the requested country; the model may state that limitation.
+                for service in &mut catalog.services { service.jurisdiction=Some("GB".into()); }
+            }
+            let task=Task::default();
+            let before=json!({"task":task,"intake":intake});
+            let (parser,calls,server,requests)=model_fixture_with_requests(vec![(200,envelope(wrong_source.clone())),(200,envelope(second))]).await;
+            let result=parser.chat_with_view(&question,None,&task,&catalog,
+                capability_planning_view(catalog.independent_parser_view(&intake.selected_capabilities),&intake.selected_capabilities),Some(&intake)).await;
+            assert_eq!(calls.load(Ordering::Relaxed),2,"a resolver rejection must enter the existing bounded repair");
+            assert!(requests.lock().unwrap()[1]["messages"].as_array().unwrap().iter().any(|message|
+                message["content"].as_str().is_some_and(|text|text.contains("could not be resolved"))),"the repair sees the actual resolver rejection");
+            match expected {
+                "ready" => { let reply=result.unwrap(); assert!(contract_planner::ready(&question,&reply,&task,&catalog,&intake),"the corrected endpoint preserves the requested country"); },
+                "retry" => assert!(matches!(result.unwrap_err().downcast_ref::<ModelFailure>(),Some(ModelFailure::Unavailable))),
+                _ => { let reply=result.unwrap(); assert!(!reply.discover && reply.intent.is_none()); assert_eq!(reply.message,conversation_reply::NO_RESULTS); },
+            }
+            assert_eq!(json!({"task":task,"intake":intake}),before,"no requirement or approval state can change during repair");
+            assert!(task.proposal.is_none() && task.actions.is_empty());
+            server.abort();
+        }
     }
 
     #[tokio::test]

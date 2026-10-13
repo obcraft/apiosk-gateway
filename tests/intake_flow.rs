@@ -32,6 +32,7 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 struct Model {
     bazaar_resources: Mutex<Vec<Value>>,
     ask_v2_requests: Mutex<Vec<Value>>,
+    ask_v2_replies: Mutex<std::collections::VecDeque<Value>>,
     /// Requests to the conversation-reply model (OpenRouter in production).
     replies: Mutex<Vec<Value>>,
     chats: Mutex<Vec<Value>>,
@@ -50,8 +51,15 @@ fn ask_v2_capabilities() -> Value {
 /// prove the App bearer never becomes a provider credential or planner input.
 async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> ([(axum::http::header::HeaderName, &'static str); 1], String) {
     assert_eq!(headers.get("authorization").unwrap(), "Bearer ask-v2-fixture-key");
-    model.ask_v2_requests.lock().unwrap().push(body);
-    let output = ask_v2_capabilities();
+    model.ask_v2_requests.lock().unwrap().push(body.clone());
+    let input = serde_json::from_str::<Value>(body["messages"][1]["content"].as_str().unwrap()).ok();
+    let output = model.ask_v2_replies.lock().unwrap().pop_front().unwrap_or_else(|| {
+        if let Some(input) = input.filter(|input| input.get("interpretation").is_some()) {
+            json!({"requirements":[{"quote":input["question"],
+                "capabilities":[{"index":0,"outputs":["accounts"]}],
+                "operations":["list"],"format":null,"issue":null}]})
+        } else { ask_v2_capabilities() }
+    });
     let event = json!({"choices":[{"delta":{"content":output.to_string()}}]});
     ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
 }
@@ -385,7 +393,7 @@ fn codes(response: &Value) -> Vec<&str> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
-async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task() {
+async fn ask_v2_reviews_scope_then_searches_locally_without_creating_a_task() {
     let intake = Intake::start().await;
     let person = Person::new();
     let question = "Jaarrekening van Coolblue";
@@ -402,12 +410,16 @@ async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task(
         "parsed_request":parsed,"origin":"apiosk"
     }))).await;
     assert_eq!(status, StatusCode::OK, "{found}");
-    assert_eq!(found["apiosk_sources_searched"], 1);
+    assert!(found["apiosk_sources_searched"].as_u64().is_some_and(|count| count >= 1));
     assert!(found["catalog_version"].is_string());
     assert!(found["timing"]["search_ms"].is_u64());
-    assert_eq!(found["matches"][0]["apiosk"][0]["capability"], "company.accounts", "{found}");
+    assert!(found["matches"][0]["apiosk"].as_array().unwrap().iter()
+        .any(|source| source["capability"] == "company.accounts"), "{found}");
     let calls = intake.model.ask_v2_requests.lock().unwrap().clone();
-    assert_eq!(calls.len(), 1, "local search must not call a model");
+    assert_eq!(calls.len(), 2, "interpretation is reviewed once; local search must not call a model");
+    let review: Value = serde_json::from_str(calls[1]["messages"][1]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(review["question"], question);
+    assert!(review.get("interpretation").is_some());
     assert_eq!(calls[0]["stream"], true);
     assert_eq!(calls[0]["model"], "ask-v2-fixture-model");
     assert_eq!(calls[0]["messages"][1]["content"], question);
@@ -427,6 +439,47 @@ async fn ask_v2_parse_then_local_search_uses_one_model_call_and_creates_no_task(
     let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
         .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
     assert_eq!((executions, approvals, charges), (0,0,0));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_omitted_request_is_retryable_without_search_task_or_payment() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Jaarrekening en bestuurders van Coolblue";
+    let incomplete = ask_v2_capabilities();
+    let failed_review = json!({"requirements":[
+        {"quote":"Jaarrekening","capabilities":[{"index":0,"outputs":["accounts"]}],"operations":["list"],"format":null,"issue":null},
+        {"quote":"bestuurders","capabilities":[],"operations":[],"format":null,"issue":"The requested officers are missing."}
+    ]});
+    intake.model.ask_v2_replies.lock().unwrap().extend([
+        incomplete.clone(), failed_review.clone(), incomplete.clone(), failed_review,
+    ]);
+    let request = json!({"request_id":Uuid::new_v4(),"question":question,"known_slugs":[]});
+    let (status, failed) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(request.clone())).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{failed}");
+    assert!(failed.get("parsed_request").is_none(), "a partial request must not reach discovery");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 4);
+
+    let mut complete = incomplete;
+    complete["capabilities"].as_array_mut().unwrap().push(json!({
+        "slug":"company.officers","name":"Company officers","description":"Retrieve the registered officers.",
+        "domain":"company","inputs":[],"outputs":["officers"],"subject_id":"s1","source_hint":null,"confidence":0.95
+    }));
+    let accepted_review = json!({"requirements":[
+        {"quote":"Jaarrekening","capabilities":[{"index":0,"outputs":["accounts"]}],"operations":["list"],"format":null,"issue":null},
+        {"quote":"bestuurders","capabilities":[{"index":1,"outputs":["officers"]}],"operations":[],"format":null,"issue":null}
+    ]});
+    intake.model.ask_v2_replies.lock().unwrap().extend([complete, accepted_review]);
+    let (status, recovered) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(request)).await;
+    assert_eq!(status, StatusCode::OK, "{recovered}");
+    assert_eq!(recovered["parsed_request"]["capabilities"].as_array().unwrap().len(), 2);
+    assert_eq!(task_count(&intake, &person).await, 0);
+    assert!(intake.model.stages.lock().unwrap().is_empty());
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(charges, 0);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -683,7 +736,8 @@ async fn ask_v2_authenticates_app_callers_before_parse_or_search() {
     assert!(accepted > 0);
     let (status, response) = intake.send(&second.bearer, "/v2/ask-v2/parse", Some(parse)).await;
     assert_eq!(status, StatusCode::OK, "independent caller allowance: {response}");
-    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), accepted + 1);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 2 * (accepted + 1),
+        "each accepted request parses and reviews; rejected callers reach neither model stage");
     assert_eq!(task_count(&intake, &first).await, 0);
     assert_eq!(task_count(&intake, &second).await, 0);
     assert!(intake.model.stages.lock().unwrap().is_empty());
