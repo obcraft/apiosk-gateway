@@ -42,6 +42,41 @@ fn generic_company_matches_find_typed_name_searches_without_a_provider() {
 }
 
 #[test]
+fn name_search_discovery_does_not_require_one_parser_spelling() {
+    let catalog = catalog();
+    for input in ["name", "company_name"] {
+        for output in ["companies", "matching_companies", "company_matches", "company_results"] {
+            let mut parsed = request();
+            let cap = &mut parsed.capabilities[0];
+            cap.slug = "company.nameSearch".into();
+            cap.inputs = vec![input.into()];
+            cap.outputs = vec![output.into()];
+            let found = super::super::search(&parsed, &catalog);
+            assert!(found[0].operations.contains("company_registry.search"), "{input}/{output}: {:?}", found[0].operations);
+            assert!(!found[0].operations.contains("company.registry-profile"));
+            assert!(!found[0].operations.contains("company.watchlist-search"));
+        }
+    }
+}
+
+#[test]
+fn generic_name_search_keeps_requested_result_and_identifier_scope() {
+    let mut cap = request().capabilities.remove(0);
+    cap.inputs = vec!["name".into()];
+    for output in ["company_name", "company_count", "company_details", "company_sanctions_matches", "person_matches"] {
+        cap.outputs = vec![output.into()];
+        assert!(!requested(&cap), "{output} is not a generic company collection");
+    }
+    cap.outputs = vec!["company_matches".into()];
+    cap.inputs = vec!["person_name".into()];
+    assert!(!requested(&cap), "a related person's name is not a supplied company name");
+    cap.inputs = vec!["name".into()];
+    cap.slug = "company.profile".into();
+    cap.name = "Company profile".into();
+    assert!(!requested(&cap), "a profile request does not imply a collection search");
+}
+
+#[test]
 fn an_explicit_source_hint_restricts_the_same_generic_collection_search() {
     let catalog = catalog();
     let mut request = request();
