@@ -21,10 +21,7 @@ use std::{
 
 struct ModelFixture {
     parser: Parser,
-    // Interpretations/plans and scope reviews have separate counters so the
-    // historical assertions continue to count only their declared stages.
     calls: Arc<Mutex<Vec<Value>>>,
-    reviews: Arc<Mutex<Vec<Value>>>,
     server: tokio::task::JoinHandle<()>,
 }
 impl Drop for ModelFixture {
@@ -69,8 +66,6 @@ async fn recorded_model_fixture(
     let has_planner = planner_reply.is_some();
     let calls = Arc::new(Mutex::new(Vec::new()));
     let capture = calls.clone();
-    let reviews = Arc::new(Mutex::new(Vec::new()));
-    let review_capture = reviews.clone();
     let app = Router::new().route(
         "/",
         post(move |Json(body): Json<Value>| {
@@ -78,28 +73,7 @@ async fn recorded_model_fixture(
             let question = question.clone();
             let capture = capture.clone();
             let planner_reply = planner_reply.clone();
-            let review_capture = review_capture.clone();
             async move {
-                if body["messages"][0]["content"] == include_str!("../contracts/intake-scope-review-prompt.txt") {
-                    let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
-                    assert_eq!(input["question"], question);
-                    let interpretation = &input["interpretation"];
-                    // These fixtures declare complete model interpretations.
-                    // Dedicated scope-review tests exercise omissions/repair;
-                    // this response is not evidence of real model acceptance.
-                    let review = serde_json::json!({"requirements":[{
-                        "quote":question.chars().take(500).collect::<String>(),
-                        "capabilities":interpretation["capabilities"].as_array().unwrap().iter().enumerate()
-                            .map(|(index,cap)|serde_json::json!({"index":index,"outputs":cap["outputs"]})).collect::<Vec<_>>(),
-                        "operations":interpretation["deliverable"]["operations"],
-                        "format":if interpretation["deliverable"]["format"] == "chat" { Value::Null } else { interpretation["deliverable"]["format"].clone() },
-                        "issue":null
-                    }]});
-                    review_capture.lock().unwrap().push(body);
-                    let event = serde_json::json!({"choices":[{"delta":{"content":review.to_string()}}]});
-                    return ([(axum::http::header::CONTENT_TYPE, "text/event-stream")],
-                        format!("data: {event}\n\ndata: [DONE]\n\n")).into_response();
-                }
                 if body["stream"] != true {
                     let input: Value =
                         serde_json::from_str(body["messages"][1]["content"].as_str().unwrap())
@@ -155,7 +129,6 @@ async fn recorded_model_fixture(
     ModelFixture {
         parser,
         calls,
-        reviews,
         server,
     }
 }
@@ -1008,7 +981,6 @@ async fn assert_recorded_plans(cases:Vec<PublishedStarter>) {
             .await
             .unwrap_or_else(|error| panic!("{id}: interpretation failed: {error}"));
         assert_eq!(model.calls.lock().unwrap().len(), 1, "{id}: one AI intake");
-        assert_eq!(model.reviews.lock().unwrap().len(), 1, "{id}: one request-scope review");
         assert_eq!(
             intake.parsed_request.meta.model,
             "fixture-interpretation-model"

@@ -1,5 +1,9 @@
-//! Ask model transport and canonical interpretation, shared by the App and
-//! public API. This client never plans or executes a data-source request.
+//! Ask model transport and canonical interpretation, shared by the App, the
+//! guest preview, connected agents and the public API. The question becomes
+//! the parse contract in one bounded model request; a second request happens
+//! only as a fallback when the first fails or returns an invalid parse. The
+//! catalog search, planning and pricing after it are deterministic. This
+//! client never plans or executes a data-source request.
 
 pub mod search;
 pub(crate) mod output_schema;
@@ -9,10 +13,10 @@ pub mod purchase;
 pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
-mod scope_review;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 
+use crate::capability_intake::{self, ParsedRequest};
 use anyhow::{anyhow, ensure, Result};
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -24,6 +28,9 @@ use std::{
 
 /// Canonical question parser for the main Ask page and public API.
 pub const DEFAULT_MODEL: &str = "openai/gpt-oss-120b";
+/// The one fallback: the same prompt again, without reasoning overhead, when
+/// the default model's request fails (an outage, not an invalid parse).
+pub const FALLBACK_MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // The parse contract: connected chatbots fill in exactly this shape
@@ -31,20 +38,20 @@ const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // against it. The model itself is asked for a JSON object; see `parse`.
 #[cfg_attr(not(test), allow(dead_code))]
 const SCHEMA: &str = include_str!("../../contracts/ask-v2-webgpu-schema.json");
-// Explicit Qwen clients retain their compatible provider preference. The
-// default intake model has independent routing and parameter requirements.
-const QWEN_PARSE_PROVIDERS: &[&str] = &["alibaba"];
-// Bound the complete interpretation request, including provider retries.
-const DEADLINE: Duration = Duration::from_secs(20);
+// One model request, including its stream, must finish inside this bound. The
+// fallback request gets the same bound; nothing sleeps or retries in between.
+const DEADLINE: Duration = Duration::from_secs(15);
 const MAX_STREAM_BYTES: usize = 256 * 1024;
 const WINDOW: Duration = Duration::from_secs(60);
 const MAX_OWNERS: usize = 4096;
+const UNVERIFIED: &str = "ask_v2_interpretation_unverified";
 
 #[derive(Clone)]
 pub struct Client {
     http: reqwest::Client,
     key: String,
     model: String,
+    fallback: Option<String>,
     endpoint: String,
     deadline: Duration,
     limits: Arc<Mutex<HashMap<String, OwnerLimits>>>,
@@ -60,6 +67,21 @@ pub struct Output {
 #[derive(Debug, Serialize)]
 pub struct Timing {
     pub parse_ms: u64,
+}
+
+/// A validated parse and the request(s) that produced it.
+pub(crate) struct Interpretation {
+    pub parsed_request: ParsedRequest,
+    pub output: Output,
+    pub attempts: usize,
+}
+
+/// A provider refusal, classified so a rejected credential is not repeated
+/// on the fallback model. Its message is the stable client error.
+#[derive(Debug, thiserror::Error)]
+#[error("ask_v2_model_unavailable")]
+struct Refused {
+    status: u16,
 }
 
 struct Window {
@@ -89,22 +111,88 @@ impl Client {
             capability["status"] = Value::Null;
         }
         Ok(json!({"text":interpretation.output.text,"model":interpretation.output.model,"parsed_request":parsed,
-            "attempts":interpretation.attempts,"scope_reviewed":true,"timing":{"parse_ms":started.elapsed().as_millis() as u64}}))
+            "attempts":interpretation.attempts,"timing":{"parse_ms":started.elapsed().as_millis() as u64}}))
+    }
+
+    /// One canonical boundary for the App, guest preview, connected agents and
+    /// the public API: the default model once; after an invalid parse, the
+    /// same model once more with the validation feedback; after an outage, the
+    /// fallback model once. Never a third request, review or repair loop.
+    /// Normalization validates every field of whatever comes back.
+    pub(crate) async fn interpret_with_context(
+        &self,
+        model_request: &str,
+        question: &str,
+        literals: &str,
+        known_slugs: &[String],
+    ) -> Result<Interpretation> {
+        tokio::time::timeout(self.deadline.saturating_mul(2), async {
+            let (model, correction) = match self.parse_with(&self.model, model_request, known_slugs, None).await {
+                Ok(output) => match capability_intake::normalize_with_context(&output.text, question, literals, &output.model) {
+                    Ok(parsed_request) => return Ok(Interpretation { parsed_request, output, attempts: 1 }),
+                    Err(error) => {
+                        #[cfg(test)]
+                        crate::live_ask_planning_tests::record_validation_failure(
+                            &json!({"stage":"intake_normalization","attempt":1,"question":question,"raw":output.text}).to_string(), &error);
+                        // Fixed validator classifications only; never model text.
+                        tracing::warn!(model = %self.model, reason = %error, "Ask interpretation gets one correction");
+                        (self.model.as_str(), Some(error.to_string()))
+                    }
+                },
+                Err(error) => {
+                    let Some(fallback) = self.fallback_for(&error) else { return Err(error) };
+                    tracing::warn!(model = %self.model, reason = %error, "Ask interpretation falls back");
+                    (fallback, None)
+                }
+            };
+            let output = self.parse_with(model, model_request, known_slugs, correction.as_deref()).await?;
+            match capability_intake::normalize_with_context(&output.text, question, literals, &output.model) {
+                Ok(parsed_request) => Ok(Interpretation { parsed_request, output, attempts: 2 }),
+                Err(error) => {
+                    // Fixed validator classifications only; never model text.
+                    tracing::warn!(model = %output.model, reason = %error, "Ask interpretation unverified after the fallback");
+                    #[cfg(test)]
+                    crate::live_ask_planning_tests::record_validation_failure(
+                        &json!({"stage":"intake_normalization","attempt":2,"question":question,"raw":output.text}).to_string(), &error);
+                    Err(anyhow!(UNVERIFIED))
+                }
+            }
+        })
+        .await
+        .map_err(|_| anyhow!("ask_v2_model_timeout"))?
+    }
+
+    /// Whether a failed request deserves the one fallback request: anything
+    /// except a rejected credential, which the fallback would only repeat.
+    fn retryable(&self, error: &anyhow::Error) -> bool {
+        !error
+            .downcast_ref::<Refused>()
+            .is_some_and(|refused| matches!(refused.status, 401 | 403))
+    }
+
+    /// The fallback model for a failed request, when one applies.
+    pub(crate) fn fallback_for(&self, error: &anyhow::Error) -> Option<&str> {
+        self.fallback.as_deref().filter(|_| self.retryable(error))
     }
 
     pub fn new(http: reqwest::Client, key: String, model: String) -> Self {
+        let model = if model.trim().is_empty() { DEFAULT_MODEL.to_owned() } else { model };
         Self {
             http,
             key,
-            model: if model.trim().is_empty() {
-                DEFAULT_MODEL.into()
-            } else {
-                model
-            },
+            fallback: (model != FALLBACK_MODEL).then(|| FALLBACK_MODEL.to_owned()),
+            model,
             endpoint: ENDPOINT.into(),
             deadline: DEADLINE,
             limits: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    /// Fixtures that count requests exactly: the configured model alone.
+    #[doc(hidden)]
+    pub fn without_fallback(mut self) -> Self {
+        self.fallback = None;
+        self
     }
 
     /// Local fixtures only: production has a fixed OpenRouter endpoint.
@@ -183,8 +271,20 @@ impl Client {
         true
     }
 
+    /// One request to the configured model. Callers that accept a fallback
+    /// go through `interpret_with_context`.
     pub async fn parse(
         &self,
+        question: &str,
+        known_slugs: &[String],
+        correction: Option<&str>,
+    ) -> Result<Output> {
+        self.parse_with(&self.model, question, known_slugs, correction).await
+    }
+
+    async fn parse_with(
+        &self,
+        model: &str,
         question: &str,
         known_slugs: &[String],
         correction: Option<&str>,
@@ -192,13 +292,13 @@ impl Client {
         let started = Instant::now();
         let text = tokio::time::timeout(
             self.deadline,
-            self.generate(question, known_slugs, correction),
+            self.generate(model, question, known_slugs, correction),
         )
         .await
         .map_err(|_| anyhow!("ask_v2_model_timeout"))??;
         Ok(Output {
             text,
-            model: self.model.clone(),
+            model: model.to_owned(),
             timing: Timing {
                 parse_ms: started.elapsed().as_millis() as u64,
             },
@@ -207,6 +307,7 @@ impl Client {
 
     async fn generate(
         &self,
+        model: &str,
         question: &str,
         known_slugs: &[String],
         correction: Option<&str>,
@@ -245,56 +346,40 @@ impl Client {
                 prompt.push_str(" Every subject needs a nonempty singular type and a label copied as one contiguous phrase from the original request. Never translate or concatenate separated words into a label. For coordinated country/sector comparisons, use each literal country adjective as its label and keep the shared literal sector in identifiers; preserve both cohorts and their requested data.");
             }
         }
-        self.generate_object(&prompt, question, 4096, correction.is_some()).await
+        self.generate_object(model, &prompt, question, 4096).await
     }
 
-    /// Shared bounded JSON transport. Each interpretation stage validates its
-    /// own output; this transport never chooses or executes an endpoint.
-    async fn generate_object(&self, prompt: &str, question: &str, max_tokens: usize, use_reasoning: bool) -> Result<String> {
-        self.generate_object_with_effort(prompt, question, max_tokens, use_reasoning, None).await
-    }
-
-    /// Scope review independently checks the whole extraction and can request
-    /// more reasoning without slowing every initial parse or endpoint reply.
-    async fn generate_object_with_effort(&self, prompt: &str, question: &str, max_tokens: usize, use_reasoning: bool, reasoning_effort: Option<&str>) -> Result<String> {
+    /// Shared bounded JSON transport for one model request. Each stage
+    /// validates its own output; this transport never chooses or executes an
+    /// endpoint.
+    async fn generate_object(&self, model: &str, prompt: &str, question: &str, max_tokens: usize) -> Result<String> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
         // All models return JSON objects; normalization validates every field.
+        // A short structured output finishes fastest on the provider with the
+        // highest throughput that supports every requested parameter.
         let mut body = json!({
-            "model": self.model,
+            "model": model,
             "messages": [{"role":"system","content":prompt},{"role":"user","content":question}],
             "stream": true, "max_tokens": max_tokens,
-            "provider": {"require_parameters": true, "sort": "latency"},
+            "provider": {"require_parameters": true, "sort": "throughput"},
             "response_format": {"type": "json_object"}
         });
-        if self.model == DEFAULT_MODEL {
+        if model == DEFAULT_MODEL {
             // GPT-OSS requires reasoning. Low effort keeps extraction fast;
             // normalization still validates the complete returned intent.
-            body["reasoning"] = json!({"effort":reasoning_effort.unwrap_or("low"),"exclude":true});
-        } else if self.model == "openai/gpt-6-luna" {
-            // Extraction produces the same validated intent; the deterministic
-            // planner does the source selection. Spend reasoning only on the
-            // existing correction attempt when validation rejects that intent.
-            // Endpoint follow-ups retain their existing low effort as well.
-            body["reasoning"] = json!({"effort":reasoning_effort.unwrap_or(if use_reasoning { "low" } else { "none" }),"exclude":true});
+            body["reasoning"] = json!({"effort":"low","exclude":true});
         } else {
             body["temperature"] = json!(0);
-            if self.model.starts_with("qwen/") {
-                body["provider"]["order"] = json!(QWEN_PARSE_PROVIDERS);
-            }
         }
-        self.send_object(body, true).await
+        self.send_object(body).await
     }
 
-    /// Shared transport only. The isolated intake uses one provider request,
-    /// without the legacy parser's delayed rate-limit retries.
-    async fn send_object(&self, body: Value, retry_rate_limit: bool) -> Result<String> {
-        self.send_object_with_usage(body, retry_rate_limit).await.map(|reply| reply.0)
-    }
-
-    async fn send_object_with_usage(&self, body: Value, retry_rate_limit: bool) -> Result<(String, Option<ModelUsage>)> {
+    /// Exactly one provider request: no sleeps, no rate-limit retries. A
+    /// failure is reported to the caller, which decides on the one fallback.
+    async fn send_object(&self, body: Value) -> Result<String> {
         ensure!(!self.key.is_empty(), "ask_v2_model_unavailable");
         let wait_for_usage = body.pointer("/stream_options/include_usage").and_then(Value::as_bool) == Some(true);
-        let body = body.to_string();
+        crate::telemetry::record_model_http_request();
         let mut response = self
             .http
             .post(&self.endpoint)
@@ -302,33 +387,14 @@ impl Client {
             .header("X-Title", "Apiosk Ask v2")
             .timeout(self.deadline)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .body(body.clone())
+            .body(body.to_string())
             .send()
             .await
             .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
-        // Match WebGPU's two bounded retries for a rejected free/provider pool.
-        // The complete operation, including waits and the stream, stays within DEADLINE.
-        for delay in [1500, 4000] {
-            if !retry_rate_limit || response.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
-                break;
-            }
-            drop(response);
-            tokio::time::sleep(Duration::from_millis(delay)).await;
-            response = self
-                .http
-                .post(&self.endpoint)
-                .bearer_auth(&self.key)
-                .header("X-Title", "Apiosk Ask v2")
-                .timeout(self.deadline)
-                .header(reqwest::header::CONTENT_TYPE, "application/json")
-                .body(body.clone())
-                .send()
-                .await
-                .map_err(|_| anyhow!("ask_v2_model_unavailable"))?;
-        }
         if !response.status().is_success() {
-            tracing::warn!(status = response.status().as_u16(), "Ask v2 model request refused");
-            return Err(anyhow!("ask_v2_model_unavailable"));
+            let status = response.status().as_u16();
+            tracing::warn!(status, "Ask v2 model request refused");
+            return Err(Refused { status }.into());
         }
         ensure!(
             response
@@ -347,7 +413,7 @@ impl Client {
                 break;
             }
         }
-        stream.finish_with_usage()
+        stream.finish_with_usage().map(|reply| reply.0)
     }
 }
 
@@ -505,23 +571,6 @@ mod tests {
         )
     }
 
-    // These existing fixtures test normalization/transport and supply authored
-    // interpretations. Their reviewer likewise accepts the authored scope;
-    // scope_review::tests separately exercises rejection, correction and the
-    // failure boundary with explicit, independent review responses.
-    fn authored_scope_review(body: &Value) -> Option<Response> {
-        if body["messages"][0]["content"] != super::scope_review::PROMPT { return None; }
-        let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str()?).ok()?;
-        let parsed = &input["interpretation"];
-        let capabilities: Vec<_> = parsed["capabilities"].as_array()?.iter().enumerate()
-            .map(|(index,cap)| json!({"index":index,"outputs":cap["outputs"]})).collect();
-        let quote: String = input["question"].as_str()?.chars().take(500).collect();
-        let review = json!({"requirements":[{"quote":quote,"capabilities":capabilities,
-            "operations":parsed["deliverable"]["operations"],"format":parsed["deliverable"]["format"],"issue":null}]});
-        Some(Response::builder().header("content-type","text/event-stream")
-            .body(Body::from(format!("{}data: [DONE]\n\n",delta(&review.to_string())))).unwrap())
-    }
-
     #[test]
     fn connected_chatbots_fill_in_the_ask_parse_schema_exactly() {
         let tools: serde_json::Value = serde_json::from_str(include_str!("../../contracts/tool-schemas.json")).unwrap();
@@ -534,10 +583,12 @@ mod tests {
     fn intake_model_is_independent_and_fixture_endpoint_is_loopback_only() {
         assert_eq!(DEFAULT_MODEL, "openai/gpt-oss-120b");
         assert_ne!(DEFAULT_MODEL, crate::parser::MODEL);
-        assert_eq!(
-            Client::new(reqwest::Client::new(), "fixture".into(), String::new()).model,
-            DEFAULT_MODEL
-        );
+        let configured = Client::new(reqwest::Client::new(), "fixture".into(), String::new());
+        assert_eq!(configured.model, DEFAULT_MODEL);
+        assert_eq!(configured.fallback.as_deref(), Some(FALLBACK_MODEL), "an outage gets one fallback request");
+        assert_eq!(FALLBACK_MODEL, crate::parser::MODEL);
+        assert!(Client::new(reqwest::Client::new(), "fixture".into(), FALLBACK_MODEL.into()).fallback.is_none(), "the fallback model never falls back to itself");
+        assert!(configured.without_fallback().fallback.is_none());
         for endpoint in [
             "https://example.com/",
             "http://localhost.example.com/",
@@ -692,7 +743,6 @@ mod tests {
             let captured = requests.clone();
             let replies = replies.clone();
             async move {
-                if let Some(review) = authored_scope_review(&body) { return review; }
                 let question = body["messages"][1]["content"].as_str().unwrap();
                 let index = questions.iter().position(|expected| *expected == question).unwrap();
                 captured.lock().unwrap().push(body.0);
@@ -751,7 +801,6 @@ mod tests {
             let salary = salary.clone();
             let market = market.clone();
             async move {
-                if let Some(review) = authored_scope_review(&body) { return review; }
                 let question = body["messages"][1]["content"].as_str().unwrap();
                 let result = if question == salary_question { salary } else { assert_eq!(question, market_question); market };
                 captured.lock().unwrap().push(body.0);
@@ -835,7 +884,6 @@ mod tests {
                 let first = first.clone();
                 let second = second.clone();
                 async move {
-                    if let Some(review) = authored_scope_review(&body) { return review; }
                     let mut requests = capture.lock().unwrap();
                     let raw = if requests.is_empty() { first } else { second };
                     requests.push(body.0);
@@ -857,12 +905,18 @@ mod tests {
                 assert_eq!(result.unwrap_err().to_string(), "ask_v2_interpretation_unverified");
             }
             assert_eq!(captured[0]["messages"][0]["content"], PROMPT);
+            assert_eq!(captured[0]["model"], DEFAULT_MODEL);
             if captured.len() == 2 {
                 let correction = captured[1]["messages"][0]["content"].as_str().unwrap();
                 assert!(correction.contains("one contiguous phrase from the original request"));
                 assert!(correction.contains("preserve both cohorts and their requested data"));
                 assert!(!correction.contains("Nederlandse softwaresector"), "no rejected payload is repeated in correction feedback");
                 assert_eq!(captured[1]["messages"].as_array().unwrap().len(), 2);
+                // The one correction goes back to the same model, with its
+                // feedback; no fallback model, no further repair, no review.
+                assert_eq!(captured[1]["model"], DEFAULT_MODEL);
+                assert_eq!(captured[1]["reasoning"]["effort"], "low");
+                assert!(captured[1].get("temperature").is_none());
             }
             assert!(captured.iter().all(|request| request["messages"][1]["content"] == question));
             server.abort();
@@ -870,8 +924,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn interpretation_does_not_correct_auth_or_transport_failures() {
-        for status in [StatusCode::UNAUTHORIZED, StatusCode::INTERNAL_SERVER_ERROR] {
+    async fn rejected_credentials_fail_fast_and_outages_get_exactly_one_fallback_request() {
+        for (status, expected_calls) in [(StatusCode::UNAUTHORIZED, 1), (StatusCode::FORBIDDEN, 1), (StatusCode::INTERNAL_SERVER_ERROR, 2), (StatusCode::TOO_MANY_REQUESTS, 2)] {
             let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
             let count = calls.clone();
             let app = Router::new().route("/", post(move || {
@@ -879,11 +933,48 @@ mod tests {
                 async move { (status, "private provider account detail") }
             }));
             let (endpoint, server) = server(app).await;
+            let started = Instant::now();
             let error = client().with_local_endpoint(endpoint).unwrap().interpret("Vergelijk softwaresectoren.", &[]).await.unwrap_err();
             assert_eq!(error.to_string(), "ask_v2_model_unavailable");
-            assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+            assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), expected_calls, "{status}");
+            assert!(started.elapsed() < Duration::from_secs(1), "no rate-limit sleeps between the request and its fallback");
             server.abort();
         }
+    }
+
+    #[tokio::test]
+    async fn an_outage_on_the_default_model_is_answered_by_the_fallback_model_once() {
+        let question = "Search Crunchbase for Starbucks and show its company description and profile link.";
+        let output = json!({"language":"en","subjects":[{"id":"company","label":"Starbucks","type":"company","identifiers":{"company_name":"Starbucks"}}],
+            "capabilities":[scope_capability("company.public.profile", &["company_name"], &["company_description","official_profile_link"], Some("company"), Some("crunchbase"))],
+            "deliverable":{"format":"chat","operations":[]}});
+        let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+        let capture = captured.clone();
+        let app = Router::new().route("/", post(move |body: axum::Json<Value>| {
+            let capture = capture.clone();
+            let output = output.clone();
+            async move {
+                capture.lock().unwrap().push(body.0.clone());
+                if body["model"] == DEFAULT_MODEL {
+                    return Response::builder().status(StatusCode::SERVICE_UNAVAILABLE).body(Body::from("provider pool exhausted")).unwrap();
+                }
+                Response::builder().header("content-type", "text/event-stream")
+                    .body(Body::from(format!("{}data: [DONE]\n\n", delta(&output.to_string())))).unwrap()
+            }
+        }));
+        let (endpoint, server) = server(app).await;
+        let response = client().with_local_endpoint(endpoint).unwrap().interpret(question, &[]).await.unwrap();
+        assert_eq!(response["model"], FALLBACK_MODEL);
+        assert_eq!(response["attempts"], 2);
+        assert_eq!(response["parsed_request"]["capabilities"][0]["slug"], "company.public.profile");
+        let captured = captured.lock().unwrap();
+        assert_eq!(captured.len(), 2);
+        assert_eq!(captured[0]["model"], DEFAULT_MODEL);
+        assert_eq!(captured[1]["model"], FALLBACK_MODEL);
+        // The fallback repeats the unchanged prompt: nothing failed validation.
+        assert_eq!(captured[1]["messages"][0]["content"], PROMPT);
+        assert_eq!(captured[1]["messages"][1]["content"], question);
+        server.abort();
     }
 
     #[test]
@@ -1275,7 +1366,7 @@ mod tests {
             json!({
                 "model":DEFAULT_MODEL,"messages":captured[0]["messages"],
                 "stream":true,"max_tokens":4096,
-                "provider":{"require_parameters":true,"sort":"latency"},
+                "provider":{"require_parameters":true,"sort":"throughput"},
                 "reasoning":{"effort":"low","exclude":true},
                 "response_format":{"type":"json_object"}
             })
@@ -1293,7 +1384,7 @@ mod tests {
                 "model":"qwen/qwen3-30b-a3b-instruct-2507",
                 "messages":captured[0]["messages"],
                 "stream":true,"temperature":0,"max_tokens":4096,
-                "provider":{"order":["alibaba"],"require_parameters":true,"sort":"latency"},
+                "provider":{"require_parameters":true,"sort":"throughput"},
                 "response_format":{"type":"json_object"}
             })
         );

@@ -98,7 +98,7 @@ async fn live_selected_sources_form_one_complete_quote() {
                 capability:option.source.capability.clone().unwrap(),subject_id:option.subject_id.clone(),input}
         }).collect();
         let selected=json!(sources);
-        let context=Context {question:question.into(),original_intake:intake,search_id:"ephemeral-test".into(),discovery_id:None,
+        let context=Context {question:question.into(),original_intake:intake,search_id:"ephemeral-test".into(),discovery_id:None,planning_reply:None,
             options,selection:Selection {sources,..Default::default()}};
         let outcome=engine.preview_selected_sources(question,context,&catalog).await;
         let report=match outcome {
@@ -118,7 +118,7 @@ async fn live_selected_sources_form_one_complete_quote() {
 #[ignore = "uses configured model credentials and a read-only production catalog; no source purchases"]
 async fn live_questions_use_ai_and_reach_complete_quotes() {
     dotenvy::dotenv().ok();
-    let _ = tracing_subscriber::fmt().with_env_filter("warn,sqlx=error").try_init();
+    let _ = tracing_subscriber::fmt().with_env_filter(std::env::var("ASK_PLANNING_LOG").unwrap_or_else(|_|"warn,sqlx=error".into())).try_init();
     let questions: Vec<String> = serde_json::from_slice(&std::fs::read(
         std::env::var("ASK_PLANNING_QUESTIONS").expect("question JSON file required")
     ).unwrap()).unwrap();
@@ -138,19 +138,35 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
     };
     let mut reports = Vec::<Value>::new();
     let mut fixtures = Vec::<Value>::new();
+    let mut previews = Vec::<Value>::new();
     for question in questions {
         let started = std::time::Instant::now();
-        let intake = engine.parser.ask_intake(&question, &crate::state::Task::default(), &catalog, None).await;
-        let report = match intake {
+        let model_requests_before = engine.parser.calls.load(std::sync::atomic::Ordering::Relaxed);
+        let trace = std::sync::Arc::new(crate::telemetry::Trace::new(uuid::Uuid::new_v4(), crate::telemetry::Origin::Generated));
+        let mut preview_body = None;
+        let report = crate::telemetry::scope(trace, async {
+        let planning_started = std::time::Instant::now();
+        let planned = engine.parser.ask_intake(&question, &crate::state::Task::default(), &catalog, None).await;
+        let planning_ms = planning_started.elapsed().as_secs_f64() * 1_000.0;
+        let mut source_options_ms = 0.0;
+        let mut pricing_ms = 0.0;
+        let report = match planned {
             Ok(intake) => {
                 let parsed = json!(intake.parsed_request);
                 let matches = json!(intake.matches);
+                let options_started = std::time::Instant::now();
                 let source_options = json!(crate::ask_v2::source_options::options(&intake.parsed_request, &intake.matches, &catalog));
-                match engine.guest_plan(&question, intake, &catalog).await {
+                source_options_ms = options_started.elapsed().as_secs_f64() * 1_000.0;
+                let pricing_started = std::time::Instant::now();
+                let priced = engine.guest_plan(&question, intake, &catalog).await;
+                pricing_ms = pricing_started.elapsed().as_secs_f64() * 1_000.0;
+                match priced {
                     Ok(quote) => {
+                        // Explicit local acceptance recording only: this token
+                        // uses the fixture signing key and an unreachable DB.
+                        preview_body = Some(quote.clone());
                         use base64::Engine;
-                        // Inspect only our ephemeral locally signed quote's
-                        // literal inputs; never persist its approval token.
+                        // The ordinary diagnostic report omits approval tokens.
                         let task = quote["preview_token"].as_str().and_then(|token| token.split_once('.'))
                             .and_then(|(payload,_)| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).ok())
                             .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
@@ -169,13 +185,30 @@ async fn live_questions_use_ai_and_reach_complete_quotes() {
             Err(error) => json!({"question":question,"error":error.to_string()}),
         };
         let mut report = report;
+        report["model_http_requests"] = json!(crate::telemetry::model_http_requests());
+        report["stages_ms"] = json!({"interpretation_and_local_search":planning_ms,"diagnostic_source_options":source_options_ms,"local_pricing":pricing_ms});
+        report
+        }).await;
+        let mut report = report;
         report["elapsed_ms"] = json!(started.elapsed().as_millis());
-        println!("{}: {} ({}ms)", question, report["status"], report["elapsed_ms"]);
+        report["parser_http_requests"] = json!(engine.parser.calls.load(std::sync::atomic::Ordering::Relaxed) - model_requests_before);
+        report["catalog_version"] = json!(catalog.version);
+        report["planning_path"] = json!("one_parse_then_deterministic");
+        println!("{}: {} ({}ms, {} model HTTP requests)", question, report["status"], report["elapsed_ms"], report["model_http_requests"]);
+        if let Ok(path) = std::env::var("ASK_PLANNING_PREVIEWS") {
+            use std::{io::Write, os::unix::fs::OpenOptionsExt};
+            let mut body = preview_body.unwrap_or_else(||json!({"error":report["error"]}));
+            body["timing"] = json!({"model_http_requests":report["model_http_requests"],"elapsed_ms":report["elapsed_ms"],"stages_ms":report["stages_ms"]});
+            previews.push(json!({"question":question,"body":body}));
+            let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(path).unwrap();
+            file.write_all(&serde_json::to_vec_pretty(&previews).unwrap()).unwrap();
+        }
         reports.push(report);
         std::fs::write(std::env::var("ASK_PLANNING_EVIDENCE").expect("evidence path required"),
             serde_json::to_vec_pretty(&reports).unwrap()).unwrap();
     }
-    assert!(reports.iter().all(|row| row["status"] == "ready"), "Inspect saved evidence for incomplete plans");
+    assert!(reports.iter().all(|row| row["status"] == "ready" && row["model_http_requests"] == 1),
+        "Every complete quote must use exactly one actual model HTTP request; inspect saved evidence");
 }
 
 // Opt-in fixture recording replays actual model interpretation and bindings,
@@ -212,4 +245,70 @@ fn planning_fixture(question:&str, parsed:&Value, quote:&Value, task:&Value, cat
         "planner_reply":{"message":quote["message"],"discover":true,"decline_reason":"none","intent":intent,
             "output_bindings":task.output_grounding.map(|grounding|grounding.bindings).unwrap_or_default()},
         "cap_atomic":plan.cap_atomic,"steps":steps})
+}
+
+/// Reprice previously validated local preview drafts without any model client,
+/// source execution or auth. The catalog is a local snapshot by default;
+/// fetching current read-only metadata requires a separate explicit opt-in.
+/// This measures downstream planning rather than interpreting a question again.
+#[tokio::test]
+#[ignore = "requires saved previews and explicit catalog path or read-only catalog opt-in; no model or source calls"]
+async fn profile_saved_preview_pricing_without_model_calls() {
+    use base64::Engine as _;
+    use std::{collections::BTreeSet, sync::{atomic::Ordering, Arc}, time::Instant};
+    let preview_path = std::env::var("ASK_PRICING_PREVIEWS").expect("explicit saved previews required");
+    let read_only_catalog = std::env::var("ASK_PRICING_READ_ONLY_CATALOG").as_deref() == Ok("true");
+    assert!(std::env::var("ASK_PLANNING_CATALOG").is_ok() || read_only_catalog,"explicit catalog path or read-only opt-in required");
+    if read_only_catalog {dotenvy::dotenv().ok();}
+    let catalog_started = Instant::now();
+    let catalog = planning_catalog().await;
+    let catalog_load_ms = catalog_started.elapsed().as_secs_f64() * 1_000.0;
+    let rows: Vec<Value> = serde_json::from_slice(&std::fs::read(preview_path).unwrap()).unwrap();
+    let http = reqwest::Client::new();
+    let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://unused@127.0.0.1:1/unused").unwrap();
+    let store = crate::store::Store { pool: pool.clone() };
+    let engine = crate::engine::Engine {
+        store: store.clone(), catalog: crate::catalog::CatalogCache::new(pool),
+        parser: crate::parser::Parser::new(http.clone(), "http://127.0.0.1:1/disabled".into(), String::new(), "disabled".into()),
+        signer: crate::state::Signer::new(vec![8;32]).unwrap(), app_url:"http://localhost".into(),
+        executor:crate::execution::Executor {store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false},
+    };
+    let mut reports = Vec::new();
+    for row in rows.iter().filter(|row| row["body"]["status"] == "ready") {
+        let question = row["question"].as_str().unwrap();
+        let body = &row["body"];
+        let payload = body["preview_token"].as_str().unwrap().split_once('.').unwrap().0;
+        let preview: Value = serde_json::from_slice(&base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload).unwrap()).unwrap();
+        let mut task: crate::state::Task = serde_json::from_value(preview["task"].clone()).unwrap();
+        let intake = task.capability_intake.take().unwrap();
+        assert_eq!(intake.catalog_version, catalog.version, "replay must use the exact approved catalog");
+        let mut intent: crate::parser::Intent = serde_json::from_value(task.intent.take().unwrap()).unwrap();
+        for subject in &mut intent.subjects { subject.entity_ref = None; }
+        let reply = crate::parser::ChatReply {
+            message:task.conversation.last().and_then(|turn|turn.reply.clone()).unwrap_or_else(||"Review the plan.".into()),
+            discover:true,intent:Some(intent),decline_reason:Some("none".into()),
+            output_bindings:task.output_grounding.take().map(|grounding|grounding.bindings).unwrap_or_default(),
+        };
+        let expected_endpoints:BTreeSet<_> = body["sources"].as_array().unwrap().iter().map(|source|source["endpoint_id"].as_str().unwrap().to_owned()).collect();
+        let mut measurements = Vec::new();
+        let trace = Arc::new(crate::telemetry::Trace::new(uuid::Uuid::new_v4(),crate::telemetry::Origin::Generated));
+        crate::telemetry::scope(trace,async {
+            for _ in 0..3 {
+                let started = Instant::now();
+                let quote = engine.guest_plan_from_reply(question,intake.clone(),&catalog,reply.clone()).await.unwrap();
+                measurements.push(started.elapsed().as_secs_f64() * 1_000.0);
+                assert_eq!(quote["status"],"ready","{quote}");
+                assert_eq!(quote["total_atomic"],body["total_atomic"]);
+                let actual:BTreeSet<_> = quote["sources"].as_array().unwrap().iter().map(|source|source["endpoint_id"].as_str().unwrap().to_owned()).collect();
+                assert_eq!(actual,expected_endpoints);
+            }
+            assert_eq!(crate::telemetry::model_http_requests(),Some(0));
+        }).await;
+        assert_eq!(engine.parser.calls.load(Ordering::Relaxed),0);
+        reports.push(json!({"question":question,"pricing_ms":measurements,"source_count":body["sources"].as_array().unwrap().len(),"model_http_requests":0}));
+    }
+    assert!(!reports.is_empty(),"need at least one saved ready draft");
+    let report=json!({"catalog_version":catalog.version,"catalog_services":catalog.services.len(),"catalog_load_ms":catalog_load_ms,"catalog_read_only_fetch":read_only_catalog,"scope":"saved_draft_repricing_no_model","results":reports});
+    println!("{report}");
+    if let Ok(path)=std::env::var("ASK_PRICING_EVIDENCE") {std::fs::write(path,serde_json::to_vec_pretty(&report).unwrap()).unwrap();}
 }

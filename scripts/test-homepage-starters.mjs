@@ -51,6 +51,7 @@ if (live) {
   const report = { checked_at: new Date().toISOString(), scope: 'live_preview_acceptance', endpoint: 'https://apiosk-gateway-v2.fly.dev/v2/ask-v2/guest/preview', results: [] }
   for (const item of cases) {
     const { question } = item
+    const started = performance.now()
     let result
     try {
       const response = await fetch(report.endpoint, {
@@ -60,10 +61,10 @@ if (live) {
       const body = await response.json()
       const assessment = assessPreview(item, body, { httpOk: response.ok })
       result = { id: item.id, question, expected_status: item.expected_status, minimum_sources: item.minimum_sources,
-        ...assessment, http_status: response.status, status: body.status, total_atomic: body.total_atomic,
+        ...assessment, elapsed_ms: Math.round(performance.now() - started), http_status: response.status, status: body.status, total_atomic: body.total_atomic,
         sources: body.sources?.map(source => ({ name: source.name, source_slug: source.source_slug, endpoint_id: source.endpoint_id })), message: body.message ?? body.error }
     } catch (error) {
-      result = { id: item.id, question, accepted: false, error: error.message }
+      result = { id: item.id, question, accepted: false, elapsed_ms: Math.round(performance.now() - started), error: error.message }
     }
     report.results.push(result)
     console.log(`${result.accepted ? 'PASS' : 'FAIL'}: ${question}${result.issues?.length ? ` (${result.issues.join(', ')})` : ''}`)

@@ -417,10 +417,25 @@ impl Engine {
             "existing execution must finish or reconcile before a new question"
         );
         self.prepare_conversation(p.owner, id, &mut task).await?;
-        // The live Ask interpreter distinguishes saved evidence from retrieval
-        // before capability search. A new topic retains the chat history only.
+        for focus in &req.context_delta.requested_focus_refs {
+            anyhow::ensure!(
+                task.entities.iter().any(|e| e.entity_ref == *focus),
+                "unknown focus entity"
+            );
+        }
+        if !req.context_delta.requested_focus_refs.is_empty() {
+            task.focus.entity_refs = req.context_delta.requested_focus_refs.clone()
+        }
+        for f in &req.context_delta.explicit_values {
+            self.user_fact(&mut task, &catalog, f.entity_ref, &f.semantic_type, f.value.clone())?;
+        }
+        let workflow_input = req.context_delta.workflow_slug.is_some() || task.workflow.as_ref().is_some_and(|workflow|
+            task.intake_recovery.is_some() || workflow.collecting || (task.proposal.is_some() && task.completed.is_empty() && task.active_results.is_empty() && task.analysis.is_none()));
+        // A follow-up inside a saved task is routed first: saved evidence,
+        // continuation, new topic or clarification. The question itself is
+        // then interpreted by the same one Ask parse as a new question.
         let new_topic = if req.state.is_some() && !task.conversation.is_empty()
-            && forced.is_none() && selection.is_none() && !has_displayed_search
+            && forced.is_none() && selection.is_none() && !has_displayed_search && !workflow_input
             && self.parser.ask_v2().is_some() {
             anyhow::ensure!(!self.worker_active(id).await?, "Wait for the current answer to finish");
             let (new_topic, response) = self.route_conversation(p,req,id,revision,&mut task).await?;
@@ -435,24 +450,6 @@ impl Engine {
         }
         let pending_workflow = task.workflow.clone().filter(|workflow| recovery.is_some() || workflow.collecting || (task.proposal.is_some() && task.completed.is_empty() && task.active_results.is_empty() && task.analysis.is_none()));
         task.workflow = workflow.clone().or_else(|| (app_chat && !direct).then(|| pending_workflow.clone()).flatten());
-        for focus in &req.context_delta.requested_focus_refs {
-            anyhow::ensure!(
-                task.entities.iter().any(|e| e.entity_ref == *focus),
-                "unknown focus entity"
-            );
-        }
-        if !req.context_delta.requested_focus_refs.is_empty() {
-            task.focus.entity_refs = req.context_delta.requested_focus_refs.clone()
-        }
-        for f in &req.context_delta.explicit_values {
-            self.user_fact(
-                &mut task,
-                &catalog,
-                f.entity_ref,
-                &f.semantic_type,
-                f.value.clone(),
-            )?;
-        }
         // A connected follow-up may continue what the last turn found; the
         // intake itself is rebuilt below, as for every non-App question.
         let earlier_intake = if app_chat || new_topic { None } else { task.capability_intake.clone() };
@@ -467,7 +464,7 @@ impl Engine {
             // A later English rendering or a different server must not replace
             // the candidate set the person actually reviewed.
             Some(intake.clone())
-        } else if app_chat && forced.is_none() {
+        } else if app_chat && forced.is_none() && !workflow_input {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog))
                 .or_else(||task.source_selection.as_ref().map(|context|context.model_selection()));
             let reusable = resuming && recovery.as_ref().zip(task.capability_intake.as_ref())
@@ -558,6 +555,8 @@ impl Engine {
             let model_selection = selection.as_ref().map(|selection| selection.model_selection(&catalog))
                 .or_else(||task.source_selection.as_ref().map(|context|context.model_selection()));
             let compiled=task.source_selection.as_ref().map(|context|context.compile(&catalog)).transpose()?.flatten();
+            // The deterministic compiler first; the semantic planner only for
+            // wording the contracts' exact fields cannot bind.
             let reply = if let Some(reply)=compiled {Ok(reply)} else if let Some(intake) = &task.capability_intake {
                 self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, intake).await
             } else if app_chat || self.parser.ask_v2().is_none() {

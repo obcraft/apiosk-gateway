@@ -97,9 +97,10 @@ pub(super) async fn research(
     };
     if !snapshot.current(&catalog.version) { return refresh(); }
     let options=snapshot.source_options().to_vec();
+    let planning_reply=snapshot.planning_reply();
     let intake = snapshot.intake(request.parsed_request);
     let context=crate::ask_v2::source_selection::Context {question:discover.question.clone(),original_intake:intake.clone(),
-        search_id:request.search_id.clone().unwrap(),discovery_id:request.discovery_id,options,selection:request.selection.unwrap_or_default()};
+        search_id:request.search_id.clone().unwrap(),discovery_id:request.discovery_id,options,selection:request.selection.unwrap_or_default(),planning_reply};
     let intake=match context.expanded(&catalog) {
         Ok(intake)=>intake,
         Err(error)=>return failure(StatusCode::BAD_REQUEST,"invalid_source_selection",&error.to_string()),
@@ -329,24 +330,41 @@ pub(super) async fn parse(
             "Please wait a minute before trying another question.",
         );
     }
-    match client
-        .interpret(request.question.trim(), &request.known_slugs)
-        .await
-    {
-        Ok(output) => {
-            tracing::info!(request_id=%request.request_id, model=%output["model"], parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
-            Json(output).into_response()
-        }
+    let catalog = match state.engine.catalog.get().await {
+        Ok(catalog) => catalog,
+        Err(_) => return failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "The source catalog is temporarily unavailable. Your question is kept; try again."),
+    };
+    let started = Instant::now();
+    // One model request reads the question; its one fallback request happens
+    // only when that fails. Everything after it is deterministic: the local
+    // catalog search, the signed snapshot and, in /research, the compiler.
+    let question = request.question.trim();
+    let interpretation = match client.interpret_with_context(question, question, question, &request.known_slugs).await {
+        Ok(interpretation) => interpretation,
         Err(error) => {
             // Stable client errors contain no prompt, key or provider body.
             tracing::warn!(request_id=%request.request_id, error=%error, "Ask v2 parse unavailable");
-            failure(
+            return failure(
                 StatusCode::SERVICE_UNAVAILABLE,
                 "parser_unavailable",
                 "The model could not finish parsing. Your question is kept; try again.",
-            )
+            );
         }
-    }
+    };
+    let parsed = interpretation.parsed_request;
+    let matches = crate::ask_v2::search::search(&parsed, &catalog);
+    let response = json!({"matches":matches,"catalog_version":catalog.version,
+        "source_options":crate::ask_v2::source_options::options(&parsed,&matches,&catalog),
+        "apiosk_sources_searched":capability_intake::source_count(&catalog)});
+    let token = match crate::search_snapshot::Snapshot::issue_planned(&state.engine.signer,&person,&parsed,&response,None) {
+        Ok(token) => token,
+        Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY,"planning_too_large","This plan contains too much detail. Narrow the question and try again."),
+    };
+    let output = json!({"parsed_request":parsed,"model":interpretation.output.model,
+        "planning_token":token,"attempts":interpretation.attempts,"model_calls":crate::telemetry::model_http_requests(),
+        "timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_ms":interpretation.output.timing.parse_ms}});
+    tracing::info!(request_id=%request.request_id, model=%output["model"], attempts=interpretation.attempts, parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
+    Json(output).into_response()
 }
 
 /// What the Ask page sends when a question is not yet a clear data question:
@@ -429,6 +447,8 @@ pub(super) struct SearchRequest {
     origin: Origin,
     /// Optional original question, used only to prove full local plan coverage.
     question: Option<String>,
+    #[serde(default)]
+    planning_token: Option<String>,
 }
 
 // This is untrusted client metadata, used only for bounded directory searches.
@@ -507,17 +527,46 @@ pub(super) async fn search(
             "Please wait a minute before searching again.",
         );
     }
-    match search_catalog(&state, &request.parsed_request, request.origin).await {
+    let planning = if let Some(token) = &request.planning_token {
+        let Some(question) = request.question.as_deref() else {
+            return failure(StatusCode::BAD_REQUEST,"invalid_planning_receipt","Keep the original question with this plan.");
+        };
+        let checked = ResearchRequest {request_id:Uuid::new_v4(),question:question.into(),parsed_request:request.parsed_request.clone(),search_id:None,discovery_id:None,selection:None};
+        if checked.normalized().is_err() { return failure(StatusCode::BAD_REQUEST,"invalid_planning_receipt","The plan belongs to a different question."); }
+        match crate::search_snapshot::Snapshot::open(&state.engine.signer,&person,&request.parsed_request,token) {
+            Ok(snapshot) => Some(snapshot),
+            Err(_) => return failure(StatusCode::BAD_REQUEST,"invalid_planning_receipt","The saved plan could not be verified. Send your question again."),
+        }
+    } else {None};
+    let found=if let Some(snapshot)=planning.as_ref().filter(|_|matches!(request.origin,Origin::Apiosk)) {
+        let catalog=match state.engine.catalog.get().await {Ok(catalog)=>catalog,Err(_)=>return failure(StatusCode::SERVICE_UNAVAILABLE,"catalog_unavailable","The source catalog is temporarily unavailable.")};
+        if !snapshot.current(&catalog.version) {return failure(StatusCode::CONFLICT,"search_refresh_required","The source catalog changed. Send your question again to refresh the plan.");}
+        let mut value=snapshot.search_response();
+        let sources=tokio::time::timeout(Duration::from_secs(1),state.engine.catalog.sources()).await.ok().and_then(Result::ok);
+        if let Some(sources)=&sources {brand_matches(&mut value["matches"],sources);}
+        describe_endpoints(&mut value["matches"],&catalog,sources.as_ref().map(|sources|sources.as_slice()));
+        bind_inputs(&mut value["matches"],&request.parsed_request);
+        Ok(value)
+    } else {search_catalog(&state, &request.parsed_request, request.origin).await};
+    match found {
         Ok(mut value) => {
             if matches!(request.origin, Origin::Apiosk) {
+                if planning.as_ref().is_some_and(|snapshot| !snapshot.current(value["catalog_version"].as_str().unwrap_or_default())) {
+                    return failure(StatusCode::CONFLICT,"search_refresh_required","The source catalog changed. Send your question again to refresh the plan.");
+                }
                 if let Some(question) = request.question.as_deref() {
                     if let Ok(catalog) = state.engine.catalog.get().await {
-                        value["complete_plan_available"] = json!(complete_local_plan(&catalog, question, &request.parsed_request, &value));
+                        value["complete_plan_available"] = json!(if let Some(reply)=planning.as_ref().and_then(|snapshot|snapshot.planning_reply()) {
+                            let matches=serde_json::from_value::<Vec<Match>>(value["matches"].clone()).unwrap_or_default();
+                            let intake=capability_intake::Intake {parsed_request:request.parsed_request.clone(), selected_capabilities:matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(), matches, catalog_version:catalog.version.clone(),apiosk_sources_searched:capability_intake::source_count(&catalog)};
+                            crate::parser::contract_planner::ready(question,&reply,&Default::default(),&catalog,&intake)
+                        } else {complete_local_plan(&catalog, question, &request.parsed_request, &value)});
                     }
                 }
             }
             if person.is_person() {
-                match crate::search_snapshot::Snapshot::issue(&state.engine.signer, &person, &request.parsed_request, &value) {
+                let reply=if matches!(request.origin,Origin::Apiosk) {planning.as_ref().and_then(|snapshot|snapshot.planning_reply())} else {None};
+                match crate::search_snapshot::Snapshot::issue_planned(&state.engine.signer, &person, &request.parsed_request, &value,reply) {
                     Ok(token) => value[match request.origin { Origin::Apiosk => "search_id", Origin::Coinbase => "discovery_id" }] = json!(token),
                     Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY, "search_too_large", "This search contains too much source detail. Narrow the request and search again."),
                 }
@@ -553,6 +602,10 @@ fn complete_local_plan(catalog: &crate::catalog::Catalog, question: &str, parsed
 }
 
 pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
+    search_catalog_with_matches(state,parsed_request,origin,None).await
+}
+
+pub(crate) async fn search_catalog_with_matches(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin, prepared: Option<&[Match]>) -> Result<Value, Response> {
     let started = Instant::now();
     // The interpretation contract already supplies English capability names
     // and descriptions. Search consumes that JSON without another model pass.
@@ -570,7 +623,7 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
                     ))
                 }
             };
-            let matches = crate::ask_v2::search::search(parsed_request, &catalog);
+            let matches = prepared.map(<[Match]>::to_vec).unwrap_or_else(||crate::ask_v2::search::search(parsed_request, &catalog));
             let source_options = crate::ask_v2::source_options::options(parsed_request, &matches, &catalog);
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             // Branding is cached separately from contracts. A slow directory

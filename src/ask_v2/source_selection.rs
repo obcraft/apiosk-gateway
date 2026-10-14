@@ -60,6 +60,8 @@ pub struct Context {
     pub discovery_id: Option<String>,
     pub(crate) options: Vec<SourceOption>,
     pub selection: Selection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub planning_reply: Option<crate::parser::ChatReply>,
 }
 impl Context {
     pub fn view(&self) -> Value {
@@ -293,7 +295,8 @@ impl Context {
     /// resolver and full pre-quote input/output proof still decide readiness.
     pub fn compile(&self, catalog: &Catalog) -> Result<Option<crate::parser::ChatReply>> {
         if self.selection.sources.is_empty() {
-            return Ok(None);
+            ensure!(self.original_intake.catalog_version == catalog.version, "Refresh the source search before planning");
+            return Ok(self.planning_reply.clone());
         }
         let intake = self.expanded(catalog)?;
         let mut intent = Intent {
@@ -400,6 +403,9 @@ impl Context {
         if self.original_intake.catalog_version == catalog.version {
             return;
         }
+        // A cached model choice is attested against one catalogue version.
+        // Refreshing its search evidence cannot renew that attestation.
+        self.planning_reply = None;
         self.original_intake.matches =
             super::search::search(&self.original_intake.parsed_request, catalog);
         self.original_intake.selected_capabilities = self
@@ -745,6 +751,7 @@ mod tests {
                 discovery_id: None,
                 options,
                 selection: Selection::default(),
+                planning_reply: None,
             },
             catalog,
         )
@@ -1111,6 +1118,7 @@ mod tests {
         let matches = super::super::search::search(&parsed, &catalog);
         let options = super::super::source_options::options(&parsed, &matches, &catalog);
         let context = Context {
+            planning_reply: None,
             question: row["question"].as_str().unwrap().into(),
             search_id: "recorded-search".into(),
             discovery_id: None,
@@ -1277,11 +1285,18 @@ mod tests {
     #[test]
     fn refreshing_persisted_options_uses_current_contracts_and_preserves_question_scope() {
         let (mut context, catalog) = fixture();
+        context.planning_reply = Some(crate::parser::ChatReply {
+            message: "Cached source choice".into(), discover: false, intent: None,
+            output_bindings: vec![], decline_reason: Some("conversation".into()),
+        });
+        context.refresh(&catalog);
+        assert!(context.planning_reply.is_some(), "unchanged contracts preserve the attestation");
         context.selection.sources = vec![choose(&context, "crunchbase-search")];
         context.original_intake.catalog_version = "old-catalog".into();
         assert!(context.expanded(&catalog).is_err());
         let original = serde_json::to_value(&context.original_intake.parsed_request).unwrap();
         context.refresh(&catalog);
+        assert!(context.planning_reply.is_none(), "changed contracts invalidate the cached model choice");
         assert_eq!(
             serde_json::to_value(&context.original_intake.parsed_request).unwrap(),
             original

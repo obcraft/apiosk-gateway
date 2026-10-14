@@ -321,5 +321,210 @@
         ]
       }
     ]
+  },
+  {
+    "id": "news-reuters-bloomberg",
+    "question": "Show the latest headlines from Reuters and Bloomberg, with source links.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expected_provider_slugs": [
+      "reuters",
+      "bloomberg"
+    ],
+    "expect_needs": [
+      {
+        "label": "Latest news headlines",
+        "concepts": [
+          [
+            "news",
+            "headline",
+            "story"
+          ]
+        ],
+        "outputs": [
+          [
+            "headline",
+            "title",
+            "story",
+            "article",
+            "news"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "address-and-official-publications",
+    "question": "Find Damrak 1, Amsterdam in PDOK and search KOOP publications for that address, with sources.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expected_provider_slugs": [
+      "pdok",
+      "koop"
+    ],
+    "literal_inputs": [
+      "Damrak 1, Amsterdam"
+    ],
+    "expect_needs": [
+      {
+        "label": "Address search results",
+        "concepts": [
+          [
+            "address",
+            "location",
+            "geocoding",
+            "geo",
+            "property"
+          ]
+        ],
+        "outputs": [
+          [
+            "address",
+            "location",
+            "coordinate",
+            "property",
+            "place",
+            "result"
+          ]
+        ]
+      },
+      {
+        "label": "Official publications",
+        "concepts": [
+          [
+            "publication",
+            "notice",
+            "official",
+            "government",
+            "KOOP"
+          ]
+        ],
+        "outputs": [
+          [
+            "publication",
+            "notice",
+            "document",
+            "record",
+            "result"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iban-and-reference-rate",
+    "question": "Validate IBAN NL91ABNA0417164300 with IBAN Check and show the latest EUR/USD reference rate from Frankfurter.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expected_provider_slugs": [
+      "iban-check",
+      "frankfurter"
+    ],
+    "literal_inputs": [
+      "NL91ABNA0417164300",
+      "USD"
+    ],
+    "expect_needs": [
+      {
+        "label": "IBAN validity",
+        "concepts": [
+          [
+            "IBAN"
+          ]
+        ],
+        "outputs": [
+          [
+            "valid",
+            "validity",
+            "validation",
+            "status",
+            "result"
+          ]
+        ]
+      },
+      {
+        "label": "EUR/USD reference rate",
+        "concepts": [
+          [
+            "currency",
+            "exchange",
+            "forex",
+            "fx",
+            "reference rate"
+          ]
+        ],
+        "outputs": [
+          [
+            "rate",
+            "exchange",
+            "reference"
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tender-notices-and-guidance",
+    "question": "Search TenderNed for \"schoonmaak\" notices and find related procurement guidance with Linkup, with sources.",
+    "expected_status": "ready",
+    "minimum_sources": 2,
+    "expected_provider_slugs": [
+      "tenderned",
+      "linkup"
+    ],
+    "literal_inputs": [
+      "schoonmaak"
+    ],
+    "expect_needs": [
+      {
+        "label": "Procurement notices",
+        "concepts": [
+          [
+            "tender",
+            "procurement",
+            "contract",
+            "TenderNed"
+          ]
+        ],
+        "outputs": [
+          [
+            "notice",
+            "publication",
+            "tender",
+            "contract",
+            "record",
+            "result"
+          ]
+        ]
+      },
+      {
+        "label": "Procurement guidance",
+        "concepts": [
+          [
+            "procurement",
+            "tender",
+            "contract"
+          ],
+          [
+            "guidance",
+            "advice",
+            "guide",
+            "research",
+            "search"
+          ]
+        ],
+        "outputs": [
+          [
+            "guidance",
+            "advice",
+            "guide",
+            "answer",
+            "summary",
+            "source",
+            "result"
+          ]
+        ]
+      }
+    ]
   }
 ]

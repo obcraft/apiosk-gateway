@@ -12,7 +12,8 @@ kill_timeout = "120s"
   BIND_ADDRESS = "0.0.0.0:8082"
   # Pinned models via OpenRouter; these values document the code constants.
   INTENT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
-  # Ask capability interpretation is independent of planning and analysis.
+  # The one Ask interpretation request (fallback: Qwen3 30B, in ask_v2/mod.rs).
+  # Catalog search and plan compilation are deterministic; analysis follows approval.
   ASK_V2_MODEL = "openai/gpt-oss-120b"
   RUST_LOG = "info"
   V2_EXECUTION_ENABLED = "1"

@@ -382,6 +382,7 @@ fn customized_sources_get_semantic_matching_and_keep_their_pinned_endpoints() {
         })
         .collect();
     let context = Context {
+        planning_reply: None,
         question: "Compare Starbucks and McDonalds pay ratings on Glassdoor.".into(),
         original_intake: intake,
         options,

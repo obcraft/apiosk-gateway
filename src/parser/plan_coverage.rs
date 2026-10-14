@@ -529,7 +529,12 @@ fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::
         }) {
             identifiers.insert(normal(key));continue;
         }
-        if name_alias(key) && value==&subject.label && label_used {
+        // Search criteria can repeat a topic label. Count them only when a
+        // documented input consumes that exact label; unlike entity-name
+        // aliases, they must never be satisfied by an identity-only lookup.
+        let topic_criterion = matches!(subject.kind.as_str(),"topic"|"query"|"keyword")
+            && matches!(normal(key).as_str(),"topic"|"keyword"|"search_term"|"search_phrase");
+        if (name_alias(key) || topic_criterion) && value==&subject.label && label_used {
             identifiers.insert(normal(key));continue;
         }
         if bound.iter().any(|(field,_,bound_value)|crate::ask_v2::input_values::address_component_preserved(field,subject,key,value,bound_value)) {

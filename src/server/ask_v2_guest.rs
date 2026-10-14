@@ -1,6 +1,6 @@
 //! A public, read-only quote, followed by an authenticated adoption/approval.
-use super::{ask_v2, failure, ServerState};
-use crate::{capability_intake::{Intake, Match, ParsedRequest}, engine::guest_preview::{Preview, Refusal, MAX_TOKEN_BYTES}};
+use super::{failure, ServerState};
+use crate::{capability_intake::{self, Intake}, engine::guest_preview::{Preview, Refusal, MAX_TOKEN_BYTES}};
 use axum::{extract::State, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, Json};
 use serde::Deserialize;
 use std::{sync::OnceLock, time::Duration};
@@ -36,19 +36,22 @@ pub(super) async fn preview(State(state): State<ServerState>, Json(request): Jso
         return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before trying another question.");
     }
     let question = request.question.trim();
+    let started=std::time::Instant::now();
     let result = tokio::time::timeout(Duration::from_secs(90), async {
-        let output = client.interpret(question, &[]).await.map_err(|_| unavailable())?;
-        let parsed_request: ParsedRequest = serde_json::from_value(output["parsed_request"].clone()).map_err(|_| unavailable())?;
-        let found = ask_v2::search_catalog(&state, &parsed_request, ask_v2::Origin::Apiosk).await?;
-        let matches: Vec<Match> = serde_json::from_value(found["matches"].clone()).map_err(|_| unavailable())?;
+        // One model request reads the question (its fallback only on failure);
+        // the catalog search and the plan compiler are deterministic.
         let catalog = state.engine.catalog.get().await.map_err(|_| unavailable())?;
-        if found["catalog_version"].as_str() != Some(&catalog.version) { return Err(unavailable()); }
+        let interpretation = client.interpret_with_context(question, question, question, &[]).await.map_err(|_| unavailable())?;
+        let parsed_request = interpretation.parsed_request;
+        let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
         let intake = Intake {
-            parsed_request, selected_capabilities:matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(), matches,
-            apiosk_sources_searched:found["apiosk_sources_searched"].as_u64().unwrap_or_default() as usize,
-            catalog_version:catalog.version.clone(),
+            selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(), matches,
+            apiosk_sources_searched: capability_intake::source_count(&catalog), catalog_version: catalog.version.clone(), parsed_request,
         };
-        state.engine.guest_plan(question, intake, &catalog).await.map_err(|_| unavailable())
+        let mut value = state.engine.guest_plan(question, intake, &catalog).await.map_err(|_| unavailable())?;
+        value["timing"]=serde_json::json!({"request_to_plan_ms":started.elapsed().as_millis() as u64,"parse_ms":interpretation.output.timing.parse_ms,
+            "parse_attempts":interpretation.attempts,"model_http_requests":crate::telemetry::model_http_requests()});
+        Ok(value)
     }).await;
     match result {
         Ok(Ok(value)) => ([(axum::http::header::CACHE_CONTROL, "private, no-store")], Json(value)).into_response(),

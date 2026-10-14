@@ -28,6 +28,13 @@ export function validateCases(cases) {
     assert(['ready', 'needs_input', 'unsupported'].includes(item.expected_status), `${item.id}: declare the expected outcome`)
     assert(Number.isInteger(item.minimum_sources) && item.minimum_sources >= 1 && item.minimum_sources <= 10,
       `${item.id}: minimum_sources must be between 1 and 10`)
+    if (item.expected_provider_slugs !== undefined) {
+      assert(Array.isArray(item.expected_provider_slugs) && item.expected_provider_slugs.length > 0
+        && item.expected_provider_slugs.length <= 10
+        && item.expected_provider_slugs.every(slug => typeof slug === 'string' && slug.trim() === slug && slug.length > 0)
+        && new Set(item.expected_provider_slugs).size === item.expected_provider_slugs.length,
+      `${item.id}: expected providers must be distinct nonempty catalog slugs`)
+    }
     if (item.expected_status === 'ready') assert(Array.isArray(item.expect_needs) && item.expect_needs.length > 0,
       `${item.id}: declare the required result categories independently of the model`)
     for (const need of item.expect_needs ?? []) {
@@ -66,18 +73,22 @@ export function assessPreview(item, body, { httpOk = true, now = Date.now() } = 
   const check = (condition, issue) => { if (!condition) issues.push(issue) }
   check(httpOk, 'http_error')
   check(body?.status === item.expected_status, 'unexpected_status')
+  check(body?.timing?.model_http_requests === 1, 'model_http_request_count_not_one')
   if (item.expected_status !== 'ready') {
     check(body?.preview_token == null && body?.total_atomic == null, 'unready_request_exposes_quote')
     check(typeof body?.message === 'string' && body.message.trim().length > 0, 'missing_actionable_message')
     if (item.expected_status === 'needs_input') {
       check(groupsMatch(body?.message ?? '', item.missing_input_terms), 'clarification_does_not_name_missing_information')
     }
-    return { accepted: issues.length === 0, issues }
+    return { accepted: issues.length === 0, issues, model_http_requests: body?.timing?.model_http_requests }
   }
 
   const sources = Array.isArray(body?.sources) ? body.sources : []
   const providers = new Set(sources.map(source => source.source_slug).filter(Boolean))
   check(providers.size >= item.minimum_sources, 'too_few_distinct_sources')
+  for (const slug of item.expected_provider_slugs ?? []) {
+    check(providers.has(slug), `requested_provider_not_in_plan:${slug}`)
+  }
   check(sources.length > 0 && sources.length <= 10, 'call_limit_exceeded_or_empty')
   check(sources.every(source => typeof source.endpoint_id === 'string' && source.endpoint_id.length > 0), 'missing_endpoint_identity')
   const total = atomic(body?.total_atomic)
@@ -124,5 +135,5 @@ export function assessPreview(item, body, { httpOk = true, now = Date.now() } = 
     check((task?.facts ?? []).some(fact => fact.value === input), `supplied_input_not_bound:${input}`)
   }
   return { accepted: issues.length === 0, issues, categories, catalog_version: intake?.catalog_version,
-    distinct_sources: providers.size, calls: sources.length }
+    distinct_sources: providers.size, calls: sources.length, model_http_requests: body?.timing?.model_http_requests }
 }

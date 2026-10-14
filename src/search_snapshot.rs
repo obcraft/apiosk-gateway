@@ -23,9 +23,17 @@ pub(crate) struct Snapshot {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     source_options: Vec<SourceOption>,
     sources_searched: usize,
+    /// The validated output of the question's one model request. This grants
+    /// no purchase authority; resolution and pricing still run when adopted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    planning_reply: Option<crate::parser::ChatReply>,
 }
 impl Snapshot {
+    #[cfg(test)]
     pub(crate) fn issue(signer: &Signer, person: &Principal, parsed: &ParsedRequest, response: &Value) -> Result<String> {
+        Self::issue_planned(signer, person, parsed, response, None)
+    }
+    pub(crate) fn issue_planned(signer: &Signer, person: &Principal, parsed: &ParsedRequest, response: &Value, planning_reply: Option<crate::parser::ChatReply>) -> Result<String> {
         ensure!(person.is_person(), "search snapshot requires an App person");
         let snapshot = Self {
             owner: person.owner, workspace: person.workspace, parsed_digest: digest(parsed),
@@ -36,6 +44,7 @@ impl Snapshot {
             matches: serde_json::from_value(response["matches"].clone())?,
             source_options: serde_json::from_value(response.get("source_options").cloned().unwrap_or_else(|| serde_json::json!([])))?,
             sources_searched: response["apiosk_sources_searched"].as_u64().unwrap_or(0) as usize,
+            planning_reply,
         };
         snapshot.seal(signer)
     }
@@ -62,10 +71,17 @@ impl Snapshot {
         self.expires > chrono::Utc::now().timestamp() && self.catalog_version == catalog_version
     }
     pub(crate) fn source_options(&self) -> &[SourceOption] { &self.source_options }
+    pub(crate) fn planning_reply(&self) -> Option<crate::parser::ChatReply> { self.planning_reply.clone() }
+    pub(crate) fn search_response(&self) -> Value {
+        serde_json::json!({"matches":self.matches,"source_options":self.source_options,
+            "catalog_version":self.catalog_version,"apiosk_sources_searched":self.sources_searched,
+            "timing":{"search_ms":0}})
+    }
     pub(crate) fn with_discovery(mut self, discovery: Self) -> Result<Self> {
         ensure!(self.owner == discovery.owner && self.workspace == discovery.workspace
             && self.parsed_digest == discovery.parsed_digest, "discovery belongs to another request");
         ensure!(!self.catalog_version.is_empty() && discovery.catalog_version.is_empty()
+            && discovery.planning_reply.is_none()
             && discovery.source_options.is_empty()
             && discovery.matches.iter().all(|found| found.operations.is_empty() && found.apiosk.is_empty()
                 && found.coinbase.iter().all(|candidate| candidate.origin == "coinbase"
@@ -97,6 +113,24 @@ mod tests {
     use super::*;
     use serde_json::json;
     use uuid::Uuid;
+
+    #[test]
+    fn planned_reply_survives_signed_search_without_conferring_execution_authority() {
+        let (signer,person,parsed,response)=fixture();
+        let reply=crate::parser::ChatReply {message:"Which company should I search?".into(),discover:false,
+            intent:None,decline_reason:Some("missing_subject".into()),output_bindings:vec![]};
+        let token=Snapshot::issue_planned(&signer,&person,&parsed,&response,Some(reply)).unwrap();
+        let snapshot=Snapshot::open(&signer,&person,&parsed,&token).unwrap();
+        assert_eq!(snapshot.planning_reply().unwrap().message,"Which company should I search?");
+        let expected: Vec<Match> = serde_json::from_value(response["matches"].clone()).unwrap();
+        assert_eq!(snapshot.search_response()["matches"],serde_json::json!(expected));
+        let mut other=parsed.clone();
+        other.meta.text_sha256="another question".into();
+        assert!(Snapshot::open(&signer,&person,&other,&token).is_err());
+        let mut tampered=token.into_bytes();
+        tampered[8]=if tampered[8]==b'A' {b'B'} else {b'A'};
+        assert!(Snapshot::open(&signer,&person,&parsed,std::str::from_utf8(&tampered).unwrap()).is_err());
+    }
     fn fixture() -> (Signer, Principal, ParsedRequest, Value) {
         let signer = Signer::new(vec![7; 32]).unwrap();
         let person = Principal { owner:Uuid::new_v4(),workspace:Some(Uuid::new_v4()),connection:None };

@@ -30,6 +30,7 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
+    model_http_requests: std::sync::atomic::AtomicUsize,
     bazaar_resources: Mutex<Vec<Value>>,
     ask_v2_requests: Mutex<Vec<Value>>,
     ask_v2_replies: Mutex<std::collections::VecDeque<Value>>,
@@ -50,22 +51,17 @@ fn ask_v2_capabilities() -> Value {
 /// Only the new transport uses this fake SSE provider. Record its request to
 /// prove the App bearer never becomes a provider credential or planner input.
 async fn ask_v2_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> ([(axum::http::header::HeaderName, &'static str); 1], String) {
+    model.model_http_requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     assert_eq!(headers.get("authorization").unwrap(), "Bearer ask-v2-fixture-key");
     model.ask_v2_requests.lock().unwrap().push(body.clone());
-    let input = serde_json::from_str::<Value>(body["messages"][1]["content"].as_str().unwrap()).ok();
-    let output = model.ask_v2_replies.lock().unwrap().pop_front().unwrap_or_else(|| {
-        if let Some(input) = input.filter(|input| input.get("interpretation").is_some()) {
-            json!({"requirements":[{"quote":input["question"],
-                "capabilities":[{"index":0,"outputs":["accounts"]}],
-                "operations":["list"],"format":null,"issue":null}]})
-        } else { ask_v2_capabilities() }
-    });
+    let output = model.ask_v2_replies.lock().unwrap().pop_front().unwrap_or_else(ask_v2_capabilities);
     let event = json!({"choices":[{"delta":{"content":output.to_string()}}]});
     ([(axum::http::header::CONTENT_TYPE,"text/event-stream")], format!("data: {event}\n\ndata: [DONE]\n\n"))
 }
 /// The conversation-reply model's written reply, or a failure when one is due.
 const WRITTEN_REPLY: &str = "Goed dat je het vraagt! Welke gegevens over Coolblue wil je controleren, bijvoorbeeld de jaarrekening?";
 async fn conversation_reply_model(State(model): State<Arc<Model>>, headers: HeaderMap, Json(body): Json<Value>) -> (StatusCode, Json<Value>) {
+    model.model_http_requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     assert_eq!(headers.get("authorization").unwrap(), "Bearer reply-fixture-key");
     model.replies.lock().unwrap().push(body);
     if model.failure("reply").is_some() {
@@ -103,6 +99,7 @@ async fn user(headers: HeaderMap) -> (StatusCode, Json<Value>) {
 /// "Jaarrekening van <Label>" asks for company accounts; anything else is
 /// conversation. The label is the last word, copied literally.
 async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> Json<Value> {
+    model.model_http_requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("saved_outputs").is_some() {
         return Json(json!({"choices":[{"message":{"content":"{\"kind\":\"continue_request\"}"}}]}));
@@ -393,7 +390,83 @@ fn codes(response: &Value) -> Vec<&str> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
-async fn ask_v2_reviews_scope_then_searches_locally_without_creating_a_task() {
+async fn one_parse_then_signed_search_and_research_without_hidden_models_or_payment() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Jaarrekening van Coolblue";
+    let (status, output) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"known_slugs":[]
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{output}");
+    assert!(output["planning_token"].is_string(), "the local search is retained behind a signed receipt");
+    assert_eq!(output["model_calls"], 1, "one interpretation request; no review, repair or planning model");
+    assert_eq!(output["attempts"], 1);
+    assert_eq!(output["model"], "ask-v2-fixture-model");
+    assert_eq!(output["parsed_request"]["subjects"][0]["label"], "Coolblue");
+    assert_eq!(task_count(&intake,&person).await, 0);
+    let search_body = json!({"question":question,"parsed_request":output["parsed_request"],"origin":"apiosk","planning_token":output["planning_token"]});
+    // A changed parse cannot reuse a signed receipt.
+    let mut changed = search_body.clone();
+    changed["parsed_request"]["subjects"][0]["label"] = json!("Bol");
+    assert_eq!(intake.send(&person.bearer, "/v2/ask-v2/search", Some(changed)).await.0, StatusCode::BAD_REQUEST);
+    let (status, found) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(search_body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    assert!(found["search_id"].is_string());
+    assert!(found["matches"][0]["apiosk"].as_array().unwrap().iter().any(|source| source["capability"] == "company.accounts"), "{found}");
+    let (_, searched_again) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(search_body)).await;
+    assert_eq!(searched_again["matches"], found["matches"]);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1, "a signed search replay never interprets again");
+    assert_eq!(task_count(&intake,&person).await, 0);
+    let body = json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":output["parsed_request"],"search_id":found["search_id"]});
+    let (status, quoted) = intake.send(&person.bearer, "/v2/ask-v2/research", Some(body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{quoted}");
+    assert_eq!(quoted["status"], "ready", "{quoted}");
+    assert!(quoted["proposal"].is_object());
+    let (status, replayed) = intake.send(&person.bearer, "/v2/ask-v2/research", Some(body)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(replayed, quoted, "request retry reuses the saved plan");
+    assert_eq!(task_count(&intake,&person).await, 1);
+    // Research plans from the displayed parse and search. This fixture
+    // contract cannot be compiled from exact fields, so the bounded semantic
+    // planner runs once; the question is never interpreted again.
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1);
+    assert_eq!(intake.model.chats().len(), 1, "one semantic planning request");
+    assert_eq!(intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed), 2);
+    assert!(intake.model.replies.lock().unwrap().is_empty(), "no hidden answer writer");
+    assert!(intake.edge.calls.lock().unwrap().is_empty(), "pricing never executes a source");
+    // A follow-up inside the saved task is routed first (a continuation in
+    // this fixture), then read by the same one parse and planned once more.
+    let mut next = ask_v2_capabilities();
+    next["subjects"][0]["label"] = json!("Bol");
+    intake.model.ask_v2_replies.lock().unwrap().push_back(next);
+    let followup_body = json!({"request_id":Uuid::new_v4(),"question":"Jaarrekening van Bol","state":quoted["state"]});
+    let (status, followup) = intake.send(&person.bearer, "/v2/discover", Some(followup_body.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{followup}");
+    assert_eq!(followup["status"], "ready", "{followup}");
+    assert_eq!(followup["state"]["state_ref"], quoted["state"]["state_ref"]);
+    let task_id: Uuid = followup["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let saved: Value = sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task_id).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(saved["intent"]["subjects"][0]["values"]["company.name"], "Bol");
+    assert!(!saved["intent"].to_string().contains("Coolblue"), "old identifiers do not enter the new plan");
+    assert_eq!(intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed), 5,
+        "the follow-up adds one routing, one interpretation and one planning request");
+    let (status, replayed_followup) = intake.send(&person.bearer, "/v2/discover", Some(followup_body)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(replayed_followup, followup);
+    assert_eq!(intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed), 5, "follow-up replay does not interpret again");
+    assert_eq!(task_count(&intake,&person).await, 1);
+    assert!(intake.model.replies.lock().unwrap().is_empty(), "no hidden answer writer");
+    assert!(intake.edge.calls.lock().unwrap().is_empty(), "pricing never executes a source");
+    let approvals: i64 = sqlx::query_scalar("SELECT count(*) FROM authorizations a JOIN tasks t ON t.id=a.task_id WHERE t.owner_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    let charges: i64 = sqlx::query_scalar("SELECT count(*) FROM public.balance_charges WHERE user_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!((approvals,charges), (0,0));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn ask_v2_parses_once_then_searches_locally_without_creating_a_task() {
     let intake = Intake::start().await;
     let person = Person::new();
     let question = "Jaarrekening van Coolblue";
@@ -403,9 +476,10 @@ async fn ask_v2_reviews_scope_then_searches_locally_without_creating_a_task() {
     assert_eq!(status, StatusCode::OK, "{output}");
     assert_eq!(output["model"], "ask-v2-fixture-model");
     assert!(output["timing"]["parse_ms"].is_u64());
-    let raw = output["text"].as_str().unwrap();
-    assert_eq!(serde_json::from_str::<Value>(raw).unwrap(), ask_v2_capabilities());
-    let parsed = apiosk_gateway_v2::capability_intake::normalize(raw, question, output["model"].as_str().unwrap()).unwrap();
+    assert_eq!(output["attempts"], 1);
+    let parsed = output["parsed_request"].clone();
+    assert_eq!(parsed["capabilities"][0]["slug"], "company.financial.statements");
+    assert_eq!(parsed["subjects"][0]["label"], "Coolblue");
     let (status, found) = intake.send(&person.bearer, "/v2/ask-v2/search", Some(json!({
         "parsed_request":parsed,"origin":"apiosk"
     }))).await;
@@ -416,10 +490,7 @@ async fn ask_v2_reviews_scope_then_searches_locally_without_creating_a_task() {
     assert!(found["matches"][0]["apiosk"].as_array().unwrap().iter()
         .any(|source| source["capability"] == "company.accounts"), "{found}");
     let calls = intake.model.ask_v2_requests.lock().unwrap().clone();
-    assert_eq!(calls.len(), 2, "interpretation is reviewed once; local search must not call a model");
-    let review: Value = serde_json::from_str(calls[1]["messages"][1]["content"].as_str().unwrap()).unwrap();
-    assert_eq!(review["question"], question);
-    assert!(review.get("interpretation").is_some());
+    assert_eq!(calls.len(), 1, "one interpretation request; local search must not call a model");
     assert_eq!(calls[0]["stream"], true);
     assert_eq!(calls[0]["model"], "ask-v2-fixture-model");
     assert_eq!(calls[0]["messages"][1]["content"], question);
@@ -443,37 +514,37 @@ async fn ask_v2_reviews_scope_then_searches_locally_without_creating_a_task() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
-async fn ask_v2_omitted_request_is_retryable_without_search_task_or_payment() {
+async fn ask_v2_invalid_parse_gets_one_correction_request_and_stays_retryable_without_task_or_payment() {
     let intake = Intake::start().await;
     let person = Person::new();
     let question = "Jaarrekening en bestuurders van Coolblue";
-    let incomplete = ask_v2_capabilities();
-    let failed_review = json!({"requirements":[
-        {"quote":"Jaarrekening","capabilities":[{"index":0,"outputs":["accounts"]}],"operations":["list"],"format":null,"issue":null},
-        {"quote":"bestuurders","capabilities":[],"operations":[],"format":null,"issue":"The requested officers are missing."}
-    ]});
-    intake.model.ask_v2_replies.lock().unwrap().extend([
-        incomplete.clone(), failed_review.clone(), incomplete.clone(), failed_review,
-    ]);
+    let invalid = json!({"language":"nl","subjects":[],"capabilities":[],"deliverable":{"format":"chat","operations":[]}});
+    intake.model.ask_v2_replies.lock().unwrap().extend([invalid.clone(), invalid.clone()]);
     let request = json!({"request_id":Uuid::new_v4(),"question":question,"known_slugs":[]});
     let (status, failed) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(request.clone())).await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{failed}");
-    assert!(failed.get("parsed_request").is_none(), "a partial request must not reach discovery");
-    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 4);
-
-    let mut complete = incomplete;
+    assert!(failed.get("parsed_request").is_none(), "an invalid parse must not reach discovery");
+    {
+        let calls = intake.model.ask_v2_requests.lock().unwrap();
+        assert_eq!(calls.len(), 2, "the configured model once, then once more with the validation feedback");
+        assert_eq!(calls[0]["model"], "ask-v2-fixture-model");
+        assert_eq!(calls[1]["model"], "ask-v2-fixture-model", "an invalid parse is corrected by the same model; the fallback model is for outages");
+        assert!(calls[1]["messages"][0]["content"].as_str().unwrap().contains("Previous output failed validation"));
+        assert_eq!(calls[1]["messages"][1]["content"], question);
+    }
+    let mut complete = ask_v2_capabilities();
     complete["capabilities"].as_array_mut().unwrap().push(json!({
         "slug":"company.officers","name":"Company officers","description":"Retrieve the registered officers.",
         "domain":"company","inputs":[],"outputs":["officers"],"subject_id":"s1","source_hint":null,"confidence":0.95
     }));
-    let accepted_review = json!({"requirements":[
-        {"quote":"Jaarrekening","capabilities":[{"index":0,"outputs":["accounts"]}],"operations":["list"],"format":null,"issue":null},
-        {"quote":"bestuurders","capabilities":[{"index":1,"outputs":["officers"]}],"operations":[],"format":null,"issue":null}
-    ]});
-    intake.model.ask_v2_replies.lock().unwrap().extend([complete, accepted_review]);
+    intake.model.ask_v2_replies.lock().unwrap().extend([invalid, complete]);
     let (status, recovered) = intake.send(&person.bearer, "/v2/ask-v2/parse", Some(request)).await;
     assert_eq!(status, StatusCode::OK, "{recovered}");
+    assert_eq!(recovered["attempts"], 2);
+    assert_eq!(recovered["model"], "ask-v2-fixture-model");
+    assert_eq!(recovered["model_calls"], 2);
     assert_eq!(recovered["parsed_request"]["capabilities"].as_array().unwrap().len(), 2);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 4);
     assert_eq!(task_count(&intake, &person).await, 0);
     assert!(intake.model.stages.lock().unwrap().is_empty());
     assert!(intake.edge.calls.lock().unwrap().is_empty());

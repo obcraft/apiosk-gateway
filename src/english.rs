@@ -480,6 +480,7 @@ impl Qwen {
         })
     }
     async fn call(&self, texts: &[String]) -> Result<Vec<Option<String>>, Failure> {
+        crate::telemetry::record_model_http_request();
         let response = self
             .http
             .post(&self.endpoint)

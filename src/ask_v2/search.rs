@@ -730,7 +730,7 @@ fn identity_matches(hint: &str, value: &str) -> bool {
     let value = identity(value);
     !hint.is_empty() && (value == hint || (hint.len() >= 3 && value.contains(hint)))
 }
-fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet<String>> {
+pub(crate) fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet<String>> {
     let hint = identity(capability.source_hint.as_deref()?);
     let mut sources: BTreeSet<_> = catalog
         .known_sources
@@ -955,7 +955,7 @@ fn safe_url(value: &str) -> Option<String> {
         && url.password().is_none())
     .then(|| url.to_string())
 }
-fn endpoint(service: &Service) -> Candidate {
+pub(crate) fn endpoint(service: &Service) -> Candidate {
     Candidate {
         origin: "apiosk".into(),
         name: service.name.clone(),

@@ -160,6 +160,7 @@ impl Client {
     }
 
     async fn fetch(&self, payload: &Value) -> std::result::Result<(Value, usize), (telemetry::ErrorClass, &'static str)> {
+        telemetry::record_model_http_request();
         let response = self.http.post(&self.endpoint).bearer_auth(&self.key)
             .header("X-Title", "Apiosk conversation reply")
             .timeout(self.deadline).json(payload).send().await

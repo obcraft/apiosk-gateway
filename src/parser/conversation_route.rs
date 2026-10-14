@@ -26,6 +26,10 @@ fn validate_route(raw: &str, outputs: &Value) -> anyhow::Result<Route> {
 }
 
 impl Parser {
+    /// One short routing request before a follow-up inside a saved task: can
+    /// the saved results answer it, is it a continuation, a new question or
+    /// genuinely unclear? Bounded JSON on the small instruct model; the
+    /// question itself is then interpreted by the one Ask parse as usual.
     pub(crate) async fn conversation_route(&self, question: &str, task: &Task, outputs: &Value) -> anyhow::Result<Route> {
         let payload = json!({"model":self.model,"temperature":0,"max_tokens":700,
             "response_format":{"type":"json_object"},

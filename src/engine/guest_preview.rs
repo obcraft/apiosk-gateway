@@ -85,9 +85,17 @@ impl Preview {
 impl Engine {
     /// All interpretation and resolution happens against an ephemeral Task.
     /// This function performs no task writes, authorization or source calls.
+    /// The deterministic compiler plans first; the semantic planner is the
+    /// bounded fallback for wording that exact contract fields cannot bind.
     pub(crate) async fn guest_plan(&self, question: &str, intake: crate::capability_intake::Intake, catalog: &Catalog) -> anyhow::Result<Value> {
-        let mut task = Task { capability_intake:Some(intake.clone()), ..Task::default() };
+        let task = Task { capability_intake:Some(intake.clone()), ..Task::default() };
         let reply = self.parser.chat_from_capabilities(question, None, &task, catalog, &intake).await?;
+        self.guest_plan_from_reply(question, intake, catalog, reply).await
+    }
+
+    /// Price one validated planning reply; quotation itself cannot invoke AI.
+    pub(crate) async fn guest_plan_from_reply(&self, question: &str, intake: crate::capability_intake::Intake, catalog: &Catalog, reply: crate::parser::ChatReply) -> anyhow::Result<Value> {
+        let mut task = Task { capability_intake:Some(intake.clone()), ..Task::default() };
         task.output_grounding = crate::parser::source_grounding::Grounding::new(&intake, catalog, reply.output_bindings);
         task.record_turn(question, Some(reply.message.clone()));
         let status = if reply.discover {

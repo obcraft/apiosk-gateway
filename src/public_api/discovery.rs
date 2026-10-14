@@ -1,7 +1,7 @@
 //! The public question -> choices -> selected execution contract. Discovery
 //! shares the App's interpreter and origin searches and never creates a task.
 use super::*;
-use crate::{capability_intake::ParsedRequest, server::ask_v2::{self, Origin}};
+use crate::server::ask_v2::{self, Origin};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,12 +29,14 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
     if !client.admit(&ctx.principal.owner.to_string()) || !client.admit_search(&ctx.principal.owner.to_string()) {
         return Err(busy());
     }
-    let interpreted = client.interpret(question, &[]).await.map_err(|e| unavailable("Ask interpretation", &e))?;
-    let parsed: ParsedRequest = serde_json::from_value(interpreted["parsed_request"].clone())
-        .map_err(|e| unavailable("Ask interpretation", &e.into()))?;
+    let started=std::time::Instant::now();
+    // One model request reads the question; both origin searches are then
+    // deterministic and run concurrently.
+    let interpretation = client.interpret_with_context(question, question, question, &[]).await.map_err(|e| unavailable("Ask interpretation", &e))?;
+    let parsed = &interpretation.parsed_request;
     let (apiosk, coinbase) = tokio::join!(
-        ask_v2::search_catalog(state, &parsed, Origin::Apiosk),
-        ask_v2::search_catalog(state, &parsed, Origin::Coinbase),
+        ask_v2::search_catalog(state, parsed, Origin::Apiosk),
+        ask_v2::search_catalog(state, parsed, Origin::Coinbase),
     );
     // An origin outage must never masquerade as a successful empty search.
     let mut searches = serde_json::Map::new();
@@ -68,8 +70,8 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         }
     }
     let status = if !errors.is_empty() { "partial" } else if apis.is_empty() { "needs_input" } else { "choices" };
-    Ok(Json(json!({"status":status,"question":question,"parsed_request":interpreted["parsed_request"],
-        "attempts":interpreted["attempts"],"timing":interpreted["timing"],"apis":apis,"searches":searches,
+    Ok(Json(json!({"status":status,"question":question,"parsed_request":parsed,"model":interpretation.output.model,
+        "attempts":interpretation.attempts,"timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_http_requests":crate::telemetry::model_http_requests()},"apis":apis,"searches":searches,
         "errors":errors,"execution":{"method":"POST","path":"/v2/execute"}})).into_response())
 }
 

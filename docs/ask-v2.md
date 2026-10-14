@@ -6,11 +6,14 @@ creates a paid source request. The public API returns both origins as one JSON
 response; the App requests them separately so each table can appear and retry
 independently.
 
-1. `POST /v2/ask-v2/parse` sends the fixed prompt and question to the configured
-   Ask model. `Client::interpret` validates and normalizes the response, allows
-   one correction, and returns `parsed_request`, `attempts` and elapsed time
-   alongside the raw text for older clients. The App consumes that canonical
-   object; its old TypeScript normalization is a fallback for older Gateways.
+1. `POST /v2/ask-v2/parse` sends the fixed prompt and question to the Ask
+   model (`ask_v2::DEFAULT_MODEL`, GPT-OSS 120B at low reasoning effort) in one
+   request. Normalization validates the parse. Only when that request fails or
+   its parse is invalid does one fallback request go to `ask_v2::FALLBACK_MODEL`
+   (Qwen3 30B Instruct), with the validation feedback. There is no review,
+   repair loop or rate-limit sleep. The route then runs the deterministic
+   catalog search itself and returns `parsed_request`, `attempts`,
+   `model_calls`, timing and a signed `planning_token` holding that search.
 2. `/v2/ask-v2/search` and public Ask both call `search_catalog`. Apiosk matches
    registered contracts and directory metadata; Coinbase uses generic queries
    scrubbed of subject labels and identifiers. The parsed concepts are already
@@ -30,9 +33,11 @@ independently.
 5. The old question-to-plan API is `/v2/ask/plan`. Explicit workflow requests
    retain `/v2/ask`; their saved plan, run and continuation paths are unchanged.
 
-The parser streams bounded JSON with a 20-second transport deadline per attempt.
-Ask v1 uses GPT-OSS 120B (`ask_v2::DEFAULT_MODEL`) with low reasoning effort.
-`ASK_V2_MODEL` documents that pinned model; deployment overrides are ignored.
+The parser streams bounded JSON with a 15-second transport deadline per request
+and at most two requests per question. Provider routing prefers throughput, so
+the short structured output finishes on the fastest provider that supports
+every requested parameter. `ASK_V2_MODEL` documents the pinned model;
+deployment overrides are ignored.
 
 The App parse/search routes require an authenticated App user and apply the existing workspace
 membership checks. Separate bounded per-owner limits cover parsing and search,
@@ -54,9 +59,10 @@ The same limit is checked again before approval and dispatch, including saved pl
 Ask calls must already have every
 required input before approval. Results are saved as each source finishes; recovery reuses pending calls and their action IDs.
 
-Ask plans independent source calls. Exact contract fields are compiled directly;
-other wording goes through semantic planning against the discovered endpoints'
-current field inventory. There is no question registry or static output mapping
+Ask plans independent source calls. Exact contract fields are compiled directly,
+without a model. Only wording the compiler cannot bind goes through one bounded
+semantic planning request against the discovered endpoints' current field
+inventory (the same GPT-OSS model, with the same single Qwen fallback). There is no question registry or static output mapping
 table. Requested subjects, fields, filters and selected endpoints remain binding.
 A failed semantic validation gets a bounded repair; ambiguous or unavailable
 scope returns a focused clarification.

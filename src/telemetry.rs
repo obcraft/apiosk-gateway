@@ -34,7 +34,7 @@ use std::{
     collections::BTreeMap,
     future::Future,
     sync::{
-        atomic::{AtomicU8, Ordering::Relaxed},
+        atomic::{AtomicU8, AtomicU64, Ordering::Relaxed},
         Arc, Mutex,
     },
     time::{Duration, Instant},
@@ -95,6 +95,7 @@ pub struct Trace {
     db: Mutex<BTreeMap<&'static str, (u64, u64)>>,
     summary: Mutex<persist::Summary>,
     cost: CostRecord,
+    model_http_requests: AtomicU64,
 }
 impl Trace {
     pub fn new(id: Uuid, origin: Origin) -> Self {
@@ -111,6 +112,7 @@ impl Trace {
             db: Mutex::new(BTreeMap::new()),
             summary: Mutex::new(persist::Summary::default()),
             cost: CostRecord::default(),
+            model_http_requests: AtomicU64::new(0),
         }
     }
     pub fn surface(&self) -> Surface {
@@ -163,6 +165,17 @@ impl Trace {
 /// The trace of the running task, if it was started inside one.
 pub fn current() -> Option<Arc<Trace>> {
     TRACE.try_with(Arc::clone).ok()
+}
+
+/// Count an actual model HTTP attempt, immediately before transport dispatch.
+/// Unlike logical model stages, this includes retries and secondary clients.
+pub fn record_model_http_request() {
+    with(|trace| { trace.model_http_requests.fetch_add(1, Relaxed); });
+}
+
+/// Measured requests in this request/worker segment. No trace is unknown, not zero.
+pub fn model_http_requests() -> Option<u64> {
+    TRACE.try_with(|trace| trace.model_http_requests.load(Relaxed)).ok()
 }
 /// The current trace id, for existing diagnostic lines: `trace = telemetry::id()`.
 pub fn id() -> Option<tracing::field::DisplayValue<Uuid>> {
@@ -852,6 +865,27 @@ mod tests {
         assert_eq!(child_task, (Some(task), Surface::App));
         assert_eq!(parent.segment(), None, "the request keeps its own segment");
         assert_eq!(parent.cost.take().db_calls, 1, "the child's calls are not the request's");
+    }
+
+    #[tokio::test]
+    async fn model_http_request_counts_are_isolated_and_include_inherited_work() {
+        assert_eq!(model_http_requests(), None);
+        let first = Arc::new(Trace::new(Uuid::new_v4(), Origin::Client));
+        let second = Arc::new(Trace::new(Uuid::new_v4(), Origin::Client));
+        let (first_count, second_count) = tokio::join!(
+            scope(first, async {
+                record_model_http_request();
+                spawn(async { record_model_http_request(); }).await.unwrap();
+                model_http_requests()
+            }),
+            scope(second, async {
+                record_model_http_request();
+                tokio::task::yield_now().await;
+                model_http_requests()
+            }),
+        );
+        assert_eq!((first_count, second_count), (Some(2), Some(1)));
+        assert_eq!(model_http_requests(), None);
     }
 
     #[tokio::test]

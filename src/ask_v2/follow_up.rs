@@ -245,10 +245,20 @@ impl Client {
             serde_json::to_vec(&input)?.len() <= 64_000,
             "follow_up_context_too_large"
         );
-        let raw = tokio::time::timeout(
-            self.deadline,
-            self.generate_object(PROMPT, &input.to_string(), 2048, true),
-        )
+        let input = input.to_string();
+        // The configured model once; its one fallback on an outage.
+        let raw = tokio::time::timeout(self.deadline.saturating_mul(2), async {
+            match self.generate_object(&self.model, PROMPT, &input, 2048).await {
+                Ok(raw) => Ok(raw),
+                Err(error) => match self.fallback_for(&error) {
+                    Some(fallback) => {
+                        tracing::warn!(surface = "endpoint-follow-up", reason = %error, "follow-up interpretation falls back");
+                        self.generate_object(fallback, PROMPT, &input, 2048).await
+                    }
+                    None => Err(error),
+                },
+            }
+        })
         .await
         .map_err(|_| {
             tracing::warn!(

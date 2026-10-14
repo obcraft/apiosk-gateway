@@ -27,13 +27,19 @@ function response(change = () => {}) {
       steps: needs.map((_, index) => ({ goal_index: index, entity_ref: 'entity', service: { id: `service-${index}` } })) },
   }
   change(task)
-  return { status: 'ready', total_atomic: '30', expires_at: expiry,
+  return { status: 'ready', total_atomic: '30', expires_at: expiry, timing: { model_http_requests: 1 },
     sources: [10, 20].map((price, index) => ({ source_slug: `source-${index}`, endpoint_id: `endpoint-${index}`, price_atomic: String(price) })),
     preview_token: `${Buffer.from(JSON.stringify({ total_atomic: 30, expires_at: expiry, task })).toString('base64url')}.${'a'.repeat(64)}` }
 }
 
 test('complete independent quote preserves every declared category and sums the calls', () => {
   assert.equal(assessPreview(item, response()).accepted, true)
+})
+test('a quote requires measured one-request evidence rather than a logical stage count', () => {
+  for (const count of [undefined, null, 0, 2, '1']) {
+    const body = response(); body.timing.model_http_requests = count; body.model_calls = 1
+    assert(assessPreview(item, body).issues.includes('model_http_request_count_not_one'))
+  }
 })
 test('ready status, a token and a price cannot conceal a lost result category', () => {
   const result = assessPreview(item, response(task => {
@@ -52,6 +58,20 @@ test('two operations at one provider do not satisfy the two-source requirement',
   const body = response(); body.sources[1].source_slug = body.sources[0].source_slug
   assert(assessPreview(item, body).issues.includes('too_few_distinct_sources'))
 })
+test('two other sources cannot replace an explicitly requested provider', () => {
+  const named = { ...item, expected_provider_slugs: ['source-0', 'source-1'] }
+  assert.equal(assessPreview(named, response()).accepted, true)
+  const body = response(); body.sources[1].source_slug = 'source-2'
+  const result = assessPreview(named, body)
+  assert(result.issues.includes('requested_provider_not_in_plan:source-1'))
+  assert(!result.issues.includes('too_few_distinct_sources'))
+})
+test('named provider expectations require exact distinct catalog slugs', () => {
+  for (const invalid of [[], [''], [' source-0'], ['source-0', 'source-0'], [null], 'source-0', Array.from({ length: 11 }, (_, i) => `source-${i}`)]) {
+    assert.throws(() => validateCases([{ ...item, expected_provider_slugs: invalid }]))
+  }
+  assert.equal(validateCases([{ ...item, expected_provider_slugs: ['source-0', 'source-1'] }]).length, 1)
+})
 test('price mismatches, chained plans, excess calls and altered questions fail', () => {
   let body = response(); body.total_atomic = '29'
   assert(assessPreview(item, body).issues.includes('total_does_not_cover_exactly_the_shown_calls'))
@@ -68,10 +88,10 @@ test('a comparison must plan the requested category for each requested subject',
 })
 test('non-ready cases require the declared status, no quote, and a specific clarification', () => {
   const missing = { ...item, expected_status: 'needs_input', missing_input_terms: [['postal code', 'postcode']] }
-  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'What is the postcode?' }).accepted, true)
-  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'Choose another service.' }).accepted, false)
-  assert.equal(assessPreview(missing, { status: 'unsupported', message: 'What is the postcode?' }).accepted, false)
-  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'What is the postcode?', total_atomic: '0' }).accepted, false)
+  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'What is the postcode?', timing: { model_http_requests: 1 } }).accepted, true)
+  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'Choose another service.', timing: { model_http_requests: 1 } }).accepted, false)
+  assert.equal(assessPreview(missing, { status: 'unsupported', message: 'What is the postcode?', timing: { model_http_requests: 1 } }).accepted, false)
+  assert.equal(assessPreview(missing, { status: 'needs_input', message: 'What is the postcode?', total_atomic: '0', timing: { model_http_requests: 1 } }).accepted, false)
 })
 test('empty case sets and ready cases without independent expectations cannot pass', () => {
   assert.throws(() => validateCases([]))

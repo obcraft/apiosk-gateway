@@ -393,7 +393,7 @@ pub struct ModelSelection {
     pub literals: Vec<String>,
 }
 /// App-only conversational routing; never an executable action or approval.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChatReply {
     #[serde(default)]
@@ -436,16 +436,21 @@ pub const MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 pub const CHAT_MODEL: &str = "qwen/qwen3-235b-a22b-2507";
 /// Semantic planning for requests that cannot be compiled by exact contract
 /// fields alone. The model sees only the discovered contracts and their fields.
-pub const CAPABILITY_PLAN_MODEL: &str = "openai/gpt-6.1-sol";
-/// Combining distinct saved providers uses the stronger synthesis stage.
+/// The same model as the Ask parse, with the same one fallback below.
+pub const CAPABILITY_PLAN_MODEL: &str = crate::ask_v2::DEFAULT_MODEL;
+/// One request on this model after an outage of the planning model above.
+pub const CAPABILITY_PLAN_FALLBACK_MODEL: &str = crate::ask_v2::FALLBACK_MODEL;
+/// Combining distinct saved providers uses Qwen3 30B Instruct 2507.
 /// This is separate from conversation replies and never changes planning.
-pub const MULTISOURCE_ANALYSIS_MODEL: &str = "openai/gpt-6.1-sol";
+pub const MULTISOURCE_ANALYSIS_MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 
 fn completion_budget(surface: &str) -> (u64, u64) {
     match surface {
         "capability-intake" | "capability-search" => (10, 20),
         "chat" => (20, 30),
-        "capability-plan" => (40, 65),
+        // Semantic planning after the deterministic compiler declined: a short
+        // structured plan, so one attempt and its fallback fit well inside.
+        "capability-plan" => (20, 40),
         "clarification" => (6, 12),
         // A complete joined answer can exceed thirty seconds. Let one attempt
         // use the existing stage budget instead of restarting it halfway.
@@ -1213,14 +1218,25 @@ impl Parser {
     }
 
     fn routed_payload(&self, surface: &str, payload: &Value) -> Value {
+        self.routed_payload_for(surface, payload, None)
+    }
+
+    /// `model` overrides the stage's model: the one fallback after an outage.
+    fn routed_payload_for(&self, surface: &str, payload: &Value, model: Option<&str>) -> Value {
         let mut payload = payload.clone();
         let analysis = matches!(surface, "analysis" | "multi-source-analysis");
-        payload["model"] = json!(if surface == "capability-plan" { CAPABILITY_PLAN_MODEL } else if surface == "multi-source-analysis" { MULTISOURCE_ANALYSIS_MODEL } else if analysis { &self.analysis_model } else { &self.model });
-        if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma") || model == MODEL || model == CHAT_MODEL) {
+        let model = model.map(str::to_owned).unwrap_or_else(|| if surface == "capability-plan" { CAPABILITY_PLAN_MODEL.into() } else if surface == "multi-source-analysis" { MULTISOURCE_ANALYSIS_MODEL.into() } else if analysis { self.analysis_model.clone() } else { self.model.clone() });
+        payload["model"] = json!(model);
+        if model == crate::ask_v2::DEFAULT_MODEL && payload.get("reasoning").is_some() {
+            // GPT-OSS requires a reasoning effort it supports. Low keeps the
+            // plan fast; validation still checks the complete result.
+            payload["reasoning"] = json!({"effort":"low","exclude":true});
+        }
+        if model.starts_with("google/gemma") || model == MODEL || model == CHAT_MODEL {
             // Neither Qwen3 Instruct 2507 nor Gemma 3 providers support a
             // reasoning parameter; with require_parameters it would match no
             // provider at all. Gemma 4 supports it, but needs thinking disabled.
-            if payload["model"].as_str().is_some_and(|model| model.starts_with("google/gemma-3-") || model == MODEL || model == CHAT_MODEL) {
+            if model.starts_with("google/gemma-3-") || model == MODEL || model == CHAT_MODEL {
                 payload.as_object_mut().unwrap().remove("reasoning");
             } else if payload.get("reasoning").is_some() {
                 payload["reasoning"] = json!({"enabled": false});
@@ -1602,21 +1618,30 @@ impl Parser {
         decode: impl Fn(&str) -> anyhow::Result<T>,
     ) -> anyhow::Result<T> {
         let started = std::time::Instant::now();
-        let payload = self.routed_payload(surface, payload);
+        let requested = payload;
+        let payload = self.routed_payload(surface, requested);
         let input_bytes = serde_json::to_vec(&payload)?.len();
         if self.key.is_empty() {
             return Err(ModelFailure::Unavailable.into());
         }
         let (attempt_seconds, total_seconds) = completion_budget(surface);
+        // Semantic planning is the one stage with a second model: after an
+        // outage its second attempt is the unchanged request on the fallback.
+        let fallback_model = (surface == "capability-plan").then_some(CAPABILITY_PLAN_FALLBACK_MODEL);
         let work = async {
             let mut attempt_payload = payload.clone();
             let mut rejected_requirement = None;
+            let mut outage = false;
             for attempt in 1..=2 {
+                if let Some(fallback) = fallback_model.filter(|_| attempt == 2 && outage) {
+                    attempt_payload = self.routed_payload_for(surface, requested, Some(fallback));
+                }
                 // Only the final complete response can establish a semantic
                 // rejection. A later timeout, transport or JSON failure is an
                 // availability failure even when an earlier plan was rejected.
                 rejected_requirement = None;
-                let mut call = crate::telemetry::model_call(surface, attempt, payload["model"].as_str().unwrap_or_default(), input_bytes);
+                let mut call = crate::telemetry::model_call(surface, attempt, attempt_payload["model"].as_str().unwrap_or_default(), input_bytes);
+                crate::telemetry::record_model_http_request();
                 let response = self
                     .http
                     .post(&self.url)
@@ -1652,7 +1677,7 @@ impl Parser {
                                         Ok(value) => {
                                             tracing::info!(trace = crate::telemetry::id(), surface, attempt,
                                                 model_ms = started.elapsed().as_millis() as u64, input_bytes,
-                                                model = payload["model"].as_str().unwrap_or_default(),
+                                                model = attempt_payload["model"].as_str().unwrap_or_default(),
                                                 provider = body["provider"].as_str().unwrap_or_default(),
                                                 prompt_tokens = body["usage"]["prompt_tokens"].as_u64(),
                                                 completion_tokens = body["usage"]["completion_tokens"].as_u64(),
@@ -1768,7 +1793,11 @@ impl Parser {
                         let status = response.status().as_u16();
                         tracing::warn!(surface, attempt, status, "model HTTP failure");
                         call.finish(Outcome::Failed(ErrorClass::upstream(status)), "http_status");
-                        if status != 408 && status != 429 && status < 500 {
+                        // A rejected request is final, except that the fallback
+                        // model may accept parameters its primary refused. A
+                        // rejected credential is never retried anywhere.
+                        if status != 408 && status != 429 && status < 500
+                            && (fallback_model.is_none() || attempt == 2 || matches!(status, 401 | 403)) {
                             return Err(ModelFailure::Unavailable.into());
                         }
                         Err("upstream_unavailable")
@@ -1785,6 +1814,7 @@ impl Parser {
                         // stage budget. Keep the saved results retryable.
                         return Err(ModelFailure::Unavailable.into());
                     }
+                    outage = reason != "invalid_output";
                 }
             }
             if let Some(reason) = rejected_requirement {
@@ -2304,17 +2334,24 @@ mod tests {
             .with_routing(None, Some("typo".into()), None).is_err());
     }
     #[test]
-    fn capability_planning_uses_stronger_model_without_altering_other_stage_parameters() {
+    fn capability_planning_uses_the_ask_model_with_low_reasoning_and_one_qwen_fallback() {
         let parser = Parser::new(reqwest::Client::new(), "https://openrouter.ai/api/v1/chat/completions".into(), "fixture".into(), MODEL.into());
         let payload = json!({"temperature":0,"reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
             "response_format":{"type":"json_schema","json_schema":{"name":"capability_plan","strict":true,"schema":{"type":"object"}}}});
         let routed = parser.routed_payload("capability-plan", &payload);
         assert_eq!(routed["model"], CAPABILITY_PLAN_MODEL);
+        assert_eq!(CAPABILITY_PLAN_MODEL, crate::ask_v2::DEFAULT_MODEL, "planning and parsing share the main model");
         assert!(routed.get("temperature").is_none());
-        assert_eq!(routed["reasoning"], payload["reasoning"]);
+        assert_eq!(routed["reasoning"], json!({"effort":"low","exclude":true}), "GPT-OSS needs a supported effort");
         assert_eq!(routed["response_format"]["json_schema"]["schema"], payload["response_format"]["json_schema"]["schema"]);
         assert_eq!(routed["response_format"]["json_schema"]["strict"], false);
         assert_eq!(routed["provider"], payload["provider"]);
+        let fallback = parser.routed_payload_for("capability-plan", &payload, Some(CAPABILITY_PLAN_FALLBACK_MODEL));
+        assert_eq!(fallback["model"], MODEL, "the one fallback is Qwen3 30B");
+        assert!(fallback.get("reasoning").is_none(), "Qwen providers reject a reasoning parameter");
+        assert!(fallback.get("temperature").is_none());
+        assert_eq!(fallback["response_format"]["json_schema"]["strict"], false);
+        assert_eq!(completion_budget("capability-plan"), (20, 40));
         assert_eq!(parser.routed_payload("chat", &payload)["model"], MODEL);
         assert_eq!(parser.routed_payload("analysis", &payload)["model"], MODEL);
         assert!(intent_repair_message("capability-plan", "non_literal_input").contains("message, discover and intent"));
@@ -2347,7 +2384,7 @@ mod tests {
         assert_eq!(qwen.routed_payload("chat", &payload)["response_format"]["type"], "json_schema");
         let multi = qwen.routed_payload("multi-source-analysis", &payload);
         assert_eq!(multi["model"], MULTISOURCE_ANALYSIS_MODEL);
-        assert_eq!(multi["reasoning"], payload["reasoning"]);
+        assert!(multi.get("reasoning").is_none());
         assert!(multi.get("temperature").is_none());
         assert_eq!(multi["response_format"]["type"], "json_object");
     }

@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "https://gateway.apiosk.com"
+      "url": "https://api.apiosk.com"
     }
   ],
   "paths": {

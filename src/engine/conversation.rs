@@ -25,18 +25,21 @@ fn saved_outputs(task: &Task) -> Vec<SavedOutput> {
     outputs
 }
 
+fn saved_output_summaries(task: &Task) -> Value {
+    json!(saved_outputs(task).iter().enumerate().map(|(index, output)| json!({
+        "index":index,"question":output.question,
+        "answer":output.analysis.as_ref().map(|a|json!({"observations":a["observations"].as_array().map(|items|items.iter().map(|v|&v["text"]).collect::<Vec<_>>()),"limitations":a["limitations"]})),
+        "saved_source_count":output.refs.len()
+    })).collect::<Vec<_>>())
+}
+
 impl Engine {
     /// None means ordinary source planning; Some contains a finished saved
     /// answer or clarification. No path in this method dispatches a source.
     pub(super) async fn route_conversation(&self, p: &Principal, req: &DiscoverRequest,
         id: Uuid, revision: i64, task: &mut Task) -> anyhow::Result<(bool, Option<Response>)> {
         let outputs = saved_outputs(task);
-        let summaries = json!(outputs.iter().enumerate().map(|(index, output)| json!({
-            "index":index,"question":output.question,
-            "answer":output.analysis.as_ref().map(|a|json!({"observations":a["observations"].as_array().map(|items|items.iter().map(|v|&v["text"]).collect::<Vec<_>>()),"limitations":a["limitations"]})),
-            "saved_source_count":output.refs.len()
-        })).collect::<Vec<_>>());
-        match self.parser.conversation_route(&req.question, task, &summaries).await? {
+        match self.parser.conversation_route(&req.question, task, &saved_output_summaries(task)).await? {
             Route::NewRequest => Ok((true, None)),
             Route::ContinueRequest => Ok((false, None)),
             Route::Clarification { message } => {
@@ -51,7 +54,7 @@ impl Engine {
                 let mut refs = Vec::new();
                 let mut operations = vec![req.question.clone()];
                 for index in selected {
-                    let output = &outputs[index];
+                    let output = outputs.get(index).ok_or_else(|| anyhow::anyhow!("unknown saved output"))?;
                     operations.push(format!("Historical question for identity and scope only (the latest question is authoritative): {}",output.question));
                     for result in &output.refs {
                         anyhow::ensure!(task.result_refs.contains(result),"saved output is not part of this task");
