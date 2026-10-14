@@ -1055,6 +1055,7 @@ impl Engine {
                 .push(Action::Cancel { action_id: id }.public());
         }
         r.billing = Some(billing);
+        r.context_view["static_price"] = json!(billing_plan.as_ref().is_some_and(Plan::has_static_price));
         if task.source_selection.is_some() {
             let previously_approved:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE owner_id=$1 AND task_id=$2 AND quote_ref=$3)")
                 .bind(p.owner).bind(id).bind(billing_plan.as_ref().map(|plan|plan.quote_ref)).fetch_one(&self.store.pool).await?;

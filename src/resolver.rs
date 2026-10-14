@@ -46,6 +46,14 @@ pub fn standard_markup() -> i64 {
     catalog_core::fees::BUYER_MARKUP_BPS as i64
 }
 impl Plan {
+    /// Managed catalog APIs publish fixed prices; external x402 offers and
+    /// compute quotes retain their time-limited price semantics.
+    pub fn has_static_price(&self) -> bool {
+        self.compute.is_none() && !self.steps.is_empty() && self.steps.iter().all(|step| {
+            catalog_core::fees::ProviderClass::from_listing_type(Some(&step.service.listing_type))
+                == catalog_core::fees::ProviderClass::Managed
+        })
+    }
     pub fn validate_source_limit(&self) -> anyhow::Result<()> {
         anyhow::ensure!(self.steps.len() <= MAX_STEPS, crate::protocol::SOURCE_LIMIT_MESSAGE);
         Ok(())
@@ -565,6 +573,24 @@ pub fn describe_steps(plan: &Plan, sources: &[crate::sources::Source]) -> Vec<Va
 #[cfg(test)]
 mod presentation_tests {
     use super::*;
+    #[test]
+    fn only_managed_api_plans_have_static_prices() {
+        let snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap();
+        let mut plan = Plan { independent_calls: false, compute: None, quote_ref: Uuid::new_v4(), cap_atomic: 1,
+            expires_at: Utc::now(), hash: "fixture".into(), fee_bps: standard_markup(), workflow_slug: None,
+            steps: snapshot.services.into_iter().take(2).map(|mut service| {
+                service.listing_type = "api".into();
+                Step { service, entity_ref: Uuid::new_v4(), goal_index: 0, browser_fallback: None }
+            }).collect() };
+        assert!(plan.has_static_price());
+        for kind in ["federated", "external"] {
+            plan.steps[0].service.listing_type = kind.into();
+            assert!(!plan.has_static_price(), "mixed plans must retain x402 expiry");
+        }
+        plan.steps.clear();
+        assert!(!plan.has_static_price());
+    }
+
     #[test]
     fn jurisdiction_policy_accepts_country_synonyms_without_broadening_scope() {
         let catalog = Catalog::build(serde_json::from_str(include_str!("../tests/fixtures/integration-catalog.json")).unwrap());
