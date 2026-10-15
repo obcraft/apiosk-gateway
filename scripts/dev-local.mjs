@@ -148,8 +148,8 @@ export async function runServices(services, {
   }
 }
 
-function localSecret() {
-  const file = path.join(runtime, 'mcp-oauth-secret');
+function localSecret(name = 'mcp-oauth-secret') {
+  const file = path.join(runtime, name);
   try { writeFileSync(file, randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 }); }
   catch (error) { if (error.code !== 'EEXIST') throw error; }
   return readFileSync(file, 'utf8').trim();
@@ -157,10 +157,10 @@ function localSecret() {
 
 async function main() {
   const args = new Set(process.argv.slice(2));
-  const allowed = ['--help', '--check', '--smoke', '--no-open', '--execute'];
+  const allowed = ['--help', '--check', '--smoke', '--no-open', '--execute', '--recurring'];
   if ([...args].some(arg => !allowed.includes(arg))) throw new Error(`Unknown option. Use ./dev --help.`);
   if (args.has('--help')) {
-    console.log(`Usage: ./dev [--no-open] [--execute]\n\nStarts App :5276, MCP :3000 and Gateway/API :8082. Opens the App when ready.\nUses the existing Supabase API, Auth and database; no migrations or env-file rewrites.\nPurchases and background workers are off by default. --execute permits approved\nrequests through your configured Supabase execution services.\n\n--check     Check credentials, dependencies and local ports without starting services\n--smoke     Start all three, check HTTP readiness, then stop (no browser or purchases)\n--no-open   Leave the browser closed\nCtrl+C      Stop all three processes\nLogs: gateway/.local/dev-stack/`);
+    console.log(`Usage: ./dev [--no-open] [--execute] [--recurring]\n\nStarts App :5276, MCP :3000 and Gateway/API :8082. Opens the App when ready.\nUses the existing Supabase API, Auth and database; no migrations or env-file rewrites.\nPurchases and background workers are off by default. --execute permits approved\nrequests through your configured Supabase execution services.\n--recurring enables recurring setup and workers locally for the configured owner allowlist; requires --execute.\n\n--check     Check credentials, dependencies and local ports without starting services\n--smoke     Start all three, check HTTP readiness, then stop (no browser or purchases)\n--no-open   Leave the browser closed\nCtrl+C      Stop all three processes\nLogs: gateway/.local/dev-stack/`);
     return;
   }
   const [major, minor] = process.versions.node.split('.').map(Number);
@@ -172,6 +172,8 @@ async function main() {
   const config = localConfiguration();
   if (config.gateway.EMBEDDED_EXECUTOR_ORIGIN) throw new Error('EMBEDDED_EXECUTOR_ORIGIN is set. This launcher uses hosted execution; unset that local override or start its executor separately.');
   if (args.has('--execute') && args.has('--smoke')) throw new Error('--smoke cannot be combined with --execute.');
+  if (args.has('--recurring') && !args.has('--execute')) throw new Error('--recurring requires --execute.');
+  if (args.has('--recurring') && !config.gateway.RECURRING_ALLOWED_OWNER_IDS?.trim()) throw new Error('Set RECURRING_ALLOWED_OWNER_IDS for local recurring access.');
   if (args.has('--execute')) config.gateway.V2_EXECUTION_ENABLED = '1';
   const service = (name, dir, port, health, command, argv, env, matches) => ({
     name, cwd: path.join(root, dir), port, health, command, args: argv, env,
@@ -191,6 +193,10 @@ async function main() {
   }
   mkdirSync(runtime, { recursive: true, mode: 0o700 });
   config.mcp.APIOSK_MCP_OAUTH_SECRET ||= localSecret();
+  if (args.has('--recurring')) {
+    config.gateway.RECURRING_ORDERS_ENABLED = '1';
+    config.gateway.RECURRING_WORKER_SECRET ||= localSecret('recurring-worker-secret');
+  }
   const controller = new AbortController();
   process.once('SIGINT', () => controller.abort());
   process.once('SIGTERM', () => controller.abort());

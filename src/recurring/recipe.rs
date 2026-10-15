@@ -223,7 +223,14 @@ impl Recipe {
                         let earlier_declares = steps.iter().any(|producer: &RecipeStep|
                             producer.entity_ref == step.entity_ref
                                 && producer.service.as_ref().is_some_and(|s| s.contract.output_map.produces.contains_key(&requirement.fact_type)));
-                        ensure!(!earlier_declares && !facts.iter().any(|fact| fact.provenance["kind"] == "provider_response"),
+                        // The exception: the earlier source returned a list and
+                        // this input is one of its subjects. The person chose
+                        // it, so it stays pinned as a fixed input; every run
+                        // repeats every source and keeps the same subject.
+                        let chosen = steps.iter().enumerate().any(|(index, producer)|
+                            producer.entity_ref == step.entity_ref
+                                && chosen_from_list(producer, &prior[index], &requirement.fact_type, vocabulary, &matches_wire));
+                        ensure!(chosen || (!earlier_declares && !facts.iter().any(|fact| fact.provenance["kind"] == "provider_response")),
                             "A dynamic input has no unique source in this recipe; review the original dependency.");
                     }
                     _ => anyhow::bail!("Several earlier sources could bind this input; an explicit source binding is required."),
@@ -622,6 +629,31 @@ fn extracted_value(
     Ok(value)
 }
 
+/// Whether `result` listed several subjects (or quietly picked one out of
+/// several) and one of them carries a value equal to the saved input.
+fn chosen_from_list(
+    step: &RecipeStep,
+    result: &StepResult,
+    fact_type: &str,
+    vocabulary: &Vocabulary,
+    matches_wire: &dyn Fn(&Value) -> bool,
+) -> bool {
+    if result.ordinal != step.ordinal
+        || result.source_selection_id != step.source_selection_id
+        || successful(&result.body).is_err()
+    {
+        return false;
+    }
+    let Some(service) = step.service.as_ref() else { return false };
+    if !service.contract.output_map.produces.contains_key(fact_type) {
+        return false;
+    }
+    let Ok(extraction) = service.contract.extract(&result.body["result"], vocabulary) else { return false };
+    extraction.rejected.is_empty()
+        && extraction.is_ambiguous()
+        && extraction.subjects.iter().filter_map(|subject| subject.fact(fact_type)).any(|fact| matches_wire(&fact.value))
+}
+
 fn validate_external(source: &ExternalSource) -> anyhow::Result<()> {
     let url = url::Url::parse(&source.resource_url)?;
     ensure!(
@@ -902,6 +934,37 @@ mod tests {
             materialize(&recipe, 1, &results, &vocab).unwrap(),
             json!({"id":"old-id"})
         );
+    }
+
+    #[test]
+    fn identifier_chosen_from_a_list_is_pinned_and_every_source_repeats() {
+        let (plan, task, mut completed, vocab) = fixture();
+        completed[0].response =
+            json!({"ok":true,"result":{"items":[{"id":"other"},{"id":"old-id"}]}});
+        let recipe = Recipe::compile(&plan, &task, &completed, &vocab).unwrap();
+        assert_eq!(recipe.steps.len(), 2);
+        assert!(recipe.steps[1].bindings.is_empty());
+        assert_eq!(recipe.steps[1].fixed_inputs, json!({"id":"old-id"}));
+        let results = [receipt(
+            &recipe,
+            0,
+            json!({"ok":true,"result":{"items":[{"id":"x"},{"id":"y"}]}}),
+        )];
+        assert_eq!(
+            materialize(&recipe, 1, &results, &vocab).unwrap(),
+            json!({"id":"old-id"})
+        );
+        // A list that never contained the saved value is still unresolved, and
+        // a result that fails, is truncated or breaks its schema never pins.
+        for body in [
+            json!({"ok":true,"result":{"items":[{"id":"a"},{"id":"b"}]}}),
+            json!({"ok":false,"result":{"items":[{"id":"other"},{"id":"old-id"}]}}),
+            json!({"ok":true,"result_truncated":true,"result":{"items":[{"id":"other"},{"id":"old-id"}]}}),
+            json!({"ok":true,"result":{"items":[{"id":123},{"id":"old-id"}]}}),
+        ] {
+            completed[0].response = body;
+            assert!(Recipe::compile(&plan, &task, &completed, &vocab).is_err());
+        }
     }
 
     #[test]
