@@ -472,7 +472,7 @@ fn validate_reply(raw: &str, question: &str, context: &Context) -> Result<Value>
     Ok(json!({"kind":"reuse","endpoint":context.descriptor,"input":input}))
 }
 
-fn grounded(schema: &Value, value: &Value, quote: &str) -> bool {
+pub(super) fn grounded(schema: &Value, value: &Value, quote: &str) -> bool {
     let quote = quote.trim();
     match value {
         Value::String(value) => {

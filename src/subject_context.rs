@@ -2,7 +2,7 @@
 //! credentials or billing calls. Named subjects share the legacy company_context
 //! wire format. Web excerpts never become registry or sanctions evidence.
 use crate::capability_intake::{ParsedRequest, Subject};
-use futures_util::future::join_all;
+use futures_util::{future::{join_all, BoxFuture}, stream::FuturesUnordered, FutureExt, StreamExt};
 use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use std::{sync::OnceLock, time::Duration};
@@ -79,7 +79,7 @@ async fn fetch(subject: &Subject) -> Value {
         .filter(|(key, _)| matches!(key.as_str(), "website" | "company.website" | "website_url" | "domain" | "company.domain" | "company.url"))
         .find_map(|(_, value)| homepage_url(value))
         .or_else(|| homepage_url(&subject.label));
-    let (search, supplied_page) = tokio::join!(free_search(&subject.label, &query, is_topic(&subject.kind)), async {
+    let (search, supplied_page) = tokio::join!(free_search(&subject.label, &query, is_topic_subject(subject)), async {
         match supplied.as_ref() {
             Some(url) => read_homepage(url, &subject.label).await,
             None => None,
@@ -150,22 +150,70 @@ async fn free_search(label: &str, query: &str, topic: bool) -> (Vec<Value>, &'st
         }
         None
     };
-    tokio::pin!(google_read, bing_read);
-    let found = tokio::select! {
-        result = &mut google_read => match result { Some(found) => Some(found), None => bing_read.await },
-        result = &mut bing_read => match result { Some(found) => Some(found), None => google_read.await },
+    let mut primary = vec![google_read.boxed(), bing_read.boxed()];
+    // Google answers EU data-centre requests with a consent page and Bing RSS
+    // with unrelated results. A topic is news-shaped: its public news feed is a
+    // plain RSS read that needs neither consent nor scripts.
+    if topic { primary.push(news_search(label, query).boxed()); }
+    if let Some(found) = first_usable(primary).await { return found; }
+    // Try independent, non-JS public sources before giving up.
+    first_usable(vec![html_search(label, topic).boxed(), encyclopedia_search(label, topic).boxed()]).await
+        .unwrap_or_else(|| (vec![], "google", google.to_string()))
+}
+
+type Found = (Vec<Value>, &'static str, String);
+
+/// The first usable response wins; the others are dropped and cancelled.
+async fn first_usable(reads: Vec<BoxFuture<'_, Option<Found>>>) -> Option<Found> {
+    let mut reads: FuturesUnordered<_> = reads.into_iter().collect();
+    while let Some(found) = reads.next().await {
+        if found.is_some() { return found; }
+    }
+    None
+}
+
+async fn news_search(label: &str, query: &str) -> Option<Found> {
+    let mut feed = Url::parse("https://news.google.com/rss/search").unwrap();
+    feed.query_pairs_mut().append_pair("q", query).append_pair("hl", "en-US").append_pair("gl", "US").append_pair("ceid", "US:en");
+    let (final_url, bytes) = match tokio::time::timeout(SEARCH_BUDGET,
+        crate::link_preview::Service::shared().public_feed(feed.as_str())).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(error)) => { tracing::info!(provider = "google_news", reason = "fetch_failed", error = %error, "subject web search failed"); return None; }
+        Err(_) => { tracing::info!(provider = "google_news", reason = "timeout", "subject web search exceeded its budget"); return None; }
     };
-    if let Some(found) = found { return found; }
-    // Google can return a JS-only redirect and Bing RSS can return unrelated
-    // results with HTTP 200. Try independent, non-JS public sources before giving up.
-    let ddg = html_search(label, topic);
-    let encyclopedia = encyclopedia_search(label, topic);
-    tokio::pin!(ddg, encyclopedia);
-    let fallback = tokio::select! {
-        result = &mut ddg => match result { Some(found) => Some(found), None => encyclopedia.await },
-        result = &mut encyclopedia => match result { Some(found) => Some(found), None => ddg.await },
-    };
-    fallback.unwrap_or_else(|| (vec![], "google", google.to_string()))
+    // A consent page or any other redirect is not a news feed. Do not bypass it.
+    if final_url.host_str() != Some("news.google.com") || final_url.path() != "/rss/search" { return None; }
+    let pages = news_results(&bytes, label);
+    if pages.is_empty() { tracing::info!(provider = "google_news", reason = "no_usable_results", "subject web search returned no usable pages"); return None; }
+    // The page accepts Google search links; this one opens the same query's news tab.
+    let mut link = search_url(query);
+    link.query_pairs_mut().append_pair("tbm", "nws");
+    Some((pages, "google_news", link.to_string()))
+}
+
+/// Headlines with their original publisher. Google News appends " - Publisher"
+/// to every title; the publisher stays visible as attribution instead.
+fn news_results(bytes: &[u8], label: &str) -> Vec<Value> {
+    let Ok(text) = std::str::from_utf8(bytes) else { return vec![]; };
+    let Ok(document) = roxmltree::Document::parse(text) else { return vec![]; };
+    let mut seen = std::collections::BTreeSet::new();
+    document.descendants().filter(|node| node.has_tag_name("item")).take(40).filter_map(|item| {
+        let child = |tag| item.children().find(|n| n.has_tag_name(tag));
+        let url = Url::parse(child("link")?.text()?.trim()).ok()?;
+        let source = child("source");
+        let publisher = compact(source.and_then(|n| n.text()).unwrap_or(""), 200);
+        let site = source.and_then(|n| n.attribute("url")).and_then(|raw| Url::parse(raw).ok())
+            .and_then(|site| site.host_str().map(str::to_owned));
+        let mut title = compact(child("title")?.text()?, 240);
+        if let Some(headline) = title.strip_suffix(&format!(" - {publisher}")).filter(|_| !publisher.is_empty()) { title = headline.to_owned(); }
+        let host = url.host_str()?;
+        if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() || title.is_empty()
+            || !matches_result(label, &title, site.as_deref().unwrap_or(host), &publisher, true)
+            || !seen.insert(title.to_lowercase()) { return None; }
+        Some(json!({"kind":"search_result","url":url.as_str(),"title":title,"description":title,
+            "publisher":if publisher.is_empty() { site.as_deref().unwrap_or(host) } else { publisher.as_str() },
+            "retrieved_at":chrono::Utc::now().to_rfc3339()}))
+    }).take(5).collect()
 }
 
 async fn html_search(label: &str, topic: bool) -> Option<(Vec<Value>, &'static str, String)> {
@@ -286,7 +334,13 @@ fn subject_words(label: &str) -> Vec<String> {
         && !["bv", "nv", "ltd", "inc", "llc", "limited", "plc"].contains(&word.as_str())).collect()
 }
 fn is_topic(kind: &str) -> bool {
-    matches!(kind.to_ascii_lowercase().as_str(), "topic" | "query" | "keyword")
+    matches!(kind.to_ascii_lowercase().as_str(), "topic" | "query" | "keyword" | "theme" | "news" | "headline" | "category" | "sector" | "industry")
+}
+/// The parser's type vocabulary is open, so "business and financial headlines"
+/// may arrive as any noun. A lowercase multi-word phrase is not a proper name.
+fn is_topic_subject(subject: &Subject) -> bool {
+    is_topic(&subject.kind)
+        || (!subject.label.chars().any(char::is_uppercase) && subject.label.split_whitespace().count() >= 2)
 }
 
 fn topic_words(text: &str) -> std::collections::BTreeSet<String> {
@@ -295,7 +349,16 @@ fn topic_words(text: &str) -> std::collections::BTreeSet<String> {
             "a", "an", "the", "and", "or", "of", "in", "on", "for", "from", "with", "to",
             "latest", "recent", "current", "news", "headline", "headlines", "updates",
         ].contains(&word.as_str()))
-        .map(|word| match word.as_str() { "financial" => "finance".into(), _ => word }).collect()
+        .map(|word| { let singular = topic_singular(&word); if singular == "financial" { "finance".into() } else { singular.into_owned() } }).collect()
+}
+
+/// Headlines use plurals ("small businesses", "markets"); fold the common
+/// English endings so a topic word matches either form.
+fn topic_singular(word: &str) -> std::borrow::Cow<'_, str> {
+    if word.len() <= 3 || word.ends_with("ss") || !word.ends_with('s') { return word.into(); }
+    if word.ends_with("sses") { return word[..word.len() - 2].into(); }
+    if word.len() > 4 && word.ends_with("ies") { return format!("{}y", &word[..word.len() - 3]).into(); }
+    word[..word.len() - 1].into()
 }
 
 fn matches_result(label: &str, title: &str, host: &str, description: &str, topic: bool) -> bool {
@@ -411,6 +474,34 @@ mod tests {
         assert!(!matches_result(label, "Business directory", "example.org", "Local addresses.", true));
         assert!(is_topic("topic") && is_topic("query") && is_topic("keyword"));
         assert!(!is_topic("person") && !is_topic("company"));
+    }
+
+    #[test]
+    fn news_feed_keeps_publishers_and_matches_plural_topic_words() {
+        let label = "business and financial headlines";
+        let feed = br#"<rss><channel><title>Google News</title>
+          <item><title>Small businesses face new finance rules - Example Times</title><link>https://news.google.com/rss/articles/abc?oc=5</link><pubDate>Fri, 16 Oct 2026 07:00:00 GMT</pubDate><source url="https://www.example-times.com">Example Times</source></item>
+          <item><title>Small businesses face new finance rules - Example Times</title><link>https://news.google.com/rss/articles/dup?oc=5</link><source url="https://www.example-times.com">Example Times</source></item>
+          <item><title>Football results - Sports Daily</title><link>https://news.google.com/rss/articles/def</link><source url="https://sports.example.org">Sports Daily</source></item>
+          <item><title>Markets and finance - Business Wire</title><link>javascript:alert(1)</link><source url="https://www.businesswire.com">Business Wire</source></item>
+          <item><title>Finances for business owners</title><link>https://news.google.com/rss/articles/ghi</link></item>
+        </channel></rss>"#;
+        let pages = news_results(feed, label);
+        assert_eq!(pages.len(), 2, "{pages:?}");
+        assert_eq!(pages[0]["title"], "Small businesses face new finance rules");
+        assert_eq!(pages[0]["publisher"], "Example Times");
+        assert_eq!(pages[1]["publisher"], "news.google.com");
+        assert!(news_results(b"<html>consent</html>", label).is_empty());
+        assert_eq!(topic_singular("businesses"), "business");
+        assert_eq!(topic_singular("business"), "business");
+        assert_eq!(topic_singular("companies"), "company");
+        assert_eq!(topic_singular("markets"), "market");
+        assert_eq!(topic_singular("gas"), "gas");
+        let subject = |kind: &str, label: &str| Subject { id: "1".into(), kind: kind.into(), label: label.into(), identifiers: Default::default() };
+        assert!(is_topic_subject(&subject("news", "Business Headlines")));
+        assert!(is_topic_subject(&subject("category", label)));
+        assert!(!is_topic_subject(&subject("company", "Monzo Bank")));
+        assert!(!is_topic_subject(&subject("object", "Eiffel Tower")));
     }
 
     #[test]

@@ -13,6 +13,7 @@ pub mod purchase;
 pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
+pub(crate) mod prefill;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 

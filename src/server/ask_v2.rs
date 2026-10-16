@@ -271,6 +271,38 @@ pub(super) async fn follow_up(
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(super) struct PrefillRequest {
+    question: String,
+    inputs: Vec<crate::ask_v2::prefill::Input>,
+}
+
+/// Suggested values for a selected source's empty inputs, read from the
+/// question. Never prices, saves or buys; the form keeps every edit.
+pub(super) async fn prefill(
+    State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<PrefillRequest>,
+) -> Response {
+    let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
+    let question = request.question.trim();
+    if question.is_empty() || question.encode_utf16().count() > 16_000 || !crate::ask_v2::prefill::valid_inputs(&request.inputs) {
+        return failure(StatusCode::BAD_REQUEST, "invalid_prefill", "Enter the details yourself.");
+    }
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Enter the details yourself, or try again shortly.");
+    };
+    let Some(client) = state.engine.parser.ask_v2() else {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "prefill_unavailable", "Enter the details yourself.");
+    };
+    if !client.admit(&person.owner.to_string()) {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Enter the details yourself, or wait a minute.");
+    }
+    match client.prefill_inputs(question, &request.inputs).await {
+        Ok(values) => Json(json!({"values":values})).into_response(),
+        Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "prefill_unavailable", "The details could not be read from your question. Enter them yourself."),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct ParseRequest {
     request_id: Uuid,
     question: String,
