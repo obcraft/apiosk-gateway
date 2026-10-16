@@ -601,7 +601,10 @@ pub async fn read(engine: &Engine, p: &Principal, id: Uuid) -> anyhow::Result<Va
     engine.store.check_workspace(p).await?;
     // Aggregate the complete charge journal, independently of the 100-row run
     // history page. Keep balances and totals in the same database snapshot.
-    let row=sqlx::query(r#"select o.*,
+    // Keep the prepared result shape stable when a migration adds order columns.
+    let row=sqlx::query(r#"select o.state,o.question,o.configuration,o.delivery,o.dates,
+      o.billing_mode,o.change_only,o.workflow,o.provider_per_run,o.total_per_run,
+      o.approved_micro_usd,o.reserved_micro_usd,o.released_micro_usd,o.expires_at,o.sources,
       (select balance_micro_usd::text from user_balances where account_id=coalesce(o.workspace_id,o.owner_id)) available,
       money.spent, money.pending, money.refunded
       from billing.recurring_orders o
