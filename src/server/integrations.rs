@@ -66,6 +66,16 @@ fn provider_failed(context: &str, error: ComposioError) -> Response {
     )
 }
 
+fn account_failed(context: &str, error: ComposioError) -> Response {
+    match error {
+        ComposioError::AccountNotFound | ComposioError::Status(404) => return failure(StatusCode::NOT_FOUND, "integration_account_not_found", "This account is unavailable. Refresh your integrations."),
+        ComposioError::InvalidAlias => return failure(StatusCode::BAD_REQUEST, "invalid_account_label", "Enter an account label of 1 to 100 characters."),
+        ComposioError::Status(409) => return failure(StatusCode::CONFLICT, "account_label_conflict", "This label is already in use. Choose another account label."),
+        _ => {}
+    }
+    provider_failed(context, error)
+}
+
 pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -> Response {
     let (owner, composio) = match (person(&state, &headers).await, client()) {
         (Ok(owner), Ok(composio)) => (owner, composio),
@@ -79,19 +89,24 @@ pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -
 
 /// A hosted consent link. Open it in the person's browser; Composio sends
 /// them back to the App's Integrations page afterwards.
+#[derive(Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ConnectAccount { alias: Option<String> }
+
 pub(super) async fn connect(
     State(state): State<ServerState>,
     headers: HeaderMap,
     Path(slug): Path<String>,
+    body: Option<Json<ConnectAccount>>,
 ) -> Response {
     let (owner, composio, toolkit) =
         match (person(&state, &headers).await, client(), toolkit(&slug)) {
             (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
             (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
         };
-    match composio.connect(owner, toolkit).await {
+    match composio.connect_named(owner, toolkit, body.as_ref().and_then(|Json(body)| body.alias.as_deref())).await {
         Ok(link) => Json(link).into_response(),
-        Err(error) => provider_failed("connect", error),
+        Err(error) => account_failed("connect", error),
     }
 }
 
@@ -108,6 +123,32 @@ pub(super) async fn disconnect(
     match composio.disconnect(owner, toolkit).await {
         Ok(removed) => Json(json!({ "toolkit": toolkit, "removed": removed })).into_response(),
         Err(error) => provider_failed("disconnect", error),
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct AccountLabel { alias: String }
+
+pub(super) async fn rename_account(State(state): State<ServerState>, headers: HeaderMap, Path((slug, id)): Path<(String, String)>, Json(body): Json<AccountLabel>) -> Response {
+    let (owner, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
+        (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
+        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
+    };
+    match composio.rename_account(owner, toolkit, &id, &body.alias).await {
+        Ok(()) => Json(json!({"id": id, "alias": body.alias.trim()})).into_response(),
+        Err(error) => account_failed("rename_account", error),
+    }
+}
+
+pub(super) async fn disconnect_account(State(state): State<ServerState>, headers: HeaderMap, Path((slug, id)): Path<(String, String)>) -> Response {
+    let (owner, composio, toolkit) = match (person(&state, &headers).await, client(), toolkit(&slug)) {
+        (Ok(owner), Ok(composio), Ok(toolkit)) => (owner, composio, toolkit),
+        (Err(r), _, _) | (_, Err(r), _) | (_, _, Err(r)) => return *r,
+    };
+    match composio.disconnect_account(owner, toolkit, &id).await {
+        Ok(()) => Json(json!({"id": id, "removed": 1})).into_response(),
+        Err(error) => account_failed("disconnect_account", error),
     }
 }
 

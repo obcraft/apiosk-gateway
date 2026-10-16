@@ -80,6 +80,7 @@ pub struct IntegrationRow {
 pub struct ConnectedAccountSummary {
     pub id: String,
     pub alias: Option<String>,
+    pub display_name: Option<String>,
     pub status: String,
 }
 
@@ -105,6 +106,21 @@ pub enum ComposioError {
     /// Google Chat OAuth app) and none was set up in the Composio dashboard.
     #[error("no auth config set up for this toolkit")]
     NeedsSetup,
+    #[error("connected account not found")]
+    AccountNotFound,
+    #[error("account label must contain 1 to 100 characters")]
+    InvalidAlias,
+}
+
+fn valid_alias(alias: &str) -> bool {
+    !alias.trim().is_empty() && alias.chars().count() <= 100 && !alias.chars().any(char::is_control)
+}
+
+fn owns_account(account: &Value, owner: Uuid, toolkit: &str, id: &str) -> bool {
+    frozen::valid_account_id(id)
+        && account["id"].as_str() == Some(id)
+        && account["user_id"].as_str() == Some(composio_user_id(owner).as_str())
+        && account["toolkit"]["slug"].as_str() == Some(toolkit)
 }
 
 /// Accounts that name this user and an allowed toolkit. `user_ids` asks
@@ -141,6 +157,7 @@ pub fn statuses(user_id: &str, items: &[Value]) -> Vec<IntegrationRow> {
                     Some(ConnectedAccountSummary {
                         id: id.to_owned(),
                         alias: account["alias"].as_str().map(|alias| clipped(alias, 100)),
+                        display_name: account["state"]["val"]["displayName"].as_str().map(|name| clipped(name, 200)),
                         status: account["status"].as_str().unwrap_or("UNKNOWN").to_owned(),
                     })
                 })
@@ -578,10 +595,20 @@ impl Composio {
     /// taken from the caller: Composio redirects a browser to it, so accepting
     /// one would be an open redirect.
     pub async fn connect(&self, owner: Uuid, toolkit: &'static str) -> Result<Link, ComposioError> {
+        self.connect_named(owner, toolkit, None).await
+    }
+
+    pub async fn connect_named(&self, owner: Uuid, toolkit: &'static str, alias: Option<&str>) -> Result<Link, ComposioError> {
+        let alias = alias.map(str::trim);
+        if alias.is_some_and(|value| !valid_alias(value)) { return Err(ComposioError::InvalidAlias); }
         let auth_config_id = self.auth_config(toolkit).await?;
         let callback = format!("{}/integrations?integration={toolkit}", self.app_origin);
+        // REST link creates a distinct account on each consent. allow_multiple is
+        // an SDK-side guard, not a REST field. Keep the exact account ID at execution.
+        let mut body = json!({"auth_config_id": auth_config_id, "user_id": composio_user_id(owner), "callback_url": callback});
+        if let Some(alias) = alias { body["alias"] = json!(alias); }
         let session = self
-            .call(reqwest::Method::POST, "/connected_accounts/link", Some(json!({"auth_config_id": auth_config_id, "user_id": composio_user_id(owner), "callback_url": callback})))
+            .call(reqwest::Method::POST, "/connected_accounts/link", Some(body))
             .await?;
         let redirect = session["redirect_url"]
             .as_str()
@@ -595,6 +622,29 @@ impl Composio {
             redirect_url: redirect.to_string(),
             expires_at: session["expires_at"].as_str().map(str::to_owned),
         })
+    }
+
+    /// Read ownership directly before a single-account mutation. Expired accounts
+    /// can still be renamed or removed, but another person's account cannot.
+    async fn owned_account(&self, owner: Uuid, toolkit: &str, id: &str) -> Result<(), ComposioError> {
+        if !frozen::valid_account_id(id) { return Err(ComposioError::AccountNotFound); }
+        let account = self.call(reqwest::Method::GET, &format!("/connected_accounts/{id}"), None).await?;
+        if !owns_account(&account, owner, toolkit, id) { return Err(ComposioError::AccountNotFound); }
+        Ok(())
+    }
+
+    pub async fn rename_account(&self, owner: Uuid, toolkit: &str, id: &str, alias: &str) -> Result<(), ComposioError> {
+        let alias = alias.trim();
+        if !valid_alias(alias) { return Err(ComposioError::InvalidAlias); }
+        self.owned_account(owner, toolkit, id).await?;
+        self.call(reqwest::Method::PATCH, &format!("/connected_accounts/{id}"), Some(json!({"alias": alias}))).await?;
+        Ok(())
+    }
+
+    pub async fn disconnect_account(&self, owner: Uuid, toolkit: &str, id: &str) -> Result<(), ComposioError> {
+        self.owned_account(owner, toolkit, id).await?;
+        self.call(reqwest::Method::DELETE, &format!("/connected_accounts/{id}"), None).await?;
+        Ok(())
     }
 
     /// Deletes every account this person has for the toolkit, and nobody else's.
@@ -823,6 +873,40 @@ mod tests {
     }
 
     #[test]
+    fn account_labels_accept_human_names_and_reject_empty_or_control_text() {
+        for label in ["Gmail Apiosk", "Gmail privé", "Gmail ABC"] { assert!(valid_alias(label)); }
+        for label in ["", "   ", "work\nmail", "work\0mail"] { assert!(!valid_alias(label)); }
+        assert!(!valid_alias(&"x".repeat(101)));
+    }
+
+    #[test]
+    fn account_mutation_ownership_checks_id_person_and_toolkit_even_when_expired() {
+        let owner = "00000000-0000-4000-8000-000000000001".parse().unwrap();
+        let mine = account("ca_mine", ME, "gmail", "EXPIRED");
+        assert!(owns_account(&mine, owner, "gmail", "ca_mine"));
+        assert!(!owns_account(&mine, Uuid::nil(), "gmail", "ca_mine"));
+        assert!(!owns_account(&mine, owner, "slack", "ca_mine"));
+        assert!(!owns_account(&mine, owner, "gmail", "ca_other"));
+        assert!(!owns_account(&mine, owner, "gmail", "../ca_mine"));
+    }
+
+    #[test]
+    fn account_list_keeps_multiple_labels_and_only_safe_provider_identity() {
+        let mut work = account("ca_work", ME, "gmail", "ACTIVE");
+        work["alias"] = json!("Gmail Apiosk");
+        work["state"] = json!({"val":{"displayName":"work@example.com", "access_token":"never-expose"}});
+        let mut private = account("ca_private", ME, "gmail", "ACTIVE");
+        private["alias"] = json!("Gmail privé");
+        let rows = statuses(ME, &[work, private, account("ca_foreign", "another-person", "gmail", "ACTIVE")]);
+        let gmail = rows.iter().find(|row| row.toolkit == "gmail").unwrap();
+        assert_eq!(gmail.accounts.len(), 2);
+        assert_eq!(gmail.accounts[0].alias.as_deref(), Some("Gmail Apiosk"));
+        assert_eq!(gmail.accounts[1].alias.as_deref(), Some("Gmail privé"));
+        assert_eq!(gmail.accounts[0].display_name.as_deref(), Some("work@example.com"));
+        assert!(!serde_json::to_string(gmail).unwrap().contains("never-expose"));
+    }
+
+    #[test]
     fn only_the_six_toolkits_are_allowed() {
         assert_eq!(toolkit("slack"), Some("slack"));
         assert_eq!(toolkit("discordbot"), Some("discordbot"));
@@ -938,6 +1022,11 @@ mod tests {
             .route("/connected_accounts/:id", delete({ let log = log.clone(); move |Path(id): Path<String>| async move {
                 log.lock().unwrap().push(format!("DELETE {id}"));
                 Json(json!({"success":true}))
+            }}).get(move |Path(id): Path<String>| async move {
+                Json(account(&id, if id == "ca_theirs" { "other-person" } else { ME }, "notion", "EXPIRED"))
+            }).patch({ let log = log.clone(); move |Path(id): Path<String>, Json(body): Json<Value>| async move {
+                log.lock().unwrap().push(format!("PATCH {id} {body}"));
+                Json(json!({"success":true}))
             }}))
             .route("/tools", get({ let log = log.clone(); move |uri: OriginalUri| async move {
                 log.lock().unwrap().push(format!("GET {}", uri.0));
@@ -956,6 +1045,26 @@ mod tests {
         let base = format!("http://{}", listener.local_addr().unwrap());
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
         (base, log)
+    }
+
+    #[tokio::test]
+    async fn named_accounts_link_rename_and_disconnect_only_one_owned_account() {
+        let (base, log) = fake_composio("ak_test").await;
+        let composio = Composio::new("ak_test".into(), base, "https://app.apiosk.com".into(), HashMap::new());
+        let owner = "00000000-0000-4000-8000-000000000001".parse().unwrap();
+        composio.connect_named(owner, "notion", Some("Notion Apiosk")).await.unwrap();
+        composio.connect_named(owner, "notion", Some("Notion privé")).await.unwrap();
+        composio.rename_account(owner, "notion", "ca_mine", "Notion ABC").await.unwrap();
+        composio.disconnect_account(owner, "notion", "ca_old").await.unwrap();
+        assert!(matches!(composio.rename_account(owner, "notion", "ca_theirs", "stolen").await, Err(ComposioError::AccountNotFound)));
+        assert!(matches!(composio.disconnect_account(owner, "notion", "ca_theirs").await, Err(ComposioError::AccountNotFound)));
+        assert!(matches!(composio.rename_account(owner, "gmail", "ca_mine", "wrong toolkit").await, Err(ComposioError::AccountNotFound)));
+        let log = log.lock().unwrap();
+        let links: Vec<_> = log.iter().filter(|line| line.starts_with("POST /connected_accounts/link")).collect();
+        assert_eq!(links.len(), 2);
+        assert!(links[0].contains("Notion Apiosk"));
+        assert!(links[1].contains("Notion privé"));
+        assert_eq!(log.iter().filter(|line| line.starts_with("PATCH") || line.starts_with("DELETE")).cloned().collect::<Vec<_>>(), ["PATCH ca_mine {\"alias\":\"Notion ABC\"}", "DELETE ca_old"]);
     }
 
     #[tokio::test]

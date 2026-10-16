@@ -16,6 +16,8 @@ because there is no person behind them to consent.
 GET  /v2/integrations
 POST /v2/integrations/{toolkit}/connect
 POST /v2/integrations/{toolkit}/disconnect
+POST /v2/integrations/{toolkit}/accounts/{id}/label
+POST /v2/integrations/{toolkit}/accounts/{id}/disconnect
 ```
 
 `toolkit` is Composio's slug: `slack`, `microsoft_teams`, `discordbot` (the
@@ -35,6 +37,21 @@ Discord toolkit that can post; plain `discord` cannot), `telegram`, `whatsapp`,
 ```
 
 `status` is `connected`, `expired` (reconnect) or `not_connected`.
+
+Each integration includes `accounts`: caller-owned `{id, alias, display_name,
+status}` records. Multiple accounts of the same toolkit remain separate.
+`connect` accepts an optional `{ "alias": "Gmail Apiosk" }` body; each consent
+creates a separate account. Labels can be changed with the account's `/label`
+route and the same body. Labels contain 1–100 characters and must be unique
+for that person and toolkit. Provider identity is read-only safe metadata;
+credentials are never returned.
+
+The account-specific `/disconnect` removes only that account. Ownership,
+toolkit and exact ID are verified directly with Composio before either account
+mutation. The original toolkit `/disconnect` still removes all its accounts;
+the App uses individual account routes when account metadata is available.
+Recurring orders select and retain the exact account ID; renaming its label
+does not change that selection.
 
 An agent that calls `connect` shows `redirect_url` to its person. After consent
 Composio sends the browser to `{APP_ORIGIN}/integrations?integration={toolkit}`,
