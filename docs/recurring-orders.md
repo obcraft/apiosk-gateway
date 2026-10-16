@@ -130,7 +130,39 @@ An attention order cannot resume with a changed contract: it needs a new reviewe
 quote. Approved configuration is immutable in the database; editing an existing
 order into a new approved version remains a later product stage.
 
+Delivery is the supported exception: an owner with spending access can edit an
+active or paused order's Slack/Gmail account and destination from its details.
+`POST /v2/recurring-orders/:id/delivery` requires the current workflow fingerprint
+and resolves the caller-owned destination before preparing its frozen action.
+The database increments the delivery revision and records the old/new contracts,
+while preserving sources, schedule and financial authorization. Running or
+unresolved occurrences and queued/sending/uncertain deliveries block editing.
+The change-only baseline resets so the next completed result reaches the new
+destination. Saving performs metadata discovery only; it sends no message.
+
 ## Durable execution and money
+
+### Manual localhost testing
+
+From the Main directory, run
+`node gateway/scripts/dev-local.mjs --execute --recurring --no-open`.
+The recurring-order details page shows **Manual trigger** only in a development
+build on localhost/loopback. The launcher enables
+`RECURRING_MANUAL_TRIGGER_ENABLED=1`; the endpoint also requires a loopback
+`BIND_ADDRESS`, enabled recurring execution, an allowed authenticated owner and
+workspace spending permission.
+
+The button starts the next approved, queued occurrence early. This is a real
+run: normal source charges and the saved delivery policy apply. It consumes that
+occurrence, preserves its scheduled date (including relative date inputs), and
+does not create an extra occurrence or alter the remaining schedule. Paused,
+cancelled, completed and attention orders cannot be triggered. An earlier
+unfinished run blocks later ones. The request names one run ID, so retries cannot
+silently consume the following occurrence. The regular worker handles execution,
+lease recovery, saved results and delivery. No schema migration is needed.
+
+Check the claim SQL without paid calls with
+`node scripts/test-recurring-manual-trigger.mjs` from the Gateway directory.
 
 billing.recurring_orders stores the mandate; recurring_runs is the occurrence
 queue; recurring_calls holds call identity, inputs, and receipts;

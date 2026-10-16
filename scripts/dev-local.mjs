@@ -38,6 +38,7 @@ export function localConfiguration(workspace = root, inherited = process.env) {
     DATABASE_POOL_SIZE: gateway.DATABASE_POOL_SIZE || '2',
     RUST_LOG: gateway.RUST_LOG || 'apiosk_gateway_v2=info',
     V2_EXECUTION_ENABLED: '0', KVK_WORKERS_ENABLED: '0', RECURRING_ORDERS_ENABLED: '0',
+    RECURRING_MANUAL_TRIGGER_ENABLED: '0',
     WORKSPACE_CONTEXT_ENABLED: 'true',
     ASK_V2_TRANSLATION: '0',
   });
@@ -83,7 +84,71 @@ function signalGroup(child, signal) {
   }
 }
 
-/** Own every process group; a failed service or Ctrl+C also stops its siblings. */
+function groupAlive(child) {
+  if (!child.pid) return false;
+  try { process.kill(-child.pid, 0); return true; }
+  catch (error) {
+    if (error.code === 'ESRCH') return false;
+    throw error;
+  }
+}
+
+/** Keep handlers installed throughout cleanup, including repeated Ctrl+C. */
+export function installShutdownHandlers(controller, { input = process.stdin, signals = process } = {}) {
+  const stop = () => controller.abort();
+  const keys = chunk => { if (chunk.includes('\u0004')) stop(); };
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) signals.on(signal, stop);
+  // A terminal's Ctrl+D is EOF. Ignore stdin for detached/noninteractive runs,
+  // where /dev/null or a closed pipe must not stop a healthy stack immediately.
+  const terminal = Boolean(input.isTTY);
+  if (terminal) {
+    input.on('end', stop);
+    input.on('close', stop);
+    input.on('data', keys);
+    input.resume();
+  }
+  return () => {
+    for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) signals.removeListener(signal, stop);
+    if (terminal) {
+      input.removeListener('end', stop);
+      input.removeListener('close', stop);
+      input.removeListener('data', keys);
+      input.pause();
+    }
+  };
+}
+
+/** Wait for descendants too: Cargo can exit before its Gateway child does. */
+export async function stopServices(children, { graceMs = 5000, killWaitMs = 5000, verifyPorts = checkPorts } = {}) {
+  if (!children.length) return;
+  const errors = [];
+  const send = signal => {
+    for (const { child } of children) {
+      try { signalGroup(child, signal); }
+      catch (error) { errors.push(error); }
+    }
+  };
+  const alive = () => children.some(({ child }) => groupAlive(child));
+  send('SIGTERM');
+  const gracefulUntil = Date.now() + graceMs;
+  while (alive() && Date.now() < gracefulUntil) await delay(50);
+  // Always address the original groups, never whichever process owns a port.
+  send('SIGKILL');
+  const killedUntil = Date.now() + killWaitMs;
+  let portError;
+  do {
+    try { await verifyPorts(children.map(({ service }) => service)); portError = null; }
+    catch (error) { portError = error; }
+    if (!alive() && children.every(entry => entry.stopped) && !portError) {
+      if (errors.length) throw new AggregateError(errors, 'Some local services could not be signalled.');
+      return;
+    }
+    await delay(50);
+  } while (Date.now() < killedUntil);
+  throw new Error(`Local shutdown incomplete: ${portError?.message || 'a service process group has not exited'}`);
+}
+
+/** Own every process group; a failed service or stop request stops its siblings. */
 export async function runServices(services, {
   signal, timeoutMs = 600_000, stopWhenReady = false,
   onStatus = console.log, onReady = () => {}, pollMs = 500,
@@ -141,10 +206,8 @@ export async function runServices(services, {
       await delay(pollMs);
     }
   } finally {
-    for (const { child } of children) signalGroup(child, 'SIGTERM');
-    const until = Date.now() + 5000;
-    while (children.some(entry => !entry.stopped) && Date.now() < until) await delay(50);
-    for (const { child } of children) signalGroup(child, 'SIGKILL');
+    if (children.length) onStatus('Stopping local services and releasing ports…');
+    await stopServices(children);
   }
 }
 
@@ -160,7 +223,7 @@ async function main() {
   const allowed = ['--help', '--check', '--smoke', '--no-open', '--execute', '--recurring'];
   if ([...args].some(arg => !allowed.includes(arg))) throw new Error(`Unknown option. Use ./dev --help.`);
   if (args.has('--help')) {
-    console.log(`Usage: ./dev [--no-open] [--execute] [--recurring]\n\nStarts App :5276, MCP :3000 and Gateway/API :8082. Opens the App when ready.\nUses the existing Supabase API, Auth and database; no migrations or env-file rewrites.\nPurchases and background workers are off by default. --execute permits approved\nrequests through your configured Supabase execution services.\n--recurring enables recurring setup and workers locally for the configured owner allowlist; requires --execute.\n\n--check     Check credentials, dependencies and local ports without starting services\n--smoke     Start all three, check HTTP readiness, then stop (no browser or purchases)\n--no-open   Leave the browser closed\nCtrl+C      Stop all three processes\nLogs: gateway/.local/dev-stack/`);
+    console.log(`Usage: ./dev [--no-open] [--execute] [--recurring]\n\nStarts App :5276, MCP :3000 and Gateway/API :8082. Opens the App when ready.\nUses the existing Supabase API, Auth and database; no migrations or env-file rewrites.\nPurchases and background workers are off by default. --execute permits approved\nrequests through your configured Supabase execution services.\n--recurring enables recurring setup and workers locally for the configured owner allowlist; requires --execute.\n\n--check     Check credentials, dependencies and local ports without starting services\n--smoke     Start all three, check HTTP readiness, then stop (no browser or purchases)\n--no-open   Leave the browser closed\nCtrl+C/D    Stop all three services and release their ports\nLogs: gateway/.local/dev-stack/`);
     return;
   }
   const [major, minor] = process.versions.node.split('.').map(Number);
@@ -195,23 +258,23 @@ async function main() {
   config.mcp.APIOSK_MCP_OAUTH_SECRET ||= localSecret();
   if (args.has('--recurring')) {
     config.gateway.RECURRING_ORDERS_ENABLED = '1';
+    config.gateway.RECURRING_MANUAL_TRIGGER_ENABLED = '1';
     config.gateway.RECURRING_WORKER_SECRET ||= localSecret('recurring-worker-secret');
   }
   const controller = new AbortController();
-  process.once('SIGINT', () => controller.abort());
-  process.once('SIGTERM', () => controller.abort());
+  const removeShutdownHandlers = installShutdownHandlers(controller);
   console.log(`Supabase API: ${config.supabase}\nExecution: ${args.has('--execute') ? 'enabled for approved requests' : 'off (use --execute to enable approved requests)'}\nLogs: ${runtime}\n`);
-  await runServices(services, {
+  try { await runServices(services, {
     signal: controller.signal, stopWhenReady: args.has('--smoke'),
     onReady() {
-      console.log(`\nApp          ${appOrigin}\nGateway/API  ${gatewayOrigin}\nMCP          ${mcpOrigin}/mcp\n\nAll three are ready. Ctrl+C stops them together.`);
+      console.log(`\nApp          ${appOrigin}\nGateway/API  ${gatewayOrigin}\nMCP          ${mcpOrigin}/mcp\n\nAll three are ready. Ctrl+C or Ctrl+D stops them together.`);
       if (!args.has('--smoke') && !args.has('--no-open') && process.platform === 'darwin') {
         const browser = spawn('open', [appOrigin], { stdio: 'ignore' });
         browser.on('error', () => console.log(`Open ${appOrigin} in your browser.`));
       }
     },
-  });
-  console.log('Local services stopped.');
+  }); } finally { removeShutdownHandlers(); }
+  console.log('Local services stopped. Ports 5276, 8082 and 3000 are released.');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

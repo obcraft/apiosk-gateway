@@ -160,6 +160,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/recurring-orders/:id/approve", post(recurring::approve))
         .route("/v2/recurring-orders/:id/runs/:run", get(recurring::run))
         .route("/v2/recurring-orders/:id/control", post(recurring::control))
+        .route("/v2/recurring-orders/:id/delivery", post(recurring::update_delivery))
+        .route("/v2/recurring-orders/:id/manual-trigger", post(recurring::manual_trigger))
         .route("/v2/integrations", get(integrations::list))
         .route("/v2/integrations/:toolkit/connect", post(integrations::connect))
         .route("/v2/integrations/:toolkit/disconnect", post(integrations::disconnect))

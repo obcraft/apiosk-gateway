@@ -4,7 +4,10 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { checkPorts, localConfiguration, runServices } from './dev-local.mjs';
+import { EventEmitter, once } from 'node:events';
+import { PassThrough } from 'node:stream';
+import { spawn } from 'node:child_process';
+import { checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
 
 async function freePort() {
   const socket = net.createServer();
@@ -20,6 +23,110 @@ const server = `
   server.listen(Number(process.env.FIXTURE_PORT), '127.0.0.1');
   if (process.env.FIXTURE_FAIL) setTimeout(() => process.exit(7), 100);
 `;
+
+for (const event of ['SIGINT', 'SIGTERM', 'SIGHUP', 'end', 'close', 'data']) {
+  test(`terminal shutdown handles ${event} and repeated stop requests`, () => {
+    const input = new PassThrough();
+    input.isTTY = true;
+    const signals = new EventEmitter();
+    const controller = new AbortController();
+    let stops = 0;
+    controller.signal.addEventListener('abort', () => stops++);
+    const remove = installShutdownHandlers(controller, { input, signals });
+    if (event.startsWith('SIG')) signals.emit(event);
+    else input.emit(event, Buffer.from('\u0004'));
+    signals.emit('SIGINT'); signals.emit('SIGINT');
+    assert.equal(controller.signal.aborted, true);
+    assert.equal(stops, 1);
+    assert.equal(signals.listenerCount('SIGINT'), 1, 'handler remains during cleanup');
+    remove();
+    assert.equal(signals.listenerCount('SIGINT'), 0);
+    assert.equal(input.listenerCount('data'), 0);
+    assert.equal(input.isPaused(), true);
+    input.destroy();
+  });
+}
+
+test('noninteractive stdin EOF does not stop background services', () => {
+  const input = new PassThrough();
+  const signals = new EventEmitter();
+  const controller = new AbortController();
+  const remove = installShutdownHandlers(controller, { input, signals });
+  input.emit('end'); input.emit('close');
+  assert.equal(controller.signal.aborted, false);
+  signals.emit('SIGTERM');
+  assert.equal(controller.signal.aborted, true);
+  remove(); input.destroy();
+});
+
+test('shutdown waits for owned processes and escalates an ignored SIGTERM', async t => {
+  const child = spawn(process.execPath, ['-e', `
+    process.on('SIGTERM', () => {});
+    process.on('message', () => process.exit(0));
+    process.on('disconnect', () => process.exit(0));
+    setInterval(() => {}, 1000);
+    process.send('ready');
+  `], { detached: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+  const entry = { child, stopped: false, service: { name: 'stubborn', port: 12345 } };
+  const exited = once(child, 'exit');
+  child.on('exit', () => { entry.stopped = true; });
+  let probes = 0;
+  try {
+    await once(child, 'message');
+    try { process.kill(-child.pid, 0); }
+    catch (error) {
+      if (error.code !== 'EPERM') throw error;
+      t.skip('Sandbox does not permit process-group signals.');
+      return;
+    }
+    await stopServices([entry], { graceMs: 100, killWaitMs: 2000, verifyPorts: async services => {
+      assert.deepEqual(services, [entry.service]);
+      probes++;
+      if (probes === 1) throw new Error('port not released yet');
+    } });
+    assert.equal(entry.stopped, true);
+    assert.equal(child.signalCode, 'SIGKILL');
+    assert.ok(probes >= 2, 'waits for the port-release check to pass');
+    assert.throws(() => process.kill(-child.pid, 0), { code: 'ESRCH' });
+  } catch (error) {
+    if (error.code !== 'EPERM') throw error;
+    t.skip('Sandbox blocks verification of exited process groups.');
+  } finally {
+    if (!entry.stopped && child.connected) child.send('stop');
+    await exited;
+  }
+});
+
+test('shutdown reports an occupied port instead of claiming success or killing its owner', async () => {
+  await assert.rejects(stopServices([{ child: {}, stopped: true, service: { port: 12345 } }], {
+    graceMs: 0, killWaitMs: 10, verifyPorts: async () => { throw new Error('Port 12345 is already in use.'); },
+  }), /shutdown incomplete: Port 12345 is already in use/);
+});
+
+test('shutdown keeps tracking descendants after the direct child exits', async t => {
+  let descendantAlive = true;
+  const sent = [];
+  t.mock.method(process, 'kill', (pid, signal) => {
+    assert.equal(pid, -123456, 'signals only the group started by this launcher');
+    if (signal === 0) {
+      if (descendantAlive) return true;
+      throw Object.assign(new Error('gone'), { code: 'ESRCH' });
+    }
+    sent.push(signal);
+    if (signal === 'SIGKILL') descendantAlive = false;
+    return true;
+  });
+  let checks = 0;
+  await stopServices([{ child: { pid: 123456 }, stopped: true, service: { port: 12345 } }], {
+    graceMs: 10, killWaitMs: 500, verifyPorts: async () => {
+      checks++;
+      if (checks < 2) throw new Error('still closing');
+    },
+  });
+  assert.deepEqual(sent, ['SIGTERM', 'SIGKILL']);
+  assert.equal(descendantAlive, false);
+  assert.ok(checks >= 2);
+});
 
 async function fixture(directory, name, extra = {}) {
   const port = await freePort();
@@ -41,6 +148,7 @@ test('local overrides reconnect App and MCP without giving them Gateway secrets'
     assert.equal(c.mcp.APIOSK_GATEWAY_V2_URL, c.app.VITE_GATEWAY_V2_URL);
     assert.equal(c.mcp.APIOSK_GATEWAY_URL, 'https://project.example/functions/v1/agent-gateway');
     assert.equal(c.gateway.V2_EXECUTION_ENABLED, '0');
+    assert.equal(c.gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '0');
     assert.equal(c.gateway.WORKSPACE_CONTEXT_ENABLED, 'true');
     assert.equal(c.gateway.OPENROUTER_API_KEY, 'server-only-model-key');
     for (const env of [c.app, c.mcp]) {

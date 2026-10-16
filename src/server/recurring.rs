@@ -67,9 +67,12 @@ fn recurring_error_message(error: &anyhow::Error) -> &'static str {
         Some(sqlx::Error::Database(db)) if db.constraint() == Some("recurring_active_mandate") => return "This order is already scheduled. Open Recurring orders to manage it.",
         Some(sqlx::Error::Database(db)) if db.message() == "insufficient_balance" => return "Not enough available balance. Add funds or choose fewer runs.",
         Some(sqlx::Error::Database(db)) if db.message() == "quote_expired" => return "This quote expired. Refresh the total price.",
+        Some(sqlx::Error::Database(db)) if db.message() == "recurring_delivery_busy" || db.code().as_deref() == Some("55P03") => return "A run or delivery is still in progress or needs review. Wait for it to finish before changing delivery.",
         _ => {}
     }
     match error.to_string().as_str() {
+        "The order changed. Refresh it before saving delivery." => "The order changed. Refresh it before saving delivery.",
+        "Delivery can only be changed on an active or paused order." => "Delivery can only be changed on an active or paused order.",
         "A dynamic input has no unique source in this recipe; review the original dependency."
         | "Several earlier sources could bind this input; an explicit source binding is required."
         | "The dependency returned no unique subject. Review the order." => "This saved answer needs a source choice before it can repeat automatically. Ask again with the exact company or record identifier.",
@@ -209,6 +212,17 @@ pub(super) async fn read(
     };
     reply(recurring::read(&s.engine, &p, id).await)
 }
+
+pub(super) async fn update_delivery(
+    State(s): State<ServerState>, h: HeaderMap, Path(id): Path<Uuid>,
+    Json(b): Json<recurring::delivery_edit::DeliveryEdit>,
+) -> Response {
+    let p = match person(&s, &h).await { Ok(p) => p, Err(r) => return r };
+    if !recurring::enabled() {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "recurring_unavailable", "Recurring orders are not available yet.");
+    }
+    reply(recurring::delivery_edit::update(&s.engine, &p, id, b).await)
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Approve {
@@ -329,4 +343,27 @@ pub(super) async fn run(
         Err(r) => return r,
     };
     reply(recurring::read_run(&s.engine, &p, id, run).await)
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ManualTrigger {
+    run_id: Uuid,
+}
+
+pub(super) async fn manual_trigger(
+    State(s): State<ServerState>, h: HeaderMap, Path(id): Path<Uuid>,
+    Json(b): Json<ManualTrigger>,
+) -> Response {
+    if !recurring::manual::enabled() {
+        return failure(StatusCode::NOT_FOUND, "manual_trigger_unavailable", "Manual trigger is only available on the local recurring-enabled Gateway.");
+    }
+    let p = match person(&s, &h).await { Ok(p) => p, Err(r) => return r };
+    match recurring::manual::trigger(&s.engine, &p, id, b.run_id).await {
+        Ok(()) => (StatusCode::ACCEPTED, Json(json!({"run_id":b.run_id,"state":"running"}))).into_response(),
+        Err(error) => {
+            tracing::warn!(%error, "manual recurring trigger refused");
+            failure(StatusCode::CONFLICT, "manual_trigger_refused", "Could not start this occurrence. Check spending access and refresh the order; it must be active with its next run still queued.")
+        }
+    }
 }

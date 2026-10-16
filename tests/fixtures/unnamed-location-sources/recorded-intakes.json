@@ -1,0 +1,357 @@
+[
+  {
+    "address": "Damrak 1, Amsterdam",
+    "attempts": 1,
+    "location_requested": true,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.99,
+          "description": "Retrieve address details for the specified address",
+          "domain": "location",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Address lookup",
+          "outputs": [
+            "address_details"
+          ],
+          "slug": "location.address.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.98,
+          "description": "Search for publications associated with the address",
+          "domain": "research",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Search publications",
+          "outputs": [
+            "publications"
+          ],
+          "slug": "research.publication.search",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "list"
+        ]
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:52.969287+00:00",
+        "text_sha256": "7636a88de1b5a420f916fa2ece6359e1f10c28396b58bc3626c1d82e5716aaf1"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Damrak 1, Amsterdam"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "Find Damrak 1, Amsterdam and search publications for that address, with sources."
+  },
+  {
+    "address": "Damrak 1, Amsterdam",
+    "attempts": 1,
+    "location_requested": true,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Retrieve address details for a given address",
+          "domain": "location",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Address lookup",
+          "outputs": [
+            "address_details"
+          ],
+          "slug": "location.address.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.96,
+          "description": "Search for publications associated with a given address",
+          "domain": "research",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Publication search",
+          "outputs": [
+            "publications",
+            "sources"
+          ],
+          "slug": "research.publication.search",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:53.516410+00:00",
+        "text_sha256": "cf0563ea24f63718b883c31bc0d726cc2d07a97c20a57e48811cea98661854ad"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Damrak 1, Amsterdam"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "ind Damrak 1, Amsterdam in and search publications for that address, with sources."
+  },
+  {
+    "address": "Damrak 1, Amsterdam",
+    "attempts": 1,
+    "location_requested": true,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.97,
+          "description": "Retrieve details for a specific address",
+          "domain": "location",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Address lookup",
+          "outputs": [
+            "address_details"
+          ],
+          "slug": "location.address.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.96,
+          "description": "Find publications related to a given address",
+          "domain": "document",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Search publications",
+          "outputs": [
+            "publications"
+          ],
+          "slug": "document.search.publications",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "nl",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:54.095202+00:00",
+        "text_sha256": "bb0cbaee73c22bd4e8e09a6e2a256ab855389b80694895d4eef1cb0b3d946c34"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Damrak 1, Amsterdam"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "Zoek het adres Damrak 1, Amsterdam en zoek publicaties over dat adres, met bronnen."
+  },
+  {
+    "address": "Coolsingel 40, Rotterdam",
+    "attempts": 2,
+    "location_requested": true,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.98,
+          "description": "Retrieve detailed information for a given address.",
+          "domain": "location",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Address Lookup",
+          "outputs": [
+            "address_details"
+          ],
+          "slug": "location.address.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        },
+        {
+          "confidence": 0.97,
+          "description": "Find official publications associated with the specified address.",
+          "domain": "general",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Publications Search",
+          "outputs": [
+            "publications"
+          ],
+          "slug": "general.publications.search",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:55.724864+00:00",
+        "text_sha256": "a71ffa285efc1195339f00bd3f256f5f78d90a9200252fad7a2b8a2e59f32f68"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Coolsingel 40, Rotterdam"
+          },
+          "label": "Coolsingel 40, Rotterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "Locate Coolsingel 40, Rotterdam and find official publications about that address."
+  },
+  {
+    "address": "Damrak 1, Amsterdam",
+    "attempts": 1,
+    "location_requested": false,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.9,
+          "description": "Search for publications related to a given address",
+          "domain": "general",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Search publications",
+          "outputs": [
+            "publications",
+            "sources"
+          ],
+          "slug": "general.search.publications",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:56.236202+00:00",
+        "text_sha256": "20ea691ddc693440cbf20f3a2b487af1c53f042e8f45e8db497e5bc2f9a65e65"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Damrak 1, Amsterdam"
+          },
+          "label": "Damrak 1, Amsterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "Search publications for Damrak 1, Amsterdam, with sources."
+  },
+  {
+    "address": "Coolsingel 40, Rotterdam",
+    "attempts": 1,
+    "location_requested": false,
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.9,
+          "description": "Find publications related to a specified address",
+          "domain": "research",
+          "inputs": [
+            "address"
+          ],
+          "missing": [],
+          "name": "Search publications",
+          "outputs": [
+            "publications",
+            "sources"
+          ],
+          "slug": "research.publications.search",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "nl",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-15T22:47:56.978959+00:00",
+        "text_sha256": "e8c55be5e3dd4711e187ea623027d70999b585eeebf9c07a8d591bd1cf136e3d"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "address": "Coolsingel 40, Rotterdam"
+          },
+          "label": "Coolsingel 40, Rotterdam",
+          "type": "address"
+        }
+      ]
+    },
+    "question": "Zoek publicaties over Coolsingel 40, Rotterdam, met bronnen."
+  }
+]

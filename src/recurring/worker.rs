@@ -66,7 +66,13 @@ pub(super) async fn pass(e: &Arc<Engine>) -> anyhow::Result<()> {
     let Some(row) = row else { return Ok(()) };
     let run: Uuid = row.get("id");
     let order: Uuid = row.get("order_id");
-    let job = execute(e, run, order, row.get("scheduled_at"));
+    run_claimed(e, run, order, row.get("scheduled_at"), lease).await
+}
+
+pub(super) async fn run_claimed(
+    e: &Arc<Engine>, run: Uuid, order: Uuid, scheduled: DateTime<Utc>, lease: Uuid,
+) -> anyhow::Result<()> {
+    let job = execute(e, run, order, scheduled);
     let renew = async {
         let mut tick = tokio::time::interval(Duration::from_secs(20));
         loop {
