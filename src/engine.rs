@@ -360,6 +360,11 @@ impl Engine {
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
         displayed_search: Option<(&crate::capability_intake::Intake, std::sync::Arc<Catalog>,Option<&crate::ask_v2::source_selection::Context>)>,
     ) -> anyhow::Result<Response> {
+        // Explicit named-workflow entry points share the temporary feature gate.
+        // Normal Ask discovery and recurring execution do not select this mode.
+        if req.context_delta.workflow_slug.is_some() || forced.as_ref().is_some_and(|(_, workflow)| workflow.is_some()) {
+            if let Some(response) = crate::workflows::start_rejection(req.request_id) { return Ok(response); }
+        }
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.
         let direct = forced.as_ref().is_some_and(|(_, workflow)| workflow.is_none());

@@ -4,6 +4,14 @@
 use crate::{invoice_document::FIELDS, supplier_check};
 use serde_json::{json, Value};
 
+/// Temporary pause of the named Workflows feature, independent of recurring orders.
+pub const ENABLED: bool = false;
+pub const DISABLED_MESSAGE: &str = "Workflows are temporarily disabled.";
+
+pub fn start_rejection(request_id: uuid::Uuid) -> Option<crate::protocol::Response> {
+    (!ENABLED).then(|| crate::protocol::Response::error(request_id, crate::protocol::Status::Unsupported, "workflows_disabled", DISABLED_MESSAGE))
+}
+
 pub const SUPPLIER_CHECK: &str = "supplier-payment-check";
 
 /// The quoted price range of a supplier check at the workflow markup: a minimal
@@ -110,5 +118,19 @@ mod tests {
         assert_eq!(min, "0.24");
         // + KVK search 0.018903 + VIES 0.085066 + RDAP 0.085066 + DNS 0.085066.
         assert_eq!(max, "0.54");
+    }
+}
+
+#[cfg(test)]
+mod pause_tests {
+    #[test]
+    fn paused_workflow_start_has_no_task_or_purchase_to_continue() {
+        let request_id = uuid::Uuid::new_v4();
+        let response = super::start_rejection(request_id).expect("workflows are paused");
+        assert_eq!(response.request_id, request_id);
+        assert_eq!(response.status, crate::protocol::Status::Unsupported);
+        assert_eq!(response.errors[0]["code"], "workflows_disabled");
+        assert!(response.state.is_none());
+        assert!(response.proposal.is_none());
     }
 }

@@ -610,6 +610,7 @@ async fn workflows(State(state): State<ServerState>, headers: HeaderMap, Query(q
         Ok(p) => p,
         Err(r) => return r,
     };
+    if !crate::workflows::ENABLED { return Json(json!({"workflows": [], "enabled": false})).into_response(); }
     let display = state.engine.store.money_display(p.owner).await;
     match state.engine.catalog.get().await {
         Ok(catalog) => Json(crate::workflows::definitions_for_client(&catalog, &display, query.catalog == Some(2))).into_response(),
@@ -618,6 +619,7 @@ async fn workflows(State(state): State<ServerState>, headers: HeaderMap, Query(q
 }
 
 async fn start_workflow(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(request): Json<crate::workflow_catalog::StartRequest>) -> HttpResponse {
+    if !crate::workflows::ENABLED { return failure(StatusCode::SERVICE_UNAVAILABLE, "workflows_disabled", crate::workflows::DISABLED_MESSAGE); }
     let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
     let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
     match state.engine.start_workflow(&p, &slug, request).await {

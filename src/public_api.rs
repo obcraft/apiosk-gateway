@@ -792,6 +792,7 @@ struct WorkflowInput {
 /// means a plan can be built, not that a country or company has complete data.
 pub async fn ask_workflows(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
     if let Err(response) = context(&state, &headers, &["sources:read"]).await { return response; }
+    if !crate::workflows::ENABLED { return Json(json!({"workflows": [], "enabled": false})).into_response(); }
     match state.engine.catalog.get().await {
         Ok(catalog) => Json(json!({"workflows":crate::workflow_catalog::definitions(&catalog),"notice":"Country availability checks planning only. Review the exact source calls and total ceiling before running; records vary by entity and period."})).into_response(),
         Err(error) => unavailable("workflow catalog", &error),
