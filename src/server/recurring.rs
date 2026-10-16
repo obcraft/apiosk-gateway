@@ -328,7 +328,7 @@ pub(super) async fn list(State(s): State<ServerState>, h: HeaderMap) -> Response
     };
     reply(async{
  s.engine.store.check_workspace(&p).await?;
- let orders:Vec<Value>=sqlx::query_scalar("select jsonb_build_object('id',id,'question',question,'state',state,'reserved',reserved_micro_usd::text) from billing.recurring_orders where owner_id=$1 and workspace_id is not distinct from $2 and approved_at is not null order by created_at desc limit 100").bind(p.owner).bind(p.workspace).fetch_all(&s.engine.store.pool).await?;
+ let orders:Vec<Value>=sqlx::query_scalar("select jsonb_build_object('id',id,'question',question,'state',state,'reserved',reserved_micro_usd::text,'delivery',jsonb_build_object('toolkit',delivery->>'toolkit','destination',delivery->>'destination','destination_label',delivery->>'destination_label'),'schedule',configuration->'schedule','sources',coalesce((select jsonb_agg(jsonb_build_object('name',coalesce(source->'selection'->>'name',source->'selection'->>'api_slug','Saved source'),'api_slug',source->'selection'->>'api_slug') order by ordinal) from jsonb_array_elements(sources) with ordinality as saved(source,ordinal)),'[]'::jsonb)) from billing.recurring_orders where owner_id=$1 and workspace_id is not distinct from $2 and approved_at is not null order by created_at desc limit 100").bind(p.owner).bind(p.workspace).fetch_all(&s.engine.store.pool).await?;
  Ok(json!({"orders":orders}))
 }.await)
 }
