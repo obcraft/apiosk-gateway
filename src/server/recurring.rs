@@ -171,6 +171,33 @@ pub(super) async fn destinations(
         }
     }
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct CreateChannel {
+    connected_account_id: String,
+    name: String,
+    is_private: bool,
+}
+
+pub(super) async fn create_channel(
+    State(s): State<ServerState>, h: HeaderMap, Json(b): Json<CreateChannel>,
+) -> Response {
+    let p = match person(&s, &h).await { Ok(p) => p, Err(r) => return r };
+    if !recurring::enabled() {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "recurring_unavailable", "Recurring orders are not available yet.");
+    }
+    if s.engine.store.check_workspace(&p).await.is_err() {
+        return failure(StatusCode::FORBIDDEN, "workspace_unavailable", "This workspace is unavailable.");
+    }
+    let Some(composio) = crate::integrations::configured() else {
+        return failure(StatusCode::SERVICE_UNAVAILABLE, "integrations_unavailable", "Delivery apps are temporarily unavailable.");
+    };
+    match composio.create_slack_channel(p.owner, &b.connected_account_id, &b.name, b.is_private).await {
+        Ok(value) => Json(value).into_response(),
+        Err(message) => failure(StatusCode::CONFLICT, "channel_creation_failed", message),
+    }
+}
+
 pub(super) async fn read(
     State(s): State<ServerState>,
     h: HeaderMap,

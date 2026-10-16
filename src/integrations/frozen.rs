@@ -264,7 +264,45 @@ fn slack_destination(channel: &Value) -> Option<Value> {
     Some(json!({"id":id,"label":clipped(label, 200),"kind":kind}))
 }
 
+fn validate_channel_name(name: &str) -> Result<(), &'static str> {
+    if name.is_empty() || name.len() > 80
+        || !name.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_')
+        || !name.bytes().any(|b| b.is_ascii_alphanumeric()) {
+        return Err("Use 1–80 lowercase letters, numbers, hyphens or underscores for the channel name.");
+    }
+    Ok(())
+}
+
+fn created_channel(result: &Value, name: &str, is_private: bool) -> Result<Value, &'static str> {
+    let data = &result["data"];
+    if result["successful"] != true || data["ok"] != true {
+        return Err(match data["error"].as_str().or_else(|| result["error"].as_str()) {
+            Some("name_taken") => "That channel name is already in use. Choose the existing channel or use another name.",
+            Some("missing_scope" | "no_permission" | "restricted_action" | "not_allowed_token_type") => "Slack has not granted permission to create channels. Reconnect Slack in Integrations or ask your workspace admin.",
+            Some("invalid_name" | "invalid_name_specials" | "invalid_name_maxlength" | "invalid_name_punctuation") => "Slack rejected this channel name. Use lowercase letters, numbers, hyphens or underscores.",
+            _ => "Channel creation could not be confirmed. Check your Slack channels and connection before trying again.",
+        });
+    }
+    let channel = &data["channel"];
+    if channel["name"] != name || channel["is_private"] != is_private || channel["is_mpim"] == true {
+        return Err("Slack returned an unexpected channel. Refresh your conversations to check it before continuing.");
+    }
+    slack_destination(channel).ok_or("The channel was created but could not be selected. Refresh your Slack conversations.")
+}
+
 impl Composio {
+    /// Explicit app action. Never called by preview, quote, or the run worker.
+    pub async fn create_slack_channel(
+        &self, owner: Uuid, account_id: &str, name: &str, is_private: bool,
+    ) -> Result<Value, &'static str> {
+        validate_channel_name(name)?;
+        self.require_owned_account(owner, "slack", account_id).await
+            .map_err(|_| "This Slack connection is unavailable. Reconnect it in Integrations.")?;
+        let result = self.slack_tool_result(owner, account_id, "SLACK_CREATE_CHANNEL", json!({"name":name,"is_private":is_private})).await
+            .map_err(|_| "Channel creation could not be confirmed. Check your Slack channels before trying again.")?;
+        created_channel(&result, name, is_private)
+    }
+
     /// Read conversation metadata only; never join a channel or send a message.
     pub async fn slack_destinations(
         &self,
@@ -373,6 +411,16 @@ impl Composio {
     }
 
     async fn self_slack_tool(
+        &self, owner: Uuid, account_id: &str, tool: &str, arguments: Value,
+    ) -> Result<Value, ExecuteError> {
+        let result = self.slack_tool_result(owner, account_id, tool, arguments).await?;
+        if result["successful"] != true || result["data"]["ok"] != true {
+            return Err(ExecuteError::AccountUnavailable);
+        }
+        Ok(result["data"].clone())
+    }
+
+    async fn slack_tool_result(
         &self,
         owner: Uuid,
         account_id: &str,
@@ -408,10 +456,7 @@ impl Composio {
                 })),
             )
             .await?;
-        if result["successful"] != true || result["data"]["ok"] != true {
-            return Err(ExecuteError::AccountUnavailable);
-        }
-        Ok(result["data"].clone())
+        Ok(result)
     }
 
     async fn require_owned_account(
@@ -609,6 +654,7 @@ mod tests {
             .route("/tools/:slug", get(|State(s): State<Provider>, Path(slug): Path<String>, uri: OriginalUri| async move {
                 s.calls.lock().unwrap().push((format!("GET {}", uri.0), Value::Null));
                 Json(match slug.as_str() {
+                    "SLACK_CREATE_CHANNEL" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"name":{"type":"string"},"is_private":{"type":"boolean"}},"required":["name","is_private"],"additionalProperties":false}}),
                     "SLACK_LIST_ALL_CHANNELS" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"limit":{"type":"integer"},"types":{"type":"string"},"exclude_archived":{"type":"boolean"},"cursor":{"type":"string"}},"additionalProperties":false}}),
                     "SLACK_RETRIEVE_CONVERSATION_INFORMATION" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{"channel":{"type":"string"}},"required":["channel"],"additionalProperties":false}}),
                     "SLACK_TEST_AUTH" => json!({"slug":slug,"toolkit":{"slug":"slack"},"version":"20261008_00","input_parameters":{"type":"object","properties":{}}}),
@@ -620,6 +666,7 @@ mod tests {
                 s.calls.lock().unwrap().push((format!("POST /tools/execute/{slug}"), body));
                 let status = *s.execution_status.lock().unwrap();
                 let data = match slug.as_str() {
+                    "SLACK_CREATE_CHANNEL" => json!({"ok":true,"channel":s.conversation.lock().unwrap().clone()}),
                     "SLACK_LIST_ALL_CHANNELS" => json!({"ok":true,"channels":[s.conversation.lock().unwrap().clone(),{"id":"CARCHIVED","is_member":true,"is_archived":true},{"id":"COTHER","is_member":false}],"response_metadata":{"next_cursor":"page-two"}}),
                     "SLACK_RETRIEVE_CONVERSATION_INFORMATION" => json!({"ok":true,"channel":s.conversation.lock().unwrap().clone()}),
                     "SLACK_TEST_AUTH" => s.identity.lock().unwrap().clone(),
@@ -642,6 +689,49 @@ mod tests {
             ),
             state,
         )
+    }
+
+    #[test]
+    fn created_channels_require_provider_confirmation_and_the_reviewed_visibility() {
+        let success = json!({"successful":true,"data":{"ok":true,"channel":{"id":"CNEW","name":"tendernet-triggers","is_private":true,"is_member":true}}});
+        assert_eq!(created_channel(&success, "tendernet-triggers", true).unwrap()["id"], "CNEW");
+        assert!(created_channel(&success, "other", true).is_err());
+        assert!(created_channel(&success, "tendernet-triggers", false).is_err());
+        assert!(created_channel(&json!({"successful":true,"data":{"ok":false,"error":"name_taken"}}), "news", true).unwrap_err().contains("already in use"));
+        assert!(created_channel(&json!({"successful":false,"data":{"error":"missing_scope"}}), "news", true).unwrap_err().contains("permission"));
+        assert!(created_channel(&json!({"successful":true}), "news", true).is_err());
+        for name in ["", "Tendernet triggers", "---", "@everyone", &"a".repeat(81)] { assert!(validate_channel_name(name).is_err()); }
+        assert!(validate_channel_name("tendernet-triggers").is_ok());
+    }
+
+    #[tokio::test]
+    async fn creates_only_a_reviewed_channel_for_an_owned_account_without_sending() {
+        let (client, provider) = fake().await;
+        *provider.conversation.lock().unwrap() = json!({"id":"CNEW","name":"tendernet-triggers","is_private":true,"is_member":true});
+        for name in ["", "Tendernet triggers", "---", "@everyone", &"a".repeat(81)] {
+            assert!(client.create_slack_channel(owner(), "ca_selected", name, true).await.is_err());
+        }
+        assert!(provider.calls.lock().unwrap().is_empty());
+        let result = client.create_slack_channel(owner(), "ca_selected", "tendernet-triggers", true).await.unwrap();
+        assert_eq!(result, json!({"id":"CNEW","label":"tendernet-triggers","kind":"private_channel"}));
+        let calls = provider.calls.lock().unwrap().clone();
+        let posts: Vec<_> = calls.iter().filter(|(path, _)| path.starts_with("POST")).collect();
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].0, "POST /tools/execute/SLACK_CREATE_CHANNEL");
+        assert_eq!(posts[0].1["arguments"], json!({"name":"tendernet-triggers","is_private":true}));
+        provider.account.lock().unwrap()["user_id"] = json!("another-owner");
+        assert!(client.create_slack_channel(owner(), "ca_selected", "other", true).await.is_err());
+        assert_eq!(provider.calls.lock().unwrap().len(), calls.len() + 1);
+    }
+
+    #[tokio::test]
+    async fn channel_creation_never_accepts_wrong_visibility_or_silently_retries() {
+        let (client, provider) = fake().await;
+        *provider.conversation.lock().unwrap() = json!({"id":"CNEW","name":"news","is_private":false,"is_member":true});
+        assert!(client.create_slack_channel(owner(), "ca_selected", "news", true).await.is_err());
+        *provider.execution_status.lock().unwrap() = axum::http::StatusCode::TOO_MANY_REQUESTS;
+        assert!(client.create_slack_channel(owner(), "ca_selected", "news", false).await.is_err());
+        assert_eq!(provider.calls.lock().unwrap().iter().filter(|(p,_)| p.starts_with("POST")).count(), 2);
     }
 
     #[tokio::test]

@@ -477,15 +477,6 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
         e.app_url,
         row.get::<Uuid, _>("id")
     );
-    let observations = result["analysis"]["observations"]
-        .as_array()
-        .map(|rows| {
-            rows.iter()
-                .filter_map(|v| v["text"].as_str())
-                .collect::<Vec<_>>()
-                .join("\n\n")
-        })
-        .unwrap_or_default();
     let limitations = result["analysis"]["limitations"]
         .as_array()
         .map(|rows| {
@@ -497,10 +488,8 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
         .unwrap_or_default();
     let summary = if row.get::<String, _>("run_state") != "succeeded" {
         format!("The scheduled sequence did not complete. {} Completed source results, if any, remain saved.",row.get::<Option<String>,_>("run_error").unwrap_or_default())
-    } else if observations.is_empty() {
-        "Your scheduled source results are saved. Open the link to review them.".to_owned()
     } else {
-        observations
+        crate::integrations::report::summary(&result)
     };
     let usage_notices = result["sources"]
         .as_array()
@@ -527,6 +516,10 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
         usage_notices,
         url
     );
+    // Provider data and the question are text, never Slack mention commands.
+    let text = if workflow.delivery.toolkit == "slack" {
+        text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    } else { text };
     let outcome = if e.store.check_workspace(&p).await.is_err() || !enabled_for(p.owner) {
         None
     } else {

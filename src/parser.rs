@@ -1018,8 +1018,7 @@ impl Parser {
             "reasoning":{"effort":"minimal","exclude":true},"provider":{"require_parameters":true},
             "response_format":{"type":"json_object"},"messages":[
                 {"role":"system","content":include_str!("../contracts/action-arguments-prompt.txt")},
-                {"role":"user","content":json!({"question":question,"results":results,
-                    "action":{"slug":action.slug,"name":action.name,"description":action.description,"input_schema":action.input_schema}}).to_string()}
+                {"role":"user","content":crate::integrations::report::action_input(question, action, results).to_string()}
             ]});
         let schema = action.input_schema.clone();
         self.completion("action-arguments", &payload, move |raw| action_arguments(raw, &schema)).await

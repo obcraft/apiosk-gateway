@@ -32,6 +32,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 mod frozen;
+pub(crate) mod report;
 pub use frozen::FrozenAction;
 
 /// The apps a person may connect, in the order they are shown.
